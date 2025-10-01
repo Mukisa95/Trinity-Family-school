@@ -1,0 +1,169 @@
+{
+  "totalPupils": 197,
+  "genderDistribution": {
+    "Female": 106,
+    "Male": 91
+  },
+  "sectionDistribution": {
+    "day": 127,
+    "boarding": 70
+  },
+  "statusDistribution": {
+    "ACTIVE": 197
+  },
+  "classDistribution": {
+    "1738165922575": 17,
+    "1738166079854": 47,
+    "1738166047647": 18,
+    "1738165880160": 21,
+    "1738166151683": 15,
+    "1738165816819": 27,
+    "1738165840130": 14,
+    "1738166004662": 9,
+    "1738166131699": 9,
+    "1738165859529": 20
+  },
+  "nationalityDistribution": {
+    "UGANDAN": 194,
+    "TANZANIAN": 2,
+    "Unknown": 1
+  },
+  "religionDistribution": {
+    "PENTECOSTAL": 37,
+    "CATHOLIC": 65,
+    "MUSLIM": 41,
+    "Unknown": 9,
+    "ANGLICAN": 42,
+    "SEVENTH DAY ADVENTIST": 2,
+    "OTHER": 1
+  },
+  "bloodTypeDistribution": {
+    "Unknown": 197
+  },
+  "guardiansAnalysis": {
+    "pupilsWithGuardians": 197,
+    "pupilsWithMultipleGuardians": 118,
+    "averageGuardiansPerPupil": 1.598984771573604,
+    "relationshipDistribution": {
+      "MOTHER": 172,
+      "FATHER": 130,
+      "GRANDMOTHER": 6,
+      "AUNT": 5,
+      "LEGAL GUARDIAN": 2
+    }
+  },
+  "dataQualityIssues": {
+    "missingFirstNames": [],
+    "missingLastNames": [],
+    "missingAdmissionNumbers": [],
+    "missingClassIds": [],
+    "invalidGenders": [],
+    "invalidSections": [],
+    "invalidStatuses": [],
+    "pupilsWithoutGuardians": [],
+    "duplicateAdmissionNumbers": [],
+    "invalidDates": []
+  },
+  "fieldCompleteness": {
+    "firstName": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "lastName": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "otherNames": {
+      "filled": 43,
+      "empty": 154,
+      "percentage": 21.82741116751269
+    },
+    "gender": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "dateOfBirth": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "placeOfBirth": {
+      "filled": 185,
+      "empty": 12,
+      "percentage": 93.90862944162437
+    },
+    "nationality": {
+      "filled": 196,
+      "empty": 1,
+      "percentage": 99.49238578680203
+    },
+    "religion": {
+      "filled": 188,
+      "empty": 9,
+      "percentage": 95.43147208121827
+    },
+    "address": {
+      "filled": 183,
+      "empty": 14,
+      "percentage": 92.89340101522842
+    },
+    "pupilIdentificationNumber": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "classId": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "section": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "status": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    },
+    "medicalConditions": {
+      "filled": 0,
+      "empty": 197,
+      "percentage": 0
+    },
+    "allergies": {
+      "filled": 0,
+      "empty": 197,
+      "percentage": 0
+    },
+    "medications": {
+      "filled": 1,
+      "empty": 196,
+      "percentage": 0.5076142131979695
+    },
+    "bloodType": {
+      "filled": 0,
+      "empty": 197,
+      "percentage": 0
+    },
+    "learnerIdentificationNumber": {
+      "filled": 0,
+      "empty": 197,
+      "percentage": 0
+    },
+    "previousSchool": {
+      "filled": 54,
+      "empty": 143,
+      "percentage": 27.411167512690355
+    },
+    "registrationDate": {
+      "filled": 197,
+      "empty": 0,
+      "percentage": 100
+    }
+  }
+}

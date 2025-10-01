@@ -1,0 +1,6 @@
+com.trinityonline.webviewapp.test.app-core-1.5.0-0 C:\Users\ZION\.gradle\caches\8.10\transforms\2c41fa08c4fbdce0b84c869762d4439d\transformed\core-1.5.0\res
+com.trinityonline.webviewapp.test.app-annotation-experimental-1.3.0-1 C:\Users\ZION\.gradle\caches\8.10\transforms\599d7e466ce28e2c84d4503ef7a377f7\transformed\annotation-experimental-1.3.0\res
+com.trinityonline.webviewapp.test.app-androidTest-2 C:\Users\ZION\Desktop\download\android-app\app\build\generated\res\resValues\androidTest\debug
+com.trinityonline.webviewapp.test.app-mergeDebugAndroidTestResources-3 C:\Users\ZION\Desktop\download\android-app\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.trinityonline.webviewapp.test.app-mergeDebugAndroidTestResources-4 C:\Users\ZION\Desktop\download\android-app\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.trinityonline.webviewapp.test.app-merged_res-5 C:\Users\ZION\Desktop\download\android-app\app\build\intermediates\merged_res\debugAndroidTest

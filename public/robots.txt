@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Allow all search engines to crawl the site
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Disallow crawling of admin areas and API endpoints
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login/
+Disallow: /_next/
+Disallow: /out/
+
+# Sitemap location
+Sitemap: https://trinityfamilyschool.vercel.app/sitemap.xml
+
+# Crawl delay (optional)
+Crawl-delay: 1 

@@ -1,0 +1,163 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'Admin';
+    }
+    
+    function isStaff() {
+      return isAuthenticated() && getUserData().role == 'Staff';
+    }
+    
+    function isParent() {
+      return isAuthenticated() && getUserData().role == 'Parent';
+    }
+    
+    function hasModule(moduleName) {
+      return isAdmin() || 
+             (isStaff() && moduleName in getUserData().modules && getUserData().modules[moduleName] == true);
+    }
+    
+    // File size limits
+    function isValidImageSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB
+    }
+    
+    function isValidDocumentSize() {
+      return request.resource.size < 20 * 1024 * 1024; // 20MB
+    }
+    
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isPDF() {
+      return request.resource.contentType == 'application/pdf';
+    }
+    
+    // Pupil Photos - Staff with pupils module can upload, all authenticated can read
+    match /pupils/{pupilId}/photo.{ext} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('pupils') && isValidImageSize() && isImage();
+      allow delete: if hasModule('pupils') || isAdmin();
+    }
+    
+    // Pupil Documents - Staff with pupils module can upload, authenticated users can read
+    match /pupils/{pupilId}/documents/{document} {
+      allow read: if isAuthenticated() && (
+        hasModule('pupils') || 
+        isParent() && getUserData().familyId == firestore.get(/databases/(default)/documents/pupils/$(pupilId)).data.familyId
+      );
+      allow write: if hasModule('pupils') && isValidDocumentSize();
+      allow delete: if hasModule('pupils') || isAdmin();
+    }
+    
+    // Staff Photos - Staff can upload their own, all authenticated can read
+    match /staff/{staffId}/photo.{ext} {
+      allow read: if isAuthenticated();
+      allow write: if (hasModule('staff') || request.auth.uid == firestore.get(/databases/(default)/documents/staff/$(staffId)).data.userId) 
+                      && isValidImageSize() && isImage();
+      allow delete: if isAdmin();
+    }
+    
+    // Staff Documents - Staff can upload their own, admin can read all
+    match /staff/{staffId}/documents/{document} {
+      allow read: if isAdmin() || request.auth.uid == firestore.get(/databases/(default)/documents/staff/$(staffId)).data.userId;
+      allow write: if (hasModule('staff') || request.auth.uid == firestore.get(/databases/(default)/documents/staff/$(staffId)).data.userId)
+                      && isValidDocumentSize();
+      allow delete: if isAdmin();
+    }
+    
+    // Digital Signatures - Users can upload/read their own signature
+    match /signatures/{userId}/{signatureFile} {
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      allow write: if isAuthenticated() && request.auth.uid == userId && isValidImageSize() && isImage();
+      allow delete: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+    }
+    
+    // School Photos - Admin and Staff with settings module
+    match /school-photos/{photoId}/{file} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('settings') && isValidImageSize() && isImage();
+      allow delete: if hasModule('settings') || isAdmin();
+    }
+    
+    // Event Photos - Admin and Staff with events module
+    match /events/{eventId}/{file} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('events') && isValidImageSize() && isImage();
+      allow delete: if hasModule('events') || isAdmin();
+    }
+    
+    // Exam Documents - Admin and Staff with exams module
+    match /exams/{examId}/{document} {
+      allow read: if isAuthenticated() && hasModule('exams');
+      allow write: if hasModule('exams') && isValidDocumentSize();
+      allow delete: if hasModule('exams') || isAdmin();
+    }
+    
+    // Payment Receipts - Admin and Staff with fees module can write, users can read their own
+    match /receipts/{familyId}/{receiptFile} {
+      allow read: if isAuthenticated() && (
+        hasModule('fees') || 
+        isParent() && getUserData().familyId == familyId
+      );
+      allow write: if hasModule('fees') && isValidDocumentSize() && isPDF();
+      allow delete: if isAdmin();
+    }
+    
+    // Fee Statements - Admin and Staff with fees module can write, users can read their own
+    match /statements/{familyId}/{statementFile} {
+      allow read: if isAuthenticated() && (
+        hasModule('fees') || 
+        isParent() && getUserData().familyId == familyId
+      );
+      allow write: if hasModule('fees') && isValidDocumentSize() && isPDF();
+      allow delete: if isAdmin();
+    }
+    
+    // Reports - Admin and authorized staff only
+    match /reports/{reportType}/{file} {
+      allow read: if isAdmin() || hasModule('fees') || hasModule('pupils');
+      allow write: if isAdmin() || hasModule('fees') || hasModule('pupils');
+      allow delete: if isAdmin();
+    }
+    
+    // Backup Files - Admin only
+    match /backups/{backupFile} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // School Logo and Branding - Admin only write, all authenticated can read
+    match /branding/{file} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidImageSize() && isImage();
+      allow delete: if isAdmin();
+    }
+    
+    // Temporary Uploads - Users can upload to their own temp folder, auto-cleanup after 24h
+    match /temp/{userId}/{file} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId && isValidImageSize();
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

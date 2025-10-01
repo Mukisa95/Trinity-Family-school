@@ -1,0 +1,2830 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/common/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+import { useClasses } from "@/lib/hooks/use-classes";
+import { usePupils } from "@/lib/hooks/use-pupils";
+import { useAttendanceByDateRange } from "@/lib/hooks/use-attendance";
+import { useExcludedDays } from "@/lib/hooks/use-excluded-days";
+import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
+import { 
+  Loader2, 
+  ArrowLeft, 
+  BarChart3, 
+  Download, 
+  Calendar,
+  CalendarDays,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  AlertTriangle,
+  Info,
+  BookOpen,
+  Clock,
+  Building2,
+  Users,
+  User,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
+import { 
+  format, 
+  subDays, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval,
+  eachWeekOfInterval,
+  startOfWeek,
+  endOfWeek,
+  eachMonthOfInterval,
+  parseISO,
+  startOfDay,
+  endOfDay
+} from "date-fns";
+import type { AttendanceRecord } from "@/types";
+import { 
+  isSchoolDay, 
+  getTermBoundaries, 
+  getTermsInDateRange, 
+  validateAttendanceDateRange 
+} from "@/lib/utils/attendance-academic-utils";
+
+type TrendPeriod = "daily" | "weekly" | "monthly" | "termly";
+type ReportType = "class" | "pupil" | "school";
+
+interface TrendData {
+  period: string;
+  date: string;
+  totalDays: number;
+  schoolDays: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  notRecorded: number;
+  attendanceRate: number;
+  trend: "up" | "down" | "stable";
+}
+
+interface PupilTrendData extends TrendData {
+  pupilId: string;
+  pupilName: string;
+  admissionNumber: string;
+}
+
+interface ClassPupilTrendData {
+  pupilId: string;
+  pupilName: string;
+  admissionNumber: string;
+  periods: TrendData[];
+}
+
+interface SchoolAttendanceData {
+  classId: string;
+  className: string;
+  classCode: string;
+  totalPupils: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  notRecorded: number;
+  attendanceRate: number;
+  pupils: {
+    present: Array<{ id: string; name: string; admissionNumber: string }>;
+    absent: Array<{ id: string; name: string; admissionNumber: string }>;
+    late: Array<{ id: string; name: string; admissionNumber: string }>;
+    excused: Array<{ id: string; name: string; admissionNumber: string }>;
+    notRecorded: Array<{ id: string; name: string; admissionNumber: string }>;
+  };
+}
+
+export default function ViewAttendanceReportsPage() {
+  
+  // Next.js hooks
+  const router = useRouter();
+  
+  // Firebase hooks
+  const { data: allClasses = [], isLoading: classesLoading } = useClasses();
+  const { data: allPupils = [], isLoading: pupilsLoading } = usePupils();
+  const { data: excludedDays = [], isLoading: excludedDaysLoading } = useExcludedDays();
+  const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
+  const { data: activeAcademicYear } = useActiveAcademicYear();
+  
+  // State for filters
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = React.useState("");
+  const [selectedTermId, setSelectedTermId] = React.useState("");
+  const [selectedClassId, setSelectedClassId] = React.useState("");
+  const [selectedPupilId, setSelectedPupilId] = React.useState("");
+  const [startDate, setStartDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
+  const [reportType, setReportType] = React.useState<ReportType>("school");
+  const [trendPeriod, setTrendPeriod] = React.useState<TrendPeriod>("daily");
+  
+  // School view expansion states
+  const [expandedClasses, setExpandedClasses] = React.useState<Set<string>>(new Set());
+  const [expandedStatuses, setExpandedStatuses] = React.useState<Set<string>>(new Set());
+  const [expandAllStatus, setExpandAllStatus] = React.useState<string | null>(null);
+  
+  // Inline attendance recording states
+  const [recordingPupils, setRecordingPupils] = React.useState<Set<string>>(new Set());
+  const [recordingData, setRecordingData] = React.useState<Record<string, { status: string; remarks: string }>>({});
+  
+  // Get selected academic year
+  const selectedAcademicYear = React.useMemo(() => {
+    return academicYears.find(year => year.id === selectedAcademicYearId) || null;
+  }, [academicYears, selectedAcademicYearId]);
+  
+  // Set default academic year when data loads
+  React.useEffect(() => {
+    if (activeAcademicYear && !selectedAcademicYearId) {
+      setSelectedAcademicYearId(activeAcademicYear.id);
+    }
+  }, [activeAcademicYear, selectedAcademicYearId]);
+  
+  // Set default term to current term when academic year is selected
+  React.useEffect(() => {
+    if (selectedAcademicYear && !selectedTermId) {
+      const today = new Date();
+      const currentTerm = selectedAcademicYear.terms.find(term => {
+        const termStart = parseISO(term.startDate);
+        const termEnd = parseISO(term.endDate);
+        return today >= termStart && today <= termEnd;
+      });
+      if (currentTerm) {
+        setSelectedTermId(currentTerm.id);
+      }
+    }
+  }, [selectedAcademicYear, selectedTermId]);
+
+  // Initialize with school daily view when component loads
+  React.useEffect(() => {
+    if (reportType === "school" && trendPeriod === "daily" && !startDate && !endDate) {
+      // Set to today's date for school daily view
+      const today = format(new Date(), "yyyy-MM-dd");
+      setStartDate(today);
+      setEndDate(today);
+    } else if (selectedAcademicYear && trendPeriod === "termly" && !startDate && !endDate) {
+      setQuickDateRange("term");
+    }
+  }, [selectedAcademicYear, trendPeriod, startDate, endDate, reportType]);
+
+  // Load URL parameters on component mount
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      const urlReportType = urlParams.get('reportType') as ReportType;
+      const urlPupilId = urlParams.get('pupilId');
+      const urlTrendPeriod = urlParams.get('trendPeriod') as TrendPeriod;
+      const urlStartDate = urlParams.get('startDate');
+      const urlEndDate = urlParams.get('endDate');
+      const urlAcademicYearId = urlParams.get('academicYearId');
+      const urlTermId = urlParams.get('termId');
+      
+      if (urlReportType) setReportType(urlReportType);
+      if (urlPupilId) setSelectedPupilId(urlPupilId);
+      if (urlTrendPeriod) setTrendPeriod(urlTrendPeriod);
+      if (urlStartDate) setStartDate(urlStartDate);
+      if (urlEndDate) setEndDate(urlEndDate);
+      if (urlAcademicYearId) setSelectedAcademicYearId(urlAcademicYearId);
+      if (urlTermId) setSelectedTermId(urlTermId);
+    }
+  }, []);
+  
+  // Initialize dates when academic year changes
+  React.useEffect(() => {
+    if (selectedAcademicYear && !startDate && !endDate) {
+      const boundaries = getTermBoundaries(selectedAcademicYear, selectedTermId);
+      if (boundaries) {
+        setStartDate(boundaries.startDate.split('T')[0]);
+        setEndDate(boundaries.endDate.split('T')[0]);
+      }
+    }
+  }, [selectedAcademicYear, selectedTermId, startDate, endDate]);
+
+  // Update date range and academic year when term selection changes
+  React.useEffect(() => {
+    if (selectedTermId && selectedTermId !== "_all_") {
+      // Find which academic year contains this term
+      const containingAcademicYear = academicYears.find(year => 
+        year.terms.some(term => term.id === selectedTermId)
+      );
+      
+      if (containingAcademicYear) {
+        // Update academic year if it's different
+        if (containingAcademicYear.id !== selectedAcademicYearId) {
+          setSelectedAcademicYearId(containingAcademicYear.id);
+        }
+        
+        // Update date range for termly view
+        if (trendPeriod === "termly") {
+          const selectedTerm = containingAcademicYear.terms.find(term => term.id === selectedTermId);
+          if (selectedTerm) {
+            setStartDate(selectedTerm.startDate.split('T')[0]);
+            setEndDate(selectedTerm.endDate.split('T')[0]);
+          }
+        }
+      }
+    }
+  }, [selectedTermId, academicYears, selectedAcademicYearId, trendPeriod]);
+  
+  // Get attendance data for the selected date range
+  const { data: attendanceRecords = [], isLoading: attendanceLoading } = useAttendanceByDateRange(
+    startDate,
+    endDate
+  );
+
+
+
+  // Validate date range
+  const dateRangeValidation = React.useMemo(() => {
+    if (!startDate || !endDate) return { isValid: true };
+    return validateAttendanceDateRange(
+      parseISO(startDate), 
+      parseISO(endDate), 
+      selectedAcademicYear
+    );
+  }, [startDate, endDate, selectedAcademicYear]);
+
+  // Helper function to get school days in a date range
+  const getSchoolDays = React.useCallback((start: Date, end: Date): Date[] => {
+    const allDays = eachDayOfInterval({ start, end });
+    return allDays.filter(day => isSchoolDay(day, selectedAcademicYear, excludedDays));
+  }, [selectedAcademicYear, excludedDays]);
+
+  // Calculate statistics for a set of records
+  const calculateStats = React.useCallback((records: AttendanceRecord[], schoolDaysCount: number, expectedPupilCount: number = 1, isDailyClassView: boolean = false) => {
+    const present = records.filter(r => r.status === "Present").length;
+    const absent = records.filter(r => r.status === "Absent").length;
+    const late = records.filter(r => r.status === "Late").length;
+    const excused = records.filter(r => r.status === "Excused").length;
+    
+    let notRecorded: number;
+    let attendanceRate: number;
+    
+    if (isDailyClassView) {
+      // For daily class view, calculate based on total pupils in class
+      const totalRecordedPupils = present + absent + late + excused;
+      notRecorded = Math.max(0, expectedPupilCount - totalRecordedPupils);
+      
+      // Attendance rate based on pupils who attended vs total pupils
+      attendanceRate = expectedPupilCount > 0 ? ((present + late) / expectedPupilCount) * 100 : 0;
+    } else {
+      // Original logic for other views (weekly, monthly, termly)
+      const totalExpectedRecords = schoolDaysCount * expectedPupilCount;
+      const totalActualRecords = records.length;
+      notRecorded = Math.max(0, totalExpectedRecords - totalActualRecords);
+      
+      attendanceRate = schoolDaysCount > 0 ? ((present + late) / schoolDaysCount) * 100 : 0;
+    }
+
+    return {
+      totalDays: records.length,
+      schoolDays: schoolDaysCount,
+      present,
+      absent,
+      late,
+      excused,
+      notRecorded,
+      attendanceRate
+    };
+  }, []);
+
+  // Generate trend data based on selected period
+  const generateTrendData = React.useCallback((): TrendData[] => {
+    if (!startDate || !endDate) return [];
+
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      const trendData: TrendData[] = [];
+
+      let intervals: { start: Date; end: Date; label: string }[] = [];
+
+      switch (trendPeriod) {
+        case "daily":
+          const schoolDays = getSchoolDays(start, end);
+          intervals = schoolDays.map(day => ({
+            start: startOfDay(day),
+            end: endOfDay(day),
+            label: format(day, "MMM dd, yyyy")
+          }));
+          break;
+
+        case "weekly":
+          const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+          intervals = weeks.map(week => {
+            const weekStart = startOfWeek(week, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(week, { weekStartsOn: 1 });
+            return {
+              start: weekStart > start ? weekStart : start,
+              end: weekEnd < end ? weekEnd : end,
+              label: `Week of ${format(weekStart, "MMM dd")}`
+            };
+          });
+          break;
+
+        case "monthly":
+          const months = eachMonthOfInterval({ start, end });
+          intervals = months.map(month => {
+            const monthStart = startOfMonth(month);
+            const monthEnd = endOfMonth(month);
+            return {
+              start: monthStart > start ? monthStart : start,
+              end: monthEnd < end ? monthEnd : end,
+              label: format(month, "MMMM yyyy")
+            };
+          });
+          break;
+
+        case "termly":
+          if (selectedAcademicYear) {
+            const termsInRange = getTermsInDateRange(start, end, selectedAcademicYear);
+            intervals = termsInRange.map(term => ({
+              start: parseISO(term.startDate) > start ? parseISO(term.startDate) : start,
+              end: parseISO(term.endDate) < end ? parseISO(term.endDate) : end,
+              label: term.name
+            }));
+          }
+          break;
+      }
+
+      intervals.forEach((interval, index) => {
+        const periodRecords = attendanceRecords.filter(record => {
+          const recordDate = parseISO(record.date);
+          return recordDate >= interval.start && recordDate <= interval.end;
+        });
+
+        // Filter by class or pupil if selected
+        let filteredRecords = periodRecords;
+        if (reportType === "class" && selectedClassId) {
+          filteredRecords = periodRecords.filter(r => r.classId === selectedClassId);
+        } else if (reportType === "pupil" && selectedPupilId) {
+          filteredRecords = periodRecords.filter(r => r.pupilId === selectedPupilId);
+        }
+
+        const schoolDaysInPeriod = getSchoolDays(interval.start, interval.end);
+        // For trend data, calculate expected pupil count
+        let expectedPupilCount = 1;
+        if (reportType === "class" && selectedClassId) {
+          const classInfo = allClasses.find(c => c.id === selectedClassId);
+          expectedPupilCount = allPupils.filter(p => p.classId === selectedClassId).length;
+        }
+        const isDailyClassView = trendPeriod === "daily" && reportType === "class";
+        const stats = calculateStats(filteredRecords, schoolDaysInPeriod.length, expectedPupilCount, isDailyClassView);
+
+        // Calculate trend (compare with previous period)
+        let trend: "up" | "down" | "stable" = "stable";
+        if (index > 0) {
+          const prevPeriodRate = trendData[index - 1]?.attendanceRate || 0;
+          if (stats.attendanceRate > prevPeriodRate + 2) trend = "up";
+          else if (stats.attendanceRate < prevPeriodRate - 2) trend = "down";
+        }
+
+        trendData.push({
+          period: interval.label,
+          date: format(interval.start, "yyyy-MM-dd"),
+          ...stats,
+          trend
+        });
+      });
+
+      return trendData;
+    } catch (error) {
+      console.error('Error generating trend data:', error);
+      return [];
+    }
+  }, [startDate, endDate, trendPeriod, attendanceRecords, getSchoolDays, calculateStats, selectedAcademicYear, reportType, selectedClassId, selectedPupilId]);
+
+  // Generate pupil trend data
+  const generatePupilTrendData = React.useCallback((): PupilTrendData[] => {
+    if (!selectedPupilId || !startDate || !endDate) return [];
+
+    const pupil = allPupils.find(p => p.id === selectedPupilId);
+    if (!pupil) return [];
+
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      const pupilRecords = attendanceRecords.filter(r => r.pupilId === selectedPupilId);
+      
+      // Determine if this is a year view (spanning multiple terms)
+      const isYearView = selectedAcademicYear && 
+        selectedTermId === "_all_" && 
+        selectedAcademicYear.terms.length > 1 &&
+        Math.abs(end.getTime() - start.getTime()) > (180 * 24 * 60 * 60 * 1000); // More than 6 months
+
+      let intervals: { start: Date; end: Date; label: string }[] = [];
+
+      // For year view, always show by terms regardless of trend period
+      if (isYearView) {
+        // Year view: show by terms
+        if (selectedAcademicYear) {
+          const termsInRange = getTermsInDateRange(start, end, selectedAcademicYear);
+          intervals = termsInRange.map(term => ({
+            start: parseISO(term.startDate) > start ? parseISO(term.startDate) : start,
+            end: parseISO(term.endDate) < end ? parseISO(term.endDate) : end,
+            label: term.name
+          }));
+        }
+      } else {
+        // Individual date breakdown for week, month, and term views
+        switch (trendPeriod) {
+          case "daily":
+            const schoolDays = getSchoolDays(start, end);
+            intervals = schoolDays.map(day => ({
+              start: startOfDay(day),
+              end: endOfDay(day),
+              label: format(day, "MMM dd, yyyy")
+            }));
+            break;
+
+          case "weekly":
+            // For weekly view, show actual weeks within the date range
+            const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+            intervals = weeks.map(week => {
+              const weekStart = startOfWeek(week, { weekStartsOn: 1 });
+              const weekEnd = endOfWeek(week, { weekStartsOn: 1 });
+              return {
+                start: weekStart > start ? weekStart : start,
+                end: weekEnd < end ? weekEnd : end,
+                label: `Week of ${format(weekStart, "MMM dd")}`
+              };
+            });
+            break;
+
+          case "monthly":
+            // For monthly view, show actual months within the date range
+            const months = eachMonthOfInterval({ start, end });
+            intervals = months.map(month => {
+              const monthStart = startOfMonth(month);
+              const monthEnd = endOfMonth(month);
+              return {
+                start: monthStart > start ? monthStart : start,
+                end: monthEnd < end ? monthEnd : end,
+                label: format(month, "MMMM yyyy")
+              };
+            });
+            break;
+
+          case "termly":
+            // For termly view, show actual terms within the date range
+            if (selectedAcademicYear) {
+              const termsInRange = getTermsInDateRange(start, end, selectedAcademicYear);
+              intervals = termsInRange.map(term => ({
+                start: parseISO(term.startDate) > start ? parseISO(term.startDate) : start,
+                end: parseISO(term.endDate) < end ? parseISO(term.endDate) : end,
+                label: term.name
+              }));
+            }
+            break;
+        }
+      }
+
+      // If no intervals found, fall back to single period
+      if (intervals.length === 0) {
+        intervals = [{
+          start,
+          end,
+          label: `${format(start, "MMM dd")} - ${format(end, "MMM dd, yyyy")}`
+        }];
+      }
+
+      // Generate data for each interval
+      const trendData: PupilTrendData[] = [];
+
+      intervals.forEach((interval, index) => {
+        // Get pupil's attendance records for this period
+        const periodRecords = pupilRecords.filter(record => {
+          const recordDate = parseISO(record.date);
+          return recordDate >= interval.start && recordDate <= interval.end;
+        });
+
+        const schoolDaysInPeriod = getSchoolDays(interval.start, interval.end);
+        const stats = calculateStats(periodRecords, schoolDaysInPeriod.length, 1);
+
+        // Calculate trend (compare with previous period)
+        let trend: "up" | "down" | "stable" = "stable";
+        if (index > 0) {
+          const prevPeriodRate = trendData[index - 1]?.attendanceRate || 0;
+          if (stats.attendanceRate > prevPeriodRate + 2) trend = "up";
+          else if (stats.attendanceRate < prevPeriodRate - 2) trend = "down";
+        }
+
+        trendData.push({
+        ...stats,
+          period: interval.label,
+          date: format(interval.start, "yyyy-MM-dd"),
+          trend,
+        pupilId: pupil.id,
+          pupilName: `${pupil.firstName?.charAt(0).toUpperCase() + pupil.firstName?.slice(1).toLowerCase() || ''} ${pupil.lastName?.charAt(0).toUpperCase() + pupil.lastName?.slice(1).toLowerCase() || ''}`.trim(),
+        admissionNumber: pupil.admissionNumber
+        });
+      });
+
+      return trendData;
+    } catch (error) {
+      console.error('Error generating pupil trend data:', error);
+      return [];
+    }
+  }, [selectedPupilId, allPupils, attendanceRecords, startDate, endDate, getSchoolDays, calculateStats, trendPeriod, selectedAcademicYear, selectedTermId]);
+
+  // Generate school-wide attendance data for day view
+  const generateSchoolAttendanceData = React.useCallback((): SchoolAttendanceData[] => {
+    if (!startDate || !endDate || trendPeriod !== "daily") return [];
+
+    try {
+      const schoolData: SchoolAttendanceData[] = [];
+      
+      // Group pupils by class
+      const classPupils = allClasses.reduce((acc, cls) => {
+        acc[cls.id] = {
+          class: cls,
+          pupils: allPupils.filter(p => p.classId === cls.id)
+        };
+        return acc;
+      }, {} as Record<string, { class: any; pupils: any[] }>);
+
+      // Process each class
+      Object.values(classPupils).forEach(({ class: cls, pupils }) => {
+        if (pupils.length === 0) return;
+
+        const classAttendanceData: SchoolAttendanceData = {
+          classId: cls.id,
+          className: cls.name,
+          classCode: cls.code,
+          totalPupils: pupils.length,
+          present: 0,
+          absent: 0,
+          late: 0,
+          excused: 0,
+          notRecorded: 0,
+          attendanceRate: 0,
+          pupils: {
+            present: [],
+            absent: [],
+            late: [],
+            excused: [],
+            notRecorded: []
+          }
+        };
+
+        // Process each pupil in the class
+        pupils.forEach(pupil => {
+          // Find attendance record for this pupil on the selected date
+          // Convert both dates to YYYY-MM-DD format for comparison
+          const targetDate = startDate; // Already in YYYY-MM-DD format
+          const attendanceRecord = attendanceRecords.find(record => {
+            // Handle different date formats that might come from the database
+            let recordDate;
+            if (typeof record.date === 'string') {
+              // If it's an ISO string, extract the date part
+              recordDate = record.date.split('T')[0];
+            } else if (record.date instanceof Date) {
+              // If it's a Date object, format it
+              recordDate = format(record.date, 'yyyy-MM-dd');
+            } else {
+              // Fallback: try to parse it
+              recordDate = format(new Date(record.date), 'yyyy-MM-dd');
+            }
+            
+            return record.pupilId === pupil.id && recordDate === targetDate;
+          });
+
+          const pupilInfo = {
+            id: pupil.id,
+            name: `${pupil.firstName?.charAt(0).toUpperCase() + pupil.firstName?.slice(1).toLowerCase() || ''} ${pupil.lastName?.charAt(0).toUpperCase() + pupil.lastName?.slice(1).toLowerCase() || ''}`.trim(),
+            admissionNumber: pupil.admissionNumber
+          };
+
+          if (attendanceRecord) {
+            switch (attendanceRecord.status) {
+              case 'Present':
+                classAttendanceData.present++;
+                classAttendanceData.pupils.present.push(pupilInfo);
+                break;
+              case 'Absent':
+                classAttendanceData.absent++;
+                classAttendanceData.pupils.absent.push(pupilInfo);
+                break;
+              case 'Late':
+                classAttendanceData.late++;
+                classAttendanceData.pupils.late.push(pupilInfo);
+                break;
+              case 'Excused':
+                classAttendanceData.excused++;
+                classAttendanceData.pupils.excused.push(pupilInfo);
+                break;
+            }
+          } else {
+            // No record means not recorded yet (not absent by default)
+            classAttendanceData.notRecorded++;
+            classAttendanceData.pupils.notRecorded.push(pupilInfo);
+          }
+        });
+
+        // Calculate attendance rate
+        const attendingPupils = classAttendanceData.present + classAttendanceData.late;
+        classAttendanceData.attendanceRate = classAttendanceData.totalPupils > 0 
+          ? (attendingPupils / classAttendanceData.totalPupils) * 100 
+          : 0;
+
+        schoolData.push(classAttendanceData);
+      });
+
+      // Sort by class name
+      return schoolData.sort((a, b) => a.className.localeCompare(b.className));
+    } catch (error) {
+      console.error('Error generating school attendance data:', error);
+      return [];
+    }
+  }, [allClasses, allPupils, attendanceRecords, startDate, endDate, trendPeriod]);
+
+  // Get school attendance data
+  const schoolAttendanceData = React.useMemo(() => generateSchoolAttendanceData(), [generateSchoolAttendanceData]);
+
+
+
+  // Handle expanding/collapsing specific class-status combinations
+  const toggleClassStatusExpansion = (classId: string, status: string) => {
+    const key = `${classId}-${status}`;
+    setExpandedStatuses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+    
+    // Clear expand all status if manually toggling
+    if (expandAllStatus) {
+      setExpandAllStatus(null);
+    }
+  };
+
+  // Handle inline attendance recording
+  const togglePupilRecording = (pupilId: string) => {
+    setRecordingPupils(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(pupilId)) {
+        newSet.delete(pupilId);
+        // Clear recording data when closing
+        setRecordingData(prevData => {
+          const newData = { ...prevData };
+          delete newData[pupilId];
+          return newData;
+        });
+      } else {
+        newSet.add(pupilId);
+        // Initialize recording data
+        setRecordingData(prevData => ({
+          ...prevData,
+          [pupilId]: { status: 'Present', remarks: '' }
+        }));
+      }
+      return newSet;
+    });
+  };
+
+  const updateRecordingData = (pupilId: string, field: 'status' | 'remarks', value: string) => {
+    setRecordingData(prev => ({
+      ...prev,
+      [pupilId]: {
+        ...prev[pupilId],
+        [field]: value
+      }
+    }));
+  };
+
+  const saveAttendanceRecord = async (pupilId: string, classId: string) => {
+    const recordData = recordingData[pupilId];
+    if (!recordData || !startDate) return;
+
+    try {
+      // Here you would typically save to your database
+      // For now, we'll simulate the save operation
+      console.log('Saving attendance record:', {
+        pupilId,
+        classId,
+        date: startDate,
+        status: recordData.status,
+        remarks: recordData.remarks
+      });
+
+      // Remove from recording state
+      setRecordingPupils(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(pupilId);
+        return newSet;
+      });
+
+      setRecordingData(prev => {
+        const newData = { ...prev };
+        delete newData[pupilId];
+        return newData;
+      });
+
+      // Show success message
+      // toast.success('Attendance recorded successfully');
+      
+      // You might want to refresh the data here
+      // refetchAttendanceData();
+      
+    } catch (error) {
+      console.error('Error saving attendance record:', error);
+      // toast.error('Failed to save attendance record');
+    }
+  };
+
+  // Handle expanding all rows for a specific status
+  const toggleExpandAllStatus = (status: string) => {
+    if (expandAllStatus === status) {
+      // Collapse all
+      setExpandAllStatus(null);
+      setExpandedStatuses(new Set());
+    } else {
+      // Expand all for this status
+      setExpandAllStatus(status);
+      const newExpandedStatuses = new Set<string>();
+      schoolAttendanceData.forEach(classData => {
+        if (classData.pupils[status as keyof typeof classData.pupils].length > 0) {
+          newExpandedStatuses.add(`${classData.classId}-${status}`);
+        }
+      });
+      setExpandedStatuses(newExpandedStatuses);
+    }
+  };
+
+  // Generate class pupil trend data - shows each pupil's attendance across time periods
+  const generateClassPupilTrendData = React.useCallback((): ClassPupilTrendData[] => {
+    if (!selectedClassId || !startDate || !endDate) return [];
+
+    try {
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      
+      // Get pupils in the selected class
+      const classPupils = allPupils.filter(p => p.classId === selectedClassId);
+      if (classPupils.length === 0) return [];
+
+      // Generate time intervals (same logic as generateTrendData)
+      let intervals: { start: Date; end: Date; label: string }[] = [];
+
+      switch (trendPeriod) {
+        case "daily":
+          const schoolDays = getSchoolDays(start, end);
+          intervals = schoolDays.map(day => ({
+            start: startOfDay(day),
+            end: endOfDay(day),
+            label: format(day, "MMM dd, yyyy")
+          }));
+          break;
+
+        case "weekly":
+          const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+          intervals = weeks.map(week => {
+            const weekStart = startOfWeek(week, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(week, { weekStartsOn: 1 });
+            return {
+              start: weekStart > start ? weekStart : start,
+              end: weekEnd < end ? weekEnd : end,
+              label: `Week of ${format(weekStart, "MMM dd")}`
+            };
+          });
+          break;
+
+        case "monthly":
+          const months = eachMonthOfInterval({ start, end });
+          intervals = months.map(month => {
+            const monthStart = startOfMonth(month);
+            const monthEnd = endOfMonth(month);
+            return {
+              start: monthStart > start ? monthStart : start,
+              end: monthEnd < end ? monthEnd : end,
+              label: format(month, "MMMM yyyy")
+            };
+          });
+          break;
+
+        case "termly":
+          if (selectedAcademicYear) {
+            const termsInRange = getTermsInDateRange(start, end, selectedAcademicYear);
+            intervals = termsInRange.map(term => ({
+              start: parseISO(term.startDate) > start ? parseISO(term.startDate) : start,
+              end: parseISO(term.endDate) < end ? parseISO(term.endDate) : end,
+              label: term.name
+            }));
+          }
+          break;
+      }
+
+      // Generate data for each pupil
+      return classPupils.map(pupil => {
+        const pupilPeriods: TrendData[] = [];
+
+        intervals.forEach((interval, index) => {
+          // Get pupil's attendance records for this period
+          const pupilRecords = attendanceRecords.filter(record => {
+            const recordDate = parseISO(record.date);
+            return record.pupilId === pupil.id && 
+                   recordDate >= interval.start && 
+                   recordDate <= interval.end;
+          });
+
+          const schoolDaysInPeriod = getSchoolDays(interval.start, interval.end);
+          const stats = calculateStats(pupilRecords, schoolDaysInPeriod.length, 1);
+
+          // Calculate trend (compare with previous period for this pupil)
+          let trend: "up" | "down" | "stable" = "stable";
+          if (index > 0) {
+            const prevPeriodRate = pupilPeriods[index - 1]?.attendanceRate || 0;
+            if (stats.attendanceRate > prevPeriodRate + 2) trend = "up";
+            else if (stats.attendanceRate < prevPeriodRate - 2) trend = "down";
+          }
+
+          pupilPeriods.push({
+            period: interval.label,
+            date: format(interval.start, "yyyy-MM-dd"),
+            ...stats,
+            trend
+          });
+        });
+
+        return {
+          pupilId: pupil.id,
+          pupilName: `${pupil.firstName?.charAt(0).toUpperCase() + pupil.firstName?.slice(1).toLowerCase() || ''} ${pupil.lastName?.charAt(0).toUpperCase() + pupil.lastName?.slice(1).toLowerCase() || ''}`.trim(),
+          admissionNumber: pupil.admissionNumber,
+          periods: pupilPeriods
+        };
+      }).sort((a, b) => a.pupilName.localeCompare(b.pupilName)); // Sort by name
+
+    } catch (error) {
+      console.error('Error generating class pupil trend data:', error);
+      return [];
+    }
+  }, [selectedClassId, allPupils, startDate, endDate, trendPeriod, attendanceRecords, getSchoolDays, calculateStats, selectedAcademicYear]);
+
+  // Generate memoized trend data (must be before any conditional returns)
+  const trendData = React.useMemo(() => {
+    try {
+      return generateTrendData();
+    } catch (error) {
+      console.error('Error generating trend data:', error);
+      return [];
+    }
+  }, [generateTrendData]);
+  
+  const pupilTrendData = React.useMemo(() => {
+    try {
+      return generatePupilTrendData();
+    } catch (error) {
+      console.error('Error generating pupil trend data:', error);
+      return [];
+    }
+  }, [generatePupilTrendData]);
+
+  const classPupilTrendData = React.useMemo(() => {
+    try {
+      return generateClassPupilTrendData();
+    } catch (error) {
+      console.error('Error generating class pupil trend data:', error);
+      return [];
+    }
+  }, [generateClassPupilTrendData]);
+
+  const getTrendIcon = (trend: "up" | "down" | "stable") => {
+    switch (trend) {
+      case "up": return <TrendingUp className="h-4 w-4 text-green-600" />;
+      case "down": return <TrendingDown className="h-4 w-4 text-red-600" />;
+      default: return <Minus className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const setQuickDateRange = (range: "day" | "week" | "month" | "term" | "year") => {
+    const today = new Date();
+    
+    switch (range) {
+      case "day":
+        // Set to today only for day view
+        setStartDate(format(today, "yyyy-MM-dd"));
+        setEndDate(format(today, "yyyy-MM-dd"));
+        setTrendPeriod("daily");
+        break;
+      case "week":
+        const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+        setStartDate(format(weekStart, "yyyy-MM-dd"));
+        setEndDate(format(weekEnd, "yyyy-MM-dd"));
+        setTrendPeriod("weekly");
+        break;
+      case "month":
+        setStartDate(format(startOfMonth(today), "yyyy-MM-dd"));
+        setEndDate(format(endOfMonth(today), "yyyy-MM-dd"));
+        setTrendPeriod("monthly");
+        break;
+      case "term":
+        setTrendPeriod("termly");
+        // Enable term-based date setting through the term dropdown
+        if (selectedAcademicYear) {
+          // Find current term or default to first term
+          const currentTerm = selectedAcademicYear.terms.find(term => {
+            const termStart = parseISO(term.startDate);
+            const termEnd = parseISO(term.endDate);
+            return today >= termStart && today <= termEnd;
+          }) || selectedAcademicYear.terms[0];
+          
+          if (currentTerm) {
+            setSelectedTermId(currentTerm.id);
+            setStartDate(currentTerm.startDate.split('T')[0]);
+            setEndDate(currentTerm.endDate.split('T')[0]);
+          }
+        }
+        break;
+      case "year":
+        if (selectedAcademicYear) {
+          setStartDate(selectedAcademicYear.startDate.split('T')[0]);
+          setEndDate(selectedAcademicYear.endDate.split('T')[0]);
+          setTrendPeriod("termly");
+        }
+        break;
+    }
+  };
+
+  const exportTrendData = () => {
+    if (reportType === "class" && selectedClassId) {
+      // Export class pupil trend data
+      const data = classPupilTrendData;
+      if (data.length === 0) return;
+
+      const csvContent = [
+        ["Pupil Name", "Admission Number", "Period", "Date", "School Days", "Present", "Absent", "Late", "Excused", "Not Recorded", "Attendance Rate %"].join(","),
+        ...data.flatMap(pupil => 
+          pupil.periods.map(period => [
+            pupil.pupilName,
+            pupil.admissionNumber,
+            period.period,
+            period.date,
+            period.schoolDays,
+            period.present,
+            period.absent,
+            period.late,
+            period.excused,
+            period.notRecorded,
+            period.attendanceRate.toFixed(1)
+          ].join(","))
+        )
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `class-pupil-attendance-trend-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // Export aggregated trend data
+    const data = generateTrendData();
+    const csvContent = [
+      ["Period", "Date", "School Days", "Present", "Absent", "Late", "Excused", "Not Recorded", "Attendance Rate %"].join(","),
+      ...data.map(row => [
+        row.period,
+        row.date,
+        row.schoolDays,
+        row.present,
+        row.absent,
+        row.late,
+        row.excused,
+        row.notRecorded,
+        row.attendanceRate.toFixed(1)
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance-trend-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    }
+  };
+
+  const exportPupilTrendData = () => {
+    const data = generatePupilTrendData();
+    if (data.length === 0) return;
+
+    const csvContent = [
+      ["Pupil Name", "Admission Number", "Period", "Date", "School Days", "Present", "Absent", "Late", "Excused", "Not Recorded", "Attendance Rate %"].join(","),
+      ...data.map(row => [
+        row.pupilName,
+        row.admissionNumber,
+        row.period,
+        row.date,
+        row.schoolDays,
+        row.present,
+        row.absent,
+        row.late,
+        row.excused,
+        row.notRecorded,
+        row.attendanceRate.toFixed(1)
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pupil-attendance-trend-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Handle trend period changes with appropriate date setting
+  const handleTrendPeriodChange = (period: TrendPeriod) => {
+    setTrendPeriod(period);
+    
+    // Set appropriate date ranges when switching views
+    const today = new Date();
+    switch (period) {
+      case "weekly":
+        // Use the same week calculation as Daily School View pupil stats
+        let currentDate = today;
+        if (startDate && startDate.length >= 10) {
+          try {
+            const parsedDate = parseISO(startDate);
+            // Check if the parsed date is valid
+            if (!isNaN(parsedDate.getTime())) {
+              currentDate = parsedDate;
+            }
+          } catch (error) {
+            console.warn('Invalid startDate for weekly view:', startDate);
+          }
+        }
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+        setStartDate(format(weekStart, "yyyy-MM-dd"));
+        setEndDate(format(weekEnd, "yyyy-MM-dd"));
+        break;
+      case "monthly":
+        setStartDate(format(startOfMonth(today), "yyyy-MM-dd"));
+        setEndDate(format(endOfMonth(today), "yyyy-MM-dd"));
+        break;
+      case "termly":
+        // Use the same term calculation as Daily School View pupil stats
+        if (selectedAcademicYear && selectedTermId && selectedTermId !== "_all_") {
+          const currentTerm = selectedAcademicYear.terms.find(t => t.id === selectedTermId);
+          if (currentTerm) {
+            setStartDate(currentTerm.startDate.split('T')[0]);
+            setEndDate(currentTerm.endDate.split('T')[0]);
+          }
+        } else if (selectedAcademicYear) {
+          // If no term selected, find current term
+          const currentTerm = selectedAcademicYear.terms.find(term => {
+            const termStart = parseISO(term.startDate);
+            const termEnd = parseISO(term.endDate);
+            return today >= termStart && today <= termEnd;
+          }) || selectedAcademicYear.terms[0];
+          
+          if (currentTerm) {
+            setSelectedTermId(currentTerm.id);
+            setStartDate(currentTerm.startDate.split('T')[0]);
+            setEndDate(currentTerm.endDate.split('T')[0]);
+          }
+        }
+        break;
+      case "daily":
+        // Keep current term for daily view
+        if (selectedAcademicYear && selectedTermId) {
+          const selectedTerm = selectedAcademicYear.terms.find(term => term.id === selectedTermId);
+          if (selectedTerm) {
+            setStartDate(selectedTerm.startDate.split('T')[0]);
+            setEndDate(selectedTerm.endDate.split('T')[0]);
+          }
+        }
+        break;
+    }
+  };
+
+  // Handle navigation to individual pupil attendance
+  const handlePupilClick = (pupilId: string) => {
+    // Create URL with current parameters to maintain context
+    const params = new URLSearchParams({
+      reportType: 'pupil',
+      pupilId: pupilId,
+      trendPeriod: trendPeriod,
+      startDate: startDate,
+      endDate: endDate,
+      ...(selectedAcademicYearId && { academicYearId: selectedAcademicYearId }),
+      ...(selectedTermId && { termId: selectedTermId })
+    });
+    
+    router.push(`/attendance/view?${params.toString()}`);
+  };
+
+  if (classesLoading || pupilsLoading || excludedDaysLoading || academicYearsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Modern Dynamic Header */}
+      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 border border-blue-200/50 dark:border-gray-700 rounded-xl p-4 mb-6 transition-all duration-300 hover:shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Left: Title and Description */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg">
+                <BarChart3 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  Attendance Analysis
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  Comprehensive attendance trends with academic year integration
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Dynamic Academic Year & Term Selector */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* Academic Year Selector */}
+            <div className="flex items-center gap-2 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg p-2 border border-white/20 dark:border-gray-600/20 shadow-sm transition-all duration-200 hover:bg-white/90 dark:hover:bg-gray-800/90">
+              <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
+                <SelectTrigger className="border-0 bg-transparent shadow-none h-8 min-w-[140px] text-sm font-medium">
+                  <SelectValue placeholder="Academic Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicYears?.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      {year.name} {year.isActive && "(Active)"}
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Dynamic Term/Period Selector */}
+            <div className="flex items-center gap-2 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-lg p-2 border border-white/20 dark:border-gray-600/20 shadow-sm transition-all duration-200 hover:bg-white/90 dark:hover:bg-gray-800/90">
+              {trendPeriod === "termly" ? (
+                <>
+                  <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+                    <SelectTrigger className="border-0 bg-transparent shadow-none h-8 min-w-[120px] text-sm font-medium">
+                      <SelectValue placeholder="Term" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_all_">All terms</SelectItem>
+                      {academicYears?.map((academicYear) => (
+                        <React.Fragment key={academicYear.id}>
+                          <div className="px-2 py-1 text-sm font-medium text-gray-500 bg-gray-50 dark:bg-gray-800">
+                            {academicYear.name}
+                          </div>
+                          {academicYear.terms?.map((term) => (
+                            <SelectItem key={term.id} value={term.id}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{term.name}</span>
+                                {academicYear.id === activeAcademicYear?.id && (
+                                  <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </React.Fragment>
+                      )) || []}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : trendPeriod === "monthly" ? (
+                <>
+                  <CalendarDays className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(value) => {
+                    if (value) {
+                      const [year, month] = value.split('-');
+                      const monthStart = new Date(parseInt(year), parseInt(month) - 1, 1);
+                      const monthEnd = new Date(parseInt(year), parseInt(month), 0);
+                      setStartDate(format(monthStart, "yyyy-MM-dd"));
+                      setEndDate(format(monthEnd, "yyyy-MM-dd"));
+                    }
+                  }}>
+                    <SelectTrigger className="border-0 bg-transparent shadow-none h-8 min-w-[130px] text-sm font-medium">
+                      <SelectValue placeholder="Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        const months = [];
+                        const today = new Date();
+                        for (let i = -12; i <= 3; i++) {
+                          const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                          const value = format(date, "yyyy-MM");
+                          const label = format(date, "MMMM yyyy");
+                          const isCurrent = format(today, "yyyy-MM") === value;
+                          months.push(
+                            <SelectItem key={value} value={value}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{label}</span>
+                                {isCurrent && (
+                                  <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        }
+                        return months;
+                      })()}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : trendPeriod === "daily" ? (
+                <>
+                  <Clock className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <Select value={startDate || ''} onValueChange={(value) => {
+                    if (value) {
+                      setStartDate(value);
+                      setEndDate(value);
+                    }
+                  }}>
+                    <SelectTrigger className="border-0 bg-transparent shadow-none h-8 min-w-[140px] text-sm font-medium">
+                      <SelectValue placeholder="Day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        const days = [];
+                        const today = new Date();
+                        for (let i = -30; i <= 7; i++) {
+                          const date = new Date(today);
+                          date.setDate(today.getDate() + i);
+                          const value = format(date, "yyyy-MM-dd");
+                          const label = format(date, "EEEE, MMM dd, yyyy");
+                          const isToday = format(today, "yyyy-MM-dd") === value;
+                          const dayOfWeek = date.getDay();
+                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                          days.push(
+                            <SelectItem key={value} value={value}>
+                              <div className="flex items-center justify-between w-full">
+                                <span className={isWeekend ? "text-gray-500" : ""}>{label}</span>
+                                <div className="flex items-center gap-1">
+                                  {isToday && (
+                                    <span className="text-xs text-green-600 font-medium">Today</span>
+                                  )}
+                                  {isWeekend && (
+                                    <span className="text-xs text-gray-400">Weekend</span>
+                                  )}
+                                </div>
+                              </div>
+                            </SelectItem>
+                          );
+                        }
+                        return days;
+                      })()}
+                    </SelectContent>
+                  </Select>
+                </>
+              ) : (
+                <>
+                  <CalendarDays className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Select value={startDate ? `${startDate}_${endDate}` : ''} onValueChange={(value) => {
+                    if (value) {
+                      const [start, end] = value.split('_');
+                      setStartDate(start);
+                      setEndDate(end);
+                    }
+                  }}>
+                    <SelectTrigger className="border-0 bg-transparent shadow-none h-8 min-w-[160px] text-sm font-medium">
+                      <SelectValue placeholder="Week" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        const weeks = [];
+                        const today = new Date();
+                        for (let i = -8; i <= 4; i++) {
+                          const weekStart = startOfWeek(subDays(today, i * 7), { weekStartsOn: 1 });
+                          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                          const value = `${format(weekStart, "yyyy-MM-dd")}_${format(weekEnd, "yyyy-MM-dd")}`;
+                          const label = `Week of ${format(weekStart, "MMM dd")} - ${format(weekEnd, "MMM dd, yyyy")}`;
+                          const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+                          const isCurrent = format(weekStart, "yyyy-MM-dd") === format(currentWeekStart, "yyyy-MM-dd");
+                          weeks.push(
+                            <SelectItem key={value} value={value}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>{label}</span>
+                                {isCurrent && (
+                                  <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          );
+                        }
+                        return weeks;
+                      })()}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </div>
+
+            {/* Back Button */}
+            <Button variant="outline" size="sm" asChild className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-white/20 dark:border-gray-600/20 hover:bg-white dark:hover:bg-gray-800">
+              <Link href="/attendance">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modern View Switcher */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-6 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* View Type Switcher */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => setReportType("school")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  reportType === "school"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                School
+              </button>
+              <button
+                onClick={() => setReportType("class")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  reportType === "class"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Class
+              </button>
+              <button
+                onClick={() => setReportType("pupil")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  reportType === "pupil"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <User className="w-4 h-4" />
+                Pupil
+              </button>
+            </div>
+
+            {/* Period Switcher */}
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => handleTrendPeriodChange("daily")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  trendPeriod === "daily"
+                    ? "bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                Daily
+              </button>
+              <button
+                onClick={() => handleTrendPeriodChange("weekly")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  trendPeriod === "weekly"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <CalendarDays className="w-4 h-4" />
+                Weekly
+              </button>
+              <button
+                onClick={() => handleTrendPeriodChange("monthly")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  trendPeriod === "monthly"
+                    ? "bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Monthly
+              </button>
+              <button
+                onClick={() => handleTrendPeriodChange("termly")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                  trendPeriod === "termly"
+                    ? "bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                Termly
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <Button variant="ghost" size="sm" onClick={() => setQuickDateRange("day")} className="h-8 px-2">
+                Today
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setQuickDateRange("week")} className="h-8 px-2">
+                Week
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setQuickDateRange("month")} className="h-8 px-2">
+                Month
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setQuickDateRange("term")} className="h-8 px-2">
+                Term
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Additional Controls */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {/* Class/Pupil Selectors */}
+          {reportType === "class" && (
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Class:</Label>
+              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                <SelectTrigger className="w-[200px] h-8">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allClasses?.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name} ({cls.code})
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {reportType === "pupil" && (
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Pupil:</Label>
+              <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
+                <SelectTrigger className="w-[250px] h-8">
+                  <SelectValue placeholder="Select pupil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allPupils
+                    ?.filter(p => !selectedClassId || p.classId === selectedClassId)
+                    ?.map((pupil) => (
+                      <SelectItem key={pupil.id} value={pupil.id}>
+                        {pupil.firstName} {pupil.lastName} ({pupil.admissionNumber})
+                      </SelectItem>
+                    )) || []}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Day Navigation for Daily View */}
+          {trendPeriod === "daily" && startDate && (
+            <div className="flex items-center gap-2 ml-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  const currentDate = parseISO(startDate);
+                  const previousDay = new Date(currentDate);
+                  previousDay.setDate(currentDate.getDate() - 1);
+                  const newDate = format(previousDay, "yyyy-MM-dd");
+                  setStartDate(newDate);
+                  setEndDate(newDate);
+                }}
+                className="h-8"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  const today = format(new Date(), "yyyy-MM-dd");
+                  setStartDate(today);
+                  setEndDate(today);
+                }}
+                className="h-8 px-3"
+              >
+                Today
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  const currentDate = parseISO(startDate);
+                  const nextDay = new Date(currentDate);
+                  nextDay.setDate(currentDate.getDate() + 1);
+                  const newDate = format(nextDay, "yyyy-MM-dd");
+                  setStartDate(newDate);
+                  setEndDate(newDate);
+                }}
+                className="h-8"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Validation Alerts */}
+        <div className="space-y-3">
+          {/* Date Range Validation Alert */}
+          {dateRangeValidation.warning && (
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-900/20">
+              <Info className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                {dateRangeValidation.warning}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!selectedAcademicYear && (
+            <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                Please select an academic year for accurate attendance analysis. 
+                Without an academic year, the system cannot properly exclude holidays and non-school days.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        {/* Analysis Results */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="academic-year-select">Academic Year</Label>
+                <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
+                  <SelectTrigger id="academic-year-select">
+                    <SelectValue placeholder="Select academic year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYears?.map((year) => (
+                      <SelectItem key={year.id} value={year.id}>
+                        {year.name} {year.isActive && "(Active)"}
+                      </SelectItem>
+                    )) || []}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                {trendPeriod === "termly" ? (
+                  // Term selector for termly view
+                  <>
+                    <Label htmlFor="term-select">Term</Label>
+                <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+                  <SelectTrigger id="term-select">
+                        <SelectValue placeholder="Select term" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all_">All terms</SelectItem>
+                        {academicYears?.map((academicYear) => (
+                          <React.Fragment key={academicYear.id}>
+                            <div className="px-2 py-1 text-sm font-medium text-gray-500 bg-gray-50 dark:bg-gray-800">
+                              {academicYear.name}
+                            </div>
+                            {academicYear.terms?.map((term) => (
+                      <SelectItem key={term.id} value={term.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{term.name}</span>
+                                  {academicYear.id === activeAcademicYear?.id && (
+                                    <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                  )}
+                                </div>
+                      </SelectItem>
+                            ))}
+                          </React.Fragment>
+                    )) || []}
+                  </SelectContent>
+                </Select>
+                  </>
+                ) : trendPeriod === "monthly" ? (
+                  // Month selector for monthly view
+                  <>
+                    <Label htmlFor="month-select">Month</Label>
+                    <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(value) => {
+                      if (value) {
+                        const [year, month] = value.split('-');
+                        const monthStart = new Date(parseInt(year), parseInt(month) - 1, 1);
+                        const monthEnd = new Date(parseInt(year), parseInt(month), 0);
+                        setStartDate(format(monthStart, "yyyy-MM-dd"));
+                        setEndDate(format(monthEnd, "yyyy-MM-dd"));
+                      }
+                    }}>
+                      <SelectTrigger id="month-select">
+                        <SelectValue placeholder="Select month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const months = [];
+                          const today = new Date();
+                          // Generate last 12 months and next 3 months
+                          for (let i = -12; i <= 3; i++) {
+                            const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                            const value = format(date, "yyyy-MM");
+                            const label = format(date, "MMMM yyyy");
+                            const isCurrent = format(today, "yyyy-MM") === value;
+                            months.push(
+                              <SelectItem key={value} value={value}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{label}</span>
+                                  {isCurrent && (
+                                    <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          }
+                          return months;
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : trendPeriod === "daily" ? (
+                  // Day selector for daily view
+                  <>
+                    <Label htmlFor="day-select">Day</Label>
+                    <Select value={startDate || ''} onValueChange={(value) => {
+                      if (value) {
+                        setStartDate(value);
+                        setEndDate(value);
+                      }
+                    }}>
+                      <SelectTrigger id="day-select">
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const days = [];
+                          const today = new Date();
+                          // Generate last 30 days and next 7 days
+                          for (let i = -30; i <= 7; i++) {
+                            const date = new Date(today);
+                            date.setDate(today.getDate() + i);
+                            const value = format(date, "yyyy-MM-dd");
+                            const label = format(date, "EEEE, MMM dd, yyyy");
+                            const isToday = format(today, "yyyy-MM-dd") === value;
+                            const dayOfWeek = date.getDay();
+                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                            days.push(
+                              <SelectItem key={value} value={value}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span className={isWeekend ? "text-gray-500" : ""}>{label}</span>
+                                  <div className="flex items-center gap-1">
+                                    {isToday && (
+                                      <span className="text-xs text-green-600 font-medium">Today</span>
+                                    )}
+                                    {isWeekend && (
+                                      <span className="text-xs text-gray-400">Weekend</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            );
+                          }
+                          return days;
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : trendPeriod === "weekly" ? (
+                  // Week selector for weekly view
+                  <>
+                    <Label htmlFor="week-select">Week</Label>
+                    <Select value={startDate ? `${startDate}_${endDate}` : ''} onValueChange={(value) => {
+                      if (value) {
+                        const [start, end] = value.split('_');
+                        setStartDate(start);
+                        setEndDate(end);
+                      }
+                    }}>
+                      <SelectTrigger id="week-select">
+                        <SelectValue placeholder="Select week" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(() => {
+                          const weeks = [];
+                          const today = new Date();
+                          // Generate last 8 weeks and next 4 weeks
+                          for (let i = -8; i <= 4; i++) {
+                            const weekStart = startOfWeek(subDays(today, i * 7), { weekStartsOn: 1 });
+                            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                            const value = `${format(weekStart, "yyyy-MM-dd")}_${format(weekEnd, "yyyy-MM-dd")}`;
+                            const label = `Week of ${format(weekStart, "MMM dd")} - ${format(weekEnd, "MMM dd, yyyy")}`;
+                            const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+                            const isCurrent = format(weekStart, "yyyy-MM-dd") === format(currentWeekStart, "yyyy-MM-dd");
+                            weeks.push(
+                              <SelectItem key={value} value={value}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{label}</span>
+                                  {isCurrent && (
+                                    <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            );
+                          }
+                          return weeks;
+                        })()}
+                      </SelectContent>
+                    </Select>
+                  </>
+                ) : (
+                  // Daily view - keep term selector or add day selector if needed
+                  <>
+                    <Label htmlFor="term-select">Term</Label>
+                    <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+                      <SelectTrigger id="term-select">
+                        <SelectValue placeholder="Select term" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_all_">All terms</SelectItem>
+                        {academicYears?.map((academicYear) => (
+                          <React.Fragment key={academicYear.id}>
+                            <div className="px-2 py-1 text-sm font-medium text-gray-500 bg-gray-50 dark:bg-gray-800">
+                              {academicYear.name}
+                            </div>
+                            {academicYear.terms?.map((term) => (
+                              <SelectItem key={term.id} value={term.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{term.name}</span>
+                                  {academicYear.id === activeAcademicYear?.id && (
+                                    <span className="text-xs text-green-600 font-medium ml-2">Current</span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </React.Fragment>
+                        )) || []}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col">
+                <Label>Quick Date Ranges</Label>
+                <div className="flex gap-2 mt-2">
+                  <Button variant="outline" size="sm" onClick={() => setQuickDateRange("day")}>
+                    Day
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setQuickDateRange("week")}>
+                    Week
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setQuickDateRange("month")}>
+                    Month
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setQuickDateRange("term")}>
+                    Term
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setQuickDateRange("year")}>
+                    Year
+                  </Button>
+                </div>
+                {/* Day Navigation for Day View */}
+                {trendPeriod === "daily" && startDate && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <Label className="text-sm text-gray-600">Navigate:</Label>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        const currentDate = parseISO(startDate);
+                        const previousDay = new Date(currentDate);
+                        previousDay.setDate(currentDate.getDate() - 1);
+                        const newDate = format(previousDay, "yyyy-MM-dd");
+                        setStartDate(newDate);
+                        setEndDate(newDate);
+                      }}
+                    >
+                      ← Previous Day
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        const today = format(new Date(), "yyyy-MM-dd");
+                        setStartDate(today);
+                        setEndDate(today);
+                      }}
+                    >
+                      Today
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        const currentDate = parseISO(startDate);
+                        const nextDay = new Date(currentDate);
+                        nextDay.setDate(currentDate.getDate() + 1);
+                        const newDate = format(nextDay, "yyyy-MM-dd");
+                        setStartDate(newDate);
+                        setEndDate(newDate);
+                      }}
+                    >
+                      Next Day →
+                    </Button>
+
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Date Range Validation Alert */}
+            {dateRangeValidation.warning && (
+              <Alert className="mt-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>{dateRangeValidation.warning}</AlertDescription>
+              </Alert>
+            )}
+
+            {!selectedAcademicYear && (
+              <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription>
+                  Please select an academic year for accurate attendance analysis. 
+                  Without an academic year, the system cannot properly exclude holidays and non-school days.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </div>
+
+        {/* Analysis Results */}
+        <Tabs defaultValue="trends" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="trends">Trend Analysis</TabsTrigger>
+            {reportType === "class" && <TabsTrigger value="pupils">Pupil Breakdown</TabsTrigger>}
+            <TabsTrigger value="summary">Summary Statistics</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="trends">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>
+                    {reportType === "school" 
+                      ? "School-wide Daily Attendance" 
+                      : reportType === "class" && selectedClassId 
+                      ? `Class Attendance Trends${classPupilTrendData.length > 0 && classPupilTrendData[0].periods.length > 0 
+                          ? ` - ${classPupilTrendData[0].periods.map(p => p.period).join(", ")}` 
+                          : ""}`
+                      : reportType === "class" 
+                        ? "Class Attendance Trends"  
+                        : "Pupil Attendance Trends"
+                    }
+                  </CardTitle>
+                  <Button onClick={reportType === "pupil" ? exportPupilTrendData : exportTrendData}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export CSV
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {attendanceLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    {reportType === "school" && trendPeriod === "daily" ? (
+                      // School view - show all classes with expandable attendance details
+                      <div className="space-y-4">
+                        {/* School Summary - Compact Version */}
+                        {schoolAttendanceData.length > 0 && (
+                          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-green-900 dark:text-green-100 text-sm">
+                                School Attendance - {format(parseISO(startDate), "MMM dd, yyyy")}
+                              </h4>
+                              <div className="text-sm font-medium text-green-700 dark:text-green-400">
+                                {(() => {
+                                  const totalPresent = schoolAttendanceData.reduce((sum, cls) => sum + cls.present + cls.late, 0);
+                                  const totalPupils = schoolAttendanceData.reduce((sum, cls) => sum + cls.totalPupils, 0);
+                                  return totalPupils > 0 ? ((totalPresent / totalPupils) * 100).toFixed(1) : '0';
+                                })()}% Rate
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-5 gap-2 mb-2">
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-green-200 dark:border-green-700 text-center">
+                                <div className="text-lg font-bold text-green-700 dark:text-green-400">
+                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.present, 0)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">Present</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-red-200 dark:border-red-700 text-center">
+                                <div className="text-lg font-bold text-red-700 dark:text-red-400">
+                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.absent, 0)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">Absent</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-yellow-200 dark:border-yellow-700 text-center">
+                                <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">
+                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.late, 0)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">Late</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-blue-200 dark:border-blue-700 text-center">
+                                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.excused, 0)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">Excused</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700 text-center">
+                                <div className="text-lg font-bold text-gray-700 dark:text-gray-400">
+                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.notRecorded, 0)}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">Not Recorded</div>
+                              </div>
+                            </div>
+                            
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                                style={{ 
+                                  width: `${(() => {
+                                    const totalPresent = schoolAttendanceData.reduce((sum, cls) => sum + cls.present + cls.late, 0);
+                                    const totalPupils = schoolAttendanceData.reduce((sum, cls) => sum + cls.totalPupils, 0);
+                                    return totalPupils > 0 ? Math.min((totalPresent / totalPupils) * 100, 100) : 0;
+                                  })()}%` 
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* School Attendance Table */}
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Class</TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                                onClick={() => toggleExpandAllStatus('present')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Present
+                                  {expandAllStatus === 'present' && <span className="text-xs">↓</span>}
+                                </div>
+                              </TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                onClick={() => toggleExpandAllStatus('absent')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Absent
+                                  {expandAllStatus === 'absent' && <span className="text-xs">↓</span>}
+                                </div>
+                              </TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+                                onClick={() => toggleExpandAllStatus('late')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Late
+                                  {expandAllStatus === 'late' && <span className="text-xs">↓</span>}
+                                </div>
+                              </TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                onClick={() => toggleExpandAllStatus('excused')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Excused
+                                  {expandAllStatus === 'excused' && <span className="text-xs">↓</span>}
+                                </div>
+                              </TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/20 transition-colors"
+                                onClick={() => toggleExpandAllStatus('notRecorded')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Not Recorded
+                                  {expandAllStatus === 'notRecorded' && <span className="text-xs">↓</span>}
+                                </div>
+                              </TableHead>
+                              <TableHead>Total Pupils</TableHead>
+                              <TableHead>Attendance Rate</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {schoolAttendanceData.map((classData) => {
+                              const rows = [];
+                              
+                              // Main class row
+                              rows.push(
+                                <TableRow key={classData.classId} className="border-b border-gray-200 dark:border-gray-700">
+                                  <TableCell className="font-medium">
+                                    <div>
+                                      <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {classData.className}
+                                      </div>
+                                      <div className="text-sm text-gray-500">{classData.classCode}</div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <button
+                                      onClick={() => toggleClassStatusExpansion(classData.classId, 'present')}
+                                      className="flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-900/20 p-1 rounded transition-colors"
+                                    >
+                                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">{classData.present}</Badge>
+                                      {expandedStatuses.has(`${classData.classId}-present`) && classData.pupils.present.length > 0 && (
+                                        <span className="text-xs text-green-600">↓</span>
+                                      )}
+                                    </button>
+                                  </TableCell>
+                                  <TableCell>
+                                    <button
+                                      onClick={() => toggleClassStatusExpansion(classData.classId, 'absent')}
+                                      className="flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded transition-colors"
+                                    >
+                                      <Badge className="bg-red-100 text-red-800 hover:bg-red-200">{classData.absent}</Badge>
+                                      {expandedStatuses.has(`${classData.classId}-absent`) && classData.pupils.absent.length > 0 && (
+                                        <span className="text-xs text-red-600">↓</span>
+                                      )}
+                                    </button>
+                                  </TableCell>
+                                  <TableCell>
+                                    <button
+                                      onClick={() => toggleClassStatusExpansion(classData.classId, 'late')}
+                                      className="flex items-center gap-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 p-1 rounded transition-colors"
+                                    >
+                                      <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">{classData.late}</Badge>
+                                      {expandedStatuses.has(`${classData.classId}-late`) && classData.pupils.late.length > 0 && (
+                                        <span className="text-xs text-yellow-600">↓</span>
+                                      )}
+                                    </button>
+                                  </TableCell>
+                                  <TableCell>
+                                    <button
+                                      onClick={() => toggleClassStatusExpansion(classData.classId, 'excused')}
+                                      className="flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-1 rounded transition-colors"
+                                    >
+                                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">{classData.excused}</Badge>
+                                      {expandedStatuses.has(`${classData.classId}-excused`) && classData.pupils.excused.length > 0 && (
+                                        <span className="text-xs text-blue-600">↓</span>
+                                      )}
+                                    </button>
+                                  </TableCell>
+                                  <TableCell>
+                                    <button
+                                      onClick={() => toggleClassStatusExpansion(classData.classId, 'notRecorded')}
+                                      className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-900/20 p-1 rounded transition-colors"
+                                    >
+                                      <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">{classData.notRecorded}</Badge>
+                                      {expandedStatuses.has(`${classData.classId}-notRecorded`) && classData.pupils.notRecorded.length > 0 && (
+                                        <span className="text-xs text-gray-600">↓</span>
+                                      )}
+                                    </button>
+                                  </TableCell>
+                                  <TableCell className="font-medium">{classData.totalPupils}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{classData.attendanceRate.toFixed(1)}%</span>
+                                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                                        <div
+                                          className={`h-2 rounded-full ${
+                                            classData.attendanceRate >= 95 ? 'bg-green-500' :
+                                            classData.attendanceRate >= 85 ? 'bg-yellow-500' :
+                                            'bg-red-500'
+                                          }`}
+                                          style={{ width: `${Math.min(classData.attendanceRate, 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+
+                              // Expanded pupil rows for each status
+                              ['present', 'absent', 'late', 'excused', 'notRecorded'].forEach(status => {
+                                if (expandedStatuses.has(`${classData.classId}-${status}`)) {
+                                  const pupils = classData.pupils[status as keyof typeof classData.pupils];
+                                  if (pupils.length > 0) {
+                                    rows.push(
+                                      <TableRow key={`${classData.classId}-${status}-header`} className="bg-gray-50 dark:bg-gray-800">
+                                        <TableCell colSpan={10} className="py-2">
+                                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            {status === 'notRecorded' ? 'Not Recorded' : status.charAt(0).toUpperCase() + status.slice(1)} Pupils in {classData.className} ({pupils.length})
+                                          </div>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+
+                                    pupils.forEach((pupil, index) => {
+                                      // Removed pupil period stats calculation
+                                      const isRecording = recordingPupils.has(pupil.id);
+                                      
+                                      rows.push(
+                                        <TableRow key={`${classData.classId}-${status}-${pupil.id}`} className="bg-gray-25 dark:bg-gray-850">
+                                          <TableCell className="pl-8">
+                                            <div className="flex items-center gap-3">
+                                              <div className={`w-2 h-2 rounded-full ${
+                                                status === 'present' ? 'bg-green-500' :
+                                                status === 'absent' ? 'bg-red-500' :
+                                                status === 'late' ? 'bg-yellow-500' :
+                                                status === 'excused' ? 'bg-blue-500' :
+                                                'bg-gray-500'
+                                              }`} />
+                                              <div>
+                                                <div className="font-medium text-sm">{pupil.name}</div>
+                                                <div className="text-xs text-gray-500 font-mono">{pupil.admissionNumber}</div>
+                                              </div>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            <div className="text-gray-600 dark:text-gray-400">
+                                              Status for {format(parseISO(startDate), "EEEE, MMM dd, yyyy")}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="text-sm">
+                                            {status === 'notRecorded' ? (
+                                              <div className="space-y-2">
+                                                <Button
+                                                  size="sm"
+                                                  variant={isRecording ? "destructive" : "default"}
+                                                  onClick={() => togglePupilRecording(pupil.id)}
+                                                  className="text-xs"
+                                                >
+                                                  {isRecording ? "Cancel" : "Record"}
+                                                </Button>
+                                                {index + 1} of {pupils.length}
+                                              </div>
+                                            ) : (
+                                              <div className="text-gray-600 dark:text-gray-400">
+                                                {index + 1} of {pupils.length}
+                                              </div>
+                                            )}
+                                          </TableCell>
+                                          <TableCell colSpan={5}></TableCell>
+                                        </TableRow>
+                                      );
+
+                                      // Add inline recording row if pupil is being recorded
+                                      if (status === 'notRecorded' && isRecording) {
+                                        const currentRecordingData = recordingData[pupil.id] || { status: 'Present', remarks: '' };
+                                        
+                                        rows.push(
+                                          <TableRow key={`${classData.classId}-${status}-${pupil.id}-recording`} className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400">
+                                            <TableCell colSpan={8} className="p-4">
+                                              <div className="space-y-3">
+                                                <div className="flex items-center gap-4">
+                                                  <div className="font-medium text-blue-900 dark:text-blue-100">
+                                                    Recording attendance for {pupil.name} - {format(parseISO(startDate), "EEEE, MMMM dd, yyyy")}
+                                                  </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                  <div>
+                                                    <Label htmlFor={`status-${pupil.id}`} className="text-sm font-medium">
+                                                      Status
+                                                    </Label>
+                                                    <Select
+                                                      value={currentRecordingData.status}
+                                                      onValueChange={(value) => updateRecordingData(pupil.id, 'status', value)}
+                                                    >
+                                                      <SelectTrigger id={`status-${pupil.id}`} className="mt-1">
+                                                        <SelectValue />
+                                                      </SelectTrigger>
+                                                      <SelectContent>
+                                                        <SelectItem value="Present">Present</SelectItem>
+                                                        <SelectItem value="Absent">Absent</SelectItem>
+                                                        <SelectItem value="Late">Late</SelectItem>
+                                                        <SelectItem value="Excused">Excused</SelectItem>
+                                                      </SelectContent>
+                                                    </Select>
+                                                  </div>
+                                                  
+                                                  <div>
+                                                    <Label htmlFor={`remarks-${pupil.id}`} className="text-sm font-medium">
+                                                      Remarks (Optional)
+                                                    </Label>
+                                                    <Input
+                                                      id={`remarks-${pupil.id}`}
+                                                      placeholder="Add any remarks..."
+                                                      value={currentRecordingData.remarks}
+                                                      onChange={(e) => updateRecordingData(pupil.id, 'remarks', e.target.value)}
+                                                      className="mt-1"
+                                                    />
+                                                  </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-2 pt-2">
+                                                  <Button
+                                                    size="sm"
+                                                    onClick={() => saveAttendanceRecord(pupil.id, classData.classId)}
+                                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                                  >
+                                                    Save Record
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => togglePupilRecording(pupil.id)}
+                                                  >
+                                                    Cancel
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      }
+                                    });
+                                  }
+                                }
+                              });
+
+                              return rows;
+                            })}
+                          </TableBody>
+                        </Table>
+
+                        {/* Empty State */}
+                        {schoolAttendanceData.length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <div className="text-gray-400 dark:text-gray-500 mb-2">
+                              <Calendar className="w-8 h-8 mx-auto" />
+                            </div>
+                            <p className="text-lg font-medium">No attendance data found</p>
+                            <p className="text-sm">No attendance records found for {format(parseISO(startDate), "MMMM dd, yyyy")}.</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : reportType === "school" && trendPeriod !== "daily" ? (
+                      // School view message for non-daily periods
+                      <div className="text-center py-16">
+                        <div className="max-w-md mx-auto">
+                          <div className="text-gray-400 dark:text-gray-500 mb-4">
+                            <Calendar className="w-12 h-12 mx-auto" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            School View Available in Day Mode Only
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            The entire school attendance view is designed for daily analysis. Please switch to "Daily" in the Trend Period dropdown to see the interactive school-wide attendance table.
+                          </p>
+                          <Button 
+                            onClick={() => handleTrendPeriodChange("daily")}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            Switch to Daily View
+                          </Button>
+                        </div>
+                      </div>
+                    ) : reportType === "class" && selectedClassId ? (
+                      // Class view - show all pupils in a single table
+                      <div className="space-y-4">
+                        {/* Period Information Summary */}
+                        {classPupilTrendData.length > 0 && classPupilTrendData[0].periods.length > 0 && (
+                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-3">
+                              Period Analysis
+                            </h4>
+                            <div className="space-y-2">
+                              {classPupilTrendData[0].periods.map((period, index) => {
+                                const start = parseISO(period.date);
+                                const periodEnd = (() => {
+                                  switch (trendPeriod) {
+                                    case "daily":
+                                      return start;
+                                    case "weekly":
+                                      return endOfWeek(start, { weekStartsOn: 1 });
+                                    case "monthly":
+                                      return endOfMonth(start);
+                                    case "termly":
+                                      if (selectedAcademicYear) {
+                                        const term = selectedAcademicYear.terms.find(t => t.name === period.period);
+                                        return term ? parseISO(term.endDate) : start;
+                                      }
+                                      return start;
+                                    default:
+                                      return start;
+                                  }
+                                })();
+                                
+                                const totalDays = Math.ceil((periodEnd.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                                const schoolDays = period.schoolDays;
+                                const excludedDays = totalDays - schoolDays;
+                                
+                                // Calculate excluded day types
+                                const allDays = eachDayOfInterval({ start, end: periodEnd });
+                                const weekends = allDays.filter(day => day.getDay() === 0 || day.getDay() === 6).length;
+                                const holidays = excludedDays - weekends;
+                                
+                                return (
+                                  <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                                    <div className="flex items-center gap-6 text-sm">
+                                      <div className="font-semibold text-blue-800 dark:text-blue-200 min-w-[120px]">
+                                        {period.period}
+                                      </div>
+                                      <div className="font-medium">
+                                        <span className="text-gray-600 dark:text-gray-400">Total Days:</span> <span className="text-gray-900 dark:text-gray-100">{totalDays}</span>
+                                      </div>
+                                      <div className="font-medium">
+                                        <span className="text-gray-600 dark:text-gray-400">School Days:</span> <span className="text-green-700 dark:text-green-400">{schoolDays}</span>
+                                      </div>
+                                      <div className="font-medium">
+                                        <span className="text-gray-600 dark:text-gray-400">Excluded Days:</span> <span className="text-orange-700 dark:text-orange-400">{excludedDays}</span>
+                                      </div>
+                                      <div className="ml-auto">
+                                        {excludedDays > 0 ? (
+                                          <details className="group">
+                                            <summary className="cursor-pointer text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 flex items-center gap-1">
+                                              <span className="group-open:rotate-90 transition-transform">▶</span>
+                                              Details
+                                            </summary>
+                                            <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs space-y-1">
+                                              {weekends > 0 && (
+                                                <div className="text-gray-600 dark:text-gray-300">
+                                                  • {Math.floor(weekends/2)} weekends ({weekends} days)
+                                                </div>
+                                              )}
+                                              {holidays > 0 && (
+                                                <div className="text-gray-600 dark:text-gray-300">
+                                                  • {holidays} holidays/special days
+                                                </div>
+                                              )}
+                                            </div>
+                                          </details>
+                                        ) : (
+                                          <span className="text-sm text-gray-500">No exclusions</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                              <TableHead>Pupil Name</TableHead>
+                              {/* Only show Period column for year view (multiple periods) */}
+                              {classPupilTrendData.length > 0 && classPupilTrendData[0].periods.length > 1 && (
+                          <TableHead>Period</TableHead>
+                              )}
+                          <TableHead>Present</TableHead>
+                          <TableHead>Absent</TableHead>
+                          <TableHead>Late</TableHead>
+                          <TableHead>Excused</TableHead>
+                          <TableHead>Not Recorded</TableHead>
+                          <TableHead>Attendance Rate</TableHead>
+                          <TableHead>Trend</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                            {classPupilTrendData.length > 0 ? (
+                              classPupilTrendData.flatMap((pupilData, pupilIndex) => {
+                                // Calculate totals for this pupil
+                                const totalPresent = pupilData.periods.reduce((sum, p) => sum + p.present, 0);
+                                const totalAbsent = pupilData.periods.reduce((sum, p) => sum + p.absent, 0);
+                                const totalLate = pupilData.periods.reduce((sum, p) => sum + p.late, 0);
+                                const totalExcused = pupilData.periods.reduce((sum, p) => sum + p.excused, 0);
+                                const totalNotRecorded = pupilData.periods.reduce((sum, p) => sum + p.notRecorded, 0);
+                                const totalSchoolDays = pupilData.periods.reduce((sum, p) => sum + p.schoolDays, 0);
+                                const totalAttendanceRate = totalSchoolDays > 0 ? ((totalPresent + totalLate) / totalSchoolDays) * 100 : 0;
+                                
+                                // Check if this is a year view (multiple periods)
+                                const isYearView = pupilData.periods.length > 1;
+                                
+                                // Create rows for each period plus a total row
+                                const periodRows = pupilData.periods.map((period, periodIndex) => (
+                                  <TableRow key={`${pupilData.pupilId}-${periodIndex}`} className={`${isYearView ? "h-10" : ""} ${pupilIndex > 0 && periodIndex === 0 ? "border-t-2 border-gray-200 dark:border-gray-700" : ""}`}>
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                                      {periodIndex === 0 ? (
+                                        <div className={isYearView ? "space-y-0.5" : ""}>
+                                          <button
+                                            onClick={() => handlePupilClick(pupilData.pupilId)}
+                                            className="font-medium text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:underline transition-colors text-left"
+                                          >
+                                            {pupilData.pupilName}
+                                          </button>
+                                          <div className="text-xs text-gray-500 font-mono">{pupilData.admissionNumber}</div>
+                                        </div>
+                                      ) : isYearView ? (
+                                        <div className="h-8"></div>
+                                      ) : (
+                                        <div className="h-12"></div>
+                                      )}
+                            </TableCell>
+                                    {/* Only show Period column for year view (multiple periods) */}
+                                    {isYearView && (
+                                      <TableCell className="py-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        {period.period}
+                            </TableCell>
+                                    )}
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-green-100 text-green-800`}>{period.present}</Badge>
+                            </TableCell>
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-red-100 text-red-800`}>{period.absent}</Badge>
+                            </TableCell>
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-yellow-100 text-yellow-800`}>{period.late}</Badge>
+                                    </TableCell>
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-blue-100 text-blue-800`}>{period.excused}</Badge>
+                                    </TableCell>
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                                      <Badge className={`${isYearView ? "text-xs px-2 py-0.5" : ""} bg-gray-100 text-gray-800`}>{period.notRecorded}</Badge>
+                                    </TableCell>
+                                    <TableCell className={isYearView ? "py-1" : ""}>
+                              <div className="flex items-center">
+                                        <span className={`font-medium ${isYearView ? "text-sm" : ""}`}>{period.attendanceRate.toFixed(1)}%</span>
+                                        <div className={`ml-2 bg-gray-200 rounded-full ${isYearView ? "w-12 h-1.5" : "w-16 h-2"}`}>
+                                  <div
+                                            className={`bg-blue-600 rounded-full ${isYearView ? "h-1.5" : "h-2"}`}
+                                            style={{ width: `${Math.min(period.attendanceRate, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </TableCell>
+                                    <TableCell className={isYearView ? "py-1" : ""}>{getTrendIcon(period.trend)}</TableCell>
+                          </TableRow>
+                                ));
+
+                                // Add total row if there are multiple periods (year view)
+                                if (isYearView) {
+                                  periodRows.push(
+                                    <TableRow key={`${pupilData.pupilId}-total`} className="bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-700 h-10">
+                                      <TableCell className="py-1">
+                                        <div className="h-8"></div>
+                                      </TableCell>
+                                      {/* Only show Period column for year view */}
+                                      {isYearView && (
+                                        <TableCell className="py-1 font-bold text-sm text-blue-900 dark:text-blue-100">
+                                          Total
+                                        </TableCell>
+                                      )}
+                                      <TableCell className="py-1">
+                                        <Badge className="bg-green-300 text-green-900 font-bold text-xs px-2 py-0.5">{totalPresent}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <Badge className="bg-red-300 text-red-900 font-bold text-xs px-2 py-0.5">{totalAbsent}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <Badge className="bg-yellow-300 text-yellow-900 font-bold text-xs px-2 py-0.5">{totalLate}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <Badge className="bg-blue-300 text-blue-900 font-bold text-xs px-2 py-0.5">{totalExcused}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <Badge className="bg-gray-300 text-gray-900 font-bold text-xs px-2 py-0.5">{totalNotRecorded}</Badge>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <div className="flex items-center">
+                                          <span className="font-bold text-sm text-blue-900 dark:text-blue-100">{totalAttendanceRate.toFixed(1)}%</span>
+                                          <div className="ml-2 w-12 bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                                            <div
+                                              className="bg-blue-700 dark:bg-blue-400 h-2 rounded-full"
+                                              style={{ width: `${Math.min(totalAttendanceRate, 100)}%` }}
+                                            />
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="py-1">
+                                        <span className="text-blue-600 dark:text-blue-400 text-sm">—</span>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                }
+
+                                return periodRows;
+                              })
+                                                          ) : (
+                                <TableRow>
+                                  <TableCell colSpan={classPupilTrendData.length > 0 && classPupilTrendData[0].periods.length > 1 ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                                    No pupils found in the selected class or no attendance data available.
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                      </TableBody>
+                    </Table>
+                      </div>
+                    ) : (
+                      // Individual pupil view or no class selected
+                      <div className="space-y-6">
+                        {/* Pupil Attendance Summary */}
+                        {reportType === "pupil" && pupilTrendData.length > 0 && (
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                                  {pupilTrendData[0]?.pupilName || 'Pupil'} - Attendance Summary
+                                </h3>
+                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                  Admission Number: {pupilTrendData[0]?.admissionNumber || 'N/A'}
+                                </p>
+                                <p className="text-sm text-blue-600 dark:text-blue-400">
+                                  Period: {format(parseISO(startDate), "MMM dd, yyyy")} - {format(parseISO(endDate), "MMM dd, yyyy")}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                                  {(() => {
+                                    const totalPresent = pupilTrendData.reduce((sum, day) => sum + day.present, 0);
+                                    const totalSchoolDays = pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0);
+                                    const overallRate = totalSchoolDays > 0 ? (totalPresent / totalSchoolDays) * 100 : 0;
+                                    return overallRate.toFixed(1);
+                                  })()}%
+                                </div>
+                                <div className="text-sm text-blue-700 dark:text-blue-300">Overall Rate</div>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Present</span>
+                                </div>
+                                <div className="text-2xl font-bold text-green-700 dark:text-green-400 mt-1">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.present, 0)}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  out of {pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0)} days
+                                </div>
+                              </div>
+                              
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-red-200 dark:border-red-700">
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Absent</span>
+                                </div>
+                                <div className="text-2xl font-bold text-red-700 dark:text-red-400 mt-1">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.absent, 0)}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0) > 0 
+                                    ? ((pupilTrendData.reduce((sum, day) => sum + day.absent, 0) / pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0)) * 100).toFixed(1)
+                                    : '0'}% of days
+                                </div>
+                              </div>
+                              
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-yellow-200 dark:border-yellow-700">
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Late</span>
+                                </div>
+                                <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400 mt-1">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.late, 0)}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0) > 0 
+                                    ? ((pupilTrendData.reduce((sum, day) => sum + day.late, 0) / pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0)) * 100).toFixed(1)
+                                    : '0'}% of days
+                                </div>
+                              </div>
+                              
+                              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Excused</span>
+                                </div>
+                                <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.excused, 0)}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0) > 0 
+                                    ? ((pupilTrendData.reduce((sum, day) => sum + day.excused, 0) / pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0)) * 100).toFixed(1)
+                                    : '0'}% of days
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Attendance Rate Progress Bar */}
+                            <div className="mt-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Attendance Progress</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                  {pupilTrendData.reduce((sum, day) => sum + day.present, 0)} / {pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0)} days
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                                <div
+                                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${Math.min(
+                                      pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0) > 0 
+                                        ? (pupilTrendData.reduce((sum, day) => sum + day.present, 0) / pupilTrendData.reduce((sum, day) => sum + day.schoolDays, 0)) * 100 
+                                        : 0, 
+                                      100
+                                    )}%` 
+                                  }}
+                                />
+                              </div>
+                            </div>
+                  </div>
+                )}
+
+                                                {/* Compact Attendance List */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                            <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+                              Attendance Records
+                            </h4>
+                          </div>
+                          
+                          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {(reportType === "pupil" ? pupilTrendData : trendData).map((row, index) => {
+                              const attendanceStatus = row.present > 0 ? 'present' : row.absent > 0 ? 'absent' : row.late > 0 ? 'late' : row.excused > 0 ? 'excused' : 'unknown';
+                              
+                              return (
+                                <div key={index} className="px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                  <div className="flex items-center justify-between">
+                                    {/* Left: Date and Status */}
+                                    <div className="flex items-center space-x-3">
+                                      <div className={`w-2.5 h-2.5 rounded-full ${
+                                        attendanceStatus === 'present' ? 'bg-green-500' :
+                                        attendanceStatus === 'absent' ? 'bg-red-500' :
+                                        attendanceStatus === 'late' ? 'bg-yellow-500' :
+                                        attendanceStatus === 'excused' ? 'bg-blue-500' : 'bg-gray-400'
+                                      }`}></div>
+                                      
+                                      <div>
+                                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                          {row.period}
+                                        </div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 capitalize leading-tight">
+                                          {attendanceStatus === 'unknown' ? 'No record' : attendanceStatus}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Right: Attendance Details */}
+                                    <div className="flex items-center space-x-4">
+                                      {/* Attendance Numbers */}
+                                      <div className="flex items-center space-x-3 text-xs">
+                                        {row.present > 0 && (
+                                          <div className="flex items-center space-x-1">
+                                            <span className="text-gray-500 dark:text-gray-400">P:</span>
+                                            <span className="font-medium text-green-600 dark:text-green-400">{row.present}</span>
+                                          </div>
+                                        )}
+                                        {row.absent > 0 && (
+                                          <div className="flex items-center space-x-1">
+                                            <span className="text-gray-500 dark:text-gray-400">A:</span>
+                                            <span className="font-medium text-red-600 dark:text-red-400">{row.absent}</span>
+                                          </div>
+                                        )}
+                                        {row.late > 0 && (
+                                          <div className="flex items-center space-x-1">
+                                            <span className="text-gray-500 dark:text-gray-400">L:</span>
+                                            <span className="font-medium text-yellow-600 dark:text-yellow-400">{row.late}</span>
+                                          </div>
+                                        )}
+                                        {row.excused > 0 && (
+                                          <div className="flex items-center space-x-1">
+                                            <span className="text-gray-500 dark:text-gray-400">E:</span>
+                                            <span className="font-medium text-blue-600 dark:text-blue-400">{row.excused}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Attendance Rate */}
+                                      <div className="flex items-center space-x-2">
+                                        <span className={`text-xs font-medium ${
+                                          row.attendanceRate >= 95 ? 'text-green-600 dark:text-green-400' :
+                                          row.attendanceRate >= 85 ? 'text-yellow-600 dark:text-yellow-400' :
+                                          'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          {row.attendanceRate.toFixed(1)}%
+                                        </span>
+                                        
+                                        {/* Mini Progress Bar */}
+                                        <div className="w-12 bg-gray-200 dark:bg-gray-600 rounded-full h-1">
+                                          <div
+                                            className={`h-1 rounded-full ${
+                                              row.attendanceRate >= 95 ? 'bg-green-500' :
+                                              row.attendanceRate >= 85 ? 'bg-yellow-500' :
+                                              'bg-red-500'
+                                            }`}
+                                            style={{ width: `${Math.min(row.attendanceRate, 100)}%` }}
+                                          />
+                                        </div>
+                                        
+                                        {/* Trend Icon */}
+                                        <div className="w-3 flex justify-center">
+                                          <div className="scale-75">
+                                            {getTrendIcon(row.trend)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Empty State */}
+                          {(reportType === "pupil" ? pupilTrendData : trendData).length === 0 && (
+                            <div className="px-4 py-8 text-center">
+                              <div className="text-gray-400 dark:text-gray-500 mb-2">
+                                <Calendar className="w-6 h-6 mx-auto" />
+                              </div>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                No attendance records found for this period.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!attendanceLoading && (
+                  (reportType === "class" && selectedClassId) 
+                    ? classPupilTrendData.length === 0
+                    : (reportType === "pupil" ? pupilTrendData : trendData).length === 0
+                ) && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No attendance data found for the selected criteria.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {reportType === "class" && (
+            <TabsContent value="pupils">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Individual Pupil Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Pupil breakdown analysis will be implemented in the next phase.
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          <TabsContent value="summary">
+            <Card>
+              <CardHeader>
+                <CardTitle>Summary Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  Summary statistics will be implemented in the next phase.
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
+  );
+} 

@@ -1,0 +1,306 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for authentication and authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'Admin';
+    }
+    
+    function isStaff() {
+      return isAuthenticated() && getUserData().role == 'Staff';
+    }
+    
+    function isParent() {
+      return isAuthenticated() && getUserData().role == 'Parent';
+    }
+    
+    function hasModule(moduleName) {
+      return isAdmin() || 
+             (isStaff() && moduleName in getUserData().modules && getUserData().modules[moduleName] == true);
+    }
+    
+    // School Settings - Read by authenticated users, write by Admin only
+    match /schoolSettings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Users - Admin can manage all, Staff can read their own, Parents can read their own
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == userId);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (request.auth.uid == userId && 
+                                     !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'modules', 'email']));
+      allow delete: if isAdmin();
+    }
+    
+    // Access Levels - Admin only
+    match /accessLevels/{levelId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Pupils - Admin and Staff with pupils module, Parents can read their own children
+    match /pupils/{pupilId} {
+      allow read: if isAuthenticated() && (
+        hasModule('pupils') || 
+        isParent() && getUserData().familyId == resource.data.familyId
+      );
+      allow create: if hasModule('pupils');
+      allow update: if hasModule('pupils');
+      allow delete: if isAdmin(); // Only admin can delete pupils
+    }
+    
+    // Pupil Term Snapshots - Same as pupils
+    match /pupilTermSnapshots/{snapshotId} {
+      allow read: if isAuthenticated() && (
+        hasModule('pupils') || 
+        isParent() && getUserData().familyId == get(/databases/$(database)/documents/pupils/$(resource.data.pupilId)).data.familyId
+      );
+      allow write: if hasModule('pupils');
+    }
+    
+    // Families - Admin and Staff with pupils module, Parents can read their own family
+    match /families/{familyId} {
+      allow read: if isAuthenticated() && (
+        hasModule('pupils') || 
+        isParent() && getUserData().familyId == familyId
+      );
+      allow write: if hasModule('pupils');
+    }
+    
+    // Classes - Admin and Staff with classes module
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('classes');
+    }
+    
+    // Sections - Admin and Staff with classes module
+    match /sections/{sectionId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('classes');
+    }
+    
+    // Staff - Admin and Staff with staff module
+    match /staff/{staffId} {
+      allow read: if isAuthenticated();
+      allow create: if hasModule('staff');
+      allow update: if hasModule('staff') || request.auth.uid == resource.data.userId; // Staff can update their own profile
+      allow delete: if isAdmin();
+    }
+    
+    // Subjects - Admin and Staff with subjects module
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('subjects');
+    }
+    
+    // Academic Years - Read by all authenticated, write by Admin and Staff with academic_years module
+    match /academicYears/{yearId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('academic_years');
+    }
+    
+    // Fee Structures - Admin and Staff with fees module, Parents can read
+    match /feeStructures/{feeId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('fees');
+    }
+    
+    // Assigned Fees - Admin and Staff with fees module, Parents can read their children's fees
+    match /assignedFees/{assignedFeeId} {
+      allow read: if isAuthenticated() && (
+        hasModule('fees') || 
+        isParent() && getUserData().familyId == get(/databases/$(database)/documents/pupils/$(resource.data.pupilId)).data.familyId
+      );
+      allow write: if hasModule('fees');
+    }
+    
+    // Payment Records - Admin and Staff with fees module, Parents can read their payments
+    match /paymentRecords/{paymentId} {
+      allow read: if isAuthenticated() && (
+        hasModule('fees') || 
+        isParent() && getUserData().familyId == resource.data.familyId
+      );
+      allow create: if hasModule('fees');
+      allow update: if hasModule('fees');
+      allow delete: if isAdmin(); // Only admin can delete payments
+    }
+    
+    // Fee Adjustments - Admin and Staff with fees module
+    match /feeAdjustments/{adjustmentId} {
+      allow read: if isAuthenticated() && hasModule('fees');
+      allow write: if hasModule('fees');
+    }
+    
+    // Banking - Admin and Staff with banking module
+    match /bankAccounts/{accountId} {
+      allow read: if isAuthenticated() && hasModule('banking');
+      allow write: if hasModule('banking');
+    }
+    
+    match /bankTransactions/{transactionId} {
+      allow read: if isAuthenticated() && hasModule('banking');
+      allow write: if hasModule('banking');
+    }
+    
+    // Attendance - Admin and Staff with attendance module
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated() && hasModule('attendance');
+      allow write: if hasModule('attendance');
+    }
+    
+    // Exams - Admin and Staff with exams module, Parents can read their children's results
+    match /exams/{examId} {
+      allow read: if isAuthenticated() && (
+        hasModule('exams') || 
+        isParent()
+      );
+      allow write: if hasModule('exams');
+    }
+    
+    match /examResults/{resultId} {
+      allow read: if isAuthenticated() && (
+        hasModule('exams') || 
+        isParent() && getUserData().familyId == get(/databases/$(database)/documents/pupils/$(resource.data.pupilId)).data.familyId
+      );
+      allow write: if hasModule('exams');
+    }
+    
+    // Events - Admin and Staff with events module, all can read
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('events');
+    }
+    
+    // Notifications - Users can read their own notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        request.auth.uid in resource.data.recipientIds ||
+        resource.data.recipientType == 'all'
+      );
+      allow create: if hasModule('notifications');
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (request.auth.uid in resource.data.recipientIds && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'readAt']))
+      );
+      allow delete: if isAdmin();
+    }
+    
+    // SMS - Admin and Staff with bulk_sms module
+    match /smsMessages/{messageId} {
+      allow read: if isAuthenticated() && hasModule('bulk_sms');
+      allow write: if hasModule('bulk_sms');
+    }
+    
+    match /smsProviders/{providerId} {
+      allow read: if isAuthenticated() && hasModule('bulk_sms');
+      allow write: if isAdmin();
+    }
+    
+    match /smsTemplates/{templateId} {
+      allow read: if isAuthenticated() && hasModule('bulk_sms');
+      allow write: if hasModule('bulk_sms');
+    }
+    
+    // Requirements - Admin and Staff with requirements module
+    match /requirements/{requirementId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('requirements');
+    }
+    
+    match /requirementTracking/{trackingId} {
+      allow read: if isAuthenticated() && (
+        hasModule('requirements') || 
+        isParent() && getUserData().familyId == get(/databases/$(database)/documents/pupils/$(resource.data.pupilId)).data.familyId
+      );
+      allow write: if hasModule('requirements');
+    }
+    
+    // Uniforms - Admin and Staff with uniforms module
+    match /uniforms/{uniformId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('uniforms');
+    }
+    
+    match /uniformTracking/{trackingId} {
+      allow read: if isAuthenticated() && (
+        hasModule('uniforms') || 
+        isParent() && getUserData().familyId == get(/databases/$(database)/documents/pupils/$(resource.data.pupilId)).data.familyId
+      );
+      allow write: if hasModule('uniforms');
+    }
+    
+    // Procurement - Admin and Staff with procurement module
+    match /procurementItems/{itemId} {
+      allow read: if isAuthenticated() && hasModule('procurement');
+      allow write: if hasModule('procurement');
+    }
+    
+    match /procurementPurchases/{purchaseId} {
+      allow read: if isAuthenticated() && hasModule('procurement');
+      allow write: if hasModule('procurement');
+    }
+    
+    match /procurementBudget/{budgetId} {
+      allow read: if isAuthenticated() && hasModule('procurement');
+      allow write: if hasModule('procurement');
+    }
+    
+    // Duty & Service - Admin and Staff with duty_service module
+    match /dutyAssignments/{dutyId} {
+      allow read: if isAuthenticated() && hasModule('duty_service');
+      allow write: if hasModule('duty_service');
+    }
+    
+    // Photos - Admin and Staff with settings module
+    match /photos/{photoId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('settings');
+    }
+    
+    // Commentary Box - Admin and Staff with settings module
+    match /commentaryBox/{commentaryId} {
+      allow read: if isAuthenticated();
+      allow write: if hasModule('settings');
+    }
+    
+    // Digital Signatures - Admin and Staff who own the signature
+    match /digitalSignatures/{signatureId} {
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow delete: if isAdmin() || request.auth.uid == resource.data.userId;
+    }
+    
+    // Activity Logs - Admin only write, but users can read their own actions
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Logs are immutable
+    }
+    
+    // System Metadata - Admin only
+    match /systemMetadata/{document=**} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

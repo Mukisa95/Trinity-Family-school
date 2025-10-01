@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Selection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border-radius: 10px;
+            background: #000;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .camera-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .error {
+            background: #ffe6e6;
+            color: #d00;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        @media (min-width: 600px) {
+            .controls {
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .controls > * {
+                margin-right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Camera Selection Test</h1>
+        
+        <div class="info">
+            <strong>Purpose:</strong> This test page helps verify that the camera selection improvements work correctly on your device. 
+            It should automatically avoid wide-angle lenses and prefer the main camera when possible.
+        </div>
+
+        <div class="controls">
+            <button id="startBtn">Start Camera</button>
+            <button id="stopBtn" disabled>Stop Camera</button>
+            <select id="cameraSelect" disabled>
+                <option value="">Select Camera...</option>
+            </select>
+            <button id="switchBtn" disabled>Switch Camera</button>
+        </div>
+
+        <div class="video-container">
+            <video id="video" autoplay muted playsinline></video>
+        </div>
+
+        <div id="lensSwitcher" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;"></div>
+
+        <div id="cameraInfo" class="camera-info" style="display: none;"></div>
+        <div id="errorDiv" class="error" style="display: none;"></div>
+
+        <div class="info">
+            <h3>📱 Mobile Testing Tips:</h3>
+            <ul>
+                <li><strong>Expected behavior:</strong> Should start with the main camera (not wide-angle)</li>
+                <li><strong>Camera labels:</strong> Look for cameras without "wide", "ultra", or "telephoto" in the name</li>
+                <li><strong>Quality check:</strong> Main camera should provide better image quality than wide-angle</li>
+                <li><strong>Lens switcher:</strong> Quick buttons to switch between different lens types (📷 Main, 📐 Wide, 🌐 Ultra Wide, 🔭 Telephoto, 🤳 Front)</li>
+                <li><strong>Manual selection:</strong> Use the dropdown to select specific cameras</li>
+                <li><strong>Switching:</strong> Test both lens buttons and dropdown for camera switching</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const cameraSelect = document.getElementById('cameraSelect');
+        const switchBtn = document.getElementById('switchBtn');
+        const cameraInfo = document.getElementById('cameraInfo');
+        const errorDiv = document.getElementById('errorDiv');
+        
+        let currentStream = null;
+        let availableCameras = [];
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showCameraInfo(stream, selectedDeviceId) {
+            const videoTrack = stream.getVideoTracks()[0];
+            const settings = videoTrack.getSettings();
+            const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+            
+            const selectedCamera = availableCameras.find(cam => cam.deviceId === selectedDeviceId);
+            
+            let info = `<strong>Active Camera:</strong><br>`;
+            info += `Label: ${selectedCamera ? selectedCamera.label : 'Unknown'}<br>`;
+            info += `Device ID: ${selectedDeviceId || 'Default'}<br>`;
+            info += `Resolution: ${settings.width || 'Unknown'} x ${settings.height || 'Unknown'}<br>`;
+            info += `Frame Rate: ${settings.frameRate || 'Unknown'} fps<br>`;
+            info += `Facing Mode: ${settings.facingMode || 'Unknown'}<br>`;
+            
+            if (capabilities.torch !== undefined) {
+                info += `Torch Support: ${capabilities.torch ? 'Yes' : 'No'}<br>`;
+            }
+            
+            cameraInfo.innerHTML = info;
+            cameraInfo.style.display = 'block';
+        }
+
+        function stopMediaTracks(stream) {
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+            }
+        }
+
+        async function getCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                availableCameras = videoDevices;
+                
+                // Clear and populate camera select
+                cameraSelect.innerHTML = '<option value="">Auto-select best camera</option>';
+                
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+                
+                cameraSelect.disabled = false;
+                return videoDevices;
+            } catch (error) {
+                console.error('Error enumerating devices:', error);
+                showError('Failed to get camera list: ' + error.message);
+                return [];
+            }
+        }
+
+        function selectBestCamera(cameras, facingMode = 'environment') {
+            if (cameras.length === 0) return null;
+            
+            // Try to find the best camera based on label analysis
+            const bestCamera = cameras.find(device => {
+                const label = device.label.toLowerCase();
+                if (facingMode === 'environment') {
+                    // Prefer cameras that don't say "front", "wide", "ultra", or "telephoto"
+                    return !label.includes('front') && 
+                           !label.includes('wide') && 
+                           !label.includes('ultra') && 
+                           !label.includes('telephoto');
+                }
+                // For front-facing, prefer cameras that say "front"
+                return label.includes('front');
+            });
+            
+            // If no specific camera found, try to find main camera for environment mode
+            if (!bestCamera && facingMode === 'environment') {
+                const fallbackCamera = cameras.find(device => {
+                    const label = device.label.toLowerCase();
+                    return label.includes('main') || 
+                           label.includes('primary') || 
+                           (!label.includes('front') && !label.includes('wide') && !label.includes('ultra'));
+                });
+                return fallbackCamera || cameras[0];
+            }
+            
+            return bestCamera || cameras[0];
+        }
+
+        // Helper function to categorize cameras by lens type
+        function categorizeCameras(cameras) {
+            const categories = {
+                main: [],
+                wide: [],
+                ultraWide: [],
+                telephoto: [],
+                front: [],
+                other: []
+            };
+
+            cameras.forEach(camera => {
+                const label = camera.label.toLowerCase();
+                
+                if (label.includes('front') || label.includes('user')) {
+                    categories.front.push(camera);
+                } else if (label.includes('telephoto') || label.includes('tele')) {
+                    categories.telephoto.push(camera);
+                } else if (label.includes('ultra') || label.includes('0.5')) {
+                    categories.ultraWide.push(camera);
+                } else if (label.includes('wide') && !label.includes('ultra')) {
+                    categories.wide.push(camera);
+                } else if (label.includes('main') || label.includes('primary') || 
+                           (!label.includes('front') && !label.includes('wide') && !label.includes('telephoto'))) {
+                    categories.main.push(camera);
+                } else {
+                    categories.other.push(camera);
+                }
+            });
+
+            return categories;
+        }
+
+        // Helper function to get lens type icon
+        function getLensIcon(lensType) {
+            switch (lensType) {
+                case 'main': return '📷';
+                case 'wide': return '📐';
+                case 'ultraWide': return '🌐';
+                case 'telephoto': return '🔭';
+                case 'front': return '🤳';
+                default: return '📹';
+            }
+        }
+
+        // Helper function to get lens type label
+        function getLensLabel(lensType) {
+            switch (lensType) {
+                case 'main': return 'Main';
+                case 'wide': return 'Wide';
+                case 'ultraWide': return 'Ultra Wide';
+                case 'telephoto': return 'Telephoto';
+                case 'front': return 'Front';
+                default: return 'Other';
+            }
+        }
+
+        function createLensSwitcher() {
+            const categories = categorizeCameras(availableCameras);
+            const availableLensTypes = Object.entries(categories).filter(([_, cameras]) => cameras.length > 0);
+            
+            const lensSwitcherDiv = document.getElementById('lensSwitcher');
+            
+            if (availableLensTypes.length <= 1) {
+                lensSwitcherDiv.style.display = 'none';
+                return;
+            }
+            
+            lensSwitcherDiv.style.display = 'block';
+            lensSwitcherDiv.innerHTML = `
+                <label style="display: block; font-weight: bold; margin-bottom: 10px;">
+                    📸 Lens Type:
+                </label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${availableLensTypes.map(([lensType, cameras]) => {
+                        const isActive = cameras.some(camera => camera.deviceId === currentStream?.getVideoTracks()[0]?.getSettings()?.deviceId);
+                        return `
+                            <button 
+                                onclick="switchToLensType('${lensType}')"
+                                style="
+                                    padding: 6px 12px; 
+                                    border: 1px solid #ddd; 
+                                    border-radius: 5px; 
+                                    background: ${isActive ? '#007bff' : 'white'}; 
+                                    color: ${isActive ? 'white' : 'black'};
+                                    cursor: pointer;
+                                    font-size: 12px;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 4px;
+                                "
+                                title="Switch to ${getLensLabel(lensType)} camera (${cameras.length} available)"
+                            >
+                                <span>${getLensIcon(lensType)}</span>
+                                <span>${getLensLabel(lensType)}</span>
+                                ${cameras.length > 1 ? `<span style="background: #ccc; padding: 1px 4px; border-radius: 3px; font-size: 10px;">${cameras.length}</span>` : ''}
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function switchToLensType(lensType) {
+            const categories = categorizeCameras(availableCameras);
+            const cameras = categories[lensType];
+            
+            if (cameras.length > 0) {
+                startCamera(cameras[0].deviceId);
+            }
+        }
+
+        async function startCamera(deviceId = null) {
+            try {
+                if (currentStream) {
+                    stopMediaTracks(currentStream);
+                }
+
+                const videoConstraints = {};
+                
+                if (deviceId) {
+                    videoConstraints.deviceId = { exact: deviceId };
+                } else {
+                    // Auto-select best camera
+                    const cameras = await getCameras();
+                    const bestCamera = selectBestCamera(cameras, 'environment');
+                    if (bestCamera) {
+                        videoConstraints.deviceId = { exact: bestCamera.deviceId };
+                        deviceId = bestCamera.deviceId;
+                    } else {
+                        videoConstraints.facingMode = 'environment';
+                    }
+                }
+
+                const constraints = {
+                    video: videoConstraints,
+                    audio: false
+                };
+
+                console.log('Requesting camera with constraints:', constraints);
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentStream = stream;
+                video.srcObject = stream;
+                
+                // Update UI
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                switchBtn.disabled = false;
+                
+                // Show camera info
+                showCameraInfo(stream, deviceId);
+                
+                // Update camera list with labels (now that we have permission)
+                await getCameras();
+                
+                // Create lens switcher
+                createLensSwitcher();
+                
+                console.log('Camera started successfully');
+                
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                showError('Failed to start camera: ' + error.message);
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                stopMediaTracks(currentStream);
+                currentStream = null;
+                video.srcObject = null;
+                
+                // Update UI
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                switchBtn.disabled = true;
+                cameraSelect.disabled = true;
+                cameraInfo.style.display = 'none';
+                
+                // Hide lens switcher
+                document.getElementById('lensSwitcher').style.display = 'none';
+                
+                console.log('Camera stopped');
+            }
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', () => startCamera());
+        stopBtn.addEventListener('click', stopCamera);
+        
+        cameraSelect.addEventListener('change', (e) => {
+            if (currentStream) {
+                const deviceId = e.target.value || null;
+                startCamera(deviceId);
+            }
+        });
+        
+        switchBtn.addEventListener('click', () => {
+            // Simple toggle between front and back camera
+            if (currentStream) {
+                const videoTrack = currentStream.getVideoTracks()[0];
+                const settings = videoTrack.getSettings();
+                const currentFacing = settings.facingMode;
+                
+                // Switch facing mode
+                const newFacing = currentFacing === 'user' ? 'environment' : 'user';
+                
+                // Find best camera for the new facing mode
+                const bestCamera = selectBestCamera(availableCameras, newFacing);
+                if (bestCamera) {
+                    startCamera(bestCamera.deviceId);
+                }
+            }
+        });
+
+        // Initialize camera list on page load
+        getCameras();
+    </script>
+</body>
+</html> 

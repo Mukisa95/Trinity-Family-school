@@ -1,0 +1,487 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.trinityonline.webviewapp"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <!-- Internet permissions -->
+12    <uses-permission android:name="android.permission.INTERNET" />
+12-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:6:5-67
+12-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:6:22-64
+13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+13-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:7:5-79
+13-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:7:22-76
+14    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+14-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:8:5-76
+14-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:8:22-73
+15
+16    <!-- Notification permissions -->
+17    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+17-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:11:5-77
+17-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:11:22-74
+18    <uses-permission android:name="android.permission.VIBRATE" />
+18-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:12:5-66
+18-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:12:22-63
+19    <uses-permission android:name="android.permission.WAKE_LOCK" />
+19-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:13:5-68
+19-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:13:22-65
+20
+21    <!-- Background running permissions -->
+22    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+22-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:16:5-77
+22-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:16:22-74
+23    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+23-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:17:5-81
+23-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:17:22-78
+24
+25    <!-- File upload permissions -->
+26    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+26-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:20:5-80
+26-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:20:22-77
+27    <uses-permission
+27-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:21:5-22:38
+28        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+28-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:21:22-78
+29        android:maxSdkVersion="28" />
+29-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:22:9-35
+30
+31    <!-- Camera permissions for file uploads -->
+32    <uses-permission android:name="android.permission.CAMERA" />
+32-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:25:5-65
+32-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:25:22-62
+33
+34    <uses-feature
+34-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:26:5-85
+35        android:name="android.hardware.camera"
+35-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:26:19-57
+36        android:required="false" />
+36-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:26:58-82
+37
+38    <!-- Required by older versions of Google Play services to create IID tokens -->
+39    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+39-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:26:5-82
+39-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:26:22-79
+40    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+40-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:25:5-79
+40-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:25:22-76
+41    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />
+41-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:26:5-88
+41-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:26:22-85
+42    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" />
+42-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:27:5-82
+42-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:27:22-79
+43    <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" />
+43-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:26:5-110
+43-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:26:22-107
+44
+45    <permission
+45-->[androidx.core:core:1.12.0] C:\Users\ZION\.gradle\caches\8.10\transforms\373b01be8bbad9eb1a345ccb82744144\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+46        android:name="com.trinityonline.webviewapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+46-->[androidx.core:core:1.12.0] C:\Users\ZION\.gradle\caches\8.10\transforms\373b01be8bbad9eb1a345ccb82744144\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+47        android:protectionLevel="signature" />
+47-->[androidx.core:core:1.12.0] C:\Users\ZION\.gradle\caches\8.10\transforms\373b01be8bbad9eb1a345ccb82744144\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+48
+49    <uses-permission android:name="com.trinityonline.webviewapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+49-->[androidx.core:core:1.12.0] C:\Users\ZION\.gradle\caches\8.10\transforms\373b01be8bbad9eb1a345ccb82744144\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+49-->[androidx.core:core:1.12.0] C:\Users\ZION\.gradle\caches\8.10\transforms\373b01be8bbad9eb1a345ccb82744144\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+50
+51    <application
+51-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:28:5-90:19
+52        android:name="com.trinityonline.webviewapp.TrinityApplication"
+52-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:29:9-43
+53        android:allowBackup="true"
+53-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:30:9-35
+54        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+54-->[androidx.core:core:1.12.0] C:\Users\ZION\.gradle\caches\8.10\transforms\373b01be8bbad9eb1a345ccb82744144\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+55        android:dataExtractionRules="@xml/data_extraction_rules"
+55-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:31:9-65
+56        android:extractNativeLibs="false"
+57        android:fullBackupContent="@xml/backup_rules"
+57-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:32:9-54
+58        android:icon="@mipmap/ic_launcher"
+58-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:33:9-43
+59        android:label="@string/app_name"
+59-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:34:9-41
+60        android:roundIcon="@mipmap/ic_launcher_round"
+60-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:35:9-54
+61        android:supportsRtl="true"
+61-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:36:9-35
+62        android:theme="@style/Theme.TrinityWebViewApp"
+62-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:37:9-55
+63        android:usesCleartextTraffic="true" >
+63-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:38:9-44
+64        <activity
+64-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:41:9-57:20
+65            android:name="com.trinityonline.webviewapp.MainActivity"
+65-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:42:13-41
+66            android:configChanges="orientation|screenSize|keyboardHidden"
+66-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:45:13-74
+67            android:exported="true"
+67-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:43:13-36
+68            android:launchMode="singleTask"
+68-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:44:13-44
+69            android:windowSoftInputMode="adjustResize" >
+69-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:46:13-55
+70            <intent-filter>
+70-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:47:13-50:29
+71                <action android:name="android.intent.action.MAIN" />
+71-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:48:17-69
+71-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:48:25-66
+72
+73                <category android:name="android.intent.category.LAUNCHER" />
+73-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:49:17-77
+73-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:49:27-74
+74            </intent-filter>
+75
+76            <!-- Handle notification clicks -->
+77            <intent-filter>
+77-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:53:13-56:29
+78                <action android:name="OPEN_ACTIVITY_1" />
+78-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:54:17-58
+78-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:54:25-55
+79
+80                <category android:name="android.intent.category.DEFAULT" />
+80-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:55:17-76
+80-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:55:27-73
+81            </intent-filter>
+82        </activity>
+83
+84        <!-- Firebase Messaging Service -->
+85        <service
+85-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:60:9-66:19
+86            android:name="com.trinityonline.webviewapp.services.TrinityFirebaseMessagingService"
+86-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:61:13-69
+87            android:exported="false" >
+87-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:62:13-37
+88            <intent-filter>
+88-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:63:13-65:29
+89                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+89-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:64:17-78
+89-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:64:25-75
+90            </intent-filter>
+91        </service>
+92
+93        <!-- FileProvider for camera access -->
+94        <provider
+95            android:name="androidx.core.content.FileProvider"
+95-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:70:13-62
+96            android:authorities="com.trinityonline.webviewapp.fileprovider"
+96-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:71:13-64
+97            android:exported="false"
+97-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:72:13-37
+98            android:grantUriPermissions="true" >
+98-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:73:13-47
+99            <meta-data
+99-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:74:13-76:54
+100                android:name="android.support.FILE_PROVIDER_PATHS"
+100-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:75:17-67
+101                android:resource="@xml/file_paths" />
+101-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:76:17-51
+102        </provider>
+103
+104        <!-- Network Security Config -->
+105        <meta-data
+105-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:80:9-82:60
+106            android:name="com.google.firebase.messaging.default_notification_icon"
+106-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:81:13-83
+107            android:resource="@drawable/ic_notification" />
+107-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:82:13-57
+108        <meta-data
+108-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:83:9-85:60
+109            android:name="com.google.firebase.messaging.default_notification_color"
+109-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:84:13-84
+110            android:resource="@color/notification_color" />
+110-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:85:13-57
+111        <meta-data
+111-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:86:9-88:54
+112            android:name="com.google.firebase.messaging.default_notification_channel_id"
+112-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:87:13-89
+113            android:value="trinity_online_channel" />
+113-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:88:13-51
+114
+115        <provider
+115-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+116            android:name="androidx.startup.InitializationProvider"
+116-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
+117            android:authorities="com.trinityonline.webviewapp.androidx-startup"
+117-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
+118            android:exported="false" >
+118-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
+119            <meta-data
+119-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+120                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+120-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
+121                android:value="androidx.startup" />
+121-->[androidx.emoji2:emoji2:1.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\ac153df16ae170b505c6490bc7e77aff\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
+122            <meta-data
+122-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a1b06f67161e7748e0fd025990ec8f28\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+123                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+123-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a1b06f67161e7748e0fd025990ec8f28\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+124                android:value="androidx.startup" />
+124-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a1b06f67161e7748e0fd025990ec8f28\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
+125            <meta-data
+125-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+126                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+126-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+127                android:value="androidx.startup" />
+127-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+128        </provider>
+129
+130        <service
+130-->[com.google.firebase:firebase-analytics-ktx:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\492a9f218a28a921896e280d9095919f\transformed\firebase-analytics-ktx-21.5.1\AndroidManifest.xml:8:9-14:19
+131            android:name="com.google.firebase.components.ComponentDiscoveryService"
+131-->[com.google.firebase:firebase-analytics-ktx:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\492a9f218a28a921896e280d9095919f\transformed\firebase-analytics-ktx-21.5.1\AndroidManifest.xml:9:13-84
+132            android:directBootAware="true"
+132-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:32:13-43
+133            android:exported="false" >
+133-->[com.google.firebase:firebase-analytics-ktx:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\492a9f218a28a921896e280d9095919f\transformed\firebase-analytics-ktx-21.5.1\AndroidManifest.xml:10:13-37
+134            <meta-data
+134-->[com.google.firebase:firebase-analytics-ktx:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\492a9f218a28a921896e280d9095919f\transformed\firebase-analytics-ktx-21.5.1\AndroidManifest.xml:11:13-13:85
+135                android:name="com.google.firebase.components:com.google.firebase.analytics.ktx.FirebaseAnalyticsLegacyRegistrar"
+135-->[com.google.firebase:firebase-analytics-ktx:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\492a9f218a28a921896e280d9095919f\transformed\firebase-analytics-ktx-21.5.1\AndroidManifest.xml:12:17-129
+136                android:value="com.google.firebase.components.ComponentRegistrar" />
+136-->[com.google.firebase:firebase-analytics-ktx:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\492a9f218a28a921896e280d9095919f\transformed\firebase-analytics-ktx-21.5.1\AndroidManifest.xml:13:17-82
+137            <meta-data
+137-->[com.google.firebase:firebase-messaging-ktx:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b978b76e0097cad8bcbe18e0aa741ab0\transformed\firebase-messaging-ktx-23.4.1\AndroidManifest.xml:26:13-28:85
+138                android:name="com.google.firebase.components:com.google.firebase.messaging.ktx.FirebaseMessagingLegacyRegistrar"
+138-->[com.google.firebase:firebase-messaging-ktx:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b978b76e0097cad8bcbe18e0aa741ab0\transformed\firebase-messaging-ktx-23.4.1\AndroidManifest.xml:27:17-129
+139                android:value="com.google.firebase.components.ComponentRegistrar" />
+139-->[com.google.firebase:firebase-messaging-ktx:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b978b76e0097cad8bcbe18e0aa741ab0\transformed\firebase-messaging-ktx-23.4.1\AndroidManifest.xml:28:17-82
+140            <meta-data
+140-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:57:13-59:85
+141                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingKtxRegistrar"
+141-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:58:17-122
+142                android:value="com.google.firebase.components.ComponentRegistrar" />
+142-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:59:17-82
+143            <meta-data
+143-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:60:13-62:85
+144                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingRegistrar"
+144-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:61:17-119
+145                android:value="com.google.firebase.components.ComponentRegistrar" />
+145-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:62:17-82
+146            <meta-data
+146-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:37:13-39:85
+147                android:name="com.google.firebase.components:com.google.firebase.analytics.connector.internal.AnalyticsConnectorRegistrar"
+147-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:38:17-139
+148                android:value="com.google.firebase.components.ComponentRegistrar" />
+148-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:39:17-82
+149            <meta-data
+149-->[com.google.firebase:firebase-installations:17.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\96eeefd667afda3bb2bd3b621cba75df\transformed\firebase-installations-17.2.0\AndroidManifest.xml:15:13-17:85
+150                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsKtxRegistrar"
+150-->[com.google.firebase:firebase-installations:17.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\96eeefd667afda3bb2bd3b621cba75df\transformed\firebase-installations-17.2.0\AndroidManifest.xml:16:17-130
+151                android:value="com.google.firebase.components.ComponentRegistrar" />
+151-->[com.google.firebase:firebase-installations:17.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\96eeefd667afda3bb2bd3b621cba75df\transformed\firebase-installations-17.2.0\AndroidManifest.xml:17:17-82
+152            <meta-data
+152-->[com.google.firebase:firebase-installations:17.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\96eeefd667afda3bb2bd3b621cba75df\transformed\firebase-installations-17.2.0\AndroidManifest.xml:18:13-20:85
+153                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsRegistrar"
+153-->[com.google.firebase:firebase-installations:17.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\96eeefd667afda3bb2bd3b621cba75df\transformed\firebase-installations-17.2.0\AndroidManifest.xml:19:17-127
+154                android:value="com.google.firebase.components.ComponentRegistrar" />
+154-->[com.google.firebase:firebase-installations:17.2.0] C:\Users\ZION\.gradle\caches\8.10\transforms\96eeefd667afda3bb2bd3b621cba75df\transformed\firebase-installations-17.2.0\AndroidManifest.xml:20:17-82
+155            <meta-data
+155-->[com.google.firebase:firebase-common-ktx:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\fbfbcdc99af5756c509c1a6cecf83a29\transformed\firebase-common-ktx-20.4.2\AndroidManifest.xml:12:13-14:85
+156                android:name="com.google.firebase.components:com.google.firebase.ktx.FirebaseCommonLegacyRegistrar"
+156-->[com.google.firebase:firebase-common-ktx:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\fbfbcdc99af5756c509c1a6cecf83a29\transformed\firebase-common-ktx-20.4.2\AndroidManifest.xml:13:17-116
+157                android:value="com.google.firebase.components.ComponentRegistrar" />
+157-->[com.google.firebase:firebase-common-ktx:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\fbfbcdc99af5756c509c1a6cecf83a29\transformed\firebase-common-ktx-20.4.2\AndroidManifest.xml:14:17-82
+158            <meta-data
+158-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:35:13-37:85
+159                android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar"
+159-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:36:17-109
+160                android:value="com.google.firebase.components.ComponentRegistrar" />
+160-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:37:17-82
+161            <meta-data
+161-->[com.google.firebase:firebase-datatransport:18.1.7] C:\Users\ZION\.gradle\caches\8.10\transforms\dfd087e8ab808f136964acb6e2c961c7\transformed\firebase-datatransport-18.1.7\AndroidManifest.xml:27:13-29:85
+162                android:name="com.google.firebase.components:com.google.firebase.datatransport.TransportRegistrar"
+162-->[com.google.firebase:firebase-datatransport:18.1.7] C:\Users\ZION\.gradle\caches\8.10\transforms\dfd087e8ab808f136964acb6e2c961c7\transformed\firebase-datatransport-18.1.7\AndroidManifest.xml:28:17-115
+163                android:value="com.google.firebase.components.ComponentRegistrar" />
+163-->[com.google.firebase:firebase-datatransport:18.1.7] C:\Users\ZION\.gradle\caches\8.10\transforms\dfd087e8ab808f136964acb6e2c961c7\transformed\firebase-datatransport-18.1.7\AndroidManifest.xml:29:17-82
+164        </service>
+165
+166        <receiver
+166-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:29:9-40:20
+167            android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver"
+167-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:30:13-78
+168            android:exported="true"
+168-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:31:13-36
+169            android:permission="com.google.android.c2dm.permission.SEND" >
+169-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:32:13-73
+170            <intent-filter>
+170-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:33:13-35:29
+171                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+171-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:34:17-81
+171-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:34:25-78
+172            </intent-filter>
+173
+174            <meta-data
+174-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:37:13-39:40
+175                android:name="com.google.android.gms.cloudmessaging.FINISHED_AFTER_HANDLED"
+175-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:38:17-92
+176                android:value="true" />
+176-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:39:17-37
+177        </receiver>
+178        <!--
+179             FirebaseMessagingService performs security checks at runtime,
+180             but set to not exported to explicitly avoid allowing another app to call it.
+181        -->
+182        <service
+182-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:46:9-53:19
+183            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+183-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:47:13-82
+184            android:directBootAware="true"
+184-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:48:13-43
+185            android:exported="false" >
+185-->[com.google.firebase:firebase-messaging:23.4.1] C:\Users\ZION\.gradle\caches\8.10\transforms\353bc38f561319841eacba116a646a91\transformed\firebase-messaging-23.4.1\AndroidManifest.xml:49:13-37
+186            <intent-filter android:priority="-500" >
+186-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:63:13-65:29
+187                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+187-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:64:17-78
+187-->C:\Users\ZION\Desktop\download\android-app\app\src\main\AndroidManifest.xml:64:25-75
+188            </intent-filter>
+189        </service>
+190
+191        <property
+191-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:30:9-32:61
+192            android:name="android.adservices.AD_SERVICES_CONFIG"
+192-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:31:13-65
+193            android:resource="@xml/ga_ad_services_config" />
+193-->[com.google.android.gms:play-services-measurement-api:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\c60105a8353daa846ab0a80b9c42848e\transformed\play-services-measurement-api-21.5.1\AndroidManifest.xml:32:13-58
+194
+195        <provider
+195-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:23:9-28:39
+196            android:name="com.google.firebase.provider.FirebaseInitProvider"
+196-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:24:13-77
+197            android:authorities="com.trinityonline.webviewapp.firebaseinitprovider"
+197-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:25:13-72
+198            android:directBootAware="true"
+198-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:26:13-43
+199            android:exported="false"
+199-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:27:13-37
+200            android:initOrder="100" />
+200-->[com.google.firebase:firebase-common:20.4.2] C:\Users\ZION\.gradle\caches\8.10\transforms\6fbafbc6f45215c196947f4d28647459\transformed\firebase-common-20.4.2\AndroidManifest.xml:28:13-36
+201
+202        <receiver
+202-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:29:9-33:20
+203            android:name="com.google.android.gms.measurement.AppMeasurementReceiver"
+203-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:30:13-85
+204            android:enabled="true"
+204-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:31:13-35
+205            android:exported="false" >
+205-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:32:13-37
+206        </receiver>
+207
+208        <service
+208-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:35:9-38:40
+209            android:name="com.google.android.gms.measurement.AppMeasurementService"
+209-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:36:13-84
+210            android:enabled="true"
+210-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:37:13-35
+211            android:exported="false" />
+211-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:38:13-37
+212        <service
+212-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:39:9-43:72
+213            android:name="com.google.android.gms.measurement.AppMeasurementJobService"
+213-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:40:13-87
+214            android:enabled="true"
+214-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:41:13-35
+215            android:exported="false"
+215-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:42:13-37
+216            android:permission="android.permission.BIND_JOB_SERVICE" />
+216-->[com.google.android.gms:play-services-measurement:21.5.1] C:\Users\ZION\.gradle\caches\8.10\transforms\b7ef5b41484b27880a8100b45ad9f2dd\transformed\play-services-measurement-21.5.1\AndroidManifest.xml:43:13-69
+217
+218        <activity
+218-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\ZION\.gradle\caches\8.10\transforms\456dc06e1288643997896bf5a542bd03\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:9-22:45
+219            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+219-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\ZION\.gradle\caches\8.10\transforms\456dc06e1288643997896bf5a542bd03\transformed\play-services-base-18.0.1\AndroidManifest.xml:20:19-85
+220            android:exported="false"
+220-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\ZION\.gradle\caches\8.10\transforms\456dc06e1288643997896bf5a542bd03\transformed\play-services-base-18.0.1\AndroidManifest.xml:22:19-43
+221            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+221-->[com.google.android.gms:play-services-base:18.0.1] C:\Users\ZION\.gradle\caches\8.10\transforms\456dc06e1288643997896bf5a542bd03\transformed\play-services-base-18.0.1\AndroidManifest.xml:21:19-78
+222
+223        <uses-library
+223-->[androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] C:\Users\ZION\.gradle\caches\8.10\transforms\2a0c56106a9474e5d8aa8eadb956cfd9\transformed\ads-adservices-1.0.0-beta05\AndroidManifest.xml:23:9-25:40
+224            android:name="android.ext.adservices"
+224-->[androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] C:\Users\ZION\.gradle\caches\8.10\transforms\2a0c56106a9474e5d8aa8eadb956cfd9\transformed\ads-adservices-1.0.0-beta05\AndroidManifest.xml:24:13-50
+225            android:required="false" />
+225-->[androidx.privacysandbox.ads:ads-adservices:1.0.0-beta05] C:\Users\ZION\.gradle\caches\8.10\transforms\2a0c56106a9474e5d8aa8eadb956cfd9\transformed\ads-adservices-1.0.0-beta05\AndroidManifest.xml:25:13-37
+226
+227        <meta-data
+227-->[com.google.android.gms:play-services-basement:18.1.0] C:\Users\ZION\.gradle\caches\8.10\transforms\1a27bf9c0dbf60bb7d3121f19cba298f\transformed\play-services-basement-18.1.0\AndroidManifest.xml:21:9-23:69
+228            android:name="com.google.android.gms.version"
+228-->[com.google.android.gms:play-services-basement:18.1.0] C:\Users\ZION\.gradle\caches\8.10\transforms\1a27bf9c0dbf60bb7d3121f19cba298f\transformed\play-services-basement-18.1.0\AndroidManifest.xml:22:13-58
+229            android:value="@integer/google_play_services_version" />
+229-->[com.google.android.gms:play-services-basement:18.1.0] C:\Users\ZION\.gradle\caches\8.10\transforms\1a27bf9c0dbf60bb7d3121f19cba298f\transformed\play-services-basement-18.1.0\AndroidManifest.xml:23:13-66
+230
+231        <receiver
+231-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+232            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+232-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+233            android:directBootAware="false"
+233-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+234            android:enabled="true"
+234-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+235            android:exported="true"
+235-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+236            android:permission="android.permission.DUMP" >
+236-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+237            <intent-filter>
+237-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+238                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+238-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+238-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+239            </intent-filter>
+240            <intent-filter>
+240-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+241                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+241-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+241-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+242            </intent-filter>
+243            <intent-filter>
+243-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+244                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+244-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+244-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+245            </intent-filter>
+246            <intent-filter>
+246-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+247                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+247-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+247-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\ZION\.gradle\caches\8.10\transforms\a047f8abe95557998cf37fb08c235cc0\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+248            </intent-filter>
+249        </receiver>
+250
+251        <service
+251-->[com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\1375754762b2f47b4967f92dccdb871f\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:28:9-34:19
+252            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+252-->[com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\1375754762b2f47b4967f92dccdb871f\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:29:13-103
+253            android:exported="false" >
+253-->[com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\1375754762b2f47b4967f92dccdb871f\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:30:13-37
+254            <meta-data
+254-->[com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\1375754762b2f47b4967f92dccdb871f\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:31:13-33:39
+255                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+255-->[com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\1375754762b2f47b4967f92dccdb871f\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:32:17-94
+256                android:value="cct" />
+256-->[com.google.android.datatransport:transport-backend-cct:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\1375754762b2f47b4967f92dccdb871f\transformed\transport-backend-cct-3.1.8\AndroidManifest.xml:33:17-36
+257        </service>
+258        <service
+258-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:26:9-30:19
+259            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+259-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:27:13-117
+260            android:exported="false"
+260-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:28:13-37
+261            android:permission="android.permission.BIND_JOB_SERVICE" >
+261-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:29:13-69
+262        </service>
+263
+264        <receiver
+264-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:32:9-34:40
+265            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+265-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:33:13-132
+266            android:exported="false" />
+266-->[com.google.android.datatransport:transport-runtime:3.1.8] C:\Users\ZION\.gradle\caches\8.10\transforms\6efc7b6e1bb1cada72bc77f78f80fe2c\transformed\transport-runtime-3.1.8\AndroidManifest.xml:34:13-37
+267    </application>
+268
+269</manifest>

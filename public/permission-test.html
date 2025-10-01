@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Permission Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { 
+            background-color: #6c757d; 
+            cursor: not-allowed; 
+            opacity: 0.6;
+        }
+        
+        .permission-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Notification Permission Test</h1>
+    
+    <div class="permission-info">
+        <h3>Current Status</h3>
+        <p><strong>Permission:</strong> <span id="permissionStatus">Checking...</span></p>
+        <p><strong>Browser Support:</strong> <span id="supportStatus">Checking...</span></p>
+    </div>
+    
+    <div id="statusMessage" class="status info">
+        Checking notification support and permissions...
+    </div>
+    
+    <div class="step">
+        <h4>Step 1: Check Support</h4>
+        <p>First, we check if your browser supports notifications.</p>
+        <button id="checkSupport">Check Browser Support</button>
+    </div>
+    
+    <div class="step">
+        <h4>Step 2: Request Permission</h4>
+        <p>Click this button to request notification permission. This MUST be triggered by a user action.</p>
+        <button id="requestPermission" disabled>Request Permission</button>
+    </div>
+    
+    <div class="step">
+        <h4>Step 3: Test Notification</h4>
+        <p>Once permission is granted, test showing a notification.</p>
+        <button id="testNotification" disabled>Show Test Notification</button>
+    </div>
+    
+    <div class="permission-info">
+        <h3>Important Notes</h3>
+        <ul>
+            <li><strong>User Interaction Required:</strong> Permission can only be requested from a user-generated event (like a button click)</li>
+            <li><strong>HTTPS Required:</strong> Notifications only work on HTTPS sites (or localhost)</li>
+            <li><strong>Browser Differences:</strong> Different browsers may show different permission dialogs</li>
+            <li><strong>Persistent Permission:</strong> Once granted/denied, the permission persists until manually changed</li>
+        </ul>
+    </div>
+
+    <script>
+        const permissionSpan = document.getElementById('permissionStatus');
+        const supportSpan = document.getElementById('supportStatus');
+        const statusDiv = document.getElementById('statusMessage');
+        const checkSupportBtn = document.getElementById('checkSupport');
+        const requestPermissionBtn = document.getElementById('requestPermission');
+        const testNotificationBtn = document.getElementById('testNotification');
+        
+        function updateStatus() {
+            // Update permission status
+            if ('Notification' in window) {
+                permissionSpan.textContent = Notification.permission;
+                permissionSpan.className = Notification.permission === 'granted' ? 'success' : 
+                                          Notification.permission === 'denied' ? 'error' : 'warning';
+            } else {
+                permissionSpan.textContent = 'Not supported';
+                permissionSpan.className = 'error';
+            }
+            
+            // Update button states
+            const isSupported = 'Notification' in window;
+            const permission = isSupported ? Notification.permission : 'denied';
+            
+            requestPermissionBtn.disabled = !isSupported || permission !== 'default';
+            testNotificationBtn.disabled = !isSupported || permission !== 'granted';
+            
+            // Update status message
+            if (!isSupported) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Notifications are not supported in this browser';
+            } else if (permission === 'granted') {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Notifications are enabled and ready to use!';
+            } else if (permission === 'denied') {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Notifications are blocked. Please enable them in browser settings.';
+            } else {
+                statusDiv.className = 'status warning';
+                statusDiv.textContent = '⚠️ Notification permission not yet requested. Click "Request Permission" below.';
+            }
+        }
+        
+        function checkSupport() {
+            const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+            
+            if (isSupported) {
+                supportSpan.textContent = 'Fully Supported ✅';
+                supportSpan.className = 'success';
+                requestPermissionBtn.disabled = Notification.permission !== 'default';
+            } else {
+                supportSpan.textContent = 'Not Supported ❌';
+                supportSpan.className = 'error';
+            }
+            
+            updateStatus();
+        }
+        
+        async function requestPermission() {
+            if (!('Notification' in window)) {
+                alert('This browser does not support notifications');
+                return;
+            }
+            
+            try {
+                console.log('Requesting notification permission...');
+                const permission = await Notification.requestPermission();
+                console.log('Permission result:', permission);
+                
+                updateStatus();
+                
+                if (permission === 'granted') {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '🎉 Permission granted! You can now receive notifications.';
+                } else if (permission === 'denied') {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '😞 Permission denied. You can change this in your browser settings.';
+                } else {
+                    statusDiv.className = 'status warning';
+                    statusDiv.textContent = '🤔 Permission request was dismissed.';
+                }
+            } catch (error) {
+                console.error('Error requesting permission:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error requesting permission: ' + error.message;
+            }
+        }
+        
+        function showTestNotification() {
+            if (Notification.permission !== 'granted') {
+                alert('Permission not granted');
+                return;
+            }
+            
+            try {
+                const notification = new Notification('Test Notification', {
+                    body: 'This is a test notification from the permission test page!',
+                    icon: '/icons/icon-192x192.png',
+                    tag: 'test-notification',
+                    requireInteraction: false
+                });
+                
+                notification.onclick = function() {
+                    console.log('Notification clicked');
+                    notification.close();
+                };
+                
+                // Auto-close after 5 seconds
+                setTimeout(() => {
+                    notification.close();
+                }, 5000);
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '🔔 Test notification sent successfully!';
+                
+            } catch (error) {
+                console.error('Error showing notification:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error showing notification: ' + error.message;
+            }
+        }
+        
+        // Event listeners
+        checkSupportBtn.addEventListener('click', checkSupport);
+        requestPermissionBtn.addEventListener('click', requestPermission);
+        testNotificationBtn.addEventListener('click', showTestNotification);
+        
+        // Initialize
+        checkSupport();
+        
+        // Listen for permission changes
+        if ('Notification' in window) {
+            // Some browsers support permission change events
+            navigator.permissions?.query({name: 'notifications'}).then(function(result) {
+                result.onchange = function() {
+                    updateStatus();
+                };
+            }).catch(console.error);
+        }
+    </script>
+</body>
+</html> 

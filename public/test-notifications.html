@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Test - Trinity Schools</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .test-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #cce7ff; color: #004085; }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 10px; 
+            border-radius: 4px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Push Notification Diagnostics</h1>
+    <p>Test and diagnose push notification issues for Trinity Schools</p>
+
+    <div class="test-container">
+        <h2>1. Browser Support Check</h2>
+        <button onclick="checkSupport()">Check Browser Support</button>
+        <div id="support-status" class="status info" style="display:none;"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>2. Service Worker</h2>
+        <button onclick="registerServiceWorker()">Register Service Worker</button>
+        <div id="sw-status" class="status info" style="display:none;"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>3. Notification Permission</h2>
+        <button onclick="requestPermission()">Request Permission</button>
+        <div id="permission-status" class="status info" style="display:none;"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>4. Push Subscription</h2>
+        <button onclick="subscribeToPush()">Subscribe to Push</button>
+        <button onclick="unsubscribeFromPush()">Unsubscribe</button>
+        <div id="subscription-status" class="status info" style="display:none;"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>5. Test Notifications</h2>
+        <button onclick="showLocalNotification()">Show Local Notification</button>
+        <button onclick="sendTestPush()" id="send-push-btn">Send Test Push</button>
+        <div id="test-status" class="status info" style="display:none;"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>6. Diagnostic Log</h2>
+        <button onclick="clearLog()">Clear Log</button>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const VAPID_PUBLIC_KEY = 'BL-P0JiVp1NIUsP4Xx2lF8Xw4QBd8fTlfMIgeg_uNGUwVvndQrr1JDf4wOwn0Q-lCvotMdAQ_KxXzVHYIB2AGIQ';
+        let subscription = null;
+        let swRegistration = null;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(`[Notification Test] ${message}`);
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.style.display = 'block';
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        async function checkSupport() {
+            log('Checking browser support...');
+            
+            const checks = {
+                'Service Worker': 'serviceWorker' in navigator,
+                'Push Manager': 'PushManager' in window,
+                'Notifications': 'Notification' in window,
+                'HTTPS': location.protocol === 'https:' || location.hostname === 'localhost'
+            };
+            
+            let allSupported = true;
+            let statusMessage = 'Browser Support Check:\n';
+            
+            for (const [feature, supported] of Object.entries(checks)) {
+                const status = supported ? '✅' : '❌';
+                statusMessage += `${status} ${feature}\n`;
+                if (!supported) allSupported = false;
+                log(`${feature}: ${supported ? 'Supported' : 'NOT Supported'}`, supported ? 'info' : 'error');
+            }
+            
+            showStatus('support-status', statusMessage, allSupported ? 'success' : 'error');
+            return allSupported;
+        }
+
+        async function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) {
+                log('Service Worker not supported', 'error');
+                showStatus('sw-status', 'Service Worker not supported', 'error');
+                return null;
+            }
+
+            try {
+                log('Registering service worker...');
+                swRegistration = await navigator.serviceWorker.register('/sw.js');
+                log('Service Worker registered successfully', 'success');
+                showStatus('sw-status', '✅ Service Worker registered successfully', 'success');
+                
+                // Wait for the service worker to be ready
+                await navigator.serviceWorker.ready;
+                log('Service Worker is ready', 'success');
+                
+                return swRegistration;
+            } catch (error) {
+                log(`Service Worker registration failed: ${error.message}`, 'error');
+                showStatus('sw-status', `❌ Registration failed: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function requestPermission() {
+            if (!('Notification' in window)) {
+                log('Notifications not supported', 'error');
+                showStatus('permission-status', 'Notifications not supported', 'error');
+                return 'denied';
+            }
+
+            let permission = Notification.permission;
+            log(`Current permission status: ${permission}`, 'info');
+
+            if (permission === 'default') {
+                log('Requesting notification permission...');
+                permission = await Notification.requestPermission();
+                log(`Permission granted: ${permission}`, permission === 'granted' ? 'success' : 'error');
+            }
+
+            const statusMessage = `Permission Status: ${permission}`;
+            const statusType = permission === 'granted' ? 'success' : permission === 'denied' ? 'error' : 'warning';
+            showStatus('permission-status', statusMessage, statusType);
+
+            return permission;
+        }
+
+        async function subscribeToPush() {
+            try {
+                log('Starting push subscription process...');
+                
+                // Check support
+                if (!(await checkSupport())) {
+                    throw new Error('Browser does not support push notifications');
+                }
+
+                // Register service worker
+                if (!swRegistration) {
+                    swRegistration = await registerServiceWorker();
+                }
+                if (!swRegistration) {
+                    throw new Error('Failed to register service worker');
+                }
+
+                // Request permission
+                const permission = await requestPermission();
+                if (permission !== 'granted') {
+                    throw new Error('Notification permission not granted');
+                }
+
+                log('Subscribing to push notifications...');
+                log(`Using VAPID key: ${VAPID_PUBLIC_KEY.substring(0, 20)}...`);
+
+                subscription = await swRegistration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+
+                log('Push subscription successful!', 'success');
+                log(`Endpoint: ${subscription.endpoint}`, 'info');
+                
+                showStatus('subscription-status', '✅ Successfully subscribed to push notifications', 'success');
+                document.getElementById('send-push-btn').disabled = false;
+
+                return subscription;
+            } catch (error) {
+                log(`Push subscription failed: ${error.message}`, 'error');
+                showStatus('subscription-status', `❌ Subscription failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function unsubscribeFromPush() {
+            if (!subscription) {
+                log('No active subscription to unsubscribe from', 'warning');
+                showStatus('subscription-status', 'No active subscription', 'warning');
+                return;
+            }
+
+            try {
+                await subscription.unsubscribe();
+                subscription = null;
+                log('Successfully unsubscribed from push notifications', 'success');
+                showStatus('subscription-status', '✅ Successfully unsubscribed', 'success');
+                document.getElementById('send-push-btn').disabled = true;
+            } catch (error) {
+                log(`Unsubscribe failed: ${error.message}`, 'error');
+                showStatus('subscription-status', `❌ Unsubscribe failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function showLocalNotification() {
+            try {
+                const permission = await requestPermission();
+                if (permission !== 'granted') {
+                    throw new Error('Notification permission not granted');
+                }
+
+                log('Showing local notification...');
+                const notification = new Notification('Trinity Schools Test', {
+                    body: 'This is a local test notification',
+                    icon: '/icon-192.png',
+                    badge: '/icon-192.png',
+                    tag: 'test-notification'
+                });
+
+                notification.onclick = () => {
+                    log('Local notification clicked', 'success');
+                    notification.close();
+                };
+
+                notification.onshow = () => {
+                    log('Local notification shown', 'success');
+                };
+
+                notification.onerror = (error) => {
+                    log(`Local notification error: ${error}`, 'error');
+                };
+
+                showStatus('test-status', '✅ Local notification sent', 'success');
+            } catch (error) {
+                log(`Local notification failed: ${error.message}`, 'error');
+                showStatus('test-status', `❌ Local notification failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendTestPush() {
+            if (!subscription) {
+                log('No push subscription available. Subscribe first.', 'error');
+                showStatus('test-status', '❌ No subscription. Subscribe first.', 'error');
+                return;
+            }
+
+            try {
+                log('Sending test push notification...');
+                
+                const response = await fetch('/api/notifications/send-push', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        subscription: {
+                            endpoint: subscription.endpoint,
+                            keys: {
+                                p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')))),
+                                auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth'))))
+                            }
+                        },
+                        payload: {
+                            title: 'Trinity Schools Test Push',
+                            body: 'This is a test push notification from Trinity Schools!',
+                            icon: '/icon-192.png',
+                            url: window.location.href,
+                            tag: 'test-push'
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    log('Test push notification sent successfully!', 'success');
+                    showStatus('test-status', '✅ Push notification sent! Check your notifications.', 'success');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`Send push failed: ${error.message}`, 'error');
+                showStatus('test-status', `❌ Send push failed: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            log('Log cleared', 'info');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Push Notification Test Page loaded', 'info');
+            log('Trinity Schools Notification System Diagnostics', 'info');
+            checkSupport();
+        });
+    </script>
+</body>
+</html>

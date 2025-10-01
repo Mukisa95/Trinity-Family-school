@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#FFC107</color>
+    <color name="black">#000000</color>
+    <color name="divider">#BDBDBD</color>
+    <color name="icons">#FFFFFF</color>
+    <color name="notification_color">#1976D2</color>
+    <color name="primary">#1976D2</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="white">#FFFFFF</color>
+    <string name="app_name">Trinity Online</string>
+    <string name="default_web_client_id" translatable="false">YOUR_CLIENT_ID.apps.googleusercontent.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">YOUR_PROJECT_NUMBER</string>
+    <string name="google_api_key" translatable="false">YOUR_API_KEY</string>
+    <string name="google_app_id" translatable="false">1:YOUR_PROJECT_NUMBER:android:YOUR_APP_ID</string>
+    <string name="google_crash_reporting_api_key" translatable="false">YOUR_API_KEY</string>
+    <string name="google_storage_bucket" translatable="false">trinity-schools-webview.appspot.com</string>
+    <string name="no_internet_icon">No Internet Connection Icon</string>
+    <string name="no_internet_message">We can\'t access the database right now, please check your connection and try again.</string>
+    <string name="project_id" translatable="false">trinity-schools-webview</string>
+    <string name="retry">Retry</string>
+    <style name="Theme.TrinityWebViewApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondaryVariant">@color/accent</item>
+        <item name="colorOnSecondary">@color/black</item>
+        
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

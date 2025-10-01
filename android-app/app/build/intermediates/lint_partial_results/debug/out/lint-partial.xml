@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.2.2" type="partial_results">
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="com.trinityonline.webviewapp.MainActivity"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="UnsafeImplicitIntentLaunch">
+            <map id="actionsSent">
+                    <map id="android.intent.action.VIEW (used to start an activity)">
+                        <location id="0"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/trinityonline/webviewapp/MainActivity.kt"
+                            line="183"
+                            column="34"
+                            startOffset="7278"
+                            endLine="183"
+                            endColumn="84"
+                            endOffset="7328"/>
+                        <location id="1"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/trinityonline/webviewapp/MainActivity.kt"
+                            line="343"
+                            column="46"
+                            startOffset="14258"
+                            endLine="343"
+                            endColumn="96"
+                            endOffset="14308"/>
+                        <location id="2"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/trinityonline/webviewapp/MainActivity.kt"
+                            line="396"
+                            column="38"
+                            startOffset="17165"
+                            endLine="396"
+                            endColumn="80"
+                            endOffset="17207"/>
+                        <location id="3"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/trinityonline/webviewapp/MainActivity.kt"
+                            line="343"
+                            column="46"
+                            startOffset="14258"
+                            endLine="343"
+                            endColumn="96"
+                            endOffset="14308"/>
+                        <location id="4"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/trinityonline/webviewapp/MainActivity.kt"
+                            line="396"
+                            column="38"
+                            startOffset="17165"
+                            endLine="396"
+                            endColumn="80"
+                            endOffset="17207"/>
+                    </map>
+            </map>
+    </map>
+    <map id="NotificationPermission">
+        <entry
+            name="className"
+            string="com/google/firebase/messaging/DisplayNotification"/>
+        <entry
+            name="source"
+            boolean="true"/>
+        <location id="class"
+            file="$GRADLE_USER_HOME/caches/8.10/transforms/353bc38f561319841eacba116a646a91/transformed/firebase-messaging-23.4.1/jars/classes.jar"/>
+    </map>
+    <map id="UnusedResources">
+        <location id="R.color.divider"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="10"
+            column="12"
+            startOffset="385"
+            endLine="10"
+            endColumn="26"
+            endOffset="399"/>
+        <location id="R.color.primary_light"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="5"
+            column="12"
+            startOffset="155"
+            endLine="5"
+            endColumn="32"
+            endOffset="175"/>
+        <location id="R.color.secondary_text"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="8"
+            column="12"
+            startOffset="294"
+            endLine="8"
+            endColumn="33"
+            endOffset="315"/>
+        <location id="R.color.primary_text"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="7"
+            column="12"
+            startOffset="246"
+            endLine="7"
+            endColumn="31"
+            endOffset="265"/>
+        <entry
+            name="model"
+            string="color[text_primary(U),secondary_text(D),black(U),icons(D),accent(U),white(U),divider(D),primary_dark(U),primary_text(D),text_secondary(U),notification_color(U),primary(U),primary_light(D)],drawable[ic_no_internet(U),ic_notification(U)],id[errorMessage(U),retryButton(U),swipeRefresh(U),webView(U),noInternetLayout(U),progressBar(U)],layout[activity_main(U)],mipmap[ic_launcher_round(U),ic_launcher_foreground(U),ic_launcher_background(U),ic_launcher(U)],string[no_internet_icon(U),no_internet_message(U),app_name(U),retry(U)],style[Theme_TrinityWebViewApp(U),Theme_MaterialComponents_DayNight_NoActionBar(R)],xml[data_extraction_rules(U),backup_rules(U)];d^9,e^5,15^5^1a^d^1b^0^1d,16^18^17,19^18^17,1e^1f^b^7^5^4^2;;;"/>
+        <location id="R.color.icons"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/colors.xml"
+            line="9"
+            column="12"
+            startOffset="344"
+            endLine="9"
+            endColumn="24"
+            endOffset="356"/>
+    </map>
+
+</incidents>
