@@ -1,6 +1,7 @@
 import { 
   collection, 
   doc, 
+  getDoc,
   getDocs, 
   addDoc, 
   updateDoc, 
@@ -167,15 +168,11 @@ export class UsersService {
   // Authenticate user
   static async authenticateUser(username: string, password: string): Promise<SystemUser | null> {
     try {
-      console.log('Authenticating user:', username);
-      
       // Try direct username lookup first
       let user = await this.getUserByUsername(username);
-      console.log('Direct user lookup result:', user ? 'Found' : 'Not found');
       
       // If not found and this might be a parent login attempt, try alternative lookup methods
       if (!user) {
-        console.log('Attempting parent authentication alternatives...');
         
         // Method 1: Try new simple format generation (MUK12 style)
         const PupilsService = (await import('./pupils.service')).PupilsService;
@@ -265,22 +262,16 @@ export class UsersService {
       }
       
       if (!user) {
-        console.log('No user found with any method for input:', username);
         return null;
       }
       
       if (!user.isActive) {
-        console.log('User is not active:', user.username);
         return null;
       }
-      
-      console.log('User found, attempting password verification...');
-      console.log('User has password hash:', !!user.passwordHash);
       
       if (user.passwordHash) {
         // Try new salted hash first
         if (verifyPassword(password, user.passwordHash)) {
-          console.log('Password verification successful (new method)');
           await this.updateLastLogin(user.id);
           return user;
         }
@@ -289,18 +280,15 @@ export class UsersService {
         if (user.username.toLowerCase() === 'admin') {
           const oldUnsaltedHash = btoa(password); // Simple base64
           if (oldUnsaltedHash === user.passwordHash) {
-            console.log('Password verification successful (old unsalted method for admin)');
             // IMPORTANT: Re-hash and save password with the new method
             const newSaltedHash = hashPassword(password);
             await this.updateUser(user.id, { passwordHash: newSaltedHash });
-            console.log('Admin password re-hashed and updated to new method.');
             await this.updateLastLogin(user.id);
             return user;
           }
         }
       }
       
-      console.log('Password verification failed');
       return null;
     } catch (error) {
       console.error('Error authenticating user:', error);

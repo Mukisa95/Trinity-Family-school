@@ -15,22 +15,6 @@ const firebaseConfig = {
   // measurementId: "G-Z3G3D3EXRW"
 };
 
-console.log('Firebase config loading...');
-console.log('Environment variables:', {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'SET' : 'NOT SET',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'SET' : 'NOT SET',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'SET' : 'NOT SET',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? 'SET' : 'NOT SET',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? 'SET' : 'NOT SET',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? 'SET' : 'NOT SET'
-});
-console.log('Final config (trimmed):', { 
-  projectId: firebaseConfig.projectId, 
-  authDomain: firebaseConfig.authDomain,
-  apiKey: firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 10) + '...' : 'NOT SET',
-  analyticsDisabled: true,
-  env: process.env.NODE_ENV 
-});
 
 // Initialize Firebase with singleton pattern to prevent multiple instances
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -40,7 +24,6 @@ let db: any = null;
 try {
   db = getFirestore(app);
 } catch (error) {
-  console.warn('Firestore already initialized, using existing instance');
   // If getFirestore fails, try to get the existing instance
   db = getFirestore();
 }
@@ -105,8 +88,5 @@ export const storage = getStorage(app);
 // Disable Analytics temporarily to avoid console errors
 export const analytics = null;
 // export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
-
-console.log('Firebase initialized successfully with project:', firebaseConfig.projectId);
-console.log('Analytics disabled to prevent API key errors');
 
 export default app; 

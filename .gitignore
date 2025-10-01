@@ -56,3 +56,5 @@ service-account-key.json
 
 # Android backup with credentials
 android-backup/
+
+.vercel
