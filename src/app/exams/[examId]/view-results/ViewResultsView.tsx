@@ -2712,35 +2712,38 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                       </div>
 
                       {expandedDivisions.includes(div.division) && (
-                        <div className="p-3 border-t border-purple-200 bg-white max-h-80 overflow-y-auto">
+                        <div className="p-2 border-t border-purple-200 bg-white">
                           <div className="space-y-1">
                             {(() => {
                               const divisionData = divisionAnalysis.find(d => d.division === div.division);
                               return divisionData?.pupils.map((pupil) => {
                                 const pupilResult = processedResults.find(r => r.pupilInfo?.pupilId === pupil.pupilId);
                                 return (
-                                  <div key={pupil.pupilId} className="bg-gray-50 p-2 rounded border border-gray-200">
-                                    <div className="font-semibold text-gray-900 text-xs">{pupil.name}</div>
-                                    <div className="text-xs text-gray-500">{pupil.admissionNumber}</div>
-                                    <div className="flex items-center gap-1 mt-1 mb-2">
-                                      <span className="text-xs">T: {pupil.totalMarks}</span>
-                                      <span className="text-xs">A: {pupil.totalAggregates}</span>
+                                  <div key={pupil.pupilId} className="bg-gray-50 p-1.5 rounded border border-gray-200">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="font-semibold text-gray-900 text-xs">{pupil.name}</div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs bg-blue-100 px-1 rounded">T:{pupil.totalMarks}</span>
+                                        <span className="text-xs bg-purple-100 px-1 rounded">A:{pupil.totalAggregates}</span>
+                                      </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-1">
                                       {subjectSnaps?.slice(0, 4).map(subject => {
                                         const subjectResult = pupilResult?.results[subject.code];
+                                        const marks = subjectResult?.marks !== undefined ? subjectResult.marks : '-';
+                                        const grade = subjectResult?.grade;
                                         return (
                                           <div key={subject.code} className="bg-white p-1 rounded text-xs">
-                                            <div className="font-medium text-gray-700">{subject.code}</div>
-                                            <div className="font-bold text-gray-900">
-                                              {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
+                                            <div className="flex items-center justify-between">
+                                              <span className="font-medium text-gray-700">{subject.code}</span>
+                                              <span className="font-bold text-gray-900">{marks}</span>
+                                              {grade && (
+                                                <Badge className={`${getGradeColor(grade)} text-xs px-1 py-0`}>
+                                                  {grade}
+                                                </Badge>
+                                              )}
                                             </div>
-                                            {subjectResult?.grade && (
-                                              <Badge className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0`}>
-                                                {subjectResult.grade}
-                                              </Badge>
-                                            )}
-                                          </div>
+                                      </div>
                                         );
                                       })}
                                     </div>
