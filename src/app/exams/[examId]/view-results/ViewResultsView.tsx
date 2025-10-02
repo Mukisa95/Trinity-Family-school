@@ -657,7 +657,7 @@ export default function ViewResultsView() {
     division: 'all'
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(100); // Increased default to 100
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [isMobile, setIsMobile] = useState(false);
   const [showProgressiveExamModal, setShowProgressiveExamModal] = useState(false);
@@ -1004,7 +1004,8 @@ export default function ViewResultsView() {
 
   const handleSelectAll = (isChecked: boolean) => {
     if (isChecked) {
-      const allPupilIds = paginatedResults.map(result => result.pupilInfo.pupilId);
+      // Select ALL pupils from filtered results, not just current page
+      const allPupilIds = filteredAndSortedResults.map(result => result.pupilInfo.pupilId);
       setSelectedPupils(allPupilIds);
     } else {
       setSelectedPupils([]);
@@ -1876,6 +1877,9 @@ export default function ViewResultsView() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-7 h-8 text-xs"
                 />
+                <div className="text-xs text-gray-600 mt-1">
+                  Showing {filteredAndSortedResults.length} of {processedResults.length} pupils
+                </div>
                 </div>
 
               <div className="flex items-center gap-2">
