@@ -6,6 +6,7 @@ import {
   usePhotos, 
   useUpdatePhoto, 
   useDeletePhoto, 
+  usePermanentlyDeletePhoto,
   useSetPrimaryPhoto,
   useSearchPhotos 
 } from '@/lib/hooks/use-photos';
@@ -34,6 +35,13 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { 
   Upload, 
   Search, 
@@ -47,7 +55,9 @@ import {
   Filter,
   Grid,
   List,
-  X
+  X,
+  MoreVertical,
+  AlertTriangle
 } from 'lucide-react';
 
 const PHOTO_CATEGORIES: { value: PhotoCategory; label: string }[] = [
@@ -117,6 +127,7 @@ export function SlidesManager() {
   const { data: searchResults = [] } = useSearchPhotos(searchTerm, searchTerm.length > 2);
   const updateMutation = useUpdatePhoto();
   const deleteMutation = useDeletePhoto();
+  const permanentDeleteMutation = usePermanentlyDeletePhoto();
   const setPrimaryMutation = useSetPrimaryPhoto();
 
   // Filter photos
@@ -349,11 +360,26 @@ export function SlidesManager() {
   };
 
   const handleDelete = async (photoId: string) => {
-    if (confirm('Are you sure you want to delete this photo?')) {
+    if (confirm('Are you sure you want to hide this photo? It will be marked as inactive but can be recovered.')) {
       try {
         await deleteMutation.mutateAsync(photoId);
       } catch (error) {
         console.error('Delete failed:', error);
+      }
+    }
+  };
+
+  const handlePermanentDelete = async (photoId: string, photo: Photo) => {
+    const isCloudinary = photo.url?.includes('cloudinary.com');
+    const storageType = isCloudinary ? 'Cloudinary' : 'Firebase Storage';
+    const fileSize = (photo.fileSize / 1024 / 1024).toFixed(2);
+    
+    if (confirm(`⚠️ PERMANENT DELETE WARNING\n\nThis will permanently delete:\n• Photo: ${photo.title}\n• Size: ${fileSize}MB\n• From: ${storageType}\n• From: Firestore Database\n\n❌ THIS CANNOT BE UNDONE!\n\nAre you absolutely sure?`)) {
+      try {
+        await permanentDeleteMutation.mutateAsync(photoId);
+      } catch (error) {
+        console.error('Permanent delete failed:', error);
+        alert('Failed to permanently delete photo. Check console for details.');
       }
     }
   };
@@ -854,14 +880,31 @@ export function SlidesManager() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(photo.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={deleteMutation.isPending || permanentDeleteMutation.isPending}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleDelete(photo.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Hide Photo
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handlePermanentDelete(photo.id, photo)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              Permanently Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>
@@ -936,14 +979,31 @@ export function SlidesManager() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(photo.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={deleteMutation.isPending || permanentDeleteMutation.isPending}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleDelete(photo.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Hide Photo
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handlePermanentDelete(photo.id, photo)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <AlertTriangle className="h-4 w-4 mr-2" />
+                              Permanently Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>

@@ -477,12 +477,42 @@ export class PhotosService {
       
       const photo = docSnap.data() as Photo;
       
-      // Delete from Firebase Storage
-      const storageRef = ref(storage, `${STORAGE_PATH}/${photo.category}/${photo.fileName}`);
-      await deleteObject(storageRef);
+      // Check if photo is stored in Cloudinary or Firebase Storage
+      if (photo.url?.includes('cloudinary.com')) {
+        console.log('🗑️ Deleting from Cloudinary...');
+        // Delete from Cloudinary via API route
+        try {
+          const response = await fetch('/api/delete-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoUrl: photo.url, photoId: id })
+          });
+          
+          if (!response.ok) {
+            console.warn('⚠️ Cloudinary deletion failed, continuing with Firestore deletion');
+          } else {
+            console.log('✅ Cloudinary deletion successful');
+          }
+        } catch (cloudinaryError) {
+          console.warn('⚠️ Cloudinary deletion error:', cloudinaryError);
+          // Continue with Firestore deletion even if Cloudinary fails
+        }
+      } else {
+        console.log('🗑️ Deleting from Firebase Storage...');
+        // Delete from Firebase Storage
+        try {
+          const storageRef = ref(storage, `${STORAGE_PATH}/${photo.category}/${photo.fileName}`);
+          await deleteObject(storageRef);
+          console.log('✅ Firebase Storage deletion successful');
+        } catch (storageError) {
+          console.warn('⚠️ Firebase Storage deletion failed:', storageError);
+          // Continue with Firestore deletion
+        }
+      }
       
       // Delete from Firestore
       await deleteDoc(docRef);
+      console.log('✅ Photo permanently deleted from database');
     } catch (error) {
       console.error('Error permanently deleting photo:', error);
       throw new Error('Failed to permanently delete photo');
