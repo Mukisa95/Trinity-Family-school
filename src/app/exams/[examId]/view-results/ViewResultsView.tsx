@@ -2448,9 +2448,9 @@ interface PerformanceAnalysisModalProps {
 }
 
 function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSnaps, examDetails }: PerformanceAnalysisModalProps) {
-  const [expandedDivision, setExpandedDivision] = useState<string | null>(null);
+  const [expandedDivisions, setExpandedDivisions] = useState<string[]>([]);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
-  const [expandedGrade, setExpandedGrade] = useState<string | null>(null);
+  const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
 
   // Division Analysis
   const divisionAnalysis = useMemo(() => {
@@ -2650,72 +2650,82 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
               <CardDescription>Performance distribution by division</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {divisionAnalysis.map((div) => (
                   <div 
                     key={div.division} 
-                    className="rounded-lg cursor-pointer hover:shadow-md transition-all p-3 bg-gradient-to-br from-purple-50 to-indigo-50"
-                    onClick={() => setExpandedDivision(expandedDivision === div.division ? null : div.division)}
+                    className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200"
                   >
-                    <div className="text-center">
-                      <Badge className={`${getDivisionColor(div.division)} px-3 py-1 text-sm font-bold mb-2 w-full`}>
-                        Div {div.division}
-                      </Badge>
-                      <div className="text-xl font-bold text-gray-900">{div.count}</div>
-                      <div className="text-xs text-gray-500 mb-2">pupils</div>
-                      <div className="text-sm font-semibold text-gray-700">{div.percentage}%</div>
-                      <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                        <div 
-                          className={`h-1 rounded-full ${getDivisionColor(div.division)}`}
-                          style={{ width: `${div.percentage}%` }}
-                        />
+                    <div 
+                      className="cursor-pointer hover:shadow-md transition-all p-3"
+                      onClick={() => {
+                        setExpandedDivisions(prev => 
+                          prev.includes(div.division) 
+                            ? prev.filter(d => d !== div.division)
+                            : [...prev, div.division]
+                        );
+                      }}
+                    >
+                      <div className="text-center">
+                        <Badge className={`${getDivisionColor(div.division)} px-3 py-1 text-sm font-bold mb-2 w-full`}>
+                          Div {div.division}
+                        </Badge>
+                        <div className="text-xl font-bold text-gray-900">{div.count}</div>
+                        <div className="text-xs text-gray-500 mb-2">pupils</div>
+                        <div className="text-sm font-semibold text-gray-700">{div.percentage}%</div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                          <div 
+                            className={`h-1 rounded-full ${getDivisionColor(div.division)}`}
+                            style={{ width: `${div.percentage}%` }}
+                          />
+                        </div>
+                        {expandedDivisions.includes(div.division) ? <ChevronUp className="h-4 w-4 mx-auto mt-2" /> : <ChevronDown className="h-4 w-4 mx-auto mt-2" />}
                       </div>
-                      {expandedDivision === div.division ? <ChevronUp className="h-4 w-4 mx-auto mt-2" /> : <ChevronDown className="h-4 w-4 mx-auto mt-2" />}
                     </div>
+
+                    {expandedDivisions.includes(div.division) && (
+                      <div className="p-3 border-t border-purple-200 bg-white">
+                        <div className="space-y-1">
+                          {(() => {
+                            const divisionData = divisionAnalysis.find(d => d.division === div.division);
+                            return divisionData?.pupils.map((pupil) => {
+                              const pupilResult = processedResults.find(r => r.pupilInfo?.pupilId === pupil.pupilId);
+                              return (
+                                <div key={pupil.pupilId} className="bg-gray-50 p-2 rounded border border-gray-200">
+                                  <div className="font-semibold text-gray-900 text-xs">{pupil.name}</div>
+                                  <div className="text-xs text-gray-500">{pupil.admissionNumber}</div>
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Badge variant="outline" className="text-xs">Total: {pupil.totalMarks}</Badge>
+                                    <Badge variant="outline" className="text-xs">Agg: {pupil.totalAggregates}</Badge>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1 mt-2">
+                                    {subjectSnaps?.slice(0, 4).map(subject => {
+                                      const subjectResult = pupilResult?.results[subject.code];
+                                      return (
+                                        <div key={subject.code} className="bg-white p-1 rounded text-xs">
+                                          <div className="font-medium text-gray-700">{subject.code}</div>
+                                          <div className="font-bold text-gray-900">
+                                            {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
+                                          </div>
+                                          {subjectResult?.grade && (
+                                            <Badge className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0`}>
+                                              {subjectResult.grade}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-
-              {expandedDivision && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  {(() => {
-                    const divisionData = divisionAnalysis.find(d => d.division === expandedDivision);
-                    if (!divisionData) return null;
-                    
-                    return (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm text-gray-900">
-                            Division {expandedDivision} - {divisionData.count} pupils ({divisionData.percentage}%)
-                          </span>
-                          <button
-                            onClick={() => setExpandedDivision(null)}
-                            className="text-gray-500 hover:text-gray-700"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                          {divisionData.pupils.map((pupil) => (
-                            <div key={pupil.pupilId} className="bg-white p-2 rounded border border-gray-200">
-                              <p className="font-semibold text-gray-900 text-xs">{pupil.name}</p>
-                              <p className="text-xs text-gray-500">{pupil.admissionNumber}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Badge variant="outline" className="text-xs">
-                                  {pupil.totalMarks}m
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                  {pupil.totalAggregates}a
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -2752,66 +2762,62 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
 
                     {expandedSubject === subject.code && (
                       <div className="mt-2 pt-2 border-t border-blue-200">
-                        <div className="grid grid-cols-6 gap-1 mb-3">
-                          {['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'].map((grade) => {
-                            const gradeData = subject.gradeDistribution.find(g => g.grade === grade);
-                            const count = gradeData ? gradeData.count : 0;
-                            const percentage = gradeData ? gradeData.percentage : 0;
+                        <div className="space-y-3">
+                          {subject.gradeDistribution.map((gradeData) => {
+                            const gradeKey = `${subject.code}-${gradeData.grade}`;
+                            const isExpanded = expandedGrades.includes(gradeKey);
                             
                             return (
-                              <div key={grade} className="text-center">
-                                <Badge 
-                                  className={`${getGradeColor(grade)} px-2 py-1 text-xs font-bold mb-1 w-full`}
-                                >
-                                  {grade}
-                                </Badge>
+                              <div key={gradeData.grade} className="bg-gray-50 rounded-lg p-2">
                                 <div 
-                                  className="text-sm font-bold text-gray-900 cursor-pointer hover:text-blue-600"
-                                  onClick={() => setExpandedGrade(expandedGrade === `${subject.code}-${grade}` ? null : `${subject.code}-${grade}`)}
-                                  title={gradeData ? `${count} pupils (${percentage.toFixed(1)}%)` : '0 pupils'}
+                                  className="flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded"
+                                  onClick={() => {
+                                    setExpandedGrades(prev => 
+                                      isExpanded 
+                                        ? prev.filter(g => g !== gradeKey)
+                                        : [...prev, gradeKey]
+                                    );
+                                  }}
                                 >
-                                  {count}
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <Badge className={`${getGradeColor(gradeData.grade)} px-3 py-1 font-bold ${isExpanded ? 'ring-2 ring-blue-300' : ''}`}>
+                                      {gradeData.grade}
+                                    </Badge>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-lg font-bold text-gray-900">{gradeData.count}</div>
+                                        <div className="text-sm text-gray-500">pupils ({gradeData.percentage.toFixed(1)}%)</div>
+                                      </div>
+                                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                        <div 
+                                          className={`h-1.5 rounded-full ${getGradeColor(gradeData.grade).split(' ')[0].replace('bg-', 'bg-').replace('-100', '-500')}`}
+                                          style={{ width: `${gradeData.percentage}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                 </div>
+
+                                {isExpanded && (
+                                  <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+                                    <div className="grid grid-cols-1 gap-2">
+                                      {gradeData.pupils.map((pupil) => (
+                                        <div key={pupil.pupilId} className="bg-gray-50 p-2 rounded text-xs">
+                                          <div className="font-semibold text-gray-900">{pupil.name}</div>
+                                          <div className="text-xs text-gray-500">{pupil.admissionNumber}</div>
+                                          <Badge variant="outline" className="text-xs mt-1">
+                                            {pupil.marks} marks
+                                          </Badge>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
-
-                        {expandedGrade && expandedGrade.startsWith(`${subject.code}-`) && (
-                          <div className="bg-white rounded-lg border border-blue-200 p-2">
-                            {(() => {
-                              const expandedGradeData = subject.gradeDistribution.find(g => `${subject.code}-${g.grade}` === expandedGrade);
-                              if (!expandedGradeData) return null;
-                              
-                              return (
-                                <div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-bold text-sm text-gray-900">
-                                      {expandedGradeData.grade} Grade ({expandedGradeData.count} pupils)
-                                    </span>
-                                    <button
-                                      onClick={() => setExpandedGrade(null)}
-                                      className="text-gray-500 hover:text-gray-700"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
-                                    {expandedGradeData.pupils.map((pupil) => (
-                                      <div key={pupil.pupilId} className="bg-gray-50 p-1 rounded text-xs">
-                                        <p className="font-semibold text-gray-900 truncate">{pupil.name}</p>
-                                        <p className="text-xs text-gray-500">{pupil.admissionNumber}</p>
-                                        <Badge variant="outline" className="text-xs mt-1">
-                                          {pupil.marks} marks
-                                        </Badge>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
