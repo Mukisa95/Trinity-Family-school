@@ -234,12 +234,13 @@ export class PhotosService {
   }
 
   /**
-   * Get all photos
+   * Get all photos (only active photos)
    */
   static async getAllPhotos(): Promise<Photo[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
+        where('isActive', '==', true),
         orderBy('uploadedAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
