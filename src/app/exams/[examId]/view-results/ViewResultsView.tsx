@@ -2871,4 +2871,3 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
     </Dialog>
   );
 } 
-} 
