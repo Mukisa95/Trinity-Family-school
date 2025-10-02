@@ -234,21 +234,23 @@ export class PhotosService {
   }
 
   /**
-   * Get all photos (only active photos)
+   * Get all photos (Cloudinary only, no filtering needed)
    */
   static async getAllPhotos(): Promise<Photo[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
-        where('isActive', '==', true),
         orderBy('uploadedAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Photo));
+      // Filter to only show Cloudinary photos and active photos
+      return querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Photo))
+        .filter(photo => photo.url?.includes('cloudinary.com') && photo.isActive !== false);
     } catch (error) {
       console.error('Error fetching photos:', error);
       throw new Error('Failed to fetch photos');
@@ -256,22 +258,23 @@ export class PhotosService {
   }
 
   /**
-   * Get photos by category
+   * Get photos by category (Cloudinary only)
    */
   static async getPhotosByCategory(category: PhotoCategory): Promise<Photo[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
         where('category', '==', category),
-        where('isActive', '==', true),
         orderBy('uploadedAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Photo));
+      return querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Photo))
+        .filter(photo => photo.url?.includes('cloudinary.com') && photo.isActive !== false);
     } catch (error) {
       console.error('Error fetching photos by category:', error);
       throw new Error('Failed to fetch photos by category');
@@ -286,41 +289,18 @@ export class PhotosService {
       const q = query(
         collection(db, COLLECTION_NAME),
         where('usage', 'array-contains', usage),
-        where('isActive', '==', true),
         orderBy('uploadedAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Photo));
+      return querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Photo))
+        .filter(photo => photo.url?.includes('cloudinary.com') && photo.isActive !== false);
     } catch (error: any) {
       console.error('Error fetching photos by usage:', error);
-      
-      // If it's an index error, try a simpler query without ordering
-      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
-        console.log('Index not ready, trying simpler query...');
-        try {
-          const simpleQ = query(
-            collection(db, COLLECTION_NAME),
-            where('usage', 'array-contains', usage),
-            where('isActive', '==', true),
-            limit(10) // Limit results to avoid large queries
-          );
-          const simpleSnapshot = await getDocs(simpleQ);
-          
-          return simpleSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Photo));
-        } catch (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
-          return []; // Return empty array instead of throwing
-        }
-      }
-      
-      // For other errors, return empty array instead of throwing
       return [];
     }
   }
@@ -334,7 +314,6 @@ export class PhotosService {
         collection(db, COLLECTION_NAME),
         where('category', '==', category),
         where('isPrimary', '==', true),
-        where('isActive', '==', true),
         limit(1)
       );
       const querySnapshot = await getDocs(q);
@@ -344,13 +323,19 @@ export class PhotosService {
       }
       
       const doc = querySnapshot.docs[0];
-      return {
+      const photo = {
         id: doc.id,
         ...doc.data()
       } as Photo;
+      
+      // Only return Cloudinary photos
+      if (photo.url?.includes('cloudinary.com') && photo.isActive !== false) {
+        return photo;
+      }
+      return null;
     } catch (error) {
       console.error('Error fetching primary photo:', error);
-      throw new Error('Failed to fetch primary photo');
+      return null;
     }
   }
 
@@ -362,45 +347,22 @@ export class PhotosService {
       const q = query(
         collection(db, COLLECTION_NAME),
         where('usage', 'array-contains', usage),
-        where('isActive', '==', true),
         limit(count * 2) // Get more than needed to randomize
       );
       const querySnapshot = await getDocs(q);
       
-      const photos = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Photo));
+      const photos = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Photo))
+        .filter(photo => photo.url?.includes('cloudinary.com') && photo.isActive !== false);
       
       // Shuffle and return requested count
       const shuffled = photos.sort(() => 0.5 - Math.random());
       return shuffled.slice(0, count);
     } catch (error: any) {
       console.error('Error fetching random photos:', error);
-      
-      // If it's an index error, try a simpler query
-      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
-        console.log('Index not ready for random photos, trying simpler query...');
-        try {
-          const simpleQ = query(
-            collection(db, COLLECTION_NAME),
-            where('usage', 'array-contains', usage),
-            where('isActive', '==', true),
-            limit(count)
-          );
-          const simpleSnapshot = await getDocs(simpleQ);
-          
-          return simpleSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          } as Photo));
-        } catch (fallbackError) {
-          console.error('Fallback random photos query failed:', fallbackError);
-          return [];
-        }
-      }
-      
-      // For other errors, return empty array
       return [];
     }
   }
