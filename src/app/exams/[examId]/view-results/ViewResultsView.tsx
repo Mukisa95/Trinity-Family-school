@@ -2676,14 +2676,13 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
               <CardDescription>Performance distribution by division</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-                {divisionAnalysis.map((div) => (
-                  <div 
-                    key={div.division} 
-                    className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200"
-                  >
+              <div className="space-y-4">
+                {/* Division Header Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                  {divisionAnalysis.map((div) => (
                     <div 
-                      className="cursor-pointer hover:shadow-md transition-all p-3"
+                      key={div.division} 
+                      className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-3 cursor-pointer hover:shadow-md transition-all"
                       onClick={() => {
                         setExpandedDivisions(prev => 
                           prev.includes(div.division) 
@@ -2708,33 +2707,58 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                         {expandedDivisions.includes(div.division) ? <ChevronUp className="h-4 w-4 mx-auto mt-2" /> : <ChevronDown className="h-4 w-4 mx-auto mt-2" />}
                       </div>
                     </div>
+                  ))}
+                </div>
 
-                    {expandedDivisions.includes(div.division) && (
-                      <div className="p-3 border-t border-purple-200 bg-white">
-                        <div className="space-y-1">
-                          {(() => {
-                            const divisionData = divisionAnalysis.find(d => d.division === div.division);
-                            return divisionData?.pupils.map((pupil) => {
+                {/* Expanded Division Details - Full Width */}
+                {expandedDivisions.length > 0 && (
+                  <div className="space-y-4">
+                    {expandedDivisions.map(division => {
+                      const divisionData = divisionAnalysis.find(d => d.division === division);
+                      if (!divisionData) return null;
+                      
+                      return (
+                        <div key={division} className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`${getDivisionColor(division)} px-4 py-2 text-lg font-bold`}>
+                                Division {division}
+                              </Badge>
+                              <div>
+                                <span className="text-xl font-bold text-gray-900">{divisionData.count} pupils</span>
+                                <span className="text-sm text-gray-500 ml-2">({divisionData.percentage}% of total)</span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setExpandedDivisions(prev => prev.filter(d => d !== division))}
+                              className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-white/50"
+                            >
+                              <X className="h-5 w-5" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                            {divisionData.pupils.map((pupil) => {
                               const pupilResult = processedResults.find(r => r.pupilInfo?.pupilId === pupil.pupilId);
                               return (
-                                <div key={pupil.pupilId} className="bg-gray-50 p-2 rounded border border-gray-200">
-                                  <div className="font-semibold text-gray-900 text-xs">{pupil.name}</div>
-                                  <div className="text-xs text-gray-500">{pupil.admissionNumber}</div>
-                                  <div className="flex items-center gap-1 mt-1">
+                                <div key={pupil.pupilId} className="bg-white p-3 rounded-lg border border-gray-200 hover:border-purple-300 transition-colors">
+                                  <div className="font-bold text-gray-900 text-sm mb-1">{pupil.name}</div>
+                                  <div className="text-xs text-gray-500 mb-2">{pupil.admissionNumber}</div>
+                                  <div className="flex items-center gap-2 mb-3">
                                     <Badge variant="outline" className="text-xs">Total: {pupil.totalMarks}</Badge>
                                     <Badge variant="outline" className="text-xs">Agg: {pupil.totalAggregates}</Badge>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-1 mt-2">
-                                    {subjectSnaps?.slice(0, 4).map(subject => {
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {subjectSnaps?.slice(0, 6).map(subject => {
                                       const subjectResult = pupilResult?.results[subject.code];
                                       return (
-                                        <div key={subject.code} className="bg-white p-1 rounded text-xs">
-                                          <div className="font-medium text-gray-700">{subject.code}</div>
-                                          <div className="font-bold text-gray-900">
+                                        <div key={subject.code} className="bg-gray-50 p-2 rounded text-xs">
+                                          <div className="font-medium text-gray-700 mb-1">{subject.code}</div>
+                                          <div className="font-bold text-gray-900 mb-1">
                                             {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
                                           </div>
                                           {subjectResult?.grade && (
-                                            <Badge className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0`}>
+                                            <Badge className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0.5`}>
                                               {subjectResult.grade}
                                             </Badge>
                                           )}
@@ -2744,13 +2768,13 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                                   </div>
                                 </div>
                               );
-                            });
-                          })()}
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
