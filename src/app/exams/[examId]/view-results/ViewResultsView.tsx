@@ -2582,55 +2582,38 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="space-y-4 mt-2">
           {/* Overall Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-blue-700 flex items-center gap-2">
-                  <UsersIcon className="h-4 w-4" />
-                  Total Pupils
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-blue-900">{overallStats.totalPupils}</div>
+              <CardContent className="p-4 text-center">
+                <UsersIcon className="h-5 w-5 text-blue-600 mx-auto mb-2" />
+                <div className="text-xl font-bold text-blue-900">{overallStats.totalPupils}</div>
+                <div className="text-xs text-blue-700">Total Pupils</div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Pass Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-900">{overallStats.passRate}%</div>
-                <p className="text-xs text-green-600 mt-1">Div I-IV</p>
+              <CardContent className="p-4 text-center">
+                <Target className="h-5 w-5 text-green-600 mx-auto mb-2" />
+                <div className="text-xl font-bold text-green-900">{overallStats.passRate}%</div>
+                <div className="text-xs text-green-700">Pass Rate (I-IV)</div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-purple-700 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Avg. Marks
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-purple-900">{overallStats.averageMarks}</div>
+              <CardContent className="p-4 text-center">
+                <BarChart3 className="h-5 w-5 text-purple-600 mx-auto mb-2" />
+                <div className="text-xl font-bold text-purple-900">{overallStats.averageMarks}</div>
+                <div className="text-xs text-purple-700">Avg. Marks</div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-amber-700 flex items-center gap-2">
-                  <Award className="h-4 w-4" />
-                  Avg. Aggregates
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-amber-900">{overallStats.averageAggregates}</div>
+              <CardContent className="p-4 text-center">
+                <Award className="h-5 w-5 text-amber-600 mx-auto mb-2" />
+                <div className="text-xl font-bold text-amber-900">{overallStats.averageAggregates}</div>
+                <div className="text-xs text-amber-700">Avg. Aggregates</div>
               </CardContent>
             </Card>
           </div>
@@ -2638,20 +2621,18 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
           {/* Top Performer Card */}
           {overallStats.topPerformer && (
             <Card className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border-2 border-amber-300">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold text-amber-900 flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-600" />
-                  Top Performer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xl font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
-                    <p className="text-sm text-amber-700">{overallStats.topPerformer.pupilInfo?.admissionNumber}</p>
+                  <div className="flex items-center gap-3">
+                    <Trophy className="h-6 w-6 text-yellow-600" />
+                    <div>
+                      <p className="text-xs font-medium text-amber-700">Top Performer</p>
+                      <p className="text-lg font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
+                      <p className="text-sm text-amber-600">{overallStats.topPerformer.pupilInfo?.admissionNumber}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-amber-900">{overallStats.topPerformer.totalMarks}</p>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-amber-900">{overallStats.topPerformer.totalMarks}</p>
                     <p className="text-sm text-amber-700">marks</p>
                   </div>
                 </div>
@@ -2664,61 +2645,77 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
             <CardHeader>
               <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <PieChart className="h-5 w-5 text-purple-600" />
-                Division Distribution
+                Class Division Breakdown
               </CardTitle>
-              <CardDescription>Class performance by division</CardDescription>
+              <CardDescription>Performance distribution by division</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                 {divisionAnalysis.map((div) => (
-                  <div key={div.division} className="space-y-2">
-                    <div 
-                      className="flex items-center justify-between p-4 rounded-lg cursor-pointer hover:shadow-md transition-all"
-                      onClick={() => setExpandedDivision(expandedDivision === div.division ? null : div.division)}
-                    >
-                      <div className="flex items-center gap-4 flex-1">
-                        <Badge className={`${getDivisionColor(div.division)} px-4 py-2 text-lg font-bold`}>
-                          Div {div.division}
-                        </Badge>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="text-2xl font-bold text-gray-900">{div.count}</div>
-                            <div className="text-sm text-gray-500">pupils ({div.percentage}%)</div>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                            <div 
-                              className={`h-2 rounded-full ${getDivisionColor(div.division)}`}
-                              style={{ width: `${div.percentage}%` }}
-                            />
-                          </div>
-                        </div>
+                  <div 
+                    key={div.division} 
+                    className="rounded-lg cursor-pointer hover:shadow-md transition-all p-3 bg-gradient-to-br from-purple-50 to-indigo-50"
+                    onClick={() => setExpandedDivision(expandedDivision === div.division ? null : div.division)}
+                  >
+                    <div className="text-center">
+                      <Badge className={`${getDivisionColor(div.division)} px-3 py-1 text-sm font-bold mb-2 w-full`}>
+                        Div {div.division}
+                      </Badge>
+                      <div className="text-xl font-bold text-gray-900">{div.count}</div>
+                      <div className="text-xs text-gray-500 mb-2">pupils</div>
+                      <div className="text-sm font-semibold text-gray-700">{div.percentage}%</div>
+                      <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                        <div 
+                          className={`h-1 rounded-full ${getDivisionColor(div.division)}`}
+                          style={{ width: `${div.percentage}%` }}
+                        />
                       </div>
-                      {expandedDivision === div.division ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      {expandedDivision === div.division ? <ChevronUp className="h-4 w-4 mx-auto mt-2" /> : <ChevronDown className="h-4 w-4 mx-auto mt-2" />}
                     </div>
+                  </div>
+                ))}
+              </div>
 
-                    {expandedDivision === div.division && (
-                      <div className="ml-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {div.pupils.map((pupil) => (
-                            <div key={pupil.pupilId} className="bg-white p-3 rounded-md border border-gray-200 hover:border-purple-300 transition-colors">
-                              <p className="font-semibold text-gray-900 text-sm">{pupil.name}</p>
+              {expandedDivision && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  {(() => {
+                    const divisionData = divisionAnalysis.find(d => d.division === expandedDivision);
+                    if (!divisionData) return null;
+                    
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-gray-900">
+                            Division {expandedDivision} - {divisionData.count} pupils ({divisionData.percentage}%)
+                          </span>
+                          <button
+                            onClick={() => setExpandedDivision(null)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                          {divisionData.pupils.map((pupil) => (
+                            <div key={pupil.pupilId} className="bg-white p-2 rounded border border-gray-200">
+                              <p className="font-semibold text-gray-900 text-xs">{pupil.name}</p>
                               <p className="text-xs text-gray-500">{pupil.admissionNumber}</p>
-                              <div className="flex items-center gap-3 mt-2">
+                              <div className="flex items-center gap-1 mt-1">
                                 <Badge variant="outline" className="text-xs">
-                                  {pupil.totalMarks} marks
+                                  {pupil.totalMarks}m
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
-                                  {pupil.totalAggregates} agg
+                                  {pupil.totalAggregates}a
                                 </Badge>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    );
+                  })()}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -2727,85 +2724,94 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
             <CardHeader>
               <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-blue-600" />
-                Subject-wise Grade Distribution
+                Subject Performance Analysis
               </CardTitle>
-              <CardDescription>Performance analysis for each subject</CardDescription>
+              <CardDescription>Performance analysis sorted by average marks (best to worst)</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {subjectGradeAnalysis.map((subject) => (
-                  <div key={subject.code} className="border border-gray-200 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {subjectGradeAnalysis
+                  .sort((a, b) => parseFloat(b.averageMarks) - parseFloat(a.averageMarks))
+                  .map((subject) => (
+                  <div key={subject.code} className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all">
                     <div 
-                      className="flex items-center justify-between cursor-pointer"
+                      className="cursor-pointer"
                       onClick={() => setExpandedSubject(expandedSubject === subject.code ? null : subject.code)}
                     >
-                      <div className="flex items-center gap-3">
-                        <BookOpen className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h4 className="font-bold text-gray-900">{subject.subject}</h4>
-                          <p className="text-sm text-gray-500">{subject.code}</p>
-                        </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-bold text-gray-900">{subject.subject}</div>
+                        {expandedSubject === subject.code ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">Avg. Marks</p>
-                          <p className="text-xl font-bold text-blue-900">{subject.averageMarks}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">Total Pupils</p>
-                          <p className="text-xl font-bold text-gray-900">{subject.totalPupils}</p>
-                        </div>
-                        {expandedSubject === subject.code ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      <p className="text-xs text-gray-500">{subject.code}</p>
+                      <div className="mt-2 text-center">
+                        <p className="text-2xl font-bold text-blue-900">{subject.averageMarks}</p>
+                        <p className="text-xs text-gray-500">avg marks</p>
                       </div>
+                      <p className="text-xs text-gray-500 mt-1 text-center">{subject.totalPupils} pupils</p>
                     </div>
 
                     {expandedSubject === subject.code && (
-                      <div className="mt-4 space-y-3">
-                        {subject.gradeDistribution.map((gradeData) => (
-                          <div key={gradeData.grade} className="space-y-2">
-                            <div 
-                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => setExpandedGrade(expandedGrade === `${subject.code}-${gradeData.grade}` ? null : `${subject.code}-${gradeData.grade}`)}
-                            >
-                              <div className="flex items-center gap-3 flex-1">
-                                <Badge className={`${getGradeColor(gradeData.grade)} px-3 py-1 font-bold`}>
-                                  {gradeData.grade}
+                      <div className="mt-2 pt-2 border-t border-blue-200">
+                        <div className="grid grid-cols-6 gap-1 mb-3">
+                          {['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'].map((grade) => {
+                            const gradeData = subject.gradeDistribution.find(g => g.grade === grade);
+                            const count = gradeData ? gradeData.count : 0;
+                            const percentage = gradeData ? gradeData.percentage : 0;
+                            
+                            return (
+                              <div key={grade} className="text-center">
+                                <Badge 
+                                  className={`${getGradeColor(grade)} px-2 py-1 text-xs font-bold mb-1 w-full`}
+                                >
+                                  {grade}
                                 </Badge>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-lg font-bold text-gray-900">{gradeData.count}</div>
-                                    <div className="text-sm text-gray-500">pupils ({gradeData.percentage.toFixed(1)}%)</div>
-                                  </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                    <div 
-                                      className={`h-1.5 rounded-full ${getGradeColor(gradeData.grade).split(' ')[0].replace('bg-', 'bg-').replace('-100', '-500')}`}
-                                      style={{ width: `${gradeData.percentage}%` }}
-                                    />
-                                  </div>
+                                <div 
+                                  className="text-sm font-bold text-gray-900 cursor-pointer hover:text-blue-600"
+                                  onClick={() => setExpandedGrade(expandedGrade === `${subject.code}-${grade}` ? null : `${subject.code}-${grade}`)}
+                                  title={gradeData ? `${count} pupils (${percentage.toFixed(1)}%)` : '0 pupils'}
+                                >
+                                  {count}
                                 </div>
                               </div>
-                              {expandedGrade === `${subject.code}-${gradeData.grade}` ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                            </div>
+                            );
+                          })}
+                        </div>
 
-                            {expandedGrade === `${subject.code}-${gradeData.grade}` && (
-                              <div className="ml-8 p-3 bg-white rounded-lg border border-gray-200">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                  {gradeData.pupils.map((pupil) => (
-                                    <div key={pupil.pupilId} className="bg-gray-50 p-2 rounded border border-gray-200">
-                                      <p className="font-semibold text-gray-900 text-xs">{pupil.name}</p>
-                                      <p className="text-xs text-gray-500">{pupil.admissionNumber}</p>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant="outline" className="text-xs">
+                        {expandedGrade && expandedGrade.startsWith(`${subject.code}-`) && (
+                          <div className="bg-white rounded-lg border border-blue-200 p-2">
+                            {(() => {
+                              const expandedGradeData = subject.gradeDistribution.find(g => `${subject.code}-${g.grade}` === expandedGrade);
+                              if (!expandedGradeData) return null;
+                              
+                              return (
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-sm text-gray-900">
+                                      {expandedGradeData.grade} Grade ({expandedGradeData.count} pupils)
+                                    </span>
+                                    <button
+                                      onClick={() => setExpandedGrade(null)}
+                                      className="text-gray-500 hover:text-gray-700"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
+                                    {expandedGradeData.pupils.map((pupil) => (
+                                      <div key={pupil.pupilId} className="bg-gray-50 p-1 rounded text-xs">
+                                        <p className="font-semibold text-gray-900 truncate">{pupil.name}</p>
+                                        <p className="text-xs text-gray-500">{pupil.admissionNumber}</p>
+                                        <Badge variant="outline" className="text-xs mt-1">
                                           {pupil.marks} marks
                                         </Badge>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>
