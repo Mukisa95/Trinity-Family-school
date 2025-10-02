@@ -49,7 +49,15 @@ export async function POST(request: NextRequest) {
     let uploadResult: any = null;
     
     // Try Cloudinary first if configured
-    if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    const hasCloudinaryConfig = !!(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+    console.log('🔍 Cloudinary config check:', {
+      hasCloudName: !!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      hasApiKey: !!process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
+      hasApiSecret: !!process.env.CLOUDINARY_API_SECRET,
+      folderPrefix: CLOUDINARY_FOLDER_PREFIX
+    });
+    
+    if (hasCloudinaryConfig) {
       try {
         console.log('🚀 Attempting Cloudinary upload...');
         
@@ -108,7 +116,8 @@ export async function POST(request: NextRequest) {
         console.log(`🔍 Cloudinary URL: ${photoUrl}`);
         
       } catch (cloudinaryError) {
-        console.log('❌ Cloudinary failed:', (cloudinaryError as Error).message);
+        console.error('❌ Cloudinary failed:', cloudinaryError);
+        console.error('❌ Full error details:', JSON.stringify(cloudinaryError, null, 2));
         console.log('🚀 Attempting local storage upload...');
         
         // Fallback to local storage
