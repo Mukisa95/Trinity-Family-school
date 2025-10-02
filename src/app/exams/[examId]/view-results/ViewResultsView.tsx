@@ -2449,7 +2449,7 @@ interface PerformanceAnalysisModalProps {
 
 function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSnaps, examDetails }: PerformanceAnalysisModalProps) {
   const [expandedDivisions, setExpandedDivisions] = useState<string[]>([]);
-  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+  const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
 
   // Division Analysis
@@ -2533,12 +2533,19 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
         )
       : null;
 
+    const worstPerformer = processedResults.length > 0 
+      ? processedResults.reduce((worst, current) => 
+          current.totalMarks < worst.totalMarks ? current : worst
+        )
+      : null;
+
     return {
       totalPupils,
       passRate,
       averageMarks,
       averageAggregates,
-      topPerformer
+      topPerformer,
+      worstPerformer
     };
   }, [processedResults]);
 
@@ -2586,58 +2593,77 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
           {/* Overall Statistics Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="p-4 text-center">
-                <UsersIcon className="h-5 w-5 text-blue-600 mx-auto mb-2" />
-                <div className="text-xl font-bold text-blue-900">{overallStats.totalPupils}</div>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-blue-900">{overallStats.totalPupils}</div>
                 <div className="text-xs text-blue-700">Total Pupils</div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardContent className="p-4 text-center">
-                <Target className="h-5 w-5 text-green-600 mx-auto mb-2" />
-                <div className="text-xl font-bold text-green-900">{overallStats.passRate}%</div>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-green-900">{overallStats.passRate}%</div>
                 <div className="text-xs text-green-700">Pass Rate (I-IV)</div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <CardContent className="p-4 text-center">
-                <BarChart3 className="h-5 w-5 text-purple-600 mx-auto mb-2" />
-                <div className="text-xl font-bold text-purple-900">{overallStats.averageMarks}</div>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-purple-900">{overallStats.averageMarks}</div>
                 <div className="text-xs text-purple-700">Avg. Marks</div>
               </CardContent>
             </Card>
 
             <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-              <CardContent className="p-4 text-center">
-                <Award className="h-5 w-5 text-amber-600 mx-auto mb-2" />
-                <div className="text-xl font-bold text-amber-900">{overallStats.averageAggregates}</div>
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-amber-900">{overallStats.averageAggregates}</div>
                 <div className="text-xs text-amber-700">Avg. Aggregates</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Top Performer Card */}
-          {overallStats.topPerformer && (
-            <Card className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border-2 border-amber-300">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Trophy className="h-6 w-6 text-yellow-600" />
-                    <div>
-                      <p className="text-xs font-medium text-amber-700">Top Performer</p>
-                      <p className="text-lg font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
-                      <p className="text-sm text-amber-600">{overallStats.topPerformer.pupilInfo?.admissionNumber}</p>
+          {/* Top and Bottom Performers */}
+          {overallStats.topPerformer && overallStats.worstPerformer && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* Top Performer */}
+              <Card className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border border-amber-300">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-600" />
+                      <div>
+                        <p className="text-xs font-medium text-amber-700">Top Performer</p>
+                        <p className="text-sm font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
+                        <p className="text-xs text-amber-600">{overallStats.topPerformer.pupilInfo?.admissionNumber}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-amber-900">{overallStats.topPerformer.totalMarks}</p>
+                      <p className="text-xs text-amber-700">marks</p>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-amber-900">{overallStats.topPerformer.totalMarks}</p>
-                    <p className="text-sm text-amber-700">marks</p>
+                </CardContent>
+              </Card>
+
+              {/* Worst Performer */}
+              <Card className="bg-gradient-to-r from-red-50 via-pink-50 to-gray-50 border border-red-300">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingDown className="h-5 w-5 text-red-600" />
+                      <div>
+                        <p className="text-xs font-medium text-red-700">Worst Performer</p>
+                        <p className="text-sm font-bold text-red-900">{overallStats.worstPerformer.pupilInfo?.name}</p>
+                        <p className="text-xs text-red-600">{overallStats.worstPerformer.pupilInfo?.admissionNumber}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-red-900">{overallStats.worstPerformer.totalMarks}</p>
+                      <p className="text-xs text-red-700">marks</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Division Distribution */}
@@ -2650,7 +2676,7 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
               <CardDescription>Performance distribution by division</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                 {divisionAnalysis.map((div) => (
                   <div 
                     key={div.division} 
@@ -2746,11 +2772,17 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                   <div key={subject.code} className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all">
                     <div 
                       className="cursor-pointer"
-                      onClick={() => setExpandedSubject(expandedSubject === subject.code ? null : subject.code)}
+                      onClick={() => {
+                        setExpandedSubjects(prev => 
+                          prev.includes(subject.code) 
+                            ? prev.filter(s => s !== subject.code)
+                            : [...prev, subject.code]
+                        );
+                      }}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-bold text-gray-900">{subject.subject}</div>
-                        {expandedSubject === subject.code ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        {expandedSubjects.includes(subject.code) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </div>
                       <p className="text-xs text-gray-500">{subject.code}</p>
                       <div className="mt-2 text-center">
@@ -2760,7 +2792,7 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                       <p className="text-xs text-gray-500 mt-1 text-center">{subject.totalPupils} pupils</p>
                     </div>
 
-                    {expandedSubject === subject.code && (
+                    {expandedSubjects.includes(subject.code) && (
                       <div className="mt-2 pt-2 border-t border-blue-200">
                         <div className="space-y-3">
                           {subject.gradeDistribution.map((gradeData) => {
