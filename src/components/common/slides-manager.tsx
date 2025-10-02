@@ -178,6 +178,71 @@ export function SlidesManager() {
     })));
   };
 
+  // Helper function to compress image before upload
+  const compressImage = async (file: File, maxSizeMB = 4): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions to fit under 4MB while maintaining aspect ratio
+          const maxDimension = 2048; // Max width or height
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height / width) * maxDimension;
+              width = maxDimension;
+            } else {
+              width = (width / height) * maxDimension;
+              height = maxDimension;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx!.drawImage(img, 0, 0, width, height);
+          
+          // Try different quality levels to get under 4MB
+          let quality = 0.8;
+          const tryCompress = () => {
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const sizeInMB = blob.size / 1024 / 1024;
+                  console.log(`🔍 Compressed to ${sizeInMB.toFixed(2)}MB at quality ${quality}`);
+                  
+                  if (sizeInMB > maxSizeMB && quality > 0.3) {
+                    quality -= 0.1;
+                    tryCompress();
+                  } else {
+                    const compressedFile = new File([blob], file.name, {
+                      type: 'image/jpeg',
+                      lastModified: Date.now(),
+                    });
+                    resolve(compressedFile);
+                  }
+                } else {
+                  reject(new Error('Failed to compress image'));
+                }
+              },
+              'image/jpeg',
+              quality
+            );
+          };
+          tryCompress();
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleUpload = async () => {
     if (selectedFiles.length === 0 || !user) return;
 
@@ -187,9 +252,14 @@ export function SlidesManager() {
         const photoFile = selectedFiles[i];
         setUploadProgress(prev => ({ ...prev, [photoFile.id]: 0 }));
         
+        // Compress image before upload to avoid Vercel's 4.5MB limit
+        console.log(`📦 Original file size: ${(photoFile.file.size / 1024 / 1024).toFixed(2)}MB`);
+        const compressedFile = await compressImage(photoFile.file, 4);
+        console.log(`✅ Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        
         // Use the new Cloudinary API route directly
         const formData = new FormData();
-        formData.append('file', photoFile.file);
+        formData.append('file', compressedFile);
         formData.append('title', photoFile.metadata.title);
         formData.append('description', photoFile.metadata.description);
         formData.append('category', photoFile.metadata.category);
