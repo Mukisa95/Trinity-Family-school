@@ -335,24 +335,24 @@ export default function FamilyFeesCollection() {
             if (fee.payments && fee.payments.length > 0) {
               const feeLastPayment = fee.payments[0]; // Already sorted by date
               if (!lastPayment || new Date(feeLastPayment.paymentDate) > new Date(lastPayment.paymentDate)) {
-                lastPayment = {
-                  id: feeLastPayment.id,
-                  amount: feeLastPayment.amount,
-                  paymentDate: feeLastPayment.paymentDate,
-                  balance: feeLastPayment.balance || 0,
-                  paidBy: feeLastPayment.paidBy ? { name: feeLastPayment.paidBy.name } : undefined,
-                  term: selectedTermId,
-                  academicYear: selectedAcademicYear?.name || '',
-                  feeStructureId: feeLastPayment.feeStructureId
-                };
+              lastPayment = {
+                id: feeLastPayment.id,
+                amount: feeLastPayment.amount,
+                paymentDate: feeLastPayment.paymentDate,
+                balance: feeLastPayment.balance || 0,
+                paidBy: feeLastPayment.paidBy ? { name: feeLastPayment.paidBy.name } : undefined,
+                term: selectedTermId,
+                academicYear: selectedAcademicYear?.name || '',
+                feeStructureId: feeLastPayment.feeStructureId
+              };
               }
             }
-          }
+            }
 
           // Step 6: Add previous term balances (carry forward)
           if (previousBalance && previousBalance.breakdown) {
             for (const carryForwardItem of previousBalance.breakdown) {
-              applicableFees.push({
+            applicableFees.push({
                 feeStructureId: carryForwardItem.feeStructureId,
                 name: carryForwardItem.name,
                 amount: carryForwardItem.amount,

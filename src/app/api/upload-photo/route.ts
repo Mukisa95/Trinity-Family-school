@@ -9,6 +9,10 @@ import type { PhotoCategory, PhotoUsage } from '@/types';
 const STORAGE_PATH = 'school-photos';
 const COLLECTION_NAME = 'photos';
 
+// Get environment-specific folder prefix
+// This allows dev and production to have separate folders in Cloudinary
+const CLOUDINARY_FOLDER_PREFIX = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER || 'production';
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -51,14 +55,17 @@ export async function POST(request: NextRequest) {
         
         const timestamp = Date.now();
         const fileName = `${timestamp}-${file.name}`;
-        const publicId = `school-photos/${category}/${fileName.replace(/\.[^/.]+$/, '')}`;
+        const folderPath = `${CLOUDINARY_FOLDER_PREFIX}/school-photos/${category}`;
+        const publicId = `${folderPath}/${fileName.replace(/\.[^/.]+$/, '')}`;
+        
+        console.log(`📁 Cloudinary folder: ${folderPath}`);
         
         // Upload to Cloudinary with compression and optimization
         uploadResult = await new Promise((resolve, reject) => {
           cloudinary.uploader.upload_stream(
             {
               public_id: publicId,
-              folder: `school-photos/${category}`,
+              folder: folderPath,
               resource_type: 'image',
               quality: 'auto:low', // Aggressive compression while maintaining quality
               fetch_format: 'auto', // Auto-select best format (WebP, AVIF)
