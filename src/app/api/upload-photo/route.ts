@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     
     let photoUrl = '';
     let storageType = 'local';
+    let uploadResult: any = null;
     
     // Try Cloudinary first if configured
     if (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -52,15 +53,34 @@ export async function POST(request: NextRequest) {
         const fileName = `${timestamp}-${file.name}`;
         const publicId = `school-photos/${category}/${fileName.replace(/\.[^/.]+$/, '')}`;
         
-        // Upload to Cloudinary
-        const uploadResult = await new Promise((resolve, reject) => {
+        // Upload to Cloudinary with compression and optimization
+        uploadResult = await new Promise((resolve, reject) => {
           cloudinary.uploader.upload_stream(
             {
               public_id: publicId,
               folder: `school-photos/${category}`,
               resource_type: 'image',
-              quality: 'auto',
-              fetch_format: 'auto'
+              quality: 'auto:low', // Aggressive compression while maintaining quality
+              fetch_format: 'auto', // Auto-select best format (WebP, AVIF)
+              transformation: [
+                {
+                  width: 1920, // Max width
+                  height: 1920, // Max height
+                  crop: 'limit', // Only scale down if larger
+                  quality: 'auto:eco', // Balanced quality/size ratio
+                  fetch_format: 'auto'
+                }
+              ],
+              eager: [
+                {
+                  width: 1920,
+                  height: 1920,
+                  crop: 'limit',
+                  quality: 'auto:eco',
+                  fetch_format: 'auto'
+                }
+              ],
+              eager_async: false // Generate optimized version immediately
             },
             (error, result) => {
               if (error) reject(error);
@@ -68,6 +88,12 @@ export async function POST(request: NextRequest) {
             }
           ).end(buffer);
         });
+        
+        // Log original and compressed sizes
+        const originalSize = file.size;
+        const compressedSize = (uploadResult as any).bytes || 0;
+        const compressionRatio = originalSize > 0 ? ((1 - compressedSize / originalSize) * 100).toFixed(2) : '0';
+        console.log(`📊 Compression: ${(originalSize / 1024 / 1024).toFixed(2)}MB → ${(compressedSize / 1024 / 1024).toFixed(2)}MB (${compressionRatio}% reduction)`);
 
         photoUrl = (uploadResult as any).secure_url;
         storageType = 'cloudinary';
@@ -136,7 +162,8 @@ export async function POST(request: NextRequest) {
       usage,
       url: photoUrl,
       fileName: file.name,
-      fileSize: file.size,
+      fileSize: storageType === 'cloudinary' ? ((uploadResult as any)?.bytes || file.size) : file.size,
+      originalSize: file.size, // Keep track of original size
       isActive: true,
       isPrimary: isPrimary || false,
       uploadedBy,
