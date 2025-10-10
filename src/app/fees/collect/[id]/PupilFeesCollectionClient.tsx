@@ -460,13 +460,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }).format(data.amount)} has been recorded.`,
       });
 
-      // Refetch all data to update UI
-      await refetch();
-      setLastPaymentTimestamp(Date.now());
-      
-      // Close modal and clear selection
+      // Close modal first
       setIsPaymentModalOpen(false);
       setSelectedFee(null);
+      
+      // Refetch all data to update UI (non-blocking)
+      refetch().catch(err => console.error('Refetch error:', err));
+      setLastPaymentTimestamp(Date.now());
       
     } catch (error) {
       console.error('Payment submission error:', error);
@@ -521,13 +521,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           description: result.message,
         });
 
-        // Refetch all data to update UI
-        await refetch();
-        setLastPaymentTimestamp(Date.now());
-        
-        // Close modal and clear selection
+        // Close modal first
         setIsCarryForwardPaymentModalOpen(false);
         setSelectedFee(null);
+        
+        // Refetch all data to update UI (non-blocking)
+        refetch().catch(err => console.error('Refetch error:', err));
+        setLastPaymentTimestamp(Date.now());
       } else {
         toast({
           variant: "destructive",
@@ -577,8 +577,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }).format(payment.amount)} has been reverted.`,
       });
 
-      // Refetch all data to update UI
-      await refetch();
+      // Refetch all data to update UI (non-blocking)
+      refetch().catch(err => console.error('Refetch error:', err));
       setLastPaymentTimestamp(Date.now());
       
     } catch (error) {
