@@ -65,7 +65,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
     try {
       await onSubmit({ amount: parseFloat(amount) });
       setAmount('');
-      onClose();
+      // Don't call onClose() here - parent component handles it
     } catch (error) {
       console.error('Payment submission error:', error);
       // Error handling is done in the parent component

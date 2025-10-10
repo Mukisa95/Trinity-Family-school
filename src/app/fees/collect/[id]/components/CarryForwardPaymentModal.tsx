@@ -126,7 +126,7 @@ export function CarryForwardPaymentModal({
       setAmount('');
       setPaymentType('general');
       setSelectedItem(null);
-      onClose();
+      // Don't call onClose() here - parent component handles it
     } catch (error) {
       console.error('Payment submission error:', error);
     } finally {

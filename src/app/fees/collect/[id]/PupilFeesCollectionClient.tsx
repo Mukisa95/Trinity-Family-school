@@ -460,12 +460,17 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }).format(data.amount)} has been recorded.`,
       });
 
+      console.log('✅ Payment successful, closing modal and refreshing data...');
+      
       // Close modal first
       setIsPaymentModalOpen(false);
       setSelectedFee(null);
       
       // Refetch all data to update UI (non-blocking)
-      refetch().catch(err => console.error('Refetch error:', err));
+      console.log('🔄 Triggering refetch...');
+      refetch()
+        .then(() => console.log('✅ Refetch completed successfully'))
+        .catch(err => console.error('❌ Refetch error:', err));
       setLastPaymentTimestamp(Date.now());
       
     } catch (error) {
