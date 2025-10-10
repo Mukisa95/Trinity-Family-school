@@ -47,7 +47,8 @@ interface FeeCardProps {
 
 export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, selectedAcademicYear }: FeeCardProps) {
   const totalPaid = fee.paid || 0;
-  const balance = (fee.amount || 0) - totalPaid;
+  // For carry forward fees, use the pre-calculated balance to avoid double-counting payments
+  const balance = fee.id === 'previous-balance' ? (fee.balance || 0) : ((fee.amount || 0) - totalPaid);
   const { data: schoolSettings } = useSchoolSettings();
 
   const handlePrintReceipt = async (payment: PaymentRecord) => {
