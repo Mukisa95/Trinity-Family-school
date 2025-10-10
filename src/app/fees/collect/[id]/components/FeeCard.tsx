@@ -362,13 +362,11 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(totalPaid)}
                 </span>
               </p>
-              {fee.id !== 'previous-balance' && (
-                <p className="text-xs sm:text-sm text-gray-600">
-                  Balance: <span className="font-medium text-red-600">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
-                  </span>
-                </p>
-              )}
+              <p className="text-xs sm:text-sm text-gray-600">
+                Balance: <span className="font-medium text-red-600">
+                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
+                </span>
+              </p>
             </div>
           )}
           <div className="mt-1">

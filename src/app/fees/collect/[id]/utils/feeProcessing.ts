@@ -820,13 +820,17 @@ export function createPreviousBalanceFee(
   );
   
   const totalPaid = carryForwardPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const currentBalance = Math.max(0, previousBalance.amount - totalPaid);
+  
+  // For carry forward fees, use the pre-calculated balance from previous terms
+  // Don't subtract current term payments as they're already accounted for in the original term
+  const currentBalance = previousBalance.amount;
   
   console.log(`📊 Previous balance calculation:`, {
     originalAmount: previousBalance.amount,
     carryForwardPayments: carryForwardPayments.length,
     totalPaid,
-    currentBalance
+    currentBalance,
+    note: 'Using pre-calculated balance from previous terms'
   });
 
   return {
