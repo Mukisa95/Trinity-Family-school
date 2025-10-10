@@ -97,7 +97,10 @@ export function usePaymentProcessing({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pupil-payments', pupilId] }),
         queryClient.invalidateQueries({ queryKey: ['previous-balance', pupilId] }),
-        queryClient.invalidateQueries({ queryKey: ['pupil-fees'] }),
+        queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupilId] }),
+        queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupilId] }),
+        queryClient.invalidateQueries({ queryKey: ['fee-structures'] }),
+        queryClient.invalidateQueries({ queryKey: ['academic-years'] }),
       ]);
 
       // Show success message based on payment type
