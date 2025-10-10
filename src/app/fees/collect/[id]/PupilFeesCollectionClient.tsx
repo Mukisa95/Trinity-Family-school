@@ -460,7 +460,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }).format(data.amount)} has been recorded.`,
       });
 
-      // Update timestamp to trigger refetch
+      // Refetch all data to update UI
+      await refetch();
       setLastPaymentTimestamp(Date.now());
       
       // Close modal and clear selection
@@ -520,7 +521,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           description: result.message,
         });
 
-        // Update timestamp to trigger refetch
+        // Refetch all data to update UI
+        await refetch();
         setLastPaymentTimestamp(Date.now());
         
         // Close modal and clear selection
@@ -575,17 +577,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }).format(payment.amount)} has been reverted.`,
       });
 
-      // Invalidate relevant queries to refresh data
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['pupil-payments', pupilId] }),
-        queryClient.invalidateQueries({ queryKey: ['previous-balance', pupilId] }),
-        queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupilId] }),
-        queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupilId] }),
-        queryClient.invalidateQueries({ queryKey: ['fee-structures'] }),
-        queryClient.invalidateQueries({ queryKey: ['academic-years'] }),
-      ]);
-
-      // Update timestamp to trigger refetch
+      // Refetch all data to update UI
+      await refetch();
       setLastPaymentTimestamp(Date.now());
       
     } catch (error) {
