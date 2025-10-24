@@ -248,6 +248,16 @@ function PupilsContent() {
   });
   const [selectedNewClassId, setSelectedNewClassId] = useState('');
 
+  // Add section change modal state
+  const [sectionChangeModal, setSectionChangeModal] = useState<{
+    isOpen: boolean;
+    pupil: Pupil | null;
+  }>({
+    isOpen: false,
+    pupil: null
+  });
+  const [selectedNewSection, setSelectedNewSection] = useState<'Day' | 'Boarding'>('Day');
+
   // Add state for ID codes modal
   const [isManageIdCodesModalOpen, setIsManageIdCodesModalOpen] = useState(false);
   const [selectedPupilForIdCodes, setSelectedPupilForIdCodes] = useState<Pupil | null>(null);
@@ -307,6 +317,39 @@ function PupilsContent() {
       age--;
     }
     return age;
+  };
+
+  // Calculate age with years and months in abbreviated format
+  const calculateAgeAbbreviated = (dateOfBirth: string): string => {
+    if (!dateOfBirth) return 'N/A';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    
+    // Adjust if the birthday hasn't occurred yet this year
+    if (months < 0 || (months === 0 && today.getDate() < birthDate.getDate())) {
+      years--;
+      months += 12;
+    }
+    
+    // Adjust months if day of month hasn't been reached
+    if (today.getDate() < birthDate.getDate()) {
+      months--;
+      if (months < 0) {
+        months = 11;
+      }
+    }
+    
+    // Format the output with abbreviations
+    if (years === 0) {
+      return `${months}mo`;
+    } else if (months === 0) {
+      return `${years}yr`;
+    } else {
+      return `${years}yr ${months}mo`;
+    }
   };
 
   const handleSort = (field: SortField) => {
@@ -578,6 +621,41 @@ function PupilsContent() {
         variant: "destructive",
         title: "Error",
         description: "Failed to update class. Please try again.",
+      });
+    }
+  };
+
+  // Add section change handlers for individual pupils
+  const handlePupilSectionChange = async (pupil: Pupil, newSection: 'Day' | 'Boarding') => {
+    if (pupil.section === newSection) {
+      toast({
+        variant: "destructive",
+        title: "No Change",
+        description: `${pupil.firstName} is already in ${newSection} section.`,
+      });
+      return;
+    }
+
+    try {
+      const updateData: any = {
+        section: newSection,
+      };
+
+      await updatePupilMutation.mutateAsync({
+        id: pupil.id,
+        data: updateData,
+      });
+
+      toast({
+        title: "Section Updated",
+        description: `${pupil.firstName}'s section has been changed from ${pupil.section || 'N/A'} to ${newSection}.`,
+      });
+    } catch (err) {
+      console.error("Failed to update section:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update section. Please try again.",
       });
     }
   };
@@ -1639,7 +1717,7 @@ function PupilsContent() {
                                 {pupil.dateOfBirth && (
                                   <>
                                     <span className="hidden sm:inline">•</span>
-                                    <span>{calculateAge(pupil.dateOfBirth)} years</span>
+                                    <span>{calculateAgeAbbreviated(pupil.dateOfBirth)}</span>
                                   </>
                                 )}
                               </div>
@@ -1649,7 +1727,7 @@ function PupilsContent() {
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <button className={`text-xs text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
-                                        {classes.find(c => c.id === pupil.classId)?.name || 'N/A'} • {pupil.section}
+                                        {classes.find(c => c.id === pupil.classId)?.name || 'N/A'}
                                       </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="start" className="w-48">
@@ -1664,6 +1742,38 @@ function PupilsContent() {
                                       <DropdownMenuItem onClick={() => handlePupilClassChange(pupil)}>
                                         <Edit className="mr-2 h-4 w-4 text-orange-600" />
                                         Change Class
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                  <span className="text-xs text-gray-400">•</span>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button className={`text-xs text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
+                                        {pupil.section}
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" className="w-40">
+                                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Change Section</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        onClick={() => handlePupilSectionChange(pupil, 'Day')}
+                                        className={pupil.section === 'Day' ? 'bg-blue-50' : ''}
+                                      >
+                                        <svg className="mr-2 h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                        Day
+                                        {pupil.section === 'Day' && <span className="ml-auto text-blue-600">✓</span>}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => handlePupilSectionChange(pupil, 'Boarding')}
+                                        className={pupil.section === 'Boarding' ? 'bg-purple-50' : ''}
+                                      >
+                                        <svg className="mr-2 h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                        </svg>
+                                        Boarding
+                                        {pupil.section === 'Boarding' && <span className="ml-auto text-purple-600">✓</span>}
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
@@ -1729,8 +1839,38 @@ function PupilsContent() {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                            <div className="text-xs text-gray-500 mt-0.5 capitalize">
-                              {pupil.section} Scholar
+                            <div className="mt-0.5">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="text-xs text-gray-500 capitalize hover:text-indigo-600 hover:underline transition-colors text-left block">
+                                    {pupil.section} Scholar
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-40">
+                                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Change Section</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handlePupilSectionChange(pupil, 'Day')}
+                                    className={pupil.section === 'Day' ? 'bg-blue-50' : ''}
+                                  >
+                                    <svg className="mr-2 h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                    Day Scholar
+                                    {pupil.section === 'Day' && <span className="ml-auto text-blue-600">✓</span>}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handlePupilSectionChange(pupil, 'Boarding')}
+                                    className={pupil.section === 'Boarding' ? 'bg-purple-50' : ''}
+                                  >
+                                    <svg className="mr-2 h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                    Boarding Scholar
+                                    {pupil.section === 'Boarding' && <span className="ml-auto text-purple-600">✓</span>}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         </td>

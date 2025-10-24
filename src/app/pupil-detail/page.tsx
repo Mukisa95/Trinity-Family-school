@@ -199,6 +199,22 @@ function PupilDetailContent() {
   const [selectedClassId, setSelectedClassId] = React.useState('');
   const [showClassSelection, setShowClassSelection] = React.useState(false);
 
+  // Add class change modal state
+  const [classChangeModal, setClassChangeModal] = React.useState<{
+    isOpen: boolean;
+  }>({
+    isOpen: false,
+  });
+  const [selectedNewClassId, setSelectedNewClassId] = React.useState('');
+
+  // Add guardian edit modal state
+  const [isEditGuardiansModalOpen, setIsEditGuardiansModalOpen] = React.useState(false);
+  const [editingGuardians, setEditingGuardians] = React.useState<any[]>([]);
+  const [showGuardianEditButton, setShowGuardianEditButton] = React.useState(false);
+
+  // Add state for toggling between age and date of birth
+  const [showDateOfBirth, setShowDateOfBirth] = React.useState(false);
+
 
   // Filter out the current pupil from siblings list
   const actualSiblings = React.useMemo(() => 
@@ -233,6 +249,42 @@ function PupilDetailContent() {
 
   const academicIdentifiers = allIdentifiers.filter(id => id.idType === 'LIN' || id.idType === 'Index Number');
   const personalIdentifiers = allIdentifiers.filter(id => id.idType !== 'LIN' && id.idType !== 'Index Number');
+
+  // Calculate age from date of birth with years and months
+  const calculateAge = (dateOfBirth: string | undefined): string => {
+    if (!dateOfBirth) return 'N/A';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    
+    let years = today.getFullYear() - birthDate.getFullYear();
+    let months = today.getMonth() - birthDate.getMonth();
+    
+    // Adjust if the birthday hasn't occurred yet this year
+    if (months < 0 || (months === 0 && today.getDate() < birthDate.getDate())) {
+      years--;
+      months += 12;
+    }
+    
+    // Adjust months if day of month hasn't been reached
+    if (today.getDate() < birthDate.getDate()) {
+      months--;
+      if (months < 0) {
+        months = 11;
+      }
+    }
+    
+    // Format the output
+    const yearText = years === 1 ? 'year' : 'years';
+    const monthText = months === 1 ? 'month' : 'months';
+    
+    if (years === 0) {
+      return `${months} ${monthText}`;
+    } else if (months === 0) {
+      return `${years} ${yearText}`;
+    } else {
+      return `${years} ${yearText} ${months} ${monthText}`;
+    }
+  };
 
   const handleSaveIdCodes = async (identifiers: AdditionalIdentifier[]) => {
     if (!pupil) return;
@@ -299,6 +351,186 @@ function PupilDetailContent() {
         variant: "destructive",
         title: "Error",
         description: "Failed to update assignments. Please try again.",
+      });
+    }
+  };
+
+  // Add class change handlers for individual pupil
+  const handlePupilClassChange = () => {
+    setClassChangeModal({ isOpen: true });
+    setSelectedNewClassId(pupil?.classId || '');
+  };
+
+  const confirmClassChange = async () => {
+    if (!pupil || !selectedNewClassId) return;
+    
+    if (selectedNewClassId === pupil.classId) {
+      toast({
+        variant: "destructive",
+        title: "No Change",
+        description: "Please select a different class.",
+      });
+      return;
+    }
+
+    try {
+      const updateData: any = {
+        classId: selectedNewClassId,
+        className: getClassNameMemo(selectedNewClassId),
+      };
+
+      // Add promotion history entry
+      const promotionHistoryEntry = {
+        date: new Date().toISOString(),
+        fromClassId: pupil.classId,
+        fromClassName: pupil.className || getClassNameMemo(pupil.classId),
+        toClassId: selectedNewClassId,
+        toClassName: getClassNameMemo(selectedNewClassId),
+        type: 'Transfer' as const,
+        notes: `Class changed from pupil details page`,
+        processedBy: "System Admin", // TODO: Replace with actual user
+      };
+      
+      updateData.promotionHistory = [...(pupil.promotionHistory || []), promotionHistoryEntry];
+
+      await updatePupilMutation.mutateAsync({
+        id: pupil.id,
+        data: updateData,
+      });
+
+      toast({
+        title: "Class Updated",
+        description: `${pupil.firstName}'s class has been changed from ${getClassNameMemo(pupil.classId)} to ${getClassNameMemo(selectedNewClassId)}.`,
+      });
+      
+      setClassChangeModal({ isOpen: false });
+      setSelectedNewClassId('');
+      refetchPupil();
+    } catch (err) {
+      console.error("Failed to update class:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update class. Please try again.",
+      });
+    }
+  };
+
+  // Add section change handler for individual pupil
+  const handlePupilSectionChange = async (newSection: 'Day' | 'Boarding') => {
+    if (!pupil) return;
+    
+    if (pupil.section === newSection) {
+      toast({
+        variant: "destructive",
+        title: "No Change",
+        description: `${pupil.firstName} is already in ${newSection} section.`,
+      });
+      return;
+    }
+
+    try {
+      const updateData: any = {
+        section: newSection,
+      };
+
+      await updatePupilMutation.mutateAsync({
+        id: pupil.id,
+        data: updateData,
+      });
+
+      toast({
+        title: "Section Updated",
+        description: `${pupil.firstName}'s section has been changed from ${pupil.section || 'N/A'} to ${newSection}.`,
+      });
+      
+      refetchPupil();
+    } catch (err) {
+      console.error("Failed to update section:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update section. Please try again.",
+      });
+    }
+  };
+
+  // Add guardian edit handlers
+  const handleEditGuardians = () => {
+    if (!pupil) return;
+    // Load all existing guardians for editing
+    const currentGuardians = pupil.guardians || [];
+    setEditingGuardians(currentGuardians.map(g => ({ ...g })));
+    setIsEditGuardiansModalOpen(true);
+    // Hide the button after opening modal
+    setShowGuardianEditButton(false);
+  };
+
+  const handleAddSecondaryGuardian = () => {
+    // Add a new empty guardian to the editing list
+    const newGuardian = {
+      id: `guardian-${Date.now()}`,
+      firstName: '',
+      lastName: '',
+      relationship: '',
+      phone: '',
+      secondaryPhone: '',
+      email: '',
+      occupation: '',
+      address: '',
+      nationalId: ''
+    };
+    setEditingGuardians([...editingGuardians, newGuardian]);
+  };
+
+  const handleRemoveGuardian = (index: number) => {
+    const updated = editingGuardians.filter((_, i) => i !== index);
+    setEditingGuardians(updated);
+  };
+
+  const handleUpdateGuardian = (index: number, field: string, value: string) => {
+    const updated = [...editingGuardians];
+    updated[index] = { ...updated[index], [field]: value };
+    setEditingGuardians(updated);
+  };
+
+  const handleSaveGuardians = async () => {
+    if (!pupil) return;
+
+    // Validate that at least one guardian exists and has required fields
+    const validGuardians = editingGuardians.filter(g => 
+      g.firstName && g.lastName && g.phone && g.relationship
+    );
+
+    if (validGuardians.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "At least one guardian with complete information is required.",
+      });
+      return;
+    }
+
+    try {
+      await updatePupilMutation.mutateAsync({
+        id: pupil.id,
+        data: { guardians: validGuardians },
+      });
+
+      toast({
+        title: "Guardians Updated",
+        description: "Guardian information has been updated successfully.",
+      });
+
+      setIsEditGuardiansModalOpen(false);
+      setEditingGuardians([]);
+      refetchPupil();
+    } catch (err) {
+      console.error("Failed to save guardians:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update guardian information. Please try again.",
       });
     }
   };
@@ -1234,7 +1466,20 @@ function PupilDetailContent() {
               <CardTitle className="flex items-center text-lg lg:text-xl"><UserSquare className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> Personal Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">
-              <DetailItem key="dob" icon={<CalendarDays />} label="Date of Birth" value={formatDate(pupil.dateOfBirth)} />
+              <DetailItem 
+                key="dob" 
+                icon={<CalendarDays />} 
+                label={showDateOfBirth ? "Date of Birth" : "Age"} 
+                value={
+                  <button
+                    onClick={() => setShowDateOfBirth(!showDateOfBirth)}
+                    className="text-foreground hover:text-primary hover:underline cursor-pointer transition-colors text-right"
+                    title={showDateOfBirth ? "Click to show age" : "Click to show date of birth"}
+                  >
+                    {showDateOfBirth ? formatDate(pupil.dateOfBirth) : calculateAge(pupil.dateOfBirth)}
+                  </button>
+                } 
+              />
               <DetailItem key="pob" icon={<MapPin />} label="Place of Birth" value={pupil.placeOfBirth} />
               <DetailItem key="gender" icon={<UserSquare />} label="Gender" value={pupil.gender} />
               <DetailItem key="address" icon={<Home />} label="Address" value={pupil.address} />
@@ -1584,18 +1829,67 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                 label="Current Class" 
                 value={
                   pupil.classId ? (
-                    <Link 
-                      href={`/class-detail?id=${pupil.classId}`}
-                      className="text-primary hover:underline font-medium cursor-pointer"
-                    >
-                      {getClassNameMemo(pupil.classId)}
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-primary hover:underline font-medium cursor-pointer text-right">
+                          {getClassNameMemo(pupil.classId)}
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Class Options</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => router.push(`/class-detail?id=${pupil.classId}`)}>
+                          <Settings className="mr-2 h-4 w-4 text-blue-600" />
+                          View Class Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handlePupilClassChange}>
+                          <Edit className="mr-2 h-4 w-4 text-orange-600" />
+                          Change Class
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   ) : (
                     getClassNameMemo(pupil.classId)
                   )
                 } 
               />
-              <DetailItem key="section" label="Section" value={pupil.section} />
+              <DetailItem 
+                key="section" 
+                label="Section" 
+                value={
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="text-foreground hover:text-primary hover:underline cursor-pointer text-right capitalize">
+                        {pupil.section} Scholar
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Change Section</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handlePupilSectionChange('Day')}
+                        className={pupil.section === 'Day' ? 'bg-blue-50' : ''}
+                      >
+                        <svg className="mr-2 h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Day Scholar
+                        {pupil.section === 'Day' && <span className="ml-auto text-blue-600">✓</span>}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handlePupilSectionChange('Boarding')}
+                        className={pupil.section === 'Boarding' ? 'bg-purple-50' : ''}
+                      >
+                        <svg className="mr-2 h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        Boarding Scholar
+                        {pupil.section === 'Boarding' && <span className="ml-auto text-purple-600">✓</span>}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                } 
+              />
               {academicIdentifiers.map((ident, index) => (
                 <DetailItem key={`acad-id-${index}`} label={ident.customIdName || ident.idType} value={ident.idValue} />
               ))}
@@ -1609,7 +1903,28 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
 
           <Card className="shadow-lg">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg lg:text-xl"><GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> Guardian Information</CardTitle>
+              <CardTitle className="flex items-center justify-between text-lg lg:text-xl">
+                <span 
+                  className="flex items-center cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => setShowGuardianEditButton(!showGuardianEditButton)}
+                >
+                  <GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> 
+                  Guardian Information
+                </span>
+                {showGuardianEditButton && (
+                  <ActionGuard module="pupils" page="detail" action="edit_guardian">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleEditGuardians}
+                      className="h-8 w-8 p-0"
+                      title="Edit Guardians"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </ActionGuard>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {pupil.guardians && pupil.guardians.length > 0 ? (
@@ -1623,7 +1938,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       <DetailItem 
                         key={`guardian-${index}-phone`} 
                         icon={<Phone />} 
-                        label="Phone" 
+                        label="Primary Phone" 
                         value={
                           guardian.phone ? (
                             <a 
@@ -1637,6 +1952,21 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           )
                         } 
                       />
+                      {guardian.secondaryPhone && (
+                        <DetailItem 
+                          key={`guardian-${index}-secondary-phone`} 
+                          icon={<Phone />} 
+                          label="Secondary Phone" 
+                          value={
+                            <a 
+                              href={`tel:${guardian.secondaryPhone}`}
+                              className="text-primary hover:underline font-medium cursor-pointer"
+                            >
+                              {guardian.secondaryPhone}
+                            </a>
+                          } 
+                        />
+                      )}
                       <DetailItem key={`guardian-${index}-email`} icon={<Mail />} label="Email" value={guardian.email} />
                       <DetailItem key={`guardian-${index}-occupation`} icon={<Briefcase />} label="Occupation" value={guardian.occupation} />
                       <DetailItem key={`guardian-${index}-address`} icon={<Home />} label="Address" value={guardian.address} />
@@ -1644,7 +1974,10 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   </div>
                 ))
               ) : (
-                <p className="text-muted-foreground text-sm">No guardian information available.</p>
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground text-sm mb-3">No guardian information available.</p>
+                  <p className="text-xs text-muted-foreground">Click on "Guardian Information" heading above to add a guardian</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -2002,6 +2335,239 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         pupil={pupil}
         onSave={handleSaveAssignments}
       />
+
+      {/* Class Change Modal */}
+      <ModernDialog open={classChangeModal.isOpen} onOpenChange={(isOpen) => setClassChangeModal({ isOpen })}>
+        <ModernDialogContent>
+          <ModernDialogHeader>
+            <ModernDialogTitle>Change Class</ModernDialogTitle>
+            <ModernDialogDescription>
+              Select a new class for {pupil.firstName} {pupil.lastName}
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-class">New Class</Label>
+              <Select 
+                value={selectedNewClassId} 
+                onValueChange={setSelectedNewClassId}
+              >
+                <SelectTrigger id="new-class">
+                  <SelectValue placeholder="Select a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p>Current Class: <span className="font-medium text-foreground">{getClassNameMemo(pupil.classId)}</span></p>
+              {selectedNewClassId && selectedNewClassId !== pupil.classId && (
+                <p className="mt-1">New Class: <span className="font-medium text-primary">{getClassNameMemo(selectedNewClassId)}</span></p>
+              )}
+            </div>
+          </div>
+          <ModernDialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setClassChangeModal({ isOpen: false })}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmClassChange}
+              disabled={!selectedNewClassId || selectedNewClassId === pupil.classId}
+            >
+              Confirm Change
+            </Button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
+
+      {/* Guardians Edit Modal */}
+      <ModernDialog open={isEditGuardiansModalOpen} onOpenChange={setIsEditGuardiansModalOpen}>
+        <ModernDialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <ModernDialogHeader>
+            <ModernDialogTitle>Edit Guardian Information</ModernDialogTitle>
+            <ModernDialogDescription>
+              Update guardian details for {pupil.firstName} {pupil.lastName}. You can edit existing guardians or add a secondary guardian.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+          <div className="space-y-6 py-4">
+            {editingGuardians.map((guardian, index) => (
+              <div key={guardian.id || index} className="p-4 border border-border rounded-lg bg-muted/20 space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-base">
+                    {guardian.firstName || guardian.lastName ? `${guardian.firstName} ${guardian.lastName}` : `Guardian ${index + 1}`}
+                  </h3>
+                  {editingGuardians.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveGuardian(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`guardian-${index}-firstName`}>First Name *</Label>
+                    <input
+                      id={`guardian-${index}-firstName`}
+                      type="text"
+                      value={guardian.firstName || ''}
+                      onChange={(e) => handleUpdateGuardian(index, 'firstName', e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      placeholder="First name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`guardian-${index}-lastName`}>Last Name *</Label>
+                    <input
+                      id={`guardian-${index}-lastName`}
+                      type="text"
+                      value={guardian.lastName || ''}
+                      onChange={(e) => handleUpdateGuardian(index, 'lastName', e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      placeholder="Last name"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`guardian-${index}-relationship`}>Relationship *</Label>
+                  <Select
+                    value={guardian.relationship || ''}
+                    onValueChange={(value) => handleUpdateGuardian(index, 'relationship', value)}
+                  >
+                    <SelectTrigger id={`guardian-${index}-relationship`}>
+                      <SelectValue placeholder="Select relationship" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Father">Father</SelectItem>
+                      <SelectItem value="Mother">Mother</SelectItem>
+                      <SelectItem value="Guardian">Guardian</SelectItem>
+                      <SelectItem value="Uncle">Uncle</SelectItem>
+                      <SelectItem value="Aunt">Aunt</SelectItem>
+                      <SelectItem value="Grandparent">Grandparent</SelectItem>
+                      <SelectItem value="Sibling">Sibling</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`guardian-${index}-phone`}>Primary Phone *</Label>
+                    <input
+                      id={`guardian-${index}-phone`}
+                      type="tel"
+                      value={guardian.phone || ''}
+                      onChange={(e) => handleUpdateGuardian(index, 'phone', e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      placeholder="Primary phone number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`guardian-${index}-secondaryPhone`}>Secondary Phone</Label>
+                    <input
+                      id={`guardian-${index}-secondaryPhone`}
+                      type="tel"
+                      value={guardian.secondaryPhone || ''}
+                      onChange={(e) => handleUpdateGuardian(index, 'secondaryPhone', e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      placeholder="Secondary phone number"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`guardian-${index}-email`}>Email</Label>
+                  <input
+                    id={`guardian-${index}-email`}
+                    type="email"
+                    value={guardian.email || ''}
+                    onChange={(e) => handleUpdateGuardian(index, 'email', e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                    placeholder="Email address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`guardian-${index}-occupation`}>Occupation</Label>
+                    <input
+                      id={`guardian-${index}-occupation`}
+                      type="text"
+                      value={guardian.occupation || ''}
+                      onChange={(e) => handleUpdateGuardian(index, 'occupation', e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      placeholder="Occupation"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`guardian-${index}-nationalId`}>National ID</Label>
+                    <input
+                      id={`guardian-${index}-nationalId`}
+                      type="text"
+                      value={guardian.nationalId || ''}
+                      onChange={(e) => handleUpdateGuardian(index, 'nationalId', e.target.value)}
+                      className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      placeholder="National ID number"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`guardian-${index}-address`}>Address</Label>
+                  <textarea
+                    id={`guardian-${index}-address`}
+                    value={guardian.address || ''}
+                    onChange={(e) => handleUpdateGuardian(index, 'address', e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground min-h-[60px]"
+                    placeholder="Full address"
+                  />
+                </div>
+              </div>
+            ))}
+
+            {editingGuardians.length < 2 && (
+              <Button
+                variant="outline"
+                onClick={handleAddSecondaryGuardian}
+                className="w-full border-dashed"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Secondary Guardian
+              </Button>
+            )}
+          </div>
+          <ModernDialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditGuardiansModalOpen(false);
+                setEditingGuardians([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveGuardians}
+            >
+              Save Changes
+            </Button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
     </>
   );
 }

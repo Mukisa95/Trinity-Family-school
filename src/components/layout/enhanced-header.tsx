@@ -1,6 +1,6 @@
 "use client";
 
-import { MagnifyingGlass, Bell, List, Calendar, SignOut, CaretDown, UserCircle, Info, Sparkle, DotsThree, CurrencyDollar } from '@phosphor-icons/react';
+import { MagnifyingGlass, Bell, List, Calendar, SignOut, CaretDown, UserCircle, Info, Sparkle, DotsThree, CurrencyDollar, Lock, LockOpen } from '@phosphor-icons/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -72,7 +72,7 @@ const sparkleAnimation = {
 const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true }: HeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, autoLockEnabled, setAutoLockEnabled, lockAccount, isLocked, autoLockAction, setAutoLockAction } = useAuth();
   
   // Safely get sidebar context - handle case where SidebarProvider might not be available
   let sidebarIsMobile = false;
@@ -97,6 +97,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
   const [showLogoutMessage, setShowLogoutMessage] = useState(false);
+  const [showLockModal, setShowLockModal] = useState(false);
   
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false);
@@ -372,6 +373,32 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
       await logout();
       router.push('/login');
     }, 2000);
+  };
+
+  const handleLockModal = () => {
+    // If user has already set a preference, use it directly
+    if (autoLockAction === 'lock') {
+      lockAccount();
+      setShowUserMenu(false);
+    } else if (autoLockAction === 'signout') {
+      handleLogout();
+    } else {
+      // No preference set, show modal to choose
+      setShowLockModal(true);
+      setShowUserMenu(false);
+    }
+  };
+
+  const handleLockAccountAndSavePreference = () => {
+    setAutoLockAction('lock');
+    lockAccount();
+    setShowLockModal(false);
+  };
+
+  const handleSignOutAndSavePreference = () => {
+    setAutoLockAction('signout');
+    setShowLockModal(false);
+    handleLogout();
   };
 
   return (
@@ -795,15 +822,61 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         Settings
                       </button>
                       
+                      {/* Auto Lock Toggle */}
+                      <div className="px-3 py-2 border-b border-blue-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <Lock size={16} className="mr-2 text-gray-600" weight="duotone" />
+                            <span className="text-xs text-gray-700">Auto Lock</span>
+                          </div>
+                          <button
+                            onClick={() => setAutoLockEnabled(!autoLockEnabled)}
+                            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                              autoLockEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                            }`}
+                            type="button"
+                          >
+                            <span
+                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                                autoLockEnabled ? 'translate-x-3' : 'translate-x-0.5'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        {autoLockEnabled && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">
+                              {autoLockAction === 'lock' ? '🔒 Locks on close' : autoLockAction === 'signout' ? '🚪 Signs out on close' : '⚙️ Not set'}
+                            </span>
+                            <button
+                              onClick={handleLockModal}
+                              className="text-xs text-blue-600 hover:text-blue-700"
+                              type="button"
+                            >
+                              {autoLockAction ? 'Change' : 'Set'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
                       <div className="my-1 border-b border-blue-50"></div>
                       
                       <button
-                        onClick={handleLogout}
+                        onClick={autoLockEnabled ? handleLockModal : handleLogout}
                         className="flex items-center w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50/70 hover:text-red-700 transition-all duration-200"
                         type="button"
                       >
-                        <SignOut size={16} className="mr-2" weight="duotone" />
-                        Logout
+                        {autoLockEnabled ? (
+                          <>
+                            <Lock size={16} className="mr-2" weight="duotone" />
+                            Lock/Sign Out
+                          </>
+                        ) : (
+                          <>
+                            <SignOut size={16} className="mr-2" weight="duotone" />
+                            Logout
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -910,6 +983,77 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
           <LogoutMessage 
             username={user?.firstName || user?.username || 'User'} 
           />
+        )}
+        
+        {/* Lock Confirmation Modal */}
+        {showLockModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            onClick={() => setShowLockModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl shadow-xl border border-slate-200 p-6 max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                  <Lock size={24} className="text-blue-600" weight="duotone" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Set Auto Lock Preference
+                </h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  Choose what happens when you close the browser window
+                </p>
+                {autoLockAction && (
+                  <p className="text-xs text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block">
+                    Current: {autoLockAction === 'lock' ? 'Lock Account' : 'Sign Out'}
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={handleLockAccountAndSavePreference}
+                  className={`w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors ${
+                    autoLockAction === 'lock' 
+                      ? 'bg-blue-700 text-white ring-2 ring-blue-400' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Lock size={16} className="mr-2" weight="duotone" />
+                  Lock Account
+                  {autoLockAction === 'lock' && <span className="ml-2">✓</span>}
+                </button>
+                
+                <button
+                  onClick={handleSignOutAndSavePreference}
+                  className={`w-full flex items-center justify-center px-4 py-3 rounded-lg transition-colors ${
+                    autoLockAction === 'signout' 
+                      ? 'bg-red-700 text-white ring-2 ring-red-400' 
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  <SignOut size={16} className="mr-2" weight="duotone" />
+                  Sign Out
+                  {autoLockAction === 'signout' && <span className="ml-2">✓</span>}
+                </button>
+                
+                <button
+                  onClick={() => setShowLockModal(false)}
+                  className="w-full px-4 py-3 text-gray-600 hover:text-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

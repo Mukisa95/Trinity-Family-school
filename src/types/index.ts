@@ -100,10 +100,12 @@ export type Guardian = {
   firstName: string;
   lastName: string;
   phone: string;
+  secondaryPhone?: string; // Secondary phone number
   additionalPhones?: string[]; // Array of additional phone numbers
   email?: string;
   occupation?: string;
   address?: string;
+  nationalId?: string; // National ID
 };
 
 export type AdditionalIdentifier = {

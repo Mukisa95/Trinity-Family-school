@@ -39,6 +39,7 @@ import { NavigationProvider, useNavigation } from '@/lib/contexts/navigation-con
 import { LoadingOverlay } from '@/components/ui/loading-indicator';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import EnhancedHeader from './enhanced-header';
+import AuthGuard from '@/components/common/AuthGuard';
 import React, { useState, useEffect } from 'react';
 
 const Sidebar연구 = Sidebar;
@@ -317,7 +318,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           loadSchoolSettings={false}
         />
         <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
-          <ParentLayout />
+          <AuthGuard>
+            <ParentLayout />
+          </AuthGuard>
         </main>
       </div>
     );
@@ -355,7 +358,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {children}
+          <AuthGuard>
+            {children}
+          </AuthGuard>
         </main>
 
         {/* Custom Mobile Sidebar */}
@@ -451,7 +456,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {children}
+          <AuthGuard>
+            {children}
+          </AuthGuard>
         </main>
       </SidebarInset>
         </SidebarProvider>

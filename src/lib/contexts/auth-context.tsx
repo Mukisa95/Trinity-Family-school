@@ -21,6 +21,13 @@ interface AuthContextType {
   getModulePermission: (module: string) => Permission | null;
   canAccessPage: (module: string, page: string) => boolean;
   canPerformAction: (module: string, page: string, action: string) => boolean;
+  isLocked: boolean;
+  lockAccount: () => void;
+  unlockAccount: (password: string) => Promise<boolean>;
+  autoLockEnabled: boolean;
+  setAutoLockEnabled: (enabled: boolean) => void;
+  autoLockAction: 'lock' | 'signout' | null;
+  setAutoLockAction: (action: 'lock' | 'signout') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasStoredUser, setHasStoredUser] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [autoLockEnabled, setAutoLockEnabled] = useState(false);
+  const [autoLockAction, setAutoLockActionState] = useState<'lock' | 'signout' | null>(null);
 
   // Function to validate stored user token
   const validateStoredUser = (storedUserData: SystemUser): boolean => {
@@ -66,6 +76,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // First, try to restore user from localStorage immediately
         const storedUser = localStorage.getItem('trinity_user');
+        const storedAutoLock = localStorage.getItem('trinity_auto_lock');
+        const storedLockState = localStorage.getItem('trinity_account_locked');
+        const storedAutoLockAction = localStorage.getItem('trinity_auto_lock_action');
+        
+        if (storedAutoLock) {
+          try {
+            setAutoLockEnabled(JSON.parse(storedAutoLock));
+          } catch (error) {
+            console.error('Error parsing auto lock setting:', error);
+          }
+        }
+        
+        if (storedLockState) {
+          try {
+            setIsLocked(JSON.parse(storedLockState));
+          } catch (error) {
+            console.error('Error parsing lock state:', error);
+          }
+        }
+        
+        if (storedAutoLockAction) {
+          try {
+            setAutoLockActionState(JSON.parse(storedAutoLockAction));
+          } catch (error) {
+            console.error('Error parsing auto lock action:', error);
+          }
+        }
+        
         if (storedUser) {
           try {
             const parsedUser = JSON.parse(storedUser);
@@ -198,6 +236,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []); // Remove the dependency to prevent infinite loops
 
+  // Handle auto lock on window close
+  useEffect(() => {
+    if (!autoLockEnabled || !autoLockAction || !user) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Perform the chosen action
+      if (autoLockAction === 'lock') {
+        setIsLocked(true);
+        localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+      } else if (autoLockAction === 'signout') {
+        // Clear user data
+        setUser(null);
+        setHasStoredUser(false);
+        setIsLocked(false);
+        localStorage.removeItem('trinity_user');
+        localStorage.removeItem('trinity_account_locked');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [autoLockEnabled, autoLockAction, user]);
+
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -230,14 +294,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await firebaseSignOut(auth);
       setUser(null);
       setHasStoredUser(false);
+      setIsLocked(false);
       localStorage.removeItem('trinity_user');
+      localStorage.removeItem('trinity_account_locked');
     } catch (error) {
       console.error('Error signing out from Firebase:', error);
       // Even if Firebase logout fails, clear local state
       setUser(null);
       setHasStoredUser(false);
+      setIsLocked(false);
       localStorage.removeItem('trinity_user');
+      localStorage.removeItem('trinity_account_locked');
     }
+  };
+
+  const lockAccount = () => {
+    setIsLocked(true);
+    localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+    console.log('Account locked');
+  };
+
+  const unlockAccount = async (password: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      // Authenticate with the provided password
+      const authenticatedUser = await UsersService.authenticateUser(user.username, password);
+      
+      if (authenticatedUser) {
+        setIsLocked(false);
+        localStorage.removeItem('trinity_account_locked');
+        console.log('Account unlocked successfully');
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error unlocking account:', error);
+      return false;
+    }
+  };
+
+  const handleSetAutoLockEnabled = (enabled: boolean) => {
+    setAutoLockEnabled(enabled);
+    localStorage.setItem('trinity_auto_lock', JSON.stringify(enabled));
+  };
+
+  const setAutoLockAction = (action: 'lock' | 'signout') => {
+    setAutoLockActionState(action);
+    localStorage.setItem('trinity_auto_lock_action', JSON.stringify(action));
   };
 
   const refreshUser = async () => {
@@ -300,6 +405,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getModulePermission,
     canAccessPage,
     canPerformAction,
+    isLocked,
+    lockAccount,
+    unlockAccount,
+    autoLockEnabled,
+    setAutoLockEnabled: handleSetAutoLockEnabled,
+    autoLockAction,
+    setAutoLockAction,
   };
 
   return (

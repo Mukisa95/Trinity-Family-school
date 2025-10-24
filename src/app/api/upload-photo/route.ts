@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         
         console.log(`📁 Cloudinary folder: ${folderPath}`);
         
-        // Upload to Cloudinary with aggressive compression to target ~200KB
+        // Upload to Cloudinary with compression and optimization
         uploadResult = await new Promise((resolve, reject) => {
           cloudinary.uploader.upload_stream(
             {
@@ -76,25 +76,23 @@ export async function POST(request: NextRequest) {
               folder: folderPath,
               resource_type: 'image',
               quality: 'auto:low', // Aggressive compression while maintaining quality
-              fetch_format: 'auto', // Auto-select best format (WebP, AVIF, JPEG)
+              fetch_format: 'auto', // Auto-select best format (WebP, AVIF)
               transformation: [
                 {
-                  width: 1200, // Reduced from 1920 to help achieve 200KB target
-                  height: 1200, // Reduced from 1920 to help achieve 200KB target
+                  width: 1920, // Max width
+                  height: 1920, // Max height
                   crop: 'limit', // Only scale down if larger
-                  quality: 'auto:low', // More aggressive quality setting for smaller files
-                  fetch_format: 'auto',
-                  flags: 'lossy' // Allow lossy compression for better file size reduction
+                  quality: 'auto:eco', // Balanced quality/size ratio
+                  fetch_format: 'auto'
                 }
               ],
               eager: [
                 {
-                  width: 1200,
-                  height: 1200,
+                  width: 1920,
+                  height: 1920,
                   crop: 'limit',
-                  quality: 'auto:low',
-                  fetch_format: 'auto',
-                  flags: 'lossy'
+                  quality: 'auto:eco',
+                  fetch_format: 'auto'
                 }
               ],
               eager_async: false // Generate optimized version immediately

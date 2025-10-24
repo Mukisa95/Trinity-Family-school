@@ -65,7 +65,7 @@ import { FilteredPupilSelector } from "@/components/users/filtered-pupil-selecto
 import { BulkParentAccountCreator } from "@/components/users/bulk-parent-account-creator";
 import { format } from "date-fns";
 import { MODULE_ACTIONS } from "@/types/permissions";
-import { convertLegacyToGranularPermissions } from "@/lib/utils/permissions";
+import { useAuth } from "@/lib/contexts/auth-context";
 
 const PERMISSION_LABELS = {
   view_only: 'View Only',
@@ -75,6 +75,7 @@ const PERMISSION_LABELS = {
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const { user: currentUser, refreshUser } = useAuth();
   
   // Firebase hooks
   const { data: users = [], isLoading, error } = useUsers();
@@ -382,10 +383,19 @@ export default function UsersPage() {
         updates
       });
       
-      toast({ 
-        title: "User Updated", 
-        description: `Account for ${getUserDisplayName(editingUser)} has been updated.` 
-      });
+      // If the current user edited their own account, refresh their data
+      if (currentUser && editingUser.id === currentUser.id) {
+        await refreshUser();
+        toast({ 
+          title: "User Updated", 
+          description: `Your account has been updated. Sidebar will refresh with new permissions.` 
+        });
+      } else {
+        toast({ 
+          title: "User Updated", 
+          description: `Account for ${getUserDisplayName(editingUser)} has been updated.` 
+        });
+      }
       
       setIsEditDialogOpen(false);
       setEditingUser(null);
