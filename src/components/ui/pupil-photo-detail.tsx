@@ -114,14 +114,51 @@ function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.92): Promis
   });
 }
 
-// Helper function to download image
+// Helper function to download image - improved for base64 data URLs
 function downloadImage(dataUrl: string, filename: string) {
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    // Create a temporary link element
+    const link = document.createElement('a');
+    
+    // Set the href to the data URL
+    link.href = dataUrl;
+    
+    // Set the download attribute with the filename
+    link.download = filename;
+    
+    // Make the link invisible
+    link.style.display = 'none';
+    
+    // Append to body (required for Firefox)
+    document.body.appendChild(link);
+    
+    // Trigger the download
+    link.click();
+    
+    // Clean up after a short delay to ensure download starts
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
+    
+    console.log(`✅ Photo download initiated: ${filename}`);
+  } catch (error) {
+    console.error('❌ Error downloading image:', error);
+    
+    // Fallback: Open in new tab if direct download fails
+    try {
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`<img src="${dataUrl}" alt="Pupil Photo" />`);
+        newWindow.document.title = filename;
+        console.log('⚠️ Download failed, opened in new tab instead');
+      } else {
+        alert('Please allow pop-ups to download the photo');
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback also failed:', fallbackError);
+      alert('Unable to download photo. Please check your browser settings.');
+    }
+  }
 }
 
 export function PupilPhotoDetail({ pupilPhoto, pupilName, onPhotoChange, className }: PupilPhotoDetailProps) {
@@ -443,7 +480,11 @@ export function PupilPhotoDetail({ pupilPhoto, pupilName, onPhotoChange, classNa
     const trimmedPupilPhoto = pupilPhoto && typeof pupilPhoto === 'string' ? pupilPhoto.trim() : '';
     if (trimmedPupilPhoto) {
       const filename = `${pupilName.toUpperCase().replace(/\s+/g, '_')}_PHOTO.jpg`;
+      console.log(`📥 Initiating download for: ${filename}`);
       downloadImage(trimmedPupilPhoto, filename);
+    } else {
+      console.warn('⚠️ No photo available to download');
+      alert('No photo available to download');
     }
   };
 
