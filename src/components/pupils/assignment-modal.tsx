@@ -705,7 +705,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                         </SelectTrigger>
                         <SelectContent>
                           {availableFees.length === 0 ? (
-                            <SelectItem value="" disabled>
+                            <SelectItem value="none" disabled>
                               No available fees to assign
                             </SelectItem>
                           ) : (

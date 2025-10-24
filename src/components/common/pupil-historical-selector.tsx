@@ -205,12 +205,12 @@ export function PupilHistoricalSelector({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           
-          <Select value={internalClassFilter} onValueChange={setInternalClassFilter}>
+          <Select value={internalClassFilter || "all_filter"} onValueChange={(value) => setInternalClassFilter(value === "all_filter" ? '' : value)}>
             <SelectTrigger>
               <SelectValue placeholder="All Classes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Classes</SelectItem>
+              <SelectItem value="all_filter">All Classes</SelectItem>
               {classes.map(cls => (
                 <SelectItem key={cls.id} value={cls.id}>
                   {cls.name} ({cls.code})
@@ -219,12 +219,12 @@ export function PupilHistoricalSelector({
             </SelectContent>
           </Select>
 
-          <Select value={internalSectionFilter} onValueChange={setInternalSectionFilter}>
+          <Select value={internalSectionFilter || "all_filter"} onValueChange={(value) => setInternalSectionFilter(value === "all_filter" ? '' : value)}>
             <SelectTrigger>
               <SelectValue placeholder="All Sections" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Sections</SelectItem>
+              <SelectItem value="all_filter">All Sections</SelectItem>
               <SelectItem value="Day">Day</SelectItem>
               <SelectItem value="Boarding">Boarding</SelectItem>
             </SelectContent>

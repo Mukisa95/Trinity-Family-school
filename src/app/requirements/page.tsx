@@ -322,47 +322,47 @@ function RequirementsManagementContent() {
 
                 {/* Filters */}
                 <div className="flex gap-2 flex-wrap">
-                  <Select value={filterGender} onValueChange={(value) => setFilterGender(value as RequirementGender | '')}>
+                  <Select value={filterGender || "all_filter"} onValueChange={(value) => setFilterGender(value === "all_filter" ? '' : value as RequirementGender | '')}>
                     <SelectTrigger className="w-32 h-9 text-xs">
                       <SelectValue placeholder="Gender" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All</SelectItem>
+                      <SelectItem value="all_filter">All</SelectItem>
                       <SelectItem value="all">All Students</SelectItem>
                       <SelectItem value="male">Boys</SelectItem>
                       <SelectItem value="female">Girls</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  <Select value={filterClass} onValueChange={setFilterClass}>
+                  <Select value={filterClass || "all_filter"} onValueChange={(value) => setFilterClass(value === "all_filter" ? '' : value)}>
                     <SelectTrigger className="w-32 h-9 text-xs">
                       <SelectValue placeholder="Class" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Classes</SelectItem>
+                      <SelectItem value="all_filter">All Classes</SelectItem>
                       {classes.map((cls: Class) => (
                         <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
 
-                  <Select value={filterSection} onValueChange={(value) => setFilterSection(value as RequirementSection | '')}>
+                  <Select value={filterSection || "all_filter"} onValueChange={(value) => setFilterSection(value === "all_filter" ? '' : value as RequirementSection | '')}>
                     <SelectTrigger className="w-32 h-9 text-xs">
                       <SelectValue placeholder="Section" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All</SelectItem>
+                      <SelectItem value="all_filter">All</SelectItem>
                       <SelectItem value="Day">Day</SelectItem>
                       <SelectItem value="Boarding">Boarding</SelectItem>
                     </SelectContent>
                   </Select>
 
-                  <Select value={filterGroup} onValueChange={setFilterGroup}>
+                  <Select value={filterGroup || "all_filter"} onValueChange={(value) => setFilterGroup(value === "all_filter" ? '' : value)}>
                     <SelectTrigger className="w-32 h-9 text-xs">
                       <SelectValue placeholder="Group" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Groups</SelectItem>
+                      <SelectItem value="all_filter">All Groups</SelectItem>
                       {uniqueGroups.map((group) => (
                         <SelectItem key={group} value={group}>{group}</SelectItem>
                       ))}

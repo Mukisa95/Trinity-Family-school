@@ -208,6 +208,17 @@ export default function UsersPage() {
   };
 
   const handleAccessLevelChange = (accessLevelId: string) => {
+    // Handle "none" value - means no access level (manual permissions)
+    if (accessLevelId === "none") {
+      setStaffFormData(prev => ({
+        ...prev,
+        accessLevelId: "",
+        modulePermissions: [],
+        granularPermissions: []
+      }));
+      return;
+    }
+    
     setStaffFormData(prev => ({ ...prev, accessLevelId }));
     
     if (accessLevelId) {
@@ -1126,12 +1137,12 @@ export default function UsersPage() {
 
                 <div>
                   <Label htmlFor="access-level">Access Level (Optional)</Label>
-                  <Select value={staffFormData.accessLevelId} onValueChange={handleAccessLevelChange}>
+                  <Select value={staffFormData.accessLevelId || "none"} onValueChange={handleAccessLevelChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select an access level to auto-assign permissions" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No access level (manual permissions)</SelectItem>
+                      <SelectItem value="none">No access level (manual permissions)</SelectItem>
                       {accessLevels.map((level) => (
                         <SelectItem key={level.id} value={level.id}>
                           {level.name} - {level.description}
@@ -1139,7 +1150,7 @@ export default function UsersPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {staffFormData.accessLevelId && (
+                  {staffFormData.accessLevelId && staffFormData.accessLevelId !== "none" && (
                     <p className="text-sm text-muted-foreground mt-1">
                       Permissions will be automatically assigned based on the selected access level.
                     </p>
