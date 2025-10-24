@@ -38,13 +38,15 @@ function centerAspectCrop(
   )
 }
 
-const TARGET_BLOB_SIZE_BYTES = 500 * 1024; // 500KB maximum file size
+const TARGET_BLOB_SIZE_BYTES = 200 * 1024; // 200KB maximum file size - optimized for pupil profiles
 
-// Helper function to compress image
-function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.85): Promise<string> {
+// Helper function to compress image with smart quality optimization
+function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.92): Promise<string> {
   return new Promise((resolve, reject) => {
     let currentQuality = initialQuality;
-    const maxSize = TARGET_BLOB_SIZE_BYTES; // 500KB for all images
+    const maxSize = TARGET_BLOB_SIZE_BYTES; // 200KB for all images
+    
+    console.log(`📸 Starting image compression - Target: ${(maxSize / 1024).toFixed(0)}KB`);
     
     const attemptCompression = () => {
       canvas.toBlob((blob) => {
@@ -54,7 +56,11 @@ function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.85): Promis
           return;
         }
 
+        const currentSizeKB = (blob.size / 1024).toFixed(1);
+        console.log(`📊 Current size: ${currentSizeKB}KB at quality ${currentQuality.toFixed(2)}`);
+
         if (blob.size <= maxSize) {
+          console.log(`✅ Compression successful: ${currentSizeKB}KB (quality: ${currentQuality.toFixed(2)})`);
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = () => reject(new Error('FileReader error during compression.'));
@@ -62,28 +68,40 @@ function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.85): Promis
           return;
         }
 
-        // If blob is too large, try reducing quality or resizing
-        if (currentQuality > 0.3) {
-          currentQuality -= 0.1; // Reduce quality more aggressively
-          // console.log(`Blob size ${blob.size} is too large. Reducing quality to ${currentQuality.toFixed(1)}`);
+        // If blob is too large, try reducing quality with smart stepping
+        if (currentQuality > 0.35) {
+          // Use adaptive quality reduction based on how far we are from target
+          const sizeRatio = blob.size / maxSize;
+          const qualityReduction = sizeRatio > 2 ? 0.12 : 0.08; // Faster reduction for very large images
+          currentQuality = Math.max(0.35, currentQuality - qualityReduction);
+          console.log(`🔄 Reducing quality to ${currentQuality.toFixed(2)}`);
           attemptCompression(); // Retry with lower quality
         } else {
-          // Quality is too low, try resizing the canvas
-          // console.log(`Blob size ${blob.size} is too large at lowest quality. Resizing.`);
+          // Quality is at minimum, try smart resizing
+          console.log(`🔄 Quality at minimum, resizing canvas...`);
           const newCanvas = document.createElement('canvas');
           const ctx = newCanvas.getContext('2d');
-          // Calculate scaleFactor to aim for a size somewhat smaller than target to account for JPEG artifacts
-          const scaleFactor = Math.sqrt(maxSize / blob.size) * 0.9;
           
-          newCanvas.width = Math.max(800, canvas.width * scaleFactor); // Ensure minimum 800px to maintain our standard
-          newCanvas.height = Math.max(800, canvas.height * scaleFactor);
+          // Calculate scaleFactor to target slightly below 200KB to account for JPEG artifacts
+          const scaleFactor = Math.sqrt(maxSize / blob.size) * 0.88;
+          
+          // Ensure minimum dimensions for acceptable quality while targeting 200KB
+          const minDimension = 600; // Lowered from 800 to allow more compression room
+          newCanvas.width = Math.max(minDimension, Math.round(canvas.width * scaleFactor));
+          newCanvas.height = Math.max(minDimension, Math.round(canvas.height * scaleFactor));
+          
+          console.log(`📐 Resizing from ${canvas.width}x${canvas.height} to ${newCanvas.width}x${newCanvas.height}`);
           
           if (ctx) {
+            // Use high-quality image smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
-            // After resizing, try to compress again with a reasonable quality
-            currentQuality = 0.8; // Reset quality for the resized image
+            
+            // After resizing, try to compress again with good quality
+            currentQuality = 0.85; // Reset to good quality for the resized image
             canvas = newCanvas; // Replace original canvas with resized one
-            // console.log(`Resized canvas to ${newCanvas.width}x${newCanvas.height}. Retrying compression.`);
+            console.log(`✅ Canvas resized, retrying compression at quality ${currentQuality}`);
             attemptCompression();
           } else {
             console.error('Failed to get 2D context from new canvas during resize');
