@@ -1,20 +1,23 @@
-# Pupil Photo Compression: 200KB Optimization
+# Pupil Profile Photo Compression: 200KB Optimization
 
 ## Overview
 
-Optimized the pupil photo upload and processing pipeline to compress images to **200KB without losing visible quality**. This ensures faster loading times, reduced storage costs, and better performance across the application, especially on mobile devices and slower connections.
+Optimized the **pupil profile photo** compression to **200KB without losing visible quality**. Pupil photos are stored as **base64 data URLs in Firestore** (not Firebase Storage or Cloudinary). This ensures faster loading times, reduced Firestore document sizes, and better performance across the application, especially on mobile devices and slower connections.
+
+**Important:** This change ONLY affects pupil profile photos (camera/upload in pupil forms). The general photo management system using Cloudinary remains unchanged.
 
 ---
 
 ## Changes Made
 
-### 1. Client-Side Compression (Pupil Photo Component)
+### **Client-Side Compression for Pupil Profiles**
 
 **File:** `src/components/ui/pupil-photo-detail.tsx`
 
 #### Key Changes:
 
-- **Target Size:** Reduced from 500KB to **200KB**
+- **Storage Method:** Photos stored as base64 data URLs in Firestore `pupils` collection
+- **Target Size:** Reduced from 500KB to **200KB** (60% reduction)
 - **Initial Quality:** Increased from 0.85 to **0.92** for better starting quality
 - **Smart Compression Algorithm:**
   - Adaptive quality reduction based on file size ratio
@@ -45,32 +48,6 @@ Optimized the pupil photo upload and processing pipeline to compress images to *
    - Apply high-quality smoothing
    - Retry compression at 85% quality
 4. Result: ≤200KB with maximum preserved quality
-```
-
----
-
-### 2. Server-Side Compression (Cloudinary Upload)
-
-**File:** `src/app/api/upload-photo/route.ts`
-
-#### Key Changes:
-
-- **Max Dimensions:** Reduced from 1920×1920px to **1200×1200px**
-- **Quality Setting:** Changed from `auto:eco` to **`auto:low`** for more aggressive compression
-- **Compression Flags:** Added `lossy` flag for better file size reduction
-- **Format:** Auto-select best format (WebP, AVIF, or JPEG) based on browser support
-
-#### Cloudinary Configuration:
-
-```javascript
-{
-  width: 1200,
-  height: 1200,
-  crop: 'limit',
-  quality: 'auto:low',
-  fetch_format: 'auto',
-  flags: 'lossy'
-}
 ```
 
 ---
@@ -213,12 +190,12 @@ Open browser console when uploading/processing photos. You should see:
 ✅ Compression successful: 198.7KB (quality: 0.76)
 ```
 
-### Cloudinary Verification
+### Firestore Verification
 
-Check Cloudinary dashboard for uploaded images:
-- Verify dimensions are ≤1200×1200
-- Confirm file sizes are around 200KB
-- Check quality setting is `auto:low`
+Check Firestore for pupil documents:
+- Pupil photo is stored in the `photo` field as base64 data URL
+- The data URL should be significantly smaller (≤200KB when decoded)
+- Photo should start with `data:image/jpeg;base64,`
 
 ---
 
@@ -266,9 +243,11 @@ function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.85)
 
 ## Related Files
 
-- `src/components/ui/pupil-photo-detail.tsx` - Main compression logic
-- `src/app/api/upload-photo/route.ts` - Server-side Cloudinary compression
-- `src/components/common/slides-manager.tsx` - Slides photo compression (separate, not modified)
+- `src/components/ui/pupil-photo-detail.tsx` - **Main compression logic (MODIFIED)**
+- `src/app/pupils/new/page.tsx` - Uses pupil photo component for new pupils
+- `src/app/pupils/edit/page.tsx` - Uses pupil photo component for editing pupils
+- `src/app/api/upload-photo/route.ts` - Cloudinary upload (NOT MODIFIED - for general photos only)
+- `src/components/common/slides-manager.tsx` - Slides photo compression (NOT MODIFIED)
 
 ---
 
