@@ -1501,65 +1501,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
   const [clickRipple, setClickRipple] = useState({ x: 0, y: 0, show: false });
   const [isMobile, setIsMobile] = useState(false);
   const [showGreeting, setShowGreeting] = useState(true);
-  const [currentGreeting, setCurrentGreeting] = useState('');
-  const [typingText, setTypingText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-
-  // Get current user from auth context
   const { user } = useAuth();
-
-  // Dynamic greeting variations
-  const greetingVariations = [
-    "How can I help you today?",
-    "Ready to make today amazing?",
-    "What's on the agenda today?",
-    "Let's make today productive!",
-    "Hope you're having a wonderful day!",
-    "Ready to tackle today's challenges?",
-    "What can we accomplish together today?",
-    "Let's create something great today!",
-    "Hope your day is going smoothly!",
-    "Ready to inspire some minds today?",
-    "What educational magic shall we create?",
-    "Let's make learning fun today!",
-    "Ready to shape young futures?",
-    "What knowledge will we share today?",
-    "Let's empower students together!",
-    "Ready for another day of excellence?",
-    "What impact will we make today?",
-    "Let's nurture growth and learning!",
-    "Ready to guide and inspire?",
-    "What educational journey awaits us?"
-  ];
-
-  // Get time-based greeting
-  const getTimeBasedGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
-
-  // Get user's first name
-  const getUserFirstName = () => {
-    if (!user?.username) return "Friend";
-    
-    // Try to extract first name from username
-    const username = user.username;
-    
-    // If username contains space, take first part
-    if (username.includes(' ')) {
-      return username.split(' ')[0];
-    }
-    
-    // If username contains underscore or dot, take first part
-    if (username.includes('_') || username.includes('.')) {
-      return username.split(/[_.]/)[0];
-    }
-    
-    // Otherwise use the whole username but capitalize first letter
-    return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
-  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1571,78 +1513,29 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Simple greeting that fades out after 3 seconds
   useEffect(() => {
-    // Generate personalized greeting
-    const timeGreeting = getTimeBasedGreeting();
-    const firstName = getUserFirstName();
-    const randomVariation = greetingVariations[Math.floor(Math.random() * greetingVariations.length)];
-    
-    const personalizedGreeting = `Hello, ${firstName}, ${timeGreeting.toLowerCase()}. ${randomVariation}`;
-    setCurrentGreeting(personalizedGreeting);
+    const timer = setTimeout(() => {
+      setShowGreeting(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
-    // Typing effect
-    let typingTimer: NodeJS.Timeout;
-    let currentIndex = 0;
-    setIsTyping(true);
-    setTypingText('');
+  // Get user's first name
+  const getUserFirstName = () => {
+    if (!user?.username) return "Welcome";
+    const username = user.username;
+    if (username.includes(' ')) return username.split(' ')[0];
+    if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
+    return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+  };
 
-    const typeText = () => {
-      if (currentIndex < personalizedGreeting.length) {
-        setTypingText(personalizedGreeting.slice(0, currentIndex + 1));
-        currentIndex++;
-        typingTimer = setTimeout(typeText, 50); // Adjust typing speed here
-      } else {
-        setIsTyping(false);
-        // Show complete greeting for 2 seconds after typing completes
-        setTimeout(() => {
-          setShowGreeting(false);
-        }, 2000);
-      }
-    };
-
-    // Start typing after a small delay
-    const startDelay = setTimeout(typeText, 300);
-
-    return () => {
-      clearTimeout(typingTimer);
-      clearTimeout(startDelay);
-    };
-  }, [user]);
-
-  // Add a function to regenerate greeting on header click (for fun!)
-  const regenerateGreeting = () => {
-    if (!showGreeting) {
-      const timeGreeting = getTimeBasedGreeting();
-      const firstName = getUserFirstName();
-      const randomVariation = greetingVariations[Math.floor(Math.random() * greetingVariations.length)];
-      
-      const personalizedGreeting = `Hello, ${firstName}, ${timeGreeting.toLowerCase()}. ${randomVariation}`;
-      setCurrentGreeting(personalizedGreeting);
-      setShowGreeting(true);
-      
-      // Typing effect for regenerated greeting
-      let typingTimer: NodeJS.Timeout;
-      let currentIndex = 0;
-      setIsTyping(true);
-      setTypingText('');
-
-      const typeText = () => {
-        if (currentIndex < personalizedGreeting.length) {
-          setTypingText(personalizedGreeting.slice(0, currentIndex + 1));
-          currentIndex++;
-          typingTimer = setTimeout(typeText, 40); // Slightly faster for regenerated greeting
-        } else {
-          setIsTyping(false);
-          // Hide greeting again after 2 seconds
-          setTimeout(() => {
-            setShowGreeting(false);
-          }, 2000);
-        }
-      };
-
-      // Start typing immediately for regenerated greeting
-      typeText();
-    }
+  // Get time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
   const handleHeaderClick = (e: React.MouseEvent) => {
@@ -1652,9 +1545,6 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
     
     setClickRipple({ x, y, show: true });
     setTimeout(() => setClickRipple(prev => ({ ...prev, show: false })), 600);
-    
-    // Regenerate greeting on click for fun interaction
-    regenerateGreeting();
   };
 
   // Mobile-optimized particle count
@@ -1699,82 +1589,71 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
         )}
       </AnimatePresence>
 
-      {/* Animated Background Gradient */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
-        animate={{
-          opacity: isHovered ? [0.7, 0.9, 0.7] : [0.7, 0.8, 0.7],
-          background: [
-            "linear-gradient(45deg, #3B82F6, #8B5CF6, #EC4899)",
-            "linear-gradient(135deg, #6366F1, #A855F7, #F59E0B)",
-            "linear-gradient(225deg, #10B981, #3B82F6, #8B5CF6)",
-            "linear-gradient(315deg, #EF4444, #EC4899, #8B5CF6)",
-            "linear-gradient(45deg, #3B82F6, #8B5CF6, #EC4899)",
-          ],
-        }}
-        transition={{
-          duration: isHovered ? (isMobile ? 8 : 5) : (isMobile ? 15 : 10),
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
+      {/* Animated Background Gradient - Simplified */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 opacity-90" />
       
-      {/* Enhanced Particles Background */}
+      {/* Enhanced Particles Background - Optimized for smooth performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: particleCount }, (_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${Math.random() * (isMobile ? 3 : 4) + 1}px`,
-              height: `${Math.random() * (isMobile ? 3 : 4) + 1}px`,
-            }}
-            animate={{
-              y: [-20, isMobile ? -80 : -120],
-              x: [0, Math.random() * (isMobile ? 40 : 60) - (isMobile ? 20 : 30)],
-              opacity: [Math.random() * 0.5 + 0.2, 0],
-              scale: isHovered ? [1, isMobile ? 1.3 : 1.5, 0] : [1, 1, 0],
-            }}
-            transition={{
-              duration: Math.random() * (isMobile ? 10 : 15) + (isMobile ? 6 : 8),
-              delay: Math.random() * 2,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        ))}
+        {Array.from({ length: particleCount }, (_, i) => {
+          const size = Math.random() * (isMobile ? 3 : 4) + 1;
+          const leftPos = Math.random() * 100;
+          const topPos = Math.random() * 100;
+          const duration = Math.random() * 5 + 8;
+          const delay = Math.random() * 2;
+          
+          return (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white transform-gpu"
+              style={{
+                left: `${leftPos}%`,
+                top: `${topPos}%`,
+                width: `${size}px`,
+                height: `${size}px`,
+                willChange: 'transform, opacity',
+              }}
+              animate={{
+                y: [0, -100],
+                opacity: [0.6, 0],
+              }}
+              transition={{
+                duration: duration,
+                delay: delay,
+                repeat: Infinity,
+                ease: "linear",
+                repeatDelay: 0,
+              }}
+            />
+          );
+        })}
       </div>
       
-      {/* Enhanced Floating Icons */}
+      {/* Enhanced Floating Icons - Optimized for smooth performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {icons.map(({ Icon, color, delay }, index) => (
           <motion.div
             key={index}
-            className={`absolute ${color} transition-opacity duration-300`}
+            className={`absolute ${color} transform-gpu`}
             style={{
               left: isMobile ? `${20 + index * 25}%` : `${10 + index * 20}%`,
               top: `${20 + (index % 2) * (isMobile ? 20 : 40)}%`,
-              opacity: isHovered ? (isMobile ? 0.5 : 0.6) : (isMobile ? 0.2 : 0.3),
+              opacity: 0.25,
+              willChange: 'transform',
             }}
             animate={{
-              y: [-10, 10],
+              y: [-8, 8],
+              scale: [0.9, 1.1, 0.9],
               rotate: [0, 360],
-              scale: isHovered ? [1, isMobile ? 1.3 : 1.5, 1] : [0.8, isMobile ? 1.1 : 1.2, 0.8],
             }}
             transition={{
-              duration: isHovered ? (isMobile ? 3 : 2) + index * 0.5 : (isMobile ? 5 : 4) + index,
+              duration: 8 + index * 2,
               delay: delay,
               repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            whileHover={{
-              scale: isMobile ? 1.5 : 1.8,
-              transition: { duration: 0.3 }
+              ease: "linear",
+              repeatDelay: 0,
             }}
           >
-            <Icon size={isMobile ? (isHovered ? 20 : 18) : (isHovered ? 28 : 24)} />
+            <Icon size={isMobile ? 18 : 24} />
           </motion.div>
         ))}
       </div>
@@ -1795,86 +1674,50 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
           }}
           className="text-center"
         >
-          {/* Main Title with Enhanced Animation - Made More Compact */}
-          <motion.h1 
-            className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 relative leading-tight"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            whileHover={{ 
-              scale: isMobile ? 1.02 : 1.05,
-              transition: { duration: 0.3 }
-            }}
-          >
-            <motion.span
-              className="inline-block"
-              key={showGreeting ? 'greeting' : 'school'}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ 
-                opacity: 1, 
-                y: 0,
-                textShadow: isHovered ? [
-                  "0 0 20px rgba(255,255,255,0.6)",
-                  "0 0 40px rgba(255,255,255,0.9)",
-                  "0 0 20px rgba(255,255,255,0.6)",
-                ] : [
-                  "0 0 10px rgba(255,255,255,0.4)",
-                  "0 0 25px rgba(255,255,255,0.7)",
-                  "0 0 10px rgba(255,255,255,0.4)",
-                ],
-              }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ 
-                duration: 0.8,
-                textShadow: {
-                  duration: isHovered ? (isMobile ? 1.5 : 1) : (isMobile ? 3 : 2),
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }
-              }}
+          {/* Main Title - With overlay greeting - Fixed height container */}
+          <div className="relative">
+            {/* Reserve space for school name (always present, controls height) */}
+            <motion.h1 
+              className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 leading-tight"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: showGreeting ? 0 : 1 }}
+              transition={{ duration: 0.5 }}
             >
-              {showGreeting ? typingText : schoolSettings?.generalInfo?.name || 'TRINITY FAMILY SCHOOL'}
-              {showGreeting && isTyping && (
-                <motion.span
-                  className="inline-block ml-1"
-                  animate={{ opacity: [1, 0, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+              <span className="inline-block">
+                {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
+              </span>
+            </motion.h1>
+            
+            {/* Reserve space for motto (always present, controls height) */}
+            <motion.p 
+              className="text-xs sm:text-sm md:text-sm lg:text-base font-medium px-1 mb-2 sm:mb-3 md:mb-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: showGreeting ? 0 : 0.9 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <span>
+                {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
+              </span>
+            </motion.p>
+            
+            {/* Greeting overlay - positioned absolutely over both lines */}
+            <AnimatePresence>
+              {showGreeting && (
+                <motion.div
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.5 }}
+                  style={{ top: 0, bottom: 0 }}
                 >
-                  |
-                </motion.span>
+                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
+                    {getGreeting()}, {getUserFirstName()}! 👋
+                  </p>
+                </motion.div>
               )}
-            </motion.span>
-          </motion.h1>
-          
-          {/* Enhanced Subtitle - Made More Compact */}
-          <AnimatePresence mode="wait">
-            {!showGreeting && (
-              <motion.p 
-                className="text-xs sm:text-sm md:text-sm lg:text-base opacity-90 mb-2 sm:mb-3 md:mb-4 font-medium px-1"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                whileHover={{ 
-                  scale: isMobile ? 1.01 : 1.03,
-                  transition: { duration: 0.3 }
-                }}
-              >
-                <motion.span
-                  animate={{
-                    opacity: isHovered ? [0.9, 1, 0.9] : [0.7, 1, 0.7],
-                  }}
-                  transition={{
-                    duration: isHovered ? (isMobile ? 2 : 1.5) : (isMobile ? 4 : 3),
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                >
-                  {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
-                </motion.span>
-              </motion.p>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          </div>
           
           {/* Enhanced Animated Badges - Made More Compact */}
           <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
