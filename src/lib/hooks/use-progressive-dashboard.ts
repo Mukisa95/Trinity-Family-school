@@ -117,11 +117,12 @@ export function useProgressiveDashboard({
           break;
 
         case 4:
-          // Stage 4: Load Pupils (largest dataset, load last)
+          // Stage 4: Load Active Pupils (largest dataset, load last)
+          // 🚀 OPTIMIZED: Only load active pupils from database, not all pupils
           if (mountedRef.current) {
-            setState(prev => ({ ...prev, processedStages: [...prev.processedStages, 'Loading pupils...'] }));
+            setState(prev => ({ ...prev, processedStages: [...prev.processedStages, 'Loading active pupils...'] }));
           }
-          const pupilsData = await PupilsService.getAllPupils();
+          const pupilsData = await PupilsService.getActivePupils(); // Database-level filter
           if (signal?.aborted || !mountedRef.current) return;
           setState(prev => ({
             ...prev,
@@ -248,8 +249,9 @@ export function useProgressiveDashboard({
   }, []);
 
   // Calculate statistics as data becomes available
+  // 🚀 OPTIMIZED: pupils are already active pupils from database query
   const stats = useMemo(() => {
-    const activePupils = state.pupils.filter(p => p.status === 'Active');
+    const activePupils = state.pupils; // Already filtered at database level
     const malePupils = activePupils.filter(p => p.gender === 'Male');
     const femalePupils = activePupils.filter(p => p.gender === 'Female');
 

@@ -22,22 +22,19 @@ export function usePupils() {
   });
 }
 
+// 🚀 DATABASE-LEVEL FILTERING: Only fetch active pupils from database
 export function useActivePupils() {
   return useQuery({
     queryKey: [...pupilsKeys.lists(), 'active'],
-    queryFn: () => PupilsService.getAllPupils().then(pupils => 
-      pupils.filter(pupil => pupil.status === 'Active')
-    ),
+    queryFn: () => PupilsService.getActivePupils(), // Database-level filter
   });
 }
 
-// 🚀 OPTIMIZED: Only load pupils when explicitly needed
+// 🚀 OPTIMIZED: Only load active pupils when explicitly needed (database-level filter)
 export function useActivePupilsOptimized(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...pupilsKeys.lists(), 'active', 'optimized'],
-    queryFn: () => PupilsService.getAllPupils().then(pupils => 
-      pupils.filter(pupil => pupil.status === 'Active')
-    ),
+    queryFn: () => PupilsService.getActivePupils(), // Database-level filter
     enabled: options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     refetchOnWindowFocus: false,
@@ -160,6 +157,28 @@ export function usePupilsByIds(pupilIds: string[]) {
     queryFn: () => PupilsService.getPupilsByIds(pupilIds),
     enabled: pupilIds.length > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes cache
+    refetchOnWindowFocus: false,
+  });
+}
+
+// 🚀 DATABASE-LEVEL FILTERING: Fetch pupils by status (e.g., 'Active', 'Inactive', 'Graduated')
+export function usePupilsByStatus(status: string) {
+  return useQuery({
+    queryKey: [...pupilsKeys.all, 'byStatus', status],
+    queryFn: () => PupilsService.getPupilsByStatus(status),
+    enabled: !!status,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    refetchOnWindowFocus: false,
+  });
+}
+
+// 🚀 DATABASE-LEVEL FILTERING: Fetch active pupils for a specific class
+export function useActivePupilsByClass(classId: string) {
+  return useQuery({
+    queryKey: [...pupilsKeys.all, 'activeByClass', classId],
+    queryFn: () => PupilsService.getActivePupilsByClass(classId),
+    enabled: !!classId,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
     refetchOnWindowFocus: false,
   });
 } 

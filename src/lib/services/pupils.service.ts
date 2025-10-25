@@ -246,8 +246,8 @@ export class PupilsService {
     }
   }
 
-  // Enhanced method for class-based queries with optional filters
-  // Uses simple database queries to avoid complex Firebase composite indexes
+  // 🚀 ENHANCED: Database-level filtering for class-based queries with optional filters
+  // Prioritizes database-level filtering for better performance
   static async getPupilsByClassWithFilters(
     classId: string, 
     filters?: {
@@ -259,31 +259,49 @@ export class PupilsService {
     try {
       console.log('🔍 Fetching pupils for class with filters:', { classId, filters });
       
-      // Use simple query with only classId to avoid ANY index requirements
-      // while Firebase index is building - no ORDER BY clause
-      const q = query(
-        collection(db, COLLECTION_NAME), 
-        where('classId', '==', classId)
-        // Removed orderBy to avoid index requirement while building
-      );
-
-      const querySnapshot = await getDocs(q);
-      
-      let pupils = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Pupil[];
-
-      console.log(`📊 Fetched ${pupils.length} pupils from database for class ${classId}`);
-
-      // Apply all filters on client-side to avoid complex Firebase indexes
-      if (filters?.status && filters.status !== 'all') {
-        pupils = pupils.filter(pupil => 
-          pupil.status?.toLowerCase() === filters.status?.toLowerCase()
-        );
-        console.log(`🎯 After status filter (${filters.status}): ${pupils.length} pupils`);
+      // 🚀 OPTIMIZATION: If only status filter is provided, use database-level filtering
+      if (filters?.status && filters.status !== 'all' && 
+          (!filters.section || filters.section === 'all') && 
+          (!filters.gender || filters.gender === 'all')) {
+        console.log(`⚡ Using DATABASE-LEVEL status filter for class ${classId}`);
+        return await this.getPupilsByClassAndStatus(classId, filters.status);
       }
 
+      // 🚀 OPTIMIZATION: If status is 'Active' or only active pupils needed, use optimized query
+      const effectiveStatus = filters?.status || 'Active';
+      const needsDatabaseFilter = effectiveStatus !== 'all';
+
+      let pupils: Pupil[];
+
+      if (needsDatabaseFilter && effectiveStatus === 'Active') {
+        // Use optimized database query for active pupils
+        console.log(`⚡ Using DATABASE-LEVEL active pupils filter for class ${classId}`);
+        try {
+          pupils = await this.getActivePupilsByClass(classId);
+        } catch (dbError) {
+          console.warn('⚠️ Database-level query failed, falling back to client-side filter');
+          const allPupils = await this.getPupilsByClass(classId);
+          pupils = allPupils.filter(p => p.status === 'Active');
+        }
+      } else if (needsDatabaseFilter && effectiveStatus !== 'all') {
+        // Use database-level status filter
+        console.log(`⚡ Using DATABASE-LEVEL status filter (${effectiveStatus}) for class ${classId}`);
+        try {
+          pupils = await this.getPupilsByClassAndStatus(classId, effectiveStatus);
+        } catch (dbError) {
+          console.warn('⚠️ Database-level status query failed, falling back to client-side filter');
+          const allPupils = await this.getPupilsByClass(classId);
+          pupils = allPupils.filter(p => p.status === effectiveStatus);
+        }
+      } else {
+        // Fetch all pupils for the class (no status filter or status='all')
+        console.log(`📊 Fetching all pupils for class ${classId} (no status filter)`);
+        pupils = await this.getPupilsByClass(classId);
+      }
+
+      console.log(`📊 After database query: ${pupils.length} pupils`);
+
+      // Apply remaining filters on client-side (section, gender)
       if (filters?.section && filters.section !== 'all') {
         pupils = pupils.filter(pupil => 
           pupil.section?.toLowerCase() === filters.section?.toLowerCase()
@@ -298,36 +316,8 @@ export class PupilsService {
         console.log(`🎯 After gender filter (${filters.gender}): ${pupils.length} pupils`);
       }
 
-      // Sort on client-side to avoid index requirement
-      pupils.sort((a, b) => {
-        const aLastName = (a.lastName || '').toLowerCase();
-        const bLastName = (b.lastName || '').toLowerCase();
-        return aLastName.localeCompare(bLastName);
-      });
-
-      console.log('✅ Sorted pupils by lastName on client-side');
-
-      // Populate class names for pupils
-      const populatedPupils = await Promise.all(
-        pupils.map(async (pupil) => {
-          if (pupil.classId) {
-            try {
-              const classData = await ClassesService.getById(pupil.classId);
-              if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
-              }
-            } catch (classError) {
-              console.warn('Error fetching class data for pupil:', classError);
-              // Continue without class name
-            }
-          }
-          return pupil;
-        })
-      );
-
-      console.log(`✅ Final result: ${populatedPupils.length} pupils after all filters and population`);
-      return populatedPupils;
+      console.log(`✅ Final result: ${pupils.length} pupils after all filters`);
+      return pupils;
     } catch (error) {
       console.error('❌ Error fetching pupils by class with filters:', error);
       
@@ -528,6 +518,200 @@ export class PupilsService {
       return pupils;
     } catch (error) {
       console.error('Error fetching pupils by IDs:', error);
+      throw error;
+    }
+  }
+
+  // 🚀 DATABASE-LEVEL FILTERING: Fetch only active pupils from database
+  static async getActivePupils(): Promise<Pupil[]> {
+    try {
+      console.log('🎯 Fetching ONLY active pupils from database (optimized)');
+      
+      const q = query(
+        collection(db, COLLECTION_NAME), 
+        where('status', '==', 'Active'),
+        orderBy('lastName', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const pupils = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Pupil[];
+
+      console.log(`✅ Fetched ${pupils.length} active pupils directly from database`);
+
+      // Populate class names for pupils that have classId
+      const populatedPupils = await Promise.all(
+        pupils.map(async (pupil) => {
+          if (pupil.classId) {
+            try {
+              const classData = await ClassesService.getById(pupil.classId);
+              if (classData) {
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
+              }
+            } catch (classError) {
+              console.warn('Error fetching class data for pupil:', classError);
+            }
+          }
+          return pupil;
+        })
+      );
+
+      return populatedPupils;
+    } catch (error) {
+      console.error('Error fetching active pupils:', error);
+      throw error;
+    }
+  }
+
+  // 🚀 DATABASE-LEVEL FILTERING: Fetch pupils by status (Active, Inactive, etc.)
+  static async getPupilsByStatus(status: string): Promise<Pupil[]> {
+    try {
+      console.log(`🎯 Fetching pupils with status: ${status} from database (optimized)`);
+      
+      const q = query(
+        collection(db, COLLECTION_NAME), 
+        where('status', '==', status),
+        orderBy('lastName', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const pupils = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Pupil[];
+
+      console.log(`✅ Fetched ${pupils.length} pupils with status ${status} from database`);
+
+      // Populate class names
+      const populatedPupils = await Promise.all(
+        pupils.map(async (pupil) => {
+          if (pupil.classId) {
+            try {
+              const classData = await ClassesService.getById(pupil.classId);
+              if (classData) {
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
+              }
+            } catch (classError) {
+              console.warn('Error fetching class data for pupil:', classError);
+            }
+          }
+          return pupil;
+        })
+      );
+
+      return populatedPupils;
+    } catch (error) {
+      console.error(`Error fetching pupils by status ${status}:`, error);
+      throw error;
+    }
+  }
+
+  // 🚀 DATABASE-LEVEL FILTERING: Fetch active pupils for a specific class
+  static async getActivePupilsByClass(classId: string): Promise<Pupil[]> {
+    try {
+      console.log(`🎯 Fetching ACTIVE pupils for class ${classId} from database (optimized)`);
+      
+      const q = query(
+        collection(db, COLLECTION_NAME), 
+        where('classId', '==', classId),
+        where('status', '==', 'Active')
+      );
+      const querySnapshot = await getDocs(q);
+      
+      let pupils = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Pupil[];
+
+      console.log(`✅ Fetched ${pupils.length} active pupils for class ${classId} from database`);
+
+      // Sort on client-side to avoid requiring a composite index
+      pupils.sort((a, b) => {
+        const aLastName = (a.lastName || '').toLowerCase();
+        const bLastName = (b.lastName || '').toLowerCase();
+        return aLastName.localeCompare(bLastName);
+      });
+
+      // Populate class names
+      const populatedPupils = await Promise.all(
+        pupils.map(async (pupil) => {
+          if (pupil.classId) {
+            try {
+              const classData = await ClassesService.getById(pupil.classId);
+              if (classData) {
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
+              }
+            } catch (classError) {
+              console.warn('Error fetching class data for pupil:', classError);
+            }
+          }
+          return pupil;
+        })
+      );
+
+      return populatedPupils;
+    } catch (error) {
+      console.error(`Error fetching active pupils by class ${classId}:`, error);
+      // Fallback to fetching all pupils for the class if the composite query fails
+      console.log('⚠️ Falling back to fetching all pupils for class and filtering...');
+      const allClassPupils = await this.getPupilsByClass(classId);
+      return allClassPupils.filter(p => p.status === 'Active');
+    }
+  }
+
+  // 🚀 ENHANCED: Database-level filtering with multiple where clauses
+  // Note: This uses simple queries to avoid complex composite index requirements
+  static async getPupilsByClassAndStatus(classId: string, status: string): Promise<Pupil[]> {
+    try {
+      console.log(`🎯 Fetching pupils for class ${classId} with status ${status} (database-level)`);
+      
+      const q = query(
+        collection(db, COLLECTION_NAME), 
+        where('classId', '==', classId),
+        where('status', '==', status)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      let pupils = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Pupil[];
+
+      console.log(`✅ Fetched ${pupils.length} pupils with status ${status} for class ${classId}`);
+
+      // Sort on client-side
+      pupils.sort((a, b) => {
+        const aLastName = (a.lastName || '').toLowerCase();
+        const bLastName = (b.lastName || '').toLowerCase();
+        return aLastName.localeCompare(bLastName);
+      });
+
+      // Populate class names
+      const populatedPupils = await Promise.all(
+        pupils.map(async (pupil) => {
+          if (pupil.classId) {
+            try {
+              const classData = await ClassesService.getById(pupil.classId);
+              if (classData) {
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
+              }
+            } catch (classError) {
+              console.warn('Error fetching class data for pupil:', classError);
+            }
+          }
+          return pupil;
+        })
+      );
+
+      return populatedPupils;
+    } catch (error) {
+      console.error(`Error fetching pupils by class and status:`, error);
       throw error;
     }
   }

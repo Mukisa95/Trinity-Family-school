@@ -25,7 +25,9 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  MessageCircle
+  MessageCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -43,13 +45,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useProgressiveDashboard } from '@/lib/hooks/use-progressive-dashboard';
+import { useDashboardData } from '@/lib/hooks/use-dashboard-data';
 import { useAttendanceByDateRange } from '@/lib/hooks/use-attendance';
 import { useExcludedDays } from '@/lib/hooks/use-excluded-days';
 import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { isSchoolDay } from '@/lib/utils/attendance-academic-utils';
-import { DashboardProgressIndicator } from '@/components/dashboard/DashboardProgressIndicator';
 import Head from 'next/head';
 import { format, addDays, getDay } from 'date-fns';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -180,6 +181,491 @@ const StatCard = ({
         )}
       </div>
     </motion.div>
+  );
+};
+
+// Pupil Row with Inline Info and History
+const PupilRowWithDetails = ({
+  pupil,
+  showInfo,
+  showHistory,
+  historyDuration,
+  router
+}: {
+  pupil: any;
+  showInfo: boolean;
+  showHistory: boolean;
+  historyDuration: 'week' | 'month' | 'term';
+  router: any;
+}) => {
+  // Calculate date range for history
+  const dateRange = useMemo(() => {
+    const end = new Date();
+    let start = new Date();
+    
+    if (historyDuration === 'week') {
+      start.setDate(end.getDate() - 7);
+    } else if (historyDuration === 'month') {
+      start.setMonth(end.getMonth() - 1);
+    } else {
+      start.setMonth(end.getMonth() - 3);
+    }
+    
+    return {
+      start: format(start, 'yyyy-MM-dd'),
+      end: format(end, 'yyyy-MM-dd')
+    };
+  }, [historyDuration]);
+
+  // Fetch attendance history for this pupil
+  const { data: historyRecords = [] } = useAttendanceByDateRange(
+    dateRange.start,
+    dateRange.end
+  );
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const pupilRecords = historyRecords.filter(r => r.pupilId === pupil.id);
+    const present = pupilRecords.filter(r => r.status === 'Present').length;
+    const absent = pupilRecords.filter(r => r.status === 'Absent').length;
+    const late = pupilRecords.filter(r => r.status === 'Late').length;
+    const total = pupilRecords.length;
+    const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+    return { present, absent, late, total, rate };
+  }, [pupil.id, historyRecords]);
+
+  return (
+    <div className="bg-white rounded-lg border overflow-hidden">
+      {/* Pupil Name - Always Visible */}
+      <div 
+        className="p-2 sm:p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-2 group"
+        onClick={(e) => {
+          e.stopPropagation();
+          router.push(`/attendance/view?pupilId=${pupil.id}`);
+        }}
+      >
+        <UserCheck className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
+        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600">
+          {pupil.firstName} {pupil.lastName}
+        </span>
+      </div>
+
+      {/* Guardian Info - Shows when Info toggle is ON */}
+      {showInfo && (
+        <div className="px-3 sm:px-4 pb-2 space-y-1.5 bg-blue-50/50 border-t border-blue-100">
+          {pupil.guardians && pupil.guardians.length > 0 ? (
+            pupil.guardians.map((guardian: any, idx: number) => {
+              const guardianName = guardian.name || `${guardian.firstName || ''} ${guardian.lastName || ''}`.trim() || 'Guardian';
+              const phones = [guardian.phone, guardian.secondaryPhone, ...(guardian.additionalPhones || [])].filter(Boolean);
+              
+              return phones.length > 0 ? (
+                <div key={idx} className="space-y-0.5">
+                  <div className="text-xs font-medium text-gray-700">
+                    {guardianName} {guardian.relationship && <span className="text-gray-500">({guardian.relationship})</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {phones.map((phone, pIdx) => (
+                      <a
+                        key={pIdx}
+                        href={`tel:${phone}`}
+                        className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="text-[10px]">📞</span>
+                        {phone}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div key={idx} className="text-xs text-gray-500">
+                  {guardianName} - No contact
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-xs text-gray-500 italic py-1">No guardian information available</p>
+          )}
+        </div>
+      )}
+
+      {/* Attendance History - Shows when History toggle is ON */}
+      {showHistory && (
+        <div className="px-3 sm:px-4 pb-2 bg-amber-50/30">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-green-600" />
+                <span>{stats.present}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <XCircle className="w-3 h-3 text-red-600" />
+                <span>{stats.absent}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-600" />
+                <span>{stats.late}</span>
+              </div>
+            </div>
+            <span className={`font-bold px-1.5 py-0.5 rounded ${
+              stats.rate >= 90 ? 'bg-green-100 text-green-700' :
+              stats.rate >= 75 ? 'bg-amber-100 text-amber-700' :
+              'bg-red-100 text-red-700'
+            }`}>
+              {stats.rate}%
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Expandable Attendance Stat Card Component
+const ExpandableAttendanceCard = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color, 
+  subtitle,
+  isLoading = false,
+  attendanceData,
+  pupils,
+  filterType
+}: { 
+  title: string; 
+  value: number; 
+  icon: any;
+  color: {
+    bg: string;
+    text: string;
+    accent: string;
+    gradient: string;
+  };
+  subtitle?: string;
+  isLoading?: boolean;
+  attendanceData?: any;
+  pupils?: any[];
+  filterType: 'present' | 'absent';
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedClass, setExpandedClass] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyDuration, setHistoryDuration] = useState<'week' | 'month' | 'term'>('week');
+  const router = useRouter();
+
+  // Calculate class breakdown with pupils
+  const classBreakdown = useMemo(() => {
+    if (!attendanceData?.byClass || !pupils || !attendanceData?.records) return [];
+    
+    // Group pupils by class to get totals, names, and class codes
+    const pupilsByClass = pupils.reduce((acc: any, pupil: any) => {
+      if (!pupil.classId) return acc;
+      if (!acc[pupil.classId]) {
+        acc[pupil.classId] = {
+          classId: pupil.classId,
+          className: pupil.classCode || pupil.className || 'Unknown', // Use classCode preferentially
+          total: 0,
+          pupils: []
+        };
+      }
+      acc[pupil.classId].total++;
+      acc[pupil.classId].pupils.push(pupil);
+      return acc;
+    }, {});
+
+    // Get attendance records for filtering
+    const recordsByPupil = attendanceData.records.reduce((acc: any, record: any) => {
+      acc[record.pupilId] = record.status;
+      return acc;
+    }, {});
+
+    // Merge with attendance data and enrich with class names from pupils
+    const breakdown = attendanceData.byClass.map((classData: any) => {
+      const pupilData = pupilsByClass[classData.classId] || { total: 0, pupils: [], className: 'Unknown' };
+      
+      // Filter pupils by status
+      const filteredPupils = pupilData.pupils.filter((pupil: any) => {
+        const status = recordsByPupil[pupil.id];
+        if (filterType === 'present') {
+          return status === 'Present' || status === 'Late';
+        } else {
+          // For absent: only show pupils explicitly marked as Absent
+          return status === 'Absent';
+        }
+      });
+
+      return {
+        classId: classData.classId,
+        className: pupilData.className, // Use className from pupils data
+        present: classData.present,
+        absent: classData.absent,
+        late: classData.late,
+        total: pupilData.total,
+        recorded: classData.total,
+        pupils: filteredPupils
+      };
+    });
+
+    // Sort by class name
+    return breakdown.sort((a: any, b: any) => {
+      const aNum = parseInt(a.className.match(/\d+/)?.[0] || '0');
+      const bNum = parseInt(b.className.match(/\d+/)?.[0] || '0');
+      return aNum - bNum;
+    });
+  }, [attendanceData, pupils, filterType]);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="stat-card relative overflow-visible rounded-lg shadow-sm border border-l-4 cursor-pointer hover:shadow-md transition-all duration-300 group"
+        style={{ 
+          borderLeftColor: color.accent,
+          background: color.gradient
+        }}
+      >
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
+        <div className="relative">
+          {/* Expand/Collapse Icon - Top Right */}
+          <div className="absolute top-2 right-2 z-10 pointer-events-none">
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </div>
+
+          {/* Card Header - Always Visible */}
+          <div 
+            className="p-3 flex flex-col justify-between min-h-[100px]"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1 min-w-0 pr-6">
+                <p className={`text-xs font-medium uppercase tracking-wider ${color.text} mb-1 truncate`}>
+                  {title}
+                </p>
+                {isLoading ? (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-sm text-gray-500">Loading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-baseline space-x-1 mt-1">
+                      <span className="text-2xl md:text-3xl font-bold text-gray-900">
+                        <CountUp end={value} />
+                      </span>
+                    </div>
+                    {subtitle && (
+                      <p className="text-xs text-gray-600 mt-1 truncate">{subtitle}</p>
+                    )}
+                  </>
+                )}
+              </div>
+              <div 
+                className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{ backgroundColor: color.bg }}
+              >
+                <Icon className={`w-4 h-4 md:w-5 md:h-5 ${color.text}`} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Floating Expansion Panel */}
+      <AnimatePresence>
+        {isExpanded && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 bg-black/30 z-40"
+              onClick={() => {
+                setIsExpanded(false);
+                setExpandedClass(null);
+              }}
+            />
+            
+            {/* Floating Panel - Responsive */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.15 }}
+              className="fixed z-50 
+                left-4 right-4 top-16
+                sm:left-1/2 sm:-translate-x-1/2 sm:top-16 sm:w-[75vw] sm:max-w-xl
+                lg:w-[60vw] lg:max-w-lg
+                xl:w-[50vw] xl:max-w-md"
+            >
+              <Card className="shadow-2xl border-2 flex flex-col max-h-[calc(100vh-8rem)]" style={{ borderColor: color.accent }}>
+                <CardHeader className="pb-2 border-b flex-shrink-0" style={{ background: color.gradient }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color.text}`} />
+                      <span className="hidden sm:inline">{title} - By Class</span>
+                      <span className="sm:hidden">{title}</span>
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(false);
+                        setExpandedClass(null);
+                        setShowInfo(false);
+                        setShowHistory(false);
+                      }}
+                      className="h-7 w-7 p-0 hover:bg-white/50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {expandedClass && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={showInfo ? 'default' : 'outline'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowInfo(!showInfo);
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Info
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={showHistory ? 'default' : 'outline'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowHistory(!showHistory);
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        <Clock className="w-3 h-3 mr-1" />
+                        History
+                      </Button>
+                      {showHistory && (
+                        <div className="ml-auto flex gap-1">
+                          {(['week', 'month', 'term'] as const).map((duration) => (
+                            <Button
+                              key={duration}
+                              size="sm"
+                              variant={historyDuration === duration ? 'default' : 'ghost'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHistoryDuration(duration);
+                              }}
+                              className="h-7 text-xs px-2 capitalize"
+                            >
+                              {duration}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="p-0 overflow-y-auto flex-1 min-h-0">
+                  {classBreakdown.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500">No attendance data available</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {classBreakdown.map((classData: any) => {
+                        const displayValue = filterType === 'present' ? classData.present : classData.absent;
+                        const percentage = classData.total > 0 
+                          ? Math.round((displayValue / classData.total) * 100) 
+                          : 0;
+                        const isClassExpanded = expandedClass === classData.classId;
+                        
+                        return (
+                          <div key={classData.classId} className="border-b last:border-b-0">
+                            <div 
+                              className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isClassExpanded) {
+                                  setExpandedClass(null);
+                                } else {
+                                  setExpandedClass(classData.classId);
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                                <span className="text-sm sm:text-base font-bold text-gray-900 min-w-[50px] sm:min-w-[70px]">
+                                  {classData.className}
+                                </span>
+                                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full ${
+                                      filterType === 'present' ? 'bg-green-500' : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm sm:text-base font-bold text-gray-900">
+                                  {displayValue}/{classData.total}
+                                </span>
+                                {isClassExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Pupil List with Info and History Inline */}
+                            {isClassExpanded && (
+                              <div className="bg-gray-50 border-t">
+                                <div className="px-3 sm:px-4 pb-3">
+                                  {classData.pupils.length === 0 ? (
+                                    <p className="text-xs sm:text-sm text-gray-500 italic py-3">No pupils {filterType}</p>
+                                  ) : (
+                                    <div className="space-y-2 pt-2">
+                                      {classData.pupils.map((pupil: any) => (
+                                        <PupilRowWithDetails
+                                          key={pupil.id}
+                                          pupil={pupil}
+                                          showInfo={showInfo}
+                                          showHistory={showHistory}
+                                          historyDuration={historyDuration}
+                                          router={router}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -322,7 +808,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
   );
 };
 
-// Today's Attendance Chart
+// Today's Attendance Chart - Shows attendance by class
 const TodaysAttendanceChart = ({ classes, pupils }: { classes: any[]; pupils: any[] }) => {
   const router = useRouter();
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -1440,6 +1926,35 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
               <span className="hidden xs:inline">Excellence</span>
               <span className="xs:hidden">Excel.</span>
             </motion.div>
+            
+            {/* WhatsApp Group Badge */}
+            <motion.a
+              href="https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t"
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 1.2 }}
+              whileHover={{ 
+                scale: isMobile ? 1.05 : 1.1, 
+                backgroundColor: "rgba(34, 197, 94, 0.3)",
+                transition: { duration: 0.2 }
+              }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-green-500/30 backdrop-blur-sm text-white border border-green-400/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-green-500/40 transition-all duration-300 cursor-pointer"
+            >
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                whileHover={{ scale: isMobile ? 1.2 : 1.3 }}
+              >
+                <MessageCircle className="w-3 h-3" />
+              </motion.div>
+              <span className="hidden xs:inline sm:inline">WhatsApp Group</span>
+              <span className="xs:hidden sm:hidden">WhatsApp</span>
+            </motion.a>
           </div>
           
           {/* Enhanced Decorative Line - Made More Compact */}
@@ -1561,29 +2076,23 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
 export default function DashboardPage() {
   const router = useRouter();
   
-  // Fetch data using progressive loading
+  // 🚀 OPTIMIZED: Fetch data with caching (no refetch on navigation)
   const {
     pupils,
     staff,
     classes,
-    subjects,
+    attendanceData,
     schoolSettings,
     photos,
     stats,
     pupilsLoading,
     staffLoading,
     classesLoading,
-    subjectsLoading,
+    attendanceLoading,
     isLoading,
-    isProcessing,
-    currentStage,
-    totalStages,
-    progressPercentage,
-    processedStages,
-    stageProgress,
-    error,
-    restart
-  } = useProgressiveDashboard();
+    hasError,
+    refetchAll
+  } = useDashboardData();
 
   const handleCardClick = (path: string) => {
     router.push(path);
@@ -1640,17 +2149,54 @@ export default function DashboardPage() {
       <EnhancedHeader schoolSettings={schoolSettings} />
 
       <div className="container mx-auto px-3 sm:px-6 lg:px-8 pb-6">
-        {/* Progressive Loading Indicator */}
-        <DashboardProgressIndicator
-          isProcessing={isProcessing}
-          currentStage={currentStage}
-          totalStages={totalStages}
-          progressPercentage={progressPercentage}
-          processedStages={processedStages}
-          error={error}
-          onRetry={restart}
-          stageProgress={stageProgress}
-        />
+        {/* Loading Indicator - Simple cached loading */}
+        {isLoading && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    ⚡ Loading dashboard data...
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Data will be cached for faster subsequent loads
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Error Indicator */}
+        {hasError && !isLoading && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <div>
+                    <p className="text-sm font-medium text-red-900">
+                      Error loading dashboard data
+                    </p>
+                    <p className="text-xs text-red-600 mt-1">
+                      Please try refreshing the page
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={refetchAll}
+                  className="border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
@@ -1690,60 +2236,34 @@ export default function DashboardPage() {
             subtitle="Total staff"
             isLoading={staffLoading}
           />
-          <StatCard
-            title="Classes"
-            value={stats.totalClasses}
-            icon={GraduationCap}
+          <ExpandableAttendanceCard
+            title="Present Today"
+            value={stats.presentToday}
+            icon={CheckCircle}
             color={cardColors.classes}
-            onClick={() => handleCardClick('/classes')}
-            subtitle="Active classes"
-            isLoading={classesLoading}
+            subtitle="In attendance"
+            isLoading={attendanceLoading}
+            attendanceData={attendanceData}
+            pupils={pupils}
+            filterType="present"
           />
-          <StatCard
-            title="Subjects"
-            value={stats.totalSubjects}
-            icon={BookOpen}
-            color={cardColors.subjects}
-            onClick={() => handleCardClick('/subjects')}
-            subtitle="Offered subjects"
-            isLoading={subjectsLoading}
+          <ExpandableAttendanceCard
+            title="Absent Today"
+            value={stats.absentToday}
+            icon={XCircle}
+            color={{
+              bg: 'rgba(239, 68, 68, 0.1)',
+              text: 'text-red-600',
+              accent: '#EF4444',
+              gradient: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(252, 165, 165, 0.1) 100%)'
+            }}
+            subtitle="Not present"
+            isLoading={attendanceLoading}
+            attendanceData={attendanceData}
+            pupils={pupils}
+            filterType="absent"
           />
         </div>
-
-        {/* WhatsApp Group Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-4"
-        >
-          <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 transition-all duration-300 hover:shadow-md">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <MessageCircle className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-green-800 text-base">Join Our WhatsApp Group</h3>
-                    <p className="text-green-600 text-xs">Stay connected with instant updates</p>
-                  </div>
-                </div>
-                <a 
-                  href="https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0"
-                >
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md transition-all duration-300 hover:scale-105">
-                    <MessageCircle className="w-3 h-3 mr-1.5" />
-                    Join
-                  </Button>
-                </a>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

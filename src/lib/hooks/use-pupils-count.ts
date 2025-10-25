@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
-import { usePupils } from './use-pupils';
+import { useActivePupils, usePupils } from './use-pupils';
 
+// 🚀 OPTIMIZED: Use database-level filtering for active pupils
 export function usePupilsCount() {
-  const { data: pupils = [] } = usePupils();
+  // Use the optimized active pupils query instead of fetching all pupils
+  const { data: activePupils = [] } = useActivePupils();
+  // Only fetch all pupils if we need inactive count
+  const { data: allPupils = [] } = usePupils();
   
   return useMemo(() => {
-    const activePupils = pupils.filter(p => p.status === 'Active');
     const malePupils = activePupils.filter(p => p.gender === 'Male');
     const femalePupils = activePupils.filter(p => p.gender === 'Female');
     
@@ -13,8 +16,25 @@ export function usePupilsCount() {
       total: activePupils.length,
       male: malePupils.length,
       female: femalePupils.length,
-      inactive: pupils.filter(p => p.status === 'Inactive').length,
-      all: pupils.length
+      inactive: allPupils.filter(p => p.status === 'Inactive').length,
+      all: allPupils.length
     };
-  }, [pupils]);
+  }, [activePupils, allPupils]);
+}
+
+// 🚀 NEW: Optimized version that only counts active pupils (no inactive count)
+// Use this on dashboard for better performance
+export function useActivePupilsCount() {
+  const { data: activePupils = [] } = useActivePupils();
+  
+  return useMemo(() => {
+    const malePupils = activePupils.filter(p => p.gender === 'Male');
+    const femalePupils = activePupils.filter(p => p.gender === 'Female');
+    
+    return {
+      total: activePupils.length,
+      male: malePupils.length,
+      female: femalePupils.length,
+    };
+  }, [activePupils]);
 } 
