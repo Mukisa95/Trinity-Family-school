@@ -348,15 +348,33 @@ const ExpandableStaffCard = ({
   staff?: any[];
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  // Filter staff based on search
+  const filteredStaff = useMemo(() => {
+    if (!staff || staff.length === 0) return [];
+    if (!searchQuery.trim()) return staff;
+    
+    const query = searchQuery.toLowerCase();
+    return staff.filter((member: any) => 
+      member.firstName?.toLowerCase().includes(query) ||
+      member.lastName?.toLowerCase().includes(query) ||
+      member.contactNumber?.includes(query) ||
+      member.alternativePhone?.includes(query) ||
+      (Array.isArray(member.department) ? member.department : [member.department]).some((d: string) => d?.toLowerCase().includes(query)) ||
+      (Array.isArray(member.role) ? member.role : [member.role]).some((r: string) => r?.toLowerCase().includes(query))
+    );
+  }, [staff, searchQuery]);
 
   // Group staff by department and role
   const groupedStaff = useMemo(() => {
-    if (!staff || staff.length === 0) return {};
+    if (filteredStaff.length === 0) return {};
     
     const groups: any = {};
     
-    staff.forEach((member: any) => {
+    filteredStaff.forEach((member: any) => {
       // Handle multiple departments
       const departments = Array.isArray(member.department) ? member.department : [member.department || 'General'];
       const roles = Array.isArray(member.role) ? member.role : [member.role || 'Staff'];
@@ -377,7 +395,25 @@ const ExpandableStaffCard = ({
     });
     
     return groups;
-  }, [staff]);
+  }, [filteredStaff]);
+
+  // Toggle department expansion
+  const toggleDepartment = (dept: string) => {
+    const newExpanded = new Set(expandedDepartments);
+    if (newExpanded.has(dept)) {
+      newExpanded.delete(dept);
+    } else {
+      newExpanded.add(dept);
+    }
+    setExpandedDepartments(newExpanded);
+  };
+
+  // Expand all when searching
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setExpandedDepartments(new Set(Object.keys(groupedStaff)));
+    }
+  }, [searchQuery, groupedStaff]);
 
   return (
     <>
@@ -464,8 +500,8 @@ const ExpandableStaffCard = ({
                 xl:w-[50vw] xl:max-w-md"
             >
               <Card className="shadow-2xl border-2 flex flex-col max-h-[calc(100vh-8rem)]" style={{ borderColor: color.accent }}>
-                <CardHeader className="pb-2 border-b flex-shrink-0" style={{ background: color.gradient }}>
-                  <div className="flex items-center justify-between">
+                <CardHeader className="pb-3 border-b flex-shrink-0" style={{ background: color.gradient }}>
+                  <div className="flex items-center justify-between mb-2">
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color.text}`} />
                       <span>Staff Directory</span>
@@ -476,73 +512,137 @@ const ExpandableStaffCard = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsExpanded(false);
+                        setSearchQuery('');
+                        setExpandedDepartments(new Set());
                       }}
                       className="h-7 w-7 p-0 hover:bg-white/50"
                     >
                       <XCircle className="w-4 h-4" />
                     </Button>
                   </div>
+                  {/* Search Input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search staff by name, phone, department..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSearchQuery('');
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0 overflow-y-auto flex-1 min-h-0">
                   {Object.keys(groupedStaff).length === 0 ? (
                     <div className="p-8 text-center">
                       <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm text-gray-500">No staff data available</p>
+                      <p className="text-sm text-gray-500">
+                        {searchQuery ? 'No staff found matching your search' : 'No staff data available'}
+                      </p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
-                      {Object.entries(groupedStaff).map(([department, roles]: [string, any]) => (
-                        <div key={department} className="p-3 sm:p-4">
-                          <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-purple-600" />
-                            {department}
-                          </h3>
-                          <div className="space-y-3">
-                            {Object.entries(roles).map(([role, members]: [string, any]) => (
-                              <div key={role} className="ml-4">
-                                <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                                  {role} ({members.length})
-                                </p>
-                                <div className="space-y-1.5">
-                                  {members.map((member: any) => (
-                                    <div key={member.id} className="bg-gray-50 rounded-lg p-2 flex items-center justify-between gap-2">
-                                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                                        <UserCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-                                        <span className="text-sm font-medium text-gray-900 truncate">
-                                          {member.firstName} {member.lastName}
-                                        </span>
-                                      </div>
-                                      <div className="flex gap-1 flex-shrink-0">
-                                        {member.contactNumber && (
-                                          <a
-                                            href={`tel:${member.contactNumber}`}
-                                            className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <Phone className="w-3 h-3" />
-                                            {member.contactNumber}
-                                          </a>
-                                        )}
-                                        {member.alternativePhone && (
-                                          <a
-                                            href={`tel:${member.alternativePhone}`}
-                                            className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
-                                            onClick={(e) => e.stopPropagation()}
-                                            title="Alternative phone"
-                                          >
-                                            <Phone className="w-3 h-3" />
-                                            {member.alternativePhone}
-                                          </a>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                      {Object.entries(groupedStaff).map(([department, roles]: [string, any]) => {
+                        const isExpanded = expandedDepartments.has(department);
+                        const totalStaff = Object.values(roles).reduce((sum: number, members: any) => sum + members.length, 0);
+                        
+                        return (
+                          <div key={department}>
+                            {/* Department Header - Clickable */}
+                            <div
+                              className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleDepartment(department);
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                  <Building2 className="w-4 h-4 text-purple-600" />
+                                  {department}
+                                  <span className="text-xs font-normal text-gray-500">({totalStaff} staff)</span>
+                                </h3>
+                                {isExpanded ? (
+                                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                )}
                               </div>
-                            ))}
+                            </div>
+                            
+                            {/* Department Content - Collapsible */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3, ease: [0.4, 0.0, 0.2, 1] }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3">
+                                    {Object.entries(roles).map(([role, members]: [string, any]) => (
+                                      <div key={role} className="ml-4">
+                                        <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                                          {role} ({members.length})
+                                        </p>
+                                        <div className="space-y-1.5">
+                                          {members.map((member: any) => (
+                                            <div key={member.id} className="bg-gray-50 rounded-lg p-2 flex items-center justify-between gap-2">
+                                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <UserCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                                                <span className="text-sm font-medium text-gray-900 truncate">
+                                                  {member.firstName} {member.lastName}
+                                                </span>
+                                              </div>
+                                              <div className="flex flex-wrap gap-1 flex-shrink-0">
+                                                {member.contactNumber && (
+                                                  <a
+                                                    href={`tel:${member.contactNumber}`}
+                                                    className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                  >
+                                                    <Phone className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">{member.contactNumber}</span>
+                                                    <span className="sm:hidden">Call</span>
+                                                  </a>
+                                                )}
+                                                {member.alternativePhone && (
+                                                  <a
+                                                    href={`tel:${member.alternativePhone}`}
+                                                    className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    title="Alternative phone"
+                                                  >
+                                                    <Phone className="w-3 h-3" />
+                                                    <span className="hidden sm:inline">{member.alternativePhone}</span>
+                                                    <span className="sm:hidden">Alt</span>
+                                                  </a>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
