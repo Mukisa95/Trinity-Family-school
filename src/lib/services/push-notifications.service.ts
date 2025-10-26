@@ -531,6 +531,43 @@ class PushNotificationService {
   }
 
   /**
+   * Subscribe user to push notifications and save to database
+   */
+  async subscribe(userId: string): Promise<NotificationSubscription | null> {
+    try {
+      console.log(`[Push Subscribe] Starting subscription process for user ${userId}`);
+      
+      // Subscribe to push notifications
+      const subscription = await this.subscribeToPushNotifications();
+      
+      if (!subscription) {
+        console.error('[Push Subscribe] Failed to get subscription from browser');
+        return null;
+      }
+
+      console.log(`[Push Subscribe] Got subscription from browser, saving to database...`);
+      
+      // Save to database with userId
+      const subscriptionWithUser = {
+        ...subscription,
+        userId
+      };
+
+      const docRef = await addDoc(collection(db, 'pushSubscriptions'), subscriptionWithUser);
+      console.log(`✅ [Push Subscribe] Subscription saved to database with ID: ${docRef.id}`);
+      
+      return {
+        id: docRef.id,
+        ...subscriptionWithUser
+      };
+      
+    } catch (error) {
+      console.error('[Push Subscribe] Error subscribing user:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get push subscription for a specific user from database
    */
   async getSubscription(userId: string): Promise<NotificationSubscription | null> {
