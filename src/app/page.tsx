@@ -368,28 +368,26 @@ const ExpandableStaffCard = ({
     );
   }, [staff, searchQuery]);
 
-  // Group staff by department and role
+  // Group staff by role (primary grouping)
   const groupedStaff = useMemo(() => {
     if (filteredStaff.length === 0) return {};
     
     const groups: any = {};
     
     filteredStaff.forEach((member: any) => {
-      // Handle multiple departments
-      const departments = Array.isArray(member.department) ? member.department : [member.department || 'General'];
+      // Handle multiple roles - but only add staff once per role
       const roles = Array.isArray(member.role) ? member.role : [member.role || 'Staff'];
+      const departments = Array.isArray(member.department) ? member.department : [member.department || 'General'];
       
-      departments.forEach((dept: string) => {
-        if (!groups[dept]) {
-          groups[dept] = {};
+      roles.forEach((role: string) => {
+        if (!groups[role]) {
+          groups[role] = [];
         }
         
-        roles.forEach((role: string) => {
-          if (!groups[dept][role]) {
-            groups[dept][role] = [];
-          }
-          
-          groups[dept][role].push(member);
+        // Add member with their departments info
+        groups[role].push({
+          ...member,
+          departmentsList: departments.join(', ')
         });
       });
     });
@@ -397,13 +395,13 @@ const ExpandableStaffCard = ({
     return groups;
   }, [filteredStaff]);
 
-  // Toggle department expansion
-  const toggleDepartment = (dept: string) => {
+  // Toggle role expansion
+  const toggleDepartment = (role: string) => {
     const newExpanded = new Set(expandedDepartments);
-    if (newExpanded.has(dept)) {
-      newExpanded.delete(dept);
+    if (newExpanded.has(role)) {
+      newExpanded.delete(role);
     } else {
-      newExpanded.add(dept);
+      newExpanded.add(role);
     }
     setExpandedDepartments(newExpanded);
   };
@@ -553,25 +551,24 @@ const ExpandableStaffCard = ({
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
-                      {Object.entries(groupedStaff).map(([department, roles]: [string, any]) => {
-                        const isExpanded = expandedDepartments.has(department);
-                        const totalStaff = Object.values(roles).reduce((sum: number, members: any) => sum + members.length, 0);
+                      {Object.entries(groupedStaff).map(([role, members]: [string, any]) => {
+                        const isExpanded = expandedDepartments.has(role);
                         
                         return (
-                          <div key={department}>
-                            {/* Department Header - Clickable */}
+                          <div key={role}>
+                            {/* Role Header - Clickable */}
                             <div
                               className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleDepartment(department);
+                                toggleDepartment(role);
                               }}
                             >
                               <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                  <Building2 className="w-4 h-4 text-purple-600" />
-                                  {department}
-                                  <span className="text-xs font-normal text-gray-500">({totalStaff} staff)</span>
+                                  <Users className="w-4 h-4 text-purple-600" />
+                                  {role}
+                                  <span className="text-xs font-normal text-gray-500">({members.length} staff)</span>
                                 </h3>
                                 {isExpanded ? (
                                   <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -581,7 +578,7 @@ const ExpandableStaffCard = ({
                               </div>
                             </div>
                             
-                            {/* Department Content - Collapsible */}
+                            {/* Role Content - Collapsible */}
                             <AnimatePresence>
                               {isExpanded && (
                                 <motion.div
@@ -591,48 +588,47 @@ const ExpandableStaffCard = ({
                                   transition={{ duration: 0.3, ease: [0.4, 0.0, 0.2, 1] }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-3">
-                                    {Object.entries(roles).map(([role, members]: [string, any]) => (
-                                      <div key={role} className="ml-4">
-                                        <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                                          {role} ({members.length})
-                                        </p>
-                                        <div className="space-y-1.5">
-                                          {members.map((member: any) => (
-                                            <div key={member.id} className="bg-gray-50 rounded-lg p-2 flex items-center justify-between gap-2">
-                                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <UserCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-                                                <span className="text-sm font-medium text-gray-900 truncate">
-                                                  {member.firstName} {member.lastName}
-                                                </span>
-                                              </div>
-                                              <div className="flex flex-wrap gap-1 flex-shrink-0">
-                                                {member.contactNumber && (
-                                                  <a
-                                                    href={`tel:${member.contactNumber}`}
-                                                    className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                  >
-                                                    <Phone className="w-3 h-3" />
-                                                    <span className="hidden sm:inline">{member.contactNumber}</span>
-                                                    <span className="sm:hidden">Call</span>
-                                                  </a>
-                                                )}
-                                                {member.alternativePhone && (
-                                                  <a
-                                                    href={`tel:${member.alternativePhone}`}
-                                                    className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    title="Alternative phone"
-                                                  >
-                                                    <Phone className="w-3 h-3" />
-                                                    <span className="hidden sm:inline">{member.alternativePhone}</span>
-                                                    <span className="sm:hidden">Alt</span>
-                                                  </a>
-                                                )}
-                                              </div>
+                                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 space-y-1.5">
+                                    {members.map((member: any) => (
+                                      <div key={member.id} className="bg-gray-50 rounded-lg p-3">
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <UserCheck className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                                {member.firstName} {member.lastName}
+                                              </p>
+                                              {member.departmentsList && (
+                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                                  <Building2 className="w-3 h-3" />
+                                                  {member.departmentsList}
+                                                </p>
+                                              )}
                                             </div>
-                                          ))}
+                                          </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5 ml-6">
+                                          {member.contactNumber && (
+                                            <a
+                                              href={`tel:${member.contactNumber}`}
+                                              className="px-2.5 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <Phone className="w-3.5 h-3.5" />
+                                              <span>{member.contactNumber}</span>
+                                            </a>
+                                          )}
+                                          {member.alternativePhone && (
+                                            <a
+                                              href={`tel:${member.alternativePhone}`}
+                                              className="px-2.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1.5"
+                                              onClick={(e) => e.stopPropagation()}
+                                              title="Alternative phone"
+                                            >
+                                              <Phone className="w-3.5 h-3.5" />
+                                              <span>{member.alternativePhone}</span>
+                                            </a>
+                                          )}
                                         </div>
                                       </div>
                                     ))}
