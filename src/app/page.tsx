@@ -1888,7 +1888,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
   // Greeting stays visible for 6 seconds (longer for better UX)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowGreeting(false);
+            setShowGreeting(false);
     }, 6000);
     return () => clearTimeout(timer);
   }, []);
@@ -1960,27 +1960,27 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
           const delay = Math.random() * 3;
           
           return (
-            <motion.div
-              key={i}
+          <motion.div
+            key={i}
               className="absolute rounded-full bg-white transform-gpu will-change-transform"
-              style={{
+            style={{
                 left: `${leftPos}%`,
                 top: `${topPos}%`,
                 width: `${size}px`,
                 height: `${size}px`,
-              }}
-              animate={{
+            }}
+            animate={{
                 y: [0, -120],
                 opacity: [0.4, 0],
-              }}
-              transition={{
+            }}
+            transition={{
                 duration: duration,
                 delay: delay,
-                repeat: Infinity,
+              repeat: Infinity,
                 ease: [0.4, 0.0, 0.6, 1],
                 repeatDelay: 0,
-              }}
-            />
+            }}
+          />
           );
         })}
       </div>
@@ -2003,7 +2003,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
             transition={{
               y: {
                 duration: 4 + index,
-                repeat: Infinity,
+              repeat: Infinity,
                 ease: [0.4, 0.0, 0.6, 1],
                 repeatType: "reverse"
               },
@@ -2037,9 +2037,9 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
           {/* Main Title - With overlay greeting - Fixed height container */}
           <div className="relative">
             {/* Reserve space for school name (always present, controls height) */}
-            <motion.h1 
+          <motion.h1 
               className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 leading-tight"
-              initial={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
               animate={{ opacity: showGreeting ? 0 : 1 }}
               transition={{ 
                 duration: 0.8,
@@ -2049,23 +2049,23 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
               <span className="inline-block">
                 {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
               </span>
-            </motion.h1>
-            
+          </motion.h1>
+          
             {/* Reserve space for motto (always present, controls height) */}
-            <motion.p 
+              <motion.p 
               className="text-xs sm:text-sm md:text-sm lg:text-base font-medium px-1 mb-2 sm:mb-3 md:mb-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: showGreeting ? 0 : 0.9 }}
-              transition={{ 
+                  transition={{
                 duration: 0.8,
                 delay: 0.2,
                 ease: [0.4, 0.0, 0.2, 1]
               }}
             >
               <span>
-                {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
+                  {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
               </span>
-            </motion.p>
+              </motion.p>
             
             {/* Greeting overlay - positioned absolutely over both lines */}
             <AnimatePresence mode="wait">
@@ -2085,8 +2085,8 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                     {greetingMessage}
                   </p>
                 </motion.div>
-              )}
-            </AnimatePresence>
+            )}
+          </AnimatePresence>
           </div>
           
           {/* Enhanced Animated Badges - Smooth & Mature */}
@@ -2108,8 +2108,8 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                 }
               }}
               className="bg-white/20 backdrop-blur-sm text-white border border-white/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-white/30 transition-all duration-300 cursor-pointer"
-            >
-              <Calendar className="w-3 h-3" />
+              >
+                <Calendar className="w-3 h-3" />
               <span className="hidden xs:inline sm:inline">Academic Year </span>
               <span>{new Date().getFullYear()}</span>
             </motion.div>
@@ -2131,8 +2131,8 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                 }
               }}
               className="bg-white/20 backdrop-blur-sm text-white border border-white/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-white/30 transition-all duration-300 cursor-pointer"
-            >
-              <Award className="w-3 h-3" />
+              >
+                <Award className="w-3 h-3" />
               <span className="hidden xs:inline">Excellence</span>
               <span className="xs:hidden">Excel.</span>
             </motion.div>
@@ -2169,11 +2169,11 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
           <motion.div
             className="mt-2 sm:mt-3 md:mt-4 mx-auto"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ 
+              animate={{
               width: isMobile ? "60px" : "80px",
               opacity: 1
-            }}
-            transition={{ 
+              }}
+              transition={{
               duration: 1, 
               delay: 0.8,
               ease: [0.4, 0.0, 0.2, 1]
