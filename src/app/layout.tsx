@@ -7,6 +7,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { AuthProvider } from '@/lib/contexts/auth-context';
 import { SyncProvider } from '@/context/SyncContext';
 import { AppLayout } from '@/components/layout/app-layout';
+import { Analytics } from '@vercel/analytics/react';
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
@@ -147,6 +148,7 @@ export default function RootLayout({
             </SyncProvider>
           </AuthProvider>
         </QueryProvider>
+        <Analytics />
       </body>
     </html>
   );
