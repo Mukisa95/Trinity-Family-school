@@ -1596,7 +1596,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleHeaderClick}
     >
-      {/* Click Ripple Effect */}
+      {/* Click Ripple Effect - Smooth */}
       <AnimatePresence>
         {clickRipple.show && (
           <motion.div
@@ -1607,10 +1607,13 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
               width: 50,
               height: 50,
             }}
-            initial={{ scale: 0, opacity: 0.8 }}
-            animate={{ scale: isMobile ? 15 : 20, opacity: 0 }}
+            initial={{ scale: 0, opacity: 0.6 }}
+            animate={{ scale: isMobile ? 12 : 15, opacity: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            transition={{ 
+              duration: 1,
+              ease: [0.4, 0.0, 0.2, 1]
+            }}
           />
         )}
       </AnimatePresence>
@@ -1618,35 +1621,34 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
       {/* Animated Background Gradient - Simplified */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 opacity-90" />
       
-      {/* Enhanced Particles Background - Optimized for smooth performance */}
+      {/* Enhanced Particles Background - Ultra-smooth performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: particleCount }, (_, i) => {
-          const size = Math.random() * (isMobile ? 3 : 4) + 1;
+          const size = Math.random() * 2 + 1;
           const leftPos = Math.random() * 100;
           const topPos = Math.random() * 100;
-          const duration = Math.random() * 5 + 8;
-          const delay = Math.random() * 2;
+          const duration = Math.random() * 8 + 12;
+          const delay = Math.random() * 3;
           
           return (
             <motion.div
               key={i}
-              className="absolute rounded-full bg-white transform-gpu"
+              className="absolute rounded-full bg-white transform-gpu will-change-transform"
               style={{
                 left: `${leftPos}%`,
                 top: `${topPos}%`,
                 width: `${size}px`,
                 height: `${size}px`,
-                willChange: 'transform, opacity',
               }}
               animate={{
-                y: [0, -100],
-                opacity: [0.6, 0],
+                y: [0, -120],
+                opacity: [0.4, 0],
               }}
               transition={{
                 duration: duration,
                 delay: delay,
                 repeat: Infinity,
-                ease: "linear",
+                ease: [0.4, 0.0, 0.6, 1],
                 repeatDelay: 0,
               }}
             />
@@ -1654,29 +1656,34 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
         })}
       </div>
       
-      {/* Enhanced Floating Icons - Optimized for smooth performance */}
+      {/* Enhanced Floating Icons - Ultra-smooth performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {icons.map(({ Icon, color, delay }, index) => (
           <motion.div
             key={index}
-            className={`absolute ${color} transform-gpu`}
+            className={`absolute ${color} transform-gpu will-change-transform`}
             style={{
               left: isMobile ? `${20 + index * 25}%` : `${10 + index * 20}%`,
               top: `${20 + (index % 2) * (isMobile ? 20 : 40)}%`,
-              opacity: 0.25,
-              willChange: 'transform',
+              opacity: 0.2,
             }}
             animate={{
-              y: [-8, 8],
-              scale: [0.9, 1.1, 0.9],
+              y: [-6, 6],
               rotate: [0, 360],
             }}
             transition={{
-              duration: 8 + index * 2,
-              delay: delay,
-              repeat: Infinity,
-              ease: "linear",
-              repeatDelay: 0,
+              y: {
+                duration: 4 + index,
+                repeat: Infinity,
+                ease: [0.4, 0.0, 0.6, 1],
+                repeatType: "reverse"
+              },
+              rotate: {
+                duration: 20 + index * 5,
+                repeat: Infinity,
+                ease: "linear",
+                repeatDelay: 0,
+              }
             }}
           >
             <Icon size={isMobile ? 18 : 24} />
@@ -1687,16 +1694,14 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-2 sm:px-3 lg:px-6 py-2 sm:py-3 md:py-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ 
             opacity: 1, 
             y: 0,
-            scale: isHovered ? (isMobile ? 1.01 : 1.02) : 1,
           }}
           transition={{ 
-            duration: 0.8, 
-            ease: "easeOut",
-            scale: { duration: 0.3 }
+            duration: 1, 
+            ease: [0.4, 0.0, 0.2, 1]
           }}
           className="text-center"
         >
@@ -1707,7 +1712,10 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
               className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 leading-tight"
               initial={{ opacity: 0 }}
               animate={{ opacity: showGreeting ? 0 : 1 }}
-              transition={{ duration: 0.5 }}
+              transition={{ 
+                duration: 0.8,
+                ease: [0.4, 0.0, 0.2, 1] // Custom cubic-bezier for smooth fade
+              }}
             >
               <span className="inline-block">
                 {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
@@ -1719,7 +1727,11 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
               className="text-xs sm:text-sm md:text-sm lg:text-base font-medium px-1 mb-2 sm:mb-3 md:mb-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: showGreeting ? 0 : 0.9 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              transition={{ 
+                duration: 0.8,
+                delay: 0.2,
+                ease: [0.4, 0.0, 0.2, 1]
+              }}
             >
               <span>
                 {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
@@ -1727,14 +1739,17 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
             </motion.p>
             
             {/* Greeting overlay - positioned absolutely over both lines */}
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
               {showGreeting && (
                 <motion.div
                   className="absolute inset-0 flex items-center justify-center"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.5 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ 
+                    duration: 0.8,
+                    ease: [0.4, 0.0, 0.2, 1]
+                  }}
                   style={{ top: 0, bottom: 0 }}
                 >
                   <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
@@ -1745,53 +1760,50 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
             </AnimatePresence>
           </div>
           
-          {/* Enhanced Animated Badges - Made More Compact */}
+          {/* Enhanced Animated Badges - Smooth & Mature */}
           <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
             <motion.div
-              initial={{ opacity: 0, x: -15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              whileHover={{ 
-                scale: isMobile ? 1.05 : 1.1, 
-                backgroundColor: "rgba(255,255,255,0.3)",
-                transition: { duration: 0.2 }
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: 0.5,
+                ease: [0.4, 0.0, 0.2, 1]
               }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ 
+                scale: 1.05,
+                backgroundColor: "rgba(255,255,255,0.3)",
+                transition: { 
+                  duration: 0.3,
+                  ease: [0.4, 0.0, 0.2, 1]
+                }
+              }}
               className="bg-white/20 backdrop-blur-sm text-white border border-white/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-white/30 transition-all duration-300 cursor-pointer"
             >
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: isHovered ? (isMobile ? 15 : 10) : (isMobile ? 25 : 20), repeat: Infinity, ease: "linear" }}
-                whileHover={{ scale: isMobile ? 1.1 : 1.2 }}
-              >
-                <Calendar className="w-3 h-3" />
-              </motion.div>
+              <Calendar className="w-3 h-3" />
               <span className="hidden xs:inline sm:inline">Academic Year </span>
               <span>{new Date().getFullYear()}</span>
             </motion.div>
             
             <motion.div
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 1 }}
-              whileHover={{ 
-                scale: isMobile ? 1.05 : 1.1, 
-                backgroundColor: "rgba(255,255,255,0.3)",
-                transition: { duration: 0.2 }
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: 0.6,
+                ease: [0.4, 0.0, 0.2, 1]
               }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ 
+                scale: 1.05,
+                backgroundColor: "rgba(255,255,255,0.3)",
+                transition: { 
+                  duration: 0.3,
+                  ease: [0.4, 0.0, 0.2, 1]
+                }
+              }}
               className="bg-white/20 backdrop-blur-sm text-white border border-white/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-white/30 transition-all duration-300 cursor-pointer"
             >
-              <motion.div
-                animate={{ 
-                  scale: isHovered ? [1, isMobile ? 1.2 : 1.4, 1] : [1, isMobile ? 1.1 : 1.2, 1],
-                  rotate: [0, 8, -8, 0],
-                }}
-                transition={{ duration: isHovered ? (isMobile ? 1.5 : 1) : (isMobile ? 2.5 : 2), repeat: Infinity, ease: "easeInOut" }}
-                whileHover={{ scale: isMobile ? 1.2 : 1.3 }}
-              >
-                <Award className="w-3 h-3" />
-              </motion.div>
+              <Award className="w-3 h-3" />
               <span className="hidden xs:inline">Excellence</span>
               <span className="xs:hidden">Excel.</span>
             </motion.div>
@@ -1801,49 +1813,46 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
               href="https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t"
               target="_blank"
               rel="noopener noreferrer"
-              initial={{ opacity: 0, x: 15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 1.2 }}
-              whileHover={{ 
-                scale: isMobile ? 1.05 : 1.1, 
-                backgroundColor: "rgba(34, 197, 94, 0.3)",
-                transition: { duration: 0.2 }
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: 0.7,
+                ease: [0.4, 0.0, 0.2, 1]
               }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ 
+                scale: 1.05,
+                backgroundColor: "rgba(34, 197, 94, 0.35)",
+                transition: { 
+                  duration: 0.3,
+                  ease: [0.4, 0.0, 0.2, 1]
+                }
+              }}
               className="bg-green-500/30 backdrop-blur-sm text-white border border-green-400/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium flex items-center gap-1 hover:bg-green-500/40 transition-all duration-300 cursor-pointer"
             >
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                whileHover={{ scale: isMobile ? 1.2 : 1.3 }}
-              >
-                <MessageCircle className="w-3 h-3" />
-              </motion.div>
+              <MessageCircle className="w-3 h-3" />
               <span className="hidden xs:inline sm:inline">WhatsApp Group</span>
               <span className="xs:hidden sm:hidden">WhatsApp</span>
             </motion.a>
           </div>
           
-          {/* Enhanced Decorative Line - Made More Compact */}
+          {/* Enhanced Decorative Line - Smooth & Subtle */}
           <motion.div
             className="mt-2 sm:mt-3 md:mt-4 mx-auto"
-            initial={{ width: 0 }}
-            animate={{ width: isHovered ? (isMobile ? "60px" : "100px") : (isMobile ? "40px" : "80px") }}
-            transition={{ duration: 1, delay: 1.2 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ 
+              width: isMobile ? "60px" : "80px",
+              opacity: 1
+            }}
+            transition={{ 
+              duration: 1, 
+              delay: 0.8,
+              ease: [0.4, 0.0, 0.2, 1]
+            }}
           >
-            <motion.div
+            <div
               className="bg-gradient-to-r from-transparent via-white to-transparent rounded-full"
-              animate={{
-                opacity: isHovered ? [0.7, 1, 0.7] : [0.5, 1, 0.5],
-                height: isHovered ? (isMobile ? [1.5, 2.5, 1.5] : [2, 4, 2]) : (isMobile ? [1, 1.5, 1] : [1.5, 3, 1.5]),
-              }}
-              transition={{
-                duration: isHovered ? (isMobile ? 1.5 : 1) : (isMobile ? 2.5 : 2),
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              style={{ height: '2px', opacity: 0.6 }}
             />
           </motion.div>
         </motion.div>
