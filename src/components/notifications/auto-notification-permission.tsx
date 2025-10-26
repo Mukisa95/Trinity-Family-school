@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
  */
 export function AutoNotificationPermission() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const [showPrompt, setShowPrompt] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
   const [isRequesting, setIsRequesting] = useState(false);
@@ -30,25 +32,35 @@ export function AutoNotificationPermission() {
     const currentPermission = Notification.permission;
     setPermissionStatus(currentPermission);
 
-    // Check if we've already asked (using localStorage to avoid being too aggressive)
-    const hasAskedBefore = localStorage.getItem('notification-permission-asked');
-    const lastAskedTime = localStorage.getItem('notification-permission-asked-time');
+    console.log('[Auto Notification] Current permission status:', currentPermission);
     
-    // If permission is default and we haven't asked in the last 7 days
+    // Show prompt on EVERY visit if permission is not granted
+    // Only show for 'default' (not yet decided) - respect explicit denials
     if (currentPermission === 'default') {
-      const now = Date.now();
-      const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+      console.log('[Auto Notification] Permission not granted, will show prompt after delay');
       
-      if (!hasAskedBefore || (lastAskedTime && now - parseInt(lastAskedTime) > sevenDaysInMs)) {
-        // Show prompt after a short delay so user sees the page first
-        const timer = setTimeout(() => {
-          setShowPrompt(true);
-        }, 3000); // 3 seconds delay
-        
-        return () => clearTimeout(timer);
+      // Show prompt after a short delay so user sees the page first
+      const timer = setTimeout(() => {
+        setShowPrompt(true);
+        console.log('[Auto Notification] Showing notification permission prompt');
+      }, 3000); // 3 seconds delay
+      
+      return () => clearTimeout(timer);
+    } else if (currentPermission === 'granted') {
+      console.log('[Auto Notification] Permission already granted, ensuring service worker is registered');
+      
+      // If granted but service worker might not be registered, register it
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.register('/sw.js').then(() => {
+          console.log('[Auto Notification] Service worker ensured for granted permission');
+        }).catch((error) => {
+          console.error('[Auto Notification] Service worker registration error:', error);
+        });
       }
+    } else if (currentPermission === 'denied') {
+      console.log('[Auto Notification] Permission explicitly denied by user, respecting choice');
     }
-  }, [user]);
+  }, [user, pathname]); // Re-run on every navigation
 
   const requestPermission = async () => {
     setIsRequesting(true);
@@ -57,10 +69,6 @@ export function AutoNotificationPermission() {
       // Request notification permission
       const permission = await Notification.requestPermission();
       setPermissionStatus(permission);
-      
-      // Mark that we've asked
-      localStorage.setItem('notification-permission-asked', 'true');
-      localStorage.setItem('notification-permission-asked-time', Date.now().toString());
       
       if (permission === 'granted') {
         console.log('✅ Notification permission granted');
@@ -76,6 +84,8 @@ export function AutoNotificationPermission() {
           console.error('Service worker registration error:', swError);
           // Don't fail the whole process if SW fails
         }
+      } else if (permission === 'denied') {
+        console.log('⚠️ Notification permission denied by user');
       }
       
       // Hide prompt after a moment
@@ -92,9 +102,8 @@ export function AutoNotificationPermission() {
 
   const dismissPrompt = () => {
     setShowPrompt(false);
-    // Mark that we've asked so we don't show again immediately
-    localStorage.setItem('notification-permission-asked', 'true');
-    localStorage.setItem('notification-permission-asked-time', Date.now().toString());
+    // Prompt will show again on next visit/navigation if permission still not granted
+    console.log('[Auto Notification] User dismissed prompt, will show again on next visit');
   };
 
   // Don't show if permission already granted or denied
@@ -183,7 +192,7 @@ export function AutoNotificationPermission() {
               </div>
 
               <p className="text-xs text-gray-400 text-center">
-                You can change this later in your browser settings
+                This prompt will appear on each visit until enabled
               </p>
             </div>
           </div>
