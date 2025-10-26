@@ -149,24 +149,59 @@ class OptimizedNotificationService {
   ): Promise<void> {
     const startTime = Date.now();
     console.log(`🔄 Starting background processing for notification ${notification.id}`);
+    console.log(`📋 Notification details:`, {
+      title: notification.title,
+      enablePush: notification.enablePush,
+      recipients: notification.recipients.length
+    });
 
     try {
       // 1. Get all target users in optimized batches
+      console.log(`👥 Step 1: Getting target users...`);
       const users = await this.getUsersOptimized(notification.recipients);
       console.log(`📊 Found ${users.length} target users`);
+      
+      if (users.length === 0) {
+        console.log('⚠️ No users found for recipients, skipping processing');
+        await this.updateNotificationStatus(notification.id, { 
+          pushSent: 0, 
+          pushFailed: 0, 
+          inAppSent: 0,
+          errors: ['No users found for recipients'] 
+        }, 0);
+        return;
+      }
 
       // 2. Process in parallel batches
+      console.log(`⚡ Step 2: Processing notification batches...`);
       const results = await this.processBatches(notification, users, originalData);
+      console.log(`📊 Batch results:`, {
+        pushSent: results.pushSent,
+        pushFailed: results.pushFailed,
+        inAppSent: results.inAppSent,
+        errors: results.errors.length
+      });
       
       // 3. Update notification status
+      console.log(`💾 Step 3: Updating notification status...`);
       await this.updateNotificationStatus(notification.id, results, users.length);
       
       const totalTime = Date.now() - startTime;
       console.log(`✅ Background processing completed in ${totalTime}ms for ${users.length} users`);
+      console.log(`✅ Final stats: ${results.pushSent} push sent, ${results.pushFailed} push failed, ${results.inAppSent} in-app sent`);
 
     } catch (error) {
       console.error('❌ Background processing error:', error);
-      await this.updateNotificationStatus(notification.id, { errors: [error.message] }, 0);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      await this.updateNotificationStatus(notification.id, { 
+        pushSent: 0,
+        pushFailed: 0,
+        inAppSent: 0,
+        errors: [error instanceof Error ? error.message : 'Unknown error'] 
+      }, 0);
     }
   }
 
@@ -304,17 +339,26 @@ class OptimizedNotificationService {
       return results;
     }
 
-    console.log(`📱 Processing push notifications for ${users.length} users`);
+    console.log(`📱 [PUSH] Processing push notifications for ${users.length} users`);
+    console.log(`📱 [PUSH] User IDs:`, users.map(u => u.id).join(', '));
 
     try {
       // Get push subscriptions for these users
+      console.log(`📱 [PUSH] Fetching push subscriptions from database...`);
       const subscriptions = await this.getPushSubscriptionsBatch(users);
-      console.log(`📱 Found ${subscriptions.length} push subscriptions`);
+      console.log(`📱 [PUSH] Found ${subscriptions.length} push subscriptions`);
 
       if (subscriptions.length === 0) {
-        console.log('⚠️ No push subscriptions found for this batch');
+        console.log('⚠️ [PUSH] No push subscriptions found for this batch');
+        console.log('💡 [PUSH] Users need to enable push notifications at /notifications page');
         return results;
       }
+
+      console.log(`📱 [PUSH] Subscription details:`, subscriptions.map(s => ({
+        userId: s.userId,
+        hasEndpoint: !!s.endpoint,
+        hasKeys: !!(s.p256dh && s.auth)
+      })));
 
       // Prepare push payload
       const pushPayload = {
@@ -327,8 +371,12 @@ class OptimizedNotificationService {
       };
 
       // Send push notifications via API endpoint
-      const sendPromises = subscriptions.map(async (sub: any) => {
+      console.log(`📤 [PUSH] Sending to ${subscriptions.length} subscriptions...`);
+      
+      const sendPromises = subscriptions.map(async (sub: any, index: number) => {
         try {
+          console.log(`📤 [PUSH] Sending push #${index + 1} to user ${sub.userId}...`);
+          
           const response = await fetch('/api/notifications/send-push', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -344,27 +392,37 @@ class OptimizedNotificationService {
             })
           });
 
+          const responseData = await response.json();
+
           if (response.ok) {
             results.sent++;
+            console.log(`✅ [PUSH] Successfully sent to user ${sub.userId}`);
             return { success: true, userId: sub.userId };
           } else {
             results.failed++;
-            const error = await response.json();
-            results.errors.push(`Push failed for user ${sub.userId}: ${error.error}`);
-            return { success: false, userId: sub.userId, error: error.error };
+            console.error(`❌ [PUSH] Failed for user ${sub.userId}:`, responseData.error);
+            results.errors.push(`Push failed for user ${sub.userId}: ${responseData.error}`);
+            return { success: false, userId: sub.userId, error: responseData.error };
           }
         } catch (error) {
           results.failed++;
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`❌ [PUSH] Error sending to user ${sub.userId}:`, errorMsg);
           results.errors.push(`Push failed for user ${sub.userId}: ${errorMsg}`);
           return { success: false, userId: sub.userId, error: errorMsg };
         }
       });
 
       // Wait for all push notifications to be sent
-      await Promise.allSettled(sendPromises);
-
-      console.log(`✅ Push notifications sent: ${results.sent} successful, ${results.failed} failed`);
+      console.log(`⏳ [PUSH] Waiting for all push notifications to complete...`);
+      const sendResults = await Promise.allSettled(sendPromises);
+      
+      console.log(`✅ [PUSH] All push notifications processed!`);
+      console.log(`✅ [PUSH] Results: ${results.sent} successful, ${results.failed} failed`);
+      
+      if (results.failed > 0) {
+        console.log(`❌ [PUSH] Errors encountered:`, results.errors);
+      }
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -383,11 +441,13 @@ class OptimizedNotificationService {
     
     try {
       const userIds = users.map(u => u.id);
+      console.log(`🔍 [PUSH] Searching subscriptions for ${userIds.length} users in database collection: pushSubscriptions`);
       
       // Firestore 'in' query has a limit of 10 items
       // Process in chunks of 10
       for (let i = 0; i < userIds.length; i += 10) {
         const chunk = userIds.slice(i, i + 10);
+        console.log(`🔍 [PUSH] Querying chunk ${Math.floor(i / 10) + 1} with ${chunk.length} user IDs:`, chunk.join(', '));
         
         const subscriptionsQuery = query(
           collection(db, 'pushSubscriptions'),
@@ -396,9 +456,18 @@ class OptimizedNotificationService {
         );
         
         const querySnapshot = await getDocs(subscriptionsQuery);
+        console.log(`🔍 [PUSH] Chunk query returned ${querySnapshot.docs.length} subscriptions`);
         
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+          console.log(`🔍 [PUSH] Found subscription for user ${data.userId}:`, {
+            hasEndpoint: !!data.endpoint,
+            endpointStart: data.endpoint?.substring(0, 50),
+            hasP256dh: !!data.p256dh,
+            hasAuth: !!data.auth,
+            isActive: data.isActive
+          });
+          
           subscriptions.push({
             id: doc.id,
             userId: data.userId,
@@ -410,10 +479,21 @@ class OptimizedNotificationService {
         });
       }
       
-      console.log(`📱 Found ${subscriptions.length} active push subscriptions for ${users.length} users`);
+      console.log(`📱 [PUSH] Total found: ${subscriptions.length} active push subscriptions for ${users.length} users`);
+      
+      if (subscriptions.length === 0) {
+        console.log(`⚠️ [PUSH] NO SUBSCRIPTIONS FOUND! Checking database...`);
+        console.log(`💡 [PUSH] Database collection: pushSubscriptions`);
+        console.log(`💡 [PUSH] Looking for userId in:`, userIds);
+        console.log(`💡 [PUSH] Filter: isActive == true`);
+      }
       
     } catch (error) {
-      console.error('❌ Error fetching push subscriptions:', error);
+      console.error('❌ [PUSH] Error fetching push subscriptions:', error);
+      console.error('❌ [PUSH] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
     
     return subscriptions;
