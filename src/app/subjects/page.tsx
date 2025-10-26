@@ -207,7 +207,17 @@ export default function SubjectsPage() {
                   <TableCell className="font-medium">{subject.name}</TableCell>
                   <TableCell>{subject.code}</TableCell>
                   <TableCell><Badge variant={subject.type === 'Core' ? 'default' : 'secondary'}>{subject.type}</Badge></TableCell>
-                  <TableCell>{format(new Date(subject.createdAt), 'dd MMM yyyy')}</TableCell>
+                  <TableCell>
+                    {subject.createdAt ? (
+                      (() => {
+                        try {
+                          return format(new Date(subject.createdAt), 'dd MMM yyyy');
+                        } catch {
+                          return 'N/A';
+                        }
+                      })()
+                    ) : 'N/A'}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
