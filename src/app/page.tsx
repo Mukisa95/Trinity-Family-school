@@ -1501,6 +1501,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
   const [clickRipple, setClickRipple] = useState({ x: 0, y: 0, show: false });
   const [isMobile, setIsMobile] = useState(false);
   const [showGreeting, setShowGreeting] = useState(true);
+  const [greetingMessage, setGreetingMessage] = useState('');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -1513,34 +1514,20 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Greeting stays visible for 6 seconds (longer for better UX)
+  // Generate greeting ONCE when component mounts or user changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowGreeting(false);
-    }, 6000);
-    return () => clearTimeout(timer);
-  }, []);
+    // Get user's actual name from staff data
+    const getUserDisplayName = () => {
+      if (user?.firstName) return user.firstName;
+      if (user?.username) {
+        const username = user.username;
+        if (username.includes(' ')) return username.split(' ')[0];
+        if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
+        return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+      }
+      return "Friend";
+    };
 
-  // Get user's actual name from staff data
-  const getUserDisplayName = () => {
-    // First try to get actual first name from user object
-    if (user?.firstName) {
-      return user.firstName;
-    }
-    
-    // Fallback: try to extract from username
-    if (user?.username) {
-      const username = user.username;
-      if (username.includes(' ')) return username.split(' ')[0];
-      if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
-      return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
-    }
-    
-    return "Friend";
-  };
-
-  // Get friendly, dynamic greeting with variations
-  const getFriendlyGreeting = () => {
     const hour = new Date().getHours();
     const name = getUserDisplayName();
     
@@ -1550,7 +1537,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
     else if (hour < 17) timeGreeting = "Good afternoon";
     else timeGreeting = "Good evening";
     
-    // Friendly variations - randomly selected
+    // Friendly variations - randomly selected ONCE
     const variations = [
       `Hello and welcome, ${name}! ${timeGreeting} ✨`,
       `Hey ${name}! ${timeGreeting} 🌟`,
@@ -1564,9 +1551,18 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
       `${timeGreeting}, ${name}! Welcome aboard! ⭐`,
     ];
     
-    // Select random variation
-    return variations[Math.floor(Math.random() * variations.length)];
-  };
+    // Select random variation ONCE and store it
+    const selectedGreeting = variations[Math.floor(Math.random() * variations.length)];
+    setGreetingMessage(selectedGreeting);
+  }, [user]); // Only regenerate when user changes (login/logout)
+
+  // Greeting stays visible for 6 seconds (longer for better UX)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowGreeting(false);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleHeaderClick = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1742,7 +1738,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                   style={{ top: 0, bottom: 0 }}
                 >
                   <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {getFriendlyGreeting()}
+                    {greetingMessage}
                   </p>
                 </motion.div>
               )}
