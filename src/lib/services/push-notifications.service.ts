@@ -91,15 +91,30 @@ class PushNotificationService {
         throw new Error('Notification permission denied');
       }
 
+      console.log('[Push Notification] Registering service worker...');
+      
       // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
+      let registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('[Push Notification] Service worker registered, waiting for ready state...');
+      
+      // Wait for service worker to be ready (installed and activated)
+      registration = await navigator.serviceWorker.ready;
+      console.log('[Push Notification] Service worker ready:', registration.active ? 'Active' : 'Not active');
+      
+      // Ensure we have an active service worker
+      if (!registration.active) {
+        throw new Error('Service worker is not active. Please refresh the page and try again.');
+      }
 
+      console.log('[Push Notification] Attempting to subscribe with VAPID key:', this.vapidPublicKey);
+      
       // Get push subscription
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
       });
+      
+      console.log('[Push Notification] Successfully subscribed to push notifications');
 
       // Create subscription object
       const notificationSubscription: NotificationSubscription = {

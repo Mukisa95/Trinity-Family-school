@@ -14,15 +14,19 @@ const STATIC_FILES = [
 
 // Install event - cache static files
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
+  console.log('✅ Service Worker installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Caching static files');
-        return cache.addAll(STATIC_FILES);
+        console.log('✅ Caching static files');
+        // Try to cache files but don't fail if some are missing
+        return cache.addAll(STATIC_FILES).catch((error) => {
+          console.warn('⚠️ Some files could not be cached:', error);
+          // Continue anyway - push notifications don't require all files to be cached
+        });
       })
       .then(() => {
-        console.log('Service Worker installed');
+        console.log('✅ Service Worker installed - activating immediately');
         return self.skipWaiting();
       })
   );
@@ -30,21 +34,21 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+  console.log('✅ Service Worker activating...');
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('Deleting old cache:', cacheName);
+              console.log('🗑️ Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       })
       .then(() => {
-        console.log('Service Worker activated');
+        console.log('✅ Service Worker activated and ready for push notifications');
         return self.clients.claim();
       })
   );
@@ -265,4 +269,4 @@ async function syncContent() {
   }
 }
 
-console.log('Service Worker loaded successfully'); 
+console.log('✅ Service Worker script loaded successfully - Ready for registration'); 
