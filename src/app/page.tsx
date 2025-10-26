@@ -1513,21 +1513,30 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Simple greeting that fades out after 3 seconds
+  // Greeting stays visible for 6 seconds (longer for better UX)
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowGreeting(false);
-    }, 3000);
+    }, 6000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Get user's first name
-  const getUserFirstName = () => {
-    if (!user?.username) return "Welcome";
-    const username = user.username;
-    if (username.includes(' ')) return username.split(' ')[0];
-    if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
-    return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+  // Get user's actual name from staff data
+  const getUserDisplayName = () => {
+    // First try to get actual first name from user object
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    
+    // Fallback: try to extract from username
+    if (user?.username) {
+      const username = user.username;
+      if (username.includes(' ')) return username.split(' ')[0];
+      if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
+      return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+    }
+    
+    return "Welcome";
   };
 
   // Get time-based greeting
@@ -1712,7 +1721,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                   style={{ top: 0, bottom: 0 }}
                 >
                   <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {getGreeting()}, {getUserFirstName()}! 👋
+                    {getGreeting()}, {getUserDisplayName()}! 👋
                   </p>
                 </motion.div>
               )}
