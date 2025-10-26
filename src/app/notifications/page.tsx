@@ -550,6 +550,36 @@ export default function NotificationsPage() {
           setActiveNotificationId(result.notificationId);
         }
         
+        // Check push notification status after a few seconds
+        if (notificationData.enablePush) {
+          setTimeout(async () => {
+            try {
+              // Fetch the notification to check if push was sent
+              const notificationRef = await fetch(`/api/notifications/${result.notificationId}`);
+              if (notificationRef.ok) {
+                const notificationData = await notificationRef.json();
+                console.log('📊 Push notification status:', {
+                  notificationId: result.notificationId,
+                  status: notificationData.status,
+                  deliveryStats: notificationData.deliveryStats,
+                  pushSent: notificationData.deliveryStats?.sent || 0,
+                  pushFailed: notificationData.deliveryStats?.failed || 0
+                });
+                
+                // Show status to user
+                if (notificationData.deliveryStats?.sent > 0) {
+                  console.log(`✅ Push notifications sent to ${notificationData.deliveryStats.sent} users!`);
+                } else {
+                  console.log('⚠️ No push subscriptions found or push sending failed');
+                  console.log('💡 Make sure users have enabled push notifications on /notifications page');
+                }
+              }
+            } catch (error) {
+              console.error('Error checking push status:', error);
+            }
+          }, 3000); // Check after 3 seconds
+        }
+        
         // Refresh notification badge and list
         await refreshBadge();
         await fetchNotifications();
@@ -557,7 +587,7 @@ export default function NotificationsPage() {
         // Show success message
         toast({
           title: "🚀 Notification Queued!",
-          description: `Notification queued for ${result.stats.totalRecipients} recipients. Processing in background.`,
+          description: `Notification queued for ${result.stats.totalRecipients} recipients. ${notificationData.enablePush ? 'Push notifications will be sent shortly.' : ''}`,
         });
 
       } catch (optimizedError) {
