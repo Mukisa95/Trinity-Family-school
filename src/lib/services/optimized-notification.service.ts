@@ -296,11 +296,83 @@ class OptimizedNotificationService {
     users: User[]
   ): Promise<{ sent: number; failed: number; errors: string[] }> {
     
-    // For now, skip push notifications to avoid errors
-    // Focus on in-app notifications which are working
-    console.log(`📱 Skipping push notifications for ${users.length} users (in-app notifications will be sent)`);
-    
-    return { sent: 0, failed: 0, errors: [] };
+    const results = { sent: 0, failed: 0, errors: [] as string[] };
+
+    // Skip if push is not enabled
+    if (!notification.enablePush) {
+      console.log(`📱 Push notifications disabled for notification ${notification.id}`);
+      return results;
+    }
+
+    console.log(`📱 Processing push notifications for ${users.length} users`);
+
+    try {
+      // Get push subscriptions for these users
+      const subscriptions = await this.getPushSubscriptionsBatch(users);
+      console.log(`📱 Found ${subscriptions.length} push subscriptions`);
+
+      if (subscriptions.length === 0) {
+        console.log('⚠️ No push subscriptions found for this batch');
+        return results;
+      }
+
+      // Prepare push payload
+      const pushPayload = {
+        title: notification.pushTitle || notification.title,
+        body: notification.pushBody || notification.description || '',
+        icon: notification.pushIcon || '/icons/icon-192x192.png',
+        url: notification.pushUrl || '/notifications',
+        tag: `notification-${notification.id}`,
+        requireInteraction: notification.priority === 'urgent',
+      };
+
+      // Send push notifications via API endpoint
+      const sendPromises = subscriptions.map(async (sub: any) => {
+        try {
+          const response = await fetch('/api/notifications/send-push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subscription: {
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: sub.p256dh,
+                  auth: sub.auth
+                }
+              },
+              payload: pushPayload
+            })
+          });
+
+          if (response.ok) {
+            results.sent++;
+            return { success: true, userId: sub.userId };
+          } else {
+            results.failed++;
+            const error = await response.json();
+            results.errors.push(`Push failed for user ${sub.userId}: ${error.error}`);
+            return { success: false, userId: sub.userId, error: error.error };
+          }
+        } catch (error) {
+          results.failed++;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          results.errors.push(`Push failed for user ${sub.userId}: ${errorMsg}`);
+          return { success: false, userId: sub.userId, error: errorMsg };
+        }
+      });
+
+      // Wait for all push notifications to be sent
+      await Promise.allSettled(sendPromises);
+
+      console.log(`✅ Push notifications sent: ${results.sent} successful, ${results.failed} failed`);
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      results.errors.push(`Batch push error: ${errorMsg}`);
+      console.error('❌ Error processing push notifications batch:', error);
+    }
+
+    return results;
   }
 
   /**
@@ -309,9 +381,40 @@ class OptimizedNotificationService {
   private async getPushSubscriptionsBatch(users: User[]): Promise<PushSubscriptionType[]> {
     const subscriptions: PushSubscriptionType[] = [];
     
-    // Skip push subscriptions for now to avoid errors
-    // The optimized service will handle in-app notifications
-    console.log(`📱 Skipping push subscriptions for ${users.length} users (handled by background processing)`);
+    try {
+      const userIds = users.map(u => u.id);
+      
+      // Firestore 'in' query has a limit of 10 items
+      // Process in chunks of 10
+      for (let i = 0; i < userIds.length; i += 10) {
+        const chunk = userIds.slice(i, i + 10);
+        
+        const subscriptionsQuery = query(
+          collection(db, 'pushSubscriptions'),
+          where('userId', 'in', chunk),
+          where('isActive', '==', true)
+        );
+        
+        const querySnapshot = await getDocs(subscriptionsQuery);
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          subscriptions.push({
+            id: doc.id,
+            userId: data.userId,
+            endpoint: data.endpoint,
+            p256dh: data.p256dh,
+            auth: data.auth,
+            ...data
+          } as PushSubscriptionType);
+        });
+      }
+      
+      console.log(`📱 Found ${subscriptions.length} active push subscriptions for ${users.length} users`);
+      
+    } catch (error) {
+      console.error('❌ Error fetching push subscriptions:', error);
+    }
     
     return subscriptions;
   }
