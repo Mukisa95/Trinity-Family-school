@@ -13,10 +13,10 @@ export async function POST(request: NextRequest) {
       webpush = (await import('web-push')).default;
     }
 
-    // VAPID configuration - only set when actually handling a request
+    // VAPID configuration - New keys generated 2025-10-26
 const vapidKeys = {
-  publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BL-P0JiVp1NIUsP4Xx2lF8Xw4QBd8fTlfMIgeg_uNGUwVvndQrr1JDf4wOwn0Q-lCvotMdAQ_KxXzVHYIB2AGIQ',
-  privateKey: process.env.VAPID_PRIVATE_KEY || '1KBpMVExcpRBCUSYLUYc5ZZQGH3ohLJ4Y1iNBTnKM6A',
+  publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4',
+  privateKey: process.env.VAPID_PRIVATE_KEY || 'z1e32rBFuHHzkh78Cz5Ed5VCmqoNQNC0xn1ISq5kE6Y',
   email: process.env.VAPID_EMAIL || 'admin@trinity-family-schools.com'
 };
 

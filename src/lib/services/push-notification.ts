@@ -14,8 +14,8 @@ import {
 import { db } from '@/lib/firebase';
 import type { PushSubscription as PushSubscriptionType, NotificationDelivery } from '@/types';
 
-// VAPID public key - you'll need to generate this
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BL-P0JiVp1NIUsP4Xx2lF8Xw4QBd8fTlfMIgeg_uNGUwVvndQrr1JDf4wOwn0Q-lCvotMdAQ_KxXzVHYIB2AGIQ';
+// VAPID public key - Default key generated 2025-10-26
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
 
 class PushNotificationService {
   private swRegistration: ServiceWorkerRegistration | null = null;

@@ -53,7 +53,8 @@ class PushNotificationService {
 
   constructor() {
     // Get VAPID public key from environment variables
-    this.vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+    // Default key generated 2025-10-26 - replace with your own in production
+    this.vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
   }
 
   static getInstance(): PushNotificationService {
@@ -452,20 +453,36 @@ class PushNotificationService {
 
   /**
    * Convert VAPID public key to Uint8Array
+   * Handles URL-safe base64 encoding properly
    */
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    try {
+      // Remove any whitespace
+      const cleanedString = base64String.trim();
+      
+      // Add padding if needed
+      const padding = '='.repeat((4 - cleanedString.length % 4) % 4);
+      
+      // Convert URL-safe base64 to standard base64
+      const base64 = (cleanedString + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+      // Decode base64 string
+      const rawData = window.atob(base64);
+      
+      // Convert to Uint8Array
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      
+      return outputArray;
+    } catch (error) {
+      console.error('VAPID key conversion error:', error);
+      console.error('Problematic key:', base64String);
+      throw new Error(`VAPID key conversion failed: ${error}`);
     }
-    return outputArray;
   }
 
   /**
