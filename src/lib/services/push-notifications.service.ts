@@ -3,6 +3,7 @@ import {
   collection, 
   addDoc, 
   updateDoc, 
+  deleteDoc,
   doc, 
   query, 
   where, 
@@ -526,6 +527,58 @@ class PushNotificationService {
     } catch (error) {
       console.error('Error unsubscribing from push notifications:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get push subscription for a specific user from database
+   */
+  async getSubscription(userId: string): Promise<NotificationSubscription | null> {
+    try {
+      const subscriptionsRef = collection(db, 'pushSubscriptions');
+      const q = query(subscriptionsRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        console.log(`No subscription found for user ${userId}`);
+        return null;
+      }
+      
+      // Return the most recent subscription if multiple exist
+      const subscriptions = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as NotificationSubscription));
+      
+      // Sort by createdAt and return the most recent
+      subscriptions.sort((a, b) => 
+        new Date(b.createdAt.toDate()).getTime() - new Date(a.createdAt.toDate()).getTime()
+      );
+      
+      return subscriptions[0];
+    } catch (error) {
+      console.error(`Error getting subscription for user ${userId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Remove push subscription for a user from database
+   */
+  async unsubscribe(userId: string): Promise<void> {
+    try {
+      const subscriptionsRef = collection(db, 'pushSubscriptions');
+      const q = query(subscriptionsRef, where('userId', '==', userId));
+      const querySnapshot = await getDocs(q);
+      
+      // Delete all subscriptions for this user
+      const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      console.log(`✅ Removed ${querySnapshot.docs.length} subscription(s) for user ${userId}`);
+    } catch (error) {
+      console.error(`Error removing subscriptions for user ${userId}:`, error);
+      throw error;
     }
   }
 }

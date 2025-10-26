@@ -137,16 +137,34 @@ class NotificationService {
   ): Promise<NotificationDelivery[]> {
     const deliveries: NotificationDelivery[] = [];
 
-    // Get push subscriptions for all users
-    const subscriptions: PushSubscriptionType[] = [];
+    console.log(`🔔 [Push Notification] Sending push notifications to ${users.length} users`);
+
+    // Get push subscriptions for all users from database
+    const subscriptions: Array<{ userId: string; subscription: any }> = [];
     for (const user of users) {
-      const subscription = await pushNotificationService.getSubscription(user.id);
-      if (subscription) {
-        subscriptions.push(subscription);
+      try {
+        const subscription = await pushNotificationService.getSubscription(user.id);
+        if (subscription) {
+          subscriptions.push({
+            userId: user.id,
+            subscription: {
+              endpoint: subscription.endpoint,
+              keys: {
+                p256dh: subscription.p256dh,
+                auth: subscription.auth
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`Error getting subscription for user ${user.id}:`, error);
       }
     }
 
+    console.log(`📱 [Push Notification] Found ${subscriptions.length} subscriptions`);
+
     if (subscriptions.length === 0) {
+      console.log('⚠️ [Push Notification] No subscriptions found, skipping push notifications');
       return deliveries;
     }
 
@@ -166,15 +184,75 @@ class NotificationService {
       })) || []
     };
 
-    // Send push notifications
-    const pushDeliveries = await pushNotificationService.sendNotification(subscriptions, pushPayload);
-    
-    // Update delivery records with notification ID
-    pushDeliveries.forEach(delivery => {
-      delivery.notificationId = notification.id;
-    });
+    console.log('📤 [Push Notification] Payload:', pushPayload);
 
-    return pushDeliveries;
+    // Send push notifications via API endpoint
+    for (const { userId, subscription } of subscriptions) {
+      try {
+        console.log(`📨 [Push Notification] Sending to user ${userId}`);
+        
+        // Call the API endpoint to send actual push notification
+        const response = await fetch('/api/notifications/send-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            subscription,
+            payload: pushPayload
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          console.log(`✅ [Push Notification] Sent successfully to user ${userId}`);
+          deliveries.push({
+            id: `${Date.now()}-${Math.random()}`,
+            notificationId: notification.id,
+            userId,
+            method: 'push',
+            status: 'delivered',
+            sentAt: new Date().toISOString(),
+            retryCount: 0
+          });
+        } else {
+          console.error(`❌ [Push Notification] Failed for user ${userId}:`, result.error);
+          deliveries.push({
+            id: `${Date.now()}-${Math.random()}`,
+            notificationId: notification.id,
+            userId,
+            method: 'push',
+            status: 'failed',
+            sentAt: new Date().toISOString(),
+            error: result.error,
+            retryCount: 0
+          });
+          
+          // Remove subscription if it's expired/invalid
+          if (result.shouldRemoveSubscription) {
+            console.log(`🗑️ [Push Notification] Removing invalid subscription for user ${userId}`);
+            await pushNotificationService.unsubscribe(userId);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [Push Notification] Error sending to user ${userId}:`, error);
+        deliveries.push({
+          id: `${Date.now()}-${Math.random()}`,
+          notificationId: notification.id,
+          userId,
+          method: 'push',
+          status: 'failed',
+          sentAt: new Date().toISOString(),
+          error: error instanceof Error ? error.message : 'Unknown error',
+          retryCount: 0
+        });
+      }
+    }
+
+    console.log(`✅ [Push Notification] Completed: ${deliveries.filter(d => d.status === 'delivered').length} delivered, ${deliveries.filter(d => d.status === 'failed').length} failed`);
+
+    return deliveries;
   }
 
   // Create in-app notification records
