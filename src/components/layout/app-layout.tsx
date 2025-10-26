@@ -40,6 +40,7 @@ import { LoadingOverlay } from '@/components/ui/loading-indicator';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import EnhancedHeader from './enhanced-header';
 import AuthGuard from '@/components/common/AuthGuard';
+import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
 import React, { useState, useEffect } from 'react';
 
 const Sidebar연구 = Sidebar;
@@ -462,6 +463,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </main>
       </SidebarInset>
         </SidebarProvider>
+        
+        {/* Auto notification permission prompt */}
+        <AutoNotificationPermission />
       </AppLayoutContent>
     </NavigationProvider>
   );
