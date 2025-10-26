@@ -1536,15 +1536,36 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
       return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
     }
     
-    return "Welcome";
+    return "Friend";
   };
 
-  // Get time-based greeting
-  const getGreeting = () => {
+  // Get friendly, dynamic greeting with variations
+  const getFriendlyGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    const name = getUserDisplayName();
+    
+    // Time-based greetings
+    let timeGreeting = "Good day";
+    if (hour < 12) timeGreeting = "Good morning";
+    else if (hour < 17) timeGreeting = "Good afternoon";
+    else timeGreeting = "Good evening";
+    
+    // Friendly variations - randomly selected
+    const variations = [
+      `Hello and welcome, ${name}! ${timeGreeting} ✨`,
+      `Hey ${name}! ${timeGreeting} 🌟`,
+      `Welcome back, ${name}! ${timeGreeting} 👋`,
+      `${timeGreeting}, ${name}! Great to see you! 😊`,
+      `Hi ${name}! ${timeGreeting} and welcome! 🎉`,
+      `${timeGreeting}, ${name}! Ready to make magic? ✨`,
+      `Hello ${name}! ${timeGreeting}! Let's do this! 💪`,
+      `Welcome, ${name}! ${timeGreeting} 🌈`,
+      `Hey there, ${name}! ${timeGreeting}! 🚀`,
+      `${timeGreeting}, ${name}! Welcome aboard! ⭐`,
+    ];
+    
+    // Select random variation
+    return variations[Math.floor(Math.random() * variations.length)];
   };
 
   const handleHeaderClick = (e: React.MouseEvent) => {
@@ -1721,7 +1742,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                   style={{ top: 0, bottom: 0 }}
                 >
                   <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {getGreeting()}, {getUserDisplayName()}! 👋
+                    {getFriendlyGreeting()}
                   </p>
                 </motion.div>
               )}
