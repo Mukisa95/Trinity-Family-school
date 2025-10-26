@@ -27,7 +27,9 @@ import {
   AlertCircle,
   MessageCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Building2,
+  Phone
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -319,6 +321,237 @@ const PupilRowWithDetails = ({
         </div>
       )}
     </div>
+  );
+};
+
+// Expandable Staff Card Component
+const ExpandableStaffCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  subtitle,
+  isLoading = false,
+  staff
+}: {
+  title: string;
+  value: number;
+  icon: any;
+  color: {
+    bg: string;
+    text: string;
+    accent: string;
+    gradient: string;
+  };
+  subtitle?: string;
+  isLoading?: boolean;
+  staff?: any[];
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const router = useRouter();
+
+  // Group staff by department and role
+  const groupedStaff = useMemo(() => {
+    if (!staff || staff.length === 0) return {};
+    
+    const groups: any = {};
+    
+    staff.forEach((member: any) => {
+      // Handle multiple departments
+      const departments = Array.isArray(member.department) ? member.department : [member.department || 'General'];
+      const roles = Array.isArray(member.role) ? member.role : [member.role || 'Staff'];
+      
+      departments.forEach((dept: string) => {
+        if (!groups[dept]) {
+          groups[dept] = {};
+        }
+        
+        roles.forEach((role: string) => {
+          if (!groups[dept][role]) {
+            groups[dept][role] = [];
+          }
+          
+          groups[dept][role].push(member);
+        });
+      });
+    });
+    
+    return groups;
+  }, [staff]);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="stat-card relative overflow-visible rounded-lg shadow-sm border border-l-4 cursor-pointer hover:shadow-md transition-all duration-300 group"
+        style={{ 
+          borderLeftColor: color.accent,
+          background: color.gradient
+        }}
+      >
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
+        <div className="relative">
+          <div className="absolute top-2 right-2 z-10 pointer-events-none">
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </div>
+
+          <div 
+            className="p-3 flex flex-col justify-between min-h-[100px]"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1 min-w-0 pr-6">
+                <p className={`text-xs font-medium uppercase tracking-wider ${color.text} mb-1 truncate`}>
+                  {title}
+                </p>
+                {isLoading ? (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-sm text-gray-500">Loading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-baseline space-x-1 mt-1">
+                      <span className="text-2xl md:text-3xl font-bold text-gray-900">
+                        <CountUp end={value} />
+                      </span>
+                    </div>
+                    {subtitle && (
+                      <p className="text-xs text-gray-600 mt-1 truncate">{subtitle}</p>
+                    )}
+                  </>
+                )}
+              </div>
+              <div 
+                className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{ backgroundColor: color.bg }}
+              >
+                <Icon className={`w-4 h-4 md:w-5 md:h-5 ${color.text}`} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Floating Staff Directory Panel */}
+      <AnimatePresence>
+        {isExpanded && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed inset-0 bg-black/30 z-40"
+              onClick={() => setIsExpanded(false)}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.15 }}
+              className="fixed z-50 
+                left-4 right-4 top-16
+                sm:left-1/2 sm:-translate-x-1/2 sm:top-16 sm:w-[75vw] sm:max-w-xl
+                lg:w-[60vw] lg:max-w-lg
+                xl:w-[50vw] xl:max-w-md"
+            >
+              <Card className="shadow-2xl border-2 flex flex-col max-h-[calc(100vh-8rem)]" style={{ borderColor: color.accent }}>
+                <CardHeader className="pb-2 border-b flex-shrink-0" style={{ background: color.gradient }}>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${color.text}`} />
+                      <span>Staff Directory</span>
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(false);
+                      }}
+                      className="h-7 w-7 p-0 hover:bg-white/50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0 overflow-y-auto flex-1 min-h-0">
+                  {Object.keys(groupedStaff).length === 0 ? (
+                    <div className="p-8 text-center">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500">No staff data available</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200">
+                      {Object.entries(groupedStaff).map(([department, roles]: [string, any]) => (
+                        <div key={department} className="p-3 sm:p-4">
+                          <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-purple-600" />
+                            {department}
+                          </h3>
+                          <div className="space-y-3">
+                            {Object.entries(roles).map(([role, members]: [string, any]) => (
+                              <div key={role} className="ml-4">
+                                <p className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                                  {role} ({members.length})
+                                </p>
+                                <div className="space-y-1.5">
+                                  {members.map((member: any) => (
+                                    <div key={member.id} className="bg-gray-50 rounded-lg p-2 flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <UserCheck className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+                                        <span className="text-sm font-medium text-gray-900 truncate">
+                                          {member.firstName} {member.lastName}
+                                        </span>
+                                      </div>
+                                      <div className="flex gap-1 flex-shrink-0">
+                                        {member.contactNumber && (
+                                          <a
+                                            href={`tel:${member.contactNumber}`}
+                                            className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Phone className="w-3 h-3" />
+                                            {member.contactNumber}
+                                          </a>
+                                        )}
+                                        {member.alternativePhone && (
+                                          <a
+                                            href={`tel:${member.alternativePhone}`}
+                                            className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md font-mono text-xs transition-colors inline-flex items-center gap-1"
+                                            onClick={(e) => e.stopPropagation()}
+                                            title="Alternative phone"
+                                          >
+                                            <Phone className="w-3 h-3" />
+                                            {member.alternativePhone}
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -2105,14 +2338,14 @@ export default function DashboardPage() {
             subtitle={`${stats.totalPupils ? Math.round((stats.femalePupils / stats.totalPupils) * 100) : 0}% of total`}
             isLoading={pupilsLoading}
           />
-          <StatCard
+          <ExpandableStaffCard
             title="Staff Members"
             value={stats.totalStaff}
             icon={Users}
             color={cardColors.staff}
-            onClick={() => handleCardClick('/staff')}
             subtitle="Total staff"
             isLoading={staffLoading}
+            staff={staff}
           />
           <ExpandableAttendanceCard
             title="Present Today"
