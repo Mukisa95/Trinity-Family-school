@@ -75,6 +75,7 @@ self.addEventListener('push', (event) => {
       notificationData = { ...notificationData, ...data };
     } catch (error) {
       console.error('Error parsing push data:', error);
+      // Continue with default notification data
     }
   }
 
@@ -91,7 +92,14 @@ self.addEventListener('push', (event) => {
       vibrate: [200, 100, 200],
       timestamp: Date.now()
     }
-  );
+  ).catch((error) => {
+    console.error('Error showing notification:', error);
+    // Show a fallback notification
+    return self.registration.showNotification('Notification Error', {
+      body: 'Failed to display notification',
+      icon: '/icon-192.png'
+    });
+  });
 
   event.waitUntil(notificationPromise);
 });
@@ -120,8 +128,13 @@ self.addEventListener('notificationclick', (event) => {
           
           // If no window/tab is open, open a new one
           if (clients.openWindow) {
-            return clients.openWindow('/');
+            // Get the URL from notification data or default to root
+            const url = event.notification.data?.url || '/';
+            return clients.openWindow(url);
           }
+        })
+        .catch((error) => {
+          console.error('Error handling notification click:', error);
         })
     );
   }
@@ -167,12 +180,27 @@ async function doBackgroundSync() {
 self.addEventListener('message', (event) => {
   console.log('Message received in service worker:', event);
   
+  // Handle SKIP_WAITING command
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    // Send acknowledgement if port exists
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ success: true });
+    }
+    return;
   }
   
+  // Handle GET_VERSION command
   if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ version: CACHE_NAME });
+    }
+    return;
+  }
+  
+  // For any other messages, send a generic acknowledgement
+  if (event.ports && event.ports[0]) {
+    event.ports[0].postMessage({ received: true });
   }
 });
 
