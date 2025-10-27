@@ -27,21 +27,45 @@ export function useCollectionAnalytics({
   // Get active academic year and term if not provided
   const { data: activeYear, isLoading: yearLoading } = useActiveAcademicYear();
 
+  console.log('🔍 ANALYTICS: Academic year data', {
+    activeYear,
+    yearLoading,
+    hasYear: !!activeYear,
+    yearId: activeYear?.id,
+    currentTermId: activeYear?.currentTermId,
+    terms: activeYear?.terms?.map(t => ({ id: t.id, start: t.startDate, end: t.endDate }))
+  });
+
   // Determine which year and term to use
   const effectiveYearId = academicYearId || activeYear?.id;
   const effectiveTermId = termId || activeYear?.currentTermId;
 
   // Get term dates from active year
   const termDates = useMemo(() => {
-    if (!activeYear || !effectiveTermId) return null;
+    if (!activeYear || !effectiveTermId) {
+      console.warn('⚠️ ANALYTICS: Cannot determine term dates', {
+        hasActiveYear: !!activeYear,
+        effectiveTermId
+      });
+      return null;
+    }
 
     const term = activeYear.terms?.find(t => t.id === effectiveTermId);
-    if (!term) return null;
+    if (!term) {
+      console.warn('⚠️ ANALYTICS: Term not found in active year', {
+        searchingFor: effectiveTermId,
+        availableTerms: activeYear.terms?.map(t => t.id)
+      });
+      return null;
+    }
 
-    return {
+    const dates = {
       startDate: term.startDate instanceof Date ? term.startDate : new Date(term.startDate),
       endDate: term.endDate instanceof Date ? term.endDate : new Date(term.endDate)
     };
+
+    console.log('✅ ANALYTICS: Term dates determined', dates);
+    return dates;
   }, [activeYear, effectiveTermId]);
 
   // Fetch analytics data

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   DollarSign, 
@@ -17,6 +17,7 @@ import { StatCard } from '@/components/analytics/stat-card';
 import { CollectionRateBar } from '@/components/analytics/collection-rate-bar';
 import { ClassBreakdownTable } from '@/components/analytics/class-breakdown-table';
 import { useCollectionAnalytics } from '@/lib/hooks/use-collection-analytics';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,6 +33,32 @@ type TimePeriod = 'today' | 'thisWeek' | 'thisMonth' | 'thisTerm';
 export default function CollectionAnalyticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('today');
   
+  // Get all academic years for manual selection
+  const { data: allYears = [], isLoading: yearsLoading } = useAcademicYears();
+  
+  // Manual year/term selection (fallback if no active year)
+  const [manualYearId, setManualYearId] = useState<string>('');
+  const [manualTermId, setManualTermId] = useState<string>('');
+  
+  // Get selected year's terms
+  const selectedYear = useMemo(() => {
+    if (manualYearId) {
+      return allYears.find(y => y.id === manualYearId);
+    }
+    // Find the year with isActive flag or the most recent one
+    return allYears.find(y => y.isActive) || allYears[0];
+  }, [allYears, manualYearId]);
+
+  // Auto-select first term if not manually selected
+  const autoTermId = useMemo(() => {
+    if (manualTermId) return manualTermId;
+    if (selectedYear?.currentTermId) return selectedYear.currentTermId;
+    if (selectedYear?.terms && selectedYear.terms.length > 0) {
+      return selectedYear.terms[0].id;
+    }
+    return '';
+  }, [selectedYear, manualTermId]);
+
   const {
     analytics,
     isLoading,
@@ -40,7 +67,10 @@ export default function CollectionAnalyticsPage() {
     refetch,
     activeYear,
     termDates
-  } = useCollectionAnalytics();
+  } = useCollectionAnalytics({
+    academicYearId: selectedYear?.id,
+    termId: autoTermId
+  });
 
   // Debug logging
   console.log('🔍 ANALYTICS PAGE: State', {
@@ -138,38 +168,90 @@ export default function CollectionAnalyticsPage() {
       {/* Header */}
       <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 -mx-6 px-6 py-4 mb-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-indigo-900 flex items-center gap-3">
-                <BarChart3 className="w-8 h-8 text-indigo-600" />
-                Collection Analytics
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Comprehensive fee collection insights and trends
-                {activeYear && ` • ${activeYear.year} - Term ${activeYear.currentTermId?.replace('t', '').replace('-2025', '')}`}
-              </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-indigo-900 flex items-center gap-3">
+                  <BarChart3 className="w-8 h-8 text-indigo-600" />
+                  Collection Analytics
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Comprehensive fee collection insights and trends
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => refetch()}
+                  variant="outline"
+                  size="sm"
+                  disabled={isFetching}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+                  disabled
+                >
+                  <Download className="w-4 h-4" />
+                  Export Report
+                </Button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => refetch()}
-                variant="outline"
-                size="sm"
-                disabled={isFetching}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              
-              <Button
-                variant="default"
-                size="sm"
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
-              >
-                <Download className="w-4 h-4" />
-                Export Report
-              </Button>
+            {/* Year and Term Selectors */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Academic Year:</label>
+                <Select 
+                  value={selectedYear?.id || ''} 
+                  onValueChange={setManualYearId}
+                  disabled={yearsLoading}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allYears.map(year => (
+                      <SelectItem key={year.id} value={year.id}>
+                        {year.year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedYear && selectedYear.terms && selectedYear.terms.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Term:</label>
+                  <Select 
+                    value={autoTermId} 
+                    onValueChange={setManualTermId}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Select term" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedYear.terms.map(term => (
+                        <SelectItem key={term.id} value={term.id}>
+                          Term {term.id.replace('t', '').replace('-2025', '').replace('-2024', '')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedYear && (
+                <div className="text-sm text-gray-600">
+                  {selectedYear.year} • {autoTermId ? `Term ${autoTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}` : 'Select term'}
+                </div>
+              )}
             </div>
           </div>
         </div>
