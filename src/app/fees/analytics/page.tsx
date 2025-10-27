@@ -117,6 +117,66 @@ export default function CollectionAnalyticsPage() {
     );
   }
 
+  // Show helpful message if year exists but missing term configuration
+  if (!yearsLoading && selectedYear && !autoTermId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8">
+            <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-yellow-900 mb-2 text-center">Academic Year Needs Configuration</h2>
+            <p className="text-yellow-600 mb-6 text-center">
+              Year <strong>{selectedYear.year}</strong> exists but is missing term information.
+            </p>
+            
+            <div className="bg-white rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">What's Missing:</h3>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>❌ <strong>currentTermId</strong>: Not set</li>
+                <li>❌ <strong>terms</strong> array: {selectedYear.terms?.length || 0} terms found (need at least 1)</li>
+              </ul>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold text-blue-900 mb-3">How to Fix:</h3>
+              <ol className="list-decimal ml-5 space-y-2 text-sm text-blue-800">
+                <li>Go to Firebase Console</li>
+                <li>Open document ID: <code className="bg-blue-100 px-2 py-1 rounded">{selectedYear.id}</code></li>
+                <li>Add field <strong>currentTermId</strong> (string): e.g., "t3-2025"</li>
+                <li>Add field <strong>terms</strong> (array) with term objects containing:
+                  <ul className="ml-5 mt-2 space-y-1">
+                    <li>• id: "t1-2025"</li>
+                    <li>• name: "Term 1"</li>
+                    <li>• startDate: "2025-01-01"</li>
+                    <li>• endDate: "2025-04-15"</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <Button 
+                onClick={() => window.open('https://console.firebase.google.com/project/trinity-family-ganda/firestore/databases/-default-/data/~2FacademicYears~2F' + selectedYear.id, '_blank')}
+                className="bg-yellow-600 hover:bg-yellow-700"
+              >
+                <Database className="w-4 h-4 mr-2" />
+                Open in Firebase Console
+              </Button>
+              <Button 
+                onClick={() => refetch()}
+                variant="outline"
+                className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh After Fixing
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const formatCurrency = (amount: number) => {
     return `UGX ${amount.toLocaleString()}`;
   };
