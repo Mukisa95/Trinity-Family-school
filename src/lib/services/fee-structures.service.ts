@@ -35,6 +35,12 @@ export class FeeStructuresService {
   }
 
   // 🚀 OPTIMIZED: Database-level filtering methods
+  
+  // Alias for analytics service compatibility
+  static async getByTermAndYear(termId: string, academicYearId: string): Promise<FeeStructure[]> {
+    return this.getFeeStructuresByTerm(termId, academicYearId);
+  }
+  
   static async getFeeStructuresByTerm(termId: string, academicYearId: string): Promise<FeeStructure[]> {
     try {
       const q = query(
