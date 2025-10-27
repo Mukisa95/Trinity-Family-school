@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 import { StatCard } from '@/components/analytics/stat-card';
 import { CollectionRateBar } from '@/components/analytics/collection-rate-bar';
-import { ClassBreakdownTable } from '@/components/analytics/class-breakdown-table';
-import { useCollectionAnalytics } from '@/lib/hooks/use-collection-analytics';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useProgressiveFees } from '@/lib/hooks/use-progressive-fees';
+import { usePupils } from '@/lib/hooks/use-pupils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { ClassCollectionStats } from '@/lib/services/collection-analytics.service';
 
 type TimePeriod = 'today' | 'thisWeek' | 'thisMonth' | 'thisTerm';
 
@@ -49,48 +50,67 @@ export default function CollectionAnalyticsPage() {
     return allYears.find(y => y.isActive) || allYears[0];
   }, [allYears, manualYearId]);
 
-  // Auto-select first term if not manually selected
+  // Auto-select current term (not first term!)
   const autoTermId = useMemo(() => {
-    if (manualTermId) return manualTermId;
-    if (selectedYear?.currentTermId) return selectedYear.currentTermId;
+    if (manualTermId) {
+      console.log('📅 Using manually selected term:', manualTermId);
+      return manualTermId;
+    }
+    if (selectedYear?.currentTermId) {
+      console.log('✅ Using CURRENT term from academic year:', selectedYear.currentTermId);
+      return selectedYear.currentTermId; // ← Use CURRENT term!
+    }
+    // Fallback to last term (most recent) instead of first
     if (selectedYear?.terms && selectedYear.terms.length > 0) {
-      return selectedYear.terms[0].id;
+      const lastTerm = selectedYear.terms[selectedYear.terms.length - 1].id;
+      console.log('⚠️ No currentTermId, using last term:', lastTerm);
+      return lastTerm;
     }
     return '';
   }, [selectedYear, manualTermId]);
 
-  const {
-    analytics,
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-    activeYear,
-    termDates
-  } = useCollectionAnalytics({
-    academicYearId: selectedYear?.id,
-    termId: autoTermId
+  // 🚀 USE SAME LOGIC AS FEES COLLECTION PAGE
+  // This ensures the numbers match exactly!
+  const { data: allPupils = [], isLoading: pupilsLoading } = usePupils();
+  
+  const progressiveFeesData = useProgressiveFees({
+    pupils: allPupils,
+    selectedYear,
+    selectedTermId: autoTermId,
+    allFeeStructures: [], // Will be loaded by the hook
+    allAcademicYears: allYears
   });
+
+  const {
+    pupilFeesInfo,
+    totals,
+    isLoading: feesLoading,
+    isProcessing,
+    progressPercentage
+  } = progressiveFeesData;
+
+  // Calculate term dates
+  const termDates = useMemo(() => {
+    if (!selectedYear || !autoTermId) return null;
+    const term = selectedYear.terms?.find(t => t.id === autoTermId);
+    if (!term) return null;
+    return {
+      startDate: term.startDate instanceof Date ? term.startDate : new Date(term.startDate),
+      endDate: term.endDate instanceof Date ? term.endDate : new Date(term.endDate)
+    };
+  }, [selectedYear, autoTermId]);
+
+  const isLoading = yearsLoading || pupilsLoading || feesLoading;
 
   // Debug logging
-  console.log('🔍 ANALYTICS PAGE: State', {
-    hasAnalytics: !!analytics,
-    isLoading,
-    isFetching,
-    hasError: !!error,
-    error: error?.message,
-    activeYear: activeYear?.year,
-    termDates
-  });
-
-  console.log('🔍 ANALYTICS PAGE: Selected year details', {
-    allYears: allYears.length,
-    yearsLoading,
+  console.log('🔍 ANALYTICS PAGE: Using EXACT same calculation as Fees Collection', {
+    pupils: allPupils.length,
     selectedYear: selectedYear?.year,
-    selectedYearId: selectedYear?.id,
-    autoTermId,
-    manualYearId,
-    manualTermId
+    selectedTerm: autoTermId,
+    totals,
+    pupilsProcessed: pupilFeesInfo.size,
+    isProcessing,
+    progressPercentage
   });
 
   // Show helpful message if no academic years exist
@@ -191,66 +211,124 @@ export default function CollectionAnalyticsPage() {
     return formatCurrency(amount);
   };
 
-  const getTimePeriodData = () => {
-    if (!analytics) return null;
-    return analytics.timeBased[selectedPeriod];
-  };
+  // Calculate analytics from progressive fees data
+  const analytics = useMemo(() => {
+    if (!totals) return null;
 
-  const timePeriodData = getTimePeriodData();
+    // pupilFeesInfo is a Record (object), not a Map
+    const pupilFeesArray = Object.values(pupilFeesInfo || {});
+    
+    if (pupilFeesArray.length === 0) return null;
 
-  // Show error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-red-900 mb-2">Failed to Load Analytics</h2>
-            <p className="text-red-600 mb-4">
-              {error instanceof Error ? error.message : 'An unexpected error occurred'}
-            </p>
-            <Button onClick={() => refetch()} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    const paidPupils = pupilFeesArray.filter(p => p.balance <= 0).length;
+    const unpaidPupils = pupilFeesArray.filter(p => p.totalPaid === 0).length;
+    const partiallyPaidPupils = pupilFeesArray.filter(p => p.totalPaid > 0 && p.balance > 0).length;
+
+    // Calculate class breakdown from pupilFeesInfo
+    const classSummary = new Map<string, any>();
+    
+    Object.entries(pupilFeesInfo || {}).forEach(([pupilId, feesInfo]) => {
+      const pupil = allPupils.find(p => p.id === pupilId);
+      if (!pupil || !pupil.classId) return;
+
+      if (!classSummary.has(pupil.classId)) {
+        classSummary.set(pupil.classId, {
+          classId: pupil.classId,
+          className: pupil.className || 'Unknown',
+          classCode: pupil.classCode || '',
+          pupils: [],
+          expectedAmount: 0,
+          collectedAmount: 0,
+          paidPupils: 0,
+          unpaidPupils: 0,
+          partiallyPaidPupils: 0
+        });
+      }
+
+      const classData = classSummary.get(pupil.classId)!;
+      classData.pupils.push(pupil);
+      classData.expectedAmount += feesInfo.totalFees;
+      classData.collectedAmount += feesInfo.totalPaid;
+
+      if (feesInfo.balance <= 0) {
+        classData.paidPupils++;
+      } else if (feesInfo.totalPaid > 0) {
+        classData.partiallyPaidPupils++;
+      } else {
+        classData.unpaidPupils++;
+      }
+    });
+
+    const byClass: ClassCollectionStats[] = Array.from(classSummary.values()).map(c => ({
+      classId: c.classId,
+      className: c.className,
+      classCode: c.classCode,
+      pupilCount: c.pupils.length,
+      expectedAmount: c.expectedAmount,
+      collectedAmount: c.collectedAmount,
+      outstandingAmount: c.expectedAmount - c.collectedAmount,
+      collectionRate: c.expectedAmount > 0 ? (c.collectedAmount / c.expectedAmount) * 100 : 0,
+      paidPupils: c.paidPupils,
+      unpaidPupils: c.unpaidPupils,
+      partiallyPaidPupils: c.partiallyPaidPupils
+    })).sort((a, b) => a.className.localeCompare(b.className));
+
+    console.log('📊 ANALYTICS: Calculated from progressive fees', {
+      totalExpected: totals.totalFees,
+      totalCollected: totals.totalPaid,
+      outstanding: totals.balance,
+      collectionRate: totals.totalFees > 0 ? (totals.totalPaid / totals.totalFees) * 100 : 0,
+      totalPupils: pupilFeesArray.length,
+      paidPupils,
+      unpaidPupils,
+      partiallyPaidPupils,
+      classesWithData: byClass.length,
+      byClassPreview: byClass.slice(0, 3)
+    });
+
+    return {
+      overview: {
+        totalExpected: totals.totalFees,
+        totalCollected: totals.totalPaid,
+        outstanding: totals.balance,
+        collectionRate: totals.totalFees > 0 ? (totals.totalPaid / totals.totalFees) * 100 : 0,
+        totalPupils: pupilFeesArray.length,
+        paidPupils,
+        unpaidPupils,
+        partiallyPaidPupils
+      },
+      byClass: byClass
+    };
+  }, [totals, pupilFeesInfo, allPupils]);
+
+  console.log('🔍 ANALYTICS RENDER:', {
+    hasAnalytics: !!analytics,
+    hasByClass: !!analytics?.byClass,
+    byClassLength: analytics?.byClass?.length || 0
+  });
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isProcessing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Collection Analytics...</h2>
-            <p className="text-gray-600">
-              Fetching data and calculating statistics. This may take a few seconds.
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Calculating Collection Analytics...</h2>
+            <p className="text-gray-600 mb-4">
+              Using the exact same calculation logic as Fees Collection page
             </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show no data state
-  if (!analytics) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
-            <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-yellow-900 mb-2">No Analytics Data Available</h2>
-            <p className="text-yellow-600 mb-4">
-              Please ensure you have an active academic year and term configured.
-            </p>
-            <Button onClick={() => refetch()} variant="outline" className="border-yellow-300 text-yellow-700 hover:bg-yellow-50">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
+            {isProcessing && progressPercentage > 0 && (
+              <div className="max-w-md mx-auto">
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                  <div 
+                    className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-500">{progressPercentage.toFixed(0)}% complete</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -276,13 +354,13 @@ export default function CollectionAnalyticsPage() {
 
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={() => refetch()}
+                  onClick={() => window.location.reload()}
                   variant="outline"
                   size="sm"
-                  disabled={isFetching}
+                  disabled={isProcessing}
                   className="flex items-center gap-2"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
                 
@@ -435,9 +513,12 @@ export default function CollectionAnalyticsPage() {
             <Card className="border-0 shadow-lg">
               <CardContent className="p-6">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Overall Collection Progress</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Overall Collection Progress (This Term)</h3>
                   <p className="text-sm text-gray-600">
                     {formatCurrency(analytics.overview.totalCollected)} of {formatCurrency(analytics.overview.totalExpected)} collected
+                  </p>
+                  <p className="text-xs text-indigo-600 mt-1">
+                    ✅ Calculated using exact same logic as Fees Collection page
                   </p>
                 </div>
                 <CollectionRateBar 
@@ -451,130 +532,109 @@ export default function CollectionAnalyticsPage() {
           </motion.div>
         )}
 
-        {/* Time-Based Analysis */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-indigo-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-indigo-900">
-                    <Calendar className="w-5 h-5" />
-                    Collection Period Analysis
-                  </CardTitle>
-                  <p className="text-sm text-indigo-600 mt-1">Track collections by time period</p>
-                </div>
-
-                <Select value={selectedPeriod} onValueChange={(value) => setSelectedPeriod(value as TimePeriod)}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="today">Today</SelectItem>
-                    <SelectItem value="thisWeek">This Week</SelectItem>
-                    <SelectItem value="thisMonth">This Month</SelectItem>
-                    <SelectItem value="thisTerm">This Term</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-6">
-              {timePeriodData ? (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <DollarSign className="w-5 h-5 text-blue-600" />
-                      <h4 className="text-sm font-medium text-gray-600">Total Collected</h4>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-900">
-                      {formatCurrency(timePeriodData.totalCollected)}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-5 h-5 text-green-600" />
-                      <h4 className="text-sm font-medium text-gray-600">Payment Count</h4>
-                    </div>
-                    <p className="text-2xl font-bold text-green-900">
-                      {timePeriodData.paymentCount}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-5 h-5 text-purple-600" />
-                      <h4 className="text-sm font-medium text-gray-600">Average Payment</h4>
-                    </div>
-                    <p className="text-2xl font-bold text-purple-900">
-                      {formatShortCurrency(timePeriodData.averagePayment)}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-5 h-5 text-orange-600" />
-                      <h4 className="text-sm font-medium text-gray-600">Unique Payers</h4>
-                    </div>
-                    <p className="text-2xl font-bold text-orange-900">
-                      {timePeriodData.uniquePayers}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  Loading time-based data...
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Class Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <ClassBreakdownTable 
-            data={analytics?.byClass || []}
-            isLoading={isLoading}
-          />
-        </motion.div>
-
-        {/* Payment Methods (if available) */}
-        {analytics && analytics.paymentMethods.length > 0 && (
+        {/* Time-Based Daily Analysis */}
+        {analytics && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.25 }}
           >
             <Card className="border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-                <CardTitle className="text-green-900">Payment Methods Breakdown</CardTitle>
-                <p className="text-sm text-green-600 mt-1">How fees are being paid</p>
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 border-b border-blue-100">
+                <CardTitle className="text-blue-900 flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Collection Activity Summary
+                </CardTitle>
+                <p className="text-sm text-blue-600 mt-1">Quick overview of collection status</p>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {analytics.paymentMethods.map((method) => (
-                    <div key={method.method} className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-600 mb-2">{method.method}</h4>
-                      <p className="text-xl font-bold text-gray-900 mb-1">
-                        {formatCurrency(method.amount)}
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{method.count} payments</span>
-                        <span className="text-indigo-600 font-medium">{method.percentage.toFixed(1)}%</span>
-                      </div>
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="text-sm font-medium text-gray-600">Fully Paid</h4>
                     </div>
-                  ))}
+                    <p className="text-2xl font-bold text-green-900">{analytics.overview.paidPupils}</p>
+                    <p className="text-xs text-green-600 mt-1">pupils completed payment</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-5 h-5 text-yellow-600" />
+                      <h4 className="text-sm font-medium text-gray-600">Partially Paid</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-900">{analytics.overview.partiallyPaidPupils}</p>
+                    <p className="text-xs text-yellow-600 mt-1">pupils with partial payment</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="w-5 h-5 text-red-600" />
+                      <h4 className="text-sm font-medium text-gray-600">Not Paid</h4>
+                    </div>
+                    <p className="text-2xl font-bold text-red-900">{analytics.overview.unpaidPupils}</p>
+                    <p className="text-xs text-red-600 mt-1">pupils not yet paid</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+        )}
+
+        {/* Class Breakdown Table */}
+        {analytics && analytics.byClass && analytics.byClass.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-indigo-100">
+                <h3 className="text-lg font-bold text-indigo-900">Collection by Class</h3>
+                <p className="text-sm text-indigo-600 mt-1">Detailed breakdown per class for this term</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pupils</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Expected</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Collected</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Outstanding</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {analytics.byClass.map((classData) => (
+                      <tr key={classData.classId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900">{classData.className}</div>
+                          <div className="text-xs text-gray-500">{classData.classCode}</div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="text-sm font-medium text-gray-900">{classData.pupilCount}</div>
+                          <div className="flex items-center justify-center gap-2 mt-1 text-xs">
+                            <span className="text-green-600">✓{classData.paidPupils}</span>
+                            <span className="text-yellow-600">◐{classData.partiallyPaidPupils}</span>
+                            <span className="text-red-600">✗{classData.unpaidPupils}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm text-gray-900">{formatCurrency(classData.expectedAmount)}</td>
+                        <td className="px-6 py-4 text-right text-sm text-green-600 font-medium">{formatCurrency(classData.collectedAmount)}</td>
+                        <td className="px-6 py-4 text-right text-sm text-red-600">{formatCurrency(classData.outstandingAmount)}</td>
+                        <td className="px-6 py-4">
+                          <div className="w-32">
+                            <CollectionRateBar rate={classData.collectionRate} showPercentage={true} height="sm" animated={false} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </motion.div>
         )}
 
