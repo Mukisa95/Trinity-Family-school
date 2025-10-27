@@ -266,6 +266,10 @@ function PupilsContent() {
   const [isLinkSiblingsModalOpen, setIsLinkSiblingsModalOpen] = useState(false);
   const [selectedPupilForLinking, setSelectedPupilForLinking] = useState<Pupil | null>(null);
 
+  // 🚀 PAGINATION: Prevent browser freeze with large datasets
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50); // Default: 50 pupils per page
+
   // Optimized: Firebase hooks with class-based loading - starts with NO class selected for faster initial load
   const pupilsManager = useClassPupilsManager('');
   const { 
@@ -284,6 +288,11 @@ function PupilsContent() {
     classCount,
     statistics
   } = pupilsManager;
+
+  // Reset to page 1 when filters/search/class changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClassId, searchQuery, pupilFilters.status, pupilFilters.section, pupilFilters.gender]);
 
   // Optimized: Cached hooks with longer stale times
   const { data: classes = [], isLoading: isLoadingClasses } = useClasses();
@@ -376,13 +385,14 @@ function PupilsContent() {
 
   // Add a function to get siblings for a pupil
   // 🚀 OPTIMIZATION: Pre-compute siblings map for O(1) lookups instead of O(N²)
+  // NOTE: Use ALL pupils, not paginated, so siblings work across pages
   const siblingsMap = useMemo(() => {
     console.log('🚀 OPTIMIZATION: Building siblings map for', pupils.length, 'pupils');
     const startTime = performance.now();
     
     const map = new Map<string, Pupil[]>();
     
-    // Group pupils by familyId
+    // Group pupils by familyId - use ALL pupils for complete sibling relationships
     const familiesMap = new Map<string, Pupil[]>();
     pupils.forEach(pupil => {
       if (pupil.familyId) {
@@ -437,7 +447,8 @@ function PupilsContent() {
   };
 
   // Filter pupils for display
-  const filteredAndSortedPupils = useMemo(() => {
+  // 🚀 OPTIMIZATION: First filter and sort ALL pupils, then paginate
+  const {filteredAndSortedPupils, totalFilteredCount} = useMemo(() => {
     const filtered = pupils.filter(pupil => {
       // Status filter
       if (filters.status && pupil.status !== filters.status) return false;
@@ -490,8 +501,22 @@ function PupilsContent() {
       }
     });
 
-    return filtered;
-  }, [pupils, filters, sortField, sortOrder, classes]);
+    // 🚀 PAGINATION: Apply pagination to sorted results to prevent browser freeze
+    const totalCount = filtered.length;
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginated = filtered.slice(startIndex, endIndex);
+    
+    console.log(`📄 PAGINATION: Showing pupils ${startIndex + 1}-${Math.min(endIndex, totalCount)} of ${totalCount} total (page ${currentPage})`);
+    
+    return { 
+      filteredAndSortedPupils: paginated, 
+      totalFilteredCount: totalCount 
+    };
+  }, [pupils, filters, sortField, sortOrder, classes, currentPage, itemsPerPage]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalFilteredCount / itemsPerPage);
 
   const handleDelete = async (pupilId: string, pupilName: string) => {
     if (window.confirm(`Are you sure you want to delete ${pupilName}?`)) {
@@ -2062,6 +2087,111 @@ function PupilsContent() {
                 </tbody>
               </table>
             </div>
+
+            {/* 🚀 PAGINATION CONTROLS */}
+            {totalPages > 1 && (
+              <div className="px-4 py-3 border-t border-indigo-100 bg-gradient-to-r from-indigo-50/50 to-white">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  {/* Page Info */}
+                  <div className="text-sm text-gray-600">
+                    Showing <span className="font-medium text-indigo-600">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+                    <span className="font-medium text-indigo-600">{Math.min(currentPage * itemsPerPage, totalFilteredCount)}</span> of{' '}
+                    <span className="font-medium text-indigo-600">{totalFilteredCount}</span> pupils
+                  </div>
+
+                  {/* Page Controls */}
+                  <div className="flex items-center gap-2">
+                    {/* Items per page */}
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-1.5 text-sm border border-indigo-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-400/50 focus:outline-none"
+                    >
+                      <option value={25}>25 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                      <option value={200}>200 per page</option>
+                    </select>
+
+                    {/* Pagination buttons */}
+                    <div className="flex items-center gap-1">
+                      {/* First page */}
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="First page"
+                      >
+                        ««
+                      </button>
+
+                      {/* Previous page */}
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="Previous page"
+                      >
+                        «
+                      </button>
+
+                      {/* Page numbers */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                                currentPage === pageNum
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'text-indigo-600 hover:bg-indigo-50'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Next page */}
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="Next page"
+                      >
+                        »
+                      </button>
+
+                      {/* Last page */}
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="Last page"
+                      >
+                        »»
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           )}
         </div>
