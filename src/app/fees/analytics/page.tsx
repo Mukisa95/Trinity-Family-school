@@ -83,6 +83,40 @@ export default function CollectionAnalyticsPage() {
     termDates
   });
 
+  console.log('🔍 ANALYTICS PAGE: Selected year details', {
+    allYears: allYears.length,
+    yearsLoading,
+    selectedYear: selectedYear?.year,
+    selectedYearId: selectedYear?.id,
+    autoTermId,
+    manualYearId,
+    manualTermId
+  });
+
+  // Show helpful message if no academic years exist
+  if (!yearsLoading && allYears.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center">
+            <Calendar className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-blue-900 mb-2">No Academic Years Found</h2>
+            <p className="text-blue-600 mb-4">
+              You need to create at least one academic year before viewing collection analytics.
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/academic-years'}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Setup Academic Years
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const formatCurrency = (amount: number) => {
     return `UGX ${amount.toLocaleString()}`;
   };
