@@ -117,6 +117,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
       '/fees': 'fees',
       '/fees/collection': 'fees',
       '/fees/collect': 'fees',
+      '/fees/analytics': 'fees',
       '/exams': 'exams',
       '/events': 'events',
       '/attendance': 'attendance',

@@ -124,6 +124,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       '/fees': 'fees',
       '/fees/collection': 'fees',
       '/fees/collect': 'fees',
+      '/fees/analytics': 'fees',
       '/exams': 'exams',
       '/events': 'events',
       '/attendance': 'attendance',

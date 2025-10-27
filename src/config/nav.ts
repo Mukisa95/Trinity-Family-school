@@ -82,8 +82,19 @@ export const navItems: NavigationItem[] = [
   },
   {
     title: 'Fees Collection',
-    href: '/fees/collection',
     icon: Receipt,
+    items: [
+      {
+        title: 'Collect Fees',
+        href: '/fees/collection',
+        icon: Receipt,
+      },
+      {
+        title: 'Collection Analytics',
+        href: '/fees/analytics',
+        icon: TrendingUp,
+      },
+    ],
   },
   {
     title: 'Banking',
