@@ -138,7 +138,12 @@ export class CollectionAnalyticsService {
 
       // Get recent payments (last 20)
       const recentPayments = payments
-        .sort((a, b) => b.paymentDate.getTime() - a.paymentDate.getTime())
+        .sort((a, b) => {
+          // Handle different date formats (Date, Timestamp, string)
+          const dateA = a.paymentDate instanceof Date ? a.paymentDate : new Date(a.paymentDate);
+          const dateB = b.paymentDate instanceof Date ? b.paymentDate : new Date(b.paymentDate);
+          return dateB.getTime() - dateA.getTime();
+        })
         .slice(0, 20);
 
       const endTime = performance.now();
