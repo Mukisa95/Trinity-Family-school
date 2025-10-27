@@ -54,7 +54,19 @@ export function useCollectionAnalytics({
   } = useQuery<CollectionAnalytics>({
     queryKey: ['collection-analytics', effectiveYearId, effectiveTermId],
     queryFn: async () => {
+      console.log('📊 ANALYTICS HOOK: Starting analytics fetch', {
+        yearId: effectiveYearId,
+        termId: effectiveTermId,
+        termDates,
+        enabled
+      });
+
       if (!effectiveYearId || !effectiveTermId || !termDates) {
+        console.error('❌ ANALYTICS HOOK: Missing required parameters', {
+          hasYearId: !!effectiveYearId,
+          hasTermId: !!effectiveTermId,
+          hasTermDates: !!termDates
+        });
         throw new Error('Missing required parameters for analytics');
       }
 
@@ -64,18 +76,26 @@ export function useCollectionAnalytics({
         termDates
       });
 
-      return await CollectionAnalyticsService.getCollectionAnalytics(
-        effectiveYearId,
-        effectiveTermId,
-        termDates.startDate,
-        termDates.endDate
-      );
+      try {
+        const result = await CollectionAnalyticsService.getCollectionAnalytics(
+          effectiveYearId,
+          effectiveTermId,
+          termDates.startDate,
+          termDates.endDate
+        );
+        console.log('✅ ANALYTICS HOOK: Successfully fetched analytics data', result);
+        return result;
+      } catch (error) {
+        console.error('❌ ANALYTICS HOOK: Error fetching analytics', error);
+        throw error;
+      }
     },
     enabled: enabled && !!effectiveYearId && !!effectiveTermId && !!termDates,
     staleTime: 5 * 60 * 1000, // 5 minutes - analytics should be fairly fresh
     gcTime: 10 * 60 * 1000, // 10 minutes cache
     refetchOnMount: true, // Always fetch latest when component mounts
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    retry: 1, // Retry once on failure
   });
 
   const isLoading = yearLoading || analyticsLoading;

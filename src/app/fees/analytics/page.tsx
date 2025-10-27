@@ -36,10 +36,22 @@ export default function CollectionAnalyticsPage() {
     analytics,
     isLoading,
     isFetching,
+    error,
     refetch,
     activeYear,
     termDates
   } = useCollectionAnalytics();
+
+  // Debug logging
+  console.log('🔍 ANALYTICS PAGE: State', {
+    hasAnalytics: !!analytics,
+    isLoading,
+    isFetching,
+    hasError: !!error,
+    error: error?.message,
+    activeYear: activeYear?.year,
+    termDates
+  });
 
   const formatCurrency = (amount: number) => {
     return `UGX ${amount.toLocaleString()}`;
@@ -61,6 +73,65 @@ export default function CollectionAnalyticsPage() {
   };
 
   const timePeriodData = getTimePeriodData();
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-red-900 mb-2">Failed to Load Analytics</h2>
+            <p className="text-red-600 mb-4">
+              {error instanceof Error ? error.message : 'An unexpected error occurred'}
+            </p>
+            <Button onClick={() => refetch()} variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Collection Analytics...</h2>
+            <p className="text-gray-600">
+              Fetching data and calculating statistics. This may take a few seconds.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show no data state
+  if (!analytics) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-yellow-900 mb-2">No Analytics Data Available</h2>
+            <p className="text-yellow-600 mb-4">
+              Please ensure you have an active academic year and term configured.
+            </p>
+            <Button onClick={() => refetch()} variant="outline" className="border-yellow-300 text-yellow-700 hover:bg-yellow-50">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
