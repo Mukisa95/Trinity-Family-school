@@ -157,4 +157,52 @@ export class PaymentsService {
       throw error;
     }
   }
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Batch load ALL payments for a term in ONE query
+  // This eliminates N+1 query problem (100+ queries → 1 query)
+  static async getAllPaymentsByTerm(academicYearId: string, termId: string): Promise<PaymentRecord[]> {
+    try {
+      console.log('🚀 BATCH LOADING: Fetching ALL payments for term in ONE query');
+      const startTime = performance.now();
+      
+      const q = query(
+        collection(db, PAYMENTS_COLLECTION), 
+        where('academicYearId', '==', academicYearId),
+        where('termId', '==', termId),
+        orderBy('paymentDate', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      const payments = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        paymentDate: doc.data().paymentDate?.toDate?.() || doc.data().paymentDate,
+        createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt
+      })) as PaymentRecord[];
+      
+      const endTime = performance.now();
+      console.log(`✅ BATCH LOADING: Loaded ${payments.length} payments in ${(endTime - startTime).toFixed(2)}ms`);
+      
+      return payments;
+    } catch (error) {
+      console.error('Error fetching payments by term (batch):', error);
+      throw error;
+    }
+  }
+
+  // 🚀 PERFORMANCE OPTIMIZATION: Group payments by pupilId in memory
+  // This allows instant lookups without additional queries
+  static groupPaymentsByPupil(payments: PaymentRecord[]): Map<string, PaymentRecord[]> {
+    const grouped = new Map<string, PaymentRecord[]>();
+    
+    for (const payment of payments) {
+      const pupilPayments = grouped.get(payment.pupilId) || [];
+      pupilPayments.push(payment);
+      grouped.set(payment.pupilId, pupilPayments);
+    }
+    
+    console.log(`📊 GROUPING: Grouped ${payments.length} payments for ${grouped.size} pupils`);
+    return grouped;
+  }
 } 

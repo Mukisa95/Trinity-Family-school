@@ -22,6 +22,9 @@ const COLLECTION_NAME = 'pupils';
 export class PupilsService {
   static async getAllPupils(): Promise<Pupil[]> {
     try {
+      console.log('🚀 BATCH LOADING: Fetching ALL pupils');
+      const startTime = performance.now();
+      
       const q = query(collection(db, COLLECTION_NAME), orderBy('lastName', 'asc'));
       const querySnapshot = await getDocs(q);
       
@@ -30,26 +33,42 @@ export class PupilsService {
         ...doc.data()
       })) as Pupil[];
 
-      // Populate class names for pupils that have classId
-      const populatedPupils = await Promise.all(
-        pupils.map(async (pupil) => {
-          if (pupil.classId) {
-            try {
-              const classData = await ClassesService.getById(pupil.classId);
-              if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
-              }
-            } catch (classError) {
-              console.warn('Error fetching class data for pupil:', classError);
-              // Continue without class name
-            }
-          }
-          return pupil;
-        })
-      );
+      const pupilsLoadTime = performance.now();
+      console.log(`✅ Loaded ${pupils.length} pupils in ${(pupilsLoadTime - startTime).toFixed(2)}ms`);
 
-      return populatedPupils;
+      // 🚀 BATCH LOADING: Load ALL classes in ONE query instead of N+1 queries
+      console.log('🚀 BATCH LOADING: Fetching ALL classes for pupil population');
+      const allClasses = await ClassesService.getAll();
+      const classesMap = new Map(allClasses.map(c => [c.id, c]));
+      
+      const classesLoadTime = performance.now();
+      console.log(`✅ Loaded ${allClasses.length} classes in ${(classesLoadTime - pupilsLoadTime).toFixed(2)}ms`);
+      console.log(`📊 BATCH LOADING: Created class map for instant lookups (${classesMap.size} classes)`);
+
+      // 💨 IN-MEMORY: Instant lookups, NO more database queries!
+      let populatedCount = 0;
+      pupils.forEach(pupil => {
+        if (pupil.classId) {
+          const classData = classesMap.get(pupil.classId);
+          if (classData) {
+            pupil.className = classData.name;
+            pupil.classCode = classData.code;
+            populatedCount++;
+          } else {
+            console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${pupil.firstName} ${pupil.lastName}`);
+          }
+        }
+      });
+
+      const endTime = performance.now();
+      const totalTime = endTime - startTime;
+      const avgTimePerPupil = totalTime / pupils.length;
+      
+      console.log(`✅ BATCH LOADING COMPLETE: Populated ${populatedCount}/${pupils.length} pupils with class data`);
+      console.log(`⚡ Total time: ${totalTime.toFixed(2)}ms (${avgTimePerPupil.toFixed(2)}ms per pupil)`);
+      console.log(`🎉 Optimization: ${pupils.length} pupils loaded with ONLY 2 queries (pupils + classes) instead of ${pupils.length + 1}+!`);
+
+      return pupils;
     } catch (error) {
       console.error('Error fetching pupils:', error);
       throw error;
@@ -525,7 +544,8 @@ export class PupilsService {
   // 🚀 DATABASE-LEVEL FILTERING: Fetch only active pupils from database
   static async getActivePupils(): Promise<Pupil[]> {
     try {
-      console.log('🎯 Fetching ONLY active pupils from database (optimized)');
+      console.log('🎯 BATCH LOADING: Fetching ONLY active pupils from database');
+      const startTime = performance.now();
       
       const q = query(
         collection(db, COLLECTION_NAME), 
@@ -539,27 +559,35 @@ export class PupilsService {
         ...doc.data()
       })) as Pupil[];
 
-      console.log(`✅ Fetched ${pupils.length} active pupils directly from database`);
+      const pupilsLoadTime = performance.now();
+      console.log(`✅ Loaded ${pupils.length} active pupils in ${(pupilsLoadTime - startTime).toFixed(2)}ms`);
 
-      // Populate class names for pupils that have classId
-      const populatedPupils = await Promise.all(
-        pupils.map(async (pupil) => {
-          if (pupil.classId) {
-            try {
-              const classData = await ClassesService.getById(pupil.classId);
-              if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
-              }
-            } catch (classError) {
-              console.warn('Error fetching class data for pupil:', classError);
-            }
+      // 🚀 BATCH LOADING: Load ALL classes in ONE query instead of N+1 queries
+      console.log('🚀 BATCH LOADING: Fetching ALL classes for pupil population');
+      const allClasses = await ClassesService.getAll();
+      const classesMap = new Map(allClasses.map(c => [c.id, c]));
+      
+      const classesLoadTime = performance.now();
+      console.log(`✅ Loaded ${allClasses.length} classes in ${(classesLoadTime - pupilsLoadTime).toFixed(2)}ms`);
+
+      // 💨 IN-MEMORY: Instant lookups, NO more database queries!
+      let populatedCount = 0;
+      pupils.forEach(pupil => {
+        if (pupil.classId) {
+          const classData = classesMap.get(pupil.classId);
+          if (classData) {
+            pupil.className = classData.name;
+            pupil.classCode = classData.code;
+            populatedCount++;
           }
-          return pupil;
-        })
-      );
+        }
+      });
 
-      return populatedPupils;
+      const endTime = performance.now();
+      console.log(`✅ BATCH LOADING COMPLETE: Populated ${populatedCount}/${pupils.length} active pupils with class data`);
+      console.log(`⚡ Total time: ${(endTime - startTime).toFixed(2)}ms`);
+
+      return pupils;
     } catch (error) {
       console.error('Error fetching active pupils:', error);
       throw error;
@@ -613,7 +641,8 @@ export class PupilsService {
   // 🚀 DATABASE-LEVEL FILTERING: Fetch active pupils for a specific class
   static async getActivePupilsByClass(classId: string): Promise<Pupil[]> {
     try {
-      console.log(`🎯 Fetching ACTIVE pupils for class ${classId} from database (optimized)`);
+      console.log(`🎯 BATCH LOADING: Fetching ACTIVE pupils for class ${classId}`);
+      const startTime = performance.now();
       
       const q = query(
         collection(db, COLLECTION_NAME), 
@@ -627,7 +656,8 @@ export class PupilsService {
         ...doc.data()
       })) as Pupil[];
 
-      console.log(`✅ Fetched ${pupils.length} active pupils for class ${classId} from database`);
+      const pupilsLoadTime = performance.now();
+      console.log(`✅ Fetched ${pupils.length} active pupils for class ${classId} in ${(pupilsLoadTime - startTime).toFixed(2)}ms`);
 
       // Sort on client-side to avoid requiring a composite index
       pupils.sort((a, b) => {
@@ -636,25 +666,27 @@ export class PupilsService {
         return aLastName.localeCompare(bLastName);
       });
 
-      // Populate class names
-      const populatedPupils = await Promise.all(
-        pupils.map(async (pupil) => {
-          if (pupil.classId) {
-            try {
-              const classData = await ClassesService.getById(pupil.classId);
-              if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
-              }
-            } catch (classError) {
-              console.warn('Error fetching class data for pupil:', classError);
-            }
+      // 🚀 OPTIMIZATION: For a single class, we can just fetch that class directly
+      // No need to load all classes like we do for getAllPupils
+      if (pupils.length > 0 && classId) {
+        console.log('🚀 Fetching class data for population');
+        try {
+          const classData = await ClassesService.getById(classId);
+          if (classData) {
+            // All pupils are from the same class, so populate all at once
+            pupils.forEach(pupil => {
+              pupil.className = classData.name;
+              pupil.classCode = classData.code;
+            });
+            const endTime = performance.now();
+            console.log(`✅ BATCH POPULATION: Populated ${pupils.length} pupils with class data in ${(endTime - startTime).toFixed(2)}ms`);
           }
-          return pupil;
-        })
-      );
+        } catch (classError) {
+          console.warn('Error fetching class data:', classError);
+        }
+      }
 
-      return populatedPupils;
+      return pupils;
     } catch (error) {
       console.error(`Error fetching active pupils by class ${classId}:`, error);
       // Fallback to fetching all pupils for the class if the composite query fails

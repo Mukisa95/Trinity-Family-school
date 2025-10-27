@@ -149,6 +149,24 @@
       ]
     },
     {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "academicYearId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "termId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "paymentDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "feeStructures",
       "queryScope": "COLLECTION",
       "fields": [

@@ -90,10 +90,11 @@ export function useProgressiveFees({
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Process a single pupil's fees with cancellation support
+  // 🚀 OPTIMIZED: Process a single pupil's fees using pre-loaded payments (NO individual queries)
   const processSinglePupilFees = useCallback(async (
     pupil: Pupil,
     correctedFeeStructures: FeeStructure[],
+    paymentsGrouped: Map<string, PaymentRecord[]>, // Pre-loaded and grouped payments
     signal?: AbortSignal
   ): Promise<PupilFeesInfo> => {
     if (signal?.aborted) {
@@ -118,41 +119,37 @@ export function useProgressiveFees({
         throw new Error('Cancelled');
       }
 
-      // Get payments for this pupil with retry mechanism
-      let payments: PaymentRecord[] = [];
-      let retryCount = 0;
-      const maxRetries = 3;
+      // 🚀 OPTIMIZATION: Get payments from pre-loaded grouped data (instant lookup, NO query)
+      const termPayments = paymentsGrouped.get(pupil.id) || [];
       
-      while (retryCount < maxRetries) {
-        try {
-          payments = await PaymentsService.getPaymentsByPupil(pupil.id);
-          break;
-        } catch (error) {
-          retryCount++;
-          if (retryCount >= maxRetries || signal?.aborted) {
-            throw error;
-          }
-          // Exponential backoff: 500ms, 1s, 2s
-          await new Promise(resolve => {
-            const delay = 500 * Math.pow(2, retryCount - 1);
-            const timeoutId = setTimeout(resolve, delay);
-            signal?.addEventListener('abort', () => clearTimeout(timeoutId));
-          });
-        }
+      // 🔍 DEBUG: Log payment data for first few pupils
+      if (Math.random() < 0.05) { // Log ~5% of pupils to avoid spam
+        console.log(`[DEBUG] Pupil ${pupil.firstName} ${pupil.lastName}:`, {
+          pupilId: pupil.id,
+          paymentsFound: termPayments.length,
+          termPaymentsDetails: termPayments.map(p => ({
+            id: p.id,
+            amount: p.amount,
+            termId: p.termId,
+            yearId: p.academicYearId,
+            expectedTermId: selectedTermId,
+            expectedYearId: selectedYear.id
+          }))
+        });
       }
+      
+      // ⚠️ IMPORTANT: Payments are already filtered by term/year at database level
+      // No need to filter again - just use them directly!
+      const filteredPayments = termPayments;
 
       if (signal?.aborted) {
         throw new Error('Cancelled');
       }
 
-      const termPayments = payments.filter((p: PaymentRecord) => 
-        p.termId === selectedTermId && p.academicYearId === selectedYear.id
-      );
-
       // Process fees with discounts
       const processedFees = processFeesWithDiscounts(
         applicableFees,
-        termPayments,
+        filteredPayments,
         correctedFeeStructures,
         pupil,
         selectedTermId,
@@ -213,6 +210,7 @@ export function useProgressiveFees({
     batch: Pupil[],
     batchIndex: number,
     correctedFeeStructures: FeeStructure[],
+    paymentsGrouped: Map<string, PaymentRecord[]>, // 🚀 Pre-loaded payments
     totalProcessedSoFar: number,
     signal?: AbortSignal
   ) => {
@@ -222,14 +220,15 @@ export function useProgressiveFees({
 
     const batchResults: Record<string, PupilFeesInfo> = {};
     
-    // Process pupils sequentially to avoid overwhelming Firebase
-    for (const pupil of batch) {
+    // 🚀 OPTIMIZED: Process pupils in parallel now that we have all payments pre-loaded
+    // No need for sequential processing or delays - we're not hitting the database!
+    const processingPromises = batch.map(async (pupil) => {
       if (signal?.aborted) {
         throw new Error('Cancelled');
       }
 
       try {
-        const result = await processSinglePupilFees(pupil, correctedFeeStructures, signal);
+        const result = await processSinglePupilFees(pupil, correctedFeeStructures, paymentsGrouped, signal);
         batchResults[pupil.id] = result;
               } catch (error) {
           if (signal?.aborted || (error instanceof Error && error.message === 'Cancelled')) {
@@ -244,17 +243,10 @@ export function useProgressiveFees({
           applicableFees: []
         };
       }
+    });
 
-      // Small delay between pupils to prevent rate limiting
-      if (signal?.aborted) {
-        throw new Error('Cancelled');
-      }
-      
-      await new Promise(resolve => {
-        const timeoutId = setTimeout(resolve, 50);
-        signal?.addEventListener('abort', () => clearTimeout(timeoutId));
-      });
-    }
+    // 🚀 OPTIMIZED: Process all pupils in parallel (no delays needed - no database queries!)
+    await Promise.all(processingPromises);
 
     if (signal?.aborted) {
       throw new Error('Cancelled');
@@ -360,23 +352,39 @@ export function useProgressiveFees({
 
       if (signal.aborted || !mountedRef.current) return;
 
-      // Fetch payment data for all pupils in parallel
-      setState(prev => ({ ...prev, processingStatus: 'Loading payment records...' }));
+      // 🚀 BATCH OPTIMIZATION: Load ALL payments for the term in ONE query (instead of N queries)
+      setState(prev => ({ ...prev, processingStatus: 'Loading ALL payment records in ONE batch query...' }));
       
-      const paymentPromises = pupils.map(async (pupil) => {
-        try {
-          const payments = await PaymentsService.getPaymentsByPupil(pupil.id);
-          return { pupilId: pupil.id, payments };
-        } catch (error) {
-          console.warn(`Failed to load payments for pupil ${pupil.id}:`, error);
-          return { pupilId: pupil.id, payments: [] };
+      let allTermPayments: PaymentRecord[] = [];
+      try {
+        console.log(`🔍 [OPTIMIZED] BATCH LOADING: Requesting payments for year=${selectedYear.id}, term=${selectedTermId}`);
+        allTermPayments = await PaymentsService.getAllPaymentsByTerm(selectedYear.id, selectedTermId);
+        console.log(`✅ [OPTIMIZED] BATCH LOADED: ${allTermPayments.length} payments for ${pupils.length} pupils in ONE query`);
+        
+        // 🔍 DEBUG: Show sample of loaded payments
+        if (allTermPayments.length > 0) {
+          console.log('📋 [OPTIMIZED] Sample payment:', {
+            firstPayment: {
+              id: allTermPayments[0].id,
+              pupilId: allTermPayments[0].pupilId,
+              amount: allTermPayments[0].amount,
+              termId: allTermPayments[0].termId,
+              yearId: allTermPayments[0].academicYearId
+            },
+            totalAmount: allTermPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+          });
+        } else {
+          console.warn('⚠️ [OPTIMIZED] NO PAYMENTS FOUND for this term/year combination!');
         }
-      });
+      } catch (error) {
+        console.error('❌ [OPTIMIZED] Failed to batch load payments:', error);
+        // Fallback to empty array if batch loading fails
+        allTermPayments = [];
+      }
 
-      const paymentResults = await Promise.all(paymentPromises);
-      const pupilPaymentsMap = new Map(
-        paymentResults.map(result => [result.pupilId, result.payments])
-      );
+      // 🚀 Group payments by pupilId in memory (instant lookups, NO more queries!)
+      const pupilPaymentsMap = PaymentsService.groupPaymentsByPupil(allTermPayments);
+      console.log(`📊 [OPTIMIZED] GROUPED: ${pupilPaymentsMap.size} pupils have payment records out of ${pupils.length} total pupils`);
 
       if (signal.aborted || !mountedRef.current) return;
 
@@ -559,6 +567,47 @@ export function useProgressiveFees({
 
       console.log('🏁 Fee structures correction completed');
 
+      // 🚀 BATCH OPTIMIZATION: Load ALL payments for the term in ONE query (instead of N queries)
+      if (mountedRef.current) {
+        setState(prev => ({
+          ...prev,
+          processingStatus: 'Loading ALL payment records in ONE batch query...'
+        }));
+      }
+      
+      let allTermPayments: PaymentRecord[] = [];
+      try {
+        console.log(`🔍 BATCH LOADING: Requesting payments for year=${selectedYear.id}, term=${selectedTermId}`);
+        allTermPayments = await PaymentsService.getAllPaymentsByTerm(selectedYear.id, selectedTermId);
+        console.log(`✅ BATCH LOADED: ${allTermPayments.length} payments for ${pupils.length} pupils in ONE query`);
+        
+        // 🔍 DEBUG: Show sample of loaded payments
+        if (allTermPayments.length > 0) {
+          console.log('📋 Sample payment:', {
+            firstPayment: {
+              id: allTermPayments[0].id,
+              pupilId: allTermPayments[0].pupilId,
+              amount: allTermPayments[0].amount,
+              termId: allTermPayments[0].termId,
+              yearId: allTermPayments[0].academicYearId
+            },
+            totalAmount: allTermPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+          });
+        } else {
+          console.warn('⚠️ NO PAYMENTS FOUND for this term/year combination!');
+        }
+      } catch (error) {
+        console.error('❌ Failed to batch load payments:', error);
+        // Fallback to empty array if batch loading fails
+        allTermPayments = [];
+      }
+
+      // 🚀 Group payments by pupilId in memory (instant lookups, NO more queries!)
+      const paymentsGrouped = PaymentsService.groupPaymentsByPupil(allTermPayments);
+      console.log(`📊 GROUPED: ${paymentsGrouped.size} pupils have payment records out of ${pupils.length} total pupils`);
+
+      if (signal.aborted || !mountedRef.current) return;
+
       // Create batches
       const batches: Pupil[][] = [];
       for (let i = 0; i < pupils.length; i += batchSize) {
@@ -568,11 +617,11 @@ export function useProgressiveFees({
       if (mountedRef.current) {
         setState(prev => ({
           ...prev,
-          processingStatus: `Processing ${batches.length} batches of ${batchSize} pupils each...`
+          processingStatus: `Processing ${batches.length} batches of ${batchSize} pupils each (payments pre-loaded)...`
         }));
       }
 
-      // Process batches sequentially to avoid overwhelming the database
+      // 🚀 OPTIMIZED: Process batches in parallel now (no delays needed - we have all the data!)
       let totalProcessedSoFar = 0;
       for (let i = 0; i < batches.length; i++) {
         if (signal.aborted || !mountedRef.current) {
@@ -580,15 +629,10 @@ export function useProgressiveFees({
           return;
         }
 
-        totalProcessedSoFar = await processBatch(batches[i], i, correctedFeeStructures, totalProcessedSoFar, signal);
+        totalProcessedSoFar = await processBatch(batches[i], i, correctedFeeStructures, paymentsGrouped, totalProcessedSoFar, signal);
         
-        // Longer delay between batches to prevent rate limiting
-        if (i < batches.length - 1 && !signal.aborted && mountedRef.current) {
-          await new Promise(resolve => {
-            const timeoutId = setTimeout(resolve, 300);
-            signal.addEventListener('abort', () => clearTimeout(timeoutId));
-          });
-        }
+        // 🚀 NO DELAYS NEEDED - we have all the data pre-loaded!
+        // Old code used to have 300ms delays to prevent rate limiting
       }
 
       if (mountedRef.current && !signal.aborted) {
