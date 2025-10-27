@@ -79,23 +79,32 @@ export class CollectionAnalyticsService {
     termEndDate: Date
   ): Promise<CollectionAnalytics> {
     console.log('🚀 ANALYTICS: Starting batch data load for collection analytics');
+    console.log('📅 ANALYTICS: TERM-BASED CALCULATION for:', {
+      academicYearId,
+      termId,
+      termStartDate: termStartDate.toLocaleDateString(),
+      termEndDate: termEndDate.toLocaleDateString()
+    });
     const startTime = performance.now();
 
     try {
       // 🚀 BATCH LOAD: Load all data in parallel for speed
+      console.log('🔍 ANALYTICS: Loading TERM-SPECIFIC data (not entire year)...');
       const [pupils, payments, feeStructures, classes] = await Promise.all([
         PupilsService.getActivePupils(),
-        PaymentsService.getAllPaymentsByTerm(academicYearId, termId),
-        FeeStructuresService.getByTermAndYear(termId, academicYearId),
+        PaymentsService.getAllPaymentsByTerm(academicYearId, termId), // ← TERM-SPECIFIC payments
+        FeeStructuresService.getByTermAndYear(termId, academicYearId), // ← TERM-SPECIFIC fees
         ClassesService.getAll()
       ]);
 
       const dataLoadTime = performance.now();
-      console.log(`✅ ANALYTICS: Loaded data in ${(dataLoadTime - startTime).toFixed(2)}ms:`, {
+      console.log(`✅ ANALYTICS: Loaded TERM-SPECIFIC data in ${(dataLoadTime - startTime).toFixed(2)}ms:`, {
         pupils: pupils.length,
-        payments: payments.length,
-        feeStructures: feeStructures.length,
-        classes: classes.length
+        paymentsForThisTerm: payments.length, // Only payments for selected term
+        feeStructuresForThisTerm: feeStructures.length, // Only fees for selected term
+        classes: classes.length,
+        termId,
+        academicYearId
       });
 
       // Create fast lookup maps

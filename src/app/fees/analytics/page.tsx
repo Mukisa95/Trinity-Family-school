@@ -341,9 +341,16 @@ export default function CollectionAnalyticsPage() {
                 </div>
               )}
 
-              {selectedYear && (
-                <div className="text-sm text-gray-600">
-                  {selectedYear.year} • {autoTermId ? `Term ${autoTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}` : 'Select term'}
+              {selectedYear && autoTermId && (
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium">
+                    📊 Analyzing: {selectedYear.year} • Term {autoTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}
+                  </div>
+                  {termDates && (
+                    <div className="text-xs text-gray-500">
+                      ({termDates.startDate.toLocaleDateString()} - {termDates.endDate.toLocaleDateString()})
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -352,6 +359,33 @@ export default function CollectionAnalyticsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Term Info Banner */}
+        {selectedYear && autoTermId && termDates && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl p-4 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Calendar className="w-6 h-6" />
+                <div>
+                  <div className="font-bold text-lg">
+                    {selectedYear.year} • Term {autoTermId.replace('t', '').replace('-2025', '').replace('-2024', '')}
+                  </div>
+                  <div className="text-sm text-indigo-100">
+                    {termDates.startDate.toLocaleDateString()} - {termDates.endDate.toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-indigo-100">Showing data for</div>
+                <div className="font-semibold">THIS TERM ONLY</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
