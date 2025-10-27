@@ -288,6 +288,14 @@ function PupilsContent() {
   // Optimized: Cached hooks with longer stale times
   const { data: classes = [], isLoading: isLoadingClasses } = useClasses();
   const { data: schoolSettings, isLoading: isLoadingSettings } = useSchoolSettings();
+  
+  // 🚀 OPTIMIZATION: Pre-compute classes map for O(1) lookups instead of O(N×M)
+  const classesMap = useMemo(() => {
+    console.log('🚀 OPTIMIZATION: Building classes map for', classes.length, 'classes');
+    const map = new Map(classes.map(c => [c.id, c]));
+    console.log(`✅ OPTIMIZATION: Classes map built with ${map.size} entries for instant lookups`);
+    return map;
+  }, [classes]);
   const deletePupilMutation = useDeletePupil();
   const updatePupilMutation = useUpdatePupil();
 
@@ -367,13 +375,47 @@ function PupilsContent() {
   };
 
   // Add a function to get siblings for a pupil
+  // 🚀 OPTIMIZATION: Pre-compute siblings map for O(1) lookups instead of O(N²)
+  const siblingsMap = useMemo(() => {
+    console.log('🚀 OPTIMIZATION: Building siblings map for', pupils.length, 'pupils');
+    const startTime = performance.now();
+    
+    const map = new Map<string, Pupil[]>();
+    
+    // Group pupils by familyId
+    const familiesMap = new Map<string, Pupil[]>();
+    pupils.forEach(pupil => {
+      if (pupil.familyId) {
+        if (!familiesMap.has(pupil.familyId)) {
+          familiesMap.set(pupil.familyId, []);
+        }
+        familiesMap.get(pupil.familyId)!.push(pupil);
+      }
+    });
+    
+    // For each pupil, store their siblings (excluding themselves)
+    pupils.forEach(pupil => {
+      if (pupil.familyId) {
+        const family = familiesMap.get(pupil.familyId) || [];
+        const siblings = family.filter(p => 
+          p.id !== pupil.id && 
+          (p.status === 'Active' || p.status === 'Inactive')
+        );
+        map.set(pupil.id, siblings);
+      } else {
+        map.set(pupil.id, []);
+      }
+    });
+    
+    const endTime = performance.now();
+    console.log(`✅ OPTIMIZATION: Built siblings map in ${(endTime - startTime).toFixed(2)}ms`);
+    console.log(`📊 OPTIMIZATION: ${map.size} pupils processed, instant O(1) lookups now available`);
+    
+    return map;
+  }, [pupils]);
+  
   const getSiblings = (pupil: Pupil): Pupil[] => {
-    if (!pupil.familyId) return [];
-    return pupils.filter(p => 
-      p.familyId === pupil.familyId && 
-      p.id !== pupil.id && 
-      (p.status === 'Active' || p.status === 'Inactive')
-    );
+    return siblingsMap.get(pupil.id) || [];
   };
 
   // Helper function to get the current house of a pupil
@@ -1121,8 +1163,9 @@ function PupilsContent() {
 
                 {/* Modern Table Body with Combined Columns */}
                 {pupils.map((pupil: any, index: number) => {
-                  const pupilClass = classes.find((c: any) => c.id === pupil.classId);
-                  const siblings = getSiblings(pupil, pupils);
+                  // 🚀 OPTIMIZATION: Use Map for O(1) lookup instead of array.find() O(N)
+                  const pupilClass = classesMap.get(pupil.classId);
+                  const siblings = siblingsMap.get(pupil.id) || [];
                   const isEven = index % 2 === 0;
 
                   return (
