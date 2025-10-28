@@ -116,8 +116,9 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
     
     const moduleMap: Record<string, string> = {
       '/pupils': 'pupils',
-      '/pupil-history': 'pupils',
-      '/pupils/promote': 'pupils',
+      '/pupil-history': 'pupil_history',
+      '/pupils/promote': 'promotion',
+      '/enrollment-trends': 'pupils',
       '/classes': 'classes',
       '/staff': 'staff',
       '/subjects': 'subjects',
@@ -130,7 +131,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       '/attendance': 'attendance',
       '/academic-years': 'academic_years',
       '/users': 'users',
-      '/access-levels': 'users',
+      '/access-levels': 'access_levels',
       '/banking/list': 'banking',
       '/banking': 'banking',
       '/bulk-sms': 'bulk_sms',
@@ -146,7 +147,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       '/uniform-tracking': 'uniforms',
       '/about-school': 'settings',
       '/admin/photos': 'settings',
-      '/admin/commentary-box': 'settings',
+      '/admin/commentary-box': 'commentary',
     };
     
     const module = moduleMap[href];

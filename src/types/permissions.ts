@@ -96,6 +96,18 @@ export const MODULE_ACTIONS = {
           { id: 'demote_pupils', name: 'Demote pupils', description: 'Can demote pupils to lower class' },
           { id: 'transfer_pupils', name: 'Transfer pupils', description: 'Can transfer pupils between classes' }
         ]
+      },
+      {
+        page: 'enrollment_trends',
+        path: '/enrollment-trends',
+        name: 'Enrollment Trends',
+        actions: [
+          { id: 'access_page', name: 'Access trends page', description: 'Can access enrollment trends page' },
+          { id: 'view_statistics', name: 'View statistics', description: 'Can view enrollment statistics' },
+          { id: 'view_charts', name: 'View charts', description: 'Can view enrollment charts and graphs' },
+          { id: 'filter_data', name: 'Filter data', description: 'Can filter trends by year/class/section' },
+          { id: 'export_data', name: 'Export data', description: 'Can export trends data' }
+        ]
       }
     ]
   },
@@ -122,7 +134,8 @@ export const MODULE_ACTIONS = {
           { id: 'access_page', name: 'Access collection page', description: 'Can access fee collection' },
           { id: 'search_pupils', name: 'Search pupils', description: 'Can search for pupils' },
           { id: 'view_balance', name: 'View balance', description: 'Can view fee balances' },
-          { id: 'collect_fees', name: 'Collect fees', description: 'Can collect fee payments' }
+          { id: 'collect_fees', name: 'Collect fees', description: 'Can collect fee payments' },
+          { id: 'send_communications', name: 'Send communications', description: 'Can send bulk SMS to parents' }
         ]
       },
       {
@@ -135,6 +148,20 @@ export const MODULE_ACTIONS = {
           { id: 'print_receipt', name: 'Print receipt', description: 'Can print payment receipts' },
           { id: 'revert_payment', name: 'Revert payment', description: 'Can revert payments' },
           { id: 'view_history', name: 'View payment history', description: 'Can view payment history' }
+        ]
+      },
+      {
+        page: 'analytics',
+        path: '/fees/analytics',
+        name: 'Collection Analytics',
+        actions: [
+          { id: 'access_page', name: 'Access analytics page', description: 'Can access collection analytics dashboard' },
+          { id: 'view_statistics', name: 'View statistics', description: 'Can view collection statistics' },
+          { id: 'view_by_class', name: 'View by class', description: 'Can view class breakdown' },
+          { id: 'view_by_date', name: 'View by date', description: 'Can view date-based analysis' },
+          { id: 'view_payment_details', name: 'View payment details', description: 'Can expand and view detailed payments' },
+          { id: 'filter_data', name: 'Filter data', description: 'Can filter by year/term/period' },
+          { id: 'refresh_data', name: 'Refresh data', description: 'Can manually refresh analytics data' }
         ]
       }
     ]
@@ -545,6 +572,56 @@ export const MODULE_ACTIONS = {
           { id: 'transfer_pupils', name: 'Transfer pupils', description: 'Can transfer pupils between classes' },
           { id: 'view_criteria', name: 'View promotion criteria', description: 'Can see promotion requirements' },
           { id: 'export_promotion_data', name: 'Export promotion data', description: 'Can export promotion reports' }
+        ]
+      }
+    ]
+  },
+  duty_service: {
+    pages: [
+      {
+        page: 'list',
+        path: '/duty-service',
+        name: 'Duty & Service',
+        actions: [
+          { id: 'access_page', name: 'Access duty & service', description: 'Can access duty and service page' },
+          { id: 'view_duties', name: 'View duties', description: 'Can see duty assignments' },
+          { id: 'assign_duties', name: 'Assign duties', description: 'Can assign duties to staff' },
+          { id: 'view_schedule', name: 'View schedule', description: 'Can view duty schedule' },
+          { id: 'edit_assignments', name: 'Edit assignments', description: 'Can edit duty assignments' },
+          { id: 'view_reports', name: 'View reports', description: 'Can view duty reports' }
+        ]
+      }
+    ]
+  },
+  access_levels: {
+    pages: [
+      {
+        page: 'list',
+        path: '/access-levels',
+        name: 'Access Levels',
+        actions: [
+          { id: 'access_page', name: 'Access management page', description: 'Can access access levels page' },
+          { id: 'view_levels', name: 'View access levels', description: 'Can see access levels list' },
+          { id: 'create_level', name: 'Create access level', description: 'Can create new access levels' },
+          { id: 'edit_level', name: 'Edit access level', description: 'Can edit access level permissions' },
+          { id: 'delete_level', name: 'Delete access level', description: 'Can delete access levels' },
+          { id: 'assign_to_users', name: 'Assign to users', description: 'Can assign access levels to users' }
+        ]
+      }
+    ]
+  },
+  commentary: {
+    pages: [
+      {
+        page: 'list',
+        path: '/admin/commentary-box',
+        name: 'Commentary Box',
+        actions: [
+          { id: 'access_page', name: 'Access commentary box', description: 'Can access commentary management' },
+          { id: 'view_comments', name: 'View comments', description: 'Can see commentary templates' },
+          { id: 'create_comment', name: 'Create comment', description: 'Can create new commentary templates' },
+          { id: 'edit_comment', name: 'Edit comment', description: 'Can edit commentary templates' },
+          { id: 'delete_comment', name: 'Delete comment', description: 'Can delete commentary templates' }
         ]
       }
     ]
