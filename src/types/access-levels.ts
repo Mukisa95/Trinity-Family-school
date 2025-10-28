@@ -57,6 +57,32 @@ export const PREDEFINED_ACCESS_LEVELS = {
               { actionId: 'view_exam_records', allowed: true },
               { actionId: 'view_siblings', allowed: true }
             ]
+          },
+          {
+            pageId: 'enrollment_trends',
+            canAccess: true,
+            actions: [
+              { actionId: 'access_page', allowed: true },
+              { actionId: 'view_statistics', allowed: true },
+              { actionId: 'view_charts', allowed: true },
+              { actionId: 'filter_data', allowed: true }
+            ]
+          }
+        ]
+      },
+      {
+        moduleId: 'pupil_history',
+        pages: [
+          {
+            pageId: 'list',
+            canAccess: true,
+            actions: [
+              { actionId: 'view_history', allowed: true },
+              { actionId: 'search_filter', allowed: true },
+              { actionId: 'view_personal_info', allowed: true },
+              { actionId: 'view_class_history', allowed: true },
+              { actionId: 'view_academic_summary', allowed: true }
+            ]
           }
         ]
       },
@@ -112,7 +138,8 @@ export const PREDEFINED_ACCESS_LEVELS = {
               { actionId: 'access_page', allowed: true },
               { actionId: 'search_pupils', allowed: true },
               { actionId: 'view_balance', allowed: true },
-              { actionId: 'collect_fees', allowed: true }
+              { actionId: 'collect_fees', allowed: true },
+              { actionId: 'send_communications', allowed: true }
             ]
           },
           {
@@ -123,6 +150,19 @@ export const PREDEFINED_ACCESS_LEVELS = {
               { actionId: 'record_payment', allowed: true },
               { actionId: 'print_receipt', allowed: true },
               { actionId: 'view_history', allowed: true }
+            ]
+          },
+          {
+            pageId: 'analytics',
+            canAccess: true,
+            actions: [
+              { actionId: 'access_page', allowed: true },
+              { actionId: 'view_statistics', allowed: true },
+              { actionId: 'view_by_class', allowed: true },
+              { actionId: 'view_by_date', allowed: true },
+              { actionId: 'view_payment_details', allowed: true },
+              { actionId: 'filter_data', allowed: true },
+              { actionId: 'refresh_data', allowed: true }
             ]
           }
         ]
@@ -153,6 +193,33 @@ export const PREDEFINED_ACCESS_LEVELS = {
             ]
           }
         ]
+      },
+      {
+        moduleId: 'procurement',
+        pages: [
+          {
+            pageId: 'items',
+            canAccess: true,
+            actions: [
+              { actionId: 'view_items', allowed: true }
+            ]
+          },
+          {
+            pageId: 'purchases',
+            canAccess: true,
+            actions: [
+              { actionId: 'view_purchases', allowed: true }
+            ]
+          },
+          {
+            pageId: 'budget',
+            canAccess: true,
+            actions: [
+              { actionId: 'view_budget', allowed: true },
+              { actionId: 'view_comparison', allowed: true }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -173,6 +240,23 @@ export const PREDEFINED_ACCESS_LEVELS = {
               { actionId: 'delete_user', allowed: true },
               { actionId: 'reset_password', allowed: true },
               { actionId: 'manage_permissions', allowed: true }
+            ]
+          }
+        ]
+      },
+      {
+        moduleId: 'access_levels',
+        pages: [
+          {
+            pageId: 'list',
+            canAccess: true,
+            actions: [
+              { actionId: 'access_page', allowed: true },
+              { actionId: 'view_levels', allowed: true },
+              { actionId: 'create_level', allowed: true },
+              { actionId: 'edit_level', allowed: true },
+              { actionId: 'delete_level', allowed: true },
+              { actionId: 'assign_to_users', allowed: true }
             ]
           }
         ]
@@ -205,6 +289,23 @@ export const PREDEFINED_ACCESS_LEVELS = {
               { actionId: 'edit_contact', allowed: true },
               { actionId: 'edit_vision', allowed: true },
               { actionId: 'manage_logo', allowed: true }
+            ]
+          }
+        ]
+      },
+      {
+        moduleId: 'duty_service',
+        pages: [
+          {
+            pageId: 'list',
+            canAccess: true,
+            actions: [
+              { actionId: 'access_page', allowed: true },
+              { actionId: 'view_duties', allowed: true },
+              { actionId: 'assign_duties', allowed: true },
+              { actionId: 'view_schedule', allowed: true },
+              { actionId: 'edit_assignments', allowed: true },
+              { actionId: 'view_reports', allowed: true }
             ]
           }
         ]
