@@ -1462,6 +1462,13 @@ function PupilsContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-2 sm:p-6">
+      {/* Background fetching indicator - Fixed at top */}
+      {pupilsManager.isFetching && !isLoadingPupils && (
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
+          <div className="h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]"></div>
+        </div>
+      )}
+      
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
       <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 -mx-2 sm:-mx-6 px-2 sm:px-6 py-2 sm:py-4 mb-4 sm:mb-6">

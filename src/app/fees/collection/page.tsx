@@ -244,7 +244,7 @@ export default function FeesCollectionPage() {
   });
 
   // Fetch pupils - now optimized with class-based loading
-  const { data: pupils = [], isLoading: isLoadingPupils } = useQuery({
+  const { data: pupils = [], isLoading: isLoadingPupils, isFetching: isFetchingPupils } = useQuery({
     queryKey: ['pupils-for-fees', filters.selectedClassId],
     queryFn: async () => {
       console.log('🚀 FEES COLLECTION - Loading pupils for class:', filters.selectedClassId);
@@ -274,10 +274,12 @@ export default function FeesCollectionPage() {
     },
     enabled: !isLoadingClasses && !!filters.selectedClassId && filters.selectedClassId !== '',
     staleTime: 2 * 60 * 1000, // 2 minutes - cache class-specific data longer
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   // Fetch fee structures for the selected year, term, and class
-  const { data: availableFeeStructures = [], isLoading: isLoadingFeeStructures } = useQuery({
+  const { data: availableFeeStructures = [], isLoading: isLoadingFeeStructures, isFetching: isFetchingFeeStructures } = useQuery({
     queryKey: ['fee-structures-for-filter', filters.year, filters.term, filters.selectedClassId],
     queryFn: async () => {
       console.log('🚀 FEES COLLECTION PAGE - Fee structures query started!', {
@@ -377,7 +379,9 @@ export default function FeesCollectionPage() {
         return [];
       }
     },
-    enabled: !!filters.year && !!filters.term
+    enabled: !!filters.year && !!filters.term,
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   // Set initial year and term when data is loaded
@@ -1056,6 +1060,13 @@ export default function FeesCollectionPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Background fetching indicator - Fixed at top */}
+      {(isFetchingPupils || isFetchingFeeStructures) && !isLoadingPupils && !isLoadingFeeStructures && (
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
+          <div className="h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]"></div>
+        </div>
+      )}
+      
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
       

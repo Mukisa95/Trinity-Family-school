@@ -39,7 +39,8 @@ export function useClassPupils({
   // Only load data if a specific class is selected (never load all by default)
   const { 
     data: classPupils = [], 
-    isLoading: isLoadingClass, 
+    isLoading: isLoadingClass,
+    isFetching: isFetchingClass,
     error: classError 
   } = useQuery({
     queryKey: ['pupils-by-class', classId, filters],
@@ -77,6 +78,8 @@ export function useClassPupils({
     staleTime: 8 * 60 * 1000, // 8 minutes - pupils change less frequently
     gcTime: 15 * 60 * 1000, // 15 minutes cache
     refetchInterval: 10 * 60 * 1000, // 10 minutes - less frequent background updates
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   // Optimized: Client-side search filter with performance improvements
@@ -160,6 +163,7 @@ export function useClassPupils({
     
     // Loading states
     isLoading: isLoadingClass,
+    isFetching: isFetchingClass,
     error: classError,
     
     // Statistics
