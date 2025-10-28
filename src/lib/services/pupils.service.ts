@@ -48,11 +48,11 @@ export class PupilsService {
       // 💨 IN-MEMORY: Instant lookups, NO more database queries!
       let populatedCount = 0;
       pupils.forEach(pupil => {
-        if (pupil.classId) {
+          if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
-          if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+              if (classData) {
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
             populatedCount++;
           } else {
             console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${pupil.firstName} ${pupil.lastName}`);
@@ -573,11 +573,11 @@ export class PupilsService {
       // 💨 IN-MEMORY: Instant lookups, NO more database queries!
       let populatedCount = 0;
       pupils.forEach(pupil => {
-        if (pupil.classId) {
+          if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
-          if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+              if (classData) {
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
             populatedCount++;
           }
         }
@@ -672,19 +672,19 @@ export class PupilsService {
         console.log('🚀 Fetching class data for population');
         try {
           const classData = await ClassesService.getById(classId);
-          if (classData) {
+              if (classData) {
             // All pupils are from the same class, so populate all at once
             pupils.forEach(pupil => {
-              pupil.className = classData.name;
-              pupil.classCode = classData.code;
+                pupil.className = classData.name;
+                pupil.classCode = classData.code;
             });
             const endTime = performance.now();
             console.log(`✅ BATCH POPULATION: Populated ${pupils.length} pupils with class data in ${(endTime - startTime).toFixed(2)}ms`);
-          }
-        } catch (classError) {
+              }
+            } catch (classError) {
           console.warn('Error fetching class data:', classError);
-        }
-      }
+            }
+          }
 
       return pupils;
     } catch (error) {
