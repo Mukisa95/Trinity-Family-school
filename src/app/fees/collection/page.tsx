@@ -40,12 +40,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 
 // Progressive Loading Components
-import { ProgressiveLoadingIndicator } from '@/components/fees/ProgressiveLoadingIndicator';
 import { PupilFeesRow } from '@/components/fees/PupilFeesRow';
 import { useProgressiveFees } from '@/lib/hooks/use-progressive-fees';
 import { ClassSelector } from '@/components/common/class-selector';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { RecessStatusBanner } from '@/components/common/recess-status-banner';
+import { BulkSMSModal } from '@/components/fees/BulkSMSModal';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 // Services
 import { PupilsService } from '@/lib/services/pupils.service';
@@ -167,6 +168,7 @@ interface ColumnSelection {
 
 export default function FeesCollectionPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'firstName', direction: 'asc' });
   const [showScrollToTop, setShowScrollToTop] = useState(false);
@@ -183,6 +185,7 @@ export default function FeesCollectionPage() {
     term: ''
   });
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [isBulkSMSModalOpen, setIsBulkSMSModalOpen] = useState(false);
 
   // Add column selection state with default values (removed lastPayment and status for speed)
   const [columnSelection, setColumnSelection] = useState<ColumnSelection>({
@@ -1070,92 +1073,101 @@ export default function FeesCollectionPage() {
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
       
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-white/20 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            <div className="flex items-center space-x-4">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          {/* Top Row: Title & Back */}
+          <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
               <Link
                 href="/fees"
-                className="group flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="group flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md"
               >
-                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                <span className="font-medium text-sm">Back</span>
+                <ArrowLeft className="w-3 h-3" />
+                <span className="font-medium text-xs hidden sm:inline">Back</span>
               </Link>
               
-              <div className="hidden sm:block w-px h-8 bg-gray-200"></div>
+              <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
               
               <div>
-                <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-base sm:text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                   Fees Collection
                 </h1>
-                <p className="text-sm text-gray-500 hidden sm:block">
+                <p className="text-[10px] text-gray-500 hidden lg:block">
                   Manage student fee payments and balances
                 </p>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-1">
-              {/* Class Selector for Performance Optimization */}
-              <div className="flex-shrink-0">
+          {/* Bottom Row: Controls */}
+          <div className="flex items-center justify-between py-2 gap-2">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              {/* Class Selector */}
+              <div className="flex-shrink-0 min-w-0">
                 <ClassSelector
                   selectedClassId={filters.selectedClassId}
                   onClassChange={(classId) => setFilters(prev => ({ ...prev, selectedClassId: classId }))}
-                  placeholder="Select class"
+                  placeholder="Class"
                   size="sm"
-                  className="min-w-[140px]"
+                  className="min-w-[80px] max-w-[120px]"
                   includeAllOption={true}
-                  allOptionLabel="All Classes"
+                  allOptionLabel="All"
                 />
               </div>
               
-              {/* Minimal Academic Year & Term Peel */}
-              <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-sm overflow-hidden">
-                {/* Academic Year Selector */}
+              {/* Year & Term - Compact */}
+              <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-md shadow-sm overflow-hidden">
                 <Select value={filters.year} onValueChange={(value) => setFilters(prev => ({ ...prev, year: value }))}>
-                  <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-lg rounded-r-none h-7 px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden">
+                  <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-md rounded-r-none h-7 px-2 sm:px-2.5 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
                   <SelectContent>
                     {academicYears.map((year) => (
                       <SelectItem key={year.id} value={year.id}>
-                        <span className="text-sm">{year.name}</span>
+                        <span className="text-xs">{year.name}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
-                {/* Divider */}
                 <div className="w-px h-3 bg-white/20"></div>
 
-                {/* Term Selector */}
                 <Select value={filters.term} onValueChange={(value) => setFilters(prev => ({ ...prev, term: value }))}>
-                  <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-lg rounded-l-none h-7 px-2 focus:ring-0 focus:ring-offset-0 text-xs min-w-[60px] [&>svg]:hidden">
+                  <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-md rounded-l-none h-7 px-2 sm:px-2.5 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto">
                     <SelectValue placeholder="Term" />
                   </SelectTrigger>
                   <SelectContent>
                     {selectedAcademicYear?.terms.map((term) => (
                       <SelectItem key={term.id} value={term.id}>
-                        <span className="text-sm">{term.name}</span>
+                        <span className="text-xs">{term.name}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              
-              <Button variant="outline" size="sm" className="h-7 px-2 text-xs whitespace-nowrap">
-                <Download className="w-3 h-3" />
-                <span className="hidden sm:inline ml-1">Export</span>
-              </Button>
-              
-              <Button variant="outline" size="sm" className="h-7 px-2 text-xs whitespace-nowrap">
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7 px-1.5 sm:px-2 text-xs whitespace-nowrap"
+                onClick={() => setIsBulkSMSModalOpen(true)}
+                disabled={sortedPupils.length === 0}
+              >
                 <MessageSquare className="w-3 h-3" />
-                <span className="hidden sm:inline ml-1">Send Reminders</span>
+                <span className="hidden md:inline ml-1">Communicate</span>
               </Button>
               
-              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg h-7 px-2 text-xs whitespace-nowrap" onClick={() => setIsColumnSelectionModalOpen(true)}>
+              <Button 
+                size="sm" 
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg h-7 px-1.5 sm:px-2 text-xs whitespace-nowrap" 
+                onClick={() => setIsColumnSelectionModalOpen(true)}
+              >
                 <Printer className="w-3 h-3" />
-                <span className="hidden sm:inline ml-1">Print</span>
+                <span className="hidden md:inline ml-1">Print</span>
               </Button>
             </div>
           </div>
@@ -1229,21 +1241,6 @@ export default function FeesCollectionPage() {
         </div>
 
         {/* Class-Based Optimization Indicator - Hidden per user request */}
-
-        {/* Progressive Loading Indicator */}
-        <ProgressiveLoadingIndicator
-          processedCount={processedCount}
-          totalCount={totalCount}
-          currentBatch={currentBatch}
-          totalBatches={totalBatches}
-          isProcessing={isProcessing}
-          processingStatus={processingStatus}
-          progressPercentage={progressPercentage}
-          error={progressiveError}
-          totals={totals}
-          optimizationInfo={progressiveFeesData.optimizationInfo}
-          onRestart={restartProcessing}
-        />
 
         {/* Compact Filter Panel - Same design as Pupils page */}
         <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden">
@@ -1978,6 +1975,14 @@ export default function FeesCollectionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk SMS Modal */}
+      <BulkSMSModal
+        isOpen={isBulkSMSModalOpen}
+        onClose={() => setIsBulkSMSModalOpen(false)}
+        pupils={sortedPupils}
+        currentUser={user || undefined}
+      />
     </div>
   );
 } 

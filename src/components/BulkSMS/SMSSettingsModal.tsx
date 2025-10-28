@@ -84,8 +84,8 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
       apiKey: 'atsk_f6441bd8aa6d905da4199c5d824c45b46b81185c8f4663fa3b5c315a3cceb204687b3617',
       username: 'trinityfsch',
       baseUrl: 'https://api.africastalking.com/version1',
-      isActive: true,
-      isDefault: true,
+      isActive: false,
+      isDefault: false,
       features: {
         bulkSMS: true,
         deliveryReports: true,
@@ -140,8 +140,8 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
         username: 'mk.patricks95@gmail.com',
         senderId: 'TRINITY',
         baseUrl: 'https://wizasms.ug/API/V1',
-        isActive: false,
-        isDefault: false,
+        isActive: true,
+        isDefault: true,
         features: {
           bulkSMS: true,
           deliveryReports: false,
@@ -157,17 +157,26 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
     // Load providers from localStorage or API
     const savedProviders = localStorage.getItem('smsProviders');
     if (savedProviders) {
-      const parsedProviders = JSON.parse(savedProviders);
+      let parsedProviders = JSON.parse(savedProviders);
+      
       // Check if Wiza SMS is missing from saved providers
       const hasWizaSMS = parsedProviders.some((p: SMSProvider) => p.name === 'Wiza SMS');
       if (!hasWizaSMS) {
         // Add Wiza SMS to existing providers
-        const updatedProviders = [...parsedProviders, sampleProviders[3]]; // Wiza SMS is at index 3
-        setProviders(updatedProviders);
-        localStorage.setItem('smsProviders', JSON.stringify(updatedProviders));
-      } else {
-        setProviders(parsedProviders);
+        parsedProviders = [...parsedProviders, sampleProviders[3]]; // Wiza SMS is at index 3
       }
+      
+      // Ensure Wiza SMS is always set as default and active
+      parsedProviders = parsedProviders.map((p: SMSProvider) => {
+        if (p.name === 'Wiza SMS') {
+          return { ...p, isActive: true, isDefault: true };
+        } else {
+          return { ...p, isDefault: false };
+        }
+      });
+      
+      setProviders(parsedProviders);
+      localStorage.setItem('smsProviders', JSON.stringify(parsedProviders));
     } else {
       setProviders(sampleProviders);
       localStorage.setItem('smsProviders', JSON.stringify(sampleProviders));

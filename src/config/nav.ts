@@ -81,7 +81,7 @@ export const navItems: NavigationItem[] = [
     ],
   },
   {
-    title: 'Fees Collection',
+    title: 'Accounts',
     icon: Receipt,
     items: [
       {
@@ -94,17 +94,17 @@ export const navItems: NavigationItem[] = [
         href: '/fees/analytics',
         icon: TrendingUp,
       },
+      {
+        title: 'Banking',
+        href: '/banking/list',
+        icon: CreditCard,
+      },
+      {
+        title: 'Procurement',
+        href: '/procurement',
+        icon: ShoppingCart,
+      },
     ],
-  },
-  {
-    title: 'Banking',
-    href: '/banking/list',
-    icon: CreditCard,
-  },
-  {
-    title: 'Procurement',
-    href: '/procurement',
-    icon: ShoppingCart,
   },
   {
     title: 'Duty & Service',
