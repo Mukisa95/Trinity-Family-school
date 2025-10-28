@@ -276,13 +276,14 @@ export default function FeesCollectionPage() {
     staleTime: 2 * 60 * 1000, // 2 minutes - cache class-specific data longer
   });
 
-  // Fetch fee structures for the selected year and term
+  // Fetch fee structures for the selected year, term, and class
   const { data: availableFeeStructures = [], isLoading: isLoadingFeeStructures } = useQuery({
-    queryKey: ['fee-structures-for-filter', filters.year, filters.term],
+    queryKey: ['fee-structures-for-filter', filters.year, filters.term, filters.selectedClassId],
     queryFn: async () => {
       console.log('🚀 FEES COLLECTION PAGE - Fee structures query started!', {
         filtersYear: filters.year,
         filtersTerm: filters.term,
+        filtersClass: filters.selectedClassId,
         queryEnabled: true
       });
       
@@ -314,6 +315,21 @@ export default function FeesCollectionPage() {
           if (structure.category === 'Discount') {
             console.log(`❌ FEES COLLECTION PAGE - Fee "${structure.name}" rejected: is a discount`);
             return false;
+          }
+          
+          // Filter by selected term - only show fees for the selected term
+          if (filters.term && structure.termId && structure.termId !== filters.term) {
+            console.log(`❌ FEES COLLECTION PAGE - Fee "${structure.name}" rejected: wrong term (fee term: ${structure.termId}, selected: ${filters.term})`);
+            return false;
+          }
+          
+          // Filter by selected class - only show fees that apply to the selected class
+          if (filters.selectedClassId && structure.classIds && structure.classIds.length > 0) {
+            // If the fee has specific classIds, check if the selected class is included
+            if (!structure.classIds.includes(filters.selectedClassId)) {
+              console.log(`❌ FEES COLLECTION PAGE - Fee "${structure.name}" rejected: not for selected class (fee classes: ${structure.classIds.join(', ')}, selected: ${filters.selectedClassId})`);
+              return false;
+            }
           }
           
           // Include all assignment fees (they should appear in the filter)
