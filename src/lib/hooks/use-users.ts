@@ -9,9 +9,16 @@ const USERS_QUERY_KEY = 'users';
 
 // Get all users
 export function useUsers() {
+  const { user: currentUser } = useAuth();
   return useQuery({
     queryKey: [USERS_QUERY_KEY],
     queryFn: UsersService.getAllUsers,
+    // Hide Admin accounts from non-admin viewers
+    select: (allUsers: SystemUser[]) => {
+      if (!currentUser) return [] as SystemUser[];
+      if (currentUser.role === 'Admin') return allUsers;
+      return allUsers.filter(u => u.role !== 'Admin');
+    }
   });
 }
 

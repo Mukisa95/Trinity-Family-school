@@ -625,7 +625,7 @@ export default function UsersPage() {
       ) : (
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={`grid grid-cols-1 ${currentUser?.role === 'Admin' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-3`}>
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -650,17 +650,19 @@ export default function UsersPage() {
               </div>
             </Card>
             
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{filteredAdminUsers.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Full system access
-                  </p>
+            {currentUser?.role === 'Admin' && (
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold">{filteredAdminUsers.length}</div>
+                    <p className="text-xs text-muted-foreground">
+                      Full system access
+                    </p>
+                  </div>
+                  <Shield className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <Shield className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </Card>
+              </Card>
+            )}
           </div>
 
           {/* Search and Filters */}
@@ -767,7 +769,9 @@ export default function UsersPage() {
             <TabsList>
               <TabsTrigger value="staff">Staff Users ({filteredStaffUsers.length})</TabsTrigger>
               <TabsTrigger value="parents">Parent Users ({filteredParentUsers.length})</TabsTrigger>
-              <TabsTrigger value="admins">Admin Users ({filteredAdminUsers.length})</TabsTrigger>
+              {currentUser?.role === 'Admin' && (
+                <TabsTrigger value="admins">Admin Users ({filteredAdminUsers.length})</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="staff" className="space-y-4">
@@ -981,77 +985,79 @@ export default function UsersPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="admins" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Administrator Accounts</CardTitle>
-                  <CardDescription>
-                    Users with full system access and administrative privileges
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Username</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Last Login</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAdminUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            <div>
-                              {user.username}
-                              <UserSignatureDisplay 
-                                user={user} 
-                                variant="inline" 
-                                className="mt-1" 
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.isActive ? 'default' : 'secondary'}>
-                              {user.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => {
-                                  setEditingUser(user);
-                                  setIsEditDialogOpen(true);
-                                }}>
-                                  <Edit className="mr-2 h-4 w-4" /> Edit
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
+            {currentUser?.role === 'Admin' && (
+              <TabsContent value="admins" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Administrator Accounts</CardTitle>
+                    <CardDescription>
+                      Users with full system access and administrative privileges
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Last Login</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {filteredAdminUsers.length === 0 && (
-                    <div className="text-center text-muted-foreground py-8">
-                      No administrator accounts found.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAdminUsers.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">
+                              <div>
+                                {user.username}
+                                <UserSignatureDisplay 
+                                  user={user} 
+                                  variant="inline" 
+                                  className="mt-1" 
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                                {user.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => {
+                                    setEditingUser(user);
+                                    setIsEditDialogOpen(true);
+                                  }}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {filteredAdminUsers.length === 0 && (
+                      <div className="text-center text-muted-foreground py-8">
+                        No administrator accounts found.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       )}
