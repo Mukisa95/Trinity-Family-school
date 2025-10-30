@@ -2412,7 +2412,7 @@ export default function DashboardPage() {
             value={stats.totalPupils}
             icon={Users}
             color={cardColors.pupils}
-            onClick={() => handleCardClick('/pupils')}
+            onClick={() => handleCardClick('/pupils?classId=all&status=Active')}
             subtitle="Active students"
             isLoading={pupilsLoading}
           />
@@ -2421,7 +2421,7 @@ export default function DashboardPage() {
             value={stats.malePupils}
             icon={UserCheck}
             color={cardColors.male}
-            onClick={() => handleCardClick('/pupils')}
+            onClick={() => handleCardClick('/pupils?classId=all&gender=Male')}
             subtitle={`${stats.totalPupils ? Math.round((stats.malePupils / stats.totalPupils) * 100) : 0}% of total`}
             isLoading={pupilsLoading}
           />
@@ -2430,7 +2430,7 @@ export default function DashboardPage() {
             value={stats.femalePupils}
             icon={UserCheck}
             color={cardColors.female}
-            onClick={() => handleCardClick('/pupils')}
+            onClick={() => handleCardClick('/pupils?classId=all&gender=Female')}
             subtitle={`${stats.totalPupils ? Math.round((stats.femalePupils / stats.totalPupils) * 100) : 0}% of total`}
             isLoading={pupilsLoading}
           />

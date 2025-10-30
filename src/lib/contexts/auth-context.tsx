@@ -69,6 +69,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     let unsubscribe: (() => void) | undefined;
     let firebaseInitialized = false;
 
@@ -238,6 +243,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle auto lock on window close
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     if (!autoLockEnabled || !autoLockAction || !user) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -269,7 +279,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (authenticatedUser) {
         setUser(authenticatedUser);
-        localStorage.setItem('trinity_user', JSON.stringify(authenticatedUser));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('trinity_user', JSON.stringify(authenticatedUser));
+        }
         
         // Custom authentication successful
         console.log('Successfully authenticated with custom auth system');
@@ -281,7 +293,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Login error:', error);
       setUser(null);
-      localStorage.removeItem('trinity_user');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('trinity_user');
+      }
       return false;
     } finally {
       setIsLoading(false);
@@ -295,22 +309,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setHasStoredUser(false);
       setIsLocked(false);
-      localStorage.removeItem('trinity_user');
-      localStorage.removeItem('trinity_account_locked');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('trinity_user');
+        localStorage.removeItem('trinity_account_locked');
+      }
     } catch (error) {
       console.error('Error signing out from Firebase:', error);
       // Even if Firebase logout fails, clear local state
       setUser(null);
       setHasStoredUser(false);
       setIsLocked(false);
-      localStorage.removeItem('trinity_user');
-      localStorage.removeItem('trinity_account_locked');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('trinity_user');
+        localStorage.removeItem('trinity_account_locked');
+      }
     }
   };
 
   const lockAccount = () => {
     setIsLocked(true);
-    localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+    }
     console.log('Account locked');
   };
 
@@ -323,7 +343,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (authenticatedUser) {
         setIsLocked(false);
-        localStorage.removeItem('trinity_account_locked');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('trinity_account_locked');
+        }
         console.log('Account unlocked successfully');
         return true;
       }
@@ -337,12 +359,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleSetAutoLockEnabled = (enabled: boolean) => {
     setAutoLockEnabled(enabled);
-    localStorage.setItem('trinity_auto_lock', JSON.stringify(enabled));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trinity_auto_lock', JSON.stringify(enabled));
+    }
   };
 
   const setAutoLockAction = (action: 'lock' | 'signout') => {
     setAutoLockActionState(action);
-    localStorage.setItem('trinity_auto_lock_action', JSON.stringify(action));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trinity_auto_lock_action', JSON.stringify(action));
+    }
   };
 
   const refreshUser = async () => {
@@ -355,7 +381,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (updatedUser) {
         console.log('User data refreshed successfully:', updatedUser.username);
         setUser(updatedUser);
-        localStorage.setItem('trinity_user', JSON.stringify(updatedUser));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('trinity_user', JSON.stringify(updatedUser));
+        }
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);

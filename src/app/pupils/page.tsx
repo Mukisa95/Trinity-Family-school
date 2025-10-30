@@ -196,6 +196,19 @@ function PupilsContent() {
     houseId: '',
     ageRange: { min: 0, max: 100 }
   });
+
+  // Update filters when URL parameters change (e.g., when navigating from dashboard cards)
+  useEffect(() => {
+    const genderParam = searchParams?.get('gender');
+    const statusParam = searchParams?.get('status');
+    
+    setFilters(prev => ({
+      ...prev,
+      gender: genderParam || '',
+      status: statusParam || 'Active'
+    }));
+  }, [searchParams]);
+
   const [statusChangeModal, setStatusChangeModal] = useState<{
     isOpen: boolean;
     pupil: Pupil | null;
@@ -270,8 +283,8 @@ function PupilsContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50); // Default: 50 pupils per page
 
-  // Optimized: Firebase hooks with class-based loading - starts with NO class selected for faster initial load
-  const pupilsManager = useClassPupilsManager('');
+  // Optimized: Firebase hooks with class-based loading - starts with "all classes" selected
+  const pupilsManager = useClassPupilsManager('all');
   const { 
     filteredPupils: pupils = [], 
     isLoading: isLoadingPupils, 
@@ -288,6 +301,19 @@ function PupilsContent() {
     classCount,
     statistics
   } = pupilsManager;
+
+  // Set class selector to "all classes" when navigating from dashboard with filters
+  useEffect(() => {
+    const classIdParam = searchParams?.get('classId');
+    
+    // If classId is 'all' or empty, set to 'all' which represents "all classes" in ClassSelector
+    if (classIdParam === 'all' || classIdParam === '') {
+      handleClassChange('all');
+    } else if (classIdParam) {
+      // If a specific classId is provided, use it
+      handleClassChange(classIdParam);
+    }
+  }, [searchParams, handleClassChange]);
 
   // Reset to page 1 when filters/search/class changes
   useEffect(() => {
