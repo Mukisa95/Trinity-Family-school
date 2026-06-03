@@ -566,6 +566,18 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       feeName: string;
       maxAmount: number;
       selectedAmount: number;
+      isCarryForward?: boolean;
+      feeBreakdown?: Array<{
+        name: string;
+        amount: number;
+        paid: number;
+        balance: number;
+        term: string;
+        year: string;
+        feeStructureId?: string;
+        termId?: string;
+        academicYearId?: string;
+      }>;
     }>;
     paidBy: string;
   }) => {
@@ -609,12 +621,49 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           const isUniformFee = UniformFeesIntegrationService.isUniformFee(
             fee as any
           );
+          const isCarryForwardFee =
+            feeSelection.isCarryForward ||
+            feeSelection.feeId === 'previous-balance' ||
+            fee.id === 'previous-balance';
 
-          let paymentId: string;
+          let signatureTargets: Array<{
+            paymentId: string;
+            amount: number;
+            feeName: string;
+            paymentType: 'uniform' | 'carry-forward' | 'regular';
+          }> = [];
 
-          if (isUniformFee) {
+          if (isCarryForwardFee) {
+            const feeBreakdown = feeSelection.feeBreakdown || fee.feeBreakdown || [];
+            const carryForwardPaymentData = {
+              pupilId: pupil.id,
+              currentTermId: selectedTermId,
+              currentAcademicYearId: selectedAcademicYear.id,
+              amount: feeSelection.selectedAmount,
+              paymentType: 'general' as const,
+              feeBreakdown,
+              paidBy: paidByUser
+            };
+
+            const validation = validateCarryForwardPayment(carryForwardPaymentData);
+            if (!validation.isValid) {
+              throw new Error(validation.error || 'Invalid carry forward payment');
+            }
+
+            const result = await processCarryForwardPayment(carryForwardPaymentData);
+            if (!result.success) {
+              throw new Error(result.message || 'Failed to create carry forward payment');
+            }
+
+            signatureTargets = result.paymentIds.map((paymentId, index) => ({
+              paymentId,
+              amount: result.distributions[index]?.allocatedAmount || feeSelection.selectedAmount,
+              feeName: result.distributions[index]?.item?.name || feeSelection.feeName,
+              paymentType: 'carry-forward' as const
+            }));
+          } else if (isUniformFee) {
             // Uniform fee payment through integration service
-            paymentId =
+            const paymentId =
               await UniformFeesIntegrationService.createUniformPaymentRecord(
                 fee as any,
                 feeSelection.selectedAmount,
@@ -623,6 +672,12 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 selectedTermId,
                 paidByUser
               );
+            signatureTargets = [{
+              paymentId,
+              amount: feeSelection.selectedAmount,
+              feeName: feeSelection.feeName,
+              paymentType: 'uniform'
+            }];
           } else {
             // Regular fee payment via API (for notifications)
             const paymentRecord = {
@@ -659,11 +714,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             }
 
             const result = await response.json();
-            paymentId = result.paymentId;
+            signatureTargets = [{
+              paymentId: result.paymentId,
+              amount: feeSelection.selectedAmount,
+              feeName: feeSelection.feeName,
+              paymentType: 'regular'
+            }];
             await HistoryLogService.log({
               action: 'create',
               entity: 'payment',
-              recordId: paymentId,
+              recordId: result.paymentId,
               label: feeSelection.feeName,
               meta: {
                 amount: feeSelection.selectedAmount,
@@ -681,20 +741,22 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           }
 
           // Digital signature for each payment
-          await signAction('fee_payment', paymentId, 'collected', {
-            amount: feeSelection.selectedAmount,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
-            feeName: feeSelection.feeName,
-            academicYear: selectedAcademicYear.name,
-            term: selectedTermId,
-            paymentType: isUniformFee ? 'uniform' : 'regular',
-            paymentMethod: paymentData.paymentMethod,
-            paidBy: paymentData.paidBy,
-            receivedBy: user.username,
-            source: 'multi_fee_payment'
-          });
+          await Promise.all(signatureTargets.map(signature =>
+            signAction('fee_payment', signature.paymentId, 'collected', {
+              amount: signature.amount,
+              pupilName: `${pupil.firstName} ${pupil.lastName}`,
+              feeName: signature.feeName,
+              academicYear: selectedAcademicYear.name,
+              term: selectedTermId,
+              paymentType: signature.paymentType,
+              paymentMethod: paymentData.paymentMethod,
+              paidBy: paymentData.paidBy,
+              receivedBy: user.username,
+              source: 'multi_fee_payment'
+            })
+          ));
 
-          return paymentId;
+          return signatureTargets.map(signature => signature.paymentId);
         })
       );
 
@@ -711,6 +773,12 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }),
         queryClient.invalidateQueries({
           queryKey: ['previous-balance', pupil.id]
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['family-payments-all']
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['family-previous-balances']
         }),
         queryClient.invalidateQueries({
           queryKey: ['uniform-fees', pupil.id]
@@ -887,6 +955,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
       // Invalidate related queries in the background (no await - let React Query handle it)
       queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
+      queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
+      queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
       queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
       queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
       queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
@@ -1004,6 +1074,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
         // Invalidate related queries in the background (no await - let React Query handle it)
         queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
+        queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
         queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
         queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
         queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
@@ -2279,6 +2351,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             id: fee.id,
             name: fee.name,
             balance: fee.balance,
+            feeBreakdown: fee.feeBreakdown,
             isCarryForward:
               fee.id === 'previous-balance' ||
               (fee as any).isCarryForward
