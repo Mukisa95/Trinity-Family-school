@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Force Service Worker Update</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover { background: #45a049; }
+    .log {
+      background: #263238;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      margin: 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success { color: #4CAF50; }
+    .error { color: #f44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Force Service Worker Update</h1>
+    <p>This will unregister the old service worker and install the new one with enhanced logging.</p>
+    
+    <button onclick="forceUpdate()">🔄 Update Service Worker Now</button>
+    <button onclick="checkStatus()">✅ Check Status</button>
+    
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const log = (msg, type = 'info') => {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+      logDiv.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(msg);
+    };
+
+    async function forceUpdate() {
+      log('🔄 Starting service worker update...');
+      
+      try {
+        // Step 1: Unregister all existing service workers
+        log('Step 1: Unregistering old service workers...');
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        log(`Found ${registrations.length} service worker(s)`);
+        
+        for (const reg of registrations) {
+          await reg.unregister();
+          log('✅ Unregistered: ' + reg.scope);
+        }
+        
+        // Step 2: Clear caches
+        log('Step 2: Clearing caches...');
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+          log('✅ Deleted cache: ' + name);
+        }
+        
+        // Step 3: Register new service worker
+        log('Step 3: Registering new service worker...');
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          updateViaCache: 'none' // Don't use cached version
+        });
+        
+        log('✅ New service worker registered!');
+        log('Scope: ' + registration.scope);
+        
+        // Step 4: Wait for activation
+        log('Step 4: Waiting for activation...');
+        
+        if (registration.installing) {
+          log('Service worker is installing...');
+          await new Promise((resolve) => {
+            registration.installing.addEventListener('statechange', (e) => {
+              log('State changed to: ' + e.target.state);
+              if (e.target.state === 'activated') {
+                resolve();
+              }
+            });
+          });
+        } else if (registration.waiting) {
+          log('Service worker is waiting...');
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } else if (registration.active) {
+          log('✅ Service worker is already active!');
+        }
+        
+        log('✅✅✅ UPDATE COMPLETE! ✅✅✅', 'success');
+        log('');
+        log('Next steps:', 'success');
+        log('1. Close ALL browser tabs for this site', 'success');
+        log('2. Reopen the site', 'success');
+        log('3. Re-enable push notifications (click bell icon)', 'success');
+        log('4. Send a test notification', 'success');
+        log('5. Check console for "🔔 PUSH EVENT RECEIVED"', 'success');
+        
+      } catch (error) {
+        log('❌ ERROR: ' + error.message, 'error');
+        log('Stack: ' + error.stack, 'error');
+      }
+    }
+
+    async function checkStatus() {
+      log('🔍 Checking status...');
+      
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        log('❌ No service worker registered', 'error');
+        return;
+      }
+      
+      log('✅ Service worker found:');
+      log('  Scope: ' + reg.scope);
+      log('  Active: ' + !!reg.active);
+      log('  State: ' + (reg.active ? reg.active.state : 'none'));
+      
+      if (reg.active) {
+        log('✅ Service worker is ready!', 'success');
+      } else {
+        log('⚠️ Service worker not active yet', 'error');
+      }
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      log('🚀 Service Worker Updater ready');
+      log('Click "Update Service Worker Now" to begin');
+    });
+  </script>
+</body>
+</html>
+

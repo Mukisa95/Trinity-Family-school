@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push Notification Debug Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    .status {
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 5px;
+      border-left: 4px solid #2196F3;
+      background: #E3F2FD;
+    }
+    .success {
+      border-left-color: #4CAF50;
+      background: #E8F5E9;
+    }
+    .error {
+      border-left-color: #f44336;
+      background: #FFEBEE;
+    }
+    .warning {
+      border-left-color: #ff9800;
+      background: #FFF3E0;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .log {
+      background: #263238;
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 20px 0;
+    }
+    .log-line {
+      margin: 3px 0;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔔 Push Notification Debug Tool</h1>
+    
+    <div id="status" class="status">
+      Checking service worker status...
+    </div>
+
+    <div>
+      <button onclick="checkServiceWorker()">1️⃣ Check Service Worker</button>
+      <button onclick="requestPermission()">2️⃣ Request Permission</button>
+      <button onclick="testLocalNotification()">3️⃣ Test Local Notification</button>
+      <button onclick="showServiceWorkerLogs()">📋 Show SW Logs</button>
+      <button onclick="clearLogs()">🗑️ Clear Logs</button>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div style="margin-top: 20px;">
+      <h3>Instructions:</h3>
+      <ol>
+        <li>Click "Check Service Worker" to verify it's registered</li>
+        <li>Click "Request Permission" to enable notifications</li>
+        <li>Click "Test Local Notification" to see if browser can show notifications</li>
+        <li>Try sending a notification from your app</li>
+        <li>Check "Show SW Logs" to see what the service worker received</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const log = (message, type = 'info') => {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const color = type === 'error' ? '#ff5252' : 
+                    type === 'success' ? '#4CAF50' : 
+                    type === 'warning' ? '#ff9800' : '#00ff00';
+      
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      line.innerHTML = `<span style="color: #888">[${timestamp}]</span> <span style="color: ${color}">${message}</span>`;
+      logDiv.appendChild(line);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      
+      console.log(message);
+    };
+
+    const updateStatus = (message, type = 'status') => {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    };
+
+    const clearLogs = () => {
+      document.getElementById('log').innerHTML = '';
+      log('Logs cleared', 'info');
+    };
+
+    async function checkServiceWorker() {
+      log('🔍 Checking service worker...', 'info');
+      
+      if (!('serviceWorker' in navigator)) {
+        log('❌ Service Worker not supported', 'error');
+        updateStatus('❌ Service Worker not supported in this browser', 'error');
+        return;
+      }
+      
+      log('✅ Service Worker API supported', 'success');
+      
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        
+        if (!registration) {
+          log('⚠️ No service worker registered', 'warning');
+          updateStatus('⚠️ No service worker registered', 'warning');
+          return;
+        }
+        
+        log(`✅ Service Worker registered`, 'success');
+        log(`   Scope: ${registration.scope}`, 'info');
+        log(`   Active: ${!!registration.active}`, registration.active ? 'success' : 'warning');
+        log(`   Installing: ${!!registration.installing}`, 'info');
+        log(`   Waiting: ${!!registration.waiting}`, 'info');
+        
+        if (registration.active) {
+          log(`   State: ${registration.active.state}`, 'success');
+          updateStatus('✅ Service Worker is active and ready', 'success');
+        } else {
+          updateStatus('⚠️ Service Worker registered but not active', 'warning');
+        }
+        
+        // Check push manager
+        if ('pushManager' in registration) {
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            log('✅ Push subscription exists', 'success');
+            log(`   Endpoint: ${subscription.endpoint.substring(0, 50)}...`, 'info');
+          } else {
+            log('⚠️ No push subscription found', 'warning');
+          }
+        }
+        
+      } catch (error) {
+        log(`❌ Error checking service worker: ${error.message}`, 'error');
+        updateStatus('❌ Error checking service worker', 'error');
+      }
+    }
+
+    async function requestPermission() {
+      log('🔔 Requesting notification permission...', 'info');
+      
+      if (!('Notification' in window)) {
+        log('❌ Notifications not supported', 'error');
+        updateStatus('❌ Notifications not supported', 'error');
+        return;
+      }
+      
+      log(`Current permission: ${Notification.permission}`, 'info');
+      
+      if (Notification.permission === 'granted') {
+        log('✅ Permission already granted', 'success');
+        updateStatus('✅ Notification permission granted', 'success');
+        return;
+      }
+      
+      if (Notification.permission === 'denied') {
+        log('❌ Permission denied - You need to reset in browser settings', 'error');
+        updateStatus('❌ Permission denied - Reset in browser settings', 'error');
+        return;
+      }
+      
+      try {
+        const permission = await Notification.requestPermission();
+        log(`Permission result: ${permission}`, permission === 'granted' ? 'success' : 'error');
+        updateStatus(
+          permission === 'granted' ? '✅ Permission granted!' : '❌ Permission denied',
+          permission === 'granted' ? 'success' : 'error'
+        );
+      } catch (error) {
+        log(`❌ Error requesting permission: ${error.message}`, 'error');
+      }
+    }
+
+    async function testLocalNotification() {
+      log('🧪 Testing local notification...', 'info');
+      
+      if (Notification.permission !== 'granted') {
+        log('⚠️ Permission not granted. Click "Request Permission" first.', 'warning');
+        return;
+      }
+      
+      try {
+        // Try with service worker first
+        const registration = await navigator.serviceWorker.getRegistration();
+        
+        if (registration && registration.active) {
+          log('📤 Showing notification via Service Worker...', 'info');
+          await registration.showNotification('Test Notification', {
+            body: 'This is a test notification from the debug tool',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'test-notification',
+            requireInteraction: false,
+            vibrate: [200, 100, 200],
+            timestamp: Date.now()
+          });
+          log('✅ Service Worker notification shown!', 'success');
+          updateStatus('✅ Notification shown successfully!', 'success');
+        } else {
+          log('📤 Showing direct notification (no SW)...', 'info');
+          new Notification('Test Notification', {
+            body: 'This is a test notification from the debug tool',
+            icon: '/icon-192.png'
+          });
+          log('✅ Direct notification shown!', 'success');
+          updateStatus('✅ Notification shown (without SW)', 'success');
+        }
+        
+        log('💡 Did you see the notification?', 'info');
+        log('   If NO: Check Windows notification settings', 'warning');
+        log('   If YES: Push notifications should work!', 'success');
+        
+      } catch (error) {
+        log(`❌ Error showing notification: ${error.message}`, 'error');
+        log(`   ${error.stack}`, 'error');
+        updateStatus('❌ Failed to show notification', 'error');
+      }
+    }
+
+    async function showServiceWorkerLogs() {
+      log('📋 Opening Service Worker console...', 'info');
+      log('💡 To see Service Worker logs:', 'info');
+      log('   1. Press F12 (open DevTools)', 'info');
+      log('   2. Go to "Application" tab', 'info');
+      log('   3. Click "Service Workers" in sidebar', 'info');
+      log('   4. Look for console messages from SW', 'info');
+      log('', 'info');
+      log('🔍 Or check Console tab and look for:', 'info');
+      log('   "🔔🔔🔔 PUSH EVENT RECEIVED!"', 'success');
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      log('🚀 Push Notification Debug Tool loaded', 'success');
+      log('Click "Check Service Worker" to begin', 'info');
+      checkServiceWorker();
+    });
+
+    // Listen for messages from service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        log(`📨 Message from SW: ${JSON.stringify(event.data)}`, 'info');
+      });
+    }
+  </script>
+</body>
+</html>
+

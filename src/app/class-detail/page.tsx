@@ -1,0 +1,2185 @@
+'use client';
+import { SmartBackButton } from "@/components/common/SmartBackButton";
+
+import React, { Suspense } from 'react';
+import { flushSync } from 'react-dom';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PageHeader } from '@/components/common/page-header';
+import { DetailItem } from '@/components/common/detail-item';
+import { useClassDetail } from '@/lib/hooks/use-class-detail';
+import { useExamsByClass } from '@/lib/hooks/use-exams';
+import { useActiveAcademicYear, useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useTerms } from '@/lib/hooks/use-terms';
+import { useStaff } from '@/lib/hooks/use-staff';
+import { useSubjectsByClass, useSubjects } from '@/lib/hooks/use-subjects';
+import { useActivePupilsByClass, usePupilsByStatus, usePupilPhotos, usePupils } from '@/lib/hooks/use-pupils';
+import { useUpdateClass } from '@/lib/hooks/use-classes';
+import { getCurrentTerm } from '@/lib/utils/academic-year-utils';
+import { Pupil, Class, ClassLevel, Staff, SubjectAssignment, AcademicYear, Term } from '@/types';
+import { CLASS_LEVELS } from '@/lib/constants';
+import {
+  ArrowLeft,
+  Edit,
+  Search,
+  Filter,
+  Info,
+  Users,
+  BookOpen,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  User,
+  Loader2,
+  X,
+  Crown,
+  Award,
+  History,
+  GraduationCap,
+  Clock,
+  Save,
+  School,
+  Book,
+  Baby,
+  Check,
+  FileText
+} from 'lucide-react';
+import {
+  ModernDialog,
+  ModernDialogContent,
+  ModernDialogDescription,
+  ModernDialogHeader,
+  ModernDialogTitle,
+} from "@/components/ui/modern-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { PupilRequirementsModal } from "@/components/class/pupil-requirements-modal";
+import { ClassRequirementsOverviewModal } from "@/components/class/class-requirements-overview-modal";
+
+// Searchable Pupil Selector Component
+function SearchablePupilSelector({
+  value,
+  onValueChange,
+  pupils,
+  editingClass,
+  disabledIds = [],
+  icon: Icon,
+  iconClassName,
+  buttonClassName,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  pupils: any[];
+  editingClass: Class | null;
+  disabledIds?: string[];
+  icon: React.ComponentType<{ className?: string }>;
+  iconClassName?: string;
+  buttonClassName?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  const availablePupils = editingClass
+    ? pupils.filter((pupil: any) => pupil.classId === editingClass.id && pupil.status === 'Active' && !disabledIds.includes(pupil.id))
+    : pupils.filter((pupil: any) => pupil.status === 'Active' && !disabledIds.includes(pupil.id));
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className={cn("h-8 w-8 p-0 rounded-lg border-2 border-amber-300 bg-white hover:border-amber-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all duration-200 flex-shrink-0", buttonClassName)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(!open);
+          }}
+        >
+          <Icon className={cn("h-4 w-4 text-amber-600", iconClassName)} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[300px] p-0 !z-[100000]"
+        align="end"
+        side="bottom"
+        sideOffset={4}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('[role="dialog"]')) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <Command>
+          <CommandInput placeholder="Search pupil..." />
+          <CommandList>
+            <CommandEmpty>No pupils found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="none"
+                onSelect={(currentValue) => {
+                  if (currentValue === "none") {
+                    onValueChange("");
+                    setOpen(false);
+                  }
+                }}
+              >
+                <Check className={cn("mr-2 h-4 w-4", !value ? "opacity-100" : "opacity-0")} />
+                None
+              </CommandItem>
+              {availablePupils.map((pupil: any) => {
+                const searchValue = `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNumber} ${pupil.className || ''}`;
+                const label = editingClass
+                  ? `${pupil.firstName} ${pupil.lastName} (${pupil.admissionNumber})`
+                  : `${pupil.firstName} ${pupil.lastName} (${pupil.admissionNumber}) - ${pupil.className || 'Unassigned'}`;
+                return (
+                  <CommandItem
+                    key={pupil.id}
+                    value={searchValue}
+                    onSelect={() => {
+                      onValueChange(pupil.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", value === pupil.id ? "opacity-100" : "opacity-0")} />
+                    {label}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Searchable Teacher Selector Component
+function SearchableTeacherSelector({
+  value,
+  onValueChange,
+  teachers,
+  disabledIds = [],
+  allowNone = false,
+  icon: Icon,
+  iconClassName,
+  buttonClassName,
+}: {
+  value: string;
+  onValueChange: (value: string) => void;
+  teachers: any[];
+  disabledIds?: string[];
+  allowNone?: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  iconClassName?: string;
+  buttonClassName?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  const availableTeachers = teachers.filter((teacher: any) => !disabledIds.includes(teacher.id));
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className={cn("h-8 w-8 p-0 rounded-lg border-2 border-green-300 bg-white hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all duration-200 flex-shrink-0", buttonClassName)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(!open);
+          }}
+        >
+          <Icon className={cn("h-4 w-4 text-green-600", iconClassName)} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[300px] p-0 !z-[100000]"
+        align="end"
+        side="bottom"
+        sideOffset={4}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('[role="dialog"]')) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <Command>
+          <CommandInput placeholder="Search teacher..." />
+          <CommandList>
+            <CommandEmpty>No teachers found.</CommandEmpty>
+            <CommandGroup>
+              {allowNone && (
+                <CommandItem
+                  value="none"
+                  onSelect={(currentValue) => {
+                    if (currentValue === "none") {
+                      onValueChange("");
+                      setOpen(false);
+                    }
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", !value ? "opacity-100" : "opacity-0")} />
+                  None
+                </CommandItem>
+              )}
+              {availableTeachers.length === 0 && (
+                <CommandItem value="no-teachers" disabled>
+                  No teaching staff available
+                </CommandItem>
+              )}
+              {availableTeachers.map((teacher: any) => {
+                const searchValue = `${teacher.firstName} ${teacher.lastName}`;
+                const label = `${teacher.firstName} ${teacher.lastName}`;
+                return (
+                  <CommandItem
+                    key={teacher.id}
+                    value={searchValue}
+                    onSelect={() => {
+                      onValueChange(teacher.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", value === teacher.id ? "opacity-100" : "opacity-0")} />
+                    {label}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Calculate age from date of birth
+function calculateAge(dateOfBirth: string): number {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  return age;
+}
+
+// Pupil Card for tiles view
+function PupilCard({
+  pupil,
+  classDetail,
+  isLoadingPhoto = false
+}: {
+  pupil: Pupil;
+  classDetail?: Class;
+  isLoadingPhoto?: boolean;
+}) {
+  const age = pupil.dateOfBirth ? calculateAge(pupil.dateOfBirth) : null;
+
+  const getInitials = () => {
+    return `${pupil.firstName.charAt(0)}${pupil.lastName.charAt(0)}`;
+  };
+
+  return (
+    <Card className="shadow-md hover:shadow-xl transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 group rounded-xl overflow-hidden bg-gradient-to-br from-card via-card to-muted/5 backdrop-blur-sm">
+      <CardContent className="p-4">
+        {/* Header Section */}
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="relative">
+            <Avatar className={`w-10 h-10 flex-shrink-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 ${isLoadingPhoto ? 'animate-pulse' : ''
+              }`}>
+              {pupil.photo && pupil.photo.trim() !== '' ? (
+                <>
+                  <AvatarImage
+                    src={pupil.photo}
+                    alt={`${pupil.firstName} ${pupil.lastName}`}
+                    className={`object-cover transition-opacity duration-500 ${isLoadingPhoto ? 'opacity-30' : 'opacity-100'
+                      }`}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  {isLoadingPhoto && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200/50 via-indigo-200/50 to-purple-200/50 animate-pulse">
+                      <div className="h-2 w-2 rounded-full bg-blue-400 animate-ping" />
+                    </div>
+                  )}
+                </>
+              ) : null}
+              <AvatarFallback className={`transition-all duration-300 ${isLoadingPhoto
+                ? 'bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 text-gray-400 animate-pulse'
+                : 'bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground'
+                } font-medium text-sm`}>
+                {getInitials()}
+              </AvatarFallback>
+            </Avatar>
+            {isLoadingPhoto && (
+              <div
+                className="absolute -inset-1 rounded-full border-2 border-blue-400 border-dashed animate-spin opacity-50"
+                style={{ animationDuration: '2s' }}
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/pupil-detail?id=${pupil.id}`}
+                className="font-semibold text-sm hover:text-primary hover:underline cursor-pointer transition-colors truncate"
+                title={`${pupil.firstName} ${pupil.lastName}`}
+              >
+                {pupil.firstName} {pupil.lastName}
+              </Link>
+              {classDetail?.classCaptainId === pupil.id && (
+                <Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Class Captain" />
+              )}
+              {classDetail?.assistantClassCaptainId === pupil.id && (
+                <Award className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Assistant Class Captain" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {pupil.admissionNumber}
+            </p>
+          </div>
+        </div>
+
+        {/* Info Grid - No Labels */}
+        <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+          <div className="text-center">
+            <Badge variant="outline" className="text-xs px-2.5 py-1 rounded-lg border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+              {pupil.section || 'N/A'}
+            </Badge>
+          </div>
+          <div className="text-center">
+            <span className="font-medium">{pupil.gender}</span>
+          </div>
+          <div className="text-center">
+            <span className="font-medium">{age ? `${age}y` : 'N/A'}</span>
+          </div>
+        </div>
+
+      </CardContent>
+    </Card>
+  );
+}
+
+// Pupil List Row for desktop view
+function PupilListRow({
+  pupil,
+  classDetail,
+  isLoadingPhoto = false,
+  onOpenRequirements
+}: {
+  pupil: Pupil;
+  classDetail?: Class;
+  isLoadingPhoto?: boolean;
+  onOpenRequirements?: (pupilId: string) => void;
+}) {
+  const age = pupil.dateOfBirth ? calculateAge(pupil.dateOfBirth) : null;
+
+  return (
+    <tr className="hover:bg-muted/30 transition-colors group">
+      <td className="px-3 py-3">
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <Avatar className={`w-7 h-7 flex-shrink-0 shadow-md hover:shadow-lg transition-all duration-300 ${isLoadingPhoto ? 'animate-pulse' : ''
+              }`}>
+              {pupil.photo && pupil.photo.trim() !== '' ? (
+                <>
+                  <AvatarImage
+                    src={pupil.photo}
+                    alt={`${pupil.firstName} ${pupil.lastName}`}
+                    className={`object-cover transition-opacity duration-500 ${isLoadingPhoto ? 'opacity-30' : 'opacity-100'
+                      }`}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  {isLoadingPhoto && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-200/50 via-indigo-200/50 to-purple-200/50 animate-pulse">
+                      <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-ping" />
+                    </div>
+                  )}
+                </>
+              ) : null}
+              <AvatarFallback className={`transition-all duration-300 ${isLoadingPhoto
+                ? 'bg-gradient-to-br from-blue-200 via-indigo-200 to-purple-200 text-gray-400 animate-pulse'
+                : 'bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground'
+                } font-medium text-xs`}>
+                {pupil.firstName.charAt(0)}{pupil.lastName.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            {isLoadingPhoto && (
+              <div
+                className="absolute -inset-0.5 rounded-full border border-blue-400 border-dashed animate-spin opacity-50"
+                style={{ animationDuration: '2s' }}
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/pupil-detail?id=${pupil.id}`}
+                className="font-medium text-sm truncate hover:text-primary hover:underline cursor-pointer transition-colors"
+              >
+                {pupil.firstName} {pupil.lastName}
+              </Link>
+              {classDetail?.classCaptainId === pupil.id && (
+                <Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Class Captain" />
+              )}
+              {classDetail?.assistantClassCaptainId === pupil.id && (
+                <Award className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Assistant Class Captain" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {pupil.admissionNumber}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <Badge variant="outline" className="text-xs px-2.5 py-1 rounded-lg border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          {pupil.section || 'N/A'}
+        </Badge>
+      </td>
+      <td className="px-3 py-3 text-xs font-medium">{pupil.gender}</td>
+      <td className="px-3 py-3 text-xs font-medium">{age ? `${age}y` : 'N/A'}</td>
+      <td className="px-3 py-3">
+        {onOpenRequirements && (
+          <Button
+            onClick={() => onOpenRequirements(pupil.id)}
+            size="sm"
+            variant="outline"
+            className="text-xs h-7 px-2"
+          >
+            <FileText className="w-3 h-3 mr-1" />
+            Open
+          </Button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function ClassDetailContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const classId = searchParams?.get('id') || null;
+  const [showSubjects, setShowSubjects] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<'tiles' | 'list'>('list');
+  const [sortBy, setSortBy] = React.useState<'name' | 'section' | 'gender' | 'age'>('name');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
+  const [searchExpanded, setSearchExpanded] = React.useState(false);
+
+  // Responsive view mode - automatically switch based on screen size
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) { // Large screens
+        setViewMode('list');
+      } else { // Small screens
+        setViewMode('tiles');
+      }
+    };
+    handleResize(); // Set initial view mode
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // State for exam loading
+  const [shouldLoadExams, setShouldLoadExams] = React.useState(false);
+  const [showExamsDropdown, setShowExamsDropdown] = React.useState(false);
+
+  // State for subjects loading
+  const [shouldLoadSubjects, setShouldLoadSubjects] = React.useState(false);
+  const [examFilters, setExamFilters] = React.useState({
+    academicYearId: '',
+    termId: ''
+  });
+
+  // State for filters
+  const [filters, setFilters] = React.useState({
+    search: '',
+    section: 'all',
+    status: 'all',
+    gender: 'all',
+    ageMin: '',
+    ageMax: ''
+  });
+
+  // State for requirements modal
+  const [isRequirementsModalOpen, setIsRequirementsModalOpen] = React.useState(false);
+  const [selectedPupilIdForRequirements, setSelectedPupilIdForRequirements] = React.useState<string | null>(null);
+
+  // State for class requirements overview modal
+  const [isClassRequirementsModalOpen, setIsClassRequirementsModalOpen] = React.useState(false);
+
+  const handleOpenRequirements = (pupilId: string) => {
+    setSelectedPupilIdForRequirements(pupilId);
+    setIsRequirementsModalOpen(true);
+  };
+
+  const handleCloseRequirements = () => {
+    setIsRequirementsModalOpen(false);
+    setSelectedPupilIdForRequirements(null);
+  };
+
+  // 🚀 OPTIMIZED: Fetch data using cache-first strategy
+  const { data: classDetail, isLoading: classLoading } = useClassDetail(classId || '');
+
+  // 🚀 REAL-TIME: Use the main usePupils hook which has the Firestore listener
+  // This ensures we get real-time updates when pupils are added/removed/changed
+  const { data: allPupils = [], isLoading: allPupilsLoading } = usePupils();
+
+  // Filter for ACTIVE pupils in this class on the client side
+  // This is instant and keeps the UI in sync with the global pupil state
+  const pupilsInClass = React.useMemo(() => {
+    if (!classId) return [];
+    return allPupils.filter(p => p.classId === classId && p.status === 'Active');
+  }, [allPupils, classId]);
+
+  // 🚀 CRITICAL: Only show loading if we don't have cached data
+  // If we have cached data (even if stale), show it immediately
+  const hasCachedData = (classDetail && pupilsInClass.length > 0);
+  // Only consider loading if we really have no data to show
+  const isLoading = !hasCachedData && (classLoading || (allPupilsLoading && allPupils.length === 0));
+
+  // Check if this class has any graduated pupils (for showing the Graduated Class button)
+  // Only fetch graduated pupils to check if the button should be shown
+  const { data: graduatedPupils = [] } = usePupilsByStatus('Graduated');
+  const hasGraduates = React.useMemo(() => {
+    if (!classId) return false;
+    return graduatedPupils.some((pupil: any) =>
+      pupil.graduationClassId === classId
+    );
+  }, [graduatedPupils, classId]);
+
+  // 🚀 CRITICAL: Use flushSync to force immediate DOM update when data arrives
+  const [showContent, setShowContent] = React.useState(false);
+  React.useEffect(() => {
+    // If we have pupils (or if loaded and empty), show content
+    if ((pupilsInClass.length > 0 || !isLoading) && !showContent) {
+      flushSync(() => {
+        setShowContent(true);
+      });
+    }
+  }, [pupilsInClass.length, isLoading, showContent]);
+
+  const { data: allSubjects = [] } = useSubjects();
+  const { data: allStaff = [] } = useStaff();
+  const updateClassMutation = useUpdateClass();
+  const { toast } = useToast();
+
+  // 🚀 OPTIMIZED: Batch fetch all requirement tracking data for the class
+  const { data: activeAcademicYear } = useActiveAcademicYear();
+  const { data: allAcademicYears = [] } = useAcademicYears();
+  const currentTerm = activeAcademicYear ? getCurrentTerm(activeAcademicYear) : null;
+
+  // Filter teaching staff
+  const teachingStaff: Staff[] = allStaff.filter((s: Staff) => {
+    const hasTeachingDepartment = Array.isArray(s.department)
+      ? s.department.includes('Teaching')
+      : s.department === 'Teaching';
+    const hasTeachingRoles = Array.isArray(s.role) && s.role.some(role =>
+      ['TEACHER', 'HEAD TEACHER', 'DEPUTY HEAD TEACHER', 'DIRECTOR OF STUDIES',
+        'HEAD OF DEPARTMENT', 'SENIOR TEACHER', 'TEACHING ASSISTANT'].includes(role)
+    );
+    return hasTeachingDepartment || hasTeachingRoles;
+  });
+
+  // Edit dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [className, setClassName] = React.useState("");
+  const [classCode, setClassCode] = React.useState("");
+  const [level, setLevel] = React.useState<ClassLevel>("Lower Primary");
+  const [classOrder, setClassOrder] = React.useState<string>("");
+  const [classTeacherId, setClassTeacherId] = React.useState("");
+  const [coClassTeacherId, setCoClassTeacherId] = React.useState("");
+  const [classCaptainId, setClassCaptainId] = React.useState("");
+  const [assistantClassCaptainId, setAssistantClassCaptainId] = React.useState("");
+  const [selectedSubjectIds, setSelectedSubjectIds] = React.useState<string[]>([]);
+  const [subjectTeacherAssignments, setSubjectTeacherAssignments] = React.useState<Record<string, string[]>>({});
+  const [expandedSubjects, setExpandedSubjects] = React.useState<Set<string>>(new Set());
+  const [isSubjectAssignmentsOpen, setIsSubjectAssignmentsOpen] = React.useState(false);
+
+  // 🖼️ OPTIMIZED: Load photos separately after pupils data is loaded
+  // Priority: Load photos for visible pupils first (first 30 pupils)
+  const pupilIds = React.useMemo(() => pupilsInClass.map(p => p.id), [pupilsInClass]);
+  const priorityPhotoIds = React.useMemo(() => {
+    // Prioritize first 30 pupils (typically visible on screen)
+    return pupilIds.slice(0, 30);
+  }, [pupilIds]);
+
+  const { data: pupilPhotosMap = new Map<string, string>(), isLoading: isLoadingPhotos, isFetching: isFetchingPhotos } = usePupilPhotos(pupilIds, {
+    priorityIds: priorityPhotoIds,
+  });
+
+  // Merge photos into pupils array
+  const pupilsInClassWithPhotos = React.useMemo(() => {
+    return pupilsInClass.map(pupil => ({
+      ...pupil,
+      photo: pupil.photo || pupilPhotosMap.get(pupil.id) || undefined
+    }));
+  }, [pupilsInClass, pupilPhotosMap]);
+
+  // Track if photos are still loading
+  const photosLoading = isLoadingPhotos || isFetchingPhotos;
+
+  const { data: classExams = [], isLoading: examsLoading } = useExamsByClass(classId || '', { enabled: shouldLoadExams });
+  const { data: classSubjects = [], isLoading: subjectsLoading } = useSubjectsByClass(classId || '', { enabled: shouldLoadSubjects });
+  // Reuse activeAcademicYear and allAcademicYears from above (lines 590-591)
+  const academicYears = allAcademicYears;
+  const { data: terms = [] } = useTerms();
+
+  // Set default exam filters to current term using date-based detection.
+  // Avoids relying on the brittle `term.isCurrent` flag which may not be set.
+  React.useEffect(() => {
+    if (!activeAcademicYear) return;
+    const currentTerm = getCurrentTerm(activeAcademicYear);
+    if (currentTerm) {
+      setExamFilters({
+        academicYearId: activeAcademicYear.id,
+        termId: currentTerm.id
+      });
+    }
+  }, [activeAcademicYear]);
+
+  // Filter exams based on selected filters
+  const filteredExams = React.useMemo(() => {
+    if (!shouldLoadExams) return [];
+
+    return classExams.filter(exam => {
+      const matchesYear = !examFilters.academicYearId || exam.academicYearId === examFilters.academicYearId;
+      const matchesTerm = !examFilters.termId || exam.termId === examFilters.termId;
+      return matchesYear && matchesTerm;
+    });
+  }, [classExams, examFilters, shouldLoadExams]);
+
+  // Enhance subjects with teacher names
+  const subjectsWithTeacherNames = React.useMemo(() => {
+    if (!shouldLoadSubjects || !classSubjects.length) return [];
+
+    return classSubjects.map(subject => {
+      // Support both old format (teacherId) and new format (teacherIds)
+      const teacherIds = Array.isArray(subject.teacherIds)
+        ? subject.teacherIds
+        : (subject.teacherId ? [subject.teacherId] : []);
+
+      const teachers = teacherIds
+        .map(teacherId => allStaff.find(staff => staff.id === teacherId))
+        .filter(Boolean)
+        .map(teacher => `${teacher!.firstName} ${teacher!.lastName}`);
+
+      return {
+        ...subject,
+        teacherNames: teachers,
+        teacherName: teachers.length > 0 ? teachers.join(', ') : 'Not Assigned',
+        teacherIds: teacherIds
+      };
+    });
+  }, [classSubjects, allStaff, shouldLoadSubjects]);
+
+  const handleExamFilterChange = (field: 'academicYearId' | 'termId', value: string) => {
+    setExamFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+
+  // Edit dialog handlers
+  const handleOpenEditDialog = () => {
+    if (!classDetail) return;
+    setClassName(classDetail.name);
+    setClassCode(classDetail.code);
+    setLevel(classDetail.level);
+    setClassOrder(classDetail.order.toString());
+    setClassTeacherId(classDetail.classTeacherId);
+    setCoClassTeacherId((classDetail as any).coClassTeacherId || "");
+    setClassCaptainId(classDetail.classCaptainId || "");
+    setAssistantClassCaptainId(classDetail.assistantClassCaptainId || "");
+
+    const initialAssignments: Record<string, string[]> = {};
+    const initialSelectedSubjects: string[] = [];
+    classDetail.subjectAssignments?.forEach(sa => {
+      initialSelectedSubjects.push(sa.subjectId);
+      if (Array.isArray(sa.teacherIds)) {
+        initialAssignments[sa.subjectId] = sa.teacherIds;
+      } else if ('teacherId' in sa && sa.teacherId) {
+        initialAssignments[sa.subjectId] = [sa.teacherId];
+      } else {
+        initialAssignments[sa.subjectId] = [];
+      }
+    });
+    setSelectedSubjectIds(initialSelectedSubjects);
+    setSubjectTeacherAssignments(initialAssignments);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSubjectToggle = (subjectId: string) => {
+    const isSelected = selectedSubjectIds.includes(subjectId);
+    if (isSelected) {
+      setSelectedSubjectIds(prev => prev.filter(id => id !== subjectId));
+      setSubjectTeacherAssignments(prev => {
+        const newState = { ...prev };
+        delete newState[subjectId];
+        return newState;
+      });
+    } else {
+      setSelectedSubjectIds(prev => [...prev, subjectId]);
+      setSubjectTeacherAssignments(prev => ({ ...prev, [subjectId]: [] }));
+    }
+  };
+
+  const handleSubjectTeacherChange = (subjectId: string, teacherId: string, isChecked: boolean) => {
+    setSubjectTeacherAssignments(prev => {
+      const currentTeachers = prev[subjectId] || [];
+      if (isChecked) {
+        return {
+          ...prev,
+          [subjectId]: currentTeachers.includes(teacherId) ? currentTeachers : [...currentTeachers, teacherId],
+        };
+      } else {
+        return {
+          ...prev,
+          [subjectId]: currentTeachers.filter(id => id !== teacherId),
+        };
+      }
+    });
+  };
+
+  const handleUpdateClass = async () => {
+    if (!classDetail) return;
+    const orderNumber = parseInt(classOrder, 10);
+    if (classOrder.trim() === "" || isNaN(orderNumber)) {
+      toast({ variant: "destructive", title: "Invalid Input", description: "Order number is compulsory and must be a valid number." });
+      return;
+    }
+    if (!className.trim()) {
+      toast({ variant: "destructive", title: "Invalid Input", description: "Class Name is compulsory." });
+      return;
+    }
+    if (!classCode.trim()) {
+      toast({ variant: "destructive", title: "Invalid Input", description: "Class Code is compulsory." });
+      return;
+    }
+    if (!classTeacherId) {
+      toast({ variant: "destructive", title: "Invalid Input", description: "Class Teacher is compulsory." });
+      return;
+    }
+
+    const teacher = teachingStaff.find(s => s.id === classTeacherId);
+    const classTeacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : undefined;
+
+    const coTeacher = teachingStaff.find(s => s.id === coClassTeacherId);
+    const coClassTeacherName = coTeacher ? `${coTeacher.firstName} ${coTeacher.lastName}` : undefined;
+
+    const finalSubjectAssignments: SubjectAssignment[] = selectedSubjectIds.map(subjectId => ({
+      subjectId,
+      teacherIds: subjectTeacherAssignments[subjectId] || [],
+    }));
+
+    const classData = {
+      name: className.trim(),
+      code: classCode.trim(),
+      level,
+      order: orderNumber,
+      classTeacherId,
+      classTeacherName,
+      coClassTeacherId: coClassTeacherId || undefined,
+      coClassTeacherName: coClassTeacherName || undefined,
+      classCaptainId: classCaptainId || undefined,
+      assistantClassCaptainId: assistantClassCaptainId || undefined,
+      subjectAssignments: finalSubjectAssignments,
+    };
+
+    try {
+      await updateClassMutation.mutateAsync({ id: classDetail.id, data: classData });
+      toast({ title: "Class Updated", description: "Class has been successfully updated." });
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update class. Please try again.",
+      });
+    }
+  };
+
+  // Sort pupils based on current sort settings
+  const sortedPupils = React.useMemo(() => {
+    if (!pupilsInClassWithPhotos.length) return [];
+
+    return [...pupilsInClassWithPhotos].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'name':
+          comparison = `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+          break;
+        case 'section':
+          comparison = (a.section || '').localeCompare(b.section || '');
+          break;
+        case 'gender':
+          comparison = a.gender.localeCompare(b.gender);
+          break;
+        case 'age':
+          const ageA = a.dateOfBirth ? calculateAge(a.dateOfBirth) : 0;
+          const ageB = b.dateOfBirth ? calculateAge(b.dateOfBirth) : 0;
+          comparison = ageA - ageB;
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [pupilsInClassWithPhotos, sortBy, sortOrder]);
+
+  // Filter pupils based on current filters
+  const filteredPupils = React.useMemo(() => {
+    return sortedPupils.filter(pupil => {
+      const matchesSearch = !filters.search ||
+        `${pupil.firstName} ${pupil.lastName}`.toLowerCase().includes(filters.search.toLowerCase()) ||
+        pupil.guardians?.[0]?.email?.toLowerCase().includes(filters.search.toLowerCase());
+
+      const matchesSection = filters.section === 'all' || pupil.section === filters.section;
+      const matchesStatus = filters.status === 'all' || pupil.status === filters.status;
+      const matchesGender = filters.gender === 'all' || pupil.gender === filters.gender;
+
+      let matchesAge = true;
+      if (filters.ageMin || filters.ageMax) {
+        const age = pupil.dateOfBirth ? calculateAge(pupil.dateOfBirth) : null;
+        if (age !== null) {
+          if (filters.ageMin && age < parseInt(filters.ageMin)) matchesAge = false;
+          if (filters.ageMax && age > parseInt(filters.ageMax)) matchesAge = false;
+        } else {
+          matchesAge = false;
+        }
+      }
+
+      return matchesSearch && matchesSection && matchesStatus && matchesGender && matchesAge;
+    });
+  }, [sortedPupils, filters]);
+
+  // Count pending pupils in this class
+  const pendingPupilsCount = React.useMemo(() => {
+    if (!pupilsInClassWithPhotos.length || !classId) return 0;
+    return pupilsInClassWithPhotos.filter(pupil => pupil.status === 'Pending').length;
+  }, [pupilsInClassWithPhotos, classId]);
+
+  // Get unique sections for filter
+  const sections = React.useMemo(() => {
+    const uniqueSections = [...new Set(pupilsInClassWithPhotos.map(pupil => pupil.section).filter(Boolean))];
+    return uniqueSections.sort();
+  }, [pupilsInClassWithPhotos]);
+
+  // 🚀 OPTIMIZED: Only show loading if we have no cached data at all (first load)
+  // If we have cached data (even if stale), show it immediately even if loading in background
+  const showLoadingSpinner = isLoading && !hasCachedData;
+
+  if (showLoadingSpinner) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6">
+        <PageHeader title="Loading Class Details..." />
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading class details...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 🚀 CRITICAL: Only show error if we've finished loading and still don't have data
+  // Don't show error while loading or if we have cached data
+  if (!classDetail && !isLoading && !classLoading) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6">
+        <PageHeader title="Class Not Found" />
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">The requested class could not be found.</p>
+          <Button asChild className="mt-4 rounded-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold px-6 py-2 h-auto">
+            <Link href="/classes">Back to Classes</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 🚀 CRITICAL: If we don't have classDetail yet but are loading, show loading
+  // This handles the case where we don't have cached data
+  if (!classDetail && isLoading) {
+    return (
+      <div className="p-4 sm:p-6 space-y-6">
+        <PageHeader title="Loading Class Details..." />
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading class details...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 🚀 CRITICAL: If we still don't have classDetail after loading, return early
+  // This prevents errors when trying to access classDetail properties
+  if (!classDetail) {
+    return null;
+  }
+
+  const classTeacher = allStaff.find((s: any) => s.id === classDetail.classTeacherId);
+
+  return (
+    <>
+      <div className="mb-6">
+        <div className="flex items-center justify-between gap-4">
+          {/* Class Name */}
+          <div className={`transition-all duration-300 ease-out ${searchExpanded ? 'scale-75 opacity-60' : 'scale-100 opacity-100'
+            }`}>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent">
+              {classDetail.name}
+            </h1>
+          </div>
+
+          {/* Search and Actions */}
+          <div className="flex items-center gap-2">
+            {/* Back and Edit buttons */}
+            <div className="flex gap-2 sm:gap-3">
+              <SmartBackButton fallbackHref="/classes" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-background via-background to-muted/20 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/10 hover:to-primary/5">
+  <ArrowLeft className="h-4 w-4 sm:h-4 sm:w-4" />
+  
+</SmartBackButton>
+
+              <Button
+                variant="outline"
+                size="icon"
+                title="Edit Class"
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-background via-background to-muted/20 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/10 hover:to-primary/5"
+                onClick={handleOpenEditDialog}
+              >
+                <Edit className="h-4 w-4 sm:h-4 sm:w-4" />
+              </Button>
+            </div>
+
+            {/* Search Container */}
+            <div
+              className={`relative transition-all duration-500 ease-in-out ${searchExpanded
+                ? 'w-48 sm:w-64 md:w-80'
+                : 'w-12'
+                }`}
+            >
+              <div className="relative">
+                <div
+                  className={`absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent opacity-0 transition-opacity duration-500 ${searchExpanded ? 'opacity-100 animate-pulse' : ''
+                    }`}
+                  style={{
+                    animation: searchExpanded ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
+                  }}
+                />
+                <Search
+                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 transition-all duration-500 ${searchExpanded
+                    ? 'text-primary scale-110'
+                    : 'text-muted-foreground scale-100'
+                    }`}
+                />
+                <Input
+                  placeholder="Search pupils..."
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  className={`pl-10 pr-10 h-9 sm:h-10 rounded-full border-2 transition-all duration-500 ease-in-out bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-sm ${searchExpanded
+                    ? 'border-primary/50 shadow-xl focus:shadow-2xl focus:border-primary scale-105'
+                    : 'border-primary/20 shadow-lg hover:border-primary/30'
+                    }`}
+                  onFocus={() => setSearchExpanded(true)}
+                  onBlur={() => {
+                    if (!filters.search) {
+                      setSearchExpanded(false);
+                    }
+                  }}
+                  style={{
+                    transform: searchExpanded ? 'scale(1.02)' : 'scale(1)',
+                  }}
+                />
+                {filters.search && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 rounded-full hover:bg-primary/10 transition-all duration-300 animate-in fade-in slide-in-from-right-2"
+                    onClick={() => {
+                      setFilters(prev => ({ ...prev, search: '' }));
+                      setSearchExpanded(false);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Filter Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-background via-background to-muted/20 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/10 hover:to-primary/5"
+            >
+              <Filter className="h-4 w-4 sm:h-4 sm:w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-muted-foreground hidden lg:block mt-3 text-sm font-medium">Details for class: {classDetail.name}</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-12rem)]">
+        {/* Left Column: Basic Class Info */}
+        <div className="lg:col-span-1 space-y-3 lg:space-y-6 lg:overflow-y-auto lg:pr-2">
+          <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
+            <CardContent className="space-y-0.5 lg:space-y-1 text-xs lg:text-sm pt-6">
+              <DetailItem
+                label="Class Teacher"
+                value={<span className="text-sm lg:text-base font-semibold">{classTeacher ? `${classTeacher.firstName} ${classTeacher.lastName}` : classDetail.classTeacherName || "N/A"}</span>}
+              />
+
+              {/* Class Captain */}
+              <DetailItem
+                label="Class Captain"
+                value={
+                  classDetail.classCaptainId ? (
+                    (() => {
+                      const captain = pupilsInClassWithPhotos.find(p => p.id === classDetail.classCaptainId);
+                      return captain ? (
+                        <div className="flex items-center gap-2">
+                          <Crown className="h-3.5 w-3.5 text-amber-600" />
+                          <Link
+                            href={`/pupil-detail?id=${captain.id}`}
+                            className="text-sm lg:text-base font-semibold hover:text-primary hover:underline transition-colors"
+                          >
+                            {captain.firstName} {captain.lastName}
+                          </Link>
+                        </div>
+                      ) : (
+                        <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
+                      );
+                    })()
+                  ) : (
+                    <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
+                  )
+                }
+              />
+
+              {/* Assistant Class Captain */}
+              <DetailItem
+                label="Assistant Class Captain"
+                value={
+                  classDetail.assistantClassCaptainId ? (
+                    (() => {
+                      const assistantCaptain = pupilsInClassWithPhotos.find(p => p.id === classDetail.assistantClassCaptainId);
+                      return assistantCaptain ? (
+                        <div className="flex items-center gap-2">
+                          <Award className="h-3.5 w-3.5 text-amber-600" />
+                          <Link
+                            href={`/pupil-detail?id=${assistantCaptain.id}`}
+                            className="text-sm lg:text-base font-semibold hover:text-primary hover:underline transition-colors"
+                          >
+                            {assistantCaptain.firstName} {assistantCaptain.lastName}
+                          </Link>
+                        </div>
+                      ) : (
+                        <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
+                      );
+                    })()
+                  ) : (
+                    <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
+                  )
+                }
+              />
+
+              {/* Subjects, Exams, History, and Graduated Class Buttons */}
+              <div className="py-3 border-b border-border/50">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    onClick={() => setShouldLoadSubjects(!shouldLoadSubjects)}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 font-semibold px-3 py-1.5 h-auto"
+                  >
+                    <BookOpen className="mr-1 h-3 w-3" />
+                    {shouldLoadSubjects ? 'Hide' : 'Subjects'}
+                  </Button>
+                  <Button
+                    onClick={() => setShouldLoadExams(!shouldLoadExams)}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 font-semibold px-3 py-1.5 h-auto"
+                  >
+                    <Calendar className="mr-1 h-3 w-3" />
+                    {shouldLoadExams ? 'Hide' : 'Exams'}
+                  </Button>
+                  <TooltipProvider>
+                    {pendingPupilsCount > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 rounded-full bg-gradient-to-br from-amber-50 via-amber-50/50 to-transparent border-2 border-amber-300 hover:border-amber-400 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 relative"
+                          >
+                            <Link href={`/classes/pending?classId=${classDetail.id}`}>
+                              <Clock className="h-4 w-4 text-amber-600" />
+                              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-amber-600 text-white text-[10px] font-bold rounded-full">
+                                {pendingPupilsCount > 9 ? '9+' : pendingPupilsCount}
+                              </Badge>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Pending Pupils ({pendingPupilsCount})</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setIsClassRequirementsModalOpen(true)}
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Class Requirements</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                        >
+                          <Link href={`/classes/history/${classDetail.id}`}>
+                            <History className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Class History</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    {hasGraduates && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
+                          >
+                            <Link href={`/classes/graduates/${classDetail.id}`}>
+                              <GraduationCap className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Graduated Class</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </TooltipProvider>
+                </div>
+              </div>
+
+              {/* Exams List */}
+              {shouldLoadExams && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Class Exams</div>
+                  {examsLoading ? (
+                    <div className="text-center py-4">
+                      <div className="text-xs text-muted-foreground">Loading exams...</div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Academic Year and Term filters - always visible when exams loaded */}
+                      <div className="space-y-2 mb-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium">Academic Year</Label>
+                          <Select
+                            value={examFilters.academicYearId}
+                            onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
+                            disabled={academicYears.length === 0}
+                          >
+                            <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
+                              <SelectValue placeholder="Select Year" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
+                              <SelectItem value="all">All Academic Years</SelectItem>
+                              {academicYears.map(year => (
+                                <SelectItem key={year.id} value={year.id}>
+                                  {year.name}{year.isActive ? ' (Active)' : ''}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs font-medium">Term</Label>
+                          <Select
+                            value={examFilters.termId}
+                            onValueChange={(value) => handleExamFilterChange('termId', value)}
+                            disabled={terms.length === 0}
+                          >
+                            <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
+                              <SelectValue placeholder="Select Term" />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
+                              <SelectItem value="all">All Terms</SelectItem>
+                              {terms
+                                .filter(term => !examFilters.academicYearId || examFilters.academicYearId === 'all' || term.academicYearId === examFilters.academicYearId)
+                                .map(term => (
+                                  <SelectItem key={term.id} value={term.id}>
+                                    {term.name}{term.isCurrent ? ' (Current)' : ''}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Exam list or no-results message */}
+                      {filteredExams.length > 0 ? (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {filteredExams.map((exam) => (
+                            <Link
+                              key={exam.id}
+                              href={`/exams/${exam.id}`}
+                              className="block p-3 border-2 border-primary/10 rounded-xl text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-md transition-all duration-200 cursor-pointer"
+                            >
+                              <div className="font-semibold text-foreground">{exam.name}</div>
+                              <div className="text-muted-foreground mt-1">
+                                {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <div className="text-xs text-muted-foreground">No exams found for the selected filters.</div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Subjects List */}
+              {shouldLoadSubjects && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Subjects & Teachers</div>
+                  {subjectsLoading ? (
+                    <div className="text-center py-4">
+                      <div className="text-xs text-muted-foreground">Loading subjects...</div>
+                    </div>
+                  ) : subjectsWithTeacherNames.length > 0 ? (
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                      {subjectsWithTeacherNames.map((subject) => (
+                        <div key={subject.id} className="px-2.5 py-2 border-2 border-primary/10 rounded-lg text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-sm transition-all duration-200">
+                          <div className="font-semibold text-foreground text-xs">{subject.name}</div>
+                          <div className="text-muted-foreground text-xs mt-0.5">
+                            <span className="font-medium">{subject.teacherNames && subject.teacherNames.length > 1 ? 'Teachers:' : 'Teacher:'}</span> {subject.teacherName}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-xs text-muted-foreground">No subjects assigned to this class</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Exams Dropdown - Mobile - Removed since exams are now in main card */}
+          <div className="block lg:hidden mt-4 hidden">
+            <DetailItem
+              label="Exams"
+              value={
+                <div className="flex items-center gap-1 lg:gap-2">
+                  <span>{shouldLoadExams ? classExams.length : 'View'}</span>
+                  {showExamsDropdown ? <ChevronDown className="h-3 w-3 lg:h-4 lg:w-4" /> : <ChevronRight className="h-3 w-3 lg:h-4 lg:w-4" />}
+                </div>
+              }
+              clickable
+              onClick={() => {
+                if (!shouldLoadExams) {
+                  setShouldLoadExams(true);
+                }
+                setShowExamsDropdown(!showExamsDropdown);
+              }}
+            />
+            {showExamsDropdown && (
+              <div className="mt-2 space-y-2">
+                {/* Academic Year and Term filters - Mobile */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-xs font-medium">Academic Year</Label>
+                    <Select
+                      value={examFilters.academicYearId}
+                      onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
+                      disabled={academicYears.length === 0}
+                    >
+                      <SelectTrigger className="h-9 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
+                        <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
+                        <SelectItem value="all">All Academic Years</SelectItem>
+                        {academicYears.map(year => (
+                          <SelectItem key={year.id} value={year.id}>
+                            {year.name}{year.isActive ? ' (Active)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-xs font-medium">Term</Label>
+                    <Select
+                      value={examFilters.termId}
+                      onValueChange={(value) => handleExamFilterChange('termId', value)}
+                      disabled={terms.length === 0}
+                    >
+                      <SelectTrigger className="h-9 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
+                        <SelectValue placeholder="Select Term" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
+                        <SelectItem value="all">All Terms</SelectItem>
+                        {terms
+                          .filter(term => !examFilters.academicYearId || term.academicYearId === examFilters.academicYearId)
+                          .map(term => (
+                            <SelectItem key={term.id} value={term.id}>
+                              {term.name}{term.isCurrent ? ' (Current)' : ''}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Hide Exams Button - Mobile */}
+                {shouldLoadExams && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShouldLoadExams(false)}
+                    className="w-full h-9 text-xs rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-3 py-1.5"
+                  >
+                    <X className="h-3.5 w-3.5 mr-2" />
+                    Hide Exams
+                  </Button>
+                )}
+
+                {/* Exams List - Mobile */}
+                {shouldLoadExams && (
+                  <>
+                    {examsLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span className="text-xs text-muted-foreground">Loading exams...</span>
+                      </div>
+                    ) : filteredExams.length > 0 ? (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {filteredExams.map((exam) => (
+                          <div key={exam.id} className="p-3 border-2 border-primary/10 rounded-xl text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-md transition-all duration-200">
+                            <div className="font-semibold text-foreground">{exam.name}</div>
+                            <div className="text-muted-foreground mt-1">
+                              {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-xs text-muted-foreground">No exams found for the selected filters.</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Subjects Dropdown - Mobile */}
+          <div className="block lg:hidden mt-4">
+            <DetailItem
+              label="Subjects"
+              value={
+                <div className="flex items-center gap-1 lg:gap-2">
+                  <span>{shouldLoadSubjects ? subjectsWithTeacherNames.length : 'View'}</span>
+                  <ChevronRight className="h-3 w-3 lg:h-4 lg:w-4" />
+                </div>
+              }
+              clickable
+              onClick={() => setShouldLoadSubjects(!shouldLoadSubjects)}
+            />
+            {shouldLoadSubjects && (
+              <div className="mt-2 space-y-2">
+                {/* Hide Subjects Button - Mobile */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShouldLoadSubjects(false)}
+                  className="w-full h-9 text-xs rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-3 py-1.5"
+                >
+                  <X className="h-3.5 w-3.5 mr-2" />
+                  Hide Subjects
+                </Button>
+
+                {/* Subjects List - Mobile */}
+                {subjectsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span className="text-xs text-muted-foreground">Loading subjects...</span>
+                  </div>
+                ) : subjectsWithTeacherNames.length > 0 ? (
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    {subjectsWithTeacherNames.map((subject) => (
+                      <div key={subject.id} className="px-2.5 py-2 border-2 border-primary/10 rounded-lg text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-sm transition-all duration-200">
+                        <div className="font-semibold text-foreground text-xs">{subject.name}</div>
+                        <div className="text-muted-foreground text-xs mt-0.5">
+                          <span className="font-medium">Teacher:</span> {subject.teacherName}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-xs text-muted-foreground">No subjects assigned to this class.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Pupils List */}
+        <div className="lg:col-span-2 space-y-3 lg:space-y-6 lg:overflow-y-auto">
+          <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
+            <CardHeader className="pb-2 lg:pb-6">
+              <CardTitle className="flex items-center justify-between text-base lg:text-xl">
+                <div className="flex items-center">
+                  <Users className="mr-1.5 lg:mr-3 h-4 w-4 lg:h-6 lg:w-6 text-primary" />
+                  Pupils ({filteredPupils.length})
+                  <span className="lg:hidden ml-2 text-xs text-muted-foreground">
+                    ({viewMode === 'list' ? 'List' : 'Tiles'} view)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* View Mode Toggle - Desktop Only */}
+                  <div className="hidden lg:flex border-2 border-primary/20 rounded-full p-1 bg-gradient-to-br from-muted/30 to-muted/10 backdrop-blur-sm shadow-md">
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                      className={viewMode === 'list'
+                        ? "rounded-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg font-semibold transition-all duration-200 px-4 py-1.5 h-auto"
+                        : "rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-4 py-1.5 h-auto"
+                      }
+                    >
+                      List
+                    </Button>
+                    <Button
+                      variant={viewMode === 'tiles' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('tiles')}
+                      className={viewMode === 'tiles'
+                        ? "rounded-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg font-semibold transition-all duration-200 px-4 py-1.5 h-auto"
+                        : "rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-4 py-1.5 h-auto"
+                      }
+                    >
+                      Tiles
+                    </Button>
+                  </div>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {pupilsInClass.length === 0 && pupilsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading pupils...</span>
+                </div>
+              ) : filteredPupils.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No pupils found.</p>
+                  {filters.search && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
+                      className="mt-3 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 font-semibold px-4 py-1.5 h-auto"
+                    >
+                      Clear Search
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Desktop List View - Show on large screens when viewMode is list */}
+                  {viewMode === 'list' && (
+                    <div className="hidden lg:block">
+                      <div className="overflow-x-auto max-h-[calc(100vh-20rem)]">
+                        <table className="w-full text-sm">
+                          <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 sticky top-0 z-10 backdrop-blur-sm">
+                            <tr>
+                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-1/2">
+                                <button
+                                  onClick={() => {
+                                    if (sortBy === 'name') {
+                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                                    } else {
+                                      setSortBy('name');
+                                      setSortOrder('asc');
+                                    }
+                                  }}
+                                  className="flex items-center space-x-2 hover:text-primary transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10"
+                                >
+                                  <span>Pupil Details</span>
+                                  <div className="w-1 h-1 bg-primary/40 rounded-full"></div>
+                                  {sortBy === 'name' && (
+                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                                  )}
+                                </button>
+                              </th>
+                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-20">
+                                <button
+                                  onClick={() => {
+                                    if (sortBy === 'section') {
+                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                                    } else {
+                                      setSortBy('section');
+                                      setSortOrder('asc');
+                                    }
+                                  }}
+                                  className="hover:text-primary transition-all duration-200 hover:scale-105 flex items-center space-x-1 rounded-lg px-2 py-1 hover:bg-primary/10"
+                                >
+                                  <span>Section</span>
+                                  {sortBy === 'section' && (
+                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                                  )}
+                                </button>
+                              </th>
+                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-16">
+                                <button
+                                  onClick={() => {
+                                    if (sortBy === 'gender') {
+                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                                    } else {
+                                      setSortBy('gender');
+                                      setSortOrder('asc');
+                                    }
+                                  }}
+                                  className="hover:text-primary transition-all duration-200 hover:scale-105 flex items-center space-x-1 rounded-lg px-2 py-1 hover:bg-primary/10"
+                                >
+                                  <span>Gender</span>
+                                  {sortBy === 'gender' && (
+                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                                  )}
+                                </button>
+                              </th>
+                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-12">
+                                <button
+                                  onClick={() => {
+                                    if (sortBy === 'age') {
+                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                                    } else {
+                                      setSortBy('age');
+                                      setSortOrder('asc');
+                                    }
+                                  }}
+                                  className="hover:text-primary transition-all duration-200 hover:scale-105 flex items-center space-x-1 rounded-lg px-2 py-1 hover:bg-primary/10"
+                                >
+                                  <span>Age</span>
+                                  {sortBy === 'age' && (
+                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                                  )}
+                                </button>
+                              </th>
+                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-24">
+                                <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
+                                  <FileText className="w-3 h-3" />
+                                  <span>Requirements</span>
+                                </span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/30">
+                            {filteredPupils.map((pupil) => (
+                              <PupilListRow
+                                key={pupil.id}
+                                pupil={pupil}
+                                classDetail={classDetail}
+                                isLoadingPhoto={photosLoading && !pupil.photo}
+                                onOpenRequirements={handleOpenRequirements}
+                              />
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Enhanced footer with better organization */}
+                      <div className="px-3 py-3 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/10 border-t-2 border-primary/20 backdrop-blur-sm rounded-b-lg">
+                        <div className="flex items-center justify-between text-xs text-foreground font-medium">
+                          <div className="flex items-center space-x-4">
+                            <span className="font-medium">
+                              {filteredPupils.length} of {pupilsInClass.length} pupils
+                            </span>
+                            {filteredPupils.length !== pupilsInClass.length && (
+                              <span className="flex items-center space-x-1">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                <span>{pupilsInClass.filter((p: Pupil) => p.status === 'Active').length} active</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs">
+                            <span className="flex items-center space-x-1">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                              <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Male').length} male</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <div className="w-1.5 h-1.5 bg-pink-500 rounded-full"></div>
+                              <span>{pupilsInClass.filter((p: Pupil) => p.gender === 'Female').length} female</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tiles View - Show on small screens OR when viewMode is tiles on large screens */}
+                  {(viewMode === 'tiles' || window.innerWidth < 1024) && (
+                    <div className="p-4 lg:p-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredPupils.map((pupil) => (
+                          <PupilCard
+                            key={pupil.id}
+                            pupil={pupil}
+                            classDetail={classDetail}
+                            isLoadingPhoto={photosLoading && !pupil.photo}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+
+      {/* Edit Class Dialog */}
+      <ModernDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <ModernDialogContent
+          size="xl"
+          className="w-[95vw] max-w-5xl max-h-[90vh] overflow-hidden relative"
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        >
+          {/* Floating Save/Update Button */}
+          <Button
+            type="button"
+            onClick={handleUpdateClass}
+            className="absolute right-12 top-2 sm:right-16 sm:top-4 rounded-full w-10 h-10 p-0 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 active:scale-95 border-2 border-white/30 backdrop-blur-md z-50 flex items-center justify-center group overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.95) 0%, rgba(147, 51, 234, 0.95) 50%, rgba(79, 70, 229, 0.95) 100%)',
+              boxShadow: '0 8px 32px rgba(37, 99, 235, 0.5), 0 4px 16px rgba(147, 51, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.15)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(37, 99, 235, 0.6), 0 6px 20px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(37, 99, 235, 0.5), 0 4px 16px rgba(147, 51, 234, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.15)';
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
+            <Save className="h-5 w-5 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+            <span className="sr-only">Update Class</span>
+          </Button>
+          <ModernDialogHeader className="p-3 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <School className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Edit Class
+                </ModernDialogTitle>
+                <ModernDialogDescription className="text-xs text-gray-600 hidden">
+                  Update class details, subjects and teacher assignments.
+                </ModernDialogDescription>
+              </div>
+            </div>
+          </ModernDialogHeader>
+
+          <ScrollArea className="flex-grow min-h-0 overflow-y-auto px-3">
+            <div className="space-y-3 pb-3">
+              {/* Basic Information Section */}
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-3 border border-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1 bg-blue-100 rounded-md">
+                    <Book className="h-3 w-3 text-blue-600" />
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-800">Basic Information</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="className" className="text-xs font-medium text-gray-700">
+                      Class Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="className"
+                      value={className}
+                      onChange={(e) => setClassName(e.target.value.toUpperCase())}
+                      placeholder="e.g., PRIMARY ONE"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="classCode" className="text-xs font-medium text-gray-700">
+                      Class Code <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="classCode"
+                      value={classCode}
+                      onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+                      placeholder="e.g., P.1"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="order" className="text-xs font-medium text-gray-700">
+                      Order <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="order"
+                      type="number"
+                      value={classOrder}
+                      onChange={(e) => setClassOrder(e.target.value)}
+                      placeholder="1"
+                      className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="level" className="text-xs font-medium text-gray-700">
+                      Level <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={level} onValueChange={(value) => setLevel(value as ClassLevel)}>
+                      <SelectTrigger className="h-8 rounded-xl border-2 border-gray-300 bg-white/90 hover:border-gray-400 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 backdrop-blur-sm text-sm">
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        side="bottom"
+                        align="start"
+                        sideOffset={4}
+                        avoidCollisions={true}
+                        className="z-50"
+                      >
+                        {CLASS_LEVELS.map(lvl => (
+                          <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Class Teacher Section */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border border-green-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex-shrink-0">
+                    <Users className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Label htmlFor="classTeacherId" className="text-sm font-semibold text-green-900 flex items-center gap-2 flex-shrink-0">
+                      Class Teacher
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    {classTeacherId && (() => {
+                      const selectedTeacher = teachingStaff.find(t => t.id === classTeacherId);
+                      if (selectedTeacher) {
+                        return (
+                          <>
+                            <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
+                            <span className="text-sm text-green-700 font-medium truncate">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>
+                          </>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  <SearchableTeacherSelector
+                    value={classTeacherId}
+                    onValueChange={setClassTeacherId}
+                    teachers={teachingStaff}
+                    allowNone={false}
+                    icon={Users}
+                  />
+                </div>
+              </div>
+
+              {/* Co-Class Teacher Section */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 border border-green-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex-shrink-0">
+                    <Users className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Label htmlFor="coClassTeacherId" className="text-sm font-semibold text-green-900 flex items-center gap-2 flex-shrink-0">
+                      Co-Class Teacher
+                    </Label>
+                    {coClassTeacherId && (() => {
+                      const selectedTeacher = teachingStaff.find(t => t.id === coClassTeacherId);
+                      if (selectedTeacher) {
+                        return (
+                          <>
+                            <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
+                            <span className="text-sm text-green-700 font-medium truncate">{selectedTeacher.firstName} {selectedTeacher.lastName}</span>
+                          </>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  <SearchableTeacherSelector
+                    value={coClassTeacherId}
+                    onValueChange={setCoClassTeacherId}
+                    teachers={teachingStaff}
+                    allowNone={true}
+                    icon={Users}
+                  />
+                </div>
+              </div>
+
+              {/* Class Captains Section */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex-shrink-0">
+                    <Crown className="h-3.5 w-3.5 text-white" />
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-800">Class Leadership</h3>
+                </div>
+
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Class Captain */}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="p-1 bg-amber-100 rounded-md flex-shrink-0">
+                      <Crown className="h-3 w-3 text-amber-600" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Label htmlFor="classCaptainId" className="text-sm font-semibold text-amber-900 flex-shrink-0">
+                        Class Captain
+                      </Label>
+                      {classCaptainId ? (() => {
+                        const selectedPupil = pupilsInClass.find((p: any) => p.id === classCaptainId);
+                        if (selectedPupil) {
+                          return (
+                            <>
+                              <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
+                              <span className="text-sm text-amber-700 font-medium truncate">{selectedPupil.firstName} {selectedPupil.lastName}</span>
+                            </>
+                          );
+                        }
+                        return null;
+                      })() : (
+                        <>
+                          <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
+                          <span className="text-sm text-gray-500 italic">None</span>
+                        </>
+                      )}
+                    </div>
+                    <SearchablePupilSelector
+                      value={classCaptainId}
+                      onValueChange={(value) => setClassCaptainId(value)}
+                      pupils={pupilsInClass}
+                      editingClass={classDetail}
+                      disabledIds={assistantClassCaptainId ? [assistantClassCaptainId] : []}
+                      icon={Crown}
+                    />
+                  </div>
+
+                  {/* Assistant Class Captain */}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="p-1 bg-amber-100 rounded-md flex-shrink-0">
+                      <Award className="h-3 w-3 text-amber-600" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Label htmlFor="assistantClassCaptainId" className="text-sm font-semibold text-amber-900 flex-shrink-0">
+                        Assistant
+                      </Label>
+                      {assistantClassCaptainId ? (() => {
+                        const selectedPupil = pupilsInClass.find((p: any) => p.id === assistantClassCaptainId);
+                        if (selectedPupil) {
+                          return (
+                            <>
+                              <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
+                              <span className="text-sm text-amber-700 font-medium truncate">{selectedPupil.firstName} {selectedPupil.lastName}</span>
+                            </>
+                          );
+                        }
+                        return null;
+                      })() : (
+                        <>
+                          <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
+                          <span className="text-sm text-gray-500 italic">None</span>
+                        </>
+                      )}
+                    </div>
+                    <SearchablePupilSelector
+                      value={assistantClassCaptainId}
+                      onValueChange={(value) => setAssistantClassCaptainId(value)}
+                      pupils={pupilsInClass}
+                      editingClass={classDetail}
+                      disabledIds={classCaptainId ? [classCaptainId] : []}
+                      icon={Award}
+                    />
+                  </div>
+                </div>
+                {(classCaptainId || assistantClassCaptainId) && (
+                  <div className="mt-3 pt-3 border-t border-amber-200">
+                    <p className="text-xs text-gray-600">
+                      <span className="font-medium">Note:</span> A pupil cannot be both Class Captain and Assistant Class Captain.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Subjects Assignment Section */}
+              <Collapsible open={isSubjectAssignmentsOpen} onOpenChange={setIsSubjectAssignmentsOpen}>
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between p-0 h-auto hover:bg-transparent items-start"
+                    >
+                      <div className="flex items-start gap-2 w-full">
+                        <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex-shrink-0">
+                          <GraduationCap className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-2">
+                            <h3 className="text-base font-semibold text-gray-800 flex-shrink-0">Subject Assignments:</h3>
+                            {selectedSubjectIds.length > 0 ? (
+                              <div className="space-y-1 flex-1">
+                                {selectedSubjectIds.map(subjectId => {
+                                  const subject = allSubjects.find(s => s.id === subjectId);
+                                  if (!subject) return null;
+                                  const assignedTeachers = (subjectTeacherAssignments[subjectId] || []);
+                                  const teacherNames = assignedTeachers
+                                    .map(teacherId => {
+                                      const teacher = teachingStaff.find(t => t.id === teacherId);
+                                      return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
+                                    })
+                                    .filter(Boolean)
+                                    .join(', ');
+                                  return (
+                                    <div key={subjectId} className="text-sm text-purple-600">
+                                      <span className="font-medium">{subject.name}</span>
+                                      {teacherNames && (
+                                        <span className="text-xs text-gray-500 ml-2">- {teacherNames}</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-500 italic">No subjects selected</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 text-purple-600 transition-transform duration-200 flex-shrink-0 ml-2 ${isSubjectAssignmentsOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <div className="mt-3 border border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm overflow-hidden">
+                      <ScrollArea className="h-48">
+                        <div className="p-3 space-y-2">
+                          {allSubjects.length === 0 && (
+                            <div className="text-center text-gray-500 py-6">
+                              <Book className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+                              <p className="text-sm">No subjects available.</p>
+                            </div>
+                          )}
+                          {allSubjects.map(subject => {
+                            const isSelected = selectedSubjectIds.includes(subject.id);
+                            const assignedTeachers = (subjectTeacherAssignments[subject.id] || []);
+                            const selectedTeacherNames = assignedTeachers
+                              .map(teacherId => {
+                                const teacher = teachingStaff.find(t => t.id === teacherId);
+                                return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
+                              })
+                              .filter(Boolean)
+                              .join(', ');
+
+                            return (
+                              <div key={subject.id} className="rounded-lg p-3 hover:bg-gray-50/80 border border-gray-100 transition-all duration-200">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <Label htmlFor={`subject-${subject.id}`} className="text-sm font-medium flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                                      <div className="p-0.5 bg-blue-100 rounded-md flex-shrink-0">
+                                        <Book className="h-2.5 w-2.5 text-blue-600" />
+                                      </div>
+                                      <span className="font-medium flex-shrink-0">{subject.name}</span>
+                                      <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">({subject.code})</span>
+                                      {isSelected && selectedTeacherNames && (
+                                        <>
+                                          <span className="text-xs text-gray-400 mx-1">-</span>
+                                          <span className="text-xs text-blue-600 font-medium truncate">{selectedTeacherNames}</span>
+                                        </>
+                                      )}
+                                    </Label>
+                                    {isSelected && (
+                                      <Collapsible
+                                        open={expandedSubjects.has(subject.id)}
+                                        onOpenChange={(open) => {
+                                          setExpandedSubjects(prev => {
+                                            const newSet = new Set(prev);
+                                            if (open) {
+                                              newSet.add(subject.id);
+                                            } else {
+                                              newSet.delete(subject.id);
+                                            }
+                                            return newSet;
+                                          });
+                                        }}
+                                      >
+                                        <CollapsibleTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 flex-shrink-0 hover:bg-blue-100"
+                                          >
+                                            <ChevronDown className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-200 ${expandedSubjects.has(subject.id) ? 'rotate-180' : ''}`} />
+                                          </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                          <div className="ml-4 mt-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                                              {teachingStaff.length === 0 ? (
+                                                <p className="text-xs text-gray-500 italic">No teaching staff available</p>
+                                              ) : (
+                                                teachingStaff.map(teacher => {
+                                                  const isTeacherSelected = assignedTeachers.includes(teacher.id);
+                                                  return (
+                                                    <div key={teacher.id} className="flex items-center gap-2 p-1.5 hover:bg-white/60 rounded-md transition-colors">
+                                                      <Checkbox
+                                                        id={`teacher-${subject.id}-${teacher.id}`}
+                                                        checked={isTeacherSelected}
+                                                        onCheckedChange={(checked) => handleSubjectTeacherChange(subject.id, teacher.id, checked === true)}
+                                                        className="h-3.5 w-3.5 rounded-md"
+                                                      />
+                                                      <Label
+                                                        htmlFor={`teacher-${subject.id}-${teacher.id}`}
+                                                        className="flex-1 cursor-pointer text-xs"
+                                                      >
+                                                        <div className="font-medium text-gray-900">{teacher.firstName} {teacher.lastName}</div>
+                                                      </Label>
+                                                    </div>
+                                                  );
+                                                })
+                                              )}
+                                            </div>
+                                          </div>
+                                        </CollapsibleContent>
+                                      </Collapsible>
+                                    )}
+                                  </div>
+                                  <Checkbox
+                                    id={`subject-${subject.id}`}
+                                    checked={isSelected}
+                                    onCheckedChange={() => handleSubjectToggle(subject.id)}
+                                    className="h-3.5 w-3.5 rounded-md flex-shrink-0"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            </div>
+          </ScrollArea>
+        </ModernDialogContent>
+      </ModernDialog>
+
+      {/* Requirements Modal */}
+      {selectedPupilIdForRequirements && (
+        <PupilRequirementsModal
+          key={selectedPupilIdForRequirements} // Force re-mount when pupil changes
+          isOpen={isRequirementsModalOpen}
+          onClose={handleCloseRequirements}
+          pupilId={selectedPupilIdForRequirements}
+        />
+      )}
+
+      {/* Class Requirements Overview Modal */}
+      {classDetail && (
+        <ClassRequirementsOverviewModal
+          isOpen={isClassRequirementsModalOpen}
+          onClose={() => setIsClassRequirementsModalOpen(false)}
+          classId={classDetail.id}
+        />
+      )}
+    </>
+  );
+}
+
+export default function ClassDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-4 sm:p-6 space-y-6">
+        <PageHeader title="Loading Class Details..." />
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading class details...</span>
+        </div>
+      </div>
+    }>
+      <ClassDetailContent />
+    </Suspense>
+  );
+}

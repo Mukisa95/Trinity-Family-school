@@ -1,0 +1,5728 @@
+"use client";
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { flushSync } from 'react-dom';
+import { format } from 'date-fns';
+import { DatePicker } from '@/components/common/date-picker';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import {
+  ArrowLeft,
+  Download,
+  Loader2,
+  FileText,
+  Search,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Printer,
+  Trophy,
+  AlertTriangle,
+  TrendingUp,
+  BookOpen,
+  ArrowUpDown,
+  Filter,
+  Edit3,
+  Grid3X3,
+  List,
+  ChevronUp,
+  ChevronDown,
+  FileSpreadsheet,
+  FileText as FileTextIcon,
+  BarChart3,
+  PieChart,
+  Users as UsersIcon,
+  Award,
+  Target,
+  TrendingDown,
+  Check
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useExams } from '@/lib/hooks/use-exams';
+import { useExamResultByExamId } from '@/lib/hooks/use-exams';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { usePupils } from '@/lib/hooks/use-pupils';
+import { useStaff } from '@/lib/hooks/use-staff';
+import { useQuery } from '@tanstack/react-query';
+import { SchoolSettingsService } from '@/lib/services/school-settings.service';
+import Link from 'next/link';
+import type { ExamResult, ExamRecordPupilInfo } from '@/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { generateExamPDF } from '@/components/exam/ExamResultsPDF';
+import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/components/exam/ComprehensiveReactPDF';
+import { generateModernBatchReportPDF, generateTransBatchReportPDF } from '@/components/exam/ModernBatchReportPDF';
+import { generateDetailedAssessmentPDF } from '@/components/exam/DetailedAssessmentPDF';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFViewer } from '@/components/pdf/pdf-viewer';
+import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
+import { ExamSignatureDisplay } from '@/components/exam/ExamSignatureDisplay';
+import { usePrint } from '@/lib/contexts/print-context';
+import { useReleaseInfo, useReleaseResults, useRevokeResults, useReleaseAllResults } from '@/lib/hooks/use-results-release';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Lock, Unlock, Send, Users } from 'lucide-react';
+import { AdminPasswordModal } from '@/components/exam/AdminPasswordModal';
+import { getNextTermDates } from '@/lib/utils/academic-year-utils';
+import TerminalReport from '@/components/exam/PupilReportCardPDF2';
+import { pdf } from '@react-pdf/renderer';
+import { PDFDocument } from 'pdf-lib';
+// QRCode is imported dynamically when needed (it's a Node.js package)
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { ExamsService } from '@/lib/services/exams.service';
+import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { cleanSubjectName } from '@/lib/utils/html-entities';
+import { formatTeacherNameWithTitle } from '@/lib/utils/teacher-formatter';
+import { calculatePromotionStatus, isTermThree } from '@/lib/utils/promotion-ranking';
+import { getSchoolPayCode } from '@/lib/utils/schoolpay';
+
+// Utility functions
+const getGradeColor = (grade: string): string => {
+  if (grade === 'MISSED') return 'bg-orange-100 text-orange-800 border-orange-200';
+  if (grade.startsWith('D')) return 'bg-green-100 text-green-800 border-green-200';
+  if (grade.startsWith('C')) return 'bg-blue-100 text-blue-800 border-blue-200';
+  if (grade.startsWith('P')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+  return 'bg-red-100 text-red-800 border-red-200'; // For F9
+};
+
+const getDivisionColor = (division: string): string => {
+  switch (division) {
+    case 'I': return 'bg-green-100 text-green-800 border-green-200';
+    case 'II': return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'III': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'IV': return 'bg-orange-100 text-orange-800 border-orange-200';
+    default: return 'bg-red-100 text-red-800 border-red-200'; // For 'U'
+  }
+};
+
+const calculateDivision = (aggregates: number): string => {
+  if (aggregates >= 4 && aggregates <= 12) return 'I';
+  if (aggregates >= 13 && aggregates <= 24) return 'II';
+  if (aggregates >= 25 && aggregates <= 28) return 'III';
+  if (aggregates >= 29 && aggregates <= 32) return 'IV';
+  return 'U'; // Ungraded (33-36)
+};
+
+interface PupilResultData {
+  pupilInfo: ExamRecordPupilInfo;
+  results: Record<string, { marks: number; grade: string; aggregates: number }>;
+  totalMarks: number;
+  totalAggregates: number;
+  division: string;
+  position: number;
+}
+
+interface Analytics {
+  bestPupil: {
+    name: string;
+    admissionNumber: string;
+    totalMarks: number;
+    totalAggregates: number;
+  };
+  worstPupil: {
+    name: string;
+    admissionNumber: string;
+    totalMarks: number;
+    totalAggregates: number;
+  };
+  bestSubject: {
+    name: string;
+    code: string;
+    averageMarks: number;
+  };
+  worstSubject: {
+    name: string;
+    code: string;
+    averageMarks: number;
+  };
+  classAverage: number;
+  passRate: number;
+}
+
+// Function to adapt exam data to the PDF format required
+const adaptExamDataForPDF = (
+  examDetails: any,
+  classSnap: any,
+  subjectSnaps: any[],
+  processedResults: any[],
+  majorSubjects?: string[]
+) => {
+  return {
+    examDetails: {
+      name: examDetails?.name || '',
+      examTypeName: examDetails?.examTypeName || '',
+      startDate: examDetails?.startDate || '',
+      endDate: examDetails?.endDate || ''
+    },
+    classSnap: {
+      name: classSnap?.name || ''
+    },
+    subjectSnaps,
+    processedResults,
+    majorSubjects
+  };
+};
+
+// Helper function to validate if a photo is a real photo (not placeholder)
+const isRealPhoto = (photo?: string): boolean => {
+  return !!(photo &&
+    photo !== 'NO PHOTO' &&
+    photo.trim() !== '' &&
+    photo !== 'https://placehold.co/128x128.png' &&
+    !photo.includes('ui-avatars.com') && // Exclude generated avatars
+    (photo.startsWith('http') || photo.startsWith('data:') || photo.startsWith('blob:') || photo.startsWith('/uploads/')));
+};
+
+const pickRealPupilPhoto = (pupilInfo: any, fetchedPupil?: any): string => {
+  const candidates = [
+    pupilInfo?.photo,
+    pupilInfo?.photoUrl,
+    pupilInfo?.avatar,
+    fetchedPupil?.photo,
+    fetchedPupil?.photoUrl,
+    fetchedPupil?.avatar,
+  ];
+
+  return candidates.find((photo) => typeof photo === 'string' && isRealPhoto(photo)) || '';
+};
+
+const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(results: T[]): Promise<T[]> => {
+  const pupilIds = [...new Set(results.map((result) => result.pupilInfo?.pupilId).filter(Boolean))];
+  let fetchedPupilsMap: Record<string, any> = {};
+
+  if (pupilIds.length > 0) {
+    try {
+      const batchResponse = await fetch('/api/pupils/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pupilIds }),
+      });
+
+      if (batchResponse.ok) {
+        fetchedPupilsMap = await batchResponse.json();
+      }
+    } catch (error) {
+      console.warn('Failed to fetch live pupil data for report photos:', error);
+    }
+  }
+
+  return results.map((result) => {
+    const pupilId = result.pupilInfo?.pupilId;
+    const fetchedPupil = pupilId ? fetchedPupilsMap[pupilId] : undefined;
+
+    return {
+      ...result,
+      pupilInfo: {
+        ...result.pupilInfo,
+        photo: pickRealPupilPhoto(result.pupilInfo, fetchedPupil),
+        schoolPayCode: getSchoolPayCode(fetchedPupil) || result.pupilInfo?.schoolPayCode || '',
+      },
+    } as T;
+  });
+};
+
+// Individual Print Modal component (for single pupil reports)
+const IndividualPrintModal = ({
+  isOpen,
+  onClose,
+  onPrintTrans,
+  isGenerating,
+  generationStatus,
+  generationProgress,
+  eta,
+  pupilName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onPrintTrans: () => void;
+  isGenerating: boolean;
+  generationStatus: string;
+  generationProgress: number;
+  eta: string;
+  pupilName?: string;
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Printer className="h-5 w-5 text-blue-600" />
+            Print Reports{pupilName ? ` - ${pupilName}` : ''}
+          </DialogTitle>
+          <DialogDescription>
+            Select the type of report to generate
+          </DialogDescription>
+        </DialogHeader>
+
+        {isGenerating ? (
+          <div className="py-4">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin"></div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Generating Report</h3>
+              <p className="text-sm text-blue-600 font-medium mb-4">{generationStatus}</p>
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${generationProgress}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center mb-4 text-sm">
+                <span className="font-semibold text-gray-800">{generationProgress}% Complete</span>
+                <span className="text-blue-600 font-medium">{eta}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <button
+              onClick={onPrintTrans}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <FileTextIcon className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">TRANS</h3>
+                  <p className="text-sm text-gray-600">Individual pupil reports (Enhanced design)</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {!isGenerating && (
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Promotion Ranking Configuration Dialog (for Term 3 only)
+const PromotionRankingDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  config,
+  onConfigChange
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  config: {
+    enabled: boolean;
+    ranges: {
+      promoted: { min: number; max: number };
+      probation: { min: number; max: number };
+      repeat: { min: number; max: number };
+    };
+  };
+  onConfigChange: (config: any) => void;
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Term 3 Promotion Ranking</DialogTitle>
+          <DialogDescription>
+            Configure promotion ranking ranges based on total aggregates
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={config.enabled}
+              onCheckedChange={(checked) => {
+                console.log('🔄 Checkbox changed, checked:', checked, 'enabled will be:', !!checked);
+                onConfigChange({ ...config, enabled: !!checked });
+              }}
+            />
+            <Label>Enable promotion ranking for this report</Label>
+          </div>
+
+          {config.enabled && (
+            <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+              {/* Promoted Range */}
+              <div>
+                <Label className="text-green-700 font-semibold">PROMOTED</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={config.ranges.promoted.min}
+                    onChange={(e) => onConfigChange({
+                      ...config,
+                      ranges: {
+                        ...config.ranges,
+                        promoted: { ...config.ranges.promoted, min: parseInt(e.target.value) || 4 }
+                      }
+                    })}
+                    className="w-20"
+                  />
+                  <span className="self-center">to</span>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={config.ranges.promoted.max}
+                    onChange={(e) => onConfigChange({
+                      ...config,
+                      ranges: {
+                        ...config.ranges,
+                        promoted: { ...config.ranges.promoted, max: parseInt(e.target.value) || 25 }
+                      }
+                    })}
+                    className="w-20"
+                  />
+                </div>
+              </div>
+
+              {/* Promoted on Probation Range */}
+              <div>
+                <Label className="text-orange-700 font-semibold">PROMOTED ON PROBATION</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={config.ranges.probation.min}
+                    onChange={(e) => onConfigChange({
+                      ...config,
+                      ranges: {
+                        ...config.ranges,
+                        probation: { ...config.ranges.probation, min: parseInt(e.target.value) || 26 }
+                      }
+                    })}
+                    className="w-20"
+                  />
+                  <span className="self-center">to</span>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={config.ranges.probation.max}
+                    onChange={(e) => onConfigChange({
+                      ...config,
+                      ranges: {
+                        ...config.ranges,
+                        probation: { ...config.ranges.probation, max: parseInt(e.target.value) || 30 }
+                      }
+                    })}
+                    className="w-20"
+                  />
+                </div>
+              </div>
+
+              {/* Advised to Repeat Range */}
+              <div>
+                <Label className="text-red-700 font-semibold">ADVISED TO REPEAT</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={config.ranges.repeat.min}
+                    onChange={(e) => onConfigChange({
+                      ...config,
+                      ranges: {
+                        ...config.ranges,
+                        repeat: { ...config.ranges.repeat, min: parseInt(e.target.value) || 31 }
+                      }
+                    })}
+                    className="w-20"
+                  />
+                  <span className="self-center">to</span>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={config.ranges.repeat.max}
+                    onChange={(e) => onConfigChange({
+                      ...config,
+                      ranges: {
+                        ...config.ranges,
+                        repeat: { ...config.ranges.repeat, max: parseInt(e.target.value) || 36 }
+                      }
+                    })}
+                    className="w-20"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={onConfirm}>
+            Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Add new PrintModal component
+const PrintModal = ({
+  isOpen,
+  onClose,
+  onPrintAssessment,
+  onPrintNurseryReport,
+  onPrintTrans,
+  isGenerating,
+  generationStatus,
+  generationProgress,
+  eta
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onPrintAssessment: () => void;
+  onPrintNurseryReport: () => void;
+  onPrintTrans: () => void;
+  isGenerating: boolean;
+  generationStatus: string;
+  generationProgress: number;
+  eta: string;
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Printer className="h-5 w-5 text-blue-600" />
+            Print Reports
+          </DialogTitle>
+          <DialogDescription>
+            Select the type of report to generate
+          </DialogDescription>
+        </DialogHeader>
+
+        {isGenerating ? (
+          <div className="py-4">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4"></div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Generating Report</h3>
+              <p className="text-sm text-blue-600 font-medium mb-4">{generationStatus}</p>
+
+              {/* Compact Progress Bar */}
+              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                  style={{ width: `${generationProgress}%` }}
+                />
+              </div>
+
+              {/* Progress and ETA */}
+              <div className="flex justify-between items-center mb-4 text-sm">
+                <span className="font-semibold text-gray-800">{generationProgress}% Complete</span>
+                <span className="text-blue-600 font-medium">{eta}</span>
+              </div>
+
+              {/* Compact Status Info */}
+              <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-semibold text-gray-700">Step: </span>
+                    <span className="text-gray-600">
+                      {generationProgress < 20 ? 'Data Prep' :
+                        generationProgress < 50 ? 'Processing' :
+                          generationProgress < 80 ? 'PDF Gen' : 'Finalizing'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-700">Status: </span>
+                    <span className="text-green-600">Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compact Progress Steps */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className={`p-2 rounded border ${generationProgress >= 10 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 10 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      {generationProgress >= 10 ? '✓' : '1'}
+                    </div>
+                    <span className="font-medium">Initialize</span>
+                  </div>
+                </div>
+
+                <div className={`p-2 rounded border ${generationProgress >= 30 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 30 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      {generationProgress >= 30 ? '✓' : '2'}
+                    </div>
+                    <span className="font-medium">Process</span>
+                  </div>
+                </div>
+
+                <div className={`p-2 rounded border ${generationProgress >= 60 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 60 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      {generationProgress >= 60 ? '✓' : '3'}
+                    </div>
+                    <span className="font-medium">Generate</span>
+                  </div>
+                </div>
+
+                <div className={`p-2 rounded border ${generationProgress >= 90 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 90 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                      {generationProgress >= 90 ? '✓' : '4'}
+                    </div>
+                    <span className="font-medium">Complete</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compact Tip */}
+              <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                <div className="text-xs text-blue-800">
+                  <span className="font-semibold">💡</span> Report will download automatically when ready
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <button
+              onClick={onPrintAssessment}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Assessment Report</h3>
+                  <p className="text-sm text-gray-600">Class-wide assessment summary</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={onPrintNurseryReport}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <FileTextIcon className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Breakdown</h3>
+                  <p className="text-sm text-gray-600">Detailed subject breakdown</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={onPrintTrans}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <FileTextIcon className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">TRANS</h3>
+                  <p className="text-sm text-gray-600">Individual pupil reports (Enhanced design)</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {!isGenerating && (
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Print Assessment Options Dialog Component
+const PrintAssessmentOptionsDialog = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  gradingScale,
+  reportType
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (options: {
+    showPin: boolean;
+    showIndexNumber: boolean;
+    showLinNumber: boolean;
+    showMarks: boolean;
+    showAgg: boolean;
+    showTotal: boolean;
+    showDiv: boolean;
+    orientation: 'landscape' | 'portrait';
+    fillMarks: boolean;
+    fillAgg: boolean;
+    fillTotal: boolean;
+    fillDiv: boolean;
+    showMajorSubjects: boolean;
+    showBestPupil: boolean;
+    showNeedsImprovement: boolean;
+    showAggregateAnalysis: boolean;
+  }) => void;
+  gradingScale?: Array<{ minMark: number; maxMark: number; grade: string; aggregates: number }>;
+  reportType?: 'table' | 'detailed';
+}) => {
+  const [showPin, setShowPin] = useState(true);
+  const [showIndexNumber, setShowIndexNumber] = useState(true);
+  const [showLinNumber, setShowLinNumber] = useState(true);
+  const [showMarks, setShowMarks] = useState(true);
+  const [showAgg, setShowAgg] = useState(true);
+  const [showTotal, setShowTotal] = useState(true);
+  const [showDiv, setShowDiv] = useState(true);
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>('landscape');
+  const [fillMarks, setFillMarks] = useState(true);
+  const [fillAgg, setFillAgg] = useState(true);
+  const [fillTotal, setFillTotal] = useState(true);
+  const [fillDiv, setFillDiv] = useState(true);
+  const [showMajorSubjects, setShowMajorSubjects] = useState(true);
+  const [showBestPupil, setShowBestPupil] = useState(true);
+  const [showNeedsImprovement, setShowNeedsImprovement] = useState(true);
+  const [showAggregateAnalysis, setShowAggregateAnalysis] = useState(true);
+
+  const handleConfirm = () => {
+    const options = {
+      showPin,
+      showIndexNumber,
+      showLinNumber,
+      showMarks,
+      showAgg,
+      showTotal,
+      showDiv,
+      orientation,
+      fillMarks,
+      fillAgg,
+      fillTotal,
+      fillDiv,
+      showMajorSubjects,
+      showBestPupil,
+      showNeedsImprovement,
+      showAggregateAnalysis,
+    };
+    console.log('📋 Print Assessment Options - Generate PDF clicked with options:', options);
+    console.log('✅ showAggregateAnalysis =', showAggregateAnalysis);
+    onConfirm(options);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Printer className="h-5 w-5 text-blue-600" />
+            {reportType === 'detailed' ? 'Detailed Assessment Options' : 'Print Assessment Options'}
+          </DialogTitle>
+          <DialogDescription>
+            {reportType === 'detailed'
+              ? 'Configure detailed assessment report with aggregate and subject analysis'
+              : 'Configure which columns to display and which data to include in the assessment report'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {/* Column Visibility Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Column Visibility</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showPin"
+                    checked={showPin}
+                    onCheckedChange={(checked) => setShowPin(checked === true)}
+                  />
+                  <Label htmlFor="showPin" className="font-medium cursor-pointer">
+                    PIN (Admission Number)
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showIndexNumber"
+                    checked={showIndexNumber}
+                    onCheckedChange={(checked) => setShowIndexNumber(checked === true)}
+                  />
+                  <Label htmlFor="showIndexNumber" className="font-medium cursor-pointer">
+                    Index Number
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showLinNumber"
+                    checked={showLinNumber}
+                    onCheckedChange={(checked) => setShowLinNumber(checked === true)}
+                  />
+                  <Label htmlFor="showLinNumber" className="font-medium cursor-pointer">
+                    LIN Number
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showMarks"
+                    checked={showMarks}
+                    onCheckedChange={(checked) => setShowMarks(checked === true)}
+                  />
+                  <Label htmlFor="showMarks" className="font-medium cursor-pointer">
+                    Marks
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showAgg"
+                    checked={showAgg}
+                    onCheckedChange={(checked) => setShowAgg(checked === true)}
+                  />
+                  <Label htmlFor="showAgg" className="font-medium cursor-pointer">
+                    AGG (Aggregates)
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showTotal"
+                    checked={showTotal}
+                    onCheckedChange={(checked) => setShowTotal(checked === true)}
+                  />
+                  <Label htmlFor="showTotal" className="font-medium cursor-pointer">
+                    Total
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showDiv"
+                    checked={showDiv}
+                    onCheckedChange={(checked) => setShowDiv(checked === true)}
+                  />
+                  <Label htmlFor="showDiv" className="font-medium cursor-pointer">
+                    DIV (Division)
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {reportType !== 'detailed' && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Page Orientation</h3>
+              <RadioGroup
+                value={orientation}
+                onValueChange={(value) => setOrientation(value as 'landscape' | 'portrait')}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+              >
+                <Label htmlFor="orientation-landscape" className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer">
+                  <RadioGroupItem id="orientation-landscape" value="landscape" />
+                  <span className="font-medium">Landscape</span>
+                </Label>
+                <Label htmlFor="orientation-portrait" className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer">
+                  <RadioGroupItem id="orientation-portrait" value="portrait" />
+                  <span className="font-medium">Portrait</span>
+                </Label>
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* Data Fill Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Data Fill Options</h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Choose which columns should be filled with data or left empty
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <Label htmlFor="fillMarks" className="font-medium cursor-pointer">
+                  Fill Marks Column
+                </Label>
+                <Checkbox
+                  id="fillMarks"
+                  checked={fillMarks}
+                  onCheckedChange={(checked) => setFillMarks(checked === true)}
+                  disabled={!showMarks}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <Label htmlFor="fillAgg" className="font-medium cursor-pointer">
+                  Fill AGG Column
+                </Label>
+                <Checkbox
+                  id="fillAgg"
+                  checked={fillAgg}
+                  onCheckedChange={(checked) => setFillAgg(checked === true)}
+                  disabled={!showAgg}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <Label htmlFor="fillTotal" className="font-medium cursor-pointer">
+                  Fill Total Column
+                </Label>
+                <Checkbox
+                  id="fillTotal"
+                  checked={fillTotal}
+                  onCheckedChange={(checked) => setFillTotal(checked === true)}
+                  disabled={!showTotal}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <Label htmlFor="fillDiv" className="font-medium cursor-pointer">
+                  Fill DIV Column
+                </Label>
+                <Checkbox
+                  id="fillDiv"
+                  checked={fillDiv}
+                  onCheckedChange={(checked) => setFillDiv(checked === true)}
+                  disabled={!showDiv}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Display Options */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Additional Display Options</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showMajorSubjects"
+                    checked={showMajorSubjects}
+                    onCheckedChange={(checked) => setShowMajorSubjects(checked === true)}
+                  />
+                  <Label htmlFor="showMajorSubjects" className="font-medium cursor-pointer">
+                    Show Major Subjects Legend
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showBestPupil"
+                    checked={showBestPupil}
+                    onCheckedChange={(checked) => setShowBestPupil(checked === true)}
+                  />
+                  <Label htmlFor="showBestPupil" className="font-medium cursor-pointer">
+                    Show Best Performing Pupil
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="showNeedsImprovement"
+                    checked={showNeedsImprovement}
+                    onCheckedChange={(checked) => setShowNeedsImprovement(checked === true)}
+                  />
+                  <Label htmlFor="showNeedsImprovement" className="font-medium cursor-pointer">
+                    Show Needs Improvement
+                  </Label>
+                </div>
+              </div>
+
+              {reportType !== 'detailed' && (
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="showAggregateAnalysis"
+                      checked={showAggregateAnalysis}
+                      onCheckedChange={(checked) => setShowAggregateAnalysis(checked === true)}
+                    />
+                    <Label htmlFor="showAggregateAnalysis" className="font-medium cursor-pointer">
+                      Show Aggregate Analysis Table (First Page)
+                    </Label>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">New!</Badge>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Grading Scale Preview */}
+          {gradingScale && gradingScale.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Grading Scale (Will be included in PDF: First row = Marks Range, Second row = Grade)</h3>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-center text-xs">Marks Range</TableHead>
+                      {gradingScale.slice(0, 9).map((_, i) => (
+                        <TableHead key={i} className="text-center text-xs"></TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Row 1: All Marks Ranges */}
+                    <TableRow>
+                      {gradingScale.slice(0, 10).map((scale, i) => (
+                        <TableCell key={`range-${i}`} className="text-center text-xs">
+                          {scale.minMark === 0 ? `0-${scale.maxMark}` : `${scale.minMark}-${scale.maxMark}`}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {/* Row 2: All Grades */}
+                    <TableRow>
+                      {gradingScale.slice(0, 10).map((scale, i) => (
+                        <TableCell key={`grade-${i}`} className="text-center text-xs font-semibold text-blue-700">
+                          {scale.grade}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm}>
+            Generate PDF
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default function ViewResultsView() {
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // PDF Viewer hook
+  const pdfViewer = usePDFViewer();
+
+  // Get exam ID directly from params
+  const examId = params.examId as string;
+  const classId = searchParams.get('classId');
+  const shouldAutoOpenPrint = searchParams.get('openPrint') === '1';
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState('position');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    minMarks: '',
+    maxMarks: '',
+    grade: 'all',
+    division: 'all'
+  });
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showProgressiveExamModal, setShowProgressiveExamModal] = useState(false);
+  const [selectedProgressiveExam, setSelectedProgressiveExam] = useState<string | null>(null);
+  const [progressiveExams, setProgressiveExams] = useState<any[]>([]);
+
+  // Results release state
+  const [selectedPupils, setSelectedPupils] = useState<string[]>([]);
+  const [showReleaseModal, setShowReleaseModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [releaseNotes, setReleaseNotes] = useState('');
+
+  // Individual print mode state
+  const [isPrintMode, setIsPrintMode] = useState(true);
+  const [selectedPupilForPrint, setSelectedPupilForPrint] = useState<string | null>(null);
+  const [showIndividualPrintModal, setShowIndividualPrintModal] = useState(false);
+
+  // Print modal state
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showPrintAssessmentOptionsDialog, setShowPrintAssessmentOptionsDialog] = useState(false);
+  const [assessmentReportType, setAssessmentReportType] = useState<'table' | 'detailed'>('table'); // Track which assessment type
+  const [printAssessmentOptions, setPrintAssessmentOptions] = useState<{
+    showPin: boolean;
+    showIndexNumber: boolean;
+    showLinNumber: boolean;
+    showMarks: boolean;
+    showAgg: boolean;
+    showTotal: boolean;
+    showDiv: boolean;
+    orientation: 'landscape' | 'portrait';
+    fillMarks: boolean;
+    fillAgg: boolean;
+    fillTotal: boolean;
+    fillDiv: boolean;
+  } | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState('');
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [eta, setEta] = useState<string>('');
+
+  useEffect(() => {
+    if (!shouldAutoOpenPrint) return;
+
+    setShowPrintModal(true);
+
+    const nextUrl = classId
+      ? `/exams/${examId}/view-results?classId=${classId}`
+      : `/exams/${examId}/view-results`;
+
+    router.replace(nextUrl);
+  }, [shouldAutoOpenPrint, classId, examId, router]);
+
+  // TRANS report type selection state
+  const [showTransTypeModal, setShowTransTypeModal] = useState(false);
+  const [transReportType, setTransReportType] = useState<'grading' | 'progress' | null>(null);
+  const [showReportConfigModal, setShowReportConfigModal] = useState(false);
+  const [showComparisonExamModal, setShowComparisonExamModal] = useState(false);
+  const [selectedComparisonExams, setSelectedComparisonExams] = useState<string[]>([]); // Up to 2 exams
+  const [comparisonExamNames, setComparisonExamNames] = useState<Record<string, string>>({}); // Custom names for exams
+  const [availableComparisonExams, setAvailableComparisonExams] = useState<any[]>([]);
+  const [isLoadingComparisonExams, setIsLoadingComparisonExams] = useState(false);
+
+  // Report configuration state
+  const [reportConfig, setReportConfig] = useState({
+    pupilAge: { show: true, fill: true },
+    className: { show: true, fill: true },
+    pin: { show: true, fill: true },
+    year: { show: true, fill: true },
+    term: { show: true, fill: true },
+    promoted: { show: false, fill: false },
+    schoolPayCode: { show: false, fill: true },
+    createdOn: { show: true, fill: true, useCustom: false },
+    nextTermBegins: { show: true, fill: true, useCustom: false },
+    nextTermEnds: { show: true, fill: true, useCustom: false },
+  });
+
+  // Custom dates state
+  const [customDates, setCustomDates] = useState({
+    createdOn: '',
+    nextTermBegins: '',
+    nextTermEnds: '',
+  });
+
+  // Promotion ranking state (for Term 3 only)
+  const [showPromotionRankingModal, setShowPromotionRankingModal] = useState(false);
+  const [promotionRankingConfig, setPromotionRankingConfig] = useState({
+    enabled: true, // Default to enabled (checkbox starts checked)
+    ranges: {
+      promoted: { min: 4, max: 25 },
+      probation: { min: 26, max: 30 },
+      repeat: { min: 31, max: 36 }
+    }
+  });
+
+
+  // Fetch school settings
+  const { data: schoolSettings } = useQuery({
+    queryKey: ['schoolSettings'],
+    queryFn: async () => {
+      try {
+        const settingsDoc = await SchoolSettingsService.getSchoolSettings();
+        return settingsDoc || { generalInfo: { name: 'School Name' } };
+      } catch (error) {
+        console.error("Error fetching school settings:", error);
+        return { generalInfo: { name: 'School Name' } };
+      }
+    }
+  });
+
+  const { data: exams = [], isLoading: isLoadingExams } = useExams();
+  const { data: academicYears = [] } = useAcademicYears();
+  const { data: allPupils = [] } = usePupils(); // Fetch all pupils to get dateOfBirth
+  const { data: allStaff = [] } = useStaff(); // Fetch staff to get class teacher info
+  const {
+    data: examResultData,
+    isLoading: isLoadingExamResult,
+    error: examResultError
+  } = useExamResultByExamId(examId);
+
+  // Results release hooks
+  const { data: releaseInfo } = useReleaseInfo(examId, classId || '');
+  const releaseResultsMutation = useReleaseResults();
+  const revokeResultsMutation = useRevokeResults();
+  const releaseAllMutation = useReleaseAllResults();
+
+  const examDetails = useMemo(() => {
+    if (!examId || exams.length === 0) return undefined;
+    const exam = exams.find(exam => exam.id === examId);
+
+    // Add termName to examDetails for easy access
+    if (exam && exam.termId && academicYears.length > 0) {
+      const academicYear = academicYears.find(year => year.id === exam.academicYearId);
+      const term = academicYear?.terms?.find(t => t.id === exam.termId);
+      return {
+        ...exam,
+        termName: term?.name
+      };
+    }
+
+    return exam;
+  }, [exams, examId, academicYears]);
+
+  const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
+
+  // Enhance pupil snapshots with dateOfBirth from actual pupils data
+  const pupilSnaps = useMemo(() => {
+    const snaps = examResultData?.pupilSnapshots || [];
+    return snaps.map(snap => {
+      // Find the actual pupil to get their dateOfBirth if not in snapshot
+      const actualPupil = allPupils.find(p => p.id === snap.pupilId);
+      return {
+        ...snap,
+        dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth, // Use snapshot first, fallback to actual pupil
+        ageAtExam: snap.ageAtExam, // Keep the ageAtExam from snapshot
+        schoolPayCode: getSchoolPayCode(actualPupil)
+      };
+    });
+  }, [examResultData, allPupils]);
+
+  // Clean subject names to remove any trailing '&' from database
+  const subjectSnaps = useMemo(() => {
+    const snaps = examResultData?.subjectSnapshots || [];
+    return snaps.map(snap => ({
+      ...snap,
+      name: cleanSubjectName(snap.name)
+    }));
+  }, [examResultData]);
+
+  // Get class teacher information with proper title based on gender
+  const classTeacherInfo = useMemo(() => {
+    if (!classSnap?.classTeacherId || !allStaff.length) {
+      return { name: 'Class Teacher', gender: undefined };
+    }
+
+    const teacher = allStaff.find(s => s.id === classSnap.classTeacherId);
+    if (!teacher) {
+      return { name: classSnap.classTeacherName || 'Class Teacher', gender: undefined };
+    }
+
+    const formattedName = formatTeacherNameWithTitle(
+      `${teacher.firstName} ${teacher.lastName}`,
+      teacher.gender
+    );
+
+    return {
+      name: formattedName,
+      gender: teacher.gender
+    };
+  }, [classSnap, allStaff]);
+
+  // Function to get academic year and term names
+  const getAcademicYearAndTerm = useCallback((academicYearId: string, termId: string) => {
+    const academicYear = academicYears?.find(year => year.id === academicYearId);
+    const term = academicYear?.terms?.find(term => term.id === termId);
+    return {
+      academicYearName: academicYear?.name || 'Unknown Year',
+      termName: term?.name || 'Unknown Term'
+    };
+  }, [academicYears]);
+
+  // Process results data
+  const processedResults = useMemo((): PupilResultData[] => {
+    if (!examResultData?.results || !pupilSnaps.length || !subjectSnaps.length) return [];
+
+    // Log data to help with debugging
+    console.log('Processing results with:', {
+      pupilCount: pupilSnaps.length,
+      subjectCount: subjectSnaps.length,
+      resultsKeys: Object.keys(examResultData.results).length
+    });
+
+    // Debug log subject info to verify Math is included
+    console.log('Subject snapshots:', subjectSnaps.map(s => ({
+      code: s.code,
+      name: s.name,
+      id: s.subjectId
+    })));
+
+    // Get major subjects from the saved exam result data
+    const savedMajorSubjects = examResultData.majorSubjects || [];
+    const majorSubjects = savedMajorSubjects.length > 0
+      ? savedMajorSubjects
+      : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code));
+
+    console.log('Major subjects for aggregates calculation:', majorSubjects);
+
+    const results: PupilResultData[] = [];
+
+    pupilSnaps.forEach(pupil => {
+      // Get the raw pupil results from the database
+      const pupilResults = examResultData.results[pupil.pupilId] || {};
+
+      console.log(`Processing pupil ${pupil.name} (${pupil.pupilId}):`,
+        Object.keys(pupilResults).length > 0
+          ? `Found ${Object.keys(pupilResults).length} subject results`
+          : 'No results found'
+      );
+
+      let totalMarks = 0;
+      let totalAggregates = 0;
+      const processedSubjectResults: Record<string, { marks: number; grade: string; aggregates: number }> = {};
+
+      // Initialize all subjects first to ensure none are missed (especially Math)
+      subjectSnaps.forEach(subject => {
+        const isMajorSubject = majorSubjects.includes(subject.code);
+        processedSubjectResults[subject.code] = {
+          marks: 0,
+          grade: 'F9',
+          aggregates: isMajorSubject ? 9 : 0 // Only major subjects get aggregates > 0
+        };
+      });
+
+      // Now populate with actual results where available
+      subjectSnaps.forEach(subject => {
+        const result = pupilResults[subject.subjectId];
+        const isMajorSubject = majorSubjects.includes(subject.code);
+
+        if (result) {
+          console.log(`Found result for subject ${subject.name} (${subject.code}):`,
+            result.marks !== undefined ? `Marks: ${result.marks}` : 'No marks',
+            result.grade !== undefined ? `Grade: ${result.grade}` : 'No grade',
+            result.status !== undefined ? `Status: ${result.status}` : 'No status',
+            `Major subject: ${isMajorSubject}`
+          );
+
+          processedSubjectResults[subject.code] = {
+            marks: result.status === 'missed' ? 0 : (result.marks || 0),
+            grade: result.status === 'missed' ? 'MISSED' : (result.grade || 'F9'),
+            aggregates: isMajorSubject ? (result.status === 'missed' ? 9 : (result.aggregates || 9)) : 0 // Only major subjects get aggregates
+          };
+        } else {
+          console.log(`No result found for subject ${subject.name} (${subject.code})`);
+        }
+      });
+
+      // Calculate marks and aggregates from individual subject results
+      let calculatedTotalMarks = 0;
+      let calculatedTotalAggregates = 0;
+
+      for (const subjectCode in processedSubjectResults) {
+        calculatedTotalMarks += processedSubjectResults[subjectCode].marks || 0;
+        // Only add aggregates if it's a major subject (non-zero aggregates)
+        if (processedSubjectResults[subjectCode].aggregates > 0) {
+          calculatedTotalAggregates += processedSubjectResults[subjectCode].aggregates || 0;
+        }
+      }
+
+      // Use pupil totals from the database if available, otherwise use calculated values
+      if (typeof pupilResults.totalMarks === 'number') {
+        console.log(`Using totalMarks from database: ${pupilResults.totalMarks}`);
+        totalMarks = pupilResults.totalMarks;
+      } else {
+        console.log(`Using calculated totalMarks: ${calculatedTotalMarks}`);
+        totalMarks = calculatedTotalMarks;
+      }
+
+      if (typeof pupilResults.totalAggregates === 'number') {
+        console.log(`Using totalAggregates from database: ${pupilResults.totalAggregates}`);
+        totalAggregates = pupilResults.totalAggregates;
+      } else {
+        console.log(`Using calculated totalAggregates: ${calculatedTotalAggregates}`);
+        totalAggregates = calculatedTotalAggregates;
+      }
+
+      // Use the division from the database if available, otherwise calculate it
+      let division = '';
+      if (typeof pupilResults.division === 'string' && pupilResults.division) {
+        console.log(`Using division from database: ${pupilResults.division}`);
+        division = pupilResults.division;
+      } else {
+        division = calculateDivision(totalAggregates);
+        console.log(`Calculated division: ${division}`);
+      }
+
+      // Use position from database if available
+      let position = 0;
+      if (typeof pupilResults.position === 'number') {
+        console.log(`Using position from database: ${pupilResults.position}`);
+        position = pupilResults.position;
+      }
+
+      results.push({
+        pupilInfo: pupil,
+        results: processedSubjectResults,
+        totalMarks,
+        totalAggregates,
+        division,
+        position
+      });
+    });
+
+    // Only sort and assign positions if they weren't already in the database
+    const needToAssignPositions = results.some(r => r.position === 0);
+
+    if (needToAssignPositions) {
+      console.log('Recalculating positions based on total marks');
+      // Sort by total marks (descending) and assign positions
+      results.sort((a, b) => b.totalMarks - a.totalMarks);
+      results.forEach((result, index) => {
+        result.position = index + 1;
+      });
+    }
+
+    return results;
+  }, [examResultData, pupilSnaps, subjectSnaps]);
+
+  // Calculate analytics
+  const analytics = useMemo<Analytics | null>(() => {
+    if (!processedResults.length || !subjectSnaps.length) return null;
+
+    // Find best and worst pupils
+    const sortedByTotal = [...processedResults].sort((a, b) => b.totalMarks - a.totalMarks);
+    const bestPupil = sortedByTotal[0];
+    const worstPupil = sortedByTotal[sortedByTotal.length - 1];
+
+    // Calculate subject averages
+    const subjectAverages = subjectSnaps.map(subject => {
+      const marks = processedResults.map(r => r.results[subject.code]?.marks || 0);
+      const average = marks.reduce((a, b) => a + b, 0) / (marks.length || 1);
+      return { ...subject, averageMarks: average };
+    });
+
+    // Find best and worst subjects
+    const sortedSubjects = [...subjectAverages].sort((a, b) => b.averageMarks - a.averageMarks);
+    const bestSubject = sortedSubjects[0];
+    const worstSubject = sortedSubjects[sortedSubjects.length - 1];
+
+    // Calculate class average and pass rate
+    const classAverage = processedResults.reduce((sum, r) => sum + r.totalMarks, 0) / (processedResults.length || 1);
+    const passRate = (processedResults.filter(r => r.totalMarks >= (examDetails?.passingMarks || 40)).length / (processedResults.length || 1)) * 100;
+
+    return {
+      bestPupil: {
+        name: bestPupil?.pupilInfo?.name || 'N/A',
+        admissionNumber: bestPupil?.pupilInfo?.admissionNumber || 'N/A',
+        totalMarks: bestPupil?.totalMarks || 0,
+        totalAggregates: bestPupil?.totalAggregates || 0
+      },
+      worstPupil: {
+        name: worstPupil?.pupilInfo?.name || 'N/A',
+        admissionNumber: worstPupil?.pupilInfo?.admissionNumber || 'N/A',
+        totalMarks: worstPupil?.totalMarks || 0,
+        totalAggregates: worstPupil?.totalAggregates || 0
+      },
+      bestSubject: {
+        name: bestSubject?.name || 'N/A',
+        code: bestSubject?.code || 'N/A',
+        averageMarks: bestSubject?.averageMarks || 0
+      },
+      worstSubject: {
+        name: worstSubject?.name || 'N/A',
+        code: worstSubject?.code || 'N/A',
+        averageMarks: worstSubject?.averageMarks || 0
+      },
+      classAverage,
+      passRate
+    };
+  }, [processedResults, subjectSnaps, examDetails]);
+
+  // Filter and sort results
+  const filteredAndSortedResults = useMemo(() => {
+    if (!processedResults) return [];
+
+    let filtered = processedResults.filter(result => {
+      const pupilName = result.pupilInfo?.name || '';
+      const admissionNumber = result.pupilInfo?.admissionNumber || '';
+
+      const matchesSearch = pupilName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesMarks = (!filters.minMarks || result.totalMarks >= Number(filters.minMarks)) &&
+        (!filters.maxMarks || result.totalMarks <= Number(filters.maxMarks));
+
+      const matchesGrade = filters.grade === 'all' || !filters.grade || Object.values(result.results).some(subject => subject?.grade === filters.grade);
+
+      const matchesDivision = filters.division === 'all' || !filters.division || result.division === filters.division;
+
+      return matchesSearch && matchesMarks && matchesGrade && matchesDivision;
+    });
+
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'name':
+          comparison = a.pupilInfo.name.localeCompare(b.pupilInfo.name);
+          break;
+        case 'marks':
+          comparison = a.totalMarks - b.totalMarks;
+          break;
+        case 'aggregates':
+          comparison = a.totalAggregates - b.totalAggregates;
+          break;
+        case 'position':
+          comparison = a.position - b.position;
+          break;
+        default:
+          // Check if sorting by subject
+          if (sortField.startsWith('subject_')) {
+            const subjectCode = sortField.replace('subject_', '');
+            const aSubjectResult = a.results[subjectCode];
+            const bSubjectResult = b.results[subjectCode];
+            const aMarks = aSubjectResult?.marks || 0;
+            const bMarks = bSubjectResult?.marks || 0;
+            comparison = aMarks - bMarks;
+          } else {
+            comparison = 0;
+          }
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [processedResults, searchTerm, filters, sortField, sortDirection]);
+
+  // No pagination - show all results
+  const displayedResults = filteredAndSortedResults;
+
+  const handleViewDetails = useCallback((pupilId: string) => {
+    router.push(`/exams/${examId}/pupil-results/${pupilId}`);
+  }, [examId, router]);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  // Register print handler to open print modal
+  const { registerPrintHandler } = usePrint();
+  useEffect(() => {
+    const unregister = registerPrintHandler(() => {
+      // If individual print modal is open, trigger that
+      if (selectedPupilForPrint) {
+        setShowIndividualPrintModal(true);
+      } else {
+        // Otherwise, open the main print modal
+        setShowPrintModal(true);
+      }
+    }, 50);
+    return unregister;
+  }, [registerPrintHandler, selectedPupilForPrint]);
+
+  // Results release handlers
+  const handlePupilSelection = (pupilId: string, isChecked: boolean) => {
+    if (isChecked) {
+      setSelectedPupils(prev => [...prev, pupilId]);
+    } else {
+      setSelectedPupils(prev => prev.filter(id => id !== pupilId));
+    }
+  };
+
+  const handleSelectAll = (isChecked: boolean) => {
+    if (isChecked) {
+      const allPupilIds = displayedResults.map(result => result.pupilInfo.pupilId);
+      setSelectedPupils(allPupilIds);
+    } else {
+      setSelectedPupils([]);
+    }
+  };
+
+  const handleReleaseResults = async (password: string, notes?: string) => {
+    if (!user?.id || !classId || selectedPupils.length === 0) return;
+
+    try {
+      await releaseResultsMutation.mutateAsync({
+        examId,
+        classId,
+        pupilIds: selectedPupils,
+        adminUserId: user.id,
+        adminPassword: password,
+        releaseNotes: notes,
+      });
+
+      setSelectedPupils([]);
+    } catch (error) {
+      console.error('Failed to release results:', error);
+      throw error; // Re-throw to let the modal handle the error
+    }
+  };
+
+  const handleRevokeResults = async (pupilIds: string[], password: string) => {
+    if (!user?.id || !classId) return;
+
+    try {
+      await revokeResultsMutation.mutateAsync({
+        examId,
+        classId,
+        pupilIds,
+        adminUserId: user.id,
+        adminPassword: password,
+      });
+    } catch (error) {
+      console.error('Failed to revoke results:', error);
+      throw error;
+    }
+  };
+
+  const handleReleaseAll = async (password: string, notes?: string) => {
+    if (!user?.id || !classId) return;
+
+    try {
+      await releaseAllMutation.mutateAsync({
+        examId,
+        classId,
+        adminUserId: user.id,
+        adminPassword: password,
+        releaseNotes: notes,
+      });
+    } catch (error) {
+      console.error('Failed to release all results:', error);
+      throw error;
+    }
+  };
+
+  const isResultReleased = (pupilId: string): boolean => {
+    return releaseInfo?.releasedPupils.includes(pupilId) || false;
+  };
+
+  // Update progress function for individual reports
+  const updateProgressForIndividual = useCallback((progress: number, status: string) => {
+    setGenerationProgress(progress);
+    setGenerationStatus(status);
+    if (startTime) {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rate = progress / elapsed;
+      const remaining = (100 - progress) / rate;
+      setEta(remaining > 60 ? `${Math.round(remaining / 60)}m ${Math.round(remaining % 60)}s` : `${Math.round(remaining)}s`);
+    }
+  }, [startTime]);
+
+  // Handle individual pupil Report generation - OPTIMIZED
+  const handleIndividualReportOne = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !selectedPupilForPrint || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for report generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgressForIndividual(5, 'Preparing report data...');
+
+      // Find the selected pupil from processedResults
+      const selectedPupilResult = processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint);
+      if (!selectedPupilResult) {
+        throw new Error('Pupil not found in results');
+      }
+
+      // Create single pupil processed result
+      const singlePupilResult = {
+        ...selectedPupilResult,
+        pupilInfo: selectedPupilResult.pupilInfo,
+        subjectResults: (selectedPupilResult as any).subjectResults || {}
+      };
+
+      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult]);
+
+      updateProgressForIndividual(10, 'Preparing all data in parallel...');
+
+      // 🚀 OPTIMIZED: Prepare all data in parallel (synchronous operations)
+      const [academicInfo, nextTermDates, gradingScaleData, majorSubjectsData] = await Promise.all([
+        // These are synchronous, but using Promise.all for consistency
+        Promise.resolve(getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '')),
+        Promise.resolve(getNextTermDates(examDetails.academicYearId || '', examDetails.termId || '', academicYears)),
+        Promise.resolve(
+          examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+            ? examResultData.gradingScale.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+              grade: item.grade,
+              aggregates: item.aggregates || 9
+            }))
+            : DEFAULT_GRADING_SCALE.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark,
+              grade: item.grade,
+              aggregates: item.aggregates || 9
+            }))
+        ),
+        Promise.resolve(
+          examResultData?.majorSubjects && examResultData.majorSubjects.length > 0
+            ? examResultData.majorSubjects
+            : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code))
+        )
+      ]);
+
+      const { academicYearName, termName } = academicInfo;
+      const actualGradingScale = gradingScaleData;
+      const majorSubjects = majorSubjectsData;
+
+      updateProgressForIndividual(20, 'Fetching teacher information...');
+
+      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter((teacherId): teacherId is string => Boolean(teacherId)))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          // Use batch API if available, otherwise parallel individual calls
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
+        const teacherName = subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          : 'Not Assigned';
+
+        return {
+          ...subject,
+          teacherName,
+          fullMarks: 100
+        };
+      });
+
+      updateProgressForIndividual(50, 'Generating report PDF...');
+
+      const modernBatchData = {
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: processedResultsForReport,
+        schoolSettings,
+        majorSubjects: majorSubjects, // Send major subjects for grade display
+        gradingScale: actualGradingScale,
+        nextTermInfo: nextTermDates ? {
+          startDate: nextTermDates.nextTermBegins,
+          endDate: nextTermDates.nextTermEnds
+        } : undefined,
+        classTeacherInfo: classTeacherInfo,
+        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
+        onProgress: (progress: number, status: string) => {
+          // Map internal progress (0-100) to our progress range (50-95)
+          const mappedProgress = 50 + Math.round(progress * 0.45); // 50-95 range
+          updateProgressForIndividual(mappedProgress, status);
+        }
+      };
+
+      const blob = await generateModernBatchReportPDF(modernBatchData);
+
+      const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Report.pdf`;
+      const title = 'Individual Pupil Report';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgressForIndividual(100, 'Complete!');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({
+        title: "Success",
+        description: "Report generated successfully!",
+        duration: 1500,
+      });
+    } catch (error) {
+      console.error("Error generating individual report:", error);
+      toast({ title: "Error", description: "Failed to generate report. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowIndividualPrintModal(false);
+        setSelectedPupilForPrint(null);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer]);
+
+  // Handle individual pupil TRANS report - show type selection modal first
+  const handleIndividualTransReport = useCallback(() => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !selectedPupilForPrint || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for TRANS report generation" });
+      return;
+    }
+    // Show type selection modal first
+    setShowTransTypeModal(true);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, toast]);
+
+  // Generate individual TRANS report with grading scale - OPTIMIZED
+  const generateIndividualTransReportWithGrading = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !selectedPupilForPrint || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for TRANS report generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgressForIndividual(5, 'Preparing TRANS report data...');
+
+      // Find the selected pupil from processedResults
+      const selectedPupilResult = processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint);
+      if (!selectedPupilResult) {
+        throw new Error('Pupil not found in results');
+      }
+
+      // Create single pupil processed result
+      const singlePupilResult = {
+        ...selectedPupilResult,
+        pupilInfo: selectedPupilResult.pupilInfo,
+        subjectResults: (selectedPupilResult as any).subjectResults || {}
+      };
+
+      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult]);
+
+      updateProgressForIndividual(10, 'Preparing all data in parallel...');
+
+      // 🚀 OPTIMIZED: Prepare all data in parallel
+      const [academicInfo, nextTermDates, gradingScaleData, majorSubjectsData] = await Promise.all([
+        Promise.resolve(getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '')),
+        Promise.resolve(getNextTermDates(examDetails.academicYearId || '', examDetails.termId || '', academicYears)),
+        Promise.resolve(
+          examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+            ? examResultData.gradingScale.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+              grade: item.grade,
+              aggregates: item.aggregates || 9
+            }))
+            : DEFAULT_GRADING_SCALE.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark,
+              grade: item.grade,
+              aggregates: item.aggregates || 9
+            }))
+        ),
+        Promise.resolve(
+          examResultData?.majorSubjects && examResultData.majorSubjects.length > 0
+            ? examResultData.majorSubjects
+            : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code))
+        )
+      ]);
+
+      const { academicYearName, termName } = academicInfo;
+      const actualGradingScale = gradingScaleData;
+      const majorSubjects = majorSubjectsData;
+
+      updateProgressForIndividual(20, 'Fetching teacher information...');
+
+      // Fetch teachers
+      const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter((teacherId): teacherId is string => Boolean(teacherId)))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
+        const teacherName = subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          : 'Not Assigned';
+
+        return {
+          ...subject,
+          teacherName,
+          fullMarks: 100
+        };
+      });
+
+      updateProgressForIndividual(50, 'Generating TRANS report PDF...');
+
+      // Use custom dates if configured, otherwise use system dates
+      const createdOnDate = reportConfig.createdOn.useCustom && customDates.createdOn
+        ? customDates.createdOn
+        : examDetails.startDate || new Date().toISOString().split('T')[0];
+
+      const nextTermBeginsDate = reportConfig.nextTermBegins.useCustom && customDates.nextTermBegins
+        ? customDates.nextTermBegins
+        : nextTermDates?.nextTermBegins || '';
+
+      const nextTermEndsDate = reportConfig.nextTermEnds.useCustom && customDates.nextTermEnds
+        ? customDates.nextTermEnds
+        : nextTermDates?.nextTermEnds || '';
+
+      const transBatchData = {
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: processedResultsForReport,
+        schoolSettings,
+        majorSubjects: majorSubjects, // Send major subjects for grade display
+        gradingScale: actualGradingScale,
+        nextTermInfo: nextTermDates ? {
+          startDate: nextTermBeginsDate,
+          endDate: nextTermEndsDate
+        } : undefined,
+        classTeacherInfo: classTeacherInfo,
+        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
+        reportConfig: reportConfig,
+        customDates: {
+          createdOn: createdOnDate,
+          nextTermBegins: nextTermBeginsDate,
+          nextTermEnds: nextTermEndsDate,
+        },
+        onProgress: (progress: number, status: string) => {
+          // Map internal progress (0-100) to our progress range (50-95)
+          const mappedProgress = 50 + Math.round(progress * 0.45); // 50-95 range
+          updateProgressForIndividual(mappedProgress, status);
+        }
+      };
+
+      const blob = await generateTransBatchReportPDF(transBatchData);
+
+      const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_TRANS_Report.pdf`;
+      const title = 'Individual Pupil TRANS Report';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgressForIndividual(95, 'Finalizing document...');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({
+        title: "Success",
+        description: "TRANS report generated successfully!",
+        duration: 1500,
+      });
+    } catch (error) {
+      console.error("Error generating individual TRANS report:", error);
+      toast({ title: "Error", description: "Failed to generate TRANS report. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowIndividualPrintModal(false);
+        setShowTransTypeModal(false);
+        setTransReportType(null);
+        setSelectedPupilForPrint(null);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates]);
+
+  // Generate individual TRANS report with progress assessment
+  const generateIndividualTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !selectedPupilForPrint || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for TRANS progress reports generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgressForIndividual(5, 'Preparing data...');
+
+      // Find the selected pupil from processedResults
+      const selectedPupilResult = processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint);
+      if (!selectedPupilResult) {
+        throw new Error('Pupil not found in results');
+      }
+
+      updateProgressForIndividual(10, 'Fetching comparison exam data...');
+
+      // 🚀 OPTIMIZED: Fetch all comparison exams and their results in parallel
+      const comparisonExamsData = await Promise.all(
+        comparisonExamIds.map(async (examId) => {
+          const [exam, examResult] = await Promise.all([
+            ExamsService.getExamById(examId),
+            ExamsService.getExamResultByExamId(examId)
+          ]);
+
+          if (!exam) {
+            throw new Error(`Comparison exam ${examId} not found`);
+          }
+          if (!examResult) {
+            throw new Error(`Comparison exam results for ${examId} not found`);
+          }
+
+          return { exam, examResult };
+        })
+      );
+
+      updateProgressForIndividual(20, 'Processing comparison exam results...');
+
+      // Process each comparison exam's results for the selected pupil
+      const comparisonExamsProcessed = comparisonExamsData.map(({ exam, examResult }) => {
+        const comparisonPupilSnaps = examResult.pupilSnapshots || [];
+        const comparisonSubjectSnaps = examResult.subjectSnapshots || [];
+        const comparisonResults = examResult.results || {};
+
+        // Get the selected pupil's results from this comparison exam
+        const pupilResult = comparisonResults[selectedPupilForPrint] || {};
+        const processedSubjectResults: Record<string, any> = {};
+
+        comparisonSubjectSnaps.forEach((subject: any) => {
+          const result = pupilResult[subject.subjectId];
+          const isMajorSubject = (examResult.majorSubjects || []).includes(subject.code);
+
+          if (result) {
+            processedSubjectResults[subject.code] = {
+              marks: result.status === 'missed' ? 0 : (result.marks || 0),
+              grade: result.status === 'missed' ? 'MISSED' : (result.grade || 'F9'),
+              aggregates: isMajorSubject ? (result.status === 'missed' ? 9 : (result.aggregates || 9)) : 0
+            };
+          }
+        });
+
+        // Calculate totals
+        let totalMarks = 0;
+        let totalAggregates = 0;
+        for (const subjectCode in processedSubjectResults) {
+          totalMarks += processedSubjectResults[subjectCode].marks || 0;
+          if (processedSubjectResults[subjectCode].aggregates > 0) {
+            totalAggregates += processedSubjectResults[subjectCode].aggregates || 0;
+          }
+        }
+
+        const division = pupilResult.division || (totalAggregates <= 8 ? 'I' : totalAggregates <= 16 ? 'II' : totalAggregates <= 24 ? 'III' : totalAggregates <= 32 ? 'IV' : 'U');
+
+        return {
+          exam,
+          examResult,
+          results: processedSubjectResults,
+          totalMarks,
+          totalAggregates,
+          division,
+          subjectSnaps: comparisonSubjectSnaps
+        };
+      });
+
+      updateProgressForIndividual(30, 'Preparing pupil data and fetching teachers...');
+
+      // Create single pupil processed result with comparison data
+      const singlePupilResult = {
+        ...selectedPupilResult,
+        comparisonDataArray: comparisonExamsProcessed.map(({ exam, results, totalMarks, totalAggregates, division, subjectSnaps }) => ({
+          exam: {
+            name: customNames[exam.id] || exam.name,
+            examTypeName: exam.examTypeName || 'Exam',
+            startDate: exam.startDate,
+            endDate: exam.endDate,
+          },
+          results,
+          totalMarks,
+          totalAggregates,
+          division,
+          subjectSnaps
+        }))
+      };
+
+      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult]);
+
+      // Get all unique subjects from all comparison exams
+      const allSubjectCodes = new Set<string>();
+      subjectSnaps.forEach(s => allSubjectCodes.add(s.code));
+      comparisonExamsProcessed.forEach(({ subjectSnaps: compSubjectSnaps }) => {
+        compSubjectSnaps.forEach((s: any) => allSubjectCodes.add(s.code));
+      });
+
+      const uniqueTeacherIds = [...new Set([
+        ...subjectSnaps.map(s => s.teacherId),
+        ...comparisonExamsProcessed.flatMap(({ subjectSnaps: compSubjectSnaps }) =>
+          compSubjectSnaps.map((s: any) => s.teacherId)
+        )
+      ].filter(Boolean))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      // Create enhanced subject snaps with all subjects from all exams
+      const allSubjectsMap = new Map<string, any>();
+      subjectSnaps.forEach(subject => {
+        allSubjectsMap.set(subject.code, {
+          ...subject,
+          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+          fullMarks: 100
+        });
+      });
+      comparisonExamsProcessed.forEach(({ subjectSnaps: compSubjectSnaps }) => {
+        compSubjectSnaps.forEach((subject: any) => {
+          if (!allSubjectsMap.has(subject.code)) {
+            allSubjectsMap.set(subject.code, {
+              ...subject,
+              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+              fullMarks: 100
+            });
+          }
+        });
+      });
+
+      const enhancedSubjectSnaps = Array.from(allSubjectsMap.values());
+
+      updateProgressForIndividual(50, 'Preparing all report data in parallel...');
+
+      // 🚀 OPTIMIZED: Prepare all data in parallel
+      const [academicInfo, nextTermDates, majorSubjectsData] = await Promise.all([
+        Promise.resolve(getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '')),
+        Promise.resolve(getNextTermDates(examDetails.academicYearId || '', examDetails.termId || '', academicYears)),
+        Promise.resolve(
+          examResultData?.majorSubjects && examResultData.majorSubjects.length > 0
+            ? examResultData.majorSubjects
+            : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code))
+        )
+      ]);
+
+      const { academicYearName, termName } = academicInfo;
+      const majorSubjects = majorSubjectsData;
+
+      // Use custom dates if configured, otherwise use system dates
+      const createdOnDate = reportConfig.createdOn.useCustom && customDates.createdOn
+        ? customDates.createdOn
+        : examDetails.startDate || new Date().toISOString().split('T')[0];
+
+      const nextTermBeginsDate = reportConfig.nextTermBegins.useCustom && customDates.nextTermBegins
+        ? customDates.nextTermBegins
+        : nextTermDates?.nextTermBegins || '';
+
+      const nextTermEndsDate = reportConfig.nextTermEnds.useCustom && customDates.nextTermEnds
+        ? customDates.nextTermEnds
+        : nextTermDates?.nextTermEnds || '';
+
+      const transBatchData = {
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        comparisonExams: comparisonExamsProcessed.map(({ exam }) => ({
+          name: customNames[exam.id] || exam.name,
+          examTypeName: exam.examTypeName || 'Exam',
+          startDate: exam.startDate,
+          endDate: exam.endDate,
+        })),
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: processedResultsForReport,
+        schoolSettings,
+        majorSubjects: majorSubjects, // Send major subjects for grade display
+        gradingScale: undefined, // No grading scale for progress reports
+        isProgressReport: true,
+        nextTermInfo: nextTermDates ? {
+          startDate: nextTermBeginsDate,
+          endDate: nextTermEndsDate
+        } : undefined,
+        classTeacherInfo: classTeacherInfo,
+        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
+        reportConfig: reportConfig,
+        customDates: {
+          createdOn: createdOnDate,
+          nextTermBegins: nextTermBeginsDate,
+          nextTermEnds: nextTermEndsDate,
+        }
+      };
+
+      updateProgressForIndividual(70, 'Generating TRANS progress report PDF...');
+
+      const blob = await generateTransBatchReportPDF(transBatchData);
+
+      const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_TRANS_Progress_Report.pdf`;
+      const title = 'Individual Pupil TRANS Progress Report';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgressForIndividual(95, 'Finalizing document...');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({
+        title: "Success",
+        description: "TRANS progress report generated successfully!",
+        duration: 1500,
+      });
+    } catch (error) {
+      console.error("Error generating individual TRANS progress reports:", error);
+      toast({ title: "Error", description: "Failed to generate TRANS progress reports. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowIndividualPrintModal(false);
+        setShowComparisonExamModal(false);
+        setSelectedComparisonExams([]);
+        setTransReportType(null);
+        setSelectedPupilForPrint(null);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates]);
+
+  const handleExportCSV = useCallback(() => {
+    if (!processedResults.length || !subjectSnaps.length) return;
+
+    // Create CSV content
+    let csv = 'Position,Name,Admission No,';
+
+    // Add subject headers
+    subjectSnaps.forEach(subject => {
+      csv += `${subject.code} Marks,${subject.code} Grade,`;
+    });
+
+    csv += 'Total Marks,Aggregates,Division\n';
+
+    // Add data rows
+    processedResults.forEach(result => {
+      csv += `${result.position},"${result.pupilInfo.name}",${result.pupilInfo.admissionNumber},`;
+
+      subjectSnaps.forEach(subject => {
+        const subjectResult = result.results[subject.code] || { marks: 0, grade: '' };
+        csv += `${subjectResult.marks},${subjectResult.grade},`;
+      });
+
+      csv += `${result.totalMarks},${result.totalAggregates},${result.division}\n`;
+    });
+
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${examDetails?.name || 'exam'}_${classSnap?.name || 'class'}_results.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({ title: "Success", description: "Results exported successfully!" });
+  }, [processedResults, subjectSnaps, examDetails, classSnap, toast]);
+
+  // Function to calculate ETA
+  const calculateETA = useCallback((currentProgress: number, startTime: number) => {
+    if (currentProgress <= 0) return 'Calculating...';
+
+    const elapsed = Date.now() - startTime;
+    const estimatedTotal = (elapsed / currentProgress) * 100;
+    const remaining = estimatedTotal - elapsed;
+
+    if (remaining <= 0) return 'Almost done...';
+
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s remaining`;
+    } else {
+      return `${seconds}s remaining`;
+    }
+  }, []);
+
+  // Function to update progress smoothly
+  const updateProgress = useCallback((targetProgress: number, status: string) => {
+    setGenerationStatus(status);
+
+    // Smooth progress animation
+    const currentProgress = generationProgress;
+    const increment = (targetProgress - currentProgress) / 10;
+    let current = currentProgress;
+
+    const interval = setInterval(() => {
+      current += increment;
+      if (current >= targetProgress) {
+        setGenerationProgress(targetProgress);
+        clearInterval(interval);
+      } else {
+        setGenerationProgress(Math.floor(current));
+      }
+    }, 100);
+  }, [generationProgress]);
+
+  // Show print options dialog first
+  const handleExportAssessment = useCallback(() => {
+    console.log('🎯 Assessment Report (Table) clicked - Opening options dialog');
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for PDF generation" });
+      return;
+    }
+    setAssessmentReportType('table');
+    setShowPrintAssessmentOptionsDialog(true);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
+
+  // Actually generate the PDF with the selected options
+  const generateAssessmentPDF = useCallback(async (options: {
+    showPin: boolean;
+    showIndexNumber: boolean;
+    showLinNumber: boolean;
+    showMarks: boolean;
+    showAgg: boolean;
+    showTotal: boolean;
+    showDiv: boolean;
+    orientation: 'landscape' | 'portrait';
+    fillMarks: boolean;
+    fillAgg: boolean;
+    fillTotal: boolean;
+    fillDiv: boolean;
+    showMajorSubjects: boolean;
+    showBestPupil: boolean;
+    showNeedsImprovement: boolean;
+    showAggregateAnalysis: boolean;
+  }) => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for PDF generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+    setShowPrintAssessmentOptionsDialog(false);
+
+    try {
+      updateProgress(15, 'Preparing assessment data...');
+
+      // Get major subjects from the saved exam result data
+      const savedMajorSubjects = examResultData?.majorSubjects || [];
+      const majorSubjects = savedMajorSubjects.length > 0
+        ? savedMajorSubjects
+        : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code));
+
+      // Get grading scale
+      const gradingScale = examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+        ? examResultData.gradingScale.map(item => ({
+          minMark: item.minMark,
+          maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+          grade: item.grade,
+          aggregates: item.aggregates || 9
+        }))
+        : DEFAULT_GRADING_SCALE.map(item => ({
+          minMark: item.minMark,
+          maxMark: item.maxMark,
+          grade: item.grade,
+          aggregates: item.aggregates || 9
+        }));
+
+      updateProgress(35, 'Processing exam results...');
+
+      const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, processedResults, majorSubjects);
+
+      updateProgress(65, 'Generating PDF document...');
+
+      // Generate the PDF with school settings and print options
+      const blob = await generateExamPDF({
+        ...adaptedData,
+        schoolSettings,
+        printOptions: options,
+        gradingScale
+      });
+
+      // Open in PDF viewer
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_results.pdf`;
+      const title = 'Exam Results';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgress(95, 'Finalizing document...');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({ title: "Success", description: "Assessment PDF is ready for viewing!" });
+    } catch (error) {
+      console.error("Error generating assessment PDF:", error);
+      toast({ title: "Error", description: "Failed to generate assessment PDF. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, toast, updateProgress, pdfViewer]);
+
+  const handleReportOne = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for modern batch reports generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgress(5, 'Preparing all data in parallel...');
+
+      // 🚀 OPTIMIZED: Prepare all synchronous data in parallel
+      const [academicInfo, nextTermDates, majorSubjectsData] = await Promise.all([
+        Promise.resolve(getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '')),
+        Promise.resolve(getNextTermDates(examDetails.academicYearId || '', examDetails.termId || '', academicYears)),
+        Promise.resolve(
+          examResultData?.majorSubjects && examResultData.majorSubjects.length > 0
+            ? examResultData.majorSubjects
+            : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code))
+        )
+      ]);
+
+      const { academicYearName, termName } = academicInfo;
+      const majorSubjects = majorSubjectsData;
+
+      updateProgress(10, 'Fetching pupil photos and data...');
+
+      // 🚀 OPTIMIZED: Batch fetch all pupils in one request instead of individual calls
+      const prepareProcessedResults = async () => {
+        console.log(`🚀 OPTIMIZED: Processing ${processedResults.length} pupils with batch fetching`);
+        const startTime = performance.now();
+
+        // First, identify which pupils need photos fetched (don't have real photos in snapshot)
+        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsWithPhotos = new Map<string, string>();
+
+        processedResults.forEach((result) => {
+          const pupilPhoto = (result.pupilInfo as any).photo;
+          if (isRealPhoto(pupilPhoto)) {
+            // Photo already in snapshot, use it
+            pupilsWithPhotos.set(result.pupilInfo.pupilId, pupilPhoto);
+          }
+        });
+
+        console.log(`📊 OPTIMIZED: ${pupilsWithPhotos.size} pupils have photos in snapshot, ${pupilsNeedingPhotos.length} need fetching`);
+
+        // Batch fetch all missing photos in ONE request
+        let fetchedPupilsMap: Record<string, any> = {};
+        if (pupilsNeedingPhotos.length > 0) {
+          try {
+            const batchResponse = await fetch('/api/pupils/batch', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
+            });
+
+            if (batchResponse.ok) {
+              fetchedPupilsMap = await batchResponse.json();
+              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(fetchedPupilsMap).length} pupils in one request`);
+            } else {
+              console.warn('⚠️ OPTIMIZED: Batch fetch failed, continuing without photos');
+            }
+          } catch (error) {
+            console.warn('⚠️ OPTIMIZED: Batch fetch error (non-critical):', error);
+          }
+        }
+
+        const duration = performance.now() - startTime;
+        console.log(`⚡ OPTIMIZED: Photo processing completed in ${duration.toFixed(2)}ms`);
+
+        // Map the fetched photos back to results
+        return processedResults.map((result) => {
+          const pupilId = result.pupilInfo.pupilId;
+          let pupilPhoto: string | null = null;
+
+          // First check if we already have photo from snapshot
+          if (pupilsWithPhotos.has(pupilId)) {
+            pupilPhoto = pupilsWithPhotos.get(pupilId)!;
+          }
+          // Otherwise check batch fetched data
+          else if (fetchedPupilsMap[pupilId]) {
+            const fetchedPupil = fetchedPupilsMap[pupilId];
+            pupilPhoto = fetchedPupil.photo || fetchedPupil.photoUrl || null;
+            if (!isRealPhoto(pupilPhoto)) {
+              pupilPhoto = null;
+            }
+          }
+
+          return {
+            ...result,
+            pupilInfo: {
+              ...result.pupilInfo,
+              age: result.pupilInfo.ageAtExam || 12,
+              photo: pupilPhoto,
+              dateOfBirth: result.pupilInfo.dateOfBirth || undefined,
+              schoolPayCode: getSchoolPayCode(fetchedPupilsMap[pupilId]) || result.pupilInfo.schoolPayCode || ''
+            }
+          };
+        });
+      };
+
+      const enhancedProcessedResults = await prepareProcessedResults();
+
+      updateProgress(50, 'Fetching teacher information...');
+
+      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          // Batch fetch all teachers at once
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      // Map teachers to subjects
+      const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
+        const teacherName = subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          : 'Not Assigned';
+
+        return {
+          ...subject,
+          teacherName,
+          fullMarks: 100
+        };
+      });
+
+      updateProgress(70, 'Preparing grading scale...');
+
+      // Use the actual exam grading scale or fall back to default
+      const actualGradingScale = examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+        ? examResultData.gradingScale.map(item => ({
+          minMark: item.minMark,
+          maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1), // Calculate maxMark if missing
+          grade: item.grade,
+          aggregates: item.aggregates || 9
+        }))
+        : DEFAULT_GRADING_SCALE.map(item => ({
+          minMark: item.minMark,
+          maxMark: item.maxMark,
+          grade: item.grade,
+          aggregates: item.aggregates || 9
+        }));
+
+      console.log('📊 Using grading scale:', actualGradingScale);
+
+      const modernBatchData = {
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: enhancedProcessedResults,
+        schoolSettings,
+        majorSubjects: majorSubjects, // Send major subjects for grade display
+        gradingScale: actualGradingScale,
+        nextTermInfo: nextTermDates ? {
+          startDate: nextTermDates.nextTermBegins,
+          endDate: nextTermDates.nextTermEnds
+        } : undefined,
+        classTeacherInfo: classTeacherInfo,
+        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined
+      };
+
+      updateProgress(85, 'Generating modern batch report PDF...');
+
+      // Generate the modern batch report PDF with progress tracking
+      const blob = await generateModernBatchReportPDF({
+        ...modernBatchData,
+        onProgress: (progress, status) => {
+          // Map internal progress (0-100) to our progress range (85-95)
+          const mappedProgress = 85 + Math.round(progress * 0.1); // 85-95 range
+          updateProgress(mappedProgress, status);
+        }
+      });
+
+      // Open in PDF viewer
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_Modern_Batch_Reports.pdf`;
+      const title = 'Modern Batch Reports';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgress(95, 'Finalizing document...');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({
+        title: "Success",
+        description: `Generated modern batch reports for ${processedResults.length} pupils successfully!`
+      });
+    } catch (error) {
+      console.error("Error generating modern batch reports:", error);
+      toast({ title: "Error", description: "Failed to generate modern batch reports. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
+
+  const handleTransReport = useCallback(() => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for TRANS batch reports generation" });
+      return;
+    }
+    // Show type selection modal first
+    setShowTransTypeModal(true);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
+
+  // Handle TRANS report type selection
+  const handleTransTypeSelection = useCallback((type: 'grading' | 'progress') => {
+    setTransReportType(type);
+    setShowTransTypeModal(false);
+
+    // Show configuration modal first
+    setShowReportConfigModal(true);
+  }, []);
+
+  // Load available comparison exams (same term, class, academic year)
+  const loadComparisonExams = useCallback(async () => {
+    if (!examDetails) {
+      console.warn('loadComparisonExams: examDetails is missing');
+      return;
+    }
+
+    // Get classId from multiple sources: URL, examDetails, or examResultData
+    const effectiveClassId = classId || examDetails.classId || examResultData?.classId;
+    if (!effectiveClassId) {
+      console.warn('loadComparisonExams: No classId available from any source', {
+        classIdFromURL: classId,
+        classIdFromExam: examDetails.classId,
+        classIdFromResult: examResultData?.classId
+      });
+      toast({ title: "Error", description: "Unable to determine class for comparison exams" });
+      return;
+    }
+
+    setIsLoadingComparisonExams(true);
+    try {
+      console.log('🔍 Loading comparison exams:', {
+        classIdFromURL: classId,
+        classIdFromExam: examDetails.classId,
+        classIdFromResult: examResultData?.classId,
+        effectiveClassId,
+        examId,
+        academicYearId: examDetails.academicYearId,
+        termId: examDetails.termId,
+        totalExamsLoaded: exams.length
+      });
+
+      // Always fetch from API to ensure we get all exams (not just cached ones)
+      let allExams: any[] = [];
+      try {
+        allExams = await ExamsService.getExamsByClass(effectiveClassId);
+        console.log(`✅ Found ${allExams.length} exams for class ${effectiveClassId} from API`);
+      } catch (apiError) {
+        console.error('❌ API fetch failed, trying loaded exams:', apiError);
+        // Fallback to loaded exams if API fails
+        if (exams.length > 0) {
+          allExams = exams.filter(exam => exam.classId === effectiveClassId);
+          console.log(`📦 Using ${allExams.length} exams from loaded array as fallback`);
+        }
+      }
+
+      if (allExams.length === 0) {
+        console.warn('⚠️ No exams found for class:', effectiveClassId);
+        setAvailableComparisonExams([]);
+        return;
+      }
+
+      // Log all exams for debugging
+      console.log('📋 All exams found:', allExams.map(e => ({
+        id: e.id,
+        name: e.name,
+        classId: e.classId,
+        academicYearId: e.academicYearId,
+        termId: e.termId
+      })));
+
+      // Filter exams: same class, same academic year, same term, but different exam
+      const filteredExams = allExams.filter(exam => {
+        const matchesClass = exam.classId === effectiveClassId;
+        const matchesYear = exam.academicYearId === examDetails.academicYearId;
+        const matchesTerm = exam.termId === examDetails.termId;
+        const isNotCurrent = exam.id !== examId;
+
+        const shouldInclude = matchesClass && matchesYear && matchesTerm && isNotCurrent;
+
+        // Always log exclusion reasons for debugging
+        if (!shouldInclude) {
+          console.log(`❌ Excluding exam "${exam.name}" (${exam.id}):`, {
+            matchesClass: matchesClass ? '✅' : `❌ (exam: ${exam.classId}, required: ${effectiveClassId})`,
+            matchesYear: matchesYear ? '✅' : `❌ (exam: ${exam.academicYearId}, required: ${examDetails.academicYearId})`,
+            matchesTerm: matchesTerm ? '✅' : `❌ (exam: ${exam.termId}, required: ${examDetails.termId})`,
+            isNotCurrent: isNotCurrent ? '✅' : '❌ (is current exam)'
+          });
+        }
+
+        return shouldInclude;
+      });
+
+      console.log(`✅ Filtered to ${filteredExams.length} comparison exams:`, filteredExams.map(e => e.name));
+      setAvailableComparisonExams(filteredExams);
+
+      if (filteredExams.length === 0) {
+        console.warn('⚠️ No comparison exams found after filtering. Summary:', {
+          totalExamsForClass: allExams.length,
+          currentExamId: examId,
+          requiredAcademicYear: examDetails.academicYearId,
+          requiredTerm: examDetails.termId,
+          requiredClass: effectiveClassId
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error loading comparison exams:', error);
+      toast({ title: "Error", description: "Failed to load comparison exams. Check console for details." });
+    } finally {
+      setIsLoadingComparisonExams(false);
+    }
+  }, [examDetails, classId, examId, exams, examResultData, toast]);
+
+  // Generate TRANS report with grading scale
+  const generateTransReportWithGrading = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for TRANS batch reports generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgress(5, 'Preparing all data in parallel...');
+
+      // 🚀 OPTIMIZED: Prepare all synchronous data in parallel
+      const [academicInfo, nextTermDates, majorSubjectsData] = await Promise.all([
+        Promise.resolve(getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '')),
+        Promise.resolve(getNextTermDates(examDetails.academicYearId || '', examDetails.termId || '', academicYears)),
+        Promise.resolve(
+          examResultData?.majorSubjects && examResultData.majorSubjects.length > 0
+            ? examResultData.majorSubjects
+            : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code))
+        )
+      ]);
+
+      const { academicYearName, termName } = academicInfo;
+      const majorSubjects = majorSubjectsData;
+
+      updateProgress(10, 'Fetching pupil photos and data...');
+
+      // 🚀 OPTIMIZED: Batch fetch all pupils in one request instead of individual calls
+      const prepareProcessedResults = async () => {
+        console.log(`🚀 OPTIMIZED: Processing ${processedResults.length} pupils with batch fetching`);
+        const startTime = performance.now();
+
+        // First, identify which pupils need photos fetched (don't have real photos in snapshot)
+        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsWithPhotos = new Map<string, string>();
+
+        processedResults.forEach((result) => {
+          const pupilPhoto = (result.pupilInfo as any).photo;
+          if (isRealPhoto(pupilPhoto)) {
+            // Photo already in snapshot, use it
+            pupilsWithPhotos.set(result.pupilInfo.pupilId, pupilPhoto);
+          }
+        });
+
+        console.log(`📊 OPTIMIZED: ${pupilsWithPhotos.size} pupils have photos in snapshot, ${pupilsNeedingPhotos.length} need fetching`);
+
+        // Batch fetch all missing photos in ONE request
+        let fetchedPupilsMap: Record<string, any> = {};
+        if (pupilsNeedingPhotos.length > 0) {
+          try {
+            const batchResponse = await fetch('/api/pupils/batch', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
+            });
+
+            if (batchResponse.ok) {
+              fetchedPupilsMap = await batchResponse.json();
+              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(fetchedPupilsMap).length} pupils in one request`);
+            } else {
+              console.warn('⚠️ OPTIMIZED: Batch fetch failed, continuing without photos');
+            }
+          } catch (error) {
+            console.warn('⚠️ OPTIMIZED: Batch fetch error (non-critical):', error);
+          }
+        }
+
+        const duration = performance.now() - startTime;
+        console.log(`⚡ OPTIMIZED: Photo processing completed in ${duration.toFixed(2)}ms`);
+
+        // Map the fetched photos back to results
+        return processedResults.map((result) => {
+          const pupilId = result.pupilInfo.pupilId;
+          let pupilPhoto: string | null = null;
+
+          // First check if we already have photo from snapshot
+          if (pupilsWithPhotos.has(pupilId)) {
+            pupilPhoto = pupilsWithPhotos.get(pupilId)!;
+          }
+          // Otherwise check batch fetched data
+          else if (fetchedPupilsMap[pupilId]) {
+            const fetchedPupil = fetchedPupilsMap[pupilId];
+            pupilPhoto = fetchedPupil.photo || fetchedPupil.photoUrl || null;
+            if (!isRealPhoto(pupilPhoto)) {
+              pupilPhoto = null;
+            }
+          }
+
+          return {
+            ...result,
+            pupilInfo: {
+              ...result.pupilInfo,
+              age: result.pupilInfo.ageAtExam || 12,
+              photo: pupilPhoto,
+              dateOfBirth: result.pupilInfo.dateOfBirth || undefined,
+              schoolPayCode: getSchoolPayCode(fetchedPupilsMap[pupilId]) || result.pupilInfo.schoolPayCode || ''
+            }
+          };
+        });
+      };
+
+      const enhancedProcessedResults = await prepareProcessedResults();
+
+      updateProgress(50, 'Fetching teacher information...');
+
+      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          // Batch fetch all teachers at once
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      // Map teachers to subjects
+      const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
+        const teacherName = subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          : 'Not Assigned';
+
+        return {
+          ...subject,
+          teacherName,
+          fullMarks: 100
+        };
+      });
+
+      updateProgress(70, 'Preparing grading scale...');
+
+      // Use the actual exam grading scale or fall back to default
+      const actualGradingScale = examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+        ? examResultData.gradingScale.map(item => ({
+          minMark: item.minMark,
+          maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+          grade: item.grade,
+          aggregates: item.aggregates || 9
+        }))
+        : DEFAULT_GRADING_SCALE.map(item => ({
+          minMark: item.minMark,
+          maxMark: item.maxMark,
+          grade: item.grade,
+          aggregates: item.aggregates || 9
+        }));
+
+      console.log('📊 Using grading scale:', actualGradingScale);
+
+      // Use custom dates if configured, otherwise use system dates
+      const createdOnDate = reportConfig.createdOn.useCustom && customDates.createdOn
+        ? customDates.createdOn
+        : examDetails.startDate || new Date().toISOString().split('T')[0];
+
+      const nextTermBeginsDate = reportConfig.nextTermBegins.useCustom && customDates.nextTermBegins
+        ? customDates.nextTermBegins
+        : nextTermDates?.nextTermBegins || '';
+
+      const nextTermEndsDate = reportConfig.nextTermEnds.useCustom && customDates.nextTermEnds
+        ? customDates.nextTermEnds
+        : nextTermDates?.nextTermEnds || '';
+
+      const transBatchData = {
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: enhancedProcessedResults,
+        schoolSettings,
+        majorSubjects: majorSubjects, // Send major subjects for grade display
+        gradingScale: actualGradingScale,
+        nextTermInfo: nextTermDates ? {
+          startDate: nextTermBeginsDate,
+          endDate: nextTermEndsDate
+        } : undefined,
+        classTeacherInfo: classTeacherInfo,
+        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
+        reportConfig: reportConfig,
+        customDates: {
+          createdOn: createdOnDate,
+          nextTermBegins: nextTermBeginsDate,
+          nextTermEnds: nextTermEndsDate,
+        }
+      };
+
+      updateProgress(85, 'Generating TRANS batch report PDF...');
+
+      // Generate the TRANS batch report PDF with progress tracking
+      const blob = await generateTransBatchReportPDF({
+        ...transBatchData,
+        onProgress: (progress, status) => {
+          // Map internal progress (0-100) to our progress range (85-95)
+          const mappedProgress = 85 + Math.round(progress * 0.1); // 85-95 range
+          updateProgress(mappedProgress, status);
+        }
+      });
+
+      // Open in PDF viewer
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_TRANS_Batch_Reports.pdf`;
+      const title = 'TRANS Batch Reports';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgress(95, 'Finalizing document...');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({
+        title: "Success",
+        description: `Generated TRANS batch reports for ${processedResults.length} pupils successfully!`
+      });
+    } catch (error) {
+      console.error("Error generating TRANS batch reports:", error);
+      toast({ title: "Error", description: "Failed to generate TRANS batch reports. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+        setTransReportType(null);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
+
+  // Handle report configuration completion (defined after loadComparisonExams and generateTransReportWithGrading)
+  const handleReportConfigComplete = useCallback(() => {
+    setShowReportConfigModal(false);
+
+    if (transReportType === 'progress') {
+      // Show comparison exam selection modal
+      loadComparisonExams();
+      setShowComparisonExamModal(true);
+    } else {
+      // Generate with grading scale
+      if (selectedPupilForPrint) {
+        generateIndividualTransReportWithGrading();
+      } else {
+        generateTransReportWithGrading();
+      }
+    }
+  }, [transReportType, loadComparisonExams, generateTransReportWithGrading, selectedPupilForPrint, generateIndividualTransReportWithGrading]);
+
+  // Generate TRANS report with progress assessment
+  const generateTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for TRANS progress reports generation" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgress(5, 'Fetching comparison exam data...');
+
+      // 🚀 OPTIMIZED: Fetch all comparison exams and their results in parallel (both calls per exam in parallel)
+      const comparisonExamsData = await Promise.all(
+        comparisonExamIds.map(async (examId) => {
+          const [exam, examResult] = await Promise.all([
+            ExamsService.getExamById(examId),
+            ExamsService.getExamResultByExamId(examId)
+          ]);
+
+          if (!exam) {
+            throw new Error(`Comparison exam ${examId} not found`);
+          }
+          if (!examResult) {
+            throw new Error(`Comparison exam results for ${examId} not found`);
+          }
+
+          return { exam, examResult };
+        })
+      );
+
+      updateProgress(20, 'Processing comparison exam results...');
+
+      // Process each comparison exam's results
+      const comparisonExamsProcessed = comparisonExamsData.map(({ exam, examResult }) => {
+        const comparisonPupilSnaps = examResult.pupilSnapshots || [];
+        const comparisonSubjectSnaps = examResult.subjectSnapshots || [];
+        const comparisonResults = examResult.results || {};
+
+        // Create a map of pupil results from this comparison exam
+        const comparisonPupilResultsMap = new Map<string, any>();
+
+        comparisonPupilSnaps.forEach((pupil: any) => {
+          const pupilResults = comparisonResults[pupil.pupilId] || {};
+          const processedSubjectResults: Record<string, any> = {};
+
+          comparisonSubjectSnaps.forEach((subject: any) => {
+            const result = pupilResults[subject.subjectId];
+            const isMajorSubject = (examResult.majorSubjects || []).includes(subject.code);
+
+            if (result) {
+              processedSubjectResults[subject.code] = {
+                marks: result.status === 'missed' ? 0 : (result.marks || 0),
+                grade: result.status === 'missed' ? 'MISSED' : (result.grade || 'F9'),
+                aggregates: isMajorSubject ? (result.status === 'missed' ? 9 : (result.aggregates || 9)) : 0
+              };
+            }
+          });
+
+          // Calculate totals
+          let totalMarks = 0;
+          let totalAggregates = 0;
+          for (const subjectCode in processedSubjectResults) {
+            totalMarks += processedSubjectResults[subjectCode].marks || 0;
+            if (processedSubjectResults[subjectCode].aggregates > 0) {
+              totalAggregates += processedSubjectResults[subjectCode].aggregates || 0;
+            }
+          }
+
+          const division = pupilResults.division || calculateDivision(totalAggregates);
+
+          comparisonPupilResultsMap.set(pupil.pupilId, {
+            pupilInfo: pupil,
+            results: processedSubjectResults,
+            totalMarks,
+            totalAggregates,
+            division,
+            subjects: comparisonSubjectSnaps
+          });
+        });
+
+        return {
+          exam,
+          examResult,
+          pupilResultsMap: comparisonPupilResultsMap,
+          subjectSnaps: comparisonSubjectSnaps
+        };
+      });
+
+      updateProgress(30, 'Fetching pupil photos and data...');
+
+      // Prepare processed results with comparison data from all selected exams
+      const prepareProcessedResultsWithProgress = async () => {
+        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsWithPhotos = new Map<string, string>();
+
+        processedResults.forEach((result) => {
+          const pupilPhoto = (result.pupilInfo as any).photo;
+          if (isRealPhoto(pupilPhoto)) {
+            pupilsWithPhotos.set(result.pupilInfo.pupilId, pupilPhoto);
+          }
+        });
+
+        let fetchedPupilsMap: Record<string, any> = {};
+        if (pupilsNeedingPhotos.length > 0) {
+          try {
+            const batchResponse = await fetch('/api/pupils/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
+            });
+
+            if (batchResponse.ok) {
+              fetchedPupilsMap = await batchResponse.json();
+            }
+          } catch (error) {
+            console.warn('Batch fetch error:', error);
+          }
+        }
+
+        return processedResults.map((result) => {
+          const pupilId = result.pupilInfo.pupilId;
+          let pupilPhoto: string | null = null;
+
+          if (pupilsWithPhotos.has(pupilId)) {
+            pupilPhoto = pupilsWithPhotos.get(pupilId)!;
+          } else if (fetchedPupilsMap[pupilId]) {
+            const fetchedPupil = fetchedPupilsMap[pupilId];
+            pupilPhoto = fetchedPupil.photo || fetchedPupil.photoUrl || null;
+            if (!isRealPhoto(pupilPhoto)) {
+              pupilPhoto = null;
+            }
+          }
+
+          // Get comparison exam results for this pupil from all selected comparison exams
+          const comparisonDataArray = comparisonExamsProcessed.map(({ pupilResultsMap, exam, subjectSnaps: compSubjectSnaps }) => {
+            const pupilData = pupilResultsMap.get(pupilId);
+            return pupilData ? {
+              exam: {
+                name: exam.name,
+                examTypeName: exam.examTypeName || 'Exam',
+                startDate: exam.startDate,
+                endDate: exam.endDate,
+              },
+              results: pupilData.results,
+              totalMarks: pupilData.totalMarks,
+              totalAggregates: pupilData.totalAggregates,
+              division: pupilData.division,
+              subjects: compSubjectSnaps
+            } : null;
+          }).filter(Boolean);
+
+          return {
+            ...result,
+            pupilInfo: {
+              ...result.pupilInfo,
+              age: result.pupilInfo.ageAtExam || 12,
+              photo: pupilPhoto,
+              dateOfBirth: result.pupilInfo.dateOfBirth || undefined,
+              schoolPayCode: getSchoolPayCode(fetchedPupilsMap[pupilId]) || result.pupilInfo.schoolPayCode || ''
+            },
+            comparisonDataArray: comparisonDataArray // Array of comparison exam data (up to 2)
+          };
+        });
+      };
+
+      const enhancedProcessedResults = await prepareProcessedResultsWithProgress();
+
+      updateProgress(50, 'Fetching teacher information...');
+
+      // Get all unique subjects from all comparison exams
+      const allSubjectCodes = new Set<string>();
+      subjectSnaps.forEach(s => allSubjectCodes.add(s.code));
+      comparisonExamsProcessed.forEach(({ subjectSnaps: compSubjectSnaps }) => {
+        compSubjectSnaps.forEach((s: any) => allSubjectCodes.add(s.code));
+      });
+
+      const uniqueTeacherIds = [...new Set([
+        ...subjectSnaps.map(s => s.teacherId),
+        ...comparisonExamsProcessed.flatMap(({ subjectSnaps: compSubjectSnaps }) =>
+          compSubjectSnaps.map((s: any) => s.teacherId)
+        )
+      ].filter(Boolean))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      // Create enhanced subject snaps with all subjects from all exams
+      const allSubjectsMap = new Map<string, any>();
+      subjectSnaps.forEach(subject => {
+        allSubjectsMap.set(subject.code, {
+          ...subject,
+          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+          fullMarks: 100
+        });
+      });
+      comparisonExamsProcessed.forEach(({ subjectSnaps: compSubjectSnaps }) => {
+        compSubjectSnaps.forEach((subject: any) => {
+          if (!allSubjectsMap.has(subject.code)) {
+            allSubjectsMap.set(subject.code, {
+              ...subject,
+              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+              fullMarks: 100
+            });
+          }
+        });
+      });
+
+      const enhancedSubjectSnaps = Array.from(allSubjectsMap.values());
+
+      updateProgress(70, 'Preparing progress data...');
+
+      const { academicYearName, termName } = getAcademicYearAndTerm(
+        examDetails.academicYearId || '',
+        examDetails.termId || ''
+      );
+
+      const nextTermDates = getNextTermDates(
+        examDetails.academicYearId || '',
+        examDetails.termId || '',
+        academicYears
+      );
+
+      // Use custom dates if configured, otherwise use system dates
+      const createdOnDate = reportConfig.createdOn.useCustom && customDates.createdOn
+        ? customDates.createdOn
+        : examDetails.startDate || new Date().toISOString().split('T')[0];
+
+      const nextTermBeginsDate = reportConfig.nextTermBegins.useCustom && customDates.nextTermBegins
+        ? customDates.nextTermBegins
+        : nextTermDates?.nextTermBegins || '';
+
+      const nextTermEndsDate = reportConfig.nextTermEnds.useCustom && customDates.nextTermEnds
+        ? customDates.nextTermEnds
+        : nextTermDates?.nextTermEnds || '';
+
+      const savedMajorSubjects = examResultData?.majorSubjects || [];
+      const majorSubjects = savedMajorSubjects.length > 0
+        ? savedMajorSubjects
+        : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code));
+
+      const transBatchData = {
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        comparisonExams: comparisonExamsProcessed.map(({ exam }) => ({
+          name: customNames[exam.id] || exam.name, // Use custom name if provided
+          examTypeName: exam.examTypeName || 'Exam',
+          startDate: exam.startDate,
+          endDate: exam.endDate,
+        })),
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: enhancedProcessedResults,
+        schoolSettings,
+        majorSubjects: majorSubjects, // Send major subjects for grade display
+        gradingScale: undefined, // No grading scale for progress reports
+        isProgressReport: true,
+        nextTermInfo: nextTermDates ? {
+          startDate: nextTermBeginsDate,
+          endDate: nextTermEndsDate
+        } : undefined,
+        classTeacherInfo: classTeacherInfo,
+        promotionRankingConfig: promotionRankingConfig.enabled ? promotionRankingConfig : undefined,
+        reportConfig: reportConfig,
+        customDates: {
+          createdOn: createdOnDate,
+          nextTermBegins: nextTermBeginsDate,
+          nextTermEnds: nextTermEndsDate,
+        }
+      };
+
+      updateProgress(85, 'Generating TRANS progress report PDF...');
+
+      // Generate the TRANS progress batch report PDF with progress tracking
+      const blob = await generateTransBatchReportPDF({
+        ...transBatchData,
+        onProgress: (progress, status) => {
+          // Map internal progress (0-100) to our progress range (85-95)
+          const mappedProgress = 85 + Math.round(progress * 0.1); // 85-95 range
+          updateProgress(mappedProgress, status);
+        }
+      });
+
+      // Open in PDF viewer
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_TRANS_Progress_Reports.pdf`;
+      const title = 'TRANS Progress Reports';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      updateProgress(95, 'Finalizing document...');
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({
+        title: "Success",
+        description: `Generated TRANS progress reports for ${processedResults.length} pupils successfully!`
+      });
+    } catch (error) {
+      console.error("Error generating TRANS progress reports:", error);
+      toast({ title: "Error", description: "Failed to generate TRANS progress reports. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+        setShowComparisonExamModal(false);
+        setSelectedComparisonExams([]);
+        setTransReportType(null);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
+
+  const handleNurseryReport = useCallback(() => {
+    console.log('📊 Breakdown (Detailed Assessment) clicked - Opening options dialog');
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for detailed assessment generation" });
+      return;
+    }
+    setAssessmentReportType('detailed');
+    setShowPrintAssessmentOptionsDialog(true);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
+
+  const generateDetailedAssessmentReport = useCallback(async () => {
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgress(20, 'Preparing detailed assessment data...');
+
+      // 🚀 OPTIMIZED: Batch fetch all pupils in one request instead of individual calls
+      const prepareProcessedResults = async () => {
+        console.log(`🚀 OPTIMIZED: Processing ${processedResults.length} pupils with batch fetching`);
+        const startTime = performance.now();
+
+        // First, identify which pupils need photos fetched (don't have real photos in snapshot)
+        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsWithPhotos = new Map<string, string>();
+
+        processedResults.forEach((result) => {
+          const pupilPhoto = (result.pupilInfo as any).photo;
+          if (isRealPhoto(pupilPhoto)) {
+            // Photo already in snapshot, use it
+            pupilsWithPhotos.set(result.pupilInfo.pupilId, pupilPhoto);
+          }
+        });
+
+        console.log(`📊 OPTIMIZED: ${pupilsWithPhotos.size} pupils have photos in snapshot, ${pupilsNeedingPhotos.length} need fetching`);
+
+        // Batch fetch all missing photos in ONE request
+        let fetchedPupilsMap: Record<string, any> = {};
+        if (pupilsNeedingPhotos.length > 0) {
+          try {
+            const batchResponse = await fetch('/api/pupils/batch', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
+            });
+
+            if (batchResponse.ok) {
+              fetchedPupilsMap = await batchResponse.json();
+              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(fetchedPupilsMap).length} pupils in one request`);
+            } else {
+              console.warn('⚠️ OPTIMIZED: Batch fetch failed, continuing without photos');
+            }
+          } catch (error) {
+            console.warn('⚠️ OPTIMIZED: Batch fetch error (non-critical):', error);
+          }
+        }
+
+        const duration = performance.now() - startTime;
+        console.log(`⚡ OPTIMIZED: Photo processing completed in ${duration.toFixed(2)}ms`);
+
+        // Map the fetched photos back to results
+        return processedResults.map((result) => {
+          const pupilId = result.pupilInfo.pupilId;
+          let pupilPhoto: string | null = null;
+
+          // First check if we already have photo from snapshot
+          if (pupilsWithPhotos.has(pupilId)) {
+            pupilPhoto = pupilsWithPhotos.get(pupilId)!;
+          }
+          // Otherwise check batch fetched data
+          else if (fetchedPupilsMap[pupilId]) {
+            const fetchedPupil = fetchedPupilsMap[pupilId];
+            pupilPhoto = fetchedPupil.photo || fetchedPupil.photoUrl || null;
+            if (!isRealPhoto(pupilPhoto)) {
+              pupilPhoto = null;
+            }
+          }
+
+          return {
+            ...result,
+            pupilInfo: {
+              ...result.pupilInfo,
+              age: result.pupilInfo.ageAtExam || 12,
+              photo: pupilPhoto,
+              dateOfBirth: result.pupilInfo.dateOfBirth || undefined,
+              schoolPayCode: getSchoolPayCode(fetchedPupilsMap[pupilId]) || result.pupilInfo.schoolPayCode || ''
+            }
+          };
+        });
+      };
+
+      const enhancedProcessedResults = await prepareProcessedResults();
+
+      updateProgress(50, 'Processing pupil information...');
+
+      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
+      const teachersMap = new Map<string, string>();
+
+      if (uniqueTeacherIds.length > 0) {
+        try {
+          // Batch fetch all teachers at once
+          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+            try {
+              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
+              if (teacherResponse.ok) {
+                const teacherData = await teacherResponse.json();
+                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                return { teacherId, teacherName };
+              }
+            } catch (error) {
+              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
+            }
+            return { teacherId, teacherName: 'Unknown Teacher' };
+          });
+
+          const teacherResults = await Promise.all(teacherPromises);
+          teacherResults.forEach(({ teacherId, teacherName }) => {
+            teachersMap.set(teacherId, teacherName);
+          });
+        } catch (error) {
+          console.warn('Error batch fetching teachers:', error);
+        }
+      }
+
+      // Map teachers to subjects
+      const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
+        const teacherName = subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          : 'Not Assigned';
+
+        return {
+          ...subject,
+          teacherName,
+          fullMarks: 100
+        };
+      });
+
+      updateProgress(75, 'Generating detailed assessment PDF...');
+
+      updateProgress(90, 'Finalizing detailed assessment...');
+
+      // Get academic year and term names like Modern Report does
+      const { academicYearName, termName } = getAcademicYearAndTerm(
+        examDetails?.academicYearId || '',
+        examDetails?.termId || ''
+      );
+
+      // Generate the Detailed Assessment PDF with same data as Modern Report
+      const blob = await generateDetailedAssessmentPDF({
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName: academicYearName,
+          termName: termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: enhancedProcessedResults,
+        schoolSettings,
+        majorSubjects: examResultData?.majorSubjects, // Send major subjects for grade display
+        gradingScale: DEFAULT_GRADING_SCALE
+      });
+
+      // Open in PDF viewer
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_detailed_assessment.pdf`;
+      const title = 'Detailed Assessment';
+      pdfViewer.openPDFFromBlob(blob, fileName, title);
+
+      setGenerationProgress(100);
+      setEta('Complete!');
+
+      toast({ title: "Success", description: "Detailed Assessment PDF is ready for viewing!" });
+    } catch (error) {
+      console.error("Error generating detailed assessment:", error);
+      toast({ title: "Error", description: "Failed to generate detailed assessment. Please try again." });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+      }, 1000);
+    }
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, updateProgress, pdfViewer]);
+
+  // Effect to update ETA in real-time
+  useEffect(() => {
+    if (isGenerating && startTime && generationProgress > 0) {
+      const interval = setInterval(() => {
+        setEta(calculateETA(generationProgress, startTime));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isGenerating, startTime, generationProgress, calculateETA]);
+
+  // Progressive exam handler functions
+  const handleSelectProgressiveExam = useCallback((examId: string) => {
+    setSelectedProgressiveExam(examId);
+  }, []);
+
+  const handleConfirmProgressiveExam = useCallback(() => {
+    setShowProgressiveExamModal(false);
+    generatePupilReports(selectedProgressiveExam === 'none' ? null : selectedProgressiveExam);
+  }, [selectedProgressiveExam]);
+
+  const generatePupilReports = useCallback((progressiveExamId: string | null) => {
+    // Implementation for generating pupil reports with progressive exam
+    console.log('Generating pupil reports with progressive exam:', progressiveExamId);
+    toast({ title: "Success", description: "Pupil reports generated successfully!", duration: 1500 });
+  }, [toast]);
+
+  // Check for mobile screen size and auto-switch views
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+
+      // Auto-switch to cards on mobile, table on desktop
+      if (mobile && viewMode === 'table') {
+        setViewMode('cards');
+      } else if (!mobile && viewMode === 'cards') {
+        setViewMode('table');
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [viewMode]);
+
+  // Handle column sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Get sort icon for column headers
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ?
+      <ChevronUp className="w-3 h-3 text-blue-600" /> :
+      <ChevronDown className="w-3 h-3 text-blue-600" />;
+  };
+
+  // 🚀 OPTIMIZED: Only show loading spinner if we have no cached data at all
+  const showLoadingSpinner = !examId || (isLoadingExams && exams.length === 0) || (isLoadingExamResult && !examResultData);
+
+  // Loading state
+  if (showLoadingSpinner) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
+          <p className="mt-4 text-lg text-gray-700">Loading exam results...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (examResultError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <X className="h-12 w-12 text-red-500 mx-auto" />
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">Error loading exam results</h2>
+          <p className="mt-2 text-gray-500">{(examResultError as Error)?.message || "Please try again later."}</p>
+          <Button onClick={() => router.push('/exams')} className="mt-6">Back to Exams</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state - but allow rendering even if processedResults is empty to show the UI
+  if (!examDetails) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-orange-500 mx-auto" />
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">Exam Not Found</h2>
+          <p className="mt-2 text-gray-500">The exam you're looking for could not be found.</p>
+          <Button onClick={() => router.push('/exams')} className="mt-6">Back to Exams</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // If no results data but exam exists, show empty state but still render the UI
+  if (!examResultData || !processedResults.length) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden mb-4">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 border-b border-gray-200">
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg font-bold text-white truncate">
+                    {examDetails?.name || 'Loading...'} - RESULTS
+                  </h1>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 text-center">
+              <FileText className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">No Results Found</h2>
+              <p className="text-gray-500 mb-6">
+                {!examResultData ? "No results have been recorded for this exam yet." : "No pupil results found."}
+              </p>
+              <Button onClick={() => router.push('/exams')}>Back to Exams</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
+      <div className="max-w-7xl mx-auto">
+        {/* Compact Header Card */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden mb-4">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 border-b border-gray-200">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-bold text-white truncate">
+                  {examDetails?.name || 'Loading...'} - {examDetails?.examTypeName ? examDetails.examTypeName.toUpperCase() + ' RESULTS' : 'RESULTS'}
+                </h1>
+                <p className="text-xs text-blue-100 truncate">
+                  {examDetails?.examTypeName || 'Loading...'} | Class: {classSnap?.name || 'Loading...'} |
+                  {' '}{academicInfo.academicYearName} - {academicInfo.termName} |
+                  {' '}{examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} -
+                  {examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}
+                </p>
+                {examDetails && (
+                  <div className="mt-1">
+                    <ExamSignatureDisplay exam={examDetails} variant="inline" className="text-xs text-blue-100" />
+                  </div>
+                )}
+              </div>
+              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
+                <button
+                  onClick={() => router.back()}
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  <ArrowLeft className="w-4 h-4 mb-0.5" />
+                  <span className="text-[8px] font-semibold leading-tight">Back</span>
+                </button>
+                <Link href={`/exams/${examId}/record-results?classId=${classId}`}>
+                  <button
+                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                  >
+                    <Edit3 className="w-4 h-4 mb-0.5" />
+                    <span className="text-[8px] font-semibold leading-tight">Edit</span>
+                  </button>
+                </Link>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  <Filter className="w-4 h-4 mb-0.5" />
+                  <span className="text-[8px] font-semibold leading-tight">{showFilters ? 'Hide' : 'Filter'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('🖨️ Print button clicked, termName:', examDetails?.termName);
+                    // Check if Term 3 and show promotion ranking dialog first
+                    const isTerm3 = isTermThree(examDetails?.termName);
+                    console.log('Is Term 3?', isTerm3);
+                    if (isTerm3) {
+                      console.log('📊 Showing promotion ranking modal');
+                      setShowPromotionRankingModal(true);
+                    } else {
+                      console.log('📄 Showing regular print modal');
+                      setShowPrintModal(true);
+                    }
+                  }}
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  <Printer className="w-4 h-4 mb-0.5" />
+                  <span className="text-[8px] font-semibold leading-tight">Print</span>
+                </button>
+                <button
+                  onClick={() => setShowAnalysis(true)}
+                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
+                >
+                  <TrendingUp className="w-4 h-4 mb-0.5" />
+                  <span className="text-[8px] font-semibold leading-tight">Analysis</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Analytics Tiles */}
+          {analytics && (
+            <div className="p-2 grid grid-cols-2 lg:grid-cols-4 gap-2">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-md p-2 border border-green-100">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-xs font-medium text-green-800">Best</h3>
+                  <Trophy className="w-3 h-3 text-green-600" />
+                </div>
+                <div className="text-sm font-semibold text-green-900 truncate">{analytics.bestPupil.name}</div>
+                <div className="text-xs text-green-600">
+                  {analytics.bestPupil.totalMarks} marks | Agg: {analytics.bestPupil.totalAggregates} | Div {calculateDivision(analytics.bestPupil.totalAggregates)}
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-lg p-2 sm:p-3 border border-red-100">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-xs font-medium text-red-800">Needs Improvement</h3>
+                  <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
+                </div>
+                <div className="text-sm sm:text-base font-semibold text-red-900 truncate">{analytics.worstPupil.name}</div>
+                <div className="text-xs text-red-600">
+                  {analytics.worstPupil.totalMarks} marks | Agg: {analytics.worstPupil.totalAggregates} | Div {calculateDivision(analytics.worstPupil.totalAggregates)}
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-2 sm:p-3 border border-blue-100">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-xs font-medium text-blue-800">Best Subject</h3>
+                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                </div>
+                <div className="text-sm sm:text-base font-semibold text-blue-900 truncate">{analytics.bestSubject.name}</div>
+                <div className="text-xs text-blue-600">
+                  Avg: {analytics.bestSubject.averageMarks.toFixed(1)}%
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2 sm:p-3 border border-purple-100">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-xs font-medium text-purple-800">Worst Subject</h3>
+                  <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+                </div>
+                <div className="text-sm sm:text-base font-semibold text-purple-900 truncate">{analytics.worstSubject.name}</div>
+                <div className="text-xs text-purple-600">
+                  Avg: {analytics.worstSubject.averageMarks.toFixed(1)}%
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Filters Section */}
+          {showFilters && (
+            <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Min Marks</label>
+                  <Input
+                    type="number"
+                    value={filters.minMarks}
+                    onChange={(e) => setFilters(prev => ({ ...prev, minMarks: e.target.value }))}
+                    className="h-8 text-xs"
+                    placeholder="Min..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Max Marks</label>
+                  <Input
+                    type="number"
+                    value={filters.maxMarks}
+                    onChange={(e) => setFilters(prev => ({ ...prev, maxMarks: e.target.value }))}
+                    className="h-8 text-xs"
+                    placeholder="Max..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Grade</label>
+                  <Select value={filters.grade} onValueChange={(value) => setFilters(prev => ({ ...prev, grade: value === "all" ? "" : value }))}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Grades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Grades</SelectItem>
+                      {['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'].map(grade => (
+                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Division</label>
+                  <Select value={filters.division} onValueChange={(value) => setFilters(prev => ({ ...prev, division: value === "all" ? "" : value }))}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Divisions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Divisions</SelectItem>
+                      {['I', 'II', 'III', 'IV', 'U'].map(division => (
+                        <SelectItem key={division} value={division}>Division {division}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Major Subjects Legend */}
+              {subjectSnaps && subjectSnaps.length > 4 && (examResultData?.majorSubjects && examResultData.majorSubjects.length > 0) && (
+                <div className="mt-3 pt-3 border-t border-gray-300">
+                  <div className="flex items-center gap-2 text-xs text-blue-700">
+                    <span className="font-semibold">★</span>
+                    <span>Major subjects (used for aggregates and division calculation)</span>
+                    {examResultData?.majorSubjects && (
+                      <span className="ml-2 text-gray-600">
+                        [{examResultData.majorSubjects.join(', ')}]
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Compact Results Table */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
+          <div className="p-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+              <div className="relative flex-1 max-w-sm">
+                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                  <Search className="h-3 w-3 text-gray-400" />
+                </div>
+                <Input
+                  type="text"
+                  placeholder="Search pupils..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-7 h-8 text-xs"
+                />
+                <div className="text-xs text-gray-600 mt-1">
+                  Showing {filteredAndSortedResults.length} of {processedResults.length} pupils
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Compact View Mode Toggle - only show on desktop */}
+                {!isMobile && (
+                  <div className="flex items-center border rounded-md overflow-hidden">
+                    <Button
+                      variant={viewMode === 'table' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('table')}
+                      className="h-8 px-2 rounded-none"
+                    >
+                      <List className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('cards')}
+                      className="h-8 px-2 rounded-none"
+                    >
+                      <Grid3X3 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Compact Mobile Sorting - only show in card view */}
+                {viewMode === 'cards' && (
+                  <div className="flex items-center gap-1">
+                    <Select value={sortField} onValueChange={setSortField}>
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue placeholder="Sort..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="position">Position</SelectItem>
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="marks">Marks</SelectItem>
+                        <SelectItem value="aggregates">Agg</SelectItem>
+                        {subjectSnaps?.map(subject => (
+                          <SelectItem key={`subject_${subject.code}`} value={`subject_${subject.code}`}>
+                            {subject.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                    >
+                      {sortDirection === 'asc' ?
+                        <ChevronUp className="w-3 h-3" /> :
+                        <ChevronDown className="w-3 h-3" />
+                      }
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Compact Results Display - Table or Cards */}
+            {displayedResults.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-gray-500 text-sm">No results found for this exam.</p>
+              </div>
+            ) : viewMode === 'cards' ? (
+              // Compact Card View for Mobile/Small Screens
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                {displayedResults.map((result, index) => {
+                  const division = result.division;
+
+                  return (
+                    <div
+                      key={result.pupilInfo.pupilId}
+                      onClick={() => handleViewDetails(result.pupilInfo.pupilId)}
+                      className="bg-white border border-gray-200 rounded-md p-2 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 hover:-translate-y-0.5 cursor-pointer"
+                    >
+                      {/* Ultra Compact Header */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 px-1.5 py-0.5 rounded text-xs">
+                            #{result.position}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`${getDivisionColor(division)} text-xs px-1 py-0 border-0`}
+                          >
+                            {division}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Compact Pupil Info */}
+                      <div className="mb-2">
+                        <h3 className="font-bold text-gray-900 text-xs leading-tight truncate">
+                          {result.pupilInfo?.name}
+                        </h3>
+                        <p className="text-xs text-gray-600 font-medium">
+                          {result.pupilInfo?.admissionNumber}
+                        </p>
+                      </div>
+
+                      {/* Ultra Compact Performance Summary */}
+                      <div className="grid grid-cols-2 gap-1 mb-2">
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded p-1 text-center">
+                          <div className="text-sm font-bold text-blue-900">
+                            {result.totalMarks}
+                          </div>
+                          <div className="text-xs text-blue-700 font-medium">
+                            Marks
+                          </div>
+                        </div>
+                        <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded p-1 text-center">
+                          <div className="text-sm font-bold text-purple-900">
+                            {result.totalAggregates}
+                          </div>
+                          <div className="text-xs text-purple-700 font-medium">
+                            Agg
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ultra Compact Subject Results */}
+                      <div className="space-y-1">
+                        <div className="text-xs font-semibold text-gray-800 flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          Subjects
+                        </div>
+
+                        {/* Grid layout for better space utilization */}
+                        <div className="grid grid-cols-2 gap-1">
+                          {subjectSnaps?.slice(0, 6).map(subject => {
+                            const subjectResult = result.results[subject.code];
+                            // Get major subjects from the saved exam result data for consistency
+                            const savedMajorSubjects = examResultData?.majorSubjects || [];
+                            const majorSubjects = savedMajorSubjects.length > 0
+                              ? savedMajorSubjects
+                              : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code));
+                            const isMajorSubject = majorSubjects.includes(subject.code);
+
+                            return (
+                              <div key={subject.code} className="bg-gray-50 rounded px-1 py-0.5 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs font-medium text-gray-700 truncate">
+                                      {subject.code}
+                                    </span>
+                                    {isMajorSubject && (
+                                      <span className="text-xs text-blue-600 font-semibold" title="Major Subject">
+                                        ★
+                                      </span>
+                                    )}
+                                  </div>
+                                  {isMajorSubject && subjectResult?.grade && (
+                                    <Badge
+                                      variant="outline"
+                                      className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0 border-0 font-semibold ml-1`}
+                                    >
+                                      {subjectResult.grade}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <div className="text-xs font-bold text-gray-900">
+                                    {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Compact remaining subjects indicator */}
+                        {subjectSnaps && subjectSnaps.length > 6 && (
+                          <div className="text-center">
+                            <span className="text-xs text-gray-500 bg-gray-100 px-1 py-0.5 rounded">
+                              +{subjectSnaps.length - 6} more
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              // Compact Table View for Desktop with Column Sorting
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50">
+                      <TableHead className="text-xs font-medium text-gray-600 uppercase tracking-wider sticky left-0 bg-gradient-to-r from-gray-50 to-blue-50 shadow-sm py-2 px-1 w-12">
+                        <div
+                          className="flex flex-col items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {!isPrintMode ? (
+                            <>
+                              <Checkbox
+                                checked={selectedPupils.length === displayedResults.length && displayedResults.length > 0}
+                                onCheckedChange={handleSelectAll}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-3 w-3"
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsPrintMode(true);
+                                  setSelectedPupils([]);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                title="Switch to Print Mode"
+                              >
+                                Release
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <Printer className="h-3 w-3 text-blue-600" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsPrintMode(false);
+                                  setSelectedPupilForPrint(null);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                title="Switch to Release Mode"
+                              >
+                                Print
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="text-xs font-medium text-gray-600 uppercase tracking-wider sticky left-8 bg-gradient-to-r from-gray-50 to-blue-50 shadow-sm cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2"
+                        onClick={() => handleSort('name')}
+                      >
+                        <div className="flex items-center gap-1">
+                          Pupil
+                          {getSortIcon('name')}
+                        </div>
+                      </TableHead>
+                      {subjectSnaps?.map(subject => (
+                        <TableHead
+                          key={subject.code}
+                          className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-1"
+                          onClick={() => handleSort(`subject_${subject.code}`)}
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
+                              {subject.name.length > 8 ? subject.code : subject.name}
+                              {getSortIcon(`subject_${subject.code}`)}
+                            </div>
+                            {subject.name.length > 8 && <span className="text-blue-400 text-xs">{subject.code}</span>}
+                          </div>
+                        </TableHead>
+                      ))}
+                      <TableHead
+                        className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2"
+                        onClick={() => handleSort('marks')}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          Total
+                          {getSortIcon('marks')}
+                        </div>
+                      </TableHead>
+                      <TableHead
+                        className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2"
+                        onClick={() => handleSort('aggregates')}
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          Agg
+                          {getSortIcon('aggregates')}
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center py-2 px-2">
+                        Div
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedResults.map((result, index) => {
+                      const division = result.division;
+
+                      return (
+                        <TableRow
+                          key={result.pupilInfo.pupilId}
+                          onClick={() => handleViewDetails(result.pupilInfo.pupilId)}
+                          className={`
+                            ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} 
+                            hover:bg-blue-50 transition-colors cursor-pointer
+                          `}
+                        >
+                          <TableCell className="sticky left-0 bg-inherit font-medium text-xs py-2 px-1 w-12 text-center">
+                            <div
+                              className="flex flex-col items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {!isPrintMode ? (
+                                <>
+                                  <Checkbox
+                                    checked={selectedPupils.includes(result.pupilInfo.pupilId)}
+                                    onCheckedChange={(checked) => handlePupilSelection(result.pupilInfo.pupilId, checked as boolean)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-3 w-3"
+                                  />
+                                  {isResultReleased(result.pupilInfo.pupilId) ? (
+                                    <div title="Released to Parents">
+                                      <Unlock className="h-3 w-3 text-green-600" />
+                                    </div>
+                                  ) : (
+                                    <div title="Not Released">
+                                      <Lock className="h-3 w-3 text-gray-400" />
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPupilForPrint(result.pupilInfo.pupilId);
+                                    setShowIndividualPrintModal(true);
+                                  }}
+                                  className="h-6 w-6 p-0"
+                                  title="Print Report"
+                                >
+                                  <Printer className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="sticky left-8 bg-inherit py-2 px-2">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium text-blue-600 whitespace-nowrap">
+                                {result.pupilInfo?.name}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {result.pupilInfo?.admissionNumber}
+                              </span>
+                            </div>
+                          </TableCell>
+                          {subjectSnaps?.map(subject => {
+                            const subjectResult = result.results[subject.code];
+                            // Get major subjects from the saved exam result data for consistency
+                            const savedMajorSubjects = examResultData?.majorSubjects || [];
+                            const majorSubjects = savedMajorSubjects.length > 0
+                              ? savedMajorSubjects
+                              : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code));
+                            const isMajorSubject = majorSubjects.includes(subject.code);
+
+                            return (
+                              <TableCell key={subject.code} className="text-center py-2 px-1">
+                                <div className="flex flex-col items-center space-y-0.5">
+                                  <div className="text-xs font-medium text-gray-900">
+                                    {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
+                                  </div>
+                                  {isMajorSubject && (
+                                    <div className="flex items-center gap-1">
+                                      {subjectResult?.grade && (
+                                        <Badge
+                                          variant="outline"
+                                          className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0`}
+                                        >
+                                          {subjectResult.grade}
+                                        </Badge>
+                                      )}
+                                      <span className="text-xs text-blue-600 font-semibold" title="Major Subject">
+                                        ★
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-center py-2 px-2">
+                            <span className="text-xs font-medium text-gray-900 bg-blue-50 px-1.5 py-0.5 rounded">
+                              {result.totalMarks}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center py-2 px-2">
+                            <span className="text-xs font-medium text-gray-900 bg-purple-50 px-1.5 py-0.5 rounded">
+                              {result.totalAggregates}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center py-2 px-2">
+                            <Badge
+                              variant="outline"
+                              className={`${getDivisionColor(division)} text-xs px-1 py-0`}
+                            >
+                              {division}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Release Controls Section */}
+        {selectedPupils.length > 0 && (
+          <div className="mt-4 bg-white rounded-lg shadow-lg border border-gray-100 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Send className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Release Selected Results
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Users className="h-4 w-4" />
+                <span>{selectedPupils.length} student{selectedPupils.length !== 1 ? 's' : ''} selected</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => setShowReleaseModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={releaseResultsMutation.isPending}
+              >
+                {releaseResultsMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Releasing...
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="w-4 h-4 mr-2" />
+                    Release Selected ({selectedPupils.length})
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => setSelectedPupils([])}
+                variant="outline"
+                className="text-gray-600 hover:text-gray-800"
+              >
+                Clear Selection
+              </Button>
+            </div>
+
+            <div className="mt-3 p-3 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Released results will be immediately visible to parents in their dashboard.
+                This action requires admin authentication and cannot be undone without admin intervention.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Release Controls */}
+        <div className="mt-4 bg-white rounded-lg shadow-lg border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Bulk Release Options</h3>
+              <p className="text-sm text-gray-600">Release all results for this exam at once</p>
+            </div>
+            <div className="text-sm text-gray-600">
+              {releaseInfo?.releasedPupils.length || 0} of {processedResults.length} results released
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => {
+                setSelectedPupils([]);
+                setShowReleaseModal(true);
+              }}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              disabled={releaseAllMutation.isPending}
+            >
+              {releaseAllMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Releasing All...
+                </>
+              ) : (
+                <>
+                  <Users className="w-4 h-4 mr-2" />
+                  Release All Results
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Promotion Ranking Configuration Dialog (Term 3 only) */}
+      <PromotionRankingDialog
+        isOpen={showPromotionRankingModal}
+        onClose={() => setShowPromotionRankingModal(false)}
+        config={promotionRankingConfig}
+        onConfigChange={setPromotionRankingConfig}
+        onConfirm={() => {
+          console.log('📊 Promotion Ranking Dialog - Continue clicked');
+          console.log('🔧 Current config:', promotionRankingConfig);
+          setShowPromotionRankingModal(false);
+          setShowPrintModal(true);
+        }}
+      />
+
+      {/* Admin Password Modal */}
+      <AdminPasswordModal
+        isOpen={showReleaseModal}
+        onClose={() => setShowReleaseModal(false)}
+        onConfirm={async (password, notes) => {
+          if (selectedPupils.length > 0) {
+            await handleReleaseResults(password, notes);
+          } else {
+            await handleReleaseAll(password, notes);
+          }
+        }}
+        title={selectedPupils.length > 0 ? "Release Selected Results" : "Release All Results"}
+        description={
+          selectedPupils.length > 0
+            ? `You are about to release results for ${selectedPupils.length} selected student${selectedPupils.length !== 1 ? 's' : ''} to their parents.`
+            : `You are about to release all exam results (${processedResults.length} students) to parents.`
+        }
+        selectedCount={selectedPupils.length > 0 ? selectedPupils.length : processedResults.length}
+        isLoading={releaseResultsMutation.isPending || releaseAllMutation.isPending}
+      />
+
+      {/* Progressive Exam Selection Modal */}
+      <Dialog open={showProgressiveExamModal} onOpenChange={setShowProgressiveExamModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Progressive Assessment</DialogTitle>
+            <DialogDescription>
+              Choose an exam to display in the Progressive Assessment Records section of the report.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <RadioGroup value={selectedProgressiveExam || ''} onValueChange={handleSelectProgressiveExam}>
+              {progressiveExams.map((exam) => (
+                <div key={exam.id} className="flex items-center space-x-2 mb-2 p-2 border rounded-md">
+                  <RadioGroupItem value={exam.id} id={exam.id} />
+                  <Label htmlFor={exam.id} className="flex-1 cursor-pointer">
+                    <div className="font-medium">{exam.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {exam.examTypeName} | {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                    </div>
+                  </Label>
+                </div>
+              ))}
+              <div className="flex items-center space-x-2 mb-2 p-2 border rounded-md">
+                <RadioGroupItem value="none" id="none" />
+                <Label htmlFor="none" className="flex-1 cursor-pointer">
+                  <div className="font-medium">None</div>
+                  <div className="text-xs text-gray-500">Do not include progressive assessment records</div>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowProgressiveExamModal(false);
+                // Continue without progressive assessment
+                generatePupilReports(null);
+              }}
+            >
+              Skip
+            </Button>
+            <Button
+              type="button"
+              onClick={handleConfirmProgressiveExam}
+              disabled={!selectedProgressiveExam && selectedProgressiveExam !== 'none'}
+            >
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Modal */}
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        onPrintAssessment={handleExportAssessment}
+        onPrintNurseryReport={handleNurseryReport}
+        onPrintTrans={handleTransReport}
+        isGenerating={isGenerating}
+        generationStatus={generationStatus}
+        generationProgress={generationProgress}
+        eta={eta}
+      />
+
+      {/* Print Assessment Options Dialog */}
+      <PrintAssessmentOptionsDialog
+        isOpen={showPrintAssessmentOptionsDialog}
+        onClose={() => setShowPrintAssessmentOptionsDialog(false)}
+        reportType={assessmentReportType}
+        onConfirm={(options) => {
+          console.log('📋 Options confirmed, report type:', assessmentReportType, 'options:', options);
+          if (assessmentReportType === 'detailed') {
+            // Breakdown = Detailed Assessment (no analysis tables, just pupil cards)
+            generateDetailedAssessmentReport();
+          } else {
+            // Assessment Report = Table with optional analysis page
+            generateAssessmentPDF(options);
+          }
+        }}
+        gradingScale={
+          examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+            ? examResultData.gradingScale.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+              grade: item.grade,
+              aggregates: item.aggregates || 9
+            }))
+            : DEFAULT_GRADING_SCALE.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark,
+              grade: item.grade,
+              aggregates: item.aggregates || 9
+            }))
+        }
+      />
+
+      {/* TRANS Report Type Selection Modal */}
+      <Dialog open={showTransTypeModal} onOpenChange={setShowTransTypeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+              <FileTextIcon className="h-5 w-5 text-orange-600" />
+              Select TRANS Report Type
+            </DialogTitle>
+            <DialogDescription>
+              Choose between grading scale or progress assessment
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            <button
+              onClick={() => handleTransTypeSelection('grading')}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Grading Scale</h3>
+                  <p className="text-sm text-gray-600">Show grading scale on reports</p>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleTransTypeSelection('progress')}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Progress Assessment</h3>
+                  <p className="text-sm text-gray-600">Compare with previous exam results</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTransTypeModal(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Configuration Modal */}
+      <Dialog open={showReportConfigModal} onOpenChange={setShowReportConfigModal}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+              <FileTextIcon className="h-5 w-5 text-orange-600" />
+              Configure Report Elements
+            </DialogTitle>
+            <DialogDescription>
+              Choose which elements to show and whether to fill in the information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[30%]">Item</TableHead>
+                  <TableHead className="text-center w-[20%]">Show</TableHead>
+                  <TableHead className="text-center w-[20%]">Fill</TableHead>
+                  <TableHead className="text-center w-[30%]">Add Custom Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Pupil's Age</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.pupilAge.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          pupilAge: { ...prev.pupilAge, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.pupilAge.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          pupilAge: { ...prev.pupilAge, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.pupilAge.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Class</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.className.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          className: { ...prev.className, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.className.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          className: { ...prev.className, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.className.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">PIN</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.pin.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          pin: { ...prev.pin, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.pin.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          pin: { ...prev.pin, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.pin.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Year</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.year.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          year: { ...prev.year, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.year.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          year: { ...prev.year, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.year.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Term</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.term.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          term: { ...prev.term, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.term.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          term: { ...prev.term, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.term.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">School Pay Code</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.schoolPayCode.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          schoolPayCode: { ...prev.schoolPayCode, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.schoolPayCode.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          schoolPayCode: { ...prev.schoolPayCode, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.schoolPayCode.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Promoted</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.promoted.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          promoted: { ...prev.promoted, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.promoted.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          promoted: { ...prev.promoted, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.promoted.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">-</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Created On</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.createdOn.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          createdOn: { ...prev.createdOn, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.createdOn.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          createdOn: { ...prev.createdOn, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.createdOn.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.createdOn.useCustom || false}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          createdOn: { ...prev.createdOn, useCustom: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.createdOn.show || !reportConfig.createdOn.fill}
+                    />
+                  </TableCell>
+                </TableRow>
+                {reportConfig.createdOn.useCustom && reportConfig.createdOn.show && reportConfig.createdOn.fill && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="pt-0 pb-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <DatePicker
+                          date={customDates.createdOn ? new Date(customDates.createdOn) : undefined}
+                          setDate={(d) => setCustomDates(prev => ({ ...prev, createdOn: d ? format(d, 'yyyy-MM-dd') : '' }))}
+                          placeholder="Select date"
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                <TableRow>
+                  <TableCell className="font-medium">Next Term Begins On</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.nextTermBegins.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          nextTermBegins: { ...prev.nextTermBegins, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.nextTermBegins.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          nextTermBegins: { ...prev.nextTermBegins, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.nextTermBegins.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.nextTermBegins.useCustom || false}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          nextTermBegins: { ...prev.nextTermBegins, useCustom: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.nextTermBegins.show || !reportConfig.nextTermBegins.fill}
+                    />
+                  </TableCell>
+                </TableRow>
+                {reportConfig.nextTermBegins.useCustom && reportConfig.nextTermBegins.show && reportConfig.nextTermBegins.fill && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="pt-0 pb-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <DatePicker
+                          date={customDates.nextTermBegins ? new Date(customDates.nextTermBegins) : undefined}
+                          setDate={(d) => setCustomDates(prev => ({ ...prev, nextTermBegins: d ? format(d, 'yyyy-MM-dd') : '' }))}
+                          placeholder="Select date"
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+                <TableRow>
+                  <TableCell className="font-medium">Term Ends On</TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.nextTermEnds.show}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          nextTermEnds: { ...prev.nextTermEnds, show: checked === true }
+                        }));
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.nextTermEnds.fill}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          nextTermEnds: { ...prev.nextTermEnds, fill: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.nextTermEnds.show}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Checkbox
+                      checked={reportConfig.nextTermEnds.useCustom || false}
+                      onCheckedChange={(checked) => {
+                        setReportConfig(prev => ({
+                          ...prev,
+                          nextTermEnds: { ...prev.nextTermEnds, useCustom: checked === true }
+                        }));
+                      }}
+                      disabled={!reportConfig.nextTermEnds.show || !reportConfig.nextTermEnds.fill}
+                    />
+                  </TableCell>
+                </TableRow>
+                {reportConfig.nextTermEnds.useCustom && reportConfig.nextTermEnds.show && reportConfig.nextTermEnds.fill && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="pt-0 pb-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700 w-32">Custom Date:</label>
+                        <DatePicker
+                          date={customDates.nextTermEnds ? new Date(customDates.nextTermEnds) : undefined}
+                          setDate={(d) => setCustomDates(prev => ({ ...prev, nextTermEnds: d ? format(d, 'yyyy-MM-dd') : '' }))}
+                          placeholder="Select date"
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowReportConfigModal(false);
+              setTransReportType(null);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleReportConfigComplete}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comparison Exam Selection Modal */}
+      <Dialog open={showComparisonExamModal} onOpenChange={setShowComparisonExamModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+              <TrendingUp className="h-5 w-5 text-green-600" />
+              Select Comparison Exams
+            </DialogTitle>
+            <DialogDescription>
+              Select up to 2 exams from the same term, class, and academic year to compare progress
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingComparisonExams ? (
+            <div className="py-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2" />
+              <p className="text-sm text-gray-600">Loading available exams...</p>
+            </div>
+          ) : availableComparisonExams.length === 0 ? (
+            <div className="py-8 text-center">
+              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
+              <p className="text-sm text-gray-600">No comparison exams found for this term, class, and academic year.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto py-4">
+              {availableComparisonExams.map((exam) => {
+                const isSelected = selectedComparisonExams.includes(exam.id);
+                const canSelect = selectedComparisonExams.length < 2 || isSelected;
+
+                return (
+                  <div
+                    key={exam.id}
+                    onClick={() => {
+                      if (!canSelect) return;
+                      if (isSelected) {
+                        setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
+                      } else if (selectedComparisonExams.length < 2) {
+                        setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
+                      } else {
+                        toast({
+                          title: "Limit Reached",
+                          description: "You can only select up to 2 comparison exams"
+                        });
+                      }
+                    }}
+                    className={`w-full p-3 border rounded-lg text-left transition-colors cursor-pointer ${isSelected
+                        ? 'border-blue-500 bg-blue-50'
+                        : canSelect
+                          ? 'border-gray-200 hover:bg-gray-50'
+                          : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              if (checked && selectedComparisonExams.length < 2) {
+                                setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
+                              } else if (!checked) {
+                                setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
+                              }
+                            }}
+                            disabled={!canSelect}
+                            className="h-4 w-4"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate">{exam.name}</h3>
+                          <p className="text-sm text-gray-600">
+                            {exam.examTypeName || 'Exam'} • {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date'}
+                          </p>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <div className="ml-2 text-blue-600">
+                          <Check className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedComparisonExams.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800 mb-3">
+                  <span className="font-semibold">{selectedComparisonExams.length}</span> of 2 exams selected
+                </p>
+                <p className="text-xs text-blue-700 mb-2">Customize exam names (optional):</p>
+                <div className="space-y-2">
+                  {selectedComparisonExams.map((examId, index) => {
+                    const exam = availableComparisonExams.find(e => e.id === examId);
+                    return (
+                      <div key={examId} className="space-y-1">
+                        <label className="text-xs font-medium text-gray-700">
+                          Exam {index + 1}:
+                        </label>
+                        <Input
+                          placeholder={exam?.name || 'Enter custom name'}
+                          value={comparisonExamNames[examId] || ''}
+                          onChange={(e) => {
+                            setComparisonExamNames({
+                              ...comparisonExamNames,
+                              [examId]: e.target.value
+                            });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowComparisonExamModal(false);
+              setSelectedComparisonExams([]);
+              setComparisonExamNames({});
+              setTransReportType(null);
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedComparisonExams.length > 0) {
+                  setShowComparisonExamModal(false);
+                  if (selectedPupilForPrint) {
+                    generateIndividualTransReportWithProgress(selectedComparisonExams, comparisonExamNames);
+                  } else {
+                    generateTransReportWithProgress(selectedComparisonExams, comparisonExamNames);
+                  }
+                } else {
+                  toast({ title: "Error", description: "Please select at least one comparison exam" });
+                }
+              }}
+              disabled={selectedComparisonExams.length === 0 || isLoadingComparisonExams}
+            >
+              Generate Report ({selectedComparisonExams.length}/2)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Performance Analysis Modal */}
+      <PerformanceAnalysisModal
+        isOpen={showAnalysis}
+        onClose={() => setShowAnalysis(false)}
+        processedResults={processedResults}
+        subjectSnaps={subjectSnaps || []}
+        examDetails={examDetails}
+      />
+
+      {/* PDF Viewer */}
+      <PDFViewer
+        isOpen={pdfViewer.isOpen}
+        onClose={pdfViewer.closePDF}
+        pdfBlob={pdfViewer.pdfBlob}
+        fileName={pdfViewer.fileName}
+        title={pdfViewer.title}
+        showDownload={true}
+        showPrint={true}
+      />
+
+      {/* Individual Print Modal */}
+      <IndividualPrintModal
+        isOpen={showIndividualPrintModal}
+        onClose={() => {
+          setShowIndividualPrintModal(false);
+          setSelectedPupilForPrint(null);
+        }}
+        onPrintTrans={handleIndividualTransReport}
+        isGenerating={isGenerating}
+        generationStatus={generationStatus}
+        generationProgress={generationProgress}
+        eta={eta}
+        pupilName={selectedPupilForPrint ? processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name : undefined}
+      />
+    </div>
+  );
+}
+
+// Performance Analysis Modal Component
+interface PerformanceAnalysisModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  processedResults: any[];
+  subjectSnaps: any[];
+  examDetails: any;
+}
+
+function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSnaps, examDetails }: PerformanceAnalysisModalProps) {
+  const [expandedDivisions, setExpandedDivisions] = useState<string[]>([]);
+  const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
+  const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
+
+  // Division Analysis
+  const divisionAnalysis = useMemo(() => {
+    const divisions = ['I', 'II', 'III', 'IV', 'U', 'X'];
+    return divisions.map(div => {
+      const pupils = processedResults.filter(r => r.division === div);
+      const percentage = processedResults.length > 0 ? (pupils.length / processedResults.length) * 100 : 0;
+      return {
+        division: div,
+        count: pupils.length,
+        percentage: percentage.toFixed(1),
+        pupils: pupils.map(p => ({
+          name: p.pupilInfo?.name,
+          admissionNumber: p.pupilInfo?.admissionNumber,
+          totalMarks: p.totalMarks,
+          totalAggregates: p.totalAggregates,
+          pupilId: p.pupilInfo?.pupilId
+        }))
+      };
+    }).filter(d => d.count > 0);
+  }, [processedResults]);
+
+  // Subject-wise Grade Analysis
+  const subjectGradeAnalysis = useMemo(() => {
+    return subjectSnaps.map(subject => {
+      const grades = ['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'];
+      const gradeDistribution = grades.map(grade => {
+        const pupils = processedResults.filter(r => {
+          const subjectResult = r.results[subject.code];
+          return subjectResult?.grade === grade;
+        });
+
+        return {
+          grade,
+          count: pupils.length,
+          percentage: processedResults.length > 0 ? (pupils.length / processedResults.length) * 100 : 0,
+          pupils: pupils.map(p => ({
+            name: p.pupilInfo?.name,
+            admissionNumber: p.pupilInfo?.admissionNumber,
+            marks: p.results[subject.code]?.marks,
+            grade: p.results[subject.code]?.grade,
+            pupilId: p.pupilInfo?.pupilId
+          }))
+        };
+      }).filter(g => g.count > 0);
+
+      const totalPupils = processedResults.filter(r => r.results[subject.code]?.marks !== undefined).length;
+      const averageMarks = totalPupils > 0
+        ? processedResults.reduce((sum, r) => sum + (r.results[subject.code]?.marks || 0), 0) / totalPupils
+        : 0;
+
+      return {
+        subject: subject.name,
+        code: subject.code,
+        gradeDistribution,
+        totalPupils,
+        averageMarks: averageMarks.toFixed(1)
+      };
+    });
+  }, [processedResults, subjectSnaps]);
+
+  // Overall Statistics
+  const overallStats = useMemo(() => {
+    const totalPupils = processedResults.length;
+    const passRate = totalPupils > 0
+      ? ((processedResults.filter(r => ['I', 'II', 'III', 'IV'].includes(r.division)).length / totalPupils) * 100).toFixed(1)
+      : '0';
+
+    const averageMarks = totalPupils > 0
+      ? (processedResults.reduce((sum, r) => sum + r.totalMarks, 0) / totalPupils).toFixed(1)
+      : '0';
+
+    const averageAggregates = totalPupils > 0
+      ? (processedResults.reduce((sum, r) => sum + r.totalAggregates, 0) / totalPupils).toFixed(1)
+      : '0';
+
+    const topPerformer = processedResults.length > 0
+      ? processedResults.reduce((top, current) =>
+        current.totalMarks > top.totalMarks ? current : top
+      )
+      : null;
+
+    const worstPerformer = processedResults.length > 0
+      ? processedResults.reduce((worst, current) =>
+        current.totalMarks < worst.totalMarks ? current : worst
+      )
+      : null;
+
+    return {
+      totalPupils,
+      passRate,
+      averageMarks,
+      averageAggregates,
+      topPerformer,
+      worstPerformer
+    };
+  }, [processedResults]);
+
+  const getDivisionColor = (division: string) => {
+    switch (division) {
+      case 'I': return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white';
+      case 'II': return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white';
+      case 'III': return 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white';
+      case 'IV': return 'bg-gradient-to-r from-orange-500 to-red-500 text-white';
+      case 'U': return 'bg-gradient-to-r from-red-600 to-red-700 text-white';
+      case 'X': return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white';
+      default: return 'bg-gray-200 text-gray-700';
+    }
+  };
+
+  const getGradeColor = (grade: string) => {
+    if (['D1', 'D2'].includes(grade)) return 'bg-green-100 text-green-800 border-green-300';
+    if (['C3', 'C4', 'C5', 'C6'].includes(grade)) return 'bg-blue-100 text-blue-800 border-blue-300';
+    if (['P7', 'P8'].includes(grade)) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    return 'bg-red-100 text-red-800 border-red-300';
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                Performance Analysis
+              </DialogTitle>
+              <DialogDescription className="text-base mt-1">
+                {examDetails?.name} - Comprehensive Performance Insights
+              </DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          {/* Overall Statistics Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-blue-900">{overallStats.totalPupils}</div>
+                <div className="text-xs text-blue-700">Total Pupils</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-green-900">{overallStats.passRate}%</div>
+                <div className="text-xs text-green-700">Pass Rate (I-IV)</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-purple-900">{overallStats.averageMarks}</div>
+                <div className="text-xs text-purple-700">Avg. Marks</div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
+              <CardContent className="p-3 text-center">
+                <div className="text-2xl font-bold text-amber-900">{overallStats.averageAggregates}</div>
+                <div className="text-xs text-amber-700">Avg. Aggregates</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top and Bottom Performers */}
+          {overallStats.topPerformer && overallStats.worstPerformer && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* Top Performer */}
+              <Card className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border border-amber-300">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-600" />
+                      <div>
+                        <p className="text-xs font-medium text-amber-700">Top Performer</p>
+                        <p className="text-sm font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
+                        <p className="text-xs text-amber-600">{overallStats.topPerformer.pupilInfo?.admissionNumber}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-amber-900">{overallStats.topPerformer.totalMarks}</p>
+                      <p className="text-xs text-amber-700">marks</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Worst Performer */}
+              <Card className="bg-gradient-to-r from-red-50 via-pink-50 to-gray-50 border border-red-300">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <TrendingDown className="h-5 w-5 text-red-600" />
+                      <div>
+                        <p className="text-xs font-medium text-red-700">Worst Performer</p>
+                        <p className="text-sm font-bold text-red-900">{overallStats.worstPerformer.pupilInfo?.name}</p>
+                        <p className="text-xs text-red-600">{overallStats.worstPerformer.pupilInfo?.admissionNumber}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-red-900">{overallStats.worstPerformer.totalMarks}</p>
+                      <p className="text-xs text-red-700">marks</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Division Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <PieChart className="h-5 w-5 text-purple-600" />
+                Class Division Breakdown
+              </CardTitle>
+              <CardDescription>Performance distribution by division</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Division Cards - Dynamic Width */}
+                <div className="flex flex-wrap gap-3">
+                  {divisionAnalysis.map((div) => (
+                    <div
+                      key={div.division}
+                      className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 flex-1 min-w-[200px] max-w-[300px]"
+                    >
+                      <div
+                        className="cursor-pointer hover:shadow-md transition-all p-3"
+                        onClick={() => {
+                          setExpandedDivisions(prev =>
+                            prev.includes(div.division)
+                              ? prev.filter(d => d !== div.division)
+                              : [...prev, div.division]
+                          );
+                        }}
+                      >
+                        <div className="text-center">
+                          <Badge className={`${getDivisionColor(div.division)} px-3 py-1 text-sm font-bold mb-2 w-full`}>
+                            Div {div.division}
+                          </Badge>
+                          <div className="text-xl font-bold text-gray-900">{div.count}</div>
+                          <div className="text-xs text-gray-500 mb-2">pupils</div>
+                          <div className="text-sm font-semibold text-gray-700">{div.percentage}%</div>
+                          <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                            <div
+                              className={`h-1 rounded-full ${getDivisionColor(div.division)}`}
+                              style={{ width: `${div.percentage}%` }}
+                            />
+                          </div>
+                          {expandedDivisions.includes(div.division) ? <ChevronUp className="h-4 w-4 mx-auto mt-2" /> : <ChevronDown className="h-4 w-4 mx-auto mt-2" />}
+                        </div>
+                      </div>
+
+                      {expandedDivisions.includes(div.division) && (
+                        <div className="p-2 border-t border-purple-200 bg-white">
+                          <div className="space-y-1">
+                            {(() => {
+                              const divisionData = divisionAnalysis.find(d => d.division === div.division);
+                              return divisionData?.pupils.map((pupil) => {
+                                const pupilResult = processedResults.find(r => r.pupilInfo?.pupilId === pupil.pupilId);
+                                return (
+                                  <div key={pupil.pupilId} className="bg-gray-50 p-1.5 rounded border border-gray-200">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="font-semibold text-gray-900 text-xs">{pupil.name}</div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs bg-blue-100 px-1 rounded">T:{pupil.totalMarks}</span>
+                                        <span className="text-xs bg-purple-100 px-1 rounded">A:{pupil.totalAggregates}</span>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-1">
+                                      {subjectSnaps?.slice(0, 4).map(subject => {
+                                        const subjectResult = pupilResult?.results[subject.code];
+                                        const marks = subjectResult?.marks !== undefined ? subjectResult.marks : '-';
+                                        const grade = subjectResult?.grade;
+                                        return (
+                                          <div key={subject.code} className="bg-white p-1 rounded text-xs">
+                                            <div className="flex items-center justify-between">
+                                              <span className="font-medium text-gray-700">{subject.code}</span>
+                                              <span className="font-bold text-gray-900">{marks}</span>
+                                              {grade && (
+                                                <Badge className={`${getGradeColor(grade)} text-xs px-1 py-0`}>
+                                                  {grade}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Subject-wise Grade Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                Subject Performance Analysis
+              </CardTitle>
+              <CardDescription>Performance analysis sorted by average marks (best to worst)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {subjectGradeAnalysis
+                  .sort((a, b) => parseFloat(b.averageMarks) - parseFloat(a.averageMarks))
+                  .map((subject) => (
+                    <div key={subject.code} className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all">
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => {
+                          setExpandedSubjects(prev =>
+                            prev.includes(subject.code)
+                              ? prev.filter(s => s !== subject.code)
+                              : [...prev, subject.code]
+                          );
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-bold text-gray-900">{subject.subject}</div>
+                          {expandedSubjects.includes(subject.code) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </div>
+                        <p className="text-xs text-gray-500">{subject.code}</p>
+                        <div className="mt-2 text-center">
+                          <p className="text-2xl font-bold text-blue-900">{subject.averageMarks}</p>
+                          <p className="text-xs text-gray-500">avg marks</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">{subject.totalPupils} pupils</p>
+                      </div>
+
+                      {expandedSubjects.includes(subject.code) && (
+                        <div className="mt-2 pt-2 border-t border-blue-200">
+                          <div className="space-y-3">
+                            {subject.gradeDistribution.map((gradeData) => {
+                              const gradeKey = `${subject.code}-${gradeData.grade}`;
+                              const isExpanded = expandedGrades.includes(gradeKey);
+
+                              return (
+                                <div key={gradeData.grade} className="bg-gray-50 rounded-lg p-2">
+                                  <div
+                                    className="flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors p-2 rounded"
+                                    onClick={() => {
+                                      setExpandedGrades(prev =>
+                                        isExpanded
+                                          ? prev.filter(g => g !== gradeKey)
+                                          : [...prev, gradeKey]
+                                      );
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <Badge className={`${getGradeColor(gradeData.grade)} px-3 py-1 font-bold ${isExpanded ? 'ring-2 ring-blue-300' : ''}`}>
+                                        {gradeData.grade}
+                                      </Badge>
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-lg font-bold text-gray-900">{gradeData.count}</div>
+                                          <div className="text-sm text-gray-500">pupils ({gradeData.percentage.toFixed(1)}%)</div>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                          <div
+                                            className={`h-1.5 rounded-full ${getGradeColor(gradeData.grade).split(' ')[0].replace('bg-', 'bg-').replace('-100', '-500')}`}
+                                            style={{ width: `${gradeData.percentage}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+                                      <div className="grid grid-cols-1 gap-2">
+                                        {gradeData.pupils.map((pupil) => (
+                                          <div key={pupil.pupilId} className="bg-gray-50 p-2 rounded text-xs">
+                                            <div className="font-semibold text-gray-900">{pupil.name}</div>
+                                            <div className="text-xs text-gray-500">{pupil.admissionNumber}</div>
+                                            <Badge variant="outline" className="text-xs mt-1">
+                                              {pupil.marks} marks
+                                            </Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <DialogFooter className="mt-6">
+          <Button onClick={onClose} className="bg-purple-600 hover:bg-purple-700">
+            Close Analysis
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+} 

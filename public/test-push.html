@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Notification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>🔔 Push Notification Test</h1>
+    
+    <div id="status" class="status warning">
+        Checking push notification support...
+    </div>
+    
+    <div id="controls" style="display: none;">
+        <h3>Controls</h3>
+        <button id="requestPermission">Request Permission</button>
+        <button id="subscribe">Subscribe to Push</button>
+        <button id="unsubscribe">Unsubscribe</button>
+        <button id="testNotification">Test Local Notification</button>
+        <button id="testPush">Test Push Notification</button>
+    </div>
+    
+    <div id="info">
+        <h3>Information</h3>
+        <p><strong>Permission Status:</strong> <span id="permissionStatus">Unknown</span></p>
+        <p><strong>Subscription Status:</strong> <span id="subscriptionStatus">Unknown</span></p>
+        <p><strong>Service Worker:</strong> <span id="swStatus">Unknown</span></p>
+    </div>
+    
+    <div id="logs">
+        <h3>Logs</h3>
+        <div id="logContainer" style="background: #f8f9fa; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <script>
+        let swRegistration = null;
+        let subscription = null;
+        
+        const statusDiv = document.getElementById('status');
+        const controlsDiv = document.getElementById('controls');
+        const permissionSpan = document.getElementById('permissionStatus');
+        const subscriptionSpan = document.getElementById('subscriptionStatus');
+        const swSpan = document.getElementById('swStatus');
+        const logContainer = document.getElementById('logContainer');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logEntry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#333';
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function updateStatus() {
+            permissionSpan.textContent = Notification.permission;
+            subscriptionSpan.textContent = subscription ? 'Active' : 'Inactive';
+            swSpan.textContent = swRegistration ? 'Registered' : 'Not Registered';
+        }
+        
+        async function checkSupport() {
+            if (!('serviceWorker' in navigator)) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Service Workers not supported';
+                log('Service Workers not supported', 'error');
+                return false;
+            }
+            
+            if (!('PushManager' in window)) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Push messaging not supported';
+                log('Push messaging not supported', 'error');
+                return false;
+            }
+            
+            if (!('Notification' in window)) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Notifications not supported';
+                log('Notifications not supported', 'error');
+                return false;
+            }
+            
+            statusDiv.className = 'status success';
+            statusDiv.textContent = '✅ Push notifications are supported!';
+            controlsDiv.style.display = 'block';
+            log('Push notifications are supported!', 'success');
+            return true;
+        }
+        
+        async function registerServiceWorker() {
+            try {
+                swRegistration = await navigator.serviceWorker.register('/sw.js');
+                log('Service Worker registered successfully', 'success');
+                updateStatus();
+                return true;
+            } catch (error) {
+                log(`Service Worker registration failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function requestPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                log(`Permission result: ${permission}`, permission === 'granted' ? 'success' : 'error');
+                updateStatus();
+                return permission;
+            } catch (error) {
+                log(`Permission request failed: ${error.message}`, 'error');
+                return 'denied';
+            }
+        }
+        
+        async function subscribeToPush() {
+            if (!swRegistration) {
+                log('Service Worker not registered', 'error');
+                return;
+            }
+            
+            if (Notification.permission !== 'granted') {
+                log('Permission not granted', 'error');
+                return;
+            }
+            
+            try {
+                // Using the new valid VAPID key
+                const vapidPublicKey = 'BALUiwRnuasvgZ62S6HXoPUV78gU2unE0x8w5UBX6g2-PNwt03yZwKpRh_L7kJM6bOcBbUJcgt041enUj2sGJvo';
+                
+                subscription = await swRegistration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                });
+                
+                log('Successfully subscribed to push notifications', 'success');
+                log(`Subscription endpoint: ${subscription.endpoint}`, 'info');
+                updateStatus();
+            } catch (error) {
+                log(`Subscription failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function unsubscribe() {
+            if (!subscription) {
+                log('No active subscription', 'error');
+                return;
+            }
+            
+            try {
+                await subscription.unsubscribe();
+                subscription = null;
+                log('Successfully unsubscribed from push notifications', 'success');
+                updateStatus();
+            } catch (error) {
+                log(`Unsubscribe failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testLocalNotification() {
+            if (Notification.permission !== 'granted') {
+                log('Permission not granted for local notifications', 'error');
+                return;
+            }
+            
+            const notification = new Notification('Test Local Notification', {
+                body: 'This is a test local notification from the test page',
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/badge-72x72.png',
+                tag: 'test-local'
+            });
+            
+            notification.onclick = () => {
+                log('Local notification clicked', 'info');
+                notification.close();
+            };
+            
+            log('Local notification sent', 'success');
+        }
+        
+        async function testPushNotification() {
+            if (!subscription) {
+                log('No active subscription for push test', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/notifications/send-push', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        subscription: {
+                            endpoint: subscription.endpoint,
+                            keys: {
+                                p256dh: arrayBufferToBase64(subscription.getKey('p256dh')),
+                                auth: arrayBufferToBase64(subscription.getKey('auth'))
+                            }
+                        },
+                        payload: {
+                            title: 'Test Push Notification',
+                            body: 'This is a test push notification from the test page',
+                            icon: '/icons/icon-192x192.png',
+                            url: '/test-push.html'
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    log('Push notification sent successfully', 'success');
+                } else {
+                    const error = await response.text();
+                    log(`Push notification failed: ${error}`, 'error');
+                }
+            } catch (error) {
+                log(`Push notification error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Utility functions
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+        
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+        
+        // Event listeners
+        document.getElementById('requestPermission').addEventListener('click', requestPermission);
+        document.getElementById('subscribe').addEventListener('click', subscribeToPush);
+        document.getElementById('unsubscribe').addEventListener('click', unsubscribe);
+        document.getElementById('testNotification').addEventListener('click', testLocalNotification);
+        document.getElementById('testPush').addEventListener('click', testPushNotification);
+        
+        // Initialize
+        async function init() {
+            log('Initializing push notification test page', 'info');
+            
+            const supported = await checkSupport();
+            if (!supported) return;
+            
+            await registerServiceWorker();
+            updateStatus();
+            
+            // Check for existing subscription
+            if (swRegistration) {
+                subscription = await swRegistration.pushManager.getSubscription();
+                updateStatus();
+                if (subscription) {
+                    log('Found existing subscription', 'info');
+                }
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html> 

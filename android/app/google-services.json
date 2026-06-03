@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "148171496339",
+    "project_id": "trinity-family-schools",
+    "storage_bucket": "trinity-family-schools.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148171496339:android:65fa496b1e3a7ba19ba666",
+        "android_client_info": {
+          "package_name": "com.trinity.school"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "148171496339-f7jm1ousp612jod5ssinvbssmmkauvfu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTmJ1R3u4UmJAaVxGf6rTWxGaOj-hqiWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "148171496339-f7jm1ousp612jod5ssinvbssmmkauvfu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+

@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "trinity-family-schools",
+    "production": "trinity-family-ganda"
+  }
+}
