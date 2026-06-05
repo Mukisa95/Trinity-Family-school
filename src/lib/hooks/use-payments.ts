@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PaymentsService } from '../services/payments.service';
 import type { PaymentRecord } from '@/types';
 import { samplePaymentRecords } from '../sample-data';
+import { invalidateFinanceSummaryQueries } from './use-finance-summary';
 
 // Payment Records Hooks
 export function usePaymentsByPupil(pupilId: string) {
@@ -94,6 +95,7 @@ export function useCreatePayment() {
       queryClient.invalidateQueries({ 
         queryKey: ['payments', 'fee', variables.feeStructureId, variables.pupilId, variables.academicYearId, variables.termId] 
       });
+      invalidateFinanceSummaryQueries(queryClient, variables.pupilId);
     },
   });
 }
@@ -109,6 +111,7 @@ export function useRevertPayment() {
     onSuccess: () => {
       // Invalidate all payment queries
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      invalidateFinanceSummaryQueries(queryClient);
     },
   });
-} 
+}

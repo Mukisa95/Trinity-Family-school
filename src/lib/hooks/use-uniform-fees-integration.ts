@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import type { UniformFeeData } from '@/lib/services/uniform-fees-integration.service';
+import { invalidateFinanceSummaryQueries } from './use-finance-summary';
 
 export function useUniformFeesForPupil(pupilId: string) {
   return useQuery({
@@ -54,6 +55,7 @@ export function useCreateUniformPayment() {
       queryClient.invalidateQueries({ queryKey: ['uniform-payments', variables.pupilId] });
       queryClient.invalidateQueries({ queryKey: ['pupil-payments', variables.pupilId] });
       queryClient.invalidateQueries({ queryKey: ['uniform-tracking'] });
+      invalidateFinanceSummaryQueries(queryClient, variables.pupilId);
     },
   });
 }
@@ -62,4 +64,4 @@ export function useCreateUniformPayment() {
 export const uniformFeesUtils = {
   isUniformFee: UniformFeesIntegrationService.isUniformFee,
   getUniformTrackingId: UniformFeesIntegrationService.getUniformTrackingId,
-}; 
+};

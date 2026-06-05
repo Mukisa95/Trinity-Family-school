@@ -28,6 +28,7 @@ import { usePrint } from '@/lib/contexts/print-context';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDigitalSignatureHelpers } from '@/lib/hooks/use-digital-signature';
 import { HistoryLogService } from '@/lib/services/history-log.service';
+import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
 
 // Optimized hooks for instant cache-first loading
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
@@ -456,7 +457,9 @@ export default function FamilyFeesCollection() {
         // Invalidate general fee and payment caches
         queryClient.invalidateQueries({ queryKey: ['fee-structures'] }),
         queryClient.invalidateQueries({ queryKey: ['payments'] }),
+        queryClient.invalidateQueries({ queryKey: ['finance-summary'] }),
       ]);
+      invalidateFinanceSummaryQueries(queryClient, undefined, familyId);
 
       // Trigger a custom event to notify individual pupil pages about payment updates
       // This helps with timestamp-based cache invalidation

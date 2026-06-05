@@ -5,6 +5,7 @@ import { RequirementTrackingService } from '@/lib/services/requirement-tracking.
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
 import type { RequirementTracking, CreateRequirementTrackingData, UpdateRequirementTrackingData, Pupil, AcademicYear, EnhancedRequirementTracking } from '@/types';
+import { invalidateFinanceSummaryQueries } from './use-finance-summary';
 
 // Fetch all requirement tracking records
 export function useRequirementTracking() {
@@ -156,6 +157,7 @@ export function useCreateRequirementTracking() {
       queryClient.invalidateQueries({ 
         queryKey: ['requirementTracking', 'pupil', newRecord.pupilId, 'academicYear', newRecord.academicYearId] 
       });
+      invalidateFinanceSummaryQueries(queryClient, newRecord.pupilId);
       
       // If requirementId is an array, invalidate for each requirement
       if (Array.isArray(newRecord.requirementId)) {
@@ -224,6 +226,7 @@ export function useUpdateRequirementTracking() {
       queryClient.invalidateQueries({ 
         queryKey: ['requirementTracking', 'pupil', updatedRecord.pupilId, 'academicYear', updatedRecord.academicYearId] 
       });
+      invalidateFinanceSummaryQueries(queryClient, updatedRecord.pupilId);
       
       // If requirementId is an array, invalidate for each requirement
       if (Array.isArray(updatedRecord.requirementId)) {
@@ -486,6 +489,7 @@ export function useCreateEnhancedRequirementTracking() {
       queryClient.invalidateQueries({ 
         queryKey: ['requirementTracking', 'pupil', newRecord.pupilId, 'academicYear', newRecord.academicYearId] 
       });
+      invalidateFinanceSummaryQueries(queryClient, newRecord.pupilId);
       
       // If requirementId is an array, invalidate for each requirement
       if (Array.isArray(newRecord.requirementId)) {

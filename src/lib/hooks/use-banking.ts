@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BankingService } from '../services/banking.service';
 import type { Account, Loan, Transaction, CreateAccountData, CreateLoanData, CreateTransactionData, Pupil } from '@/types';
+import { invalidateFinanceSummaryQueries } from './use-finance-summary';
 
 // Query keys
 export const bankingKeys = {
@@ -73,6 +74,7 @@ export function useCreateAccount() {
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountByPupil(variables.pupilId) });
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountSummary(variables.pupilId) });
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient, variables.pupilId);
       }, 0);
     },
   });
@@ -88,6 +90,7 @@ export function useDeleteAccount() {
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: bankingKeys.accounts() });
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient);
       }, 0);
     },
   });
@@ -103,6 +106,7 @@ export function useDeactivateAccount() {
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: bankingKeys.accounts() });
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient);
       }, 0);
     },
   });
@@ -118,6 +122,7 @@ export function useReactivateAccount() {
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: bankingKeys.accounts() });
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient);
       }, 0);
     },
   });
@@ -155,6 +160,7 @@ export function useCreateLoan() {
         
         // Invalidate broader queries less frequently
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient, variables.pupilId);
       }, 0);
     },
   });
@@ -205,6 +211,7 @@ export function useCreateTransaction() {
         
         // Invalidate broader queries less frequently
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient, variables.pupilId);
       }, 0);
     },
   });
@@ -219,6 +226,7 @@ export function useRevertTransaction() {
       // Invalidate all banking-related queries since reversal affects multiple areas
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: bankingKeys.all });
+        invalidateFinanceSummaryQueries(queryClient);
       }, 0);
     },
   });
@@ -233,6 +241,7 @@ export function useCancelLoan() {
       // Invalidate all banking-related queries since loan cancellation affects multiple areas
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: bankingKeys.all });
+        invalidateFinanceSummaryQueries(queryClient);
       }, 0);
     },
   });
@@ -255,6 +264,7 @@ export function useProcessOverdueLoans() {
         
         // Invalidate broader queries
         queryClient.invalidateQueries({ queryKey: bankingKeys.accountsWithPupils() });
+        invalidateFinanceSummaryQueries(queryClient, pupilId);
       }, 0);
     },
   });
@@ -268,6 +278,7 @@ export function useProcessAllOverdueLoans() {
     onSuccess: () => {
       // Invalidate all banking queries since multiple accounts may be affected
       queryClient.invalidateQueries({ queryKey: bankingKeys.all });
+      invalidateFinanceSummaryQueries(queryClient);
     },
   });
-} 
+}

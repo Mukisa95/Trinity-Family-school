@@ -85,6 +85,7 @@ import { useActiveUniforms, useUniformsByFilter } from '@/lib/hooks/use-uniforms
 import { useUniformTrackingByPupil, useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useFeeStructures } from '@/lib/hooks/use-fee-structures';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
+import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
 
 // Performance and Error Handling
 import { usePerformanceMonitor, useRenderTracker } from './utils/performance';
@@ -250,6 +251,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     queryClient.invalidateQueries({ queryKey: ['pupil-payments-all', pupilId] });
     queryClient.invalidateQueries({ queryKey: ['previous-balance', pupilId] });
     queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+    invalidateFinanceSummaryQueries(queryClient, pupilId);
   };
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isUniformTrackingModalOpen, setIsUniformTrackingModalOpen] = useState(false);
@@ -791,6 +793,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }),
         queryClient.invalidateQueries({
           queryKey: ['assignment-details']
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['finance-summary']
         })
       ]);
 
@@ -961,6 +966,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
       queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
       queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+      invalidateFinanceSummaryQueries(queryClient, pupil.id);
 
       // Show success message immediately (no blocking refetch)
       toast({
@@ -1080,6 +1086,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
         queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
         queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+        invalidateFinanceSummaryQueries(queryClient, pupil.id);
 
         // Show success toast immediately (no blocking refetch)
         toast({
@@ -1213,6 +1220,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] }),
         queryClient.invalidateQueries({ queryKey: ['assign-pupils'] }),
         queryClient.invalidateQueries({ queryKey: ['assignment-details'] }),
+        queryClient.invalidateQueries({ queryKey: ['finance-summary'] }),
       ]);
 
       // Refetch fees to show updated assignments
@@ -2394,6 +2402,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 queryClient.invalidateQueries({ queryKey: ['pupil', pupil.id] }),
                 queryClient.invalidateQueries({ queryKey: ['uniform-tracking', pupil.id] }),
                 queryClient.invalidateQueries({ queryKey: ['pupil-fees'] }),
+                queryClient.invalidateQueries({ queryKey: ['finance-summary'] }),
               ]);
 
               // Refetch fees data to show the newly added uniform
