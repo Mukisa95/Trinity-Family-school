@@ -455,6 +455,60 @@ export function calculateFeePayments(
   };
 }
 
+function getMatchingCarryForwardPayments(
+  payments: PaymentRecord[],
+  item: {
+    feeStructureId?: string;
+    name: string;
+    termId?: string;
+    termName?: string;
+    academicYearId?: string;
+    academicYearName?: string;
+  },
+  alreadyCountedPayments: PaymentRecord[] = []
+): PaymentRecord[] {
+  const alreadyCountedIds = new Set(alreadyCountedPayments.map(payment => payment.id));
+
+  return payments.filter(payment => {
+    if (payment.feeStructureId !== 'previous-balance' || payment.reverted || alreadyCountedIds.has(payment.id)) {
+      return false;
+    }
+
+    if (!(payment as any).isCarryForwardPayment) {
+      return false;
+    }
+
+    const originalFeeStructureId = (payment as any).originalFeeStructureId;
+    const carryForwardItemName = `${(payment as any).carryForwardItemName || ''}`.trim().toLowerCase();
+    const itemName = `${item.name || ''}`.trim().toLowerCase();
+
+    const feeMatches =
+      (item.feeStructureId && originalFeeStructureId === item.feeStructureId) ||
+      (carryForwardItemName && itemName && carryForwardItemName === itemName);
+
+    if (!feeMatches) {
+      return false;
+    }
+
+    const originalTermId = (payment as any).originalTermId;
+    const originalAcademicYearId = (payment as any).originalAcademicYearId;
+    const originalTerm = `${(payment as any).originalTerm || ''}`.trim().toLowerCase();
+    const originalYear = `${(payment as any).originalYear || ''}`.trim().toLowerCase();
+    const termName = `${item.termName || ''}`.trim().toLowerCase();
+    const academicYearName = `${item.academicYearName || ''}`.trim().toLowerCase();
+
+    const termMatches =
+      (item.termId && originalTermId === item.termId) ||
+      (termName && originalTerm === termName);
+
+    const academicYearMatches =
+      (item.academicYearId && originalAcademicYearId === item.academicYearId) ||
+      (academicYearName && originalYear === academicYearName);
+
+    return termMatches && academicYearMatches;
+  });
+}
+
 /**
  * Processes fee structures into PupilFee objects with payment information
  */
@@ -898,12 +952,29 @@ export async function calculatePreviousTermBalances(
 
         // 🔥 CRITICAL FIX: Pass the period's academic year and term to filter payments correctly
         // This ensures we only count payments made in that specific period, not payments from other years
-        const { totalPaid } = calculateFeePayments(
+        const paymentCalculation = calculateFeePayments(
           fee.id,
           allPayments,
           period.academicYear.id,
           period.termId
         );
+        const fallbackCarryForwardPayments = getMatchingCarryForwardPayments(
+          allPayments,
+          {
+            feeStructureId: fee.id,
+            name: fee.name,
+            termId: period.termId,
+            termName: period.termName,
+            academicYearId: period.academicYear.id,
+            academicYearName: period.academicYear.name
+          },
+          paymentCalculation.feePayments
+        );
+        const fallbackCarryForwardPaid = fallbackCarryForwardPayments.reduce(
+          (sum, payment) => sum + payment.amount,
+          0
+        );
+        const totalPaid = paymentCalculation.totalPaid + fallbackCarryForwardPaid;
         const balance = Math.max(0, finalAmount - totalPaid);
 
         console.log(`📊 Previous term fee "${fee.name}": Amount=${finalAmount}, Paid=${totalPaid}, Balance=${balance}`);
@@ -928,12 +999,30 @@ export async function calculatePreviousTermBalances(
 
       // Process uniform fees for this period
       for (const uniformFee of periodUniformFees) {
-        if (uniformFee.balance > 0) {
+        const matchingCarryForwardPayments = getMatchingCarryForwardPayments(
+          allPayments,
+          {
+            feeStructureId: uniformFee.id,
+            name: uniformFee.name,
+            termId: period.termId,
+            termName: period.termName,
+            academicYearId: period.academicYear.id,
+            academicYearName: period.academicYear.name
+          }
+        );
+        const carryForwardPaid = matchingCarryForwardPayments.reduce(
+          (sum, payment) => sum + payment.amount,
+          0
+        );
+        const totalPaid = (uniformFee.paid || 0) + carryForwardPaid;
+        const balance = Math.max(0, (uniformFee.balance || 0) - carryForwardPaid);
+
+        if (balance > 0) {
           balanceBreakdown.push({
             name: uniformFee.name,
             amount: uniformFee.amount,
-            paid: uniformFee.paid,
-            balance: uniformFee.balance,
+            paid: totalPaid,
+            balance,
             term: period.termName,
             year: period.academicYear.name,
             feeStructureId: uniformFee.id, // This is the uniform tracking ID
@@ -941,7 +1030,7 @@ export async function calculatePreviousTermBalances(
             academicYearId: period.academicYear.id
           });
           console.log(`✅ Added uniform to carry forward: ${uniformFee.name} - ${uniformFee.balance} UGX (paid: ${uniformFee.paid} UGX)`);
-        } else if (uniformFee.paid > 0) {
+        } else if (totalPaid > 0) {
           console.log(`✅ Uniform "${uniformFee.name}" fully paid: ${uniformFee.paid} UGX`);
         }
       }
