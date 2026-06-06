@@ -11,8 +11,9 @@ import { liteClearAll } from '@/lib/cache/lite-cache';
 import { logger } from '@/lib/utils/logger';
 
 const AUTH_CACHE_KEY = 'trinity_user';
-const AUTH_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
-const AUTH_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+// How often to silently re-check permissions from the DB (not a logout timer).
+// The session itself never expires due to time — only permission/role changes invalidate it.
+const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min background sync
 
 type SessionStatus = 'checking' | 'fresh' | 'stale';
 
@@ -161,29 +162,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedCache = readUserCache();
         if (storedCache) {
           try {
-            if (validateStoredUser(storedCache.user) && storedCache.ageMs <= AUTH_CACHE_MAX_AGE_MS) {
-              logger.debug('Restored user from short-lived local cache', {
+            if (validateStoredUser(storedCache.user)) {
+              // Always restore the cached session immediately — no time-based expiry.
+              // We only invalidate if DB says the account is gone or permissions changed.
+              logger.debug('Restored user from local cache', {
                 username: storedCache.user.username,
                 ageMinutes: Math.round(storedCache.ageMs / 60000),
                 legacyCache: storedCache.isLegacy,
               });
               setUser(storedCache.user);
               setHasStoredUser(true);
-              setSessionStatus('checking');
-              setSessionMessage('Checking your current role and permissions...');
-              setIsLoading(false); // Set loading to false immediately when we have a valid stored user
-              
+              setSessionStatus('fresh');  // Trust the cache until DB says otherwise
+              setSessionMessage(null);
+              setIsLoading(false);
+
+              // Background check: only invalidate if something actually changed
               UsersService.getUserById(storedCache.user.id)
                 .then((freshUser) => {
                   if (!freshUser || freshUser.isActive === false) {
+                    // Account deactivated or deleted — this specific user must sign in again
+                    logger.info('Account deactivated or removed — clearing session', { id: storedCache.user.id });
                     setUser(null);
                     setHasStoredUser(false);
                     clearUserCache();
                     setSessionStatus('stale');
-                    setSessionMessage('Your account could not be confirmed. Please sign in again.');
+                    setSessionMessage('Your account has been deactivated. Please contact the administrator.');
                     return;
                   }
 
+                  // Check whether role or permissions changed
+                  const cachedUser = storedCache.user;
+                  const roleChanged = freshUser.role !== cachedUser.role;
+                  const cachedPerms = JSON.stringify(cachedUser.modulePermissions ?? []);
+                  const freshPerms = JSON.stringify(freshUser.modulePermissions ?? []);
+                  const permsChanged = cachedPerms !== freshPerms;
+
+                  if (roleChanged || permsChanged) {
+                    logger.info('Permissions/role changed — updating session silently', {
+                      id: freshUser.id,
+                      roleChanged,
+                      permsChanged,
+                    });
+                  }
+
+                  // Always update with the freshest data (name, avatar, etc.) but never log out
                   setUser(freshUser);
                   setHasStoredUser(true);
                   saveUserCache(freshUser);
@@ -192,12 +214,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   setSessionMessage(null);
                 })
                 .catch((error) => {
-                  logger.warn('Could not refresh cached user during startup', error);
-                  setSessionStatus('stale');
-                  setSessionMessage('Your saved session is being used, but current permissions could not be confirmed. Refresh when the connection is available.');
+                  // Network error — keep the cached session alive, just mark it as potentially stale
+                  logger.warn('Could not verify session from DB during startup — using cache', error);
+                  setLastPermissionRefreshAt(Date.now());
+                  setSessionStatus('fresh');  // Don't show a scary warning; the user is still logged in
+                  setSessionMessage(null);
                 });
             } else {
-              logger.info('Stored user cache expired or invalid, removing it');
+              logger.info('Stored user cache is invalid, removing it');
               clearUserCache();
               setHasStoredUser(false);
             }
@@ -458,7 +482,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('trinity_auto_lock', JSON.stringify(enabled));
     }
   };
-
   const setAutoLockAction = (action: 'lock-on-close' | 'lock-on-leave' | 'signout') => {
     setAutoLockActionState(action);
     if (typeof window !== 'undefined') {
@@ -481,40 +504,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSessionStatus('fresh');
         setSessionMessage(null);
       } else {
+        // Account deactivated or removed — invalidate only this user's session
         setUser(null);
         setHasStoredUser(false);
         clearUserCache();
         setSessionStatus('stale');
-        setSessionMessage('Your account is no longer active or could not be found. Please sign in again.');
+        setSessionMessage('Your account has been deactivated. Please contact the administrator.');
       }
     } catch (error) {
-      logger.warn('Error refreshing user data', error);
-      setSessionStatus('stale');
-      setSessionMessage('Current permissions could not be confirmed. Check the connection and refresh your session.');
+      // Network error — keep the user logged in; don't show a scary warning
+      logger.warn('Error refreshing user data — keeping current session', error);
+      setLastPermissionRefreshAt(Date.now());
     }
   };
 
+  // Silently re-check permissions in the background when the user returns to the tab.
+  // This NEVER forces a logout — it only updates the session if permissions/role changed
+  // or deactivates the session if the account was removed.
   useEffect(() => {
     if (typeof window === 'undefined' || !user) return;
 
-    const refreshIfNeeded = () => {
+    const silentPermissionCheck = async () => {
       const age = Date.now() - lastPermissionRefreshAt;
-      if (age >= AUTH_REFRESH_INTERVAL_MS) {
-        refreshUser();
+      if (age < AUTH_REFRESH_INTERVAL_MS) return; // Not time for a re-check yet
+
+      try {
+        const freshUser = await UsersService.getUserById(user.id);
+
+        if (!freshUser || freshUser.isActive === false) {
+          // Account was deactivated/deleted — only this user is logged out
+          logger.info('Background check: account deactivated or removed', { id: user.id });
+          setUser(null);
+          setHasStoredUser(false);
+          clearUserCache();
+          setSessionStatus('stale');
+          setSessionMessage('Your account has been deactivated. Please contact the administrator.');
+          return;
+        }
+
+        // Silently apply any permission/role changes without logging the user out
+        setUser(freshUser);
+        saveUserCache(freshUser);
+        setLastPermissionRefreshAt(Date.now());
+        setSessionStatus('fresh');
+        setSessionMessage(null);
+      } catch (error) {
+        // Network issue — do nothing; keep the user logged in
+        logger.debug('Background permission check failed (network?) — keeping session', error);
+        setLastPermissionRefreshAt(Date.now()); // Reset timer so we don't hammer the DB
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        refreshIfNeeded();
+        silentPermissionCheck();
       }
     };
 
-    window.addEventListener('focus', refreshIfNeeded);
+    window.addEventListener('focus', silentPermissionCheck);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('focus', refreshIfNeeded);
+      window.removeEventListener('focus', silentPermissionCheck);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, lastPermissionRefreshAt]);

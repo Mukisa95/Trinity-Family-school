@@ -402,6 +402,18 @@ export class SchoolPayIntegrationService {
         timestamp: new Date().toISOString(),
       });
 
+      // Fire-and-forget: send one consolidated push notification per SchoolPay receipt.
+      // This never blocks or throws to the webhook caller.
+      this.sendSchoolPayPushNotification({
+        receiptNumber,
+        pupilName: payment.studentName || `${pupil.firstName} ${pupil.lastName}`,
+        amount: this.parseAmount(payment.amount),
+        breakdown: recordingResult.distributionBreakdown,
+        source: context.source,
+      }).catch((err) => {
+        console.warn('[SchoolPay Push] Non-fatal push error:', err);
+      });
+
       return {
         success: true,
         message: 'Payment recorded successfully',
@@ -433,6 +445,138 @@ export class SchoolPayIntegrationService {
         localPaymentIds: [],
       };
     }
+  }
+
+  /**
+   * Send a single consolidated browser push notification to all fees staff
+   * every time a new SchoolPay receipt is recorded.
+   *
+   * Design choices:
+   *  - Only fires for source === 'webhook' (real-time). Sync/backfill payments are silent.
+   *  - Uses the receipt number as the notification `tag` so the OS collapses duplicates
+   *    if SchoolPay retries the same webhook.
+   *  - Fire-and-forget at the call site — a push failure never breaks the webhook response.
+   *  - Directly calls web-push and push-notifications.service (no internal HTTP round-trip).
+   */
+  private static async sendSchoolPayPushNotification(opts: {
+    receiptNumber: string;
+    pupilName: string;
+    amount: number;
+    breakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
+    source: 'webhook' | 'sync';
+  }): Promise<void> {
+    // Only send real-time push for webhook payments, not historical sync backfill
+    if (opts.source !== 'webhook') return;
+
+    const publicKey =
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+      'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
+    const privateKey = process.env.VAPID_PRIVATE_KEY || '';
+    const email = process.env.VAPID_EMAIL || 'admin@trinity-family-schools.com';
+
+    if (!privateKey) {
+      console.warn('[SchoolPay Push] VAPID_PRIVATE_KEY is not set — skipping push notification');
+      return;
+    }
+
+    // Dynamic imports so this module stays importable in all environments
+    const webpushModule = await import('web-push');
+    const webpush = webpushModule.default || webpushModule;
+    webpush.setVapidDetails(`mailto:${email}`, publicKey, privateKey);
+
+    const { getFeesAccessUserIds, getSubscriptionsForUsers } = await import(
+      './push-notifications.service'
+    );
+
+    // Resolve recipients
+    const userIds = await getFeesAccessUserIds();
+    if (userIds.length === 0) return;
+
+    const subscriptions = await getSubscriptionsForUsers(userIds);
+    if (subscriptions.length === 0) return;
+
+    // Build a human-readable breakdown line, e.g. "Tuition, Meals, Carry Forward"
+    const formattedAmount = new Intl.NumberFormat('en-UG').format(opts.amount);
+    const seenNames = new Set<string>();
+    const categories = opts.breakdown
+      .map((b) =>
+        b.feeName
+          .replace(/ \(SchoolPay\)$/i, '')
+          .replace(/ \[.*?\]$/, '') // strip [Term Year] carry-forward suffix
+          .trim()
+      )
+      .filter((name) => {
+        if (seenNames.has(name)) return false;
+        seenNames.add(name);
+        return true;
+      })
+      .join(', ');
+
+    const body = `UGX ${formattedAmount} for ${opts.pupilName}${
+      categories ? `. Allocated to: ${categories}` : ''
+    }.`;
+
+    const payloadStr = JSON.stringify({
+      title: '\uD83D\uDCB3 SchoolPay Payment Received',
+      body,
+      icon: '/icon-192.png',
+      badge: '/icons/badge-72x72.png',
+      url: '/accounts/schoolpay-feed',
+      // Receipt number as tag: OS collapses duplicate alerts on SchoolPay retries
+      tag: `schoolpay-receipt-${opts.receiptNumber}`,
+      requireInteraction: true,
+      timestamp: Date.now(),
+    });
+
+    // Send concurrently to all active subscriptions
+    const results = await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payloadStr,
+            { urgency: 'high', TTL: 24 * 60 * 60 }
+          );
+          return { ok: true, expired: false, subId: sub.id };
+        } catch (err: any) {
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            return { ok: false, expired: true, subId: sub.id };
+          }
+          console.warn(
+            `[SchoolPay Push] Send failed for subscription ${sub.id}:`,
+            err.statusCode,
+            err.message
+          );
+          return { ok: false, expired: false, subId: sub.id };
+        }
+      })
+    );
+
+    // Clean up expired / unsubscribed endpoints
+    const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
+    const expiredIds: string[] = [];
+    let sent = 0;
+    for (const r of results) {
+      if (r.status !== 'fulfilled') continue;
+      if (r.value.ok) {
+        sent++;
+      } else if (r.value.expired && r.value.subId) {
+        expiredIds.push(r.value.subId);
+      }
+    }
+
+    if (expiredIds.length > 0) {
+      await Promise.allSettled(
+        expiredIds.map((id) =>
+          updateDoc(firestoreDoc(db, 'pushSubscriptions', id), { isActive: false })
+        )
+      );
+    }
+    console.log(
+      `[SchoolPay Push] ✅ ${sent}/${subscriptions.length} push(es) sent for receipt ${
+        opts.receiptNumber
+      }`
+    );
   }
 
   private static normalizePayment(payment: SchoolPayPaymentPayload): SchoolPayPaymentPayload {
