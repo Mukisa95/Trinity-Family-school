@@ -8,6 +8,18 @@ import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { liteClearAll } from '@/lib/cache/lite-cache';
+import { logger } from '@/lib/utils/logger';
+
+const AUTH_CACHE_KEY = 'trinity_user';
+const AUTH_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
+const AUTH_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+type SessionStatus = 'checking' | 'fresh' | 'stale';
+
+type StoredAuthCache = {
+  user: SystemUser;
+  cachedAt: number;
+};
 
 interface AuthContextType {
   user: SystemUser | null;
@@ -15,6 +27,9 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  isSessionStale: boolean;
+  sessionStatus: SessionStatus;
+  sessionMessage: string | null;
   isAuthenticated: boolean;
   canAccessModule: (module: string) => boolean;
   canEdit: (module: string) => boolean;
@@ -41,6 +56,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLocked, setIsLocked] = useState(false);
   const [autoLockEnabled, setAutoLockEnabled] = useState(false);
   const [autoLockAction, setAutoLockActionState] = useState<'lock-on-close' | 'lock-on-leave' | 'signout' | null>(null);
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>('checking');
+  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+  const [lastPermissionRefreshAt, setLastPermissionRefreshAt] = useState<number>(0);
+
+  const saveUserCache = (userData: SystemUser) => {
+    if (typeof window === 'undefined') return;
+    const payload: StoredAuthCache = { user: userData, cachedAt: Date.now() };
+    localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(payload));
+  };
+
+  const clearUserCache = () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(AUTH_CACHE_KEY);
+  };
+
+  const readUserCache = (): { user: SystemUser; ageMs: number; isLegacy: boolean } | null => {
+    if (typeof window === 'undefined') return null;
+    const storedUser = localStorage.getItem(AUTH_CACHE_KEY);
+    if (!storedUser) return null;
+
+    const parsed = JSON.parse(storedUser);
+    if (parsed?.user && typeof parsed.cachedAt === 'number') {
+      return { user: parsed.user, ageMs: Date.now() - parsed.cachedAt, isLegacy: false };
+    }
+
+    return { user: parsed, ageMs: AUTH_CACHE_MAX_AGE_MS, isLegacy: true };
+  };
 
   // Function to validate stored user token
   const validateStoredUser = (storedUserData: SystemUser): boolean => {
@@ -58,13 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // If user was created more than 30 days ago, still valid but could add additional checks
         if (daysDiff > 30) {
-          console.log('Stored user is quite old, but still accepting:', daysDiff, 'days');
+          logger.debug('Stored user is older than 30 days', { daysDiff });
         }
       }
       
       return true;
     } catch (error) {
-      console.error('Error validating stored user:', error);
+      logger.error('Error validating stored user', error);
       return false;
     }
   };
@@ -81,7 +123,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         // First, try to restore user from localStorage immediately
-        const storedUser = localStorage.getItem('trinity_user');
         const storedAutoLock = localStorage.getItem('trinity_auto_lock');
         const storedLockState = localStorage.getItem('trinity_account_locked');
         const storedAutoLockAction = localStorage.getItem('trinity_auto_lock_action');
@@ -90,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             setAutoLockEnabled(JSON.parse(storedAutoLock));
           } catch (error) {
-            console.error('Error parsing auto lock setting:', error);
+            logger.warn('Error parsing auto lock setting', error);
           }
         }
         
@@ -98,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           try {
             setIsLocked(JSON.parse(storedLockState));
           } catch (error) {
-            console.error('Error parsing lock state:', error);
+            logger.warn('Error parsing lock state', error);
           }
         }
         
@@ -113,29 +154,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setAutoLockActionState(parsedAction);
             }
           } catch (error) {
-            console.error('Error parsing auto lock action:', error);
+            logger.warn('Error parsing auto lock action', error);
           }
         }
         
-        if (storedUser) {
+        const storedCache = readUserCache();
+        if (storedCache) {
           try {
-            const parsedUser = JSON.parse(storedUser);
-            if (validateStoredUser(parsedUser)) {
-              console.log('Restored valid user from localStorage:', parsedUser.username);
-              setUser(parsedUser);
+            if (validateStoredUser(storedCache.user) && storedCache.ageMs <= AUTH_CACHE_MAX_AGE_MS) {
+              logger.debug('Restored user from short-lived local cache', {
+                username: storedCache.user.username,
+                ageMinutes: Math.round(storedCache.ageMs / 60000),
+                legacyCache: storedCache.isLegacy,
+              });
+              setUser(storedCache.user);
               setHasStoredUser(true);
+              setSessionStatus('checking');
+              setSessionMessage('Checking your current role and permissions...');
               setIsLoading(false); // Set loading to false immediately when we have a valid stored user
               
-              // Custom authentication is sufficient for Firestore operations
-              console.log('User restored successfully from localStorage');
+              UsersService.getUserById(storedCache.user.id)
+                .then((freshUser) => {
+                  if (!freshUser || freshUser.isActive === false) {
+                    setUser(null);
+                    setHasStoredUser(false);
+                    clearUserCache();
+                    setSessionStatus('stale');
+                    setSessionMessage('Your account could not be confirmed. Please sign in again.');
+                    return;
+                  }
+
+                  setUser(freshUser);
+                  setHasStoredUser(true);
+                  saveUserCache(freshUser);
+                  setLastPermissionRefreshAt(Date.now());
+                  setSessionStatus('fresh');
+                  setSessionMessage(null);
+                })
+                .catch((error) => {
+                  logger.warn('Could not refresh cached user during startup', error);
+                  setSessionStatus('stale');
+                  setSessionMessage('Your saved session is being used, but current permissions could not be confirmed. Refresh when the connection is available.');
+                });
             } else {
-              console.log('Stored user is invalid, removing from localStorage');
-              localStorage.removeItem('trinity_user');
+              logger.info('Stored user cache expired or invalid, removing it');
+              clearUserCache();
               setHasStoredUser(false);
             }
           } catch (error) {
-            console.error('Error parsing stored user:', error);
-            localStorage.removeItem('trinity_user');
+            logger.warn('Error parsing stored user cache', error);
+            clearUserCache();
             setHasStoredUser(false);
           }
         } else {
@@ -147,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Then set up Firebase auth listener
         unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          console.log('Firebase auth state changed:', firebaseUser?.email || 'No user', 'initialized:', firebaseInitialized);
+          logger.debug('Firebase auth state changed', { email: firebaseUser?.email || 'No user', initialized: firebaseInitialized });
           
           if (firebaseUser) {
             firebaseInitialized = true;
@@ -174,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         staffData = { id: staffDocSnap.id, ...staffDocSnap.data() };
                       }
                     } catch (error) {
-                      console.log('Could not fetch staff data:', error);
+                      logger.debug('Could not fetch staff data', error);
                     }
                   }
                 }
@@ -198,17 +266,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 updatedAt: (dbUser as any)?.updatedAt || new Date().toISOString(),
               };
               
-              console.log('Setting user from Firebase:', systemUserData.username);
+              logger.debug('Setting user from Firebase', { username: systemUserData.username });
               setUser(systemUserData);
               setHasStoredUser(true);
-              localStorage.setItem('trinity_user', JSON.stringify(systemUserData));
+              saveUserCache(systemUserData);
+              setLastPermissionRefreshAt(Date.now());
+              setSessionStatus('fresh');
+              setSessionMessage(null);
 
             } catch (error) {
-              console.error('AuthContext: Error processing auth state:', error);
+              logger.error('AuthContext: Error processing auth state', error);
               // Only clear user if we don't have a stored user to fall back to AND Firebase has actually initialized
               if (!hasStoredUser && firebaseInitialized) {
                 setUser(null);
-                localStorage.removeItem('trinity_user');
+                clearUserCache();
               }
             }
           } else {
@@ -217,13 +288,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 1. Firebase has actually initialized (not just the initial null state)
             // 2. AND we don't have a valid stored user
             if (firebaseInitialized && !hasStoredUser) {
-              console.log('No Firebase user and no stored user - logging out');
+              logger.debug('No Firebase user and no stored user - logging out');
               setUser(null);
-              localStorage.removeItem('trinity_user');
+              clearUserCache();
             } else if (!firebaseInitialized) {
-              console.log('Firebase not yet initialized, keeping stored user if any');
+              logger.debug('Firebase not yet initialized, keeping stored user if any');
             } else {
-              console.log('No Firebase user but have stored user, keeping stored user');
+              logger.debug('No Firebase user but have stored user, keeping stored user');
             }
           }
           
@@ -234,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        logger.error('Error initializing auth', error);
         setIsLoading(false);
         setIsInitialized(true);
       }
@@ -268,7 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setHasStoredUser(false);
         setIsLocked(false);
-        localStorage.removeItem('trinity_user');
+        clearUserCache();
         localStorage.removeItem('trinity_account_locked');
       }
     };
@@ -298,21 +369,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (authenticatedUser) {
         setUser(authenticatedUser);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('trinity_user', JSON.stringify(authenticatedUser));
+          saveUserCache(authenticatedUser);
         }
         
-        // Custom authentication successful
-        console.log('Successfully authenticated with custom auth system');
+        logger.info('Successfully authenticated with custom auth system', { username: authenticatedUser.username });
+        setHasStoredUser(true);
+        setLastPermissionRefreshAt(Date.now());
+        setSessionStatus('fresh');
+        setSessionMessage(null);
         
         return true;
       }
       
       return false;
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error', error);
       setUser(null);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('trinity_user');
+        clearUserCache();
       }
       return false;
     } finally {
@@ -322,25 +396,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log('Explicit logout - clearing all user data');
+      logger.info('Explicit logout - clearing all user data');
       await firebaseSignOut(auth);
       setUser(null);
       setHasStoredUser(false);
       setIsLocked(false);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('trinity_user');
+        clearUserCache();
         localStorage.removeItem('trinity_account_locked');
         // Clear the lite cache so the next login gets fresh data
         liteClearAll();
       }
     } catch (error) {
-      console.error('Error signing out from Firebase:', error);
+      logger.error('Error signing out from Firebase', error);
       // Even if Firebase logout fails, clear local state
       setUser(null);
       setHasStoredUser(false);
       setIsLocked(false);
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('trinity_user');
+        clearUserCache();
         localStorage.removeItem('trinity_account_locked');
         liteClearAll();
       }
@@ -352,7 +426,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('trinity_account_locked', JSON.stringify(true));
     }
-    console.log('Account locked');
+    logger.info('Account locked');
   };
 
   const unlockAccount = async (password: string): Promise<boolean> => {
@@ -367,13 +441,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('trinity_account_locked');
         }
-        console.log('Account unlocked successfully');
+        logger.info('Account unlocked successfully');
         return true;
       }
       
       return false;
     } catch (error) {
-      console.error('Error unlocking account:', error);
+      logger.error('Error unlocking account', error);
       return false;
     }
   };
@@ -396,20 +470,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     
     try {
-      console.log('Refreshing user data from database...');
+      logger.debug('Refreshing user data from database');
       const updatedUser = await UsersService.getUserById(user.id);
       
-      if (updatedUser) {
-        console.log('User data refreshed successfully:', updatedUser.username);
+      if (updatedUser && updatedUser.isActive !== false) {
+        logger.debug('User data refreshed successfully', { username: updatedUser.username });
         setUser(updatedUser);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('trinity_user', JSON.stringify(updatedUser));
-        }
+        saveUserCache(updatedUser);
+        setLastPermissionRefreshAt(Date.now());
+        setSessionStatus('fresh');
+        setSessionMessage(null);
+      } else {
+        setUser(null);
+        setHasStoredUser(false);
+        clearUserCache();
+        setSessionStatus('stale');
+        setSessionMessage('Your account is no longer active or could not be found. Please sign in again.');
       }
     } catch (error) {
-      console.error('Error refreshing user data:', error);
+      logger.warn('Error refreshing user data', error);
+      setSessionStatus('stale');
+      setSessionMessage('Current permissions could not be confirmed. Check the connection and refresh your session.');
     }
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user) return;
+
+    const refreshIfNeeded = () => {
+      const age = Date.now() - lastPermissionRefreshAt;
+      if (age >= AUTH_REFRESH_INTERVAL_MS) {
+        refreshUser();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfNeeded();
+      }
+    };
+
+    window.addEventListener('focus', refreshIfNeeded);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', refreshIfNeeded);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, lastPermissionRefreshAt]);
 
   const canAccessModule = (module: string): boolean => {
     if (!user) return false;
@@ -447,6 +555,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     logout,
     refreshUser,
+    isSessionStale: sessionStatus === 'stale',
+    sessionStatus,
+    sessionMessage,
     isAuthenticated: !!user,
     canAccessModule,
     canEdit,
@@ -476,4 +587,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

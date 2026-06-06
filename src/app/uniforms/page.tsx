@@ -11,7 +11,9 @@ import { UniformModal } from '@/components/common/uniform-modal';
 import { useUniforms, useCreateUniform, useUpdateUniform, useDeleteUniform, useToggleUniformStatus } from '@/lib/hooks/use-uniforms';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { formatCurrency, parseFormattedMoney } from '@/lib/utils';
-import type { UniformItem, UniformFormData, UniformGender, UniformSection } from '@/types';
+import type { Class, UniformItem, UniformFormData, UniformGender, UniformSection } from '@/types';
+import { logger } from '@/lib/utils/logger';
+import { useConfirmDialog } from '@/lib/hooks/use-confirm-dialog';
 
 function UniformManagementContent() {
   const { toast } = useToast();
@@ -21,6 +23,7 @@ function UniformManagementContent() {
   const updateUniform = useUpdateUniform();
   const deleteUniform = useDeleteUniform();
   const toggleStatus = useToggleUniformStatus();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUniform, setSelectedUniform] = useState<UniformItem | null>(null);
@@ -32,6 +35,20 @@ function UniformManagementContent() {
   const [filterClass, setFilterClass] = useState<string>('');
   const [filterSection, setFilterSection] = useState<UniformSection | ''>('');
   const [filterGroup, setFilterGroup] = useState<string>('');
+
+  const selectedUniformInitialData: UniformFormData | undefined = selectedUniform
+    ? {
+        name: selectedUniform.name,
+        price: String(selectedUniform.price),
+        group: selectedUniform.group,
+        gender: selectedUniform.gender,
+        classType: selectedUniform.classType,
+        classIds: selectedUniform.classIds,
+        sectionType: selectedUniform.sectionType,
+        section: selectedUniform.section,
+        description: selectedUniform.description,
+      }
+    : undefined;
 
   const handleOpenAddModal = () => {
     setModalMode('add');
@@ -84,7 +101,7 @@ function UniformManagementContent() {
       
       handleCloseModal();
     } catch (error) {
-      console.error('Error saving uniform:', error);
+      logger.error('Error saving uniform', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -94,7 +111,22 @@ function UniformManagementContent() {
   };
 
   const handleDelete = async (uniformId: string) => {
-    if (window.confirm('Are you sure you want to delete this uniform item?')) {
+    const uniform = uniforms.find(item => item.id === uniformId);
+    const confirmed = await confirm({
+      title: 'Delete Uniform Item?',
+      description: (
+        <>
+          <p>
+            This will remove <strong>{uniform?.name || 'this uniform item'}</strong> from the uniform setup list.
+          </p>
+          <p>Only continue if this item is no longer needed for any future uniform tracking or fee setup.</p>
+        </>
+      ),
+      confirmLabel: 'Delete Item',
+      variant: 'destructive',
+    });
+
+    if (confirmed) {
       try {
         await deleteUniform.mutateAsync(uniformId);
         toast({
@@ -102,7 +134,7 @@ function UniformManagementContent() {
           description: "Uniform item deleted successfully",
         });
       } catch (error) {
-        console.error('Error deleting uniform:', error);
+        logger.error('Error deleting uniform', { uniformId, error });
         toast({
           variant: "destructive",
           title: "Error",
@@ -120,7 +152,7 @@ function UniformManagementContent() {
         description: `Uniform item ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
       });
     } catch (error) {
-      console.error('Error toggling uniform status:', error);
+      logger.error('Error toggling uniform status', { uniformId, error });
       toast({
         variant: "destructive",
         title: "Error",
@@ -175,7 +207,7 @@ function UniformManagementContent() {
     if (classType === 'all') return 'All Classes';
     if (!classIds || classIds.length === 0) return 'No Classes';
     
-    const selectedClasses = classes.filter(cls => classIds.includes(cls.id));
+    const selectedClasses = classes.filter((cls: Class) => classIds.includes(cls.id));
     if (selectedClasses.length === 0) return 'Unknown Classes';
     if (selectedClasses.length === 1) return selectedClasses[0].name;
     return `${selectedClasses.length} Classes`;
@@ -347,7 +379,7 @@ function UniformManagementContent() {
                     className="w-full p-2 border border-gray-300 rounded-lg text-sm"
                   >
                     <option value="">All Classes</option>
-                    {(classes || []).map((cls) => (
+                    {(classes || []).map((cls: Class) => (
                       <option key={cls?.id} value={cls?.id}>{cls?.name}</option>
                     ))}
                   </select>
@@ -563,9 +595,9 @@ function UniformManagementContent() {
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
         mode={modalMode}
-        selectedUniform={selectedUniform}
-        classes={classes || []}
+        initialData={selectedUniformInitialData}
       />
+      <ConfirmDialog />
     </div>
   );
 }
@@ -586,4 +618,4 @@ export default function UniformsPage() {
       <UniformManagementContent />
     </Suspense>
   );
-} 
+}

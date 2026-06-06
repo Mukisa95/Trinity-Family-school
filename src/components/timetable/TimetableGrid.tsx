@@ -199,15 +199,33 @@ export function TimetableGrid({
         return () => observer.disconnect();
     }, []);
 
-    // Auto-scroll to active period on mount or when switching days
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    const hasAutoScrolledRef = React.useRef(false);
+
+    // Reset one-time auto-scroll when the day changes
     React.useEffect(() => {
-        if (selectedDay === currentDayOfWeek && activeColRef.current) {
-            const timer = setTimeout(() => {
-                activeColRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-            }, 250); // Small delay to let rendering finish
-            return () => clearTimeout(timer);
-        }
-    }, [selectedDay, currentDayOfWeek, periods, zoom]);
+        hasAutoScrolledRef.current = false;
+    }, [selectedDay]);
+
+    // Auto-scroll to active period once per day — skip while editing so horizontal scroll isn't hijacked
+    React.useEffect(() => {
+        if (isEditing || hasAutoScrolledRef.current) return;
+        if (selectedDay !== currentDayOfWeek || !activeColRef.current) return;
+        const timer = setTimeout(() => {
+            const container = scrollContainerRef.current;
+            const activeCol = activeColRef.current;
+            if (!container || !activeCol) return;
+            const containerRect = container.getBoundingClientRect();
+            const colRect = activeCol.getBoundingClientRect();
+            const targetLeft =
+                container.scrollLeft +
+                (colRect.left - containerRect.left) -
+                (container.clientWidth - colRect.width) / 2;
+            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+            hasAutoScrolledRef.current = true;
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [selectedDay, currentDayOfWeek, periods, zoom, isEditing]);
 
     React.useEffect(() => {
         const msUntilNextMinute = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
@@ -445,7 +463,7 @@ export function TimetableGrid({
 
     // We removed the explicit isLoading branch to allow the grid to snap-in instantly
     return (
-        <div className="flex flex-col gap-3 min-w-0 h-full flex-1">
+        <div className="flex flex-col gap-3 min-w-0 max-w-full h-full flex-1 overflow-hidden">
             {/* Day Selector Tabs — hidden when toolbar is managed externally */}
             {!hideToolbar && initialDay === undefined && (
                 <div className="flex flex-wrap gap-1 mb-2 overflow-x-auto pb-1 custom-scrollbar">
@@ -483,7 +501,10 @@ export function TimetableGrid({
                 </div>
             )}
 
-            <div className="overflow-x-auto overflow-y-auto flex-1 min-h-[500px] h-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative">
+            <div
+                ref={scrollContainerRef}
+                className="overflow-x-auto overflow-y-auto overscroll-x-contain flex-1 min-h-[500px] min-w-0 max-w-full h-full w-full border border-gray-200 rounded-xl bg-white shadow-sm custom-scrollbar relative touch-pan-x touch-pan-y"
+            >
                 <table ref={tableRef} className="w-full text-sm text-left border-collapse min-w-[max-content]">
                     <thead>
                         <tr className="bg-slate-50 border-b border-gray-200">

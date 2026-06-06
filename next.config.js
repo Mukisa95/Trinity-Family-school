@@ -1,5 +1,12 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Pin project root — avoids Next.js picking C:\Users\ZION\package-lock.json and failing to resolve firebase
+  outputFileTracingRoot: path.join(__dirname),
+  turbopack: {
+    root: path.join(__dirname),
+  },
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -75,7 +82,29 @@ const nextConfig = {
       },
     ];
   },
+  // Ensure Firebase modular subpaths resolve from this app's node_modules
+  transpilePackages: [
+    'firebase',
+    '@firebase/app',
+    '@firebase/auth',
+    '@firebase/firestore',
+    '@firebase/storage',
+  ],
   webpack: (config, { isServer, webpack }) => {
+    const projectNodeModules = path.resolve(__dirname, 'node_modules');
+    config.resolve.modules = [
+      projectNodeModules,
+      ...(Array.isArray(config.resolve.modules) ? config.resolve.modules : []),
+      'node_modules',
+    ];
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'firebase/app': path.join(projectNodeModules, 'firebase/app'),
+      'firebase/auth': path.join(projectNodeModules, 'firebase/auth'),
+      'firebase/firestore': path.join(projectNodeModules, 'firebase/firestore'),
+      'firebase/storage': path.join(projectNodeModules, 'firebase/storage'),
+    };
+
     // Exclude server-only packages from client bundle
     if (!isServer) {
       config.resolve.fallback = {

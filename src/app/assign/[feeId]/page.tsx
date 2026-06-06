@@ -102,6 +102,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
   const [selectedPupilIds, setSelectedPupilIds] = useState<Set<string>>(new Set());
   const [filterClassId, setFilterClassId] = useState<string>("all");
   const [filterSection, setFilterSection] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("Active");
   const [searchText, setSearchText] = useState<string>("");
   const [selectedYearId, setSelectedYearId] = useState<string>("");
   const [selectedTermId, setSelectedTermId] = useState<string>("");
@@ -540,6 +541,11 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
       .filter((pupil) => !alreadyAssigned.has(pupil.id))
       .filter((pupil) => (filterClassId === "all" ? true : pupil.classId === filterClassId))
       .filter((pupil) => (filterSection === "all" ? true : (pupil.section || "").toLowerCase() === filterSection.toLowerCase()))
+      .filter((pupil) =>
+        filterStatus === "all"
+          ? true
+          : (pupil.status || "Active").toLowerCase() === filterStatus.toLowerCase()
+      )
       .filter((pupil) => {
         if (!searchText.trim()) return true;
         const q = searchText.trim().toLowerCase();
@@ -555,7 +561,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
         return nameA.localeCompare(nameB);
       });
     return filtered;
-  }, [assignmentRecords, pupils, feeStructure, filterClassId, filterSection, searchText]);
+  }, [assignmentRecords, pupils, feeStructure, filterClassId, filterSection, filterStatus, searchText]);
 
   const toggleSelectedPupil = (pupilId: string) => {
     setSelectedPupilIds(prev => {
@@ -1339,7 +1345,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: Filters + Pupil list */}
             <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <Label>Class</Label>
                   <Select value={filterClassId} onValueChange={setFilterClassId}>
@@ -1363,6 +1369,21 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                       {[...new Set(pupils.map(p => (p.section || "").trim()).filter(Boolean))].map(sec => (
                         <SelectItem key={sec} value={sec}>{sec}</SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger><SelectValue placeholder="Active" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="Graduated">Graduated</SelectItem>
+                      <SelectItem value="Transferred">Transferred</SelectItem>
+                      <SelectItem value="Suspended">Suspended</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

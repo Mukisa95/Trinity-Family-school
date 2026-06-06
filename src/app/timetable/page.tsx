@@ -172,7 +172,7 @@ export default function TimetablePage() {
                     </button>
                 </div>
             ) : (
-                <div className="space-y-4 min-w-0 w-full overflow-hidden">
+                <div className="space-y-4 min-w-0 w-full">
                     {/* Unified Toolbar Row: Profiles (Left) + Actions (Right) */}
                     <div className="flex items-center justify-between gap-2.5 mb-2 bg-gray-50/70 p-1.5 rounded-full border border-gray-200/60 shadow-sm overflow-x-auto hide-scrollbar w-full flex-nowrap">
 

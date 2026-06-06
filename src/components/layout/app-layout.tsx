@@ -49,6 +49,7 @@ import { PullToRefresh } from '@/components/android/PullToRefresh';
 import { clearCacheAndRefresh } from '@/lib/utils/android-navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
+import { logger } from '@/lib/utils/logger';
 
 const Sidebar연구 = Sidebar;
 
@@ -103,6 +104,49 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
 }
 
 // 🚀 CRITICAL OPTIMIZATION: Memoize layout to prevent sidebar re-renders on navigation
+function SessionStaleBanner({
+  message,
+  onRefresh,
+}: {
+  message?: string | null;
+  onRefresh: () => Promise<void>;
+}) {
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  return (
+    <div className="mx-3 my-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm sm:mx-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold">Session permissions need refresh</p>
+          <p className="text-sm">
+            {message || 'Your current role and permissions could not be confirmed from the database.'}
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100"
+        >
+          {isRefreshing && <Loader2 className="h-4 w-4 animate-spin" />}
+          Refresh Session
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const MemoizedAppLayout = memo(function MemoizedAppLayout({
   children,
   pathname,
@@ -113,6 +157,9 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   isLoadingSettings,
   settingsError,
   logout,
+  refreshUser,
+  isSessionStale,
+  sessionMessage,
   router
 }: any) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -228,16 +275,15 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     setIsMobileSidebarOpen(false);
   }, [pathname]);
 
-  // Add debugging to see what's happening
+  // Keep auth diagnostics controlled by the shared logger.
   React.useEffect(() => {
-    console.log('Auth state debug:', {
+    logger.debug('Auth state debug', {
       pathname,
       isPublicRoute,
       authLoading,
       isAuthenticated,
       hasStoredUser,
       userRole: user?.role,
-      timestamp: new Date().toISOString()
     });
   }, [pathname, isPublicRoute, authLoading, isAuthenticated, user, hasStoredUser]);
 
@@ -256,9 +302,9 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
     // Only use sample data if query finished and we have no data
     if (settingsError) {
-      console.warn('Using sample school settings due to Firebase error:', settingsError);
+      logger.warn('Using sample school settings due to Firebase error', settingsError);
     } else {
-      console.warn('Using sample school settings - no data found in Firebase');
+      logger.warn('Using sample school settings - no data found in Firebase');
     }
     return sampleSchoolSettings;
   }, [schoolSettings, settingsError, isLoadingSettings]);
@@ -273,14 +319,14 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
       if (!isPublicRoute && !authLoading && !isAuthenticated && !user) {
         // Multiple additional checks to prevent premature redirects
         if (hasStoredUser) {
-          console.log('Stored user found, NOT redirecting to login');
+          logger.debug('Stored user found, not redirecting to login');
           return;
         }
 
         // Double-check localStorage one more time
         const currentStoredUser = localStorage.getItem('trinity_user');
         if (currentStoredUser) {
-          console.log('Found stored user in localStorage, NOT redirecting to login');
+          logger.debug('Found stored user in localStorage, not redirecting to login');
           return;
         }
 
@@ -288,15 +334,15 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
         const authenticatedPages = ['/pupils', '/staff', '/classes', '/fees', '/exams', '/attendance'];
         const isOnAuthenticatedPage = pathname ? authenticatedPages.some(page => pathname.startsWith(page)) : false;
         if (isOnAuthenticatedPage) {
-          console.log('User is on authenticated page, likely recently authenticated - NOT redirecting');
+          logger.debug('User is on authenticated page, likely recently authenticated - not redirecting');
           return;
         }
 
-        console.log('Redirecting to login due to no authentication');
+        logger.debug('Redirecting to login due to no authentication');
         router.push('/login');
       } else if (!authLoading && isAuthenticated && user && pathname === '/login') {
         // Redirect all authenticated users from login page to home page
-        console.log(`${user.role} login: Redirecting to /`);
+        logger.debug('Authenticated user on login page, redirecting home', { role: user.role });
         router.push('/');
       }
     }, delay);
@@ -364,7 +410,10 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           showMenuButton={false}
           loadSchoolSettings={false}
         />
-        <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+          <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+          {isSessionStale && (
+            <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
+          )}
           <AuthGuard>
             <ParentLayout />
           </AuthGuard>
@@ -404,6 +453,9 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
+            {isSessionStale && (
+              <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
+            )}
             <AuthGuard>
               {children}
             </AuthGuard>
@@ -515,6 +567,9 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             onMenuClick={() => { }}
             showMenuButton={false}
           />
+          {isSessionStale && (
+            <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
+          )}
           <main
             className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0"
             onTouchStart={handleTouchStart}
@@ -534,7 +589,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading: authLoading, logout, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading, logout, isAuthenticated, refreshUser, isSessionStale, sessionMessage } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
 
   return (
@@ -548,6 +603,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         isLoadingSettings={isLoadingSettings}
         settingsError={settingsError}
         logout={logout}
+        refreshUser={refreshUser}
+        isSessionStale={isSessionStale}
+        sessionMessage={sessionMessage}
         router={router}
       >
         {children}

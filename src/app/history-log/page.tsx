@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { Download, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 const actionLabels: Record<string, string> = {
   create: 'Added',
@@ -19,6 +20,21 @@ const actionLabels: Record<string, string> = {
   delete: 'Deleted',
   revert: 'Reverted',
   status: 'Status Changed',
+  approve: 'Approved',
+  export: 'Exported',
+  login: 'Signed In',
+  permission: 'Permission Changed',
+  adjust: 'Adjusted',
+};
+
+const entityLabels: Record<string, string> = {
+  export: 'Sensitive Export',
+  payment: 'Payment',
+  pupil: 'Pupil',
+  user: 'User Account',
+  fee_structure: 'Fee Structure',
+  requirement: 'Requirement',
+  banking: 'Banking',
 };
 
 function formatDate(value: HistoryLogRecord['ts']) {
@@ -30,8 +46,12 @@ function formatDate(value: HistoryLogRecord['ts']) {
 
 function actionVariant(action: string) {
   if (action === 'delete') return 'destructive' as const;
-  if (action === 'revert') return 'secondary' as const;
+  if (action === 'revert' || action === 'export' || action === 'permission') return 'secondary' as const;
   return 'outline' as const;
+}
+
+function entityLabel(entity: string) {
+  return entityLabels[entity] || entity;
 }
 
 function formatMetaKey(key: string): string {
@@ -55,6 +75,16 @@ function formatMetaKey(key: string): string {
     notes: 'Notes',
     active: 'Status',
     admissionNo: 'Admission No',
+    dataType: 'Data Type',
+    recordCount: 'Records',
+    format: 'Format',
+    filters: 'Filters',
+    sensitive: 'Sensitive',
+    scope: 'Scope',
+    reason: 'Reason',
+    outcome: 'Outcome',
+    module: 'Module',
+    role: 'Role',
   };
   return keys[key] || key;
 }
@@ -99,8 +129,19 @@ function formatMetaValue(
   if (lowerKey === 'active') {
     return strVal === 'true' ? 'Active' : 'Inactive';
   }
+  if (lowerKey === 'sensitive') {
+    return strVal === 'true' ? 'Yes' : 'No';
+  }
 
   return strVal;
+}
+
+function isSensitiveLog(log: HistoryLogRecord) {
+  return log.a === 'export' || log.a === 'permission' || log.m?.sensitive === true || log.m?.sensitive === 'true';
+}
+
+function isSecurityLog(log: HistoryLogRecord) {
+  return log.a === 'permission' || log.e === 'user' || log.m?.module === 'security';
 }
 
 export default function HistoryLogPage() {
@@ -108,6 +149,7 @@ export default function HistoryLogPage() {
   const [search, setSearch] = useState('');
   const [entity, setEntity] = useState('all');
   const [action, setAction] = useState('all');
+  const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Lookup maps to resolve database IDs to actual display names
@@ -175,7 +217,7 @@ export default function HistoryLogPage() {
         setYearsMap(yMap);
         setTermsMap(tMap);
       } catch (error) {
-        console.error('Error fetching lookup data for history logs:', error);
+        logger.error('Error fetching lookup data for history logs', error);
       }
     };
 
@@ -195,6 +237,10 @@ export default function HistoryLogPage() {
     return logs.filter((log) => {
       if (entity !== 'all' && log.e !== entity) return false;
       if (action !== 'all' && log.a !== action) return false;
+      if (category === 'sensitive' && !isSensitiveLog(log)) return false;
+      if (category === 'security' && !isSecurityLog(log)) return false;
+      if (category === 'exports' && log.a !== 'export') return false;
+      if (category === 'reversals' && log.a !== 'revert') return false;
       if (!searchValue) return true;
 
       // Translate record label if it's an ID
@@ -220,6 +266,7 @@ export default function HistoryLogPage() {
       const haystack = [
         resolvedLabel,
         log.e,
+        log.a,
         log.rid,
         log.un,
         ...(log.cf || []),
@@ -231,12 +278,26 @@ export default function HistoryLogPage() {
 
       return haystack.includes(searchValue);
     });
-  }, [action, entity, logs, search, pupilsMap, feesMap, classesMap, yearsMap, termsMap]);
+  }, [action, category, entity, logs, search, pupilsMap, feesMap, classesMap, yearsMap, termsMap]);
+
+  const logStats = useMemo(() => {
+    return {
+      total: logs.length,
+      sensitive: logs.filter(isSensitiveLog).length,
+      exports: logs.filter(log => log.a === 'export').length,
+      reversals: logs.filter(log => log.a === 'revert').length,
+    };
+  }, [logs]);
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">History Log</h1>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">History Log</h1>
+          <p className="text-sm text-muted-foreground">
+            Central activity trail for edits, reversals, approvals, permission changes, and sensitive exports.
+          </p>
+        </div>
         <Button
           onClick={loadLogs}
           variant="outline"
@@ -247,6 +308,45 @@ export default function HistoryLogPage() {
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </Button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Recent entries</p>
+              <p className="text-2xl font-semibold">{logStats.total}</p>
+            </div>
+            <RefreshCw className="h-5 w-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Sensitive</p>
+              <p className="text-2xl font-semibold">{logStats.sensitive}</p>
+            </div>
+            <ShieldCheck className="h-5 w-5 text-amber-600" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Exports</p>
+              <p className="text-2xl font-semibold">{logStats.exports}</p>
+            </div>
+            <Download className="h-5 w-5 text-blue-600" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Reversals</p>
+              <p className="text-2xl font-semibold">{logStats.reversals}</p>
+            </div>
+            <Undo2 className="h-5 w-5 text-red-600" />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -264,9 +364,21 @@ export default function HistoryLogPage() {
             <SelectItem value="all">All modules</SelectItem>
             {entities.map((item) => (
               <SelectItem key={item} value={item}>
-                {item}
+                {entityLabel(item)}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="rounded-full md:w-[200px]">
+            <SelectValue placeholder="All categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            <SelectItem value="sensitive">Sensitive actions</SelectItem>
+            <SelectItem value="security">Security/users</SelectItem>
+            <SelectItem value="exports">Exports only</SelectItem>
+            <SelectItem value="reversals">Reversals only</SelectItem>
           </SelectContent>
         </Select>
         <Select value={action} onValueChange={setAction}>
@@ -291,7 +403,8 @@ export default function HistoryLogPage() {
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={actionVariant(log.a)}>{actionLabels[log.a] || log.a}</Badge>
-                  <Badge variant="outline">{log.e}</Badge>
+                  <Badge variant="outline">{entityLabel(log.e)}</Badge>
+                  {isSensitiveLog(log) && <Badge variant="secondary">Sensitive</Badge>}
                   <span className="text-sm font-medium">
                     {(() => {
                       const lowerEntity = log.e?.toLowerCase() || '';

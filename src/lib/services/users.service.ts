@@ -321,15 +321,25 @@ export class UsersService {
       const cleanedData = cleanUndefinedValues(updateData);
       const docRef = doc(db, USERS_COLLECTION, userId);
       await updateDoc(docRef, cleanedData);
-      await HistoryLogService.log({
+      const changedFields = Object.keys(cleanedData).filter(key => key !== 'updatedAt' && key !== 'passwordHash');
+      const permissionChanged = changedFields.some(field =>
+        ['role', 'isActive', 'modulePermissions', 'granularPermissions', 'accessLevelId'].includes(field)
+      );
+
+      await HistoryLogService.audit({
         action: 'update',
         entity: 'user',
         recordId: userId,
         label: updates.username,
-        changedFields: Object.keys(cleanedData).filter(key => key !== 'updatedAt' && key !== 'passwordHash'),
+        changedFields,
+        module: 'security',
+        sensitive: permissionChanged || !!password,
+        reason: permissionChanged ? 'User role or permissions changed' : '',
         meta: {
           role: updates.role || '',
           active: updates.isActive ?? '',
+          permissionChange: permissionChanged,
+          passwordChanged: !!password,
         },
       });
     } catch (error) {
@@ -357,11 +367,14 @@ export class UsersService {
       const user = await this.getUserById(userId);
       const docRef = doc(db, USERS_COLLECTION, userId);
       await deleteDoc(docRef);
-      await HistoryLogService.log({
+      await HistoryLogService.audit({
         action: 'delete',
         entity: 'user',
         recordId: userId,
         label: user?.username || userId,
+        module: 'security',
+        sensitive: true,
+        reason: 'User account deleted',
         meta: {
           role: user?.role || '',
         },

@@ -1386,6 +1386,7 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 /* Custom Scrollbar Styles for Parent Sidebar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {

@@ -567,7 +567,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)]">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-5 min-w-0 flex flex-col gap-3 h-[calc(100vh-170px)] overflow-hidden">
 
             {isPrinting && (
                 <PrintableTimetable 
@@ -689,7 +689,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
             {/* ── Content Area ── */}
             {viewMode === "day" ? (
                 // Day View — full interactive TimetableGrid with editing capability
-                <div className="flex-1 min-h-0 -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
+                <div className="flex-1 min-h-0 min-w-0 overflow-hidden -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
                     <TimetableGrid
                         yearId={yearId}
                         termId={termId}
