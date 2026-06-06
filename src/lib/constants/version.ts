@@ -1,4 +1,4 @@
-export const APP_VERSION = '4.5';
+export const APP_VERSION = '5';
 
 export interface ChangelogEntry {
   date: string;
@@ -10,7 +10,73 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    date: '2025-01-27', // Current date
+    date: '2026-06-06',
+    version: '5',
+    improvements: [
+      'Launched SurePay integration with payCode-only auth, live payment monitor, cross-term overflow redistribution, and Payment ID cards on fees collection',
+      'Integrated Wiza SMS v1 API with live balance header, recharge flow, SMS templates CRUD, scheduled sends (once/weekly/multi-date), and server-side API proxies',
+      'Redesigned timetable with compact pill toolbars, live period tracker, multi-profile dashboard sync, and improved day/week view navigation',
+      'Added canonical finance summary service for consistent family and pupil fee totals across collection, banking, and requirements pages',
+      'Enhanced dashboard with animated 3D stat cards, live timetable tracker, gradient clock, and expandable attendance pupil sub-menu',
+      'Modernized events and calendar with cache-first loading, auto term detection, multi-date all-day support, and fluorescent 3D header buttons',
+      'Redesigned exams schedule modal with sectioned cards and improved target class selection',
+      'Added pupil fees header badges for active assignments and uniform tracking, plus siblings quick-switch dropdown',
+      'Overhauled procurement with sticky header, global search toolbar, and dynamic week/month view period selectors',
+      'Enhanced bulk SMS with unified More dropdown, balance capacity indicators, and compact recipient selection UI',
+      'Added SmartBackButton across the app for context-aware navigation instead of static back links',
+      'Improved pupils list with stacked class codes, mobile layout refinements, codes filtering, and advanced search filters (class, section, gender, status)',
+      'Added session permission refresh with stale-session banner when role data cannot be confirmed from the database',
+      'Expanded history log with security/sensitive category filters, summary stats cards, and richer action/entity labels',
+      'Added PLE snapshot recapture plus results sort, search, and subject reorder tools',
+      'Rebuilt attendance PDF reports with browser-native printing, day summaries, excluded-days logic, and smart date-based pupil filtering',
+      'Made WhatsApp group link editable from About School settings',
+      'Separated dashboard and reports into their own module permission groups with timetable access controls',
+      'Added pupil status filter on fee assignment page',
+      'Added structured logger utility and reusable confirm dialog for destructive actions',
+    ],
+    bugFixes: [
+      'Fixed multi-fee carry forward payments not registering correctly across previous balance items',
+      'Fixed carry forward payments not applying to previous term balances during fee processing',
+      'Fixed carry forward payment double-counting in previous balance fee creation',
+      'Fixed family accounts page missing assignment and lunch fees due to stale fee structure closure',
+      'Fixed SurePay zero-fee-match bug by using full fee structures and date-based year/term detection instead of stale isActive flags',
+      'Fixed events and calendar all-day date off-by-one errors for UTC+ timezones',
+      'Fixed dashboard attendance graph double-counting and inconsistent class name display',
+      'Fixed view attendance to only show pupils active on the selected date',
+      'Fixed exam history lookup across promoted pupils by searching promotion history, not just current class',
+      'Fixed EAT timezone bugs in attendance date saving, comparison, and history ranges',
+      'Fixed attendance duplicate Firestore documents on re-recording by switching bulk save to upsert',
+      'Fixed Firebase persistent cache primary-lease errors by replacing deprecated persistence API',
+      'Fixed infinite re-render loops in notifications and enhanced header components',
+      'Fixed SMS API routes crashing on Vercel by removing browser Firebase SDK from server-side handlers',
+      'Fixed Wiza SMS iframe/CORS issues with server-fetched balance card and auto-login flow',
+      'Fixed timetable horizontal scroll being hijacked while editing periods',
+      'Fixed uniform edit modal not pre-filling form data from the selected item',
+      'Fixed weekend classes not appearing in dashboard and timetable live trackers',
+      'Fixed term and academic year detection using date ranges instead of stale active flags across fees and payments',
+      'Fixed duplicate Firestore listeners causing slow navigation and target-id-exists errors',
+      'Fixed ChunkLoadError after deployments with graceful client-side recovery',
+      'Fixed PLE_SUBJECTS undefined error and snapshot recapture refresh issues',
+    ],
+    updates: [
+      'Guarded debug and maintenance routes behind middleware for production safety',
+      'Upgraded Firebase client SDK to ^11.10.0 and pinned modular subpath resolution in Next.js config',
+      'Replaced many continuous Firestore onSnapshot listeners with cache-first getDocs and targeted polling to reduce read quota',
+      'Optimized dashboard stats route with getCountFromServer and 60-second response cache',
+      'Optimized SMS cron fetch with runQuery to reduce daily Firestore reads and mark stuck messages as errors',
+      'Enhanced auth cache with TTL, periodic permission refresh, and legacy cache migration',
+      'Replaced window.confirm with styled confirm dialogs on uniforms management',
+      'Replaced native date inputs with DatePicker component across forms',
+      'Improved service worker HTML caching strategy for seamless post-deployment updates',
+      'Added fees assignment modal grouping for discounts vs standard fees and multi-fee discount linking',
+      'Added payCode field to pupil interface and updated ID card PDF generators with SurePay pay code styling',
+      'Added dynamic Wiza SMS credentials stored in Firestore via in-app settings UI',
+      'Removed Africa\'s Talking integration; all SMS now routes through Wiza SMS server proxies',
+      'Throttled dashboard activity refresh to stop infinite refresh loops',
+    ],
+  },
+  {
+    date: '2026-01-27',
     version: '4.5',
     improvements: [
       'Implemented comprehensive snapshot protection system to prevent incorrect data capture',
