@@ -899,6 +899,18 @@ export default function ExamsPage() {
   const handleSubmit = async () => {
     // For CAT exams, also require assessment name and exam name
     const isCATExam = examTypeId === 'et_cat';
+
+    // Guard: pupils must be loaded before creating an exam so the snapshot is populated.
+    // This only applies when creating (not editing) because editing doesn't rebuild the snapshot.
+    if (!editingExam && pupilsLoading) {
+      toast({
+        variant: "destructive",
+        title: "Pupils Still Loading",
+        description: "Please wait a moment — pupil data is still being fetched. Try again in a few seconds."
+      });
+      return;
+    }
+
     if (!examTypeId || !startDate || !endDate || selectedClassIdsForm.length === 0 || !maxMarks || !passingMarks || !academicYearId || !termId || !examNature || (isCATExam && (!assessmentName || !examName)) || (!isCATExam && !examName)) {
       toast({ variant: "destructive", title: "Missing Fields", description: "Please fill all required fields (*)." });
       return;
@@ -3595,13 +3607,18 @@ export default function ExamsPage() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={createExamMutation.isPending || createMultipleExamsMutation.isPending || updateExamMutation.isPending}
+                  disabled={createExamMutation.isPending || createMultipleExamsMutation.isPending || updateExamMutation.isPending || (!editingExam && pupilsLoading)}
                   className="h-10 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
                 >
                   {(createExamMutation.isPending || createMultipleExamsMutation.isPending || updateExamMutation.isPending) ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {editingExam ? "Saving..." : isAddingSet ? "Adding Set..." : "Creating Exam..."}
+                    </>
+                  ) : (!editingExam && pupilsLoading) ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading pupils...
                     </>
                   ) : (
                     editingExam ? "Save Changes" : isAddingSet ? "Add Set" : "Create Exam"
