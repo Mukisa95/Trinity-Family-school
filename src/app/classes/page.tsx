@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Book, Users, GraduationCap, Baby, School, Crown, Award, Clock, ChevronDown, Save } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Book, Users, GraduationCap, Baby, School, Crown, Award, Clock, ChevronDown, Save, History, User } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -243,6 +243,94 @@ function SearchableTeacherSelector({
                   >
                     <Check className={cn("mr-2 h-4 w-4", value === teacher.id ? "opacity-100" : "opacity-0")} />
                     {label}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// Searchable Subject-Teacher Selector Component
+function SearchableSubjectTeacherSelector({
+  subjectId,
+  assignedTeacherIds = [],
+  onTeacherToggle,
+  teachers,
+  buttonClassName,
+}: {
+  subjectId: string;
+  assignedTeacherIds: string[];
+  onTeacherToggle: (subjectId: string, teacherId: string, isChecked: boolean) => void;
+  teachers: any[];
+  buttonClassName?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn("h-7 w-7 p-0 rounded-lg border border-purple-200 bg-white hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 flex-shrink-0", buttonClassName)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(!open);
+          }}
+        >
+          <User className="h-3.5 w-3.5 text-purple-600" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[260px] p-0 !z-[100000]"
+        align="end"
+        side="bottom"
+        sideOffset={4}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('[role="dialog"]')) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <Command className="rounded-xl">
+          <CommandInput placeholder="Search teacher..." className="h-8 text-xs" />
+          <CommandList className="max-h-48">
+            <CommandEmpty className="py-2 text-xs text-center text-gray-500">No teachers found.</CommandEmpty>
+            <CommandGroup>
+              {teachers.length === 0 && (
+                <CommandItem value="no-teachers" disabled className="text-xs text-gray-500">
+                  No teaching staff available
+                </CommandItem>
+              )}
+              {teachers.map((teacher: any) => {
+                const isChecked = assignedTeacherIds.includes(teacher.id);
+                const name = `${teacher.firstName} ${teacher.lastName}`;
+                return (
+                  <CommandItem
+                    key={teacher.id}
+                    value={name}
+                    onSelect={() => {
+                      onTeacherToggle(subjectId, teacher.id, !isChecked);
+                    }}
+                    className="flex items-center gap-2 py-1.5 px-2 text-xs"
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      className="h-3.5 w-3.5 rounded-sm"
+                      onClick={(e) => e.stopPropagation()}
+                      onCheckedChange={(checked) => {
+                        onTeacherToggle(subjectId, teacher.id, checked === true);
+                      }}
+                    />
+                    <span className="font-medium text-gray-700">{name}</span>
                   </CommandItem>
                 );
               })}
@@ -555,6 +643,11 @@ export default function ClassesPage() {
                 <DropdownMenuItem asChild>
                   <Link href={`/class-detail?id=${classItem.id}`}>
                     <Book className="mr-2 h-4 w-4" /> View Details
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/classes/history/${classItem.id}`}>
+                    <History className="mr-2 h-4 w-4" /> Class History
                   </Link>
                 </DropdownMenuItem>
                 {hasGraduates && (
@@ -1003,163 +1096,119 @@ export default function ClassesPage() {
               </div>
 
               {/* Subjects Assignment Section */}
-              <Collapsible open={isSubjectAssignmentsOpen} onOpenChange={setIsSubjectAssignmentsOpen}>
-                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-between p-0 h-auto hover:bg-transparent items-start"
-                    >
-                      <div className="flex items-start gap-2 w-full">
-                        <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex-shrink-0">
-                          <GraduationCap className="h-3.5 w-3.5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-2">
-                            <h3 className="text-base font-semibold text-gray-800 flex-shrink-0">Subject Assignments:</h3>
-                            {selectedSubjectIds.length > 0 ? (
-                              <div className="space-y-1 flex-1">
-                                {selectedSubjectIds.map(subjectId => {
-                                  const subject = subjects.find(s => s.id === subjectId);
-                                  if (!subject) return null;
-                                  const assignedTeachers = (subjectTeacherAssignments[subjectId] || []);
-                                  const teacherNames = assignedTeachers
-                                    .map(teacherId => {
-                                      const teacher = teachingStaff.find(t => t.id === teacherId);
-                                      return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
-                                    })
-                                    .filter(Boolean)
-                                    .join(', ');
-                                  return (
-                                    <div key={subjectId} className="text-sm text-purple-600">
-                                      <span className="font-medium">{subject.name}</span>
-                                      {teacherNames && (
-                                        <span className="text-xs text-gray-500 ml-2">- {teacherNames}</span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
+                {/* Header with expand/collapse trigger */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex-shrink-0">
+                      <GraduationCap className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-800">Subject Assignments</h3>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-purple-600 hover:bg-purple-100/50 rounded-lg"
+                    onClick={() => setIsSubjectAssignmentsOpen(!isSubjectAssignmentsOpen)}
+                  >
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubjectAssignmentsOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </div>
+
+                {/* Always visible collapsed view: Selected Subjects & Teachers list */}
+                {!isSubjectAssignmentsOpen && (
+                  <div className="mt-3">
+                    {selectedSubjectIds.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {selectedSubjectIds.map(subjectId => {
+                          const subject = subjects.find(s => s.id === subjectId);
+                          if (!subject) return null;
+                          const assignedTeachers = (subjectTeacherAssignments[subjectId] || []);
+                          const teacherNames = assignedTeachers
+                            .map(teacherId => {
+                              const teacher = teachingStaff.find(t => t.id === teacherId);
+                              return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
+                            })
+                            .filter(Boolean)
+                            .join(', ');
+                          return (
+                            <div key={subjectId} className="flex items-center justify-between gap-2 p-2 bg-white/80 hover:bg-white border border-purple-100 rounded-lg shadow-sm transition-all">
+                              <div className="flex-1 min-w-0">
+                                <span className="font-semibold text-xs text-purple-900 block truncate">{subject.name}</span>
+                                <span className="text-[10px] text-gray-500 block truncate">
+                                  {teacherNames || 'No teacher assigned'}
+                                </span>
                               </div>
-                            ) : (
-                              <span className="text-sm text-gray-500 italic">No subjects selected</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 text-purple-600 transition-transform duration-200 flex-shrink-0 ml-2 ${isSubjectAssignmentsOpen ? 'rotate-180' : ''}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent>
-                    <div className="mt-3 border border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm overflow-hidden">
-                      <ScrollArea className="h-48">
-                        <div className="p-3 space-y-2">
-                          {subjects.length === 0 && (
-                            <div className="text-center text-gray-500 py-6">
-                              <Book className="h-6 w-6 mx-auto mb-1 text-gray-400" />
-                              <p className="text-sm">No subjects available.</p>
+                              <SearchableSubjectTeacherSelector
+                                subjectId={subjectId}
+                                assignedTeacherIds={assignedTeachers}
+                                onTeacherToggle={handleSubjectTeacherChange}
+                                teachers={teachingStaff}
+                              />
                             </div>
-                          )}
-                          {subjects.map(subject => {
-                            const isSelected = selectedSubjectIds.includes(subject.id);
-                            const assignedTeachers = (subjectTeacherAssignments[subject.id] || []);
-                            const selectedTeacherNames = assignedTeachers
-                              .map(teacherId => {
-                                const teacher = teachingStaff.find(t => t.id === teacherId);
-                                return teacher ? `${teacher.firstName} ${teacher.lastName}` : null;
-                              })
-                              .filter(Boolean)
-                              .join(', ');
-                            
-                            return (
-                              <div key={subject.id} className="rounded-lg p-3 hover:bg-gray-50/80 border border-gray-100 transition-all duration-200">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <Label htmlFor={`subject-${subject.id}`} className="text-sm font-medium flex items-center gap-2 cursor-pointer flex-1 min-w-0">
-                                      <div className="p-0.5 bg-blue-100 rounded-md flex-shrink-0">
-                                        <Book className="h-2.5 w-2.5 text-blue-600" />
-                                      </div>
-                                      <span className="font-medium flex-shrink-0">{subject.name}</span>
-                                      <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">({subject.code})</span>
-                                      {isSelected && selectedTeacherNames && (
-                                        <>
-                                          <span className="text-xs text-gray-400 mx-1">-</span>
-                                          <span className="text-xs text-blue-600 font-medium truncate">{selectedTeacherNames}</span>
-                                        </>
-                                      )}
-                                    </Label>
-                                    {isSelected && (
-                                      <Collapsible
-                                        open={expandedSubjects.has(subject.id)}
-                                        onOpenChange={(open) => {
-                                          setExpandedSubjects(prev => {
-                                            const newSet = new Set(prev);
-                                            if (open) {
-                                              newSet.add(subject.id);
-                                            } else {
-                                              newSet.delete(subject.id);
-                                            }
-                                            return newSet;
-                                          });
-                                        }}
-                                      >
-                                        <CollapsibleTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0 flex-shrink-0 hover:bg-blue-100"
-                                          >
-                                            <ChevronDown className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-200 ${expandedSubjects.has(subject.id) ? 'rotate-180' : ''}`} />
-                                          </Button>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                          <div className="ml-4 mt-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                                            <div className="space-y-2 max-h-40 overflow-y-auto">
-                                              {teachingStaff.length === 0 ? (
-                                                <p className="text-xs text-gray-500 italic">No teaching staff available</p>
-                                              ) : (
-                                                teachingStaff.map(teacher => {
-                                                  const isTeacherSelected = assignedTeachers.includes(teacher.id);
-                                                  return (
-                                                    <div key={teacher.id} className="flex items-center gap-2 p-1.5 hover:bg-white/60 rounded-md transition-colors">
-                                                      <Checkbox
-                                                        id={`teacher-${subject.id}-${teacher.id}`}
-                                                        checked={isTeacherSelected}
-                                                        onCheckedChange={(checked) => handleSubjectTeacherChange(subject.id, teacher.id, checked === true)}
-                                                        className="h-3.5 w-3.5 rounded-md"
-                                                      />
-                                                      <Label 
-                                                        htmlFor={`teacher-${subject.id}-${teacher.id}`}
-                                                        className="flex-1 cursor-pointer text-xs"
-                                                      >
-                                                        <div className="font-medium text-gray-900">{teacher.firstName} {teacher.lastName}</div>
-                                                      </Label>
-                                                    </div>
-                                                  );
-                                                })
-                                              )}
-                                            </div>
-                                          </div>
-                                        </CollapsibleContent>
-                                      </Collapsible>
-                                    )}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 italic mt-1 pl-8">No subjects selected. Click expand to assign subjects.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Expanded view: Subject Selection Checklist */}
+                {isSubjectAssignmentsOpen && (
+                  <div className="mt-3 border border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm overflow-hidden animate-in fade-in duration-200">
+                    <ScrollArea className="h-64">
+                      <div className="p-3">
+                        {subjects.length === 0 ? (
+                          <div className="text-center text-gray-500 py-6">
+                            <Book className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+                            <p className="text-sm">No subjects available.</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {subjects.map(subject => {
+                              const isSelected = selectedSubjectIds.includes(subject.id);
+
+                              return (
+                                <div
+                                  key={subject.id}
+                                  className={`rounded-lg p-2.5 border transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer ${
+                                    isSelected
+                                      ? 'border-purple-300 bg-purple-50/60 shadow-sm'
+                                      : 'border-gray-200 hover:bg-gray-50/80 bg-white'
+                                  }`}
+                                  onClick={() => handleSubjectToggle(subject.id)}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className={`p-1 rounded-md flex-shrink-0 ${
+                                      isSelected ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                      <Book className="h-3.5 w-3.5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="text-xs font-semibold text-gray-900 block truncate">{subject.name}</span>
+                                      <span className="text-[10px] text-gray-400 block font-mono">{subject.code}</span>
+                                    </div>
                                   </div>
                                   <Checkbox
                                     id={`subject-${subject.id}`}
                                     checked={isSelected}
                                     onCheckedChange={() => handleSubjectToggle(subject.id)}
-                                    className="h-3.5 w-3.5 rounded-md flex-shrink-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-3.5 w-3.5 rounded-sm flex-shrink-0"
                                   />
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+              </div>
             </div>
           </ScrollArea>
 
