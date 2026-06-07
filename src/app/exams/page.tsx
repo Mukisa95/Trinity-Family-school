@@ -2756,17 +2756,9 @@ export default function ExamsPage() {
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start md:gap-x-4 xl:grid-cols-[minmax(420px,1fr)_auto] xl:items-center">
                         <div className="flex flex-col gap-2">
                           {isCATExam ? (
-                            // CAT Exam - Show Sets Count Badge and Selector Bubbles
+                            // CAT Exam - Show Selector Bubbles only for maximum compactness
                             <>
-                              <div className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg px-3 py-2 border border-purple-100 w-fit">
-                                <BookOpen className="h-4 w-4 text-purple-600" />
-                                <span className="font-semibold text-purple-900">
-                                  {sortedSets.length} Set{sortedSets.length !== 1 ? 's' : ''}
-                                </span>
-                              </div>
-
-                              {/* Sets Preview/Selector Bubbles */}
-                              <div className="flex items-center gap-1.5 mt-1">
+                              <div className="flex items-center gap-1.5">
                                 <div className="flex -space-x-1">
                                   {sortedSets.map(([setName, setExams]) => {
                                     const isSelected = currentSelectedSetKey === setName;
@@ -2791,14 +2783,6 @@ export default function ExamsPage() {
                                     );
                                   })}
                                 </div>
-                              </div>
-                              <div className="mt-1 space-y-0.5">
-                                <p className="text-sm text-slate-600">
-                                  Selected: <span className="font-semibold text-purple-950">{currentSelectedSetKey} - {selectedSetExamName}</span>
-                                </p>
-                                <p className="text-xs text-slate-400">
-                                  {selectedSetExams.length} class{selectedSetExams.length !== 1 ? 'es' : ''} • Click a bubble to view actions
-                                </p>
                               </div>
                             </>
                           ) : (
@@ -2908,17 +2892,6 @@ export default function ExamsPage() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
-                              )}
-                              {sortedSets.length > 1 && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: true }))}
-                                  className="h-9 gap-1 px-2 text-sm font-medium text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                                >
-                                  <ChevronDown className="h-4 w-4" />
-                                  Expand
-                                </Button>
                               )}
                             </div>
                           )}
