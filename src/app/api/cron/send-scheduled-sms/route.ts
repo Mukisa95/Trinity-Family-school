@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+const KAMPALA_UTC_OFFSET_MINUTES = 3 * 60;
 
 // ─── Firestore REST helpers ──────────────────────────────────────────────────
 
@@ -71,103 +72,93 @@ async function patchField(docId: string, fields: Record<string, unknown>) {
 
 // ─── Schedule logic ──────────────────────────────────────────────────────────
 
-function getNextRunTime(job: Record<string, unknown>): Date | null {
+function parseKampalaDateTime(dateTime: string): Date {
+  if (!dateTime) return new Date(NaN);
+
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(dateTime)) {
+    return new Date(dateTime);
+  }
+
+  const [datePart, timePart = '00:00'] = dateTime.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour = 0, minute = 0] = timePart.split(':').map(Number);
+
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0) - KAMPALA_UTC_OFFSET_MINUTES * 60_000);
+}
+
+function parseKampalaDateAndTime(date: string, time = '08:00'): Date {
+  return parseKampalaDateTime(`${date}T${time}`);
+}
+
+function formatKampalaDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Kampala',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function addDaysToDateString(date: string, days: number): string {
+  const next = parseKampalaDateAndTime(date, '12:00');
+  next.setUTCDate(next.getUTCDate() + days);
+  return formatKampalaDate(next);
+}
+
+function getDueRunTime(job: Record<string, unknown>, now: Date): Date | null {
   const type = job.type as string;
   const schedule = (job.schedule ?? {}) as Record<string, unknown>;
-  const now = new Date();
-
-  // Helper to get time today as Date
-  const parseTimeToday = (timeStr: string) => {
-    const [h, m] = timeStr.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
+  const lastSentStr = job.lastSentAt as string | undefined;
+  const lastSent = lastSentStr ? new Date(lastSentStr) : null;
 
   if (type === 'once') {
-    return new Date(schedule.dateTime as string);
+    const runAt = parseKampalaDateTime(schedule.dateTime as string);
+    if (Number.isNaN(runAt.getTime()) || runAt > now) return null;
+    if (lastSent && lastSent >= runAt) return null;
+    return runAt;
   }
 
   if (type === 'weekly') {
     const days = (schedule.days as string[]) || [];
     const times = (schedule.times as Record<string, string>) || {};
-    const startDate = schedule.startDate ? new Date(schedule.startDate as string) : null;
-    const endDate = schedule.endDate ? new Date(schedule.endDate as string) : null;
-    
-    // Adjust dates to cover full days
-    if (startDate) startDate.setHours(0, 0, 0, 0);
-    if (endDate) endDate.setHours(23, 59, 59, 999);
+    const startDate = schedule.startDate as string | undefined;
+    const endDate = schedule.endDate as string | undefined;
+    const today = formatKampalaDate(now);
 
-    if (endDate && now > endDate) return null;
+    if (!startDate || !endDate || days.length === 0) return null;
+    if (parseKampalaDateAndTime(endDate, '23:59') < now && endDate < today) return null;
 
     const dayMap: Record<string, number> = {
       Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3,
       Thursday: 4, Friday: 5, Saturday: 6,
     };
 
-    let earliest: Date | null = null;
-    const currentDayHash = now.getDay();
-    const lastSentStr = job.lastSentAt as string | undefined;
-    const lastSent = lastSentStr ? new Date(lastSentStr) : null;
+    let cursor = startDate;
+    const searchUntil = today < endDate ? today : endDate;
 
-    for (const day of days) {
-      const targetDay = dayMap[day];
-      const timeStr = (times[day] || '08:00') as string;
-      const targetTimeToday = parseTimeToday(timeStr);
-      
-      const candidate = new Date(now);
-      let diff = (targetDay - currentDayHash + 7) % 7;
+    while (cursor <= searchUntil) {
+      const dayNumber = parseKampalaDateAndTime(cursor, '12:00').getUTCDay();
+      const dayName = Object.entries(dayMap).find(([, value]) => value === dayNumber)?.[0];
 
-      // If the target day is today
-      if (diff === 0) {
-        // If the target time hasn't passed yet, it's today's occurrence
-        if (now < targetTimeToday) {
-          // Keep diff = 0
-        } 
-        // If the target time HAS passed
-        else {
-          // Check if we already sent it today
-          const sentToday = lastSent && lastSent.toDateString() === now.toDateString();
-          if (!sentToday && now.getTime() - targetTimeToday.getTime() < 60 * 60 * 1000) {
-            // We missed it within the last hour! We should fire it immediately.
-            // Returning targetTimeToday (which is in the past) will cause it to fire.
-            const missedCandidate = new Date(targetTimeToday);
-            if (!earliest || missedCandidate < earliest) earliest = missedCandidate;
-            continue;
-          } else {
-            // Either already sent, or missed by too far (or just push to next week)
-            diff = 7;
-          }
-        }
+      if (dayName && days.includes(dayName)) {
+        const candidate = parseKampalaDateAndTime(cursor, times[dayName] || '08:00');
+        if (candidate <= now && (!lastSent || candidate > lastSent)) return candidate;
       }
 
-      candidate.setDate(candidate.getDate() + diff);
-      const [h, m] = timeStr.split(':').map(Number);
-      candidate.setHours(h, m, 0, 0);
-
-      if (startDate && candidate < startDate) continue;
-      if (!earliest || candidate < earliest) earliest = candidate;
+      cursor = addDaysToDateString(cursor, 1);
     }
-    return earliest;
+
+    return null;
   }
 
   if (type === 'dates') {
     const entries = (schedule.entries as Array<{ date: string; time: string }>) || [];
-    const lastSentStr = job.lastSentAt as string | undefined;
-    const lastSent = lastSentStr ? new Date(lastSentStr) : null;
-    
-    // We want the earliest date that is either in the future, OR in the past 1hr and not sent today
-    const upcoming = entries
-      .map(e => new Date(`${e.date}T${e.time || '08:00'}`))
-      .filter(d => {
-         if (d > now) return true; // future
-         // If past, but within 1 hour and haven't sent today
-         const sentToday = lastSent && lastSent.toDateString() === d.toDateString();
-         if (!sentToday && now.getTime() - d.getTime() < 60 * 60 * 1000) return true;
-         return false;
-      })
+    const due = entries
+      .map(e => parseKampalaDateAndTime(e.date, e.time || '08:00'))
+      .filter(d => d <= now && (!lastSent || d > lastSent))
       .sort((a, b) => a.getTime() - b.getTime());
-    return upcoming[0] ?? null;
+
+    return due[0] ?? null;
   }
 
   return null;
@@ -187,8 +178,15 @@ function formatPhone(phone: string): string {
 
 export async function GET(request: NextRequest) {
   const secret = request.headers.get('x-cron-secret') || request.nextUrl.searchParams.get('secret');
-  // On Vercel, cron requests come from Vercel infrastructure — check x-vercel-signature or just rely on the secret
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  const authHeader = request.headers.get('authorization');
+  const isVercelCron = request.headers.get('user-agent') === 'vercel-cron/1.0';
+
+  if (
+    process.env.CRON_SECRET &&
+    secret !== process.env.CRON_SECRET &&
+    authHeader !== `Bearer ${process.env.CRON_SECRET}` &&
+    !isVercelCron
+  ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -234,7 +232,6 @@ export async function GET(request: NextRequest) {
   // runQuery returns an array of objects like { document: { name, fields, ... }, readTime }
   const docs = listData.map((d: any) => d.document).filter(Boolean);
   const now = new Date();
-  const windowEnd = new Date(now.getTime() + 65_000); // 65 second window
 
   const results: Array<{ id: string; sent: boolean; error?: string }> = [];
 
@@ -242,8 +239,8 @@ export async function GET(request: NextRequest) {
     const job = parseDoc(raw);
     if (job.status !== 'scheduled') continue;
 
-    const nextRun = getNextRunTime(job);
-    if (!nextRun || nextRun > windowEnd) continue;
+    const dueRun = getDueRunTime(job, now);
+    if (!dueRun) continue;
 
     const id = job.id as string;
 
@@ -263,18 +260,18 @@ export async function GET(request: NextRequest) {
       const sendText = await sendRes.text();
       let sendData: Record<string, unknown> = {};
       try { sendData = JSON.parse(sendText); } catch { /* non-JSON */ }
-      const success = sendRes.ok && (sendData.success === true || sendData.status === 'success');
+      const success = sendRes.ok && (sendData.success === true || sendData.status === 'success' || sendRes.ok);
 
       if (success) {
         // Determine new status
         let newStatus = 'sent';
         const schedule = (job.schedule ?? {}) as Record<string, unknown>;
         if (job.type === 'weekly') {
-          const endDate = schedule.endDate ? new Date(schedule.endDate as string) : null;
+          const endDate = schedule.endDate ? parseKampalaDateAndTime(schedule.endDate as string, '23:59') : null;
           newStatus = (!endDate || now < endDate) ? 'scheduled' : 'completed';
         } else if (job.type === 'dates') {
           const entries = (schedule.entries as Array<{ date: string; time: string }>) || [];
-          const remaining = entries.filter(e => new Date(`${e.date}T${e.time || '08:00'}`) > now);
+          const remaining = entries.filter(e => parseKampalaDateAndTime(e.date, e.time || '08:00') > now);
           newStatus = remaining.length > 0 ? 'scheduled' : 'completed';
         }
 
