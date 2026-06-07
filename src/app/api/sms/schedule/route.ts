@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
+const PROJECT_ID = (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools').trim();
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+const API_KEY = (process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '').trim();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
