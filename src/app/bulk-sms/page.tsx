@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,6 +101,9 @@ interface MessageTemplate {
   createdAt: string;
 }
 
+const MESSAGE_MIN_CHARS = 320;
+const MESSAGE_MAX_EXPAND_CHARS = 480;
+
 function getCharacterCountColor(count: number): string {
   if (count === 0) return '#2563eb';
   if (count <= 130) return '#16a34a';
@@ -142,6 +145,8 @@ const BulkSMS: React.FC = () => {
   const [wizaBalance, setWizaBalance] = useState<string | null>(null);
   const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
   const [lockedBalance, setLockedBalance] = useState<number>(0);
+  const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [textareaHeights, setTextareaHeights] = useState({ min: 0, max: 0 });
 
   const { toast } = useToast();
   const router = useRouter();
@@ -360,6 +365,56 @@ const BulkSMS: React.FC = () => {
     setCharacterCount(message.length);
     setMessageCount(message.length > 0 ? Math.ceil(message.length / 160) : 1);
   }, [message]);
+
+  const measureTextareaHeights = useCallback(() => {
+    const el = messageTextareaRef.current;
+    if (!el) return;
+
+    const measure = (charCount: number) => {
+      const savedValue = el.value;
+      const savedHeight = el.style.height;
+      const savedOverflow = el.style.overflowY;
+
+      el.value = charCount > 0 ? '.'.repeat(charCount) : '';
+      el.style.height = 'auto';
+      el.style.overflowY = 'hidden';
+      const height = el.scrollHeight;
+
+      el.value = savedValue;
+      el.style.height = savedHeight;
+      el.style.overflowY = savedOverflow;
+      return height;
+    };
+
+    setTextareaHeights({
+      min: measure(MESSAGE_MIN_CHARS),
+      max: measure(MESSAGE_MAX_EXPAND_CHARS),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    measureTextareaHeights();
+    window.addEventListener('resize', measureTextareaHeights);
+    return () => window.removeEventListener('resize', measureTextareaHeights);
+  }, [measureTextareaHeights]);
+
+  useLayoutEffect(() => {
+    const el = messageTextareaRef.current;
+    const { min, max } = textareaHeights;
+    if (!el || min === 0) return;
+
+    el.style.height = 'auto';
+    const contentHeight = el.scrollHeight;
+
+    if (characterCount > MESSAGE_MAX_EXPAND_CHARS) {
+      el.style.height = `${max}px`;
+      el.style.overflowY = 'auto';
+      return;
+    }
+
+    el.style.height = `${Math.min(max, Math.max(min, contentHeight))}px`;
+    el.style.overflowY = 'hidden';
+  }, [message, characterCount, textareaHeights]);
 
   // Get all recipients including manual numbers
   const allRecipients = [...recipients.map(r => r.phone), ...manualNumbers];
@@ -749,10 +804,15 @@ const BulkSMS: React.FC = () => {
         onClose={() => setShowScheduleList(false)}
       />
 
-      <div className={`grid gap-6 ${provider === 'Wiza SMS' ? 'lg:grid-cols-[1fr,1.2fr]' : 'lg:grid-cols-[1fr,1.2fr,0.8fr]'}`}>
+      <div
+        className={`grid grid-cols-1 gap-6 lg:items-start ${
+          provider === 'Wiza SMS'
+            ? 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]'
+            : 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.8fr)]'
+        }`}
+      >
         {/* Recipients Selection Card */}
-        <div className="space-y-6">
-          <Card className="h-fit">
+        <Card className="h-fit min-w-0">
             <CardHeader className="pb-3">
               <CardTitle className="text-xl font-semibold flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -984,21 +1044,12 @@ const BulkSMS: React.FC = () => {
                 )}
               </div>
             </CardContent>
-          </Card>
+        </Card>
 
-          {/* SMS Cost Calculator */}
-          <SMSCostCalculator
-            recipientCount={recipients.length + manualNumbers.length}
-            messageCount={messageCount}
-            pricePerSMS={35}
-            currency="UGX"
-            walletBalance={availableBalance}
-          />
-        </div>
-
-        {/* Message Composition Card */}
-        <Card className="h-fit lg:sticky lg:top-6">
-          <CardHeader className="pb-3">
+        {/* Message + SMS Cost */}
+        <div className="flex flex-col gap-6 min-w-0 lg:col-start-2">
+          <Card className="h-fit">
+            <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <CardTitle className="text-xl font-semibold flex items-center gap-2">
@@ -1024,10 +1075,11 @@ const BulkSMS: React.FC = () => {
           <CardContent className="space-y-5">
             <div className="space-y-4">
               <Textarea
+                ref={messageTextareaRef}
                 placeholder="Type your message here..."
                 value={message}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
-                className="min-h-[200px] resize-none"
+                className="resize-none overflow-hidden"
               />
               <div className="flex flex-col space-y-2">
                 <div className="flex items-center justify-between text-sm px-1 text-gray-500">
@@ -1114,14 +1166,24 @@ const BulkSMS: React.FC = () => {
                 </DropdownMenu>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <SMSCostCalculator
+            recipientCount={recipients.length + manualNumbers.length}
+            messageCount={messageCount}
+            pricePerSMS={35}
+            currency="UGX"
+            walletBalance={availableBalance}
+          />
+        </div>
 
         {/* Account Information Sidebar */}
-        <div className="space-y-6">
-          {/* Account Balance - Hidden for Wiza SMS since we have the embedded dashboard */}
-          {provider !== 'Wiza SMS' && <AccountBalance />}
-        </div>
+        {provider !== 'Wiza SMS' && (
+          <div className="min-w-0 lg:col-start-3">
+            <AccountBalance />
+          </div>
+        )}
       </div>
 
       {/* SMS Confirmation Dialog */}
