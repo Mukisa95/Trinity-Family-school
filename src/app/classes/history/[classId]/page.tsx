@@ -16,8 +16,7 @@ import { Input } from "@/components/ui/input";
 import type { Pupil, Class, AcademicYear } from "@/types";
 import { usePupils } from "@/lib/hooks/use-pupils";
 import { useClasses } from "@/lib/hooks/use-classes";
-import { useAcademicYears } from "@/lib/hooks/use-academic-years";
-import { detectCurrentAcademicYear } from "@/lib/utils/academic-year-utils";
+import { useTermStatus } from "@/lib/hooks/use-term-status";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -38,12 +37,12 @@ export default function ClassHistoryPage() {
 
   const { data: allPupils = [], isLoading: pupilsLoading } = usePupils();
   const { data: allClasses = [], isLoading: classesLoading } = useClasses();
-  const { data: academicYears = [], isLoading: yearsLoading } = useAcademicYears();
+  const { effectiveTerm, academicYears = [], isLoading: yearsLoading } = useTermStatus();
 
   const [selectedAcademicYearId, setSelectedAcademicYearId] = React.useState<string>('');
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [sortField, setSortField] = React.useState<SortField>('name');
-  const [sortDir, setSortDir] = React.useState<SortDir>('asc');
+  const [sortField, setSortField] = React.useState<SortField>('joined');
+  const [sortDir, setSortDir] = React.useState<SortDir>('desc');
   const [filterGender, setFilterGender] = React.useState<string>('all');
   const [filterStatus, setFilterStatus] = React.useState<string>('all');
   const [showFilters, setShowFilters] = React.useState(false);
@@ -65,8 +64,16 @@ export default function ClassHistoryPage() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const currentYearId = effectiveTerm?.academicYear?.id;
+
     return academicYears
       .filter(year => {
+        // Always include the current year
+        if (currentYearId && year.id === currentYearId) {
+          return true;
+        }
+
+        if (!year.startDate) return false;
         const yearStartDate = new Date(year.startDate);
         yearStartDate.setHours(0, 0, 0, 0);
         return yearStartDate <= today;
@@ -76,7 +83,7 @@ export default function ClassHistoryPage() {
         const dateB = new Date(b.startDate).getTime();
         return dateB - dateA; // Newest first
       });
-  }, [academicYears]);
+  }, [academicYears, effectiveTerm]);
 
   // Helper: get the class a pupil was in at a specific date, using their promotionHistory
   const getClassIdAtDate = (pupil: Pupil, targetDate: Date): string => {
@@ -262,7 +269,12 @@ export default function ClassHistoryPage() {
           cmp = (a.pupil.status || '').localeCompare(b.pupil.status || '');
           break;
         case 'joined':
-          cmp = (a.joinedDate || '').localeCompare(b.joinedDate || '');
+          const timeA = a.joinedDate ? new Date(a.joinedDate).getTime() : 0;
+          const timeB = b.joinedDate ? new Date(b.joinedDate).getTime() : 0;
+          if (timeA === 0 && timeB === 0) cmp = 0;
+          else if (timeA === 0) return 1; // Always push to the bottom
+          else if (timeB === 0) return -1; // Always push to the bottom
+          else cmp = timeA - timeB;
           break;
       }
       return sortDir === 'asc' ? cmp : -cmp;
@@ -271,17 +283,13 @@ export default function ClassHistoryPage() {
     return list;
   }, [getHistoricalPupils, searchQuery, filterGender, filterStatus, sortField, sortDir]);
 
-  // Set default academic year to current active year
+  // Set default academic year to current active year (same as exams page)
   React.useEffect(() => {
-    if (sortedAcademicYears.length > 0 && !selectedAcademicYearId) {
-      const activeYear = detectCurrentAcademicYear(sortedAcademicYears);
-      if (activeYear) {
-        setSelectedAcademicYearId(activeYear.id);
-      } else {
-        setSelectedAcademicYearId(sortedAcademicYears[0].id);
-      }
+    const currentYear = effectiveTerm?.academicYear;
+    if (currentYear && !selectedAcademicYearId) {
+      setSelectedAcademicYearId(currentYear.id);
     }
-  }, [sortedAcademicYears, selectedAcademicYearId]);
+  }, [effectiveTerm, selectedAcademicYearId]);
 
   // Helper: extract term number from term name or ID
   const getTermNumber = (termId: string): string => {
