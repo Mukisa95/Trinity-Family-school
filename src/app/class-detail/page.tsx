@@ -1050,6 +1050,107 @@ function ClassDetailContent() {
         <p className="text-muted-foreground hidden lg:block mt-3 text-sm font-medium">Details for class: {classDetail.name}</p>
       </div>
 
+      {/* Filter Panel - shown when filter button is clicked */}
+      {showFilters && (
+        <div className="animate-in slide-in-from-top-2 fade-in duration-200 rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/3 to-muted/10 backdrop-blur-sm shadow-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Filter className="h-4 w-4 text-primary" />
+              Filter Pupils
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilters({ search: filters.search, section: 'all', status: 'all', gender: 'all', ageMin: '', ageMax: '' })}
+              className="h-7 text-xs rounded-full hover:bg-primary/10 text-muted-foreground"
+            >
+              Reset
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Gender */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Gender</Label>
+              <Select value={filters.gender} onValueChange={(v) => setFilters(prev => ({ ...prev, gender: v }))}>
+                <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Genders</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Section */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Section</Label>
+              <Select value={filters.section} onValueChange={(v) => setFilters(prev => ({ ...prev, section: v }))}>
+                <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  <SelectItem value="Day">Day</SelectItem>
+                  <SelectItem value="Boarding">Boarding</SelectItem>
+                  {sections.filter(s => s !== 'Day' && s !== 'Boarding').map(s => (
+                    <SelectItem key={s} value={s!}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Status */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+              <Select value={filters.status} onValueChange={(v) => setFilters(prev => ({ ...prev, status: v }))}>
+                <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Age Range */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Age Range</Label>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.ageMin}
+                  onChange={(e) => setFilters(prev => ({ ...prev, ageMin: e.target.value }))}
+                  className="h-8 text-xs rounded-xl border-2 border-primary/20 bg-background w-full"
+                />
+                <span className="text-xs text-muted-foreground">-</span>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.ageMax}
+                  onChange={(e) => setFilters(prev => ({ ...prev, ageMax: e.target.value }))}
+                  className="h-8 text-xs rounded-xl border-2 border-primary/20 bg-background w-full"
+                />
+              </div>
+            </div>
+          </div>
+          {/* Active filter summary */}
+          {(filters.gender !== 'all' || filters.section !== 'all' || filters.status !== 'all' || filters.ageMin || filters.ageMax) && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Active:</span>
+              {filters.gender !== 'all' && <Badge variant="secondary" className="text-xs">{filters.gender}</Badge>}
+              {filters.section !== 'all' && <Badge variant="secondary" className="text-xs">{filters.section}</Badge>}
+              {filters.status !== 'all' && <Badge variant="secondary" className="text-xs">{filters.status}</Badge>}
+              {(filters.ageMin || filters.ageMax) && <Badge variant="secondary" className="text-xs">Age {filters.ageMin || '0'}–{filters.ageMax || '∞'}</Badge>}
+              <span className="text-xs font-medium text-primary">{filteredPupils.length} result{filteredPupils.length !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-12rem)]">
         {/* Left Column: Basic Class Info */}
         <div className="lg:col-span-1 space-y-3 lg:space-y-6 lg:overflow-y-auto lg:pr-2">
