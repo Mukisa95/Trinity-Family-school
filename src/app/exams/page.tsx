@@ -1738,24 +1738,18 @@ export default function ExamsPage() {
 
                         <div className="flex items-center gap-2">
                           {isCATExam ? (
-                            // For CAT exams, show classes in header
-                            <div className="flex items-center gap-1">
-                              <span className="text-white/90 text-xs mr-1">Classes:</span>
-                              {Array.from(new Set(exams.map(e => e.classId))).map((classId, idx) => {
-                                const classCode = allClasses.find(c => c.id === classId)?.code || 'N/A';
-                                const uniqueClassIds = Array.from(new Set(exams.map(e => e.classId)));
-                                return (
-                                  <span key={classId} className="inline-flex items-center">
-                                    <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center">
-                                      <span className="text-white font-bold text-xs">
-                                        {classCode}
-                                      </span>
-                                    </div>
-                                    {idx < uniqueClassIds.length - 1 && <span className="text-white/60 text-xs mx-1">•</span>}
-                                  </span>
-                                );
-                              })}
-                            </div>
+                            // For CAT exams, show set count in header
+                            (() => {
+                              const catSetCount = new Set(exams.map(e => {
+                                const m = e.name.match(/SET (\d+)$/i);
+                                return m ? m[1] : '1';
+                              })).size;
+                              return (
+                                <span className="text-white/90 text-xs">
+                                  {catSetCount} Set{catSetCount !== 1 ? 's' : ''}
+                                </span>
+                              );
+                            })()
                           ) : (
                             <span className="text-white/90 text-xs">
                               {exams.length} class{exams.length !== 1 ? 'es' : ''}
@@ -2150,9 +2144,6 @@ export default function ExamsPage() {
                                             </button>
                                           );
                                         })}
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        {exams.length} classes • Click a class to reveal its actions
                                       </div>
                                     </div>
                                   )}
@@ -2622,9 +2613,23 @@ export default function ExamsPage() {
                           </div>
 
                         <div className="flex items-center gap-1.5">
-                          <span className="hidden text-sm font-medium text-white/90 md:inline">
-                            {exams.length} class{exams.length !== 1 ? 'es' : ''}
-                          </span>
+                          {isCATExam ? (
+                            (() => {
+                              const catSetCount = new Set(exams.map(e => {
+                                const m = e.name.match(/SET (\d+)$/i);
+                                return m ? m[1] : '1';
+                              })).size;
+                              return (
+                                <span className="hidden text-sm font-medium text-white/90 md:inline">
+                                  {catSetCount} Set{catSetCount !== 1 ? 's' : ''}
+                                </span>
+                              );
+                            })()
+                          ) : (
+                            <span className="hidden text-sm font-medium text-white/90 md:inline">
+                              {exams.length} class{exams.length !== 1 ? 'es' : ''}
+                            </span>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -2812,9 +2817,6 @@ export default function ExamsPage() {
                                   })}
                                 </div>
                               </div>
-                              <p className="text-sm font-medium text-slate-600">
-                                {exams.length} classes <span className="text-slate-400">•</span> Click a class to reveal its actions
-                              </p>
                             </>
                           )}
                         </div>
@@ -2953,17 +2955,7 @@ export default function ExamsPage() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 )}
-                                {!isExpanded && exams.length > 1 && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: true }))}
-                                    className="h-9 gap-1 px-2 text-sm font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                                  >
-                                    <ChevronDown className="h-4 w-4" />
-                                    Expand
-                                  </Button>
-                                )}
+
                               </div>
                               </div>
                           )}
@@ -3098,6 +3090,19 @@ export default function ExamsPage() {
                                               </Link>
                                             </Button>
 
+
+                                            {/* Edit Snapshot button */}
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              asChild
+                                              className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              title="Edit Snapshot Data"
+                                            >
+                                              <Link href={`/exams/${firstSetExam.id}/edit-snapshot`}>
+                                                <Camera className="h-4 w-4" />
+                                              </Link>
+                                            </Button>
 
                                             {/* Delete Set button */}
                                             <Button
