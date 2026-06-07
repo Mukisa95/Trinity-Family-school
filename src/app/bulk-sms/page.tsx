@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, X, Users, MessageSquare, Settings, FileText, Wallet, RefreshCw, CreditCard, Monitor, Calendar } from 'lucide-react';
+import { Loader2, Plus, X, Users, MessageSquare, Settings, FileText, Wallet, RefreshCw, CreditCard, Monitor, Calendar, Send } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -99,6 +99,17 @@ interface MessageTemplate {
   name: string;
   content: string;
   createdAt: string;
+}
+
+function getCharacterCountColor(count: number): string {
+  if (count === 0) return '#2563eb';
+  if (count <= 130) return '#16a34a';
+  if (count >= 160) return '#dc2626';
+  const ratio = (count - 131) / 29;
+  const r = Math.round(22 + (220 - 22) * ratio);
+  const g = Math.round(163 + (38 - 163) * ratio);
+  const b = Math.round(74 + (38 - 74) * ratio);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 const BulkSMS: React.FC = () => {
@@ -352,6 +363,7 @@ const BulkSMS: React.FC = () => {
 
   // Get all recipients including manual numbers
   const allRecipients = [...recipients.map(r => r.phone), ...manualNumbers];
+  const characterCountColor = getCharacterCountColor(characterCount);
 
   // Filter pupils for individual selection
   const filteredPupils = allPupils.filter((pupil: Pupil) => {
@@ -671,31 +683,6 @@ const BulkSMS: React.FC = () => {
             Recharge
           </Button>
 
-          {/* Schedule Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                aria-label="Schedule SMS"
-              >
-                <Calendar className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-semibold leading-tight">Schedule</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
-                <Calendar className="mr-2 h-4 w-4 text-blue-600" />
-                Schedule SMS
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowScheduleList(true)} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4 text-indigo-600" />
-                Schedule List
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* Settings/More Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1012,16 +999,16 @@ const BulkSMS: React.FC = () => {
         {/* Message Composition Card */}
         <Card className="h-fit lg:sticky lg:top-6">
           <CardHeader className="pb-3">
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Message
-            </CardTitle>
-            <CardDescription>Compose your message</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Message
+                </CardTitle>
+                <CardDescription>Compose your message</CardDescription>
+              </div>
               <Select onValueChange={handleTemplateSelect}>
-                <SelectTrigger className="h-11">
+                <SelectTrigger className="h-9 w-full sm:w-[220px]">
                   <SelectValue placeholder="Select a template" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1032,7 +1019,10 @@ const BulkSMS: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-4">
               <Textarea
                 placeholder="Type your message here..."
                 value={message}
@@ -1040,41 +1030,34 @@ const BulkSMS: React.FC = () => {
                 className="min-h-[200px] resize-none"
               />
               <div className="flex flex-col space-y-2">
-                <div className={`flex items-center justify-between text-sm px-1 ${characterCount > 160 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                  <div className="flex items-center">
-                    <span>Characters: {characterCount}</span>
+                <div className="flex items-center justify-between text-sm px-1 text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono tabular-nums font-medium">
+                      <span style={{ color: characterCountColor, transition: 'color 0.2s ease' }}>
+                        {characterCount}
+                      </span>
+                      <span>/160</span>
+                    </span>
                     {characterCount > 160 && (
-                      <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium">
+                      <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium">
                         Exceeds 160 limit
                       </span>
                     )}
                   </div>
                   <span>
-                    Message count: <span className={characterCount > 160 ? 'font-bold' : ''}>{messageCount}</span>
+                    Message count: <span className={characterCount > 160 ? 'font-bold text-red-600' : ''}>{messageCount}</span>
                   </span>
                 </div>
 
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${characterCount <= 160 ? 'bg-green-500' : 'bg-red-500'
-                      }`}
+                    className="h-full"
                     style={{
                       width: `${Math.min(100, (characterCount / 160) * 100)}%`,
-                      transition: 'width 0.3s ease-in-out'
+                      backgroundColor: characterCountColor,
+                      transition: 'width 0.3s ease-in-out, background-color 0.2s ease',
                     }}
                   />
-                </div>
-
-                <div className="text-xs text-center">
-                  {characterCount <= 160 ? (
-                    <span className="text-green-600">
-                      {160 - characterCount} characters remaining in this SMS
-                    </span>
-                  ) : (
-                    <span className="text-amber-600">
-                      {160 - (characterCount % 160 || 160)} characters remaining in SMS #{messageCount}
-                    </span>
-                  )}
                 </div>
 
                 {characterCount > 160 && (
@@ -1082,30 +1065,55 @@ const BulkSMS: React.FC = () => {
                     Warning: Your message exceeds 160 characters and will be charged as {messageCount} separate SMS messages.
                   </div>
                 )}
-                <div className="flex items-center justify-between text-sm text-gray-500 px-1 mt-2">
-                  <span>Recipients: {recipients.length + manualNumbers.length}</span>
-                  {recipients.length + manualNumbers.length === 0 && (
-                    <span className="text-amber-600 text-xs">No recipients selected</span>
-                  )}
-                </div>
               </div>
             </div>
 
-            <Button
-              onClick={handleSendSMS}
-              disabled={loading || !message.trim() || allRecipients.length === 0}
-              className="w-full h-12 text-base"
-              size="lg"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                'Send Messages'
-              )}
-            </Button>
+            <div className="relative flex items-center justify-center min-h-9">
+              <Button
+                onClick={handleSendSMS}
+                disabled={loading || !message.trim() || allRecipients.length === 0}
+                size="sm"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-full px-4"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Send
+                  </>
+                )}
+              </Button>
+
+              <div className="absolute right-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      aria-label="Schedule SMS"
+                      className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white rounded-full shrink-0"
+                    >
+                      <Calendar className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
+                      <Calendar className="mr-2 h-4 w-4 text-blue-600" />
+                      Schedule SMS
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowScheduleList(true)} className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4 text-indigo-600" />
+                      Schedule List
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
