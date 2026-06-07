@@ -1704,7 +1704,9 @@ export default function ExamsPage() {
                 const firstExam = exams[0];
                 const isExpanded = expandedBatches[batchId] || false;
                 const isCATExam = firstExam.examTypeId === 'et_cat';
-                const showBatchHeader = exams.length > 1;
+                // CAT exams always show their purple header even with only one set,
+                // so the + button to add another set is always visible.
+                const showBatchHeader = isCATExam || exams.length > 1;
                 const selectedCollapsedExam = exams.find(exam => exam.id === selectedCollapsedBatchExams[batchId]) || exams[0];
 
                 return (
@@ -1775,28 +1777,20 @@ export default function ExamsPage() {
                           >
                             <Trash2 className="h-3 w-3 text-white" />
                           </Button>
-                          {(() => {
-                            if (isCATExam) {
-                              // For CAT exams, check if there are multiple sets
-                              const setGroups: Record<string, Exam[]> = {};
-                              exams.forEach(exam => {
-                                const setMatch = exam.name.match(/SET (\d+)$/i);
-                                const setNumber = setMatch ? setMatch[1] : '1';
-                                const setKey = `SET ${setNumber}`;
-
-                                if (!setGroups[setKey]) {
-                                  setGroups[setKey] = [];
-                                }
-                                setGroups[setKey].push(exam);
-                              });
-
-                              const setCount = Object.keys(setGroups).length;
-                              return setCount > 1;
-                            } else {
-                              // For regular exams, check if there are multiple classes
-                              return exams.length > 1;
-                            }
-                          })() && (
+                          {/* + Add Set button — always visible for CAT exams */}
+                          {isCATExam && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAddSet(firstExam)}
+                              className="h-7 w-7 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors"
+                              title="Add another set to this CAT"
+                            >
+                              <PlusCircle className="h-3 w-3 text-white" />
+                            </Button>
+                          )}
+                          {/* Expand/collapse chevron — for multi-class batches, or multi-set CAT */}
+                          {(isCATExam || exams.length > 1) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -2512,7 +2506,9 @@ export default function ExamsPage() {
                 const firstExam = exams[0];
                 const isExpanded = expandedBatches[batchId] || false;
                 const isCATExam = firstExam.examTypeId === 'et_cat';
-                const showBatchHeader = exams.length > 1;
+                // CAT exams always show their purple header even with only one set,
+                // so the + button to add another set is always visible.
+                const showBatchHeader = isCATExam || exams.length > 1;
                 const selectedCollapsedExam = exams.find(exam => exam.id === selectedCollapsedBatchExams[batchId]) || exams[0];
 
                 return (
@@ -2623,25 +2619,20 @@ export default function ExamsPage() {
                           >
                             <Trash2 className="h-3.5 w-3.5 text-white" />
                           </Button>
-                          {(() => {
-                            if (isCATExam) {
-                              const setGroups: Record<string, Exam[]> = {};
-                              exams.forEach(exam => {
-                                const setMatch = exam.name.match(/SET (\d+)$/i);
-                                const setNumber = setMatch ? setMatch[1] : '1';
-                                const setKey = `SET ${setNumber}`;
-
-                                if (!setGroups[setKey]) {
-                                  setGroups[setKey] = [];
-                                }
-                                setGroups[setKey].push(exam);
-                              });
-
-                              return Object.keys(setGroups).length > 1;
-                            }
-
-                            return exams.length > 1;
-                          })() && (
+                          {/* + Add Set button — always visible for CAT exams */}
+                          {isCATExam && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAddSet(firstExam)}
+                              className="h-7 w-7 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20"
+                              title="Add another set to this CAT"
+                            >
+                              <PlusCircle className="h-3.5 w-3.5 text-white" />
+                            </Button>
+                          )}
+                          {/* Expand/collapse chevron — for multi-class batches, or any CAT */}
+                          {(isCATExam || exams.length > 1) && (
                             <Button
                               variant="ghost"
                               size="sm"
