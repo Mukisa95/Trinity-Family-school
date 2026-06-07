@@ -1298,6 +1298,8 @@ export default function ExamsPage() {
   // State for batch exam expansion
   const [expandedBatches, setExpandedBatches] = React.useState<Record<string, boolean>>({});
   const [selectedCollapsedBatchExams, setSelectedCollapsedBatchExams] = React.useState<Record<string, string>>({});
+  // Tracks which CAT set is selected per batch (batchId -> setKey like "SET 2"). Defaults to last set.
+  const [selectedCATSetKeys, setSelectedCATSetKeys] = React.useState<Record<string, string>>({});
 
   const getClassMeta = React.useCallback((classId?: string | null) => {
     const classItem = allClasses.find(c => c.id === classId);
@@ -1847,12 +1849,17 @@ export default function ExamsPage() {
                                         <TableRow className="border-b border-gray-100">
                                           <TableCell className="font-medium text-sm">
                                             <div className="flex items-center gap-2">
-                                              <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-md flex items-center justify-center">
+                                              <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-md flex items-center justify-center flex-shrink-0">
                                                 <span className="text-white font-bold text-xs">
                                                   {setName.split(' ')[1]}
                                                 </span>
                                               </div>
-                                              <span className="font-semibold">{setName}</span>
+                                              <div>
+                                                <span className="font-semibold text-sm">{setName}</span>
+                                                <p className="text-xs text-gray-500 leading-tight">
+                                                  {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
+                                                </p>
+                                              </div>
                                               {setExams.length > 1 && (
                                                 <Badge variant="secondary" className="text-xs">
                                                   {setExams.length} exam{setExams.length !== 1 ? 's' : ''}
@@ -1951,19 +1958,6 @@ export default function ExamsPage() {
                                                   </Button>
                                                 </>
                                               ) : null}
-
-                                              {/* Add Set button for the latest set */}
-                                              {sortedSets.findIndex(([name]) => name === setName) === sortedSets.length - 1 && (
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                  onClick={() => handleAddSet(firstSetExam)}
-                                                  className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                                                  title="Add Set"
-                                                >
-                                                  <Plus className="h-4 w-4" />
-                                                </Button>
-                                              )}
 
                                               {/* Delete Set button */}
                                               <Button
@@ -2511,6 +2505,36 @@ export default function ExamsPage() {
                 const showBatchHeader = isCATExam || exams.length > 1;
                 const selectedCollapsedExam = exams.find(exam => exam.id === selectedCollapsedBatchExams[batchId]) || exams[0];
 
+                // Group exams by set for CAT exams
+                const setGroups: Record<string, Exam[]> = {};
+                if (isCATExam) {
+                  exams.forEach(exam => {
+                    const setMatch = exam.name.match(/SET (\d+)$/i);
+                    const setNumber = setMatch ? setMatch[1] : '1';
+                    const setKey = `SET ${setNumber}`;
+
+                    if (!setGroups[setKey]) {
+                      setGroups[setKey] = [];
+                    }
+                    setGroups[setKey].push(exam);
+                  });
+                }
+
+                const sortedSets = Object.entries(setGroups).sort(([a], [b]) => {
+                  const numA = parseInt(a.split(' ')[1]) || 0;
+                  const numB = parseInt(b.split(' ')[1]) || 0;
+                  return numA - numB;
+                });
+
+                // Defaults to last set (highest set number) if not explicitly selected
+                const defaultSetKey = sortedSets.length > 0 ? sortedSets[sortedSets.length - 1][0] : "SET 1";
+                const currentSelectedSetKey = selectedCATSetKeys[batchId] || defaultSetKey;
+                const selectedSetExams = setGroups[currentSelectedSetKey] || [];
+                const firstSelectedSetExam = selectedSetExams[0];
+                 const selectedSetExamName = firstSelectedSetExam
+                   ? firstSelectedSetExam.name.replace(new RegExp(`^${(firstSelectedSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')
+                   : '';
+
                 return (
                   <div
                     key={batchId}
@@ -2732,86 +2756,49 @@ export default function ExamsPage() {
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start md:gap-x-4 xl:grid-cols-[minmax(420px,1fr)_auto] xl:items-center">
                         <div className="flex flex-col gap-2">
                           {isCATExam ? (
-                            // CAT Exam - Show Sets Count Badge
+                            // CAT Exam - Show Sets Count Badge and Selector Bubbles
                             <>
-                              <div className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg px-3 py-2 border border-purple-100">
+                              <div className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg px-3 py-2 border border-purple-100 w-fit">
                                 <BookOpen className="h-4 w-4 text-purple-600" />
                                 <span className="font-semibold text-purple-900">
-                                  {(() => {
-                                    const setGroups: Record<string, Exam[]> = {};
-                                    exams.forEach(exam => {
-                                      const setMatch = exam.name.match(/SET (\d+)$/i);
-                                      const setNumber = setMatch ? setMatch[1] : '1';
-                                      const setKey = `SET ${setNumber}`;
-
-                                      if (!setGroups[setKey]) {
-                                        setGroups[setKey] = [];
-                                      }
-                                      setGroups[setKey].push(exam);
-                                    });
-
-                                    const setCount = Object.keys(setGroups).length;
-                                    return `${setCount} Set${setCount !== 1 ? 's' : ''}`;
-                                  })()}
+                                  {sortedSets.length} Set{sortedSets.length !== 1 ? 's' : ''}
                                 </span>
                               </div>
 
-                              {/* Sets Preview */}
-                              <div className="flex items-center gap-1">
+                              {/* Sets Preview/Selector Bubbles */}
+                              <div className="flex items-center gap-1.5 mt-1">
                                 <div className="flex -space-x-1">
-                                  {(() => {
-                                    const setGroups: Record<string, Exam[]> = {};
-                                    exams.forEach(exam => {
-                                      const setMatch = exam.name.match(/SET (\d+)$/i);
-                                      const setNumber = setMatch ? setMatch[1] : '1';
-                                      const setKey = `SET ${setNumber}`;
-
-                                      if (!setGroups[setKey]) {
-                                        setGroups[setKey] = [];
-                                      }
-                                      setGroups[setKey].push(exam);
-                                    });
-
-                                    const sortedSets = Object.entries(setGroups).sort(([a], [b]) => {
-                                      const numA = parseInt(a.split(' ')[1]);
-                                      const numB = parseInt(b.split(' ')[1]);
-                                      return numA - numB;
-                                    });
-
-                                    return sortedSets.slice(0, 3).map(([setName, setExams], index) => (
-                                      <div
+                                  {sortedSets.map(([setName, setExams]) => {
+                                    const isSelected = currentSelectedSetKey === setName;
+                                    return (
+                                      <button
                                         key={setName}
-                                        className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold text-purple-700 shadow-sm"
-                                        title={`${setName} (${setExams.length} exam${setExams.length !== 1 ? 's' : ''})`}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setSelectedCATSetKeys(prev => ({ ...prev, [batchId]: setName }));
+                                        }}
+                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all ${
+                                          isSelected
+                                            ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white scale-105 z-10'
+                                            : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-indigo-100 hover:scale-105'
+                                        }`}
+                                        title={`Show actions for ${setName}`}
                                       >
                                         {setName.split(' ')[1]}
-                                      </div>
-                                    ));
-                                  })()}
-                                  {(() => {
-                                    const setCount = (() => {
-                                      const setGroups: Record<string, Exam[]> = {};
-                                      exams.forEach(exam => {
-                                        const setMatch = exam.name.match(/SET (\d+)$/i);
-                                        const setNumber = setMatch ? setMatch[1] : '1';
-                                        const setKey = `SET ${setNumber}`;
-
-                                        if (!setGroups[setKey]) {
-                                          setGroups[setKey] = [];
-                                        }
-                                        setGroups[setKey].push(exam);
-                                      });
-
-                                      return Object.keys(setGroups).length;
-                                    })();
-
-                                    return setCount > 3 ? (
-                                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold text-indigo-700 shadow-sm">
-                                        +{setCount - 3}
-                                      </div>
-                                    ) : null;
-                                  })()}
+                                      </button>
+                                    );
+                                  })}
                                 </div>
+                              </div>
+                              <div className="mt-1 space-y-0.5">
+                                <p className="text-sm text-slate-600">
+                                  Selected: <span className="font-semibold text-purple-950">{currentSelectedSetKey} - {selectedSetExamName}</span>
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  {selectedSetExams.length} class{selectedSetExams.length !== 1 ? 'es' : ''} • Click a bubble to view actions
+                                </p>
                               </div>
                             </>
                           ) : (
@@ -2864,30 +2851,82 @@ export default function ExamsPage() {
                         </div>
 
                         <div className="flex items-center justify-between gap-3 md:col-span-2 xl:col-span-1 xl:justify-end xl:pl-5">
-                          {/* Quick Actions - Always show for single items, and for regular exams */}
-                          {(() => {
-                            if (isCATExam) {
-                              // For CAT exams, only show quick actions if there's one set
-                              const setGroups: Record<string, Exam[]> = {};
-                              exams.forEach(exam => {
-                                const setMatch = exam.name.match(/SET (\d+)$/i);
-                                const setNumber = setMatch ? setMatch[1] : '1';
-                                const setKey = `SET ${setNumber}`;
+                          {/* CAT exams when collapsed: show actions for selected set. */}
+                          {isCATExam && !isExpanded && (
+                            <div className="flex w-full items-center justify-between gap-3 xl:justify-end">
+                              <div className="min-w-0 items-center gap-2 pr-2 hidden md:flex">
+                                <span className="truncate text-sm font-semibold text-purple-700">
+                                  {currentSelectedSetKey}
+                                </span>
+                              </div>
+                              {firstSelectedSetExam && (
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    title="Record Results"
+                                  >
+                                    <Link href={`/exams/${firstSelectedSetExam.id}/record-results?classId=${firstSelectedSetExam.classId}`}>
+                                      <FilePenLine className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
 
-                                if (!setGroups[setKey]) {
-                                  setGroups[setKey] = [];
-                                }
-                                setGroups[setKey].push(exam);
-                              });
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openExamPrintOptions(firstSelectedSetExam)}
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    title="Print Reports"
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
 
-                              const setCount = Object.keys(setGroups).length;
-                              return setCount === 1;
-                            }
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    title="View Results"
+                                  >
+                                    <Link href={`/exams/${firstSelectedSetExam.id}/view-results?classId=${firstSelectedSetExam.classId}`}>
+                                      <Eye className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
 
-                            return true;
-                          })() && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const examIds = selectedSetExams.map(e => e.id);
+                                      handleDeleteExamStack(examIds, `${firstSelectedSetExam.baseName || firstSelectedSetExam.name} ${currentSelectedSetKey}`);
+                                    }}
+                                    className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    title="Delete Set"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                              {sortedSets.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: true }))}
+                                  className="h-9 gap-1 px-2 text-sm font-medium text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                  Expand
+                                </Button>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Regular exams: show quick action buttons. */}
+                          {!isCATExam && (
                               <div className="flex w-full items-center justify-between gap-3 xl:justify-end">
-                                {!isCATExam && !isExpanded && exams.length > 1 && (
+                                {!isExpanded && exams.length > 1 && (
                                   <div className="min-w-0 items-center gap-2 pr-2 hidden md:flex">
                                     <span className="truncate text-sm font-semibold text-slate-700">
                                       {getClassMeta(selectedCollapsedExam.classId).code}
@@ -2902,7 +2941,7 @@ export default function ExamsPage() {
                                   className="h-9 w-9 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                   title="Record Results"
                                 >
-                                  <Link href={`/exams/${(!isCATExam && !isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}/record-results?classId=${(!isCATExam && !isExpanded && exams.length > 1 ? selectedCollapsedExam.classId : firstExam.classId)}`}>
+                                  <Link href={`/exams/${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}/record-results?classId=${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.classId : firstExam.classId)}`}>
                                     <FilePenLine className="h-4 w-4" />
                                   </Link>
                                 </Button>
@@ -2910,7 +2949,7 @@ export default function ExamsPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => openExamPrintOptions(!isCATExam && !isExpanded && exams.length > 1 ? selectedCollapsedExam : firstExam)}
+                                  onClick={() => openExamPrintOptions(!isExpanded && exams.length > 1 ? selectedCollapsedExam : firstExam)}
                                   className="h-9 w-9 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                   title="Print Reports"
                                 >
@@ -2924,37 +2963,24 @@ export default function ExamsPage() {
                                   className="h-9 w-9 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                   title="View Results"
                                 >
-                                  <Link href={`/exams/${(!isCATExam && !isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}/view-results?classId=${(!isCATExam && !isExpanded && exams.length > 1 ? selectedCollapsedExam.classId : firstExam.classId)}`}>
+                                  <Link href={`/exams/${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}/view-results?classId=${(!isExpanded && exams.length > 1 ? selectedCollapsedExam.classId : firstExam.classId)}`}>
                                     <Eye className="h-4 w-4" />
                                   </Link>
                                 </Button>
 
-                                {/* Add Set button for CAT exams */}
-                                {firstExam.examTypeId === 'et_cat' && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleAddSet(firstExam)}
-                                    className="h-9 w-9 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                                    title="Add Set"
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                )}
-
                                 {/* Delete button */}
-                                {(!showBatchHeader || !isCATExam) && (
+                                {!showBatchHeader && (
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleDeleteExam(!isCATExam && !isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}
+                                    onClick={() => handleDeleteExam(!isExpanded && exams.length > 1 ? selectedCollapsedExam.id : firstExam.id)}
                                     className="h-9 w-9 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                     title="Delete Exam"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 )}
-                                {!isCATExam && !isExpanded && exams.length > 1 && (
+                                {!isExpanded && exams.length > 1 && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -3049,7 +3075,9 @@ export default function ExamsPage() {
                                             </div>
 
                                             <div>
-                                              <p className="font-semibold text-gray-900 text-sm">{setName}</p>
+                                              <p className="font-semibold text-gray-900 text-sm">
+                                                {setName} - {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
+                                              </p>
                                               <p className="text-xs text-gray-500">
                                                 {setExams.length} exam{setExams.length !== 1 ? 's' : ''} • {safeParseDateString(firstSetExam.startDate) ? format(safeParseDateString(firstSetExam.startDate)!, "MMM dd") : 'No date'}
                                               </p>
@@ -3097,18 +3125,6 @@ export default function ExamsPage() {
                                               </Link>
                                             </Button>
 
-                                            {/* Add Set button for the latest set */}
-                                            {setIndex === sortedSets.length - 1 && (
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleAddSet(firstSetExam)}
-                                                className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                                                title="Add Set"
-                                              >
-                                                <Plus className="h-4 w-4" />
-                                              </Button>
-                                            )}
 
                                             {/* Delete Set button */}
                                             <Button
