@@ -1289,12 +1289,9 @@ export default function LoginPage() {
 
         {/* ────────── GLASSMORPHISM LOGIN MODAL ───────────────────────────── */}
         {showLoginModal && (
-          <div
-            className="fixed inset-0 z-[1000] flex items-center justify-center overflow-hidden"
-            style={{ animation: "lgFadeIn 0.35s ease forwards" }}
-          >
+          <div className="modal-overlay open">
             <div
-              className="absolute inset-0 bg-gradient-to-br from-[#1a2060] via-[#0f1b55] to-[#0e3f80] cursor-pointer"
+              className="absolute inset-0 cursor-pointer"
               onClick={() => setShowLoginModal(false)}
             />
 
@@ -1307,10 +1304,7 @@ export default function LoginPage() {
             <div className="modal-grid absolute" />
 
             {/* Frosted card container */}
-            <div
-              className="modal-card relative text-white"
-              style={{ animation: "lgRise 0.5s cubic-bezier(.22,1,.36,1) forwards" }}
-            >
+            <div className="modal-card">
               <button
                 className="modal-close"
                 onClick={() => setShowLoginModal(false)}
