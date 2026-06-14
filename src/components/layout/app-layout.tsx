@@ -224,8 +224,12 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('trinity_user');
-      setHasStoredUser(!!storedUser);
+      const syncStoredUser = () => {
+        const storedUser = localStorage.getItem('trinity_user');
+        setHasStoredUser(!!storedUser);
+      };
+
+      syncStoredUser();
       setWindowWidth(window.innerWidth);
 
       const handleResize = () => {
@@ -240,6 +244,14 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
       return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
+
+  // Keep hasStoredUser in sync whenever authentication state changes
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('trinity_user');
+      setHasStoredUser(!!storedUser);
+    }
+  }, [isAuthenticated]);
 
   // Keyboard shortcut handler for print (Ctrl+P or Cmd+P)
   React.useEffect(() => {
@@ -387,15 +399,20 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     );
   }
 
-  // If not authenticated for protected route, this will be handled by the useEffect above
+  // If not authenticated for protected route, this will be handled by the useEffect above.
+  // If there is a stored user in localStorage, keep showing the loading screen rather than
+  // the redirect screen — auth context may still be restoring the session.
   if (!isAuthenticated) {
+    // If we have a stored user, render the same loading screen (not "Redirecting") so the
+    // user does not see a flash of the redirect message while auth context hydrates.
+    const showLoadingInstead = hasStoredUser || (typeof window !== 'undefined' && !!localStorage.getItem('trinity_user'));
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4 animate-pulse">
             <School className="h-8 w-8 text-white" />
           </div>
-          <p className="text-gray-600 dark:text-gray-400">Redirecting to login...</p>
+          <p className="text-gray-600 dark:text-gray-400">{showLoadingInstead ? 'Loading...' : 'Redirecting to login...'}</p>
         </div>
       </div>
     );

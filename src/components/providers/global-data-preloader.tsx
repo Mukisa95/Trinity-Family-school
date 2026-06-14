@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDocsFromCache, getCountFromServer } from 'firebase/firestore';
+import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDocsFromCache, getCountFromServer, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';

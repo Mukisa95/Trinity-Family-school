@@ -7,13 +7,15 @@ import { GranularPermissionService } from '@/lib/services/granular-permissions.s
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { liteClearAll } from '@/lib/cache/lite-cache';
 import { logger } from '@/lib/utils/logger';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often to silently re-check permissions from the DB (not a logout timer).
 // The session itself never expires due to time — only permission/role changes invalidate it.
 const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min background sync
+// For legacy (un-timestamped) cache entries, report the age as if they are
+// maximally old so a background refresh is triggered, but still restore the session.
+const AUTH_CACHE_MAX_AGE_MS = AUTH_REFRESH_INTERVAL_MS * 2;
 
 type SessionStatus = 'checking' | 'fresh' | 'stale';
 
@@ -63,7 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const saveUserCache = (userData: SystemUser) => {
     if (typeof window === 'undefined') return;
-    const payload: StoredAuthCache = { user: userData, cachedAt: Date.now() };
+    // SECURITY: Strip any credential or hash fields before persisting to localStorage.
+    // The SystemUser type has an optional `passwordHash` field (marked "for development")
+    // which is built by spreading the raw Firestore document. Even if it somehow ends up
+    // on the object, it must never reach localStorage where XSS could read it.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...safeUser } = userData as SystemUser & { passwordHash?: string };
+    const payload: StoredAuthCache = { user: safeUser as SystemUser, cachedAt: Date.now() };
     localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(payload));
   };
 
@@ -428,8 +436,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         clearUserCache();
         localStorage.removeItem('trinity_account_locked');
-        // Clear the lite cache so the next login gets fresh data
-        liteClearAll();
+        // NOTE: We intentionally do NOT call liteClearAll() here.
+        // Photos, events, and academicYears are school-level public data — they
+        // don't belong to any individual user. Keeping them in the lite cache
+        // means the login page can render all its content instantly from cache
+        // without making any Firestore requests.
       }
     } catch (error) {
       logger.error('Error signing out from Firebase', error);
@@ -440,7 +451,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         clearUserCache();
         localStorage.removeItem('trinity_account_locked');
-        liteClearAll();
+        // Same reasoning — don't clear public system data on logout.
       }
     }
   };

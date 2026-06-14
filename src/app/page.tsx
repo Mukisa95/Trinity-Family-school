@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Users,
   UserCheck,
@@ -77,20 +77,73 @@ import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
 
+const dashboardEase = [0.22, 1, 0.36, 1] as const;
+const softHover = { scale: 1.012, y: -2 };
+const panelMotion = { duration: 0.22, ease: dashboardEase };
+
+const dashboardGroupVariants = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.045,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const dashboardItemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: panelMotion,
+  },
+};
+
+const useDocumentVisible = () => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const updateVisibility = () => setIsVisible(!document.hidden);
+    updateVisibility();
+    document.addEventListener('visibilitychange', updateVisibility);
+    return () => document.removeEventListener('visibilitychange', updateVisibility);
+  }, []);
+
+  return isVisible;
+};
+
 // CountUp component for animated numbers
-// CountUp component for animated numbers
-const CountUp = ({ end, duration = 0.8 }: { end: number; duration?: number }) => {
-  const [count, setCount] = useState(0);
+const CountUp = ({ end, duration = 0.45 }: { end: number; duration?: number }) => {
+  const prefersReducedMotion = useReducedMotion();
+  const [count, setCount] = useState(end);
 
   React.useEffect(() => {
+    if (prefersReducedMotion) {
+      setCount(end);
+      return;
+    }
+
+    const start = count;
+    const delta = end - start;
+    if (delta === 0) return;
+
     let startTime: number;
     let animationFrame: number;
+    let lastValue = start;
 
     const animate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
       // Simple linear easing — cheaper than easeOutQuart
-      setCount(Math.floor(end * progress));
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round(start + delta * eased);
+
+      if (nextValue !== lastValue || progress === 1) {
+        lastValue = nextValue;
+        setCount(nextValue);
+      }
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
       }
@@ -98,7 +151,7 @@ const CountUp = ({ end, duration = 0.8 }: { end: number; duration?: number }) =>
 
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
-  }, [end, duration]);
+  }, [end, duration, prefersReducedMotion]);
 
   return <span>{count.toLocaleString()}</span>;
 };
@@ -1005,7 +1058,7 @@ const ExpandableAttendanceCard = ({
   // Derived active properties
   const currentTitle = activeConfig.title;
   const currentValue = activeConfig.value;
-  const currentIcon = activeConfig.icon;
+  const CurrentIcon = activeConfig.icon;
   const currentColor = activeConfig.color;
   const currentSubtitle = activeConfig.subtitle;
   const currentProgress = activeConfig.progress;
@@ -1105,7 +1158,7 @@ const ExpandableAttendanceCard = ({
             className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-white"
             style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.8)' }}
           >
-            <currentIcon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${currentColor.text}`} />
+            <CurrentIcon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${currentColor.text}`} />
           </div>
         </div>
 
@@ -1227,7 +1280,7 @@ const ExpandableAttendanceCard = ({
                 <CardHeader className="pb-2 border-b flex-shrink-0 relative z-20" style={{ background: currentColor.gradient }}>
                   <div className="flex items-center justify-between mb-2">
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-                      <currentIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${currentColor.text}`} />
+                      <CurrentIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${currentColor.text}`} />
                       <span className="hidden sm:inline">{currentTitle} - By Class</span>
                       <span className="sm:hidden">{currentTitle}</span>
                     </CardTitle>
