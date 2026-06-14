@@ -4,18 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff, LogIn, School, MapPin, Phone, Mail, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  LoginDialog,
-  LoginDialogContent,
-  LoginDialogHeader,
-  LoginDialogTitle,
-  LoginDialogTrigger
-} from "@/components/ui/login-dialog";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
@@ -24,105 +12,8 @@ import { sampleSchoolSettings } from "@/lib/sample-data";
 import Image from "next/image";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PERFORMANCE ARCHITECTURE
-//
-// Problem: The old page had:
-//   • 8 separate setInterval timers → 8 React re-renders every few seconds
-//   • ~25 <motion.div whileInView> → 25 Framer scroll observers running at once
-//   • Animated blur blobs (filter:blur + transform) → very expensive on GPU
-//   • N images mounted with opacity:0 per slideshow → N running CSS transitions
-//   • backdrop-blur-sm on a sticky header → repainted on every scroll pixel
-//
-// Solution:
-//   • ONE shared tick → all slideshows derived, zero extra re-renders
-//   • Lightweight IntersectionObserver Reveal component (no Framer dependency)
-//   • CSS opacity-only keyframes (compositor thread, never triggers layout/paint)
-//   • CSSSlideshow mounts only 2 nodes: current + fading-out previous
+// REVEAL ANIMATION COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-
-// One 800ms tick drives every slideshow — each derives its index via different
-// modulus so galleries advance at different speeds with zero extra timers.
-const TICK_MS = 800;
-
-function useTick() {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), TICK_MS);
-    return () => clearInterval(id);
-  }, []);
-  return tick;
-}
-
-function slideFor(tick: number, len: number, everyMs: number): number {
-  if (len <= 1) return 0;
-  return Math.floor(tick / Math.round(everyMs / TICK_MS)) % len;
-}
-
-// ─── CSSSlideshow ────────────────────────────────────────────────────────────
-// Only 2 DOM nodes active at once (current + fading out).
-// Transitions use opacity CSS keyframes — runs on GPU compositor, never causes
-// layout recalc or paint. No Framer Motion, no filter:blur, no scale animation.
-type SlidePhoto = { id: string; url: string; title: string; description?: string };
-
-function CSSSlideshow({
-  photos,
-  currentSlide,
-  className = "",
-}: {
-  photos: SlidePhoto[];
-  currentSlide: number;
-  className?: string;
-}) {
-  const [displayed, setDisplayed] = useState(currentSlide);
-  const [fading, setFading] = useState(false);
-
-  useEffect(() => {
-    if (currentSlide === displayed) return;
-    setFading(true);
-    const t = setTimeout(() => {
-      setDisplayed(currentSlide);
-      setFading(false);
-    }, 550);
-    return () => clearTimeout(t);
-  }, [currentSlide, displayed]);
-
-  if (photos.length === 0) return null;
-  const cur = photos[currentSlide % photos.length];
-  const prev = photos[displayed % photos.length];
-
-  return (
-    <div className={`relative overflow-hidden ${className}`} style={{ isolation: "isolate" }}>
-      {fading && prev.id !== cur.id && (
-        <div
-          className="absolute inset-0"
-          style={{ animation: "lgFadeOut 0.55s ease forwards", willChange: "opacity" }}
-        >
-          <Image src={prev.url} alt={prev.title} fill className="object-cover" />
-        </div>
-      )}
-      <div
-        className="absolute inset-0"
-        style={{
-          animation: fading ? "lgFadeIn 0.55s ease forwards" : "none",
-          willChange: "opacity",
-        }}
-      >
-        <Image
-          src={cur.url}
-          alt={cur.title}
-          fill
-          className="object-cover"
-          priority={currentSlide === 0}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Reveal ──────────────────────────────────────────────────────────────────
-// Replaces <motion.div whileInView> on ~25 elements.
-// ONE IntersectionObserver per element (disconnects after firing once) vs
-// Framer's persistent scroll listener + animation reconciler overhead.
 function Reveal({
   children,
   delay = 0,
@@ -145,7 +36,7 @@ function Reveal({
           obs.disconnect();
         }
       },
-      { rootMargin: "-60px" }
+      { rootMargin: "-30px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -157,8 +48,8 @@ function Reveal({
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(28px)",
-        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
+        transform: visible ? "translateY(0)" : "translateY(24px)",
+        transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
         willChange: "opacity, transform",
       }}
     >
@@ -167,8 +58,39 @@ function Reveal({
   );
 }
 
+// ─── COUNT UP NUMBER COMPONENT ────────────────────────────────────────────────
+function CountUpNumber({ target }: { target: number }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          let cur = 0;
+          const step = Math.ceil(target / 40) || 1;
+          const timer = setInterval(() => {
+            cur = Math.min(cur + step, target);
+            setCount(cur);
+            if (cur >= target) clearInterval(timer);
+          }, 35);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target]);
+
+  return <span ref={ref}>{count}</span>;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Main Page
+// MAIN PAGE COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
@@ -185,51 +107,72 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // ── Single shared tick
-  const tick = useTick();
+  // Gallery slideshow states
+  const [currentActivitySlide, setCurrentActivitySlide] = useState(0);
+  const [currentFacilitySlide, setCurrentFacilitySlide] = useState(0);
+  const [currentClassroomSlide, setCurrentClassroomSlide] = useState(0);
+  const [currentStaffSlide, setCurrentStaffSlide] = useState(0);
+  const [currentPlaygroundSlide, setCurrentPlaygroundSlide] = useState(0);
+  const [currentGeneralSlide, setCurrentGeneralSlide] = useState(0);
 
-  // ── Memoised photo collections (only recomputed when photos changes)
-  const heroPhotos      = React.useMemo(() => photos?.filter(p => p.usage.includes("homepage") || p.usage.includes("banner")) ?? [], [photos]);
-  const galleryPhotos   = React.useMemo(() => photos?.filter(p => p.usage.includes("gallery")) ?? [], [photos]);
-  const allActive       = React.useMemo(() => photos?.filter(p => p.isActive) ?? [], [photos]);
-  const activityPhotos  = React.useMemo(() => photos?.filter(p => p.category === "activities" || p.category === "events") ?? [], [photos]);
-  const facilityPhotos  = React.useMemo(() => photos?.filter(p => p.category === "facilities" || p.category === "school_building") ?? [], [photos]);
-  const classroomPhotos = React.useMemo(() => photos?.filter(p => p.category === "classroom") ?? [], [photos]);
-  const staffPhotos     = React.useMemo(() => photos?.filter(p => p.category === "staff") ?? [], [photos]);
-  const playgroundPhotos= React.useMemo(() => photos?.filter(p => p.category === "playground") ?? [], [photos]);
-  const generalPhotos   = React.useMemo(() => photos?.filter(p => p.category === "other" && p.usage.includes("general")) ?? [], [photos]);
+  // Auto-advance slideshows
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const activityPhotos = photos?.filter(p => p.category === 'activities' || p.category === 'events') || [];
+      if (activityPhotos.length > 1) {
+        setCurrentActivitySlide(prev => (prev + 1) % activityPhotos.length);
+      }
+      const facilityPhotos = photos?.filter(p => p.category === 'facilities' || p.category === 'school_building') || [];
+      if (facilityPhotos.length > 1) {
+        setCurrentFacilitySlide(prev => (prev + 1) % facilityPhotos.length);
+      }
+      const classroomPhotos = photos?.filter(p => p.category === 'classroom') || [];
+      if (classroomPhotos.length > 1) {
+        setCurrentClassroomSlide(prev => (prev + 1) % classroomPhotos.length);
+      }
+      const staffPhotos = photos?.filter(p => p.category === 'staff') || [];
+      if (staffPhotos.length > 1) {
+        setCurrentStaffSlide(prev => (prev + 1) % staffPhotos.length);
+      }
+      const playgroundPhotos = photos?.filter(p => p.category === 'playground') || [];
+      if (playgroundPhotos.length > 1) {
+        setCurrentPlaygroundSlide(prev => (prev + 1) % playgroundPhotos.length);
+      }
+      const generalPhotos = photos?.filter(p => p.category === 'other' && p.usage.includes('general')) || [];
+      if (generalPhotos.length > 1) {
+        setCurrentGeneralSlide(prev => (prev + 1) % generalPhotos.length);
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [photos]);
 
-  // ── Auto slide indices — all derived from one tick, zero setState calls
-  const heroSlide       = slideFor(tick, heroPhotos.length,       5000);
-  const gallerySlide    = slideFor(tick, galleryPhotos.length,    4000);
-  const mainSlide       = slideFor(tick, allActive.length,        4000);
-  const activitySlide   = slideFor(tick, activityPhotos.length,   4500);
-  const facilitySlide   = slideFor(tick, facilityPhotos.length,   4000);
-  const classroomSlide  = slideFor(tick, classroomPhotos.length,  5000);
-  const staffSlide      = slideFor(tick, staffPhotos.length,      6000);
-  const playgroundSlide = slideFor(tick, playgroundPhotos.length, 7000);
-  const generalSlide    = slideFor(tick, generalPhotos.length,    8000);
+  // ── Block scroll on page when modal is active
+  useEffect(() => {
+    if (showLoginModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showLoginModal]);
 
-  // ── Manual nav deltas (added to the auto index so auto-play continues)
-  const [heroDelta,    setHeroDelta]    = useState(0);
-  const [galleryDelta, setGalleryDelta] = useState(0);
-  const [mainDelta,    setMainDelta]    = useState(0);
+  // ── Keyboard escape listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowLoginModal(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
-  const manualHero    = heroPhotos.length    > 0 ? (heroSlide    + heroDelta    + heroPhotos.length    * 1000) % heroPhotos.length    : 0;
-  const manualGallery = galleryPhotos.length > 0 ? (gallerySlide + galleryDelta + galleryPhotos.length * 1000) % galleryPhotos.length : 0;
-  const manualMain    = allActive.length     > 0 ? (mainSlide    + mainDelta    + allActive.length     * 1000) % allActive.length     : 0;
-
-  // ── Touch swipe for main photo card
-  const [touchX, setTouchX] = useState<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => setTouchX(e.targetTouches[0].clientX);
-  const handleTouchEnd   = (e: React.TouchEvent) => {
-    if (touchX == null) return;
-    const dist = touchX - e.changedTouches[0].clientX;
-    if (Math.abs(dist) > 50) setMainDelta(v => v + (dist > 0 ? 1 : -1));
-    setTouchX(null);
-  };
+  // ── Calculate established years dynamically
+  const establishedYear = parseInt(settings.generalInfo.establishedYear || "2009", 10);
+  const currentYear = new Date().getFullYear();
+  const yearsOfExcellence = isNaN(establishedYear) ? 17 : Math.max(1, currentYear - establishedYear);
 
   // ── Login submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -244,7 +187,7 @@ export default function LoginPage() {
       const ok = await login(username.trim(), password);
       if (ok) {
         toast({ title: "Login Successful", description: `Welcome to ${settings.generalInfo.name}` });
-        setShowLoginDialog(false);
+        setShowLoginModal(false);
         router.push("/");
       } else {
         setError("Invalid username or password. Please try again.");
@@ -258,526 +201,1211 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* CSS keyframes — injected once, no runtime JS cost */}
       <style>{`
-        @keyframes lgFadeIn  { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes lgFadeOut { from { opacity: 1 } to { opacity: 0 } }
-        @keyframes lgPulse   { 0%,100% { opacity: .12 } 50% { opacity: .26 } }
-        @keyframes lgRise    { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        .trinity-portal-landing {
+          --trinity-navy:   #1a2340;
+          --trinity-green:  #1a7a4a;
+          --trinity-green2: #22a05a;
+          --trinity-gold:   #d4a017;
+          --trinity-gold2:  #f0b429;
+          --trinity-text:   #1a2340;
+          --trinity-muted:  #555e75;
+          --trinity-light:  #f4f6fa;
+          --trinity-white:  #ffffff;
+          --trinity-border: #e2e6ef;
+          
+          font-family: 'Inter', sans-serif;
+          background: var(--trinity-white);
+          color: var(--trinity-text);
+          overflow-x: hidden;
+        }
+
+        .dark .trinity-portal-landing {
+          --trinity-navy:   #0f172a;
+          --trinity-green:  #22c55e;
+          --trinity-green2: #4ade80;
+          --trinity-gold:   #eab308;
+          --trinity-gold2:  #facc15;
+          --trinity-text:   #f8fafc;
+          --trinity-muted:  #94a3b8;
+          --trinity-light:  #1e293b;
+          --trinity-white:  #0f172a;
+          --trinity-border: #334155;
+        }
+
+        .trinity-portal-landing h1, 
+        .trinity-portal-landing h2, 
+        .trinity-portal-landing h3, 
+        .trinity-portal-landing h4,
+        .trinity-portal-landing .font-space-grotesk {
+          font-family: 'Inter', sans-serif;
+        }
+
+        .trinity-portal-landing ::-webkit-scrollbar {
+          width: 5px;
+        }
+        .trinity-portal-landing ::-webkit-scrollbar-track {
+          background: #f0f2ff;
+        }
+        .dark .trinity-portal-landing ::-webkit-scrollbar-track {
+          background: #1e293b;
+        }
+        .trinity-portal-landing ::-webkit-scrollbar-thumb {
+          background: var(--trinity-navy);
+          border-radius: 4px;
+        }
+
+        /* Topbar styling */
+        .trinity-portal-landing .topbar {
+          background: var(--trinity-navy);
+          padding: 9px 5%;
+          display: flex; align-items:center; justify-content:space-between;
+          font-size: 13px; color: rgba(255,255,255,.85);
+        }
+        .trinity-portal-landing .topbar-left { display:flex; align-items:center; gap:24px; }
+        .trinity-portal-landing .topbar-right { display:flex; align-items:center; gap:22px; }
+        .trinity-portal-landing .topbar a { color:rgba(255,255,255,.85); text-decoration:none; display:flex; align-items:center; gap:6px; transition:color .2s; }
+        .trinity-portal-landing .topbar a:hover { color:#fff; }
+        .trinity-portal-landing .topbar-divider { width:1px; height:14px; background:rgba(255,255,255,.2); }
+        .trinity-portal-landing .social-icons { display:flex; gap:14px; }
+        .trinity-portal-landing .social-icons a { color: rgba(255,255,255,.85); transition: color .2s; }
+        .trinity-portal-landing .social-icons a:hover { color: #fff; }
+
+        /* Navigation Header */
+        .trinity-portal-landing .mainnav {
+          background: var(--trinity-white);
+          padding: 0 5%;
+          display: flex; align-items:center; justify-content:space-between;
+          border-bottom: 1px solid var(--trinity-border);
+          position: sticky; top:0; z-index:200;
+          box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        }
+
+        .trinity-portal-landing .brand { display:flex; align-items:center; gap:14px; text-decoration:none; padding: 12px 0; }
+        .trinity-portal-landing .brand-text { line-height:1.2; }
+        .trinity-portal-landing .brand-text .name { font-size:20px; font-weight:800; color:var(--trinity-navy); letter-spacing:-.01em; }
+        .trinity-portal-landing .brand-text .sub  { font-size:12px; font-weight:600; color:var(--trinity-muted); letter-spacing:.04em; text-transform:uppercase; }
+
+        .trinity-portal-landing .nav-links { display:flex; align-items:center; gap:2px; }
+        .trinity-portal-landing .nav-links a {
+          color: var(--trinity-text); text-decoration:none; font-size:14px; font-weight:500;
+          padding: 26px 16px; display:block; position:relative;
+          transition: color .2s;
+        }
+        .trinity-portal-landing .nav-links a:hover { color:var(--trinity-navy); }
+        .trinity-portal-landing .nav-links a.active { color:var(--trinity-navy); font-weight:700; }
+        .trinity-portal-landing .nav-links a.active::after {
+          content:''; position:absolute; bottom:0; left:16px; right:16px; height:3px;
+          background: var(--trinity-gold2); border-radius:2px 2px 0 0;
+        }
+
+        .trinity-portal-landing .btn-parent {
+          background: var(--trinity-white); border: 2px solid var(--trinity-navy);
+          color: var(--trinity-navy); padding:9px 20px; border-radius:8px;
+          font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+          cursor:pointer; display:flex; align-items:center; gap:7px;
+          transition: background .2s, color .2s;
+        }
+        .trinity-portal-landing .btn-parent:hover { background:var(--trinity-navy); color:#fff; }
+        .trinity-portal-landing .btn-staff {
+          background: var(--trinity-navy); border:2px solid var(--trinity-navy);
+          color: #fff; padding:9px 20px; border-radius:8px;
+          font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
+          cursor:pointer; display:flex; align-items:center; gap:7px;
+          transition: background .2s, box-shadow .2s;
+        }
+        .trinity-portal-landing .btn-staff:hover { background:#0f1a30; box-shadow:0 4px 14px rgba(26,35,64,.3); }
+
+        /* Split Hero */
+        .trinity-portal-landing .hero {
+          display:grid; grid-template-columns: 1fr 1fr;
+          min-height: 520px;
+          background: var(--trinity-white);
+          position:relative; overflow:hidden;
+        }
+
+        .trinity-portal-landing .hero-left {
+          padding: 60px 5% 50px 5%;
+          display:flex; flex-direction:column; justify-content:center;
+          position:relative; z-index:2;
+        }
+
+        .trinity-portal-landing .admissions-badge {
+          display:inline-flex; align-items:center; gap:9px;
+          background: var(--trinity-gold2); color: var(--trinity-navy);
+          padding: 8px 18px; border-radius:999px;
+          font-size: 12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+          margin-bottom: 26px; width:fit-content;
+          box-shadow: 0 4px 16px rgba(240,180,41,.35);
+        }
+
+        .trinity-portal-landing .hero-heading {
+          font-size: clamp(2.2rem, 4.2vw, 3.4rem);
+          font-weight:800; line-height:1.1; letter-spacing:-.02em;
+          margin-bottom: 4px;
+        }
+        .trinity-portal-landing .hero-heading .line1 { color: var(--trinity-navy); display:block; }
+        .trinity-portal-landing .hero-heading .line2 { color: var(--trinity-green); display:block; }
+
+        .trinity-portal-landing .hero-underline {
+          width:52px; height:4px; background:var(--trinity-gold2); border-radius:2px;
+          margin: 14px 0 22px;
+        }
+
+        .trinity-portal-landing .hero-desc {
+          font-size:15px; color:var(--trinity-muted); line-height:1.72; max-width:400px;
+          margin-bottom:30px;
+        }
+
+        .trinity-portal-landing .hero-cta { display:flex; gap:14px; align-items:center; margin-bottom:44px; }
+        .trinity-portal-landing .cta-apply {
+          background:var(--trinity-navy); color:#fff; border:2px solid var(--trinity-navy);
+          padding:13px 26px; border-radius:8px;
+          font-family:'Inter',sans-serif; font-weight:700; font-size:14.5px;
+          cursor:pointer; display:flex; align-items:center; gap:8px;
+          transition:background .2s, transform .2s;
+        }
+        .trinity-portal-landing .cta-apply:hover { background:#0f1a30; transform:translateY(-2px); }
+        .trinity-portal-landing .cta-contact {
+          background:transparent; color:var(--trinity-navy); border:2px solid var(--trinity-navy);
+          padding:13px 24px; border-radius:8px;
+          font-family:'Inter',sans-serif; font-weight:600; font-size:14.5px;
+          cursor:pointer; display:flex; align-items:center; gap:8px;
+          transition:background .2s, color .2s;
+        }
+        .trinity-portal-landing .cta-contact:hover { background:var(--trinity-navy); color:#fff; }
+
+        .trinity-portal-landing .hero-stats {
+          display:flex; gap:0; align-items:flex-start;
+        }
+        .trinity-portal-landing .hstat {
+          padding-right:28px; margin-right:28px;
+          border-right:1px solid var(--trinity-border);
+        }
+        .trinity-portal-landing .hstat:last-child { border-right:none; padding-right:0; margin-right:0; }
+        .trinity-portal-landing .hstat-icon { font-size:22px; margin-bottom:5px; }
+        .trinity-portal-landing .hstat-icon.green { color:var(--trinity-green); }
+        .trinity-portal-landing .hstat-icon.blue  { color:#2563eb; }
+        .trinity-portal-landing .hstat-icon.gold  { color:var(--trinity-gold2); }
+        .trinity-portal-landing .hstat-icon.teal  { color:#0ea5a0; }
+        .trinity-portal-landing .hstat-val { font-size:1.6rem; font-weight:800; color:var(--trinity-navy); line-height:1.1; }
+        .trinity-portal-landing .hstat-label { font-size:12px; color:var(--trinity-muted); font-weight:500; margin-top:2px; }
+
+        /* Right panel photo styles */
+        .trinity-portal-landing .hero-right {
+          position:relative; overflow:hidden;
+        }
+        .trinity-portal-landing .hero-photo {
+          width:100%; height:100%; object-fit:cover; object-position:center top;
+          display:block;
+          filter:brightness(.97);
+        }
+        .trinity-portal-landing .hero-right::before {
+          content:''; position:absolute; top:0; left:0; bottom:0; width:120px; z-index:2;
+          background:linear-gradient(to right, var(--trinity-white) 0%, transparent 100%);
+        }
+        .trinity-portal-landing .hero-card {
+          position:absolute; bottom:20px; right:20px; z-index:3;
+          background:#fff; border-radius:14px; padding:14px 20px;
+          box-shadow:0 8px 32px rgba(0,0,0,.12);
+          display:flex; align-items:center; gap:12px;
+          min-width:180px;
+        }
+        .dark .trinity-portal-landing .hero-card {
+          background:#1e293b;
+        }
+        .trinity-portal-landing .hero-card-icon { font-size:26px; }
+        .trinity-portal-landing .hero-card-text strong { display:block; font-size:14px; font-weight:700; color:var(--trinity-navy); }
+        .trinity-portal-landing .hero-card-text span { font-size:12px; color:var(--trinity-green); font-weight:600; }
+
+        /* Quick Links Ribbon */
+        .trinity-portal-landing .quicklinks {
+          background:var(--trinity-white);
+          border-radius:16px;
+          margin: 0 4% -24px;
+          position:relative; z-index:10;
+          box-shadow: 0 8px 40px rgba(0,0,0,.1);
+          display:grid; grid-template-columns:repeat(5,1fr);
+          overflow:hidden;
+        }
+        .trinity-portal-landing .ql-item {
+          display:flex; align-items:center; gap:14px;
+          padding:22px 20px;
+          border-right:1px solid var(--trinity-border);
+          text-decoration:none; color:var(--trinity-text);
+          transition:background .2s;
+          cursor:pointer;
+        }
+        .trinity-portal-landing .ql-item:last-child { border-right:none; }
+        .trinity-portal-landing .ql-item:hover { background:var(--trinity-light); }
+        .trinity-portal-landing .ql-icon {
+          width:44px; height:44px; border-radius:12px;
+          display:flex; align-items:center; justify-content:center;
+          font-size:20px; flex-shrink:0;
+        }
+        .trinity-portal-landing .ic-green  { background:#e8f7ee; color:#1a7a4a; }
+        .trinity-portal-landing .ic-gold   { background:#fef8e7; color:#d4a017; }
+        .trinity-portal-landing .ic-blue   { background:#e8f0fe; color:#2563eb; }
+        .trinity-portal-landing .ic-purple { background:#f0ebff; color:#7c3aed; }
+        .trinity-portal-landing .ic-teal   { background:#e6f7f7; color:#0ea5a0; }
+        .trinity-portal-landing .ql-text strong { display:block; font-size:14px; font-weight:700; color:var(--trinity-navy); }
+        .trinity-portal-landing .ql-text span   { font-size:12px; color:var(--trinity-muted); font-weight:400; margin-top:1px; display:block; }
+
+        /* Why Choose Section */
+        .trinity-portal-landing .why-section {
+          padding: 100px 5% 80px;
+          background: var(--trinity-light);
+        }
+        .trinity-portal-landing .why-section h2 { text-align:center; font-size:2rem; font-weight:800; color:var(--trinity-navy); margin-bottom:10px; }
+        .trinity-portal-landing .why-underline { width:52px; height:4px; background:var(--trinity-gold2); border-radius:2px; margin:0 auto 50px; }
+
+        .trinity-portal-landing .why-grid {
+          max-width:1200px; margin:0 auto;
+          display:grid; grid-template-columns:repeat(6,1fr); gap:16px;
+        }
+        .trinity-portal-landing .why-card {
+          background:var(--trinity-white); border-radius:14px; padding:28px 18px 24px;
+          border:1px solid var(--trinity-border);
+          text-align:center;
+          transition:transform .3s, box-shadow .3s;
+        }
+        .trinity-portal-landing .why-card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(0,0,0,.1); }
+        .trinity-portal-landing .why-icon-wrap {
+          width:52px; height:52px; border-radius:14px; margin:0 auto 14px;
+          display:flex; align-items:center; justify-content:center; font-size:24px;
+        }
+        .trinity-portal-landing .wc1 { background:#e8f7ee; }
+        .trinity-portal-landing .wc2 { background:#e8f0fe; }
+        .trinity-portal-landing .wc3 { background:#fff3e0; }
+        .trinity-portal-landing .wc4 { background:#e3f2fd; }
+        .trinity-portal-landing .wc5 { background:#fce4ec; }
+        .trinity-portal-landing .wc6 { background:#e8f7ee; }
+        .trinity-portal-landing .why-card h4 { font-size:13.5px; font-weight:700; color:var(--trinity-navy); margin-bottom:6px; line-height:1.3; }
+        .trinity-portal-landing .why-card p  { font-size:12px; color:var(--trinity-muted); line-height:1.6; }
+
+        .trinity-portal-landing .footer { background:var(--trinity-navy); color:rgba(255,255,255,.7); text-align:center; padding:24px 5%; font-size:13px; }
+        .trinity-portal-landing .footer a { color:rgba(255,255,255,.7); text-decoration:none; }
+
+        /* About Us Section */
+        .trinity-portal-landing .about-section {
+          padding: 90px 5% 80px;
+          background: var(--trinity-white);
+        }
+        .trinity-portal-landing .about-section h2 { text-align:center; font-size:2rem; font-weight:800; color:var(--trinity-navy); margin-bottom:10px; }
+        .trinity-portal-landing .about-subtitle { text-align:center; font-size:15px; color:var(--trinity-muted); max-width:600px; margin:0 auto 20px; line-height:1.6; }
+        .trinity-portal-landing .about-underline { width:52px; height:4px; background:var(--trinity-gold2); border-radius:2px; margin:0 auto 50px; }
+
+        .trinity-portal-landing .about-grid {
+          max-width:1200px; margin:0 auto;
+          display:grid; grid-template-columns:repeat(3,1fr); gap:24px;
+        }
+        .trinity-portal-landing .about-card {
+          background:var(--trinity-light); border-radius:18px; padding:38px 28px;
+          border:1px solid var(--trinity-border);
+          text-align:center;
+          transition:transform .3s, box-shadow .3s;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        }
+        .trinity-portal-landing .about-card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(0,0,0,.08); }
+        .trinity-portal-landing .about-icon-wrap {
+          width:60px; height:60px; border-radius:50%; margin-bottom:20px;
+          display:flex; align-items:center; justify-content:center;
+          font-size:24px;
+        }
+        .trinity-portal-landing .ab1 { background:#e8f0fe; color:#2563eb; }
+        .trinity-portal-landing .ab2 { background:#f0ebff; color:#7c3aed; }
+        .trinity-portal-landing .ab3 { background:#e8f7ee; color:#1a7a4a; }
+        .trinity-portal-landing .about-card h3 { font-size:18px; font-weight:700; color:var(--trinity-navy); margin-bottom:12px; }
+        .trinity-portal-landing .about-card p { font-size:14px; color:var(--trinity-muted); line-height:1.6; }
+        
+        .trinity-portal-landing .values-list { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px; }
+        .trinity-portal-landing .value-tag {
+          background:var(--trinity-white); border:1px solid var(--trinity-border);
+          padding:4px 12px; border-radius:99px; font-size:12px; font-weight:600; color:var(--trinity-navy);
+        }
+
+        /* Contact Section */
+        .trinity-portal-landing .contact-section {
+          padding: 90px 5% 85px;
+          background: var(--trinity-light);
+          border-top: 1px solid var(--trinity-border);
+        }
+        .trinity-portal-landing .contact-section h2 { text-align:center; font-size:2rem; font-weight:800; color:var(--trinity-navy); margin-bottom:10px; }
+        .trinity-portal-landing .contact-subtitle { text-align:center; font-size:15px; color:var(--trinity-muted); max-width:600px; margin:0 auto 20px; line-height:1.6; }
+        .trinity-portal-landing .contact-underline { width:52px; height:4px; background:var(--trinity-gold2); border-radius:2px; margin:0 auto 50px; }
+
+        .trinity-portal-landing .contact-grid {
+          max-width:1200px; margin:0 auto;
+          display:grid; grid-template-columns:repeat(4,1fr); gap:20px;
+        }
+        .trinity-portal-landing .contact-card {
+          background:var(--trinity-white); border-radius:18px; padding:30px 20px;
+          border:1px solid var(--trinity-border);
+          text-align:center;
+          transition:transform .3s, box-shadow .3s;
+          display: flex; flex-direction: column; align-items: center;
+        }
+        .trinity-portal-landing .contact-card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(0,0,0,.08); }
+        .trinity-portal-landing .contact-icon-wrap {
+          width:56px; height:56px; border-radius:16px; margin-bottom:18px;
+          display:flex; align-items:center; justify-content:center;
+          font-size:22px;
+        }
+        .trinity-portal-landing .co1 { background:#e8f0fe; color:#2563eb; }
+        .trinity-portal-landing .co2 { background:#e8f7ee; color:#1a7a4a; }
+        .trinity-portal-landing .co3 { background:#f0ebff; color:#7c3aed; }
+        .trinity-portal-landing .co4 { background:#fef8e7; color:#d4a017; }
+        .trinity-portal-landing .contact-card h4 { font-size:15px; font-weight:700; color:var(--trinity-navy); margin-bottom:10px; }
+        .trinity-portal-landing .contact-card p,
+        .trinity-portal-landing .contact-card a { font-size:13px; color:var(--trinity-muted); line-height:1.6; word-break:break-all; text-decoration:none; }
+        .trinity-portal-landing .contact-card a:hover { color:var(--trinity-navy); text-decoration:underline; }
+
+        /* Gallery Section */
+        .trinity-portal-landing .gallery-section {
+          padding: 90px 5% 85px;
+          background: var(--trinity-white);
+          border-top: 1px solid var(--trinity-border);
+        }
+        .trinity-portal-landing .gallery-section h2 { text-align:center; font-size:2rem; font-weight:800; color:var(--trinity-navy); margin-bottom:10px; }
+        .trinity-portal-landing .gallery-subtitle { text-align:center; font-size:15px; color:var(--trinity-muted); max-width:600px; margin:0 auto 20px; line-height:1.6; }
+        .trinity-portal-landing .gallery-underline { width:52px; height:4px; background:var(--trinity-gold2); border-radius:2px; margin:0 auto 50px; }
+
+        .trinity-portal-landing .gallery-grid {
+          max-width:1200px; margin:0 auto;
+          display:grid; grid-template-columns:repeat(3,1fr); gap:24px;
+        }
+        .trinity-portal-landing .gallery-card {
+          background:var(--trinity-white); border-radius:18px;
+          border:1px solid var(--trinity-border);
+          overflow:hidden;
+          box-shadow:0 4px 16px rgba(0,0,0,.04);
+          transition:transform .3s, box-shadow .3s;
+        }
+        .trinity-portal-landing .gallery-card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(0,0,0,.08); }
+        
+        .trinity-portal-landing .gallery-image-container {
+          position:relative; height:240px; width:100%; overflow:hidden;
+        }
+        .trinity-portal-landing .gallery-overlay {
+          position:absolute; inset:0;
+          background:linear-gradient(to top, rgba(26,35,64,0.85) 0%, rgba(26,35,64,0.2) 60%, transparent 100%);
+          z-index:2;
+        }
+        .trinity-portal-landing .gallery-card-content {
+          position:absolute; bottom:0; left:0; right:0; padding:20px; z-index:3;
+          color:var(--trinity-white);
+          text-align: left;
+        }
+        .trinity-portal-landing .gallery-card-content h4 { font-size:16px; font-weight:700; color:#fff; margin-bottom:4px; }
+        .trinity-portal-landing .gallery-card-content p { font-size:12.5px; color:rgba(255,255,255,0.85); margin:0; line-height:1.4; }
+
+        /* Glassmorphic Modal */
+        .trinity-portal-landing .modal-overlay {
+          position:fixed; inset:0; z-index:1000;
+          display:flex; align-items:center; justify-content:center;
+          opacity:0; pointer-events:none; transition:opacity .35s ease;
+          overflow:hidden;
+          backdrop-filter:blur(10px);
+          -webkit-backdrop-filter:blur(10px);
+          background:rgba(0,0,0,.25);
+        }
+        .trinity-portal-landing .modal-overlay.open { opacity:1; pointer-events:auto; }
+        
+        .trinity-portal-landing .modal-backdrop {
+          position:absolute; inset:0;
+          background:transparent;
+        }
+        .trinity-portal-landing .m-orb { position:absolute; border-radius:50%; filter:blur(72px); pointer-events:none; }
+        .trinity-portal-landing .m-orb1 { width:500px;height:500px;top:-150px;left:-140px;background:radial-gradient(circle,rgba(79,99,255,.45),transparent 70%);animation:orbFloat 20s ease-in-out infinite;opacity:.65; }
+        .trinity-portal-landing .m-orb2 { width:450px;height:450px;bottom:-140px;right:-130px;background:radial-gradient(circle,rgba(0,200,230,.35),transparent 70%);animation:orbFloat 26s ease-in-out infinite reverse;opacity:.55; }
+        .trinity-portal-landing .m-orb3 { width:280px;height:280px;top:38%;right:14%;background:radial-gradient(circle,rgba(160,100,255,.28),transparent 70%);animation:orbFloat 18s ease-in-out infinite 6s;opacity:.4; }
+        .trinity-portal-landing .m-orb4 { width:200px;height:200px;top:14%;left:18%;background:radial-gradient(circle,rgba(245,158,11,.2),transparent 70%);animation:orbFloat 22s ease-in-out infinite 3s;opacity:.35; }
+        
+        .trinity-portal-landing .modal-grid {
+          position:absolute;inset:0;
+          background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+          background-size:70px 70px;
+          mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black,transparent);
+        }
+
+        .trinity-portal-landing .modal-card {
+          position:relative; z-index:5;
+          width:min(420px,92vw); margin:20px;
+          padding:32px; border-radius:28px;
+          background:rgba(255,255,255,.12);
+          border:1px solid rgba(255,255,255,.2);
+          backdrop-filter:blur(24px) saturate(180%);
+          -webkit-backdrop-filter:blur(24px) saturate(180%);
+          box-shadow:0 10px 50px rgba(0,0,0,.25);
+          color:#fff;
+          transform:translateY(30px) scale(.95); opacity:0;
+          transition:transform .5s cubic-bezier(.22,1,.36,1), opacity .4s ease;
+        }
+        .trinity-portal-landing .modal-overlay.open .modal-card { transform:translateY(0) scale(1); opacity:1; }
+
+        .trinity-portal-landing .modal-close {
+          position:absolute; top:24px; right:24px;
+          background:transparent; border:none;
+          color:#fff; font-size:18px; cursor:pointer;
+          opacity:.8; transition:opacity .2s;
+        }
+        .trinity-portal-landing .modal-close:hover { opacity:1; transform:scale(1.1); }
+
+        .trinity-portal-landing .modal-top { text-align:left; margin-bottom:24px; }
+        .trinity-portal-landing .modal-top h2 { font-size:1.6rem; font-weight:700; margin-bottom:8px; color:#fff; }
+        .trinity-portal-landing .modal-top p  { font-size:.95rem; color:rgba(255,255,255,.8); margin-bottom:0; }
+
+        .trinity-portal-landing .mfield { margin-bottom:18px; }
+        .trinity-portal-landing .mfield label { display:block; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-bottom:8px; }
+        .trinity-portal-landing .input-row { position:relative; }
+        .trinity-portal-landing .input-row .iicon { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,.35); pointer-events:none; }
+        
+        .trinity-portal-landing .mfield input {
+          width:100%; padding:15px 15px 15px 44px;
+          background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+          border-radius:14px; color:#fff; font-size:14px;
+          outline:none;
+          transition:background .25s, border-color .25s, box-shadow .25s;
+        }
+        .trinity-portal-landing .mfield input::placeholder { color:rgba(255,255,255,.4); }
+        .trinity-portal-landing .mfield input:focus { border-color:#60a5fa; box-shadow:0 0 0 4px rgba(96,165,250,.15); background:rgba(255,255,255,.12); }
+        
+        .trinity-portal-landing .eye-btn { position:absolute; right:16px; top:50%; transform:translateY(-50%); cursor:pointer; color:rgba(255,255,255,.35); transition:color .2s; }
+        .trinity-portal-landing .eye-btn:hover { color:rgba(255,255,255,.7); }
+
+        .trinity-portal-landing .mrow {
+          display:flex; align-items:center; justify-content:space-between;
+          margin-bottom:24px; font-size:12.5px;
+        }
+        .trinity-portal-landing .mrow label { display:flex; align-items:center; gap:7px; color:rgba(255,255,255,.6); cursor:pointer; }
+        .trinity-portal-landing .mrow input[type=checkbox] { accent-color:#4F63FF; }
+        .trinity-portal-landing .mrow a { color:#67e8f9; text-decoration:none; font-weight:600; }
+        .trinity-portal-landing .mrow a:hover { text-decoration:underline; }
+
+        .trinity-portal-landing .modal-submit {
+          width:100%; padding:15px; border:none; border-radius:14px;
+          background:linear-gradient(135deg,#2563eb,#4f46e5);
+          color:#fff; font-weight:700; font-size:14.5px;
+          cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+          box-shadow:0 8px 20px rgba(37,99,235,.25);
+          transition:transform .2s, box-shadow .2s;
+        }
+        .trinity-portal-landing .modal-submit:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(37,99,235,.45); }
+        .trinity-portal-landing .modal-submit:active { transform:scale(.98); }
+        .trinity-portal-landing .modal-submit.loading { pointer-events:none; }
+        .trinity-portal-landing .modal-submit .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;display:none;animation:spin .7s linear infinite; }
+        .trinity-portal-landing .modal-submit.loading .spinner { display:inline-block; }
+        .trinity-portal-landing .modal-submit.loading .btn-text { display:none; }
+
+        .trinity-portal-landing .modal-divider { display:flex;align-items:center;gap:10px;margin:22px 0 14px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3); }
+        .trinity-portal-landing .modal-divider::before,
+        .trinity-portal-landing .modal-divider::after { content:'';flex:1;height:1px;background:rgba(255,255,255,.08); }
+        
+        .trinity-portal-landing .modal-foot { text-align:center;font-size:12.5px;color:rgba(255,255,255,.4); }
+        .trinity-portal-landing .modal-foot strong { color:rgba(255,255,255,.75); }
+
+        @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(50px,-40px) scale(1.1);} 66%{transform:translate(-30px,40px) scale(.92);} }
+        @keyframes spin { to{transform:rotate(360deg);} }
+
+        /* Responsive Grid fixes */
+        @media (max-width: 1024px) {
+          .trinity-portal-landing .why-grid { grid-template-columns: repeat(3, 1fr); }
+          .trinity-portal-landing .quicklinks { grid-template-columns: repeat(3, 1fr); margin-bottom: 24px; }
+          .trinity-portal-landing .about-grid { grid-template-columns: repeat(2, 1fr); }
+          .trinity-portal-landing .contact-grid { grid-template-columns: repeat(2, 1fr); }
+          .trinity-portal-landing .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+          .trinity-portal-landing .hero { grid-template-columns: 1fr; }
+          .trinity-portal-landing .hero-left { padding: 48px 5%; }
+          .trinity-portal-landing .hero-right { height: 360px; }
+          .trinity-portal-landing .quicklinks { grid-template-columns: repeat(2, 1fr); margin: 0 4% 20px; }
+          .trinity-portal-landing .why-grid { grid-template-columns: repeat(2, 1fr); }
+          .trinity-portal-landing .about-grid { grid-template-columns: 1fr; }
+          .trinity-portal-landing .contact-grid { grid-template-columns: repeat(2, 1fr); }
+          .trinity-portal-landing .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+          .trinity-portal-landing .nav-links { display: none; }
+          .trinity-portal-landing .topbar { flex-direction: column; gap: 8px; text-align: center; }
+        }
+        @media (max-width: 480px) {
+          .trinity-portal-landing .quicklinks { grid-template-columns: 1fr; }
+          .trinity-portal-landing .why-grid { grid-template-columns: 1fr; }
+          .trinity-portal-landing .about-grid { grid-template-columns: 1fr; }
+          .trinity-portal-landing .contact-grid { grid-template-columns: 1fr; }
+          .trinity-portal-landing .gallery-grid { grid-template-columns: 1fr; }
+          .trinity-portal-landing .hero-stats { flex-wrap: wrap; gap: 20px; }
+          .trinity-portal-landing .hstat { border-right: none; padding-right: 0; margin-right: 0; }
+        }
       `}</style>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-
-        {/* ────────── HEADER ────────────────────────────────────────────── */}
-        <header className="relative z-50 bg-white/96 dark:bg-gray-900/96 border-b shadow-sm">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              {settings.generalInfo.logo ? (
-                <Image
-                  src={settings.generalInfo.logo}
-                  alt="School Logo"
-                  width={48}
-                  height={48}
-                  className="rounded-full"
-                  priority
-                  loading="eager"
-                />
-              ) : (
-                <div className="h-12 w-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                  <School className="h-6 w-6 text-white" />
-                </div>
-              )}
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{settings.generalInfo.name}</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{settings.generalInfo.motto}</p>
-              </div>
-            </div>
-
-            <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-              <LoginDialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Login
-                </Button>
-              </LoginDialogTrigger>
-              <LoginDialogContent>
-                <LoginDialogHeader>
-                  <div className="mx-auto mb-4">
-                    {settings.generalInfo.logo ? (
-                      <div className="relative w-16 h-16 mx-auto">
-                        <Image
-                          src={settings.generalInfo.logo}
-                          alt="School Logo"
-                          fill
-                          className="object-contain"
-                          loading="eager"
-                          priority
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                        <School className="h-8 w-8 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <LoginDialogTitle>Welcome Back</LoginDialogTitle>
-                  <p className="text-sm text-muted-foreground">Sign in to access {settings.generalInfo.name}</p>
-                </LoginDialogHeader>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {error && (
-                    <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/20">
-                      <AlertDescription className="text-red-800 dark:text-red-200">{error}</AlertDescription>
-                    </Alert>
-                  )}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username" className="text-sm font-medium">Username</Label>
-                      <Input
-                        id="username"
-                        type="text"
-                        placeholder="Enter your username"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                        disabled={isSubmitting}
-                        className="h-12 border-gray-200 dark:border-gray-700 focus:border-blue-500 rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          disabled={isSubmitting}
-                          className="h-12 pr-12 border-gray-200 dark:border-gray-700 focus:border-blue-500 rounded-xl"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-1 top-1 h-10 w-10 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isSubmitting}
-                        >
-                          {showPassword
-                            ? <EyeOff className="h-4 w-4 text-gray-500" />
-                            : <Eye    className="h-4 w-4 text-gray-500" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
-                    disabled={isSubmitting || isLoading}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <span className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full inline-block animate-spin" />
-                        Signing In...
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Sign In
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </LoginDialogContent>
-            </LoginDialog>
+      <div className="trinity-portal-landing min-h-screen">
+        
+        {/* ────────── TOP INFO BAR ───────────────────────────────────────── */}
+        <div className="topbar">
+          <div className="topbar-left">
+            <a href={`tel:${settings.contact.phone || "+256 700 123 456"}`}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.34a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              {settings.contact.phone || "+256 700 123 456"}
+            </a>
+            <div className="topbar-divider" />
+            <a href={`mailto:${settings.contact.email || "info@trinityschool.ac.ug"}`}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              {settings.contact.email || "info@trinityschool.ac.ug"}
+            </a>
           </div>
-        </header>
-
-        {/* ────────── HERO ──────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden" style={{ minHeight: "clamp(200px, 40vh, 480px)" }}>
-          {heroPhotos.length > 0 ? (
-            <div className="relative" style={{ minHeight: "clamp(200px, 40vh, 480px)" }}>
-              <CSSSlideshow
-                photos={heroPhotos}
-                currentSlide={manualHero}
-                className="absolute inset-0"
-              />
-
-              {/* Overlay text */}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <div className="text-center text-white max-w-4xl px-4" style={{ animation: "lgRise 0.7s ease both" }}>
-                  <h2 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-                    Welcome to {settings.generalInfo.name}
-                  </h2>
-                  <p className="text-xl md:text-2xl mb-4 opacity-90">{settings.generalInfo.motto}</p>
-                  <p className="text-base md:text-lg max-w-2xl mx-auto opacity-80">
-                    {settings.visionMissionValues.description || "Nurturing excellence in education and character development."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Nav */}
-              {heroPhotos.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setHeroDelta(d => d - 1)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center transition-colors duration-150"
-                    aria-label="Previous slide"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => setHeroDelta(d => d + 1)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center transition-colors duration-150"
-                    aria-label="Next slide"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                  {/* Pill indicators */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1.5">
-                    {heroPhotos.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setHeroDelta(i - heroSlide)}
-                        className={`rounded-full transition-all duration-200 ${i === manualHero ? "w-6 h-2.5 bg-white" : "w-2.5 h-2.5 bg-white/50"}`}
-                        aria-label={`Go to slide ${i + 1}`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            /* Fallback: pure CSS ambient blobs — opacity only, compositor thread only */
-            <div
-              className="flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800"
-              style={{ minHeight: "clamp(200px, 40vh, 480px)" }}
-            >
-              <div
-                className="absolute top-8 left-8 w-56 h-56 rounded-full bg-white/10 pointer-events-none"
-                style={{ animation: "lgPulse 7s ease-in-out infinite", willChange: "opacity" }}
-              />
-              <div
-                className="absolute bottom-12 right-12 w-72 h-72 rounded-full bg-purple-300/10 pointer-events-none"
-                style={{ animation: "lgPulse 9s ease-in-out infinite 2s", willChange: "opacity" }}
-              />
-              <div className="text-center text-white max-w-4xl px-4 relative z-10">
-                <h2
-                  className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-lg"
-                  style={{ animation: "lgRise 0.7s ease both" }}
-                >
-                  Welcome to {settings.generalInfo.name}
-                </h2>
-                <p
-                  className="text-lg md:text-xl mb-2 opacity-90 font-semibold"
-                  style={{ animation: "lgRise 0.7s ease 0.15s both" }}
-                >
-                  {settings.generalInfo.motto || "GUIDING GROWTH, INSPIRING GREATNESS"}
-                </p>
-                <p
-                  className="text-base md:text-lg max-w-3xl mx-auto opacity-80 leading-relaxed"
-                  style={{ animation: "lgRise 0.7s ease 0.3s both" }}
-                >
-                  {settings.visionMissionValues.description ||
-                    `${settings.generalInfo.name} is committed to fostering an environment where students achieve their full potential.`}
-                </p>
-                <div
-                  className="mt-6 flex flex-wrap justify-center gap-3"
-                  style={{ animation: "lgRise 0.7s ease 0.45s both" }}
-                >
-                  {["Excellence in Education", "Character Development", "Future Leaders"].map(label => (
-                    <span
-                      key={label}
-                      className="bg-white/20 rounded-lg px-4 py-1.5 border border-white/30 text-sm font-medium"
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ────────── MAIN PHOTO CARD ────────────────────────────────────── */}
-        {allActive.length > 0 && (
-          <section className="py-4 md:py-8 bg-white dark:bg-gray-800">
-            <div className="container mx-auto px-4">
-              <Reveal>
-                <Card className="overflow-hidden max-w-4xl mx-auto shadow-md">
-                  <div
-                    className="relative h-64"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                  >
-                    <CSSSlideshow
-                      photos={allActive}
-                      currentSlide={manualMain}
-                      className="absolute inset-0 h-64"
-                    />
-                    {/* Invisible tap zones: left = prev, right = next */}
-                    <div className="absolute inset-0 grid grid-cols-3 z-10">
-                      <div className="cursor-pointer" onClick={() => setMainDelta(d => d - 1)} />
-                      <div />
-                      <div className="cursor-pointer" onClick={() => setMainDelta(d => d + 1)} />
-                    </div>
-                    {/* Pill indicators */}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1.5 z-20 pointer-events-none">
-                      {allActive.map((_, i) => (
-                        <span
-                          key={i}
-                          className={`rounded-full transition-all duration-200 ${i === manualMain ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/50"}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-              </Reveal>
-            </div>
-          </section>
-        )}
-
-        {/* ────────── ABOUT ─────────────────────────────────────────────── */}
-        <section className="pt-8 pb-16 bg-white dark:bg-gray-800">
-          <div className="container mx-auto px-4">
-            <Reveal className="text-center mb-10">
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">About Our School</h3>
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                Discover what makes {settings.generalInfo.name} a special place for learning and growth.
-              </p>
-            </Reveal>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  Icon: Star,
-                  bg: "bg-blue-100 dark:bg-blue-900",
-                  ic: "text-blue-600 dark:text-blue-400",
-                  title: "Our Vision",
-                  text: settings.visionMissionValues.vision || "To be a leading educational institution that nurtures excellence and character.",
-                },
-                {
-                  Icon: BookOpen,
-                  bg: "bg-purple-100 dark:bg-purple-900",
-                  ic: "text-purple-600 dark:text-purple-400",
-                  title: "Our Mission",
-                  text: settings.visionMissionValues.mission || "To provide quality education that empowers students to achieve their full potential.",
-                },
-                {
-                  Icon: Heart,
-                  bg: "bg-green-100 dark:bg-green-900",
-                  ic: "text-green-600 dark:text-green-400",
-                  title: "Our Values",
-                  text: "Excellence, Integrity, Respect, Innovation, and Community — the pillars that guide our educational approach.",
-                },
-              ].map(({ Icon, bg, ic, title, text }, i) => (
-                <Reveal key={title} delay={i * 80}>
-                  <Card className="text-center h-full hover:shadow-md transition-shadow duration-200">
-                    <CardHeader>
-                      <div className={`mx-auto h-12 w-12 ${bg} rounded-full flex items-center justify-center mb-4`}>
-                        <Icon className={`h-6 w-6 ${ic}`} />
-                      </div>
-                      <CardTitle>{title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-400">{text}</p>
-                    </CardContent>
-                  </Card>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ────────── WHATSAPP ──────────────────────────────────────────── */}
-        <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
-          <div className="container mx-auto px-4 text-center">
-            <Reveal>
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/50 rounded-full mb-6">
-                <MessageCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Join Our WhatsApp Group Today</h3>
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
-                Stay connected with our school community! Get instant updates, announcements, and connect with other parents and staff.
-              </p>
-              <a
-                href="https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center space-x-3 bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span>Join WhatsApp Group</span>
+          <div className="topbar-right">
+            <button className="bg-transparent border-none text-white/85 hover:text-white cursor-pointer flex items-center gap-1.5 text-[13px]" onClick={() => setShowLoginModal(true)}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Log In
+            </button>
+            <div className="topbar-divider" />
+            <div className="social-icons flex items-center">
+              <a href={settings.socialMedia?.facebook || "#"} title="Facebook" className="mr-3">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
               </a>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* ────────── GALLERY ───────────────────────────────────────────── */}
-        {galleryPhotos.length > 0 && (
-          <section className="py-16 bg-gray-50 dark:bg-gray-900">
-            <div className="container mx-auto px-4">
-              <Reveal className="text-center mb-12">
-                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">School Life Gallery</h3>
-                <p className="text-lg text-gray-600 dark:text-gray-400">Glimpses of our vibrant school community</p>
-              </Reveal>
-
-              <Reveal delay={100}>
-                <div className="relative max-w-4xl mx-auto">
-                  <div className="relative h-96 rounded-xl overflow-hidden shadow-lg">
-                    <CSSSlideshow
-                      photos={galleryPhotos}
-                      currentSlide={manualGallery}
-                      className="absolute inset-0 h-96"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6 pointer-events-none">
-                      <h4 className="text-white text-xl font-semibold">{galleryPhotos[manualGallery]?.title}</h4>
-                      {galleryPhotos[manualGallery]?.description && (
-                        <p className="text-white/90 text-sm mt-1">{galleryPhotos[manualGallery].description}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {galleryPhotos.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => setGalleryDelta(d => d - 1)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center transition-colors duration-150"
-                        aria-label="Previous photo"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setGalleryDelta(d => d + 1)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/25 hover:bg-black/50 text-white flex items-center justify-center transition-colors duration-150"
-                        aria-label="Next photo"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                      <div className="flex justify-center mt-4 gap-2 overflow-x-auto pb-1">
-                        {galleryPhotos.map((p, i) => (
-                          <button
-                            key={p.id}
-                            onClick={() => setGalleryDelta(i - gallerySlide)}
-                            className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all duration-150 ${
-                              i === manualGallery
-                                ? "border-blue-500 scale-110"
-                                : "border-transparent hover:border-gray-300"
-                            }`}
-                            aria-label={`View photo: ${p.title}`}
-                          >
-                            <Image src={p.url} alt={p.title} width={56} height={56} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </Reveal>
-            </div>
-          </section>
-        )}
-
-        {/* ────────── CONTACT ───────────────────────────────────────────── */}
-        <section className="py-16 bg-white dark:bg-gray-800">
-          <div className="container mx-auto px-4">
-            <Reveal className="text-center mb-12">
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Get in Touch</h3>
-              <p className="text-lg text-gray-600 dark:text-gray-400">We'd love to hear from you.</p>
-            </Reveal>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { Icon: MapPin, bg: "bg-blue-100 dark:bg-blue-900",    ic: "text-blue-600 dark:text-blue-400",    label: "Address", value: settings.address.physical   || "School Address"    },
-                { Icon: Phone,  bg: "bg-green-100 dark:bg-green-900",   ic: "text-green-600 dark:text-green-400",   label: "Phone",   value: settings.contact.phone     || "Contact Number"    },
-                { Icon: Mail,   bg: "bg-purple-100 dark:bg-purple-900", ic: "text-purple-600 dark:text-purple-400", label: "Email",   value: settings.contact.email     || "school@email.com"  },
-                { Icon: Globe,  bg: "bg-orange-100 dark:bg-orange-900", ic: "text-orange-600 dark:text-orange-400", label: "Website", value: settings.contact.website   || "www.school.com"    },
-              ].map(({ Icon, bg, ic, label, value }, i) => (
-                <Reveal key={label} delay={i * 70}>
-                  <Card className="text-center h-full hover:shadow-md transition-shadow duration-200">
-                    <CardContent className="pt-6">
-                      <div className={`mx-auto h-12 w-12 ${bg} rounded-full flex items-center justify-center mb-4`}>
-                        <Icon className={`h-6 w-6 ${ic}`} />
-                      </div>
-                      <h4 className="font-semibold mb-2">{label}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{value}</p>
-                    </CardContent>
-                  </Card>
-                </Reveal>
-              ))}
+              <a href={settings.socialMedia?.instagram || "#"} title="Instagram" className="mr-3">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+              </a>
+              <a href={settings.socialMedia?.whatsapp || "https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t"} title="WhatsApp">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+              </a>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* ────────── PHOTO SHOWCASE ────────────────────────────────────── */}
-        {[activityPhotos, facilityPhotos, classroomPhotos, staffPhotos, playgroundPhotos, generalPhotos].some(g => g.length > 0) && (
-          <section className="py-16 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900">
-            <div className="container mx-auto px-4">
-              <Reveal className="mb-10">
-                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Discover Our School</h3>
-                <p className="text-lg text-gray-600 dark:text-gray-400">
-                  Explore the vibrant life and beautiful spaces of our educational community
-                </p>
-              </Reveal>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[
-                  { photos: activityPhotos,   slide: activitySlide,   title: "Activities & Events", sub: "Celebrating achievements and milestones" },
-                  { photos: facilityPhotos,   slide: facilitySlide,   title: "Our Facilities",      sub: "Modern spaces for learning and growth"   },
-                  { photos: classroomPhotos,  slide: classroomSlide,  title: "Learning Spaces",     sub: "Where knowledge comes to life"           },
-                  { photos: staffPhotos,      slide: staffSlide,      title: "Our Team",            sub: "Dedicated educators and staff"           },
-                  { photos: playgroundPhotos, slide: playgroundSlide, title: "Play & Recreation",   sub: "Fun and fitness for all students"        },
-                  { photos: generalPhotos,    slide: generalSlide,    title: "School Life",         sub: "Moments that matter"                     },
-                ]
-                  .filter(g => g.photos.length > 0)
-                  .map((g, i) => (
-                    <Reveal key={g.title} delay={i * 60}>
-                      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                        <div className="relative h-48">
-                          <CSSSlideshow
-                            photos={g.photos}
-                            currentSlide={g.slide}
-                            className="absolute inset-0 h-48"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                          <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
-                            <h4 className="text-white font-semibold">{g.title}</h4>
-                            <p className="text-white/80 text-sm">{g.sub}</p>
-                          </div>
-                        </div>
-                      </Card>
-                    </Reveal>
-                  ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ────────── FOOTER ────────────────────────────────────────────── */}
-        <footer className="bg-gray-900 text-white py-8">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              {settings.generalInfo.logo ? (
+        {/* ────────── MAIN NAVIGATION ────────────────────────────────────── */}
+        <nav className="mainnav">
+          <a className="brand" href="#">
+            {settings.generalInfo.logo ? (
+              <div className="relative w-[48px] h-[48px] shrink-0">
                 <Image
                   src={settings.generalInfo.logo}
                   alt="School Logo"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
+                  fill
+                  className="rounded-full object-contain bg-white p-0.5 border border-white/20 shadow-md"
+                  loading="eager"
+                  priority
                 />
-              ) : (
-                <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                  <School className="h-4 w-4 text-white" />
+              </div>
+            ) : (
+              <svg className="shield-svg" width="58" height="68" viewBox="0 0 58 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M29 2L4 12V34C4 49 15 61 29 66C43 61 54 49 54 34V12L29 2Z" fill="#1a2340" stroke="#d4a017" strokeWidth="2.5"/>
+                <path d="M29 8L9 16V34C9 46 18 56 29 61C40 56 49 46 49 34V16L29 8Z" fill="#22a05a"/>
+                <rect x="26.5" y="16" width="5" height="22" rx="1" fill="white"/>
+                <rect x="18" y="24" width="22" height="5" rx="1" fill="white"/>
+                <circle cx="29" cy="13" r="3" fill="#f0b429"/>
+              </svg>
+            )}
+            <div className="brand-text">
+              <div className="name uppercase tracking-tight font-extrabold">{settings.generalInfo.name.replace(" Primary School", "").replace(" Nursery & Primary School", "")}</div>
+              <div className="sub font-bold">{settings.generalInfo.schoolType || "Nursery & Primary School"}</div>
+            </div>
+          </a>
+
+          <div className="nav-links">
+            <a href="#" className="active">Home</a>
+            <a href="#about">About Us</a>
+            <a href="#gallery">Gallery</a>
+            <a href="#why-choose">Why Choose Us</a>
+            <a href="#contact">Contact</a>
+          </div>
+
+          <div className="nav-actions">
+            <button className="btn-staff" onClick={() => setShowLoginModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Log In
+            </button>
+          </div>
+        </nav>
+
+        {/* ────────── SPLIT HERO SECTION ─────────────────────────────────── */}
+        <section className="hero">
+          {/* Left Text details */}
+          <div className="hero-left">
+            <div className="admissions-badge">
+              <span className="mega">📣</span>
+              Admissions Open for {currentYear} Academic Year!
+            </div>
+
+            <h1 className="hero-heading">
+              <span className="line1">Guiding Growth.</span>
+              <span className="line2">Inspiring Greatness.</span>
+            </h1>
+            <div className="hero-underline" />
+
+            <p className="hero-desc">
+              {settings.visionMissionValues.description || "Providing quality nursery and primary education in a safe, caring and Christian-centered environment where every child can thrive."}
+            </p>
+
+
+
+            <div className="hero-stats">
+              <div className="hstat">
+                <div className="hstat-icon green">👥</div>
+                <div className="hstat-val"><CountUpNumber target={settings.statistics?.students || 500} />+</div>
+                <div className="hstat-label">Pupils</div>
+              </div>
+              <div className="hstat">
+                <div className="hstat-icon blue">🧑‍🏫</div>
+                <div className="hstat-val"><CountUpNumber target={settings.statistics?.teachers || 25} />+</div>
+                <div className="hstat-label">Teachers</div>
+              </div>
+              <div className="hstat">
+                <div className="hstat-icon gold">🏆</div>
+                <div className="hstat-val"><CountUpNumber target={yearsOfExcellence} />+</div>
+                <div className="hstat-label">Years of Excellence</div>
+              </div>
+              <div className="hstat">
+                <div className="hstat-icon teal">📊</div>
+                <div className="hstat-val"><CountUpNumber target={settings.statistics?.passRate || 95} />%</div>
+                <div className="hstat-label">PLE Success Rate</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Image panel */}
+          <div className="hero-right">
+            <Image
+              className="hero-photo"
+              src="/images/log-in image.png"
+              alt="Students learning at Trinity Family School"
+              fill
+              priority
+              loading="eager"
+            />
+            <div className="hero-card">
+              <div className="hero-card-icon">🎓</div>
+              <div className="hero-card-text">
+                <strong>{currentYear} Enrolment</strong>
+                <span>Now Open — Apply Today</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ────────── OVERLAPPING QUICK LINKS STRIP ───────────────────────── */}
+        <Reveal>
+          <div className="quicklinks">
+            <a className="ql-item" href="#contact">
+              <div className="ql-icon ic-green">📋</div>
+              <div className="ql-text"><strong>Admissions</strong><span>Apply for {currentYear}</span></div>
+            </a>
+            <a className="ql-item" href="#contact">
+              <div className="ql-icon ic-gold">💰</div>
+              <div className="ql-text"><strong>School Fees</strong><span>Fee structure</span></div>
+            </a>
+            <a className="ql-item" href="#contact">
+              <div className="ql-icon ic-blue">⬇️</div>
+              <div className="ql-text"><strong>Downloads</strong><span>Forms &amp; documents</span></div>
+            </a>
+            <a className="ql-item" href="#gallery">
+              <div className="ql-icon ic-purple">🖼️</div>
+              <div className="ql-text"><strong>Gallery</strong><span>School moments</span></div>
+            </a>
+            <a className="ql-item" href="#contact">
+              <div className="ql-icon ic-teal">📞</div>
+              <div className="ql-text"><strong>Contact Us</strong><span>Get in touch</span></div>
+            </a>
+          </div>
+        </Reveal>
+
+        {/* ────────── WHY CHOOSE TRINITY ──────────────────────────────────── */}
+        <section id="why-choose" className="why-section">
+          <h2>Why Choose Trinity?</h2>
+          <div className="why-underline" />
+          <div className="why-grid">
+            {[
+              { icon: "🎓", title: "Academic Excellence", desc: "Strong performance in PLE and beyond", class: "wc1" },
+              { icon: "📖", title: "Competency Based Learning", desc: "Preparing learners for real life", class: "wc2" },
+              { icon: "👧", title: "Child-Centered Education", desc: "Nurturing every child's potential", class: "wc3" },
+              { icon: "💻", title: "ICT & STEM Programs", desc: "Equipping learners for the digital future", class: "wc4" },
+              { icon: "⚽", title: "Co-Curricular Activities", desc: "Building talent, confidence and teamwork", class: "wc5" },
+              { icon: "🛡️", title: "Safe & Nurturing Environment", desc: "A secure and caring school community", class: "wc6" }
+            ].map((card, idx) => (
+              <Reveal key={idx} delay={idx * 60}>
+                <div className="why-card h-full">
+                  <div className={`why-icon-wrap ${card.class}`}>
+                    {card.icon}
+                  </div>
+                  <h4>{card.title}</h4>
+                  <p>{card.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* ────────── ABOUT US SECTION ───────────────────────────────────── */}
+        <section id="about" className="about-section">
+          <Reveal>
+            <h2>About Us</h2>
+            <div className="about-underline" />
+            <p className="about-subtitle">
+              Learn more about our educational foundation, vision, mission and core values at {settings.generalInfo.name}.
+            </p>
+          </Reveal>
+          
+          <div className="about-grid">
+            <Reveal delay={100}>
+              <div className="about-card h-full">
+                <div className="about-icon-wrap ab1">
+                  <Star className="w-6 h-6" />
+                </div>
+                <h3>Our Vision</h3>
+                <p>
+                  {settings.visionMissionValues.vision || "To be a leading institution in providing holistic and transformative education."}
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div className="about-card h-full">
+                <div className="about-icon-wrap ab2">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <h3>Our Mission</h3>
+                <p>
+                  {settings.visionMissionValues.mission || "To nurture students into critical thinkers, lifelong learners, and responsible global citizens through a balanced and challenging curriculum."}
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={300}>
+              <div className="about-card h-full">
+                <div className="about-icon-wrap ab3">
+                  <Heart className="w-6 h-6" />
+                </div>
+                <h3>Our Core Values</h3>
+                <p className="mb-4">
+                  Guided by character and excellence, we instill these pillars in every learner:
+                </p>
+                <div className="values-list">
+                  {(settings.visionMissionValues.coreValues || "Integrity, Excellence, Respect, Collaboration, Innovation")
+                    .split(",")
+                    .map((val: string, idx: number) => (
+                      <span key={idx} className="value-tag">
+                        {val.trim()}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ────────── GALLERY SECTION ────────────────────────────────────── */}
+        <section id="gallery" className="gallery-section">
+          <Reveal>
+            <h2>Discover Our School</h2>
+            <div className="gallery-underline" />
+            <p className="gallery-subtitle">
+              Explore the vibrant life, learning spaces, and beautiful moments of our educational community.
+            </p>
+          </Reveal>
+
+          <div className="gallery-grid">
+            {/* Activities & Events */}
+            {(() => {
+              const activityPhotos = photos?.filter(p => p.category === 'activities' || p.category === 'events') || [];
+              if (activityPhotos.length === 0) return null;
+              return (
+                <Reveal delay={100}>
+                  <div className="gallery-card">
+                    <div className="gallery-image-container">
+                      {activityPhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ${
+                            index === currentActivitySlide ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <Image
+                            src={photo.url}
+                            alt={photo.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      <div className="gallery-overlay" />
+                      <div className="gallery-card-content">
+                        <h4>Activities &amp; Events</h4>
+                        <p>Celebrating achievements and milestones</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })()}
+
+            {/* Our Facilities */}
+            {(() => {
+              const facilityPhotos = photos?.filter(p => p.category === 'facilities' || p.category === 'school_building') || [];
+              if (facilityPhotos.length === 0) return null;
+              return (
+                <Reveal delay={200}>
+                  <div className="gallery-card">
+                    <div className="gallery-image-container">
+                      {facilityPhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ${
+                            index === currentFacilitySlide ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <Image
+                            src={photo.url}
+                            alt={photo.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      <div className="gallery-overlay" />
+                      <div className="gallery-card-content">
+                        <h4>Our Facilities</h4>
+                        <p>Modern spaces for learning and growth</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })()}
+
+            {/* Learning Spaces */}
+            {(() => {
+              const classroomPhotos = photos?.filter(p => p.category === 'classroom') || [];
+              if (classroomPhotos.length === 0) return null;
+              return (
+                <Reveal delay={300}>
+                  <div className="gallery-card">
+                    <div className="gallery-image-container">
+                      {classroomPhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ${
+                            index === currentClassroomSlide ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <Image
+                            src={photo.url}
+                            alt={photo.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      <div className="gallery-overlay" />
+                      <div className="gallery-card-content">
+                        <h4>Learning Spaces</h4>
+                        <p>Where knowledge comes to life</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })()}
+
+            {/* Our Team */}
+            {(() => {
+              const staffPhotos = photos?.filter(p => p.category === 'staff') || [];
+              if (staffPhotos.length === 0) return null;
+              return (
+                <Reveal delay={400}>
+                  <div className="gallery-card">
+                    <div className="gallery-image-container">
+                      {staffPhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ${
+                            index === currentStaffSlide ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <Image
+                            src={photo.url}
+                            alt={photo.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      <div className="gallery-overlay" />
+                      <div className="gallery-card-content">
+                        <h4>Our Team</h4>
+                        <p>Dedicated educators and staff</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })()}
+
+            {/* Play & Recreation */}
+            {(() => {
+              const playgroundPhotos = photos?.filter(p => p.category === 'playground') || [];
+              if (playgroundPhotos.length === 0) return null;
+              return (
+                <Reveal delay={500}>
+                  <div className="gallery-card">
+                    <div className="gallery-image-container">
+                      {playgroundPhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ${
+                            index === currentPlaygroundSlide ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <Image
+                            src={photo.url}
+                            alt={photo.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      <div className="gallery-overlay" />
+                      <div className="gallery-card-content">
+                        <h4>Play &amp; Recreation</h4>
+                        <p>Fun and fitness for all students</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })()}
+
+            {/* School Life */}
+            {(() => {
+              const generalPhotos = photos?.filter(p => p.category === 'other' && p.usage.includes('general')) || [];
+              if (generalPhotos.length === 0) return null;
+              return (
+                <Reveal delay={600}>
+                  <div className="gallery-card">
+                    <div className="gallery-image-container">
+                      {generalPhotos.map((photo, index) => (
+                        <div
+                          key={photo.id}
+                          className={`absolute inset-0 transition-opacity duration-1000 ${
+                            index === currentGeneralSlide ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          <Image
+                            src={photo.url}
+                            alt={photo.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ))}
+                      <div className="gallery-overlay" />
+                      <div className="gallery-card-content">
+                        <h4>School Life</h4>
+                        <p>Moments that matter</p>
+                      </div>
+                    </div>
+                  </div>
+                </Reveal>
+              );
+            })()}
+          </div>
+        </section>
+
+        {/* ────────── CONTACT US SECTION ──────────────────────────────────── */}
+        <section id="contact" className="contact-section">
+          <Reveal>
+            <h2>Contact Us</h2>
+            <div className="contact-underline" />
+            <p className="contact-subtitle">
+              We'd love to hear from you. Reach out to us for admissions, inquiries, or support.
+            </p>
+          </Reveal>
+
+          <div className="contact-grid">
+            <Reveal delay={100}>
+              <div className="contact-card h-full">
+                <div className="contact-icon-wrap co1">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <h4>Our Location</h4>
+                <p>{settings.address.physical || "123 Education Lane, Kampala"}</p>
+                <p className="text-xs text-slate-400 mt-2 block">
+                  {settings.address.postal || "P.O. Box 789, Kampala"}
+                </p>
+              </div>
+            </Reveal>
+
+            <Reveal delay={200}>
+              <div className="contact-card h-full">
+                <div className="contact-icon-wrap co2">
+                  <Phone className="w-6 h-6" />
+                </div>
+                <h4>Phone Contacts</h4>
+                <a href={`tel:${settings.contact.phone || "+256 777 123456"}`}>
+                  {settings.contact.phone || "+256 777 123456"}
+                </a>
+                {settings.contact.alternativePhone && (
+                  <a href={`tel:${settings.contact.alternativePhone}`} className="mt-1 block">
+                    {settings.contact.alternativePhone}
+                  </a>
+                )}
+              </div>
+            </Reveal>
+
+            <Reveal delay={300}>
+              <div className="contact-card h-full">
+                <div className="contact-icon-wrap co3">
+                  <Mail className="w-6 h-6" />
+                </div>
+                <h4>Email Address</h4>
+                <a href={`mailto:${settings.contact.email || "info@trinityfamilyschool.edu"}`}>
+                  {settings.contact.email || "info@trinityfamilyschool.edu"}
+                </a>
+              </div>
+            </Reveal>
+
+            <Reveal delay={400}>
+              <div className="contact-card h-full">
+                <div className="contact-icon-wrap co4">
+                  <Globe className="w-6 h-6" />
+                </div>
+                <h4>Official Website</h4>
+                <a href={settings.contact.website ? `https://${settings.contact.website.replace("https://", "").replace("http://", "")}` : "#"} target="_blank" rel="noopener noreferrer">
+                  {settings.contact.website || "www.trinityfamilyschool.edu"}
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ────────── SIMPLE FOOTER ───────────────────────────────────────── */}
+        <footer className="footer">
+          © {new Date().getFullYear()} {settings.generalInfo.name} · {settings.address.city || "Kampala"}, {settings.address.country || "Uganda"} ·{" "}
+          <a href={`mailto:${settings.contact.email || "info@trinityschool.ac.ug"}`}>
+            {settings.contact.email || "info@trinityschool.ac.ug"}
+          </a>
+        </footer>
+
+        {/* ────────── GLASSMORPHISM LOGIN MODAL ───────────────────────────── */}
+        {showLoginModal && (
+          <div
+            className="fixed inset-0 z-[1000] flex items-center justify-center overflow-hidden"
+            style={{ animation: "lgFadeIn 0.35s ease forwards" }}
+          >
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-[#1a2060] via-[#0f1b55] to-[#0e3f80] cursor-pointer"
+              onClick={() => setShowLoginModal(false)}
+            />
+
+            {/* Ambient sliding orbs */}
+            <div className="m-orb m-orb1 absolute" />
+            <div className="m-orb m-orb2 absolute" />
+            <div className="m-orb m-orb3 absolute" />
+            <div className="m-orb m-orb4 absolute" />
+
+            <div className="modal-grid absolute" />
+
+            {/* Frosted card container */}
+            <div
+              className="modal-card relative text-white"
+              style={{ animation: "lgRise 0.5s cubic-bezier(.22,1,.36,1) forwards" }}
+            >
+              <button
+                className="modal-close"
+                onClick={() => setShowLoginModal(false)}
+              >
+                ✕
+              </button>
+
+              <div className="modal-top">
+                <h2>Welcome Back</h2>
+                <p>Sign in to access your academic dashboard.</p>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 rounded-lg border border-red-500/35 bg-red-500/10 text-red-200 text-sm">
+                  {error}
                 </div>
               )}
-              <span className="text-lg font-semibold">{settings.generalInfo.name}</span>
+
+              <form onSubmit={handleSubmit}>
+                <div className="mfield">
+                  <label className="block text-[11.5px] font-bold tracking-wider uppercase text-white/60 mb-2">Email or Username</label>
+                  <div className="input-row relative">
+                    <span className="iicon absolute left-[15px] top-1/2 -translate-y-1/2 text-white/35">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="you@trinityschool.ac.ug"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 pl-[44px] pr-3.5 bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF]"
+                    />
+                  </div>
+                </div>
+
+                <div className="mfield">
+                  <label className="block text-[11.5px] font-bold tracking-wider uppercase text-white/60 mb-2">Password</label>
+                  <div className="input-row relative">
+                    <span className="iicon absolute left-[15px] top-1/2 -translate-y-1/2 text-white/35">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </span>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isSubmitting}
+                      className="w-full py-3.5 pl-[44px] pr-[44px] bg-white/7 border border-white/12 rounded-full text-white text-sm outline-none transition-all duration-200 focus:bg-[#4F63FF]/15 focus:border-[#4F63FF]"
+                    />
+                    <span
+                      className="eye-btn absolute right-[16px] top-1/2 -translate-y-1/2 cursor-pointer text-white/35 hover:text-white"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="w-[15px] h-[15px]" /> : <Eye className="w-[15px] h-[15px]" />}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mrow flex items-center justify-between text-[12.5px] mb-6">
+                  <label className="flex items-center gap-[7px] text-white/60 cursor-pointer">
+                    <input type="checkbox" className="accent-[#4F63FF]" /> Keep me signed in
+                  </label>
+                  <a href="#" className="text-[#67e8f9] font-bold hover:underline">Forgot password?</a>
+                </div>
+
+                <button
+                  className="modal-submit w-full py-3.5 rounded-full border-none bg-gradient-to-r from-[#4F63FF] to-[#00C2E0] text-white font-bold text-[14.5px] tracking-wide cursor-pointer flex items-center justify-center gap-2 shadow-[0_8px_28px_rgba(79,99,255,0.5)] hover:translate-y-[-2px] hover:shadow-[0_14px_38px_rgba(79,99,255,0.65)] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
+                  type="submit"
+                  disabled={isSubmitting || isLoading}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-1" />
+                      <span>Signing In...</span>
+                    </>
+                  ) : (
+                    <span>Sign In</span>
+                  )}
+                </button>
+              </form>
+
+              <div className="modal-divider flex items-center gap-2.5 my-5 uppercase text-[11px] tracking-wider text-white/30">
+                Secure Access
+              </div>
+
+              <p className="modal-foot text-center text-[12.5px] text-white/45">
+                Trinity Family School <strong className="text-white/75">Staff Portal</strong>
+              </p>
             </div>
-            <p className="text-gray-400 text-sm mb-2">
-              © {new Date().getFullYear()} {settings.generalInfo.name}. All rights reserved.
-            </p>
-            <p className="text-gray-500 text-xs">Need help? Contact the school administration.</p>
           </div>
-        </footer>
+        )}
+
       </div>
     </>
   );
