@@ -332,6 +332,19 @@ export default function LoginPage() {
           text-decoration: none;
         }
 
+        .glass-navbar .logo-img-wrapper {
+          position: relative;
+          width: 55px;
+          height: 55px;
+          flex-shrink: 0;
+        }
+
+        .glass-navbar .logo svg {
+          width: 55px;
+          height: 55px;
+          flex-shrink: 0;
+        }
+
         .glass-navbar .logo h3 {
           margin: 0;
           color: #0b214f;
@@ -856,21 +869,98 @@ export default function LoginPage() {
         }
         @media (max-width: 768px) {
           .trinity-portal-landing .hero { grid-template-columns: 1fr; }
-          .trinity-portal-landing .hero-left { padding: 140px 5% 48px; }
+          .trinity-portal-landing .hero-left { padding: 100px 5% 48px; }
           .trinity-portal-landing .hero-right { height: 360px; }
           .trinity-portal-landing .quicklinks { grid-template-columns: repeat(2, 1fr); margin: 0 4% 20px; }
           .trinity-portal-landing .why-grid { grid-template-columns: repeat(2, 1fr); }
           .trinity-portal-landing .about-grid { grid-template-columns: 1fr; }
           .trinity-portal-landing .contact-grid { grid-template-columns: repeat(2, 1fr); }
           .trinity-portal-landing .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+          
           .glass-navbar-inner {
-            height: auto;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding: 16px 5%;
+            height: 64px;
+            flex-wrap: nowrap;
+            gap: 10px;
+            padding: 0 4%;
           }
+          .glass-navbar .logo {
+            gap: 8px;
+          }
+          .glass-navbar .logo h3 {
+            font-size: 0.95rem;
+            line-height: 1.15;
+            max-width: 190px;
+          }
+          .glass-navbar .logo span.school-type {
+            display: none !important;
+          }
+          .glass-navbar .logo-img-wrapper {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          .glass-navbar .logo svg {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          .glass-navbar .portal-btn {
+            padding: 8px 16px;
+            font-size: 12.5px;
+          }
+          
           .glass-navbar .nav-links { display: none; }
-          .trinity-portal-landing .hero-left { padding-top: 130px; }
+          .trinity-portal-landing .hero-left { padding-top: 100px; }
+
+          .trinity-portal-landing .admissions-badge {
+            display: none !important;
+          }
+          .trinity-portal-landing .hero-heading {
+            font-size: 1.6rem !important;
+            margin-bottom: 8px;
+            line-height: 1.2;
+          }
+          .trinity-portal-landing .hero-underline {
+            margin: 8px 0 14px !important;
+          }
+          .trinity-portal-landing .hero-desc {
+            font-size: 13.5px !important;
+            line-height: 1.6 !important;
+            margin-bottom: 20px !important;
+          }
+
+          /* Compact & dynamic stats row on mobile */
+          .trinity-portal-landing .hero-stats {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            gap: 4px !important;
+            margin-top: 15px !important;
+          }
+          .trinity-portal-landing .hstat {
+            flex: 1 !important;
+            text-align: center !important;
+            padding: 0 4px !important;
+            margin: 0 !important;
+            border-right: 1px solid var(--trinity-border) !important;
+          }
+          .trinity-portal-landing .hstat:last-child {
+            border-right: none !important;
+          }
+          .trinity-portal-landing .hstat-icon {
+            font-size: 16px !important;
+            margin-bottom: 2px !important;
+          }
+          .trinity-portal-landing .hstat-val {
+            font-size: 1.15rem !important;
+            line-height: 1.1 !important;
+          }
+          .trinity-portal-landing .hstat-label {
+            font-size: 9.5px !important;
+            margin-top: 1px !important;
+            line-height: 1.2 !important;
+            display: block !important;
+            white-space: normal !important;
+          }
         }
         @media (max-width: 480px) {
           .trinity-portal-landing .quicklinks { grid-template-columns: 1fr; }
@@ -878,8 +968,6 @@ export default function LoginPage() {
           .trinity-portal-landing .about-grid { grid-template-columns: 1fr; }
           .trinity-portal-landing .contact-grid { grid-template-columns: 1fr; }
           .trinity-portal-landing .gallery-grid { grid-template-columns: 1fr; }
-          .trinity-portal-landing .hero-stats { flex-wrap: wrap; gap: 20px; }
-          .trinity-portal-landing .hstat { border-right: none; padding-right: 0; margin-right: 0; }
         }
       `}</style>
 
@@ -888,7 +976,7 @@ export default function LoginPage() {
         <div className="glass-navbar-inner">
           <a className="logo" href="#">
             {settings.generalInfo.logo ? (
-              <div className="relative w-[55px] h-[55px] shrink-0">
+              <div className="logo-img-wrapper relative">
                 <Image
                   src={settings.generalInfo.logo}
                   alt="School Logo"
@@ -899,7 +987,7 @@ export default function LoginPage() {
                 />
               </div>
             ) : (
-              <svg width="55" height="55" viewBox="0 0 58 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 58 68" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M29 2L4 12V34C4 49 15 61 29 66C43 61 54 49 54 34V12L29 2Z" fill="#1a2340" stroke="#d4a017" strokeWidth="2.5"/>
                 <path d="M29 8L9 16V34C9 46 18 56 29 61C40 56 49 46 49 34V16L29 8Z" fill="#22a05a"/>
                 <rect x="26.5" y="16" width="5" height="22" rx="1" fill="white"/>
@@ -909,7 +997,7 @@ export default function LoginPage() {
             )}
             <div>
               <h3>{settings.generalInfo.name.replace(" Primary School", "").replace(" Nursery & Primary School", "").toUpperCase()}</h3>
-              <span>{settings.generalInfo.schoolType || "Nursery & Primary School"}</span>
+              <span className="school-type">{settings.generalInfo.schoolType || "Nursery & Primary School"}</span>
             </div>
           </a>
 
