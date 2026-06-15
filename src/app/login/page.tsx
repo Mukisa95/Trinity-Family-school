@@ -117,6 +117,40 @@ export default function LoginPage() {
   const [currentPlaygroundSlide, setCurrentPlaygroundSlide] = useState(0);
   const [currentGeneralSlide, setCurrentGeneralSlide] = useState(0);
 
+  // Active navbar section state
+  const [activeSection, setActiveSection] = useState("home");
+
+  // Scroll spy to highlight active section in navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 160; // offset for navbar height + buffer
+      const sections = ["home", "why-choose", "about", "gallery", "contact"];
+      
+      // If at the bottom of the page, highlight the last section ("contact")
+      const isAtBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 60);
+      if (isAtBottom) {
+        setActiveSection("contact");
+        return;
+      }
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const id = sections[i];
+        const el = document.getElementById(id);
+        if (el) {
+          if (scrollPosition >= el.offsetTop) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
+    };
+    
+    window.addEventListener("scroll", handleScroll);
+    // Trigger initial calculation
+    setTimeout(handleScroll, 100);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Auto-advance slideshows
   useEffect(() => {
     const timer = setInterval(() => {
@@ -204,6 +238,10 @@ export default function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+        html {
+          scroll-behavior: smooth;
+        }
+
         .trinity-portal-landing {
           --trinity-navy:   #1a2340;
           --trinity-green:  #1a7a4a;
@@ -257,77 +295,176 @@ export default function LoginPage() {
           border-radius: 4px;
         }
 
-        /* Topbar styling */
-        .trinity-portal-landing .topbar {
-          background: var(--trinity-navy);
-          padding: 9px 5%;
-          display: flex; align-items:center; justify-content:space-between;
-          font-size: 13px; color: rgba(255,255,255,.85);
+        /* Glass Navbar */
+        .glass-navbar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          width: 100vw;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          background: rgba(255, 255, 255, 0.72);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: none;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+          border-radius: 0;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          z-index: 9999;
         }
-        .trinity-portal-landing .topbar-left { display:flex; align-items:center; gap:24px; }
-        .trinity-portal-landing .topbar-right { display:flex; align-items:center; gap:22px; }
-        .trinity-portal-landing .topbar a { color:rgba(255,255,255,.85); text-decoration:none; display:flex; align-items:center; gap:6px; transition:color .2s; }
-        .trinity-portal-landing .topbar a:hover { color:#fff; }
-        .trinity-portal-landing .topbar-divider { width:1px; height:14px; background:rgba(255,255,255,.2); }
-        .trinity-portal-landing .social-icons { display:flex; gap:14px; }
-        .trinity-portal-landing .social-icons a { color: rgba(255,255,255,.85); transition: color .2s; }
-        .trinity-portal-landing .social-icons a:hover { color: #fff; }
 
-        /* Navigation Header */
-        .trinity-portal-landing .mainnav {
-          background: var(--trinity-white);
+        .glass-navbar-inner {
+          width: 100%;
+          height: 85px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           padding: 0 5%;
-          display: flex; align-items:center; justify-content:space-between;
-          border-bottom: 1px solid var(--trinity-border);
-          position: sticky; top:0; z-index:200;
-          box-shadow: 0 2px 12px rgba(0,0,0,.06);
+          box-sizing: border-box;
         }
 
-        .trinity-portal-landing .brand { display:flex; align-items:center; gap:14px; text-decoration:none; padding: 12px 0; }
-        .trinity-portal-landing .brand-text { line-height:1.2; }
-        .trinity-portal-landing .brand-text .name { font-size:20px; font-weight:800; color:var(--trinity-navy); letter-spacing:-.01em; }
-        .trinity-portal-landing .brand-text .sub  { font-size:12px; font-weight:600; color:var(--trinity-muted); letter-spacing:.04em; text-transform:uppercase; }
-
-        .trinity-portal-landing .nav-links { display:flex; align-items:center; gap:2px; }
-        .trinity-portal-landing .nav-links a {
-          color: var(--trinity-text); text-decoration:none; font-size:14px; font-weight:500;
-          padding: 26px 16px; display:block; position:relative;
-          transition: color .2s;
-        }
-        .trinity-portal-landing .nav-links a:hover { color:var(--trinity-navy); }
-        .trinity-portal-landing .nav-links a.active { color:var(--trinity-navy); font-weight:700; }
-        .trinity-portal-landing .nav-links a.active::after {
-          content:''; position:absolute; bottom:0; left:16px; right:16px; height:3px;
-          background: var(--trinity-gold2); border-radius:2px 2px 0 0;
+        .glass-navbar .logo {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          text-decoration: none;
         }
 
-        .trinity-portal-landing .btn-parent {
-          background: var(--trinity-white); border: 2px solid var(--trinity-navy);
-          color: var(--trinity-navy); padding:9px 20px; border-radius:8px;
-          font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
-          cursor:pointer; display:flex; align-items:center; gap:7px;
-          transition: background .2s, color .2s;
+        .glass-navbar .logo h3 {
+          margin: 0;
+          color: #0b214f;
+          font-size: 1.4rem;
+          font-weight: 800;
+          letter-spacing: -0.01em;
         }
-        .trinity-portal-landing .btn-parent:hover { background:var(--trinity-navy); color:#fff; }
-        .trinity-portal-landing .btn-staff {
-          background: var(--trinity-navy); border:2px solid var(--trinity-navy);
-          color: #fff; padding:9px 20px; border-radius:8px;
-          font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px;
-          cursor:pointer; display:flex; align-items:center; gap:7px;
-          transition: background .2s, box-shadow .2s;
+
+        .glass-navbar .logo span {
+          letter-spacing: 3px;
+          font-size: 12px;
+          color: #444;
+          font-weight: 600;
+          text-transform: uppercase;
         }
-        .trinity-portal-landing .btn-staff:hover { background:#0f1a30; box-shadow:0 4px 14px rgba(26,35,64,.3); }
+
+        .glass-navbar .nav-links {
+          display: flex;
+          gap: 12px;
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          align-items: center;
+        }
+
+        .glass-navbar .nav-links a {
+          text-decoration: none;
+          color: #1a2340;
+          font-weight: 600;
+          font-size: 13.5px;
+          padding: 10px 20px;
+          border-radius: 99px;
+          border: 1px solid rgba(26, 35, 64, 0.06);
+          background: rgba(26, 35, 64, 0.02);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          display: inline-block;
+        }
+
+        .glass-navbar .nav-links a:hover {
+          color: #1a7a4a;
+          background: rgba(26, 122, 74, 0.08);
+          border-color: rgba(26, 122, 74, 0.15);
+          transform: translateY(-1px);
+        }
+
+        .glass-navbar .nav-links a.active {
+          background: #1a7a4a;
+          color: #ffffff !important;
+          border-color: #1a7a4a;
+          box-shadow: 0 4px 12px rgba(26, 122, 74, 0.25);
+          transform: translateY(0);
+        }
+
+        .dark .glass-navbar .nav-links a {
+          color: #f8fafc;
+          border-color: rgba(255, 255, 255, 0.06);
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .dark .glass-navbar .nav-links a:hover {
+          color: #22c55e;
+          background: rgba(34, 197, 94, 0.1);
+          border-color: rgba(34, 197, 94, 0.2);
+        }
+
+        .dark .glass-navbar .nav-links a.active {
+          background: #22c55e;
+          color: #0f172a !important;
+          border-color: #22c55e;
+          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+        }
+
+        .glass-navbar .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .glass-navbar .portal-btn {
+          text-decoration: none;
+          color: #ffffff !important;
+          padding: 10px 24px;
+          border-radius: 99px;
+          border: 1px solid #ea580c;
+          background: #f97316;
+          font-family: 'Inter', sans-serif;
+          font-weight: 700;
+          font-size: 13.5px;
+          cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          appearance: none;
+          line-height: 1.2;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+          display: inline-block;
+        }
+
+        .glass-navbar .portal-btn:hover {
+          background: #ea580c;
+          border-color: #ea580c;
+          box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
+          transform: translateY(-1px);
+        }
+
+        .glass-navbar .portal-btn:active {
+          transform: translateY(0);
+        }
+
+        .dark .glass-navbar .portal-btn {
+          background: #ea580c;
+          border-color: #ea580c;
+          color: #ffffff !important;
+          box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
+        }
+
+        .dark .glass-navbar .portal-btn:hover {
+          background: #f97316;
+          border-color: #f97316;
+          box-shadow: 0 6px 16px rgba(249, 115, 22, 0.5);
+        }
 
         /* Split Hero */
         .trinity-portal-landing .hero {
           display:grid; grid-template-columns: 1fr 1fr;
           min-height: 520px;
-          background: var(--trinity-white);
+          background:
+            radial-gradient(circle at top right, #ffd29d 0%, transparent 35%),
+            radial-gradient(circle at bottom left, #7f7cff 0%, transparent 40%),
+            linear-gradient(135deg, #f8f7ff, #f4efe8);
           position:relative; overflow:hidden;
         }
 
         .trinity-portal-landing .hero-left {
-          padding: 60px 5% 50px 5%;
+          padding: 145px 5% 50px 5%;
           display:flex; flex-direction:column; justify-content:center;
           position:relative; z-index:2;
         }
@@ -404,7 +541,7 @@ export default function LoginPage() {
         }
         .trinity-portal-landing .hero-right::before {
           content:''; position:absolute; top:0; left:0; bottom:0; width:120px; z-index:2;
-          background:linear-gradient(to right, var(--trinity-white) 0%, transparent 100%);
+          background:linear-gradient(to right, #f8f7ff 0%, transparent 100%);
         }
         .trinity-portal-landing .hero-card {
           position:absolute; bottom:20px; right:20px; z-index:3;
@@ -603,7 +740,7 @@ export default function LoginPage() {
 
         /* Glassmorphic Modal */
         .trinity-portal-landing .modal-overlay {
-          position:fixed; inset:0; z-index:1000;
+          position:fixed; inset:0; z-index:10000;
           display:flex; align-items:center; justify-content:center;
           opacity:0; pointer-events:none; transition:opacity .35s ease;
           overflow:hidden;
@@ -719,15 +856,21 @@ export default function LoginPage() {
         }
         @media (max-width: 768px) {
           .trinity-portal-landing .hero { grid-template-columns: 1fr; }
-          .trinity-portal-landing .hero-left { padding: 48px 5%; }
+          .trinity-portal-landing .hero-left { padding: 140px 5% 48px; }
           .trinity-portal-landing .hero-right { height: 360px; }
           .trinity-portal-landing .quicklinks { grid-template-columns: repeat(2, 1fr); margin: 0 4% 20px; }
           .trinity-portal-landing .why-grid { grid-template-columns: repeat(2, 1fr); }
           .trinity-portal-landing .about-grid { grid-template-columns: 1fr; }
           .trinity-portal-landing .contact-grid { grid-template-columns: repeat(2, 1fr); }
           .trinity-portal-landing .gallery-grid { grid-template-columns: repeat(2, 1fr); }
-          .trinity-portal-landing .nav-links { display: none; }
-          .trinity-portal-landing .topbar { flex-direction: column; gap: 8px; text-align: center; }
+          .glass-navbar-inner {
+            height: auto;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 16px 5%;
+          }
+          .glass-navbar .nav-links { display: none; }
+          .trinity-portal-landing .hero-left { padding-top: 130px; }
         }
         @media (max-width: 480px) {
           .trinity-portal-landing .quicklinks { grid-template-columns: 1fr; }
@@ -740,57 +883,23 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="trinity-portal-landing min-h-screen">
-        
-        {/* ────────── TOP INFO BAR ───────────────────────────────────────── */}
-        <div className="topbar">
-          <div className="topbar-left">
-            <a href={`tel:${settings.contact.phone || "+256 700 123 456"}`}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.34a2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              {settings.contact.phone || "+256 700 123 456"}
-            </a>
-            <div className="topbar-divider" />
-            <a href={`mailto:${settings.contact.email || "info@trinityschool.ac.ug"}`}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-              {settings.contact.email || "info@trinityschool.ac.ug"}
-            </a>
-          </div>
-          <div className="topbar-right">
-            <button className="bg-transparent border-none text-white/85 hover:text-white cursor-pointer flex items-center gap-1.5 text-[13px]" onClick={() => setShowLoginModal(true)}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Log In
-            </button>
-            <div className="topbar-divider" />
-            <div className="social-icons flex items-center">
-              <a href={settings.socialMedia?.facebook || "#"} title="Facebook" className="mr-3">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-              </a>
-              <a href={settings.socialMedia?.instagram || "#"} title="Instagram" className="mr-3">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-              </a>
-              <a href={settings.socialMedia?.whatsapp || "https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t"} title="WhatsApp">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* ────────── MAIN NAVIGATION ────────────────────────────────────── */}
-        <nav className="mainnav">
-          <a className="brand" href="#">
+      {/* ────────── GLASS NAVBAR ─────────────────────────────────────── */}
+      <nav className="glass-navbar">
+        <div className="glass-navbar-inner">
+          <a className="logo" href="#">
             {settings.generalInfo.logo ? (
-              <div className="relative w-[48px] h-[48px] shrink-0">
+              <div className="relative w-[55px] h-[55px] shrink-0">
                 <Image
                   src={settings.generalInfo.logo}
                   alt="School Logo"
                   fill
-                  className="rounded-full object-contain bg-white p-0.5 border border-white/20 shadow-md"
+                  className="rounded-full object-contain"
                   loading="eager"
                   priority
                 />
               </div>
             ) : (
-              <svg className="shield-svg" width="58" height="68" viewBox="0 0 58 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="55" height="55" viewBox="0 0 58 68" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M29 2L4 12V34C4 49 15 61 29 66C43 61 54 49 54 34V12L29 2Z" fill="#1a2340" stroke="#d4a017" strokeWidth="2.5"/>
                 <path d="M29 8L9 16V34C9 46 18 56 29 61C40 56 49 46 49 34V16L29 8Z" fill="#22a05a"/>
                 <rect x="26.5" y="16" width="5" height="22" rx="1" fill="white"/>
@@ -798,30 +907,32 @@ export default function LoginPage() {
                 <circle cx="29" cy="13" r="3" fill="#f0b429"/>
               </svg>
             )}
-            <div className="brand-text">
-              <div className="name uppercase tracking-tight font-extrabold">{settings.generalInfo.name.replace(" Primary School", "").replace(" Nursery & Primary School", "")}</div>
-              <div className="sub font-bold">{settings.generalInfo.schoolType || "Nursery & Primary School"}</div>
+            <div>
+              <h3>{settings.generalInfo.name.replace(" Primary School", "").replace(" Nursery & Primary School", "").toUpperCase()}</h3>
+              <span>{settings.generalInfo.schoolType || "Nursery & Primary School"}</span>
             </div>
           </a>
 
-          <div className="nav-links">
-            <a href="#" className="active">Home</a>
-            <a href="#about">About Us</a>
-            <a href="#gallery">Gallery</a>
-            <a href="#why-choose">Why Choose Us</a>
-            <a href="#contact">Contact</a>
-          </div>
+          <ul className="nav-links">
+            <li><a href="#home" className={activeSection === "home" ? "active" : ""}>Home</a></li>
+            <li><a href="#about" className={activeSection === "about" ? "active" : ""}>About Us</a></li>
+            <li><a href="#gallery" className={activeSection === "gallery" ? "active" : ""}>Gallery</a></li>
+            <li><a href="#why-choose" className={activeSection === "why-choose" ? "active" : ""}>Why Choose Us</a></li>
+            <li><a href="#contact" className={activeSection === "contact" ? "active" : ""}>Contact</a></li>
+          </ul>
 
           <div className="nav-actions">
-            <button className="btn-staff" onClick={() => setShowLoginModal(true)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <button type="button" className="portal-btn" onClick={() => setShowLoginModal(true)}>
               Log In
             </button>
           </div>
-        </nav>
+        </div>
+      </nav>
+
+      <div className="trinity-portal-landing min-h-screen">
 
         {/* ────────── SPLIT HERO SECTION ─────────────────────────────────── */}
-        <section className="hero">
+        <section id="home" className="hero">
           {/* Left Text details */}
           <div className="hero-left">
             <div className="admissions-badge">
