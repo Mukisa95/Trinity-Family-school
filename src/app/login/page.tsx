@@ -914,9 +914,17 @@ export default function LoginPage() {
             display: none !important;
           }
           .trinity-portal-landing .hero-heading {
-            font-size: 1.6rem !important;
+            font-size: 1.25rem !important;
             margin-bottom: 8px;
             line-height: 1.2;
+            white-space: nowrap !important;
+          }
+          .trinity-portal-landing .hero-heading .line1,
+          .trinity-portal-landing .hero-heading .line2 {
+            display: inline !important;
+          }
+          .trinity-portal-landing .hero-heading .line1 {
+            margin-right: 6px;
           }
           .trinity-portal-landing .hero-underline {
             margin: 8px 0 14px !important;
@@ -925,6 +933,9 @@ export default function LoginPage() {
             font-size: 13.5px !important;
             line-height: 1.6 !important;
             margin-bottom: 20px !important;
+          }
+          .trinity-portal-landing .quicklinks {
+            display: none !important;
           }
 
           /* Compact & dynamic stats row on mobile */
