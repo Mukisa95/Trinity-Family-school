@@ -524,7 +524,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
   return (
     <>
-      <header className="bg-white/72 dark:bg-slate-950/72 backdrop-blur-[20px] border-b border-white/45 dark:border-slate-800/45 sticky top-0 z-40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+      <header className="bg-white/72 dark:bg-slate-950/72 backdrop-blur-[20px] border-b border-white/45 dark:border-slate-800/45 sticky md:absolute top-0 left-0 right-0 z-40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
         <div className="px-2 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-11 sm:h-13">
             {/* Left side: Mobile Sidebar Trigger, Menu Button */}

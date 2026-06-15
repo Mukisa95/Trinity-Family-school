@@ -579,20 +579,20 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             <VersionLink />
           </SidebarFooter>
         </Sidebar연구>
-        <SidebarInset className="flex flex-col overflow-hidden min-w-0 h-[100dvh]">
+        <SidebarInset className="relative flex flex-col overflow-hidden min-w-0 h-[100dvh]">
           <EnhancedHeader
             onMenuClick={() => { }}
             showMenuButton={false}
           />
-          {isSessionStale && (
-            <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
-          )}
           <main
-            className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0"
+            className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
+            {isSessionStale && (
+              <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
+            )}
             <AuthGuard>
               {children}
             </AuthGuard>
