@@ -25,7 +25,7 @@ export function ProtectedRoute({
     if (!isLoading) {
       // Check if authentication is required
       if (requireAuth && !user) {
-        router.push('/login');
+        router.replace('/login');
         return;
       }
 

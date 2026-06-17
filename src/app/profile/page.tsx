@@ -38,7 +38,7 @@ export default function ProfilePage() {
       // Don't redirect immediately, let the auth context settle
       const timer = setTimeout(() => {
         if (!user) {
-          router.push('/login');
+          router.replace('/login');
         }
       }, 1000);
       return () => clearTimeout(timer);

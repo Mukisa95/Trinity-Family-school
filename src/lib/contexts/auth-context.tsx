@@ -28,7 +28,7 @@ interface AuthContextType {
   user: SystemUser | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isSessionStale: boolean;
   sessionStatus: SessionStatus;
@@ -402,7 +402,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(authenticatedUser);
         if (typeof window !== 'undefined') {
           saveUserCache(authenticatedUser);
+          localStorage.removeItem('trinity_account_locked');
         }
+        setIsLocked(false);
         
         logger.info('Successfully authenticated with custom auth system', { username: authenticatedUser.username });
         setHasStoredUser(true);

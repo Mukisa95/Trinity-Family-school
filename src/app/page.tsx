@@ -282,28 +282,22 @@ const StatCard = ({
       {/* 3D Depth Effect - Bottom shadow */}
       <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
 
-      {/* Icon with Doughnut Graph - Positioned in top-right corner */}
-      <div className="absolute top-2.5 right-2.5 w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 z-20">
-        {/* Animated Doughnut SVG Background */}
-        <AnimatedDoughnut segments={segments} progress={progress} color={color} />
-
-        {/* Inner Icon */}
-        <div
-          className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-white"
-          style={{
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.8)'
-          }}
-        >
-          <Icon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${color.text}`} />
-        </div>
+      {/* Icon - Positioned in top-right corner */}
+      <div className="absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
+        style={{
+          backgroundColor: color.bg,
+          border: '1px solid rgba(255, 255, 255, 0.4)'
+        }}
+      >
+        <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${color.text}`} />
       </div>
 
-      <div className="relative p-2.5 sm:p-3.5 pr-10 sm:pr-12 h-full flex flex-col justify-between min-h-[85px] sm:min-h-[96px] z-10">
+      <div className="relative p-2 sm:p-3 pr-9 sm:pr-11 h-full flex flex-col justify-center min-h-[68px] sm:min-h-[76px] z-10">
         <div className="flex-1 min-w-0">
           <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0.5 sm:mb-1 truncate`}>
             {title}
           </p>
-          <div className="min-h-[1.75rem] sm:min-h-[2rem] flex items-center">
+          <div className="min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center">
             {isLoading ? (
               <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
             ) : (
@@ -315,16 +309,13 @@ const StatCard = ({
                 <h3 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
                   <CountUp end={value} />
                 </h3>
-                {subtitle && (
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-1 font-medium truncate leading-tight">{subtitle}</p>
-                )}
               </motion.div>
             )}
           </div>
         </div>
 
         {trend && (
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between mt-1.5">
             <div className="flex items-center space-x-1">
               <TrendingUp
                 className={`w-3 h-3 ${trend.isPositive ? 'text-green-500' : 'text-red-500'}`}
@@ -741,16 +732,14 @@ const ExpandableStaffCard = ({
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
-        {/* Icon with Doughnut Graph - Positioned in top-right corner */}
-        <div className="absolute top-2.5 right-2.5 w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 z-20">
-          {/* Animated Doughnut SVG Background */}
-          <AnimatedDoughnut segments={segments} progress={progress} color={color} />
-          <div
-            className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-white"
-            style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.8)' }}
-          >
-            <Icon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${color.text}`} />
-          </div>
+        {/* Icon - Positioned in top-right corner */}
+        <div className="absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
+          style={{
+            backgroundColor: color.bg,
+            border: '1px solid rgba(255, 255, 255, 0.4)'
+          }}
+        >
+          <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${color.text}`} />
         </div>
 
         {/* Expand/Collapse Icon - Positioned at bottom right */}
@@ -764,14 +753,14 @@ const ExpandableStaffCard = ({
 
         <div className="relative z-10">
           <div
-            className="p-2.5 sm:p-3.5 pr-10 sm:pr-12 flex flex-col justify-between min-h-[85px] sm:min-h-[96px]"
+            className="p-2 sm:p-3 pr-9 sm:pr-11 flex flex-col justify-center min-h-[68px] sm:min-h-[76px]"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
               <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0.5 sm:mb-1 truncate`}>
                 {title}
               </p>
-              <div className="min-h-[1.75rem] sm:min-h-[2rem] flex items-center">
+              <div className="min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center">
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                 ) : (
@@ -785,9 +774,6 @@ const ExpandableStaffCard = ({
                         <CountUp end={value} />
                       </span>
                     </div>
-                    {subtitle && (
-                      <p className="text-[10px] sm:text-xs text-gray-500 mt-1 font-medium truncate leading-tight">{subtitle}</p>
-                    )}
                   </motion.div>
                 )}
               </div>
@@ -1151,15 +1137,14 @@ const ExpandableAttendanceCard = ({
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
-        {/* Icon with Doughnut Graph - Positioned in top-right corner */}
-        <div className="absolute top-2.5 right-2.5 w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 z-20">
-          <AnimatedDoughnut segments={currentSegments} progress={currentProgress} color={currentColor} />
-          <div
-            className="relative z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center bg-white"
-            style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.8)' }}
-          >
-            <CurrentIcon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${currentColor.text}`} />
-          </div>
+        {/* Icon - Positioned in top-right corner */}
+        <div className="absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
+          style={{
+            backgroundColor: currentColor.bg,
+            border: '1px solid rgba(255, 255, 255, 0.4)'
+          }}
+        >
+          <CurrentIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${currentColor.text}`} />
         </div>
 
         {/* Expand/Collapse Icon - Positioned at bottom right */}
@@ -1174,7 +1159,7 @@ const ExpandableAttendanceCard = ({
         <div className="relative z-10">
           {/* Card Content - Always Visible */}
           <div
-            className="p-2.5 sm:p-3.5 pr-10 sm:pr-12 flex flex-col justify-between min-h-[85px] sm:min-h-[96px]"
+            className="p-2 sm:p-3 pr-9 sm:pr-11 flex flex-col justify-center min-h-[68px] sm:min-h-[76px]"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
@@ -1190,7 +1175,7 @@ const ExpandableAttendanceCard = ({
                   {currentTitle}
                 </motion.p>
               </AnimatePresence>
-              <div className="min-h-[1.75rem] sm:min-h-[2rem] flex items-center">
+              <div className="min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center">
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                 ) : (
@@ -1217,20 +1202,6 @@ const ExpandableAttendanceCard = ({
                         </span>
                       </motion.div>
                     </AnimatePresence>
-                    {currentSubtitle && (
-                      <AnimatePresence mode="wait">
-                        <motion.p
-                          key={`sub-${currentSubtitle}`}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          transition={{ duration: 0.2, delay: 0.1 }}
-                          className="text-[10px] sm:text-xs text-gray-500 mt-1 font-medium truncate leading-tight"
-                        >
-                          {currentSubtitle}
-                        </motion.p>
-                      </AnimatePresence>
-                    )}
                   </motion.div>
                 )}
               </div>
@@ -3116,9 +3087,9 @@ export default function DashboardPage() {
           transform: scale(1.03) translateY(-4px) translateZ(0);
         }
         
-        /* Add depth to background */
+        /* Body background transparent to show wrapper image */
         body {
-          background: linear-gradient(to bottom right, #f9fafb, #ffffff, #eff6ff);
+          background: transparent !important;
         }
         
         /* Optimize animations */

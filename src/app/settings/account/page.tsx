@@ -44,7 +44,7 @@ export default function AccountSettingsPage() {
       // Don't redirect immediately, let the auth context settle
       const timer = setTimeout(() => {
         if (!user) {
-          router.push('/login');
+          router.replace('/login');
         }
       }, 1000);
       return () => clearTimeout(timer);

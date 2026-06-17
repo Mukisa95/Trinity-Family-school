@@ -145,20 +145,12 @@ export function PersistentLayout({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Check if we're on a deep page (not just home) - user was likely authenticated recently
-        const authenticatedPages = ['/pupils', '/staff', '/classes', '/fees', '/exams', '/attendance'];
-        const isOnAuthenticatedPage = authenticatedPages.some(page => pathname.startsWith(page));
-        if (isOnAuthenticatedPage) {
-          console.log('User is on authenticated page, likely recently authenticated - NOT redirecting');
-          return;
-        }
-
         console.log('Redirecting to login due to no authentication');
-        router.push('/login');
+        router.replace('/login');
       } else if (!authLoading && isAuthenticated && user && pathname === '/login') {
         // Redirect all authenticated users from login page to home page
         console.log(`${user.role} login: Redirecting to /`);
-        router.push('/');
+        router.replace('/');
       }
     }, delay);
 
@@ -167,7 +159,7 @@ export function PersistentLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.replace('/login');
   };
 
   // If it's a public route, render without any authentication checks
@@ -224,80 +216,60 @@ export function PersistentLayout({ children }: { children: ReactNode }) {
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen w-full">
         <Sidebar연구 variant="sidebar" collapsible="icon">
-          <SidebarHeader
-            className={cn(
-              "p-4 flex flex-col items-center text-center transition-all duration-300 ease-in-out",
-              "group-data-[state=expanded]:pb-6"
-            )}
-          >
-            {/* Logo shown when collapsed */}
-            {!isLoadingSettings && currentSettings.generalInfo.logo && (
-              <Link
-                href="/"
-                className={cn(
-                  "flex items-center justify-center transition-all duration-300 ease-in-out",
-                  "group-data-[state=collapsed]:mb-0 group-data-[state=collapsed]:w-full group-data-[state=collapsed]:h-auto",
-                  "group-data-[state=expanded]:hidden"
-                )}
-              >
-                <div className="relative w-10 h-10 bg-transparent">
-                  <Image
-                    src={currentSettings.generalInfo.logo}
-                    alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
-                    fill
-                    sizes="40px"
-                    className="rounded-md object-contain bg-transparent"
-                    data-ai-hint="school logo collapsed"
-                  />
-                </div>
-              </Link>
-            )}
-
-            {/* Full content shown when expanded */}
-            <div
+            <SidebarHeader
               className={cn(
-                "flex flex-col items-center space-y-2 w-full transition-all duration-300 ease-in-out overflow-hidden",
-                "group-data-[state=collapsed]:h-0 group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:invisible group-data-[state=collapsed]:-mt-4",
-                "group-data-[state=expanded]:h-auto group-data-[state=expanded]:opacity-100 group-data-[state=expanded]:visible"
+                "p-3 flex flex-row items-center gap-2.5 transition-all duration-300 ease-in-out h-13 min-h-[52px]",
+                "group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-2"
               )}
             >
-              <AnimatePresence mode="wait">
-                {isLoadingSettings ? (
-                  <SchoolSettingsLoader key="loading" />
-                ) : (
-                  <motion.div
-                    key="content"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex flex-col items-center space-y-2 w-full"
-                  >
-                    {currentSettings.generalInfo.logo && (
-                      <div className="relative w-16 h-16 mb-2 bg-transparent">
-                        <Image
-                          src={currentSettings.generalInfo.logo}
-                          alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
-                          fill
-                          sizes="(max-width: 640px) 100vw, 64px"
-                          className="rounded-md object-contain bg-transparent"
-                          data-ai-hint="school logo"
-                        />
-                      </div>
-                    )}
-                    <h2 className="text-md font-semibold text-sidebar-foreground leading-tight px-1">
-                      {currentSettings.generalInfo.name || "School Name"}
-                    </h2>
-                    {currentSettings.generalInfo.motto && (
-                      <p className="text-xs text-sidebar-foreground/80 italic px-1 leading-snug">
-                        "{currentSettings.generalInfo.motto}"
-                      </p>
-                    )}
-                  </motion.div>
+              {/* Logo (shown in both states) */}
+              {!isLoadingSettings && currentSettings.generalInfo.logo && (
+                <Link href="/" className="flex-shrink-0">
+                  <div className="relative w-9 h-9 bg-transparent transition-all duration-300">
+                    <Image
+                      src={currentSettings.generalInfo.logo}
+                      alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
+                      fill
+                      sizes="36px"
+                      className="rounded-md object-contain bg-transparent"
+                      data-ai-hint="school logo"
+                    />
+                  </div>
+                </Link>
+              )}
+
+              {/* Text info (hidden when collapsed) */}
+              <div
+                className={cn(
+                  "flex flex-col items-start min-w-0 transition-all duration-300 ease-in-out overflow-hidden w-full",
+                  "group-data-[state=collapsed]:w-0 group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:invisible"
                 )}
-              </AnimatePresence>
-            </div>
-          </SidebarHeader>
+              >
+                <AnimatePresence mode="wait">
+                  {isLoadingSettings ? (
+                    <div className="h-8 w-24 bg-slate-100 animate-pulse rounded" />
+                  ) : (
+                    <motion.div
+                      key="text-content"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-start min-w-0 w-full"
+                    >
+                      <h2 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight leading-tight w-full break-words">
+                        {currentSettings.generalInfo.name || "School Name"}
+                      </h2>
+                      {currentSettings.generalInfo.motto && (
+                        <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider leading-none mt-0.5 truncate w-full">
+                          {currentSettings.generalInfo.motto}
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </SidebarHeader>
           <SidebarContent>
             <SidebarNav items={navItems} />
           </SidebarContent>

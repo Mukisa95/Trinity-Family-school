@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 import PasswordUnlockModal from './PasswordUnlockModal';
 
 interface AuthGuardProps {
@@ -9,8 +10,9 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { user, isLocked, unlockAccount, logout } = useAuth();
+  const { user, isLocked, unlockAccount, login, logout } = useAuth();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (user && isLocked) {
@@ -27,6 +29,19 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const handleCloseModal = () => {
     // Don't allow closing the modal if account is locked
     // User must enter password to unlock
+  };
+
+  const handleSignOut = async () => {
+    await logout();
+    router.replace('/login');
+  };
+
+  const handleSwitchUser = async (username: string, password: string): Promise<boolean> => {
+    const switched = await login(username, password);
+    if (switched) {
+      router.replace('/');
+    }
+    return switched;
   };
 
   // If user is not authenticated at all, show nothing (let login page handle it)
@@ -74,7 +89,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           isOpen={showUnlockModal}
           onClose={handleCloseModal}
           onUnlock={handleUnlock}
-          onSignOut={logout}
+          onSwitchUser={handleSwitchUser}
+          onSignOut={handleSignOut}
           username={user.username}
         />
       </>

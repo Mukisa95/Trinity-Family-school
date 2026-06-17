@@ -517,7 +517,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
 
     setTimeout(async () => {
       await logout();
-      router.push('/login');
+      router.replace('/login');
     }, 2000);
   };
 

@@ -342,20 +342,12 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           return;
         }
 
-        // Check if we're on a deep page (not just home) - user was likely authenticated recently
-        const authenticatedPages = ['/pupils', '/staff', '/classes', '/fees', '/exams', '/attendance'];
-        const isOnAuthenticatedPage = pathname ? authenticatedPages.some(page => pathname.startsWith(page)) : false;
-        if (isOnAuthenticatedPage) {
-          logger.debug('User is on authenticated page, likely recently authenticated - not redirecting');
-          return;
-        }
-
         logger.debug('Redirecting to login due to no authentication');
-        router.push('/login');
+        router.replace('/login');
       } else if (!authLoading && isAuthenticated && user && pathname === '/login') {
         // Redirect all authenticated users from login page to home page
         logger.debug('Authenticated user on login page, redirecting home', { role: user.role });
-        router.push('/');
+        router.replace('/');
       }
     }, delay);
 
@@ -364,7 +356,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.replace('/login');
   };
 
   const handleMobileMenuClick = () => {
@@ -496,109 +488,93 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   return (
     <NavigationWrapper>
       <AutoNotificationPermission />
-      <SidebarProvider defaultOpen>
-        <Sidebar연구 variant="sidebar" collapsible="icon">
-          <SidebarHeader
-            className={cn(
-              "p-4 flex flex-col items-center text-center transition-all duration-300 ease-in-out",
-              "group-data-[state=expanded]:pb-6"
-            )}
-          >
-            {/* Logo shown when collapsed */}
-            {!isLoadingSettings && currentSettings.generalInfo.logo && (
-              <Link
-                href="/"
-                className={cn(
-                  "flex items-center justify-center transition-all duration-300 ease-in-out",
-                  "group-data-[state=collapsed]:mb-0 group-data-[state=collapsed]:w-full group-data-[state=collapsed]:h-auto",
-                  "group-data-[state=expanded]:hidden"
-                )}
-              >
-                <div className="relative w-10 h-10 bg-transparent">
-                  <Image
-                    src={currentSettings.generalInfo.logo}
-                    alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
-                    fill
-                    sizes="40px"
-                    className="rounded-md object-contain bg-transparent"
-                    data-ai-hint="school logo collapsed"
-                  />
-                </div>
-              </Link>
-            )}
-
-            {/* Full content shown when expanded */}
-            <div
+      {/* Dashboard background wrapper — background image covers the full viewport */}
+      <div className="dashboard-bg-wrapper">
+        <SidebarProvider defaultOpen>
+          <Sidebar연구 variant="sidebar" collapsible="icon">
+            <SidebarHeader
               className={cn(
-                "flex flex-col items-center space-y-2 w-full transition-all duration-300 ease-in-out overflow-hidden",
-                "group-data-[state=collapsed]:h-0 group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:invisible group-data-[state=collapsed]:-mt-4",
-                "group-data-[state=expanded]:h-auto group-data-[state=expanded]:opacity-100 group-data-[state=expanded]:visible"
+                "p-3 flex flex-row items-center gap-2.5 transition-all duration-300 ease-in-out h-13 min-h-[52px]",
+                "group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-2"
               )}
             >
-              <AnimatePresence mode="wait">
-                {isLoadingSettings ? (
-                  <SchoolSettingsLoader key="loading" />
-                ) : (
-                  <motion.div
-                    key="content"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex flex-col items-center space-y-2 w-full"
-                  >
-                    {currentSettings.generalInfo.logo && (
-                      <div className="relative w-16 h-16 mb-2 bg-transparent">
-                        <Image
-                          src={currentSettings.generalInfo.logo}
-                          alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
-                          fill
-                          sizes="(max-width: 640px) 100vw, 64px"
-                          className="rounded-md object-contain bg-transparent"
-                          data-ai-hint="school logo"
-                        />
-                      </div>
-                    )}
-                    <h2 className="text-md font-semibold text-sidebar-foreground leading-tight px-1">
-                      {currentSettings.generalInfo.name || "School Name"}
-                    </h2>
-                    {currentSettings.generalInfo.motto && (
-                      <p className="text-xs text-sidebar-foreground/80 italic px-1 leading-snug">
-                        "{currentSettings.generalInfo.motto}"
-                      </p>
-                    )}
-                  </motion.div>
+              {/* Logo (shown in both states) */}
+              {!isLoadingSettings && currentSettings.generalInfo.logo && (
+                <Link href="/" className="flex-shrink-0">
+                  <div className="relative w-9 h-9 bg-transparent transition-all duration-300">
+                    <Image
+                      src={currentSettings.generalInfo.logo}
+                      alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
+                      fill
+                      sizes="36px"
+                      className="rounded-md object-contain bg-transparent"
+                      data-ai-hint="school logo"
+                    />
+                  </div>
+                </Link>
+              )}
+
+              {/* Text info (hidden when collapsed) */}
+              <div
+                className={cn(
+                  "flex flex-col items-start min-w-0 transition-all duration-300 ease-in-out overflow-hidden w-full",
+                  "group-data-[state=collapsed]:w-0 group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:invisible"
                 )}
-              </AnimatePresence>
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarNav items={navItems} />
-          </SidebarContent>
-          <SidebarFooter className="p-2 border-t border-sidebar-border flex flex-col gap-1.5">
-            <VersionLink />
-          </SidebarFooter>
-        </Sidebar연구>
-        <SidebarInset className="relative flex flex-col overflow-hidden min-w-0 h-[100dvh]">
-          <EnhancedHeader
-            onMenuClick={() => { }}
-            showMenuButton={false}
-          />
-          <main
-            className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            {isSessionStale && (
-              <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
-            )}
-            <AuthGuard>
-              {children}
-            </AuthGuard>
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+              >
+                <AnimatePresence mode="wait">
+                  {isLoadingSettings ? (
+                    <div className="h-8 w-24 bg-slate-100 animate-pulse rounded" />
+                  ) : (
+                    <motion.div
+                      key="text-content"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-start min-w-0 w-full"
+                    >
+                      <h2 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight leading-tight w-full break-words">
+                        {currentSettings.generalInfo.name || "School Name"}
+                      </h2>
+                      {currentSettings.generalInfo.motto && (
+                        <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider leading-none mt-0.5 truncate w-full">
+                          {currentSettings.generalInfo.motto}
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </SidebarHeader>
+            <SidebarContent>
+              <SidebarNav items={navItems} />
+            </SidebarContent>
+            <SidebarFooter className="p-2 border-t border-sidebar-border flex flex-col gap-1.5">
+              <VersionLink />
+            </SidebarFooter>
+          </Sidebar연구>
+          {/* SidebarInset is transparent so the background image shows through */}
+          <SidebarInset className="relative flex flex-col overflow-hidden min-w-0 h-[100dvh] !bg-transparent">
+            <EnhancedHeader
+              onMenuClick={() => { }}
+              showMenuButton={false}
+            />
+            <main
+              className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {isSessionStale && (
+                <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
+              )}
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
     </NavigationWrapper>
   );
 });
