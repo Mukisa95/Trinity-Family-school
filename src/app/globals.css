@@ -152,102 +152,9 @@ body {
     z-index: 99999 !important;
   }
 
-  [data-radix-dialog-content][role="dialog"] {
-    position: fixed !important;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-
-    width: auto !important;
-    margin: 0 !important;
-    max-width: 95vw !important;
-    max-height: 95vh !important;
-
-    z-index: 9999 !important;
-    box-sizing: border-box !important;
-
-    /* Ensure no other alignments interfere */
-    right: auto !important;
-    bottom: auto !important;
-    inset: auto !important;
-  }
-
-  [data-radix-dialog-overlay] {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 9998 !important;
-  }
-
-  /* Mobile-specific dialog optimizations */
-  @media (max-width: 640px) {
-    [data-radix-dialog-content][role="dialog"] {
-      max-width: 95vw !important;
-      max-height: 90vh !important;
-      margin: 0 !important;
-      padding: 1rem !important;
-      min-height: auto !important;
-      /* Ensure modal appears above navigation bar */
-      z-index: 99999 !important;
-      /* Add top margin to avoid navigation bar */
-      margin-top: 1rem !important;
-    }
-
-    /* Ensure dialog content is scrollable on mobile */
-    [data-radix-dialog-content][role="dialog"] .overflow-y-auto,
-    [data-radix-dialog-content][role="dialog"] [data-radix-scroll-area-viewport] {
-      max-height: 60vh !important;
-    }
-  }
-
-  @media (max-width: 480px) {
-    [data-radix-dialog-content][role="dialog"] {
-      max-width: 98vw !important;
-      max-height: 95vh !important;
-      padding: 0.75rem !important;
-      min-height: auto !important;
-    }
-
-    /* Smaller scroll areas on very small screens */
-    [data-radix-dialog-content][role="dialog"] .overflow-y-auto,
-    [data-radix-dialog-content][role="dialog"] [data-radix-scroll-area-viewport] {
-      max-height: 50vh !important;
-    }
-  }
-
   /* Ensure all dialog content is properly centered regardless of content size */
   [data-radix-dialog-content][role="dialog"] * {
     box-sizing: border-box;
-  }
-
-  /* Force positioning for any dialog that might have conflicting styles */
-  .fixed[data-radix-dialog-content],
-  div[data-radix-dialog-content].fixed,
-  [data-state="open"][data-radix-dialog-content] {
-    position: fixed !important;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    margin: 0 !important;
-    right: auto !important;
-    bottom: auto !important;
-    inset: auto !important;
-    z-index: 9999 !important;
-  }
-
-  /* Additional safety net for any dialog positioning issues */
-  [role="dialog"][data-radix-dialog-content],
-  div[role="dialog"][data-radix-dialog-content],
-  [data-radix-dialog-content][data-state="open"] {
-    position: fixed !important;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    margin: 0 !important;
-    right: auto !important;
-    bottom: auto !important;
-    inset: auto !important;
-    z-index: 9999 !important;
-    width: auto !important;
   }
 
   /* Ensure dialog buttons are properly sized on mobile */
@@ -3828,5 +3735,4 @@ html body .modern-dialog-content[data-radix-dialog-content][role="dialog"],
 html, body, * {
   -ms-overflow-style: none !important; /* IE and Edge */
   scrollbar-width: none !important; /* Firefox */
-}
-
+}

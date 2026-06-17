@@ -21,7 +21,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-md backdrop-saturate-75 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -33,12 +33,11 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  // Check if children contain DialogTitle and DialogDescription
-  const hasDialogTitle = React.Children.toArray(children).some(child => 
+  const hasDialogTitle = React.Children.toArray(children).some(child =>
     React.isValidElement(child) && child.type === DialogTitle
   )
-  
-  const hasDialogDescription = React.Children.toArray(children).some(child => 
+
+  const hasDialogDescription = React.Children.toArray(children).some(child =>
     React.isValidElement(child) && child.type === DialogDescription
   )
 
@@ -48,50 +47,45 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          // Full screen positioning
-          "fixed inset-0 z-50",
-          // Full window layout
-          "w-full h-full",
-          // Flexbox for content organization
-          "flex flex-col",
-          // Appearance
-          "bg-background",
-          // Remove any borders/shadows since it's full screen
-          "border-0 shadow-none rounded-none",
-          // Animation
+          "fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-transparent p-3 outline-none sm:p-4 md:p-6",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-          className
+          "pointer-events-none"
         )}
         {...props}
       >
-        {/* Hidden accessibility elements if not provided */}
-        {!hasDialogTitle && (
-          <span className="sr-only">
-            <h2 id="dialog-title">Dialog</h2>
-          </span>
-        )}
-        {!hasDialogDescription && (
-          <span className="sr-only">
-            <p id="dialog-description">Dialog content</p>
-          </span>
-        )}
-        
-        {/* Close button in top right */}
-      <div className="absolute top-4 right-4 z-10">
-        <DialogPrimitive.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-6 w-6" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </div>
-      
-      {/* Scrollable content area */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {children}
-      </div>
-    </DialogPrimitive.Content>
-  </DialogPortal>
+        <div
+          className={cn(
+            "pointer-events-auto relative grid w-full max-w-lg gap-4 overflow-y-auto rounded-2xl border border-white/60 bg-white/90 p-5 text-foreground shadow-[0_24px_80px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-2xl",
+            "max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-3rem)]",
+            "dark:border-slate-700/70 dark:bg-slate-950/90 dark:shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "sm:rounded-2xl sm:p-6",
+            className
+          )}
+        >
+          {!hasDialogTitle && (
+            <span className="sr-only">
+              <h2 id="dialog-title">Dialog</h2>
+            </span>
+          )}
+          {!hasDialogDescription && (
+            <span className="sr-only">
+              <p id="dialog-description">Dialog content</p>
+            </span>
+          )}
+
+          {children}
+
+          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full bg-white/80 p-1.5 text-slate-700 opacity-80 shadow-sm ring-offset-background backdrop-blur-sm transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none dark:bg-slate-900/80 dark:text-slate-100">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        </div>
+      </DialogPrimitive.Content>
+    </DialogPortal>
   )
 })
 DialogContent.displayName = DialogPrimitive.Content.displayName
