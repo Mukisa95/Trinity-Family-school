@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -12,24 +12,28 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import type { FeeStructure } from '@/types';
+import type { FeeStructure, AcademicYear } from '@/types';
 
 interface FeeAssignmentPickerProps {
   fees: FeeStructure[];
+  academicYears?: AcademicYear[];
   selectedFeeId: string;
   onSelectFeeId: (feeId: string) => void;
   selectedFeeName?: string;
   triggerId?: string;
   placeholder?: string;
+  onPivotRequest?: () => void;
 }
 
 export function FeeAssignmentPicker({
   fees,
+  academicYears,
   selectedFeeId,
   onSelectFeeId,
   selectedFeeName,
   triggerId = 'fee-select',
   placeholder = 'Choose a fee or discount to assign',
+  onPivotRequest,
 }: FeeAssignmentPickerProps) {
   const [open, setOpen] = useState(false);
   const [assignmentFeeSearch, setAssignmentFeeSearch] = useState('');
@@ -74,7 +78,7 @@ export function FeeAssignmentPicker({
     if (nextOpen) {
       if (assignmentFeeOptions.length > 0) {
         setAssignmentFeesExpanded(true);
-      } else if (discountFeeOptions.length > 0) {
+      } else if (discountFeeOptions.length > 0 || onPivotRequest) {
         setDiscountsExpanded(true);
       }
     } else {
@@ -140,7 +144,7 @@ export function FeeAssignmentPicker({
     onExpandedChange: (open: boolean) => void,
     className?: string
   ) => {
-    if (options.length === 0) return null;
+    if (options.length === 0 && !(kind === 'discount' && onPivotRequest)) return null;
 
     const isAssignment = kind === 'assignment';
 
@@ -197,14 +201,63 @@ export function FeeAssignmentPicker({
                 onKeyDown={(e) => e.stopPropagation()}
               />
             </div>
-            <div className="max-h-36 space-y-0.5 overflow-y-auto">
-              {filtered.length === 0 ? (
-                <p className="py-2 text-center text-xs text-muted-foreground">
-                  {isAssignment ? 'No matching fees' : 'No matching discounts'}
-                </p>
-              ) : (
-                filtered.map((fee) => renderFeeOption(fee, kind))
-              )}
+            {!isAssignment && onPivotRequest && (
+              <button
+                type="button"
+                onClick={() => {
+                  onPivotRequest();
+                  handleOpenChange(false);
+                }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 px-2 py-1.5 text-center text-xs font-semibold text-indigo-700 transition-colors mb-2"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Pivot Discount (Custom)
+              </button>
+            )}
+            <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+              {(() => {
+                if (filtered.length === 0) {
+                  return (
+                    <p className="py-2 text-center text-xs text-muted-foreground">
+                      {isAssignment ? 'No matching fees' : 'No matching discounts'}
+                    </p>
+                  );
+                }
+
+                // Group fees by term
+                const groups = new Map<string, FeeStructure[]>();
+                const termMap = new Map<string, string>();
+                
+                academicYears?.forEach(year => {
+                  year.terms.forEach(term => {
+                    termMap.set(term.id, term.name);
+                  });
+                });
+
+                filtered.forEach(fee => {
+                  const termName = fee.termId ? termMap.get(fee.termId) || 'Unknown Term' : 'General / All Terms';
+                  if (!groups.has(termName)) {
+                    groups.set(termName, []);
+                  }
+                  groups.get(termName)!.push(fee);
+                });
+
+                // Custom sort: General / All Terms first, then sort by Term 1, Term 2 etc
+                const sortedGroups = Array.from(groups.entries()).sort((a, b) => {
+                  if (a[0] === 'General / All Terms') return -1;
+                  if (b[0] === 'General / All Terms') return 1;
+                  return a[0].localeCompare(b[0]);
+                });
+
+                return sortedGroups.map(([groupName, groupFees]) => (
+                  <div key={groupName} className="space-y-0.5">
+                    <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 px-1 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                      {groupName}
+                    </div>
+                    {groupFees.map((fee) => renderFeeOption(fee, kind))}
+                  </div>
+                ));
+              })()}
             </div>
           </CollapsibleContent>
         </div>
@@ -234,7 +287,7 @@ export function FeeAssignmentPicker({
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        {fees.length === 0 ? (
+        {fees.length === 0 && !onPivotRequest ? (
           <p className="px-3 py-4 text-center text-sm text-muted-foreground">No available fees to assign</p>
         ) : (
           <div className="max-h-[min(70vh,22rem)] overflow-y-auto p-1.5">

@@ -8,7 +8,8 @@ import { pushNotificationService } from '@/lib/services/push-notifications.servi
 import { notificationService } from '@/lib/services/notification-service';
 import { NotificationProgress } from '@/components/NotificationProgress';
 import { format } from 'date-fns';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +74,6 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { userGroupService } from '@/lib/services/user-groups';
 import { deleteDoc, doc, updateDoc, addDoc, collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Capacitor } from '@capacitor/core';
 
 const NOTIFICATION_TYPES: { value: NotificationType; label: string; icon: React.ReactNode }[] = [
   { value: 'reminder', label: 'Reminder', icon: <Clock className="h-4 w-4" /> },
@@ -170,32 +170,17 @@ export default function NotificationsPage() {
   // Check push notification support and permission
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Check push notification support
-      // For web: Check serviceWorker, PushManager, and Notification APIs
-      // For Android native: Check if Capacitor is available (native push works)
-      const isNativeAndroid = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+      // Browser push requires the Service Worker, Push Manager, and Notification APIs.
       const isWebPushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-      
-      // Push is supported if either web push OR native Android push is available
-      const isPushSupportedValue = isWebPushSupported || isNativeAndroid;
-      
-      // For native Android, check native push permission
-      // For web, check Notification permission
-      let pushPermissionValue: NotificationPermission = 'default';
-      if (isNativeAndroid) {
-        // In native Android, we'll check permission via Capacitor PushNotifications plugin
-        // For now, assume 'default' and let the user request permission
-        pushPermissionValue = 'default';
-      } else if ('Notification' in window) {
-        pushPermissionValue = Notification.permission;
-      }
+      const isPushSupportedValue = isWebPushSupported;
+      const pushPermissionValue: NotificationPermission = 'Notification' in window
+        ? Notification.permission
+        : 'default';
 
       console.log('📱 Push support check:', {
-        isNativeAndroid,
         isWebPushSupported,
         isPushSupportedValue,
-        pushPermissionValue,
-        platform: Capacitor.getPlatform()
+        pushPermissionValue
       });
 
       setIsPushSupported(isPushSupportedValue);
@@ -898,12 +883,7 @@ export default function NotificationsPage() {
   const predefinedRecipients = userGroupService.getPredefinedRecipients();
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading notifications...</span>
-      </div>
-    );
+    return <GlassPageRouteSkeleton variant="list" />;
   }
 
   if (error) {
@@ -918,68 +898,60 @@ export default function NotificationsPage() {
   }
 
   return (
-    <>
-      <PageHeader
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      <GlassPageTopBar
         title="Notifications"
-        description="Manage and schedule system notifications, reminders, and alerts."
-        actions={
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              {isOnline ? (
-                <Wifi className="h-4 w-4 text-green-600" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-red-600" />
-              )}
-            </div>
-
-            {/* Floating 3D Pill Navigation Bar */}
-            <div className="flex items-center gap-1 bg-gray-100/80 backdrop-blur-sm rounded-full px-2 py-1.5 shadow-lg border border-gray-200/50">
-              {/* Push Notification Toggle Button */}
-              {isPushSupported && (
-                <button
-                  onClick={handlePushSubscriptionToggle}
-                  disabled={isSubscribingToPush || isUnsubscribingFromPush || pushPermission === 'denied'}
-                  className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-full transition-all duration-200 ${
-                    userPushSubscription && pushPermission === 'granted'
-                      ? 'bg-green-500 text-white shadow-md scale-105'
-                      : pushPermission === 'denied'
-                        ? 'bg-red-500/50 text-white opacity-50 cursor-not-allowed'
-                        : 'bg-white/50 text-gray-700 hover:bg-white'
-                  } ${!isSubscribingToPush && !isUnsubscribingFromPush && pushPermission !== 'denied' ? 'hover:scale-105' : ''}`}
-                  title={
-                    userPushSubscription && pushPermission === 'granted'
-                      ? 'Push notifications enabled - Click to disable'
-                      : pushPermission === 'denied'
-                        ? 'Push notifications blocked - Enable in browser settings'
-                        : 'Push notifications disabled - Click to enable'
-                  }
-                >
-                  {(isSubscribingToPush || isUnsubscribingFromPush) ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Bell className={`h-4 w-4 ${
-                      userPushSubscription && pushPermission === 'granted' ? 'animate-pulse' : ''
-                    }`} />
-                  )}
-                  <span className="text-[10px] font-medium leading-tight">Push</span>
-                </button>
-              )}
-
-              {/* Sync button hidden - real-time listeners handle updates automatically */}
-              {/* Settings button hidden - push notification settings available via bell icon */}
-              
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-full bg-blue-500 text-white shadow-md hover:bg-blue-600 hover:scale-105 transition-all duration-200"
-                title="Create notification"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="text-[10px] font-medium leading-tight">New</span>
-              </button>
-            </div>
+        subtitle="Manage and schedule system notifications, reminders, and alerts"
+        backHref="/dashboard"
+        backLabel="Dashboard"
+        meta={
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isOnline ? (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200/60 text-[10px] font-bold flex items-center gap-1">
+                <Wifi className="h-3 w-3" /> Online
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200/60 text-[10px] font-bold flex items-center gap-1">
+                <WifiOff className="h-3 w-3" /> Offline
+              </Badge>
+            )}
           </div>
         }
+        actions={
+          <GlassActionDock>
+            {isPushSupported && (
+              <GlassActionButton
+                label="Push"
+                icon={
+                  (isSubscribingToPush || isUnsubscribingFromPush) ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Bell className={`h-4 w-4 ${userPushSubscription && pushPermission === 'granted' ? 'animate-pulse' : ''}`} />
+                  )
+                }
+                tone={userPushSubscription && pushPermission === 'granted' ? 'emerald' : 'slate'}
+                disabled={isSubscribingToPush || isUnsubscribingFromPush || pushPermission === 'denied'}
+                onClick={handlePushSubscriptionToggle}
+                title={
+                  userPushSubscription && pushPermission === 'granted'
+                    ? 'Push notifications enabled - Click to disable'
+                    : pushPermission === 'denied'
+                      ? 'Push notifications blocked - Enable in browser settings'
+                      : 'Push notifications disabled - Click to enable'
+                }
+              />
+            )}
+            <GlassActionButton
+              label="New"
+              icon={<Plus className="h-4 w-4" />}
+              tone="blue"
+              onClick={() => setIsDialogOpen(true)}
+              title="Create notification"
+            />
+          </GlassActionDock>
+        }
       />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
 
 
@@ -1568,6 +1540,7 @@ export default function NotificationsPage() {
           </ModernDialogFooter>
         </ModernDialogContent>
       </ModernDialog>
-    </>
+      </div>
+    </div>
   );
 } 

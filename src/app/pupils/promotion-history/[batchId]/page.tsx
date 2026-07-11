@@ -4,7 +4,7 @@ import { SmartBackButton } from "@/components/common/SmartBackButton";
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -172,9 +172,13 @@ export default function PromotionBatchDetailPage() {
 
     if (batchLoading || pupilsLoading) {
         return (
-            <div className="p-4 sm:p-6 space-y-6">
-                <PageHeader title="Promotion Batch Details" />
-                <div className="flex items-center justify-center py-12">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                <GlassPageTopBar
+                    title="Promotion Batch Details"
+                    backHref="/pupils/promote"
+                    backLabel="Back to promote"
+                />
+                <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
                     <span className="ml-2">Loading batch details...</span>
                 </div>
@@ -184,22 +188,28 @@ export default function PromotionBatchDetailPage() {
 
     if (batchError || !batch) {
         return (
-            <div className="p-4 sm:p-6 space-y-6">
-                <PageHeader title="Promotion Batch Details" />
-                <Card>
-                    <CardContent className="py-12">
-                        <div className="text-center">
-                            <p className="text-destructive font-medium">Failed to load batch details</p>
-                            <p className="text-sm text-muted-foreground mt-2">
-                                {batchError?.message || "Batch not found"}
-                            </p>
-                            <SmartBackButton fallbackHref="/pupils/promote" className="mt-4">
-  <ArrowLeft className="mr-2 h-4 w-4" />
-  Back to Promote Page
-</SmartBackButton>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                <GlassPageTopBar
+                    title="Promotion Batch Details"
+                    backHref="/pupils/promote"
+                    backLabel="Back to promote"
+                />
+                <div className="max-w-7xl mx-auto px-4 py-8">
+                    <Card>
+                        <CardContent className="py-12">
+                            <div className="text-center">
+                                <p className="text-destructive font-medium">Failed to load batch details</p>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    {batchError?.message || "Batch not found"}
+                                </p>
+                                <SmartBackButton fallbackHref="/pupils/promote" className="mt-4">
+                                  <ArrowLeft className="mr-2 h-4 w-4" />
+                                  Back to Promote Page
+                                </SmartBackButton>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         );
     }
@@ -208,17 +218,14 @@ export default function PromotionBatchDetailPage() {
     const Icon = config.icon;
 
     return (
-        <div className="p-4 sm:p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <PageHeader
-                    title="Promotion Batch Details"
-                    description={`View all pupils in this ${batch.type.toLowerCase()} batch`}
-                />
-                <SmartBackButton fallbackHref="/pupils/promote" className="mr-2 h-4 w-4">
-  <ArrowLeft className="mr-2 h-4 w-4" />
-  Back to Promote
-</SmartBackButton>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            <GlassPageTopBar
+                title="Promotion Batch Details"
+                subtitle={`View all pupils in this ${batch.type.toLowerCase()} batch`}
+                backHref="/pupils/promote"
+                backLabel="Back to promote"
+            />
+            <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
             {/* Batch Summary Card */}
             <Card className={config.bgColor}>
@@ -379,5 +386,6 @@ export default function PromotionBatchDetailPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+      </div>
     );
 }

@@ -28,7 +28,9 @@ import type {
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 
 // Import sub-components (we'll create these next)
 import { ItemManagement } from '@/components/procurement/ItemManagement';
@@ -445,384 +447,273 @@ export default function ProcurementPage() {
     setActiveTab('reports');
   };
 
-  if (loading && (items.length === 0 || purchases.length === 0)) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader
-          title="Procurement Management"
-          description="Manage school procurement: items, purchases, budgets, and reports"
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading procurement data...</p>
-          </div>
+  const periodFilterBar = (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Inline search */}
+      {(activeTab === 'overview' || activeTab === 'items') && (
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3 pointer-events-none" />
+          <input
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-7 pr-2 h-[28px] w-28 focus:w-40 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[10px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400"
+          />
         </div>
-      </div>
-    );
+      )}
+      <select
+        value={viewPeriod}
+        onChange={(e) => {
+          const newPeriod = e.target.value as ViewPeriodType;
+          setViewPeriod(newPeriod);
+          if (newPeriod === 'Week' && currentWeek === 0) setCurrentWeek(getCurrentWeekNumber());
+          else if (newPeriod === 'Month' && currentMonth === 0) setCurrentMonth(getCurrentMonthNumber());
+          else if (newPeriod === 'Term' && !currentTerm && availableTerms.length > 0) setCurrentTerm(availableTerms[0].id);
+        }}
+        className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+      >
+        <option value="Week">Week</option>
+        <option value="Month">Month</option>
+        <option value="Term">Term</option>
+        <option value="Year">Year</option>
+      </select>
+      {academicYears.length > 0 && (
+        <select
+          value={currentAcademicYear}
+          onChange={(e) => setCurrentAcademicYear(e.target.value)}
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          style={{ maxWidth: '110px' }}
+        >
+          {academicYears.map(year => {
+            const isCurrent = year.id === currentAcademicYearId;
+            const today = new Date();
+            const yearEnd = new Date(year.endDate);
+            const hasEnded = today > yearEnd;
+            const label = isCurrent ? ' (Current)' : year.isLocked ? ' (Locked)' : !hasEnded ? ' (Upcoming)' : '';
+            return <option key={year.id} value={year.id}>{year.name}{label}</option>;
+          })}
+        </select>
+      )}
+      {viewPeriod === 'Term' && availableTerms.length > 0 && (
+        <select
+          value={currentTerm}
+          onChange={(e) => setCurrentTerm(e.target.value)}
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          style={{ maxWidth: '130px' }}
+        >
+          {availableTerms.map(term => {
+            const termTotal = purchases.filter(p => p.termId === term.id || (p.termName && p.termName === term.name)).reduce((sum, p) => sum + (p.totalCost || 0), 0);
+            return <option key={term.id} value={term.id}>{term.name} - {formatCurrency(termTotal)}</option>;
+          })}
+        </select>
+      )}
+      {viewPeriod === 'Month' && (
+        <select
+          value={currentMonth}
+          onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          style={{ maxWidth: '130px' }}
+        >
+          {getMonthsInYear(currentAcademicYear).map(month => (
+            <option key={month.value} value={month.value}>{month.label.split(' - ')[0]} - {month.label.split(' - ')[1]}</option>
+          ))}
+        </select>
+      )}
+      {viewPeriod === 'Week' && (
+        <select
+          value={currentWeek}
+          onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
+          className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+          style={{ maxWidth: '150px' }}
+        >
+          {(() => {
+            const weeks = getWeeksInYear(currentAcademicYear);
+            const months: { [key: string]: typeof weeks } = {};
+            weeks.forEach(week => {
+              const match = week.label.match(/\(([A-Za-z]+)/);
+              const month = match ? match[1] : 'Other';
+              if (!months[month]) months[month] = [];
+              months[month].push(week);
+            });
+            return Object.entries(months).map(([month, monthWeeks]) => (
+              <optgroup key={month} label={month}>
+                {monthWeeks.map(week => (
+                  <option key={week.value} value={week.value}>{week.label.split(')')[0] + ')'} {week.label.split(')')[1]}</option>
+                ))}
+              </optgroup>
+            ));
+          })()}
+        </select>
+      )}
+      <select
+        value={activeTab}
+        onChange={(e) => setActiveTab(e.target.value)}
+        className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-bold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 uppercase tracking-wider"
+      >
+        <option value="overview">OVERVIEW</option>
+        <option value="purchases">PURCHASES</option>
+        <option value="budgets">BUDGETS</option>
+        <option value="reports">REPORTS</option>
+        <option value="items">ITEMS</option>
+      </select>
+
+      {/* Separator */}
+      {(activeTab === 'overview' || activeTab === 'items') && (
+        <>
+          <div className="w-px h-5 bg-white/40 mx-0.5" />
+
+          {/* Filter toggle */}
+          <button
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            className={`h-[30px] flex items-center gap-1 px-2.5 rounded-full border text-[10px] font-bold shadow-sm transition-all duration-200 ${
+              hasActiveFilters
+                ? 'bg-blue-100 border-blue-400 text-blue-700 ring-2 ring-blue-300/40'
+                : filtersExpanded
+                ? 'bg-white/90 border-blue-300 text-blue-600'
+                : 'bg-white/80 border-white/60 text-gray-600 hover:bg-white hover:text-blue-600'
+            }`}
+            title={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
+          >
+            <Filter className="w-3 h-3" />
+            <span>Filters</span>
+            {(categoryFilter !== 'all' || statusFilter !== 'all') && (
+              <span className="ml-0.5 bg-blue-500 text-white rounded-full w-3.5 h-3.5 text-[8px] flex items-center justify-center font-extrabold">
+                {(categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0)}
+              </span>
+            )}
+          </button>
+
+          {/* View mode toggle (overview only) */}
+          {activeTab === 'overview' && (
+            <div className="flex items-center bg-white/60 border border-white/50 rounded-full p-0.5 h-[30px] shadow-sm">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`w-6 h-full rounded-full flex items-center justify-center transition-all duration-150 ${
+                  viewMode === 'cards' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-700'
+                }`}
+                title="Card view"
+              >
+                <LayoutGrid className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`w-6 h-full rounded-full flex items-center justify-center transition-all duration-150 ${
+                  viewMode === 'table' ? 'bg-white shadow text-blue-600' : 'text-gray-400 hover:text-gray-700'
+                }`}
+                title="Table view"
+              >
+                <List className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  if (loading && (items.length === 0 || purchases.length === 0)) {
+    return <GlassPageRouteSkeleton />;
   }
 
-  // Show loading if academic years are still loading
   if (academicYearsLoading) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader
-          title="Procurement Management"
-          description="Manage school procurement: items, purchases, budgets, and reports"
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Setting up academic periods...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <GlassPageRouteSkeleton />;
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen pb-12">
-      {/* Sticky Header */}
-      <div className="bg-white/90 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 mb-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <h1 className="text-lg sm:text-xl font-bold text-indigo-900 truncate">Procurement</h1>
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        title="Procurement Management"
+        subtitle="Manage school procurement: items, purchases, budgets, and reports"
+        backHref="/dashboard"
+        backLabel="Back"
+        meta={periodFilterBar}
+        className="mb-1.5"
+      />
 
-            <div className="flex items-center gap-2">
-              {/* Period Selector Group */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10">
-                {/* View Period Select */}
-                <select
-                  value={viewPeriod}
-                  onChange={(e) => {
-                    const newPeriod = e.target.value as ViewPeriodType;
-                    setViewPeriod(newPeriod);
-
-                    // Smart defaults when switching views
-                    if (newPeriod === 'Week' && currentWeek === 0) {
-                      setCurrentWeek(getCurrentWeekNumber());
-                    } else if (newPeriod === 'Month' && currentMonth === 0) {
-                      setCurrentMonth(getCurrentMonthNumber());
-                    } else if (newPeriod === 'Term' && !currentTerm && availableTerms.length > 0) {
-                      // Use the first available term (already initialized by getEffectiveTermForDataDisplay)
-                      setCurrentTerm(availableTerms[0].id);
-                    }
-                  }}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                >
-                  <option value="Week">Week</option>
-                  <option value="Month">Month</option>
-                  <option value="Term">Term</option>
-                  <option value="Year">Year</option>
-                </select>
-
-                <div className="w-px h-5 bg-gray-300"></div>
-
-                {/* Year Select */}
-                {academicYears.length > 0 && (
-                  <select
-                    value={currentAcademicYear}
-                    onChange={(e) => setCurrentAcademicYear(e.target.value)}
-                    className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                    style={{ maxWidth: '100px' }}
-                  >
-                    {academicYears.map(year => {
-                      const isCurrent = year.id === currentAcademicYearId;
-                      const today = new Date();
-                      const yearEnd = new Date(year.endDate);
-                      const hasEnded = today > yearEnd;
-
-                      let label = '';
-                      if (isCurrent) {
-                        label = ' (Current)';
-                      } else if (year.isLocked) {
-                        label = ' (Locked)';
-                      } else if (!hasEnded) {
-                        label = ' (Upcoming)';
-                      }
-
-                      return (
-                        <option key={year.id} value={year.id}>{year.name}{label}</option>
-                      );
-                    })}
-                  </select>
-                )}
-
-                {/* Dynamic Selector based on View Period */}
-                {viewPeriod === 'Term' && availableTerms.length > 0 && (
-                  <>
-                    <div className="w-px h-5 bg-gray-300"></div>
-                    <select
-                      value={currentTerm}
-                      onChange={(e) => setCurrentTerm(e.target.value)}
-                      className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                      style={{ maxWidth: '120px' }}
-                    >
-                      {availableTerms.map(term => {
-                        // Calculate total spend for this term
-                        const termTotal = purchases
-                          .filter(p => p.termId === term.id || (p.termName && p.termName === term.name))
-                          .reduce((sum, p) => sum + (p.totalCost || 0), 0);
-
-                        return (
-                          <option key={term.id} value={term.id}>
-                            {term.name} - {formatCurrency(termTotal)}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </>
-                )}
-
-                {viewPeriod === 'Month' && (
-                  <>
-                    <div className="w-px h-5 bg-gray-300"></div>
-                    <select
-                      value={currentMonth}
-                      onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-                      className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                      style={{ maxWidth: '120px' }}
-                    >
-                      {getMonthsInYear(currentAcademicYear).map(month => (
-                        <option key={month.value} value={month.value}>{month.label.split(' - ')[0]} - {month.label.split(' - ')[1]}</option>
-                      ))}
-                    </select>
-                  </>
-                )}
-
-                {viewPeriod === 'Week' && (
-                  <>
-                    <div className="w-px h-5 bg-gray-300"></div>
-                    <select
-                      value={currentWeek}
-                      onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
-                      className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                      style={{ maxWidth: '140px' }}
-                    >
-                      {/* Group weeks by month */}
-                      {(() => {
-                        const weeks = getWeeksInYear(currentAcademicYear);
-                        const months: { [key: string]: typeof weeks } = {};
-
-                        weeks.forEach(week => {
-                          // Extract month from label e.g., "Week 1 (Jan 1 - Jan 7)" -> "Jan"
-                          const match = week.label.match(/\(([A-Za-z]+)/);
-                          const month = match ? match[1] : 'Other';
-                          if (!months[month]) months[month] = [];
-                          months[month].push(week);
-                        });
-
-                        return Object.entries(months).map(([month, monthWeeks]) => (
-                          <optgroup key={month} label={month}>
-                            {monthWeeks.map(week => (
-                              <option key={week.value} value={week.value}>
-                                {week.label.split(')')[0] + ')'} {week.label.split(')')[1]}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ));
-                      })()}
-                    </select>
-                  </>
-                )}
-              </div>
-
-              {/* Navigation Dropdown */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm h-10 flex items-center">
-                <select
-                  value={activeTab}
-                  onChange={(e) => setActiveTab(e.target.value)}
-                  className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full uppercase tracking-wider"
-                >
-                  <option value="overview">OVERVIEW</option>
-                  <option value="purchases">PURCHASES</option>
-                  <option value="budgets">BUDGETS</option>
-                  <option value="reports">REPORTS</option>
-                  <option value="items">ITEMS</option>
-                </select>
-              </div>
-            </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-indigo-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Procurement Overview
+            </span>
           </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
-
-        {/* Global Search & Actions Toolbar */}
-        {(activeTab === 'overview' || activeTab === 'items') && (
-          <div className="bg-white/80 backdrop-blur-sm border border-blue-100/50 rounded-xl p-3 sm:p-4 shadow-sm relative z-0">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between">
-              {/* Search */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search procurement items..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10 bg-white"
-                />
-              </div>
-
-              {/* Filters & Actions */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
-                <Button
-                  variant="outline"
-                  onClick={() => setFiltersExpanded(!filtersExpanded)}
-                  className={`gap-2 h-10 ${hasActiveFilters ? 'text-blue-600 border-blue-200 bg-blue-50' : 'bg-white'}`}
-                >
-                  <Filter className="w-4 h-4" />
-                  Filters
-                  {(categoryFilter !== 'all' || statusFilter !== 'all') && (
-                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 bg-blue-100 text-blue-700">
-                      {categoryFilter !== 'all' && statusFilter !== 'all' ? 2 : 1}
-                    </Badge>
-                  )}
-                </Button>
-
-                {activeTab === 'overview' && (
-                  <div className="flex items-center bg-gray-100 rounded-lg p-1 h-10">
-                    <Button
-                      variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('cards')}
-                      className={`h-8 w-8 p-0 ${viewMode === 'cards' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                    >
-                      <LayoutGrid className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'table' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('table')}
-                      className={`h-8 w-8 p-0 ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                    >
-                      <List className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-green-700/85 dark:text-green-300 font-medium">Purchases:</span>
+              <span className="font-bold text-green-700 dark:text-green-400">{stats.totalPurchases}</span>
             </div>
+            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Total Spent:</span>
+              <span className="font-bold text-purple-700 dark:text-purple-400 font-tabular-nums">${stats.totalSpent.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-orange-700/85 dark:text-orange-300 font-medium">Budgets:</span>
+              <span className="font-bold text-orange-700 dark:text-orange-400">{stats.totalBudgets}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-pink-50/80 dark:bg-pink-950/20 border border-pink-100/50 dark:border-pink-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-pink-700/85 dark:text-pink-300 font-medium">Active Budgets:</span>
+              <span className="font-bold text-pink-700 dark:text-pink-400">{stats.activeBudgets}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-emerald-700/85 dark:text-emerald-350 font-medium">Utilization:</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-400 font-tabular-nums">
+                {stats.totalBudgetedAmount > 0
+                  ? Math.round((stats.totalSpent / stats.totalBudgetedAmount) * 100)
+                  : 0}%
+              </span>
+            </div>
+          </>
+        }
+      />
 
-            {/* Expanded Filters Section */}
-            {filtersExpanded && (
-              <div className="pt-4 mt-4 border-t border-gray-100 grid sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
-                <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {['Stationery', 'Equipment', 'Maintenance', 'Technology', 'Food', 'Other'].map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {hasActiveFilters && (
-                  <div className="sm:col-span-2 flex justify-end">
-                    <Button variant="ghost" onClick={clearFilters} className="text-red-600 hover:bg-red-50 hover:text-red-700">
-                      <X className="w-4 h-4 mr-2" /> Clear All Filters
-                    </Button>
-                  </div>
-                )}
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
+
+        {/* Expanded Filters Panel (when filter open from topbar) */}
+        {(activeTab === 'overview' || activeTab === 'items') && filtersExpanded && (
+          <div className="bg-white/80 backdrop-blur-sm border border-blue-100/50 rounded-xl px-4 py-3 shadow-sm animate-in slide-in-from-top-2 duration-200">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Category</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="bg-white h-9">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {['Stationery', 'Equipment', 'Maintenance', 'Technology', 'Food', 'Other'].map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="bg-white h-9">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {hasActiveFilters && (
+                <div className="sm:col-span-2 flex justify-end">
+                  <Button variant="ghost" onClick={clearFilters} className="text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-sm">
+                    <X className="w-3.5 h-3.5 mr-1.5" /> Clear Filters
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Statistics Cards */}
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-green-600 font-medium">Purchases</p>
-                  <p className="text-lg sm:text-2xl font-bold text-green-700">{stats.totalPurchases}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-purple-600 font-medium">Total Spent</p>
-                  <p className="text-lg sm:text-2xl font-bold text-purple-700">
-                    ${stats.totalSpent.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-orange-600 font-medium">Budgets</p>
-                  <p className="text-lg sm:text-2xl font-bold text-orange-700">{stats.totalBudgets}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-pink-500 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-pink-600 font-medium">Active Budgets</p>
-                  <p className="text-lg sm:text-2xl font-bold text-pink-700">{stats.activeBudgets}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <PieChart className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-emerald-600 font-medium">Utilization</p>
-                  <p className="text-lg sm:text-2xl font-bold text-emerald-700">
-                    {stats.totalBudgetedAmount > 0
-                      ? Math.round((stats.totalSpent / stats.totalBudgetedAmount) * 100)
-                      : 0}%
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Stats moved to GlassSummaryBar above */}
 
         {
           selectedItemId && activeTab === 'itemDetail' ? (

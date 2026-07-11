@@ -21,9 +21,7 @@ import {
   Target,
   Zap,
   RotateCcw,
-  Sparkles,
-  Star,
-  Heart,
+
   CheckCircle,
   XCircle,
   Clock,
@@ -77,26 +75,33 @@ import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
 
-const dashboardEase = [0.22, 1, 0.36, 1] as const;
+const dashboardEase = [0.16, 1, 0.3, 1] as const;
 const softHover = { scale: 1.012, y: -2 };
-const panelMotion = { duration: 0.22, ease: dashboardEase };
+const panelMotion = {
+  type: "spring",
+  stiffness: 110,
+  damping: 18,
+  mass: 0.8
+};
 
 const dashboardGroupVariants = {
-  hidden: { opacity: 1 },
+  hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.045,
-      delayChildren: 0.04,
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
     },
   },
 };
 
 const dashboardItemVariants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, scale: 1.06, y: -15, filter: "blur(4px)" },
   show: {
     opacity: 1,
+    scale: 1,
     y: 0,
+    filter: "blur(0px)",
     transition: panelMotion,
   },
 };
@@ -2348,111 +2353,16 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
   );
 };
 
-// Particles Component for Background Animation
-const Particles = () => {
-  const particles = useMemo(() => {
-    return Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 4 + 1,
-      delay: Math.random() * 2,
-      duration: Math.random() * 20 + 10,
-      opacity: Math.random() * 0.5 + 0.2,
-    }));
-  }, []);
 
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((particle) => (
-        <motion.div
-          key={particle.id}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: `${particle.size}px`,
-            height: `${particle.size}px`,
-            opacity: particle.opacity,
-          }}
-          animate={{
-            y: [-20, -100],
-            x: [0, Math.random() * 100 - 50],
-            opacity: [particle.opacity, 0],
-          }}
-          transition={{
-            duration: particle.duration,
-            delay: particle.delay,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-// Floating Icons Component
-const FloatingIcons = () => {
-  const icons = [
-    { Icon: Sparkles, color: 'text-yellow-300', delay: 0 },
-    { Icon: Star, color: 'text-blue-200', delay: 0.5 },
-    { Icon: Heart, color: 'text-pink-300', delay: 1 },
-    { Icon: Award, color: 'text-purple-200', delay: 1.5 },
-    { Icon: GraduationCap, color: 'text-green-200', delay: 2 },
-  ];
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {icons.map(({ Icon, color, delay }, index) => (
-        <motion.div
-          key={index}
-          className={`absolute ${color} opacity-30`}
-          style={{
-            left: `${10 + index * 20}%`,
-            top: `${20 + (index % 2) * 40}%`,
-          }}
-          animate={{
-            y: [-10, 10],
-            rotate: [0, 360],
-            scale: [0.8, 1.2, 0.8],
-          }}
-          transition={{
-            duration: 4 + index,
-            delay: delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <Icon size={24} />
-        </motion.div>
-      ))}
-    </div>
-  );
-};
 
 // Enhanced Header Component
 const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [clickRipple, setClickRipple] = useState({ x: 0, y: 0, show: false });
-  const [isMobile, setIsMobile] = useState(false);
   const [showGreeting, setShowGreeting] = useState(true);
   const [greetingMessage, setGreetingMessage] = useState('');
   const { user } = useAuth();
 
+  // Generate greeting once on mount / user change
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Generate greeting ONCE when component mounts or user changes
-  useEffect(() => {
-    // Get user's actual name from staff data
     const getUserDisplayName = () => {
       if (user?.firstName) return user.firstName;
       if (user?.username) {
@@ -2461,19 +2371,14 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
         if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
         return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
       }
-      return "Friend";
+      return 'Friend';
     };
-
     const hour = new Date().getHours();
     const name = getUserDisplayName();
-
-    // Time-based greetings
-    let timeGreeting = "Good day";
-    if (hour < 12) timeGreeting = "Good morning";
-    else if (hour < 17) timeGreeting = "Good afternoon";
-    else timeGreeting = "Good evening";
-
-    // Friendly variations - randomly selected ONCE
+    let timeGreeting = 'Good day';
+    if (hour < 12) timeGreeting = 'Good morning';
+    else if (hour < 17) timeGreeting = 'Good afternoon';
+    else timeGreeting = 'Good evening';
     const variations = [
       `Hello and welcome, ${name}! ${timeGreeting} ✨`,
       `Hey ${name}! ${timeGreeting} 🌟`,
@@ -2483,255 +2388,100 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
       `${timeGreeting}, ${name}! Ready to make magic? ✨`,
       `Hello ${name}! ${timeGreeting}! Let's do this! 💪`,
       `Welcome, ${name}! ${timeGreeting} 🌈`,
-      `Hey there, ${name}! ${timeGreeting}! 🚀`,
-      `${timeGreeting}, ${name}! Welcome aboard! ⭐`,
     ];
+    setGreetingMessage(variations[Math.floor(Math.random() * variations.length)]);
+  }, [user]);
 
-    // Select random variation ONCE and store it
-    const selectedGreeting = variations[Math.floor(Math.random() * variations.length)];
-    setGreetingMessage(selectedGreeting);
-  }, [user]); // Only regenerate when user changes (login/logout)
-
-  // Greeting stays visible for 6 seconds (longer for better UX)
+  // Show greeting for 6 seconds then reveal school name
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowGreeting(false);
-    }, 6000);
+    const timer = setTimeout(() => setShowGreeting(false), 6000);
     return () => clearTimeout(timer);
   }, []);
 
-  const handleHeaderClick = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    setClickRipple({ x, y, show: true });
-    setTimeout(() => setClickRipple(prev => ({ ...prev, show: false })), 600);
-  };
-
-  // Mobile-optimized particle count
-  const particleCount = isMobile ? (isHovered ? 30 : 20) : (isHovered ? 80 : 50);
-
-  // Mobile-optimized icon count
-  const icons = isMobile ? [
-    { Icon: Sparkles, color: 'text-yellow-300', delay: 0 },
-    { Icon: Award, color: 'text-purple-200', delay: 0.5 },
-    { Icon: GraduationCap, color: 'text-green-200', delay: 1 },
-  ] : [
-    { Icon: Sparkles, color: 'text-yellow-300', delay: 0 },
-    { Icon: Star, color: 'text-blue-200', delay: 0.5 },
-    { Icon: Heart, color: 'text-pink-300', delay: 1 },
-    { Icon: Award, color: 'text-purple-200', delay: 1.5 },
-    { Icon: GraduationCap, color: 'text-green-200', delay: 2 },
-  ];
+  // Split greeting into words for staggered animation
+  const greetingWords = greetingMessage.split(' ');
 
   return (
-    <div
-      className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white pb-10 md:pb-16 overflow-hidden cursor-pointer transition-all duration-500"
-      style={{
-        maskImage: 'linear-gradient(to bottom, black 65%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 65%, transparent 100%)'
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={handleHeaderClick}
-    >
-      {/* Click Ripple Effect - Smooth */}
-      <AnimatePresence>
-        {clickRipple.show && (
-          <motion.div
-            className="absolute bg-white/20 rounded-full pointer-events-none"
-            style={{
-              left: clickRipple.x - 25,
-              top: clickRipple.y - 25,
-              width: 50,
-              height: 50,
-            }}
-            initial={{ scale: 0, opacity: 0.6 }}
-            animate={{ scale: isMobile ? 12 : 15, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: 1,
-              ease: [0.4, 0.0, 0.2, 1]
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Animated Background Gradient - Simplified */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 opacity-90" />
-
-      {/* Enhanced Particles Background - Ultra-smooth performance */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: particleCount }, (_, i) => {
-          const size = Math.random() * 2 + 1;
-          const leftPos = Math.random() * 100;
-          const topPos = Math.random() * 100;
-          const duration = Math.random() * 8 + 12;
-          const delay = Math.random() * 3;
-
-          return (
+    <div className="relative pb-4 md:pb-6">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 md:py-5">
+        <AnimatePresence mode="wait">
+          {showGreeting && greetingMessage ? (
+            /* ── Animated greeting — slides in from left, words stagger ── */
             <motion.div
-              key={i}
-              className="absolute rounded-full bg-white transform-gpu will-change-transform"
-              style={{
-                left: `${leftPos}%`,
-                top: `${topPos}%`,
-                width: `${size}px`,
-                height: `${size}px`,
-              }}
-              animate={{
-                y: [0, -120],
-                opacity: [0.4, 0],
-              }}
-              transition={{
-                duration: duration,
-                delay: delay,
-                repeat: Infinity,
-                ease: [0.4, 0.0, 0.6, 1],
-                repeatDelay: 0,
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Enhanced Floating Icons - Ultra-smooth performance */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {icons.map(({ Icon, color, delay }, index) => (
-          <motion.div
-            key={index}
-            className={`absolute ${color} transform-gpu will-change-transform`}
-            style={{
-              left: isMobile ? `${20 + index * 25}%` : `${10 + index * 20}%`,
-              top: `${20 + (index % 2) * (isMobile ? 20 : 40)}%`,
-              opacity: 0.2,
-            }}
-            animate={{
-              y: [-6, 6],
-              rotate: [0, 360],
-            }}
-            transition={{
-              y: {
-                duration: 4 + index,
-                repeat: Infinity,
-                ease: [0.4, 0.0, 0.6, 1],
-                repeatType: "reverse"
-              },
-              rotate: {
-                duration: 20 + index * 5,
-                repeat: Infinity,
-                ease: "linear",
-                repeatDelay: 0,
-              }
-            }}
-          >
-            <Icon size={isMobile ? 18 : 24} />
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 container mx-auto px-2 sm:px-3 lg:px-6 py-2 sm:py-3 md:py-4">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 1,
-            ease: [0.4, 0.0, 0.2, 1]
-          }}
-          className="text-center"
-        >
-          {/* Main Title - With overlay greeting - Fixed height container */}
-          <div className="relative">
-            {/* Reserve space for school name (always present, controls height) */}
-            <motion.h1
-              className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-1 sm:mb-2 md:mb-3 leading-tight"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: showGreeting ? 0 : 1 }}
-              transition={{
-                duration: 0.8,
-                ease: [0.4, 0.0, 0.2, 1] // Custom cubic-bezier for smooth fade
-              }}
+              key="greeting"
+              initial={{ opacity: 0, x: -32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="inline-block">
+              <div className="overflow-hidden">
+                <div className="flex flex-wrap gap-x-[0.35em] gap-y-0">
+                  {greetingWords.map((word, i) => (
+                    <motion.span
+                      key={i}
+                      className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight inline-block"
+                      style={{ textShadow: '0 1px 8px rgba(0,0,0,0.45), 0 2px 20px rgba(0,0,0,0.25)' }}
+                      initial={{ opacity: 0, y: 24 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.45,
+                        delay: 0.1 + i * 0.065,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                </div>
+              </div>
+              {/* Animated underline accent */}
+              <motion.div
+                className="mt-2 h-0.5 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-transparent"
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: '120px', opacity: 0.7 }}
+                transition={{ duration: 0.6, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </motion.div>
+          ) : (
+            /* ── School name & motto — fade up after greeting ── */
+            <motion.div
+              key="school-name"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <h1
+                className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 leading-tight mb-0.5"
+                style={{ textShadow: '0 1px 8px rgba(0,0,0,0.45), 0 2px 20px rgba(0,0,0,0.25)' }}
+              >
                 {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
-              </span>
-            </motion.h1>
-
-            {/* Reserve space for motto (always present, controls height) */}
-            <motion.p
-              className="text-xs sm:text-sm md:text-sm lg:text-base font-medium px-1 mb-2 sm:mb-3 md:mb-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: showGreeting ? 0 : 0.9 }}
-              transition={{
-                duration: 0.8,
-                delay: 0.2,
-                ease: [0.4, 0.0, 0.2, 1]
-              }}
-            >
-              <span>
+              </h1>
+              <p
+                className="text-xs sm:text-sm font-medium text-gray-700"
+                style={{ textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}
+              >
                 {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
-              </span>
-            </motion.p>
-
-            {/* Greeting overlay - positioned absolutely over both lines */}
-            <AnimatePresence mode="wait">
-              {showGreeting && (
-                <motion.div
-                  className="absolute inset-0 flex items-center justify-center"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{
-                    duration: 0.8,
-                    ease: [0.4, 0.0, 0.2, 1]
-                  }}
-                  style={{ top: 0, bottom: 0 }}
-                >
-                  <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">
-                    {greetingMessage}
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Badges removed based on user request */}
-
-          {/* Enhanced Decorative Line - Smooth & Subtle */}
-          <motion.div
-            className="mt-2 sm:mt-3 md:mt-4 mx-auto"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{
-              width: isMobile ? "60px" : "80px",
-              opacity: 1
-            }}
-            transition={{
-              duration: 1,
-              delay: 0.8,
-              ease: [0.4, 0.0, 0.2, 1]
-            }}
-          >
-            <div
-              className="bg-gradient-to-r from-transparent via-white to-transparent rounded-full"
-              style={{ height: '2px', opacity: 0.6 }}
-            />
-          </motion.div>
-        </motion.div>
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
     </div>
   );
 };
 
+
+
+
+
 export default function DashboardPage() {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
 
   const { user } = useAuth();
+
+  const groupVariants = prefersReducedMotion ? {} : dashboardGroupVariants;
+  const itemVariants = prefersReducedMotion ? {} : dashboardItemVariants;
 
   const canViewTotalPupils = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_total_pupils');
   const canViewGenderBreakdown = GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_gender_breakdown');
@@ -2804,14 +2554,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 relative" style={{
-      background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 50%, #eff6ff 100%)',
-    }}>
-      {/* Subtle background depth pattern */}
-      <div className="fixed inset-0 opacity-[0.02] pointer-events-none" style={{
-        backgroundImage: `radial-gradient(circle at 2px 2px, rgba(0,0,0,0.15) 1px, transparent 0)`,
-        backgroundSize: '40px 40px',
-      }} />
+    <div className="min-h-screen relative">
       <Head>
         <title>Dashboard - Trinity School Online</title>
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
@@ -2820,7 +2563,12 @@ export default function DashboardPage() {
       {/* Enhanced Header */}
       <EnhancedHeader schoolSettings={schoolSettings} />
 
-      <div className="container mx-auto px-3 sm:px-6 lg:px-8 pb-6 -mt-14 md:-mt-20 relative z-20">
+      <motion.div
+        variants={groupVariants}
+        initial="hidden"
+        animate="show"
+        className="container mx-auto px-3 sm:px-6 lg:px-8 pb-6 relative z-20"
+      >
         {/* Loading Indicator - Simple cached loading */}
         {isLoading && (
           <Card className="mb-6 border-blue-200 bg-blue-50 rounded-xl" style={{
@@ -2881,10 +2629,12 @@ export default function DashboardPage() {
         )}
 
         {/* Holiday/Recess Status Banner */}
-        <RecessStatusBanner className="mb-4" />
+        <motion.div variants={itemVariants} className="mb-4">
+          <RecessStatusBanner />
+        </motion.div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           {canViewTotalPupils && (
             <StatCard
               title="Total Pupils"
@@ -3005,10 +2755,10 @@ export default function DashboardPage() {
             </>
           )}
 
-        </div>
+        </motion.div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="flex flex-col gap-6">
             {canViewClassEnrollment && <ClassEnrollmentChart classes={classes} pupils={pupils} />}
             <div className="block lg:hidden">
@@ -3026,10 +2776,10 @@ export default function DashboardPage() {
             </div>
             {canViewCalendarSchedule && <TermScheduleCard />}
           </div>
-        </div>
+        </motion.div>
 
         {/* Quick Actions (Ribbon Links) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto px-4">
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto px-4">
           <QuickActionButton
             title="Attendance"
             icon={Activity}
@@ -3065,8 +2815,8 @@ export default function DashboardPage() {
             darkColor="#1D4ED8"
             onClick={() => router.push('/reports')}
           />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <style jsx global>{`
         /* GPU Acceleration for better performance */

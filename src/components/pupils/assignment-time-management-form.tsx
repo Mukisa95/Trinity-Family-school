@@ -26,6 +26,7 @@ export interface AssignmentTimeManagementFormData {
   endAcademicYearId?: string;
   termApplicability: TermApplicabilityType;
   applicableTermIds?: string[];
+  allowedTermIds?: string[];
 }
 
 export const DEFAULT_ASSIGNMENT_TIME_SETTINGS: AssignmentTimeManagementFormData = {
@@ -74,27 +75,36 @@ export function AssignmentTimeManagementForm({
       if (!currentAcademicYear) return { ...prev, validityType };
 
       if (validityType === 'current_term' && currentTerm) {
+        const isAllowed = prev.allowedTermIds ? prev.allowedTermIds.includes(currentTerm.id) : true;
         return {
           ...prev,
           validityType,
           termApplicability: 'specific_terms',
-          applicableTermIds: [currentTerm.id],
+          applicableTermIds: isAllowed ? [currentTerm.id] : [],
           startAcademicYearId: currentAcademicYear.id,
         };
       }
 
       if (validityType === 'current_year') {
+        let terms = currentAcademicYear.terms?.map((t) => t.id) || [];
+        if (prev.allowedTermIds) {
+          terms = terms.filter(id => prev.allowedTermIds!.includes(id));
+        }
         return {
           ...prev,
           validityType,
           startAcademicYearId: currentAcademicYear.id,
           termApplicability: 'specific_terms',
-          applicableTermIds: currentAcademicYear.terms?.map((t) => t.id) || [],
+          applicableTermIds: terms,
         };
       }
 
       if (validityType === 'indefinite') {
-        return { ...prev, validityType, applicableTermIds: undefined };
+        return { 
+          ...prev, 
+          validityType, 
+          applicableTermIds: prev.allowedTermIds ? [...prev.allowedTermIds] : undefined 
+        };
       }
 
       return { ...prev, validityType };
@@ -124,8 +134,22 @@ export function AssignmentTimeManagementForm({
       currentAcademicYear
     ) {
       expandAndScrollToYear(currentAcademicYear.id);
+    } else if (settings.allowedTermIds && settings.allowedTermIds.length > 0) {
+      // If we have allowed terms (e.g. from a discount), expand the years containing those terms
+      academicYears.forEach(year => {
+        if (year.terms.some(t => settings.allowedTermIds?.includes(t.id))) {
+          expandAndScrollToYear(year.id);
+        }
+      });
+    } else if (settings.applicableTermIds && settings.applicableTermIds.length > 0) {
+       // Also expand if there are specific applicable terms selected
+       academicYears.forEach(year => {
+        if (year.terms.some(t => settings.applicableTermIds?.includes(t.id))) {
+          expandAndScrollToYear(year.id);
+        }
+      });
     }
-  }, [settings.validityType, currentAcademicYear, expandAndScrollToYear]);
+  }, [settings.validityType, settings.allowedTermIds, settings.applicableTermIds, currentAcademicYear, academicYears, expandAndScrollToYear]);
 
   const handleValidityTypeChange = (value: FeeValidityType) => {
     const next = applyValidityTypeToSettings(settings, value);
@@ -141,99 +165,94 @@ export function AssignmentTimeManagementForm({
 
   return (
     <div className="space-y-4">
-      {currentAcademicYear && currentTerm && (
-        <p className="rounded-md border border-indigo-100 bg-indigo-50 px-2.5 py-1.5 text-xs text-indigo-800">
-          Current: <span className="font-semibold">{currentAcademicYear.name}</span>
-          {' · '}
-          <span className="font-semibold">{currentTerm.name}</span>
-          {effectiveTermData?.reason ? (
-            <span className="text-indigo-600/80"> ({effectiveTermData.reason})</span>
-          ) : null}
-        </p>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <Label>Validity Period</Label>
+          <Select value={settings.validityType} onValueChange={handleValidityTypeChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select validity period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="indefinite">Indefinite</SelectItem>
+              {(!settings.allowedTermIds || (currentTerm && settings.allowedTermIds.includes(currentTerm.id))) && (
+                <SelectItem value="current_term">Current Term Only</SelectItem>
+              )}
+              <SelectItem value="current_year">Current Academic Year</SelectItem>
+              <SelectItem value="specific_year">Specific Academic Year</SelectItem>
+              <SelectItem value="year_range">Range of Years</SelectItem>
+              <SelectItem value="specific_terms">Specific Terms</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div>
-        <Label>Validity Period</Label>
-        <Select value={settings.validityType} onValueChange={handleValidityTypeChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select validity period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="indefinite">Indefinite</SelectItem>
-            <SelectItem value="current_term">Current Term Only</SelectItem>
-            <SelectItem value="current_year">Current Academic Year</SelectItem>
-            <SelectItem value="specific_year">Specific Academic Year</SelectItem>
-            <SelectItem value="year_range">Range of Years</SelectItem>
-            <SelectItem value="specific_terms">Specific Terms</SelectItem>
-          </SelectContent>
-        </Select>
+        <div>
+          <Label>Term Applicability</Label>
+          <Select
+            value={settings.termApplicability}
+            onValueChange={(value: TermApplicabilityType) =>
+              onSettingsChange({ ...settings, termApplicability: value })
+            }
+            disabled={lockTermSelection || (settings.allowedTermIds && settings.allowedTermIds.length > 0)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select term applicability" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all_terms" disabled={!!(settings.allowedTermIds && settings.allowedTermIds.length > 0)}>All Terms</SelectItem>
+              <SelectItem value="specific_terms">Specific Terms</SelectItem>
+            </SelectContent>
+          </Select>
+          {lockTermSelection && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Term selection is set automatically for the current period
+            </p>
+          )}
+        </div>
       </div>
 
       {(settings.validityType === 'specific_year' || settings.validityType === 'year_range') && (
-        <div>
-          <Label>Start Academic Year</Label>
-          <Select
-            value={settings.startAcademicYearId || ''}
-            onValueChange={(value) => onSettingsChange({ ...settings, startAcademicYearId: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select start year" />
-            </SelectTrigger>
-            <SelectContent>
-              {academicYears.map((year) => (
-                <SelectItem key={year.id} value={year.id}>
-                  {year.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className={`grid grid-cols-1 ${settings.validityType === 'year_range' ? 'sm:grid-cols-2' : ''} gap-4`}>
+          <div>
+            <Label>Start Academic Year</Label>
+            <Select
+              value={settings.startAcademicYearId || ''}
+              onValueChange={(value) => onSettingsChange({ ...settings, startAcademicYearId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select start year" />
+              </SelectTrigger>
+              <SelectContent>
+                {academicYears.map((year) => (
+                  <SelectItem key={year.id} value={year.id}>
+                    {year.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {settings.validityType === 'year_range' && (
+            <div>
+              <Label>End Academic Year</Label>
+              <Select
+                value={settings.endAcademicYearId || ''}
+                onValueChange={(value) => onSettingsChange({ ...settings, endAcademicYearId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select end year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      {year.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       )}
-
-      {settings.validityType === 'year_range' && (
-        <div>
-          <Label>End Academic Year</Label>
-          <Select
-            value={settings.endAcademicYearId || ''}
-            onValueChange={(value) => onSettingsChange({ ...settings, endAcademicYearId: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select end year" />
-            </SelectTrigger>
-            <SelectContent>
-              {academicYears.map((year) => (
-                <SelectItem key={year.id} value={year.id}>
-                  {year.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      <div>
-        <Label>Term Applicability</Label>
-        <Select
-          value={settings.termApplicability}
-          onValueChange={(value: TermApplicabilityType) =>
-            onSettingsChange({ ...settings, termApplicability: value })
-          }
-          disabled={lockTermSelection}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select term applicability" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all_terms">All Terms</SelectItem>
-            <SelectItem value="specific_terms">Specific Terms</SelectItem>
-          </SelectContent>
-        </Select>
-        {lockTermSelection && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Term selection is set automatically for the current period
-          </p>
-        )}
-      </div>
 
       {settings.termApplicability === 'specific_terms' && (
         <div>
@@ -245,6 +264,11 @@ export function AssignmentTimeManagementForm({
               const selectedInYear = year.terms.filter((t) =>
                 settings.applicableTermIds?.includes(t.id)
               ).length;
+              
+              if (settings.allowedTermIds) {
+                const hasAllowedTerms = year.terms.some(t => settings.allowedTermIds!.includes(t.id));
+                if (!hasAllowedTerms) return null;
+              }
 
               return (
                 <div
@@ -288,9 +312,13 @@ export function AssignmentTimeManagementForm({
                     </CollapsibleTrigger>
                     <CollapsibleContent className="border-t border-slate-100 px-2 pb-2 pt-1">
                       {year.terms.map((term) => {
+                        const isAllowed = settings.allowedTermIds ? settings.allowedTermIds.includes(term.id) : true;
+                        if (!isAllowed) return null;
+
                         const isChecked = settings.applicableTermIds?.includes(term.id) || false;
                         const isCurrentTerm = isCurrentYear && term.id === currentTerm?.id;
                         const checkboxId = `assign-time-term-${year.id}-${term.id}`;
+                        const isCheckboxDisabled = lockTermSelection;
 
                         return (
                           <div
@@ -300,9 +328,9 @@ export function AssignmentTimeManagementForm({
                             <Checkbox
                               id={checkboxId}
                               checked={isChecked}
-                              disabled={lockTermSelection}
+                              disabled={isCheckboxDisabled}
                               onCheckedChange={(checked) => {
-                                if (lockTermSelection) return;
+                                if (isCheckboxDisabled) return;
                                 const currentTermIds = settings.applicableTermIds || [];
                                 const newTermIds = checked
                                   ? [...currentTermIds, term.id]

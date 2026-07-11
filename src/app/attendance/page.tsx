@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit3, Eye, CalendarClock } from "lucide-react";
+import { CalendarClock, Edit3, Eye } from "lucide-react";
 import { useTermStatus } from "@/lib/hooks/use-term-status";
 import { RecessStatusBanner } from "@/components/common/recess-status-banner";
 
@@ -15,9 +15,34 @@ export default function AttendanceHubPage() {
   
   return (
     <>
-      <PageHeader
+      <GlassPageTopBar
         title="Attendance Management"
-        description="Record, view, and manage pupil attendance."
+        subtitle="Record, view, and manage pupil attendance."
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Record"
+              tone="emerald"
+              icon={<Edit3 className="h-4 w-4" />}
+              href="/attendance/record"
+              aria-label="Record Attendance"
+            />
+            <GlassActionButton
+              label="View"
+              tone="blue"
+              icon={<Eye className="h-4 w-4" />}
+              href="/attendance/view"
+              aria-label="View Attendance Reports"
+            />
+            <GlassActionButton
+              label="Days"
+              tone="orange"
+              icon={<CalendarClock className="h-4 w-4" />}
+              href="/attendance/excluded-days"
+              aria-label="Manage Excluded Days"
+            />
+          </GlassActionDock>
+        }
       />
       
       {/* Show recess status banner if in recess mode */}

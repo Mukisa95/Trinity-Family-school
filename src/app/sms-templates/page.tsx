@@ -1,5 +1,6 @@
 "use client";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -115,24 +116,24 @@ const SMSTemplatesPage: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <SmartBackButton fallbackHref="/bulk-sms" className="gap-1.5">
-  <ArrowLeft className="h-4 w-4" />
-  Back
-</SmartBackButton>
-                    <div className="flex items-center gap-2">
-                        <FileText className="h-6 w-6 text-primary" />
-                        <h1 className="text-2xl font-bold">SMS Templates</h1>
-                    </div>
-                </div>
-                <Button onClick={openCreate} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Template
-                </Button>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+            <GlassPageTopBar
+                title="SMS Templates"
+                subtitle="Create and manage reusable message templates for parent communications"
+                backHref="/bulk-sms"
+                backLabel="Bulk SMS"
+                actions={
+                    <GlassActionDock>
+                        <GlassActionButton
+                            label="New Template"
+                            icon={<Plus className="h-4 w-4" />}
+                            tone="blue"
+                            onClick={openCreate}
+                        />
+                    </GlassActionDock>
+                }
+            />
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {/* Template List */}
             {isLoading ? (
@@ -270,6 +271,7 @@ const SMSTemplatesPage: React.FC = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+        </div>
         </div>
     );
 };

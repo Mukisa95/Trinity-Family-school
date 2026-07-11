@@ -168,33 +168,7 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
 
   return (
     <div className={className}>
-      <div className="flex flex-col items-center space-y-4">
-        <div className="relative">
-          {currentPhoto ? (
-            <div className="relative">
-              <Image
-                src={currentPhoto}
-                alt="Pupil photo"
-                width={150}
-                height={150}
-                className="rounded-full border-4 border-blue-200 object-cover dark:border-blue-800"
-              />
-              <Button
-                variant="destructive"
-                size="sm"
-                className="absolute -right-2 -top-2 h-8 w-8 rounded-full p-0"
-                onClick={removePhoto}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex h-[150px] w-[150px] items-center justify-center rounded-full border-4 border-dashed border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700">
-              <Camera className="h-12 w-12 text-gray-400" />
-            </div>
-          )}
-        </div>
-
+      <div className="flex flex-col items-center">
         <ModernDialog
           open={isDialogOpen}
           onOpenChange={(open) => {
@@ -204,12 +178,50 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
             }
           }}
         >
-          <ModernDialogTrigger asChild>
-            <Button variant="outline" className="w-full">
-              <Upload className="mr-2 h-4 w-4" />
-              {currentPhoto ? "Change Photo" : "Add Photo"}
-            </Button>
-          </ModernDialogTrigger>
+          <div className="relative group">
+            <ModernDialogTrigger asChild>
+              <div 
+                className="relative overflow-hidden rounded-full border-4 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50/50 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-800 transition-all duration-300 w-[150px] h-[150px] flex items-center justify-center cursor-pointer shadow-sm"
+              >
+                {currentPhoto ? (
+                  <>
+                    <Image
+                      src={currentPhoto}
+                      alt="Pupil photo"
+                      width={150}
+                      height={150}
+                      className="rounded-full object-cover w-full h-full"
+                    />
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white rounded-full">
+                      <Camera className="h-6 w-6 mb-1 text-white" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white">Change Photo</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-4 text-center w-full h-full">
+                    <Camera className="h-8 w-8 text-blue-500/75 group-hover:text-blue-600 group-hover:scale-110 transition-all duration-300 mb-1" />
+                    <span className="text-[10px] font-bold text-blue-600/90 group-hover:text-blue-700 transition-colors duration-300">ADD PHOTO</span>
+                  </div>
+                )}
+              </div>
+            </ModernDialogTrigger>
+
+            {currentPhoto && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="absolute -right-1 -top-1 h-7 w-7 rounded-full p-0 shadow-md hover:scale-105 active:scale-95 z-10 border border-white dark:border-gray-800"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  removePhoto();
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
 
           {mode === "crop" && imgSrc ? (
             <ModernDialogContent size="full" noPadding className="mx-0 h-[100vh] max-h-[100vh] w-screen max-w-none rounded-none border-0">

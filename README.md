@@ -1,6 +1,6 @@
 # Trinity Family School Management System
 
-A Next.js school management application for Trinity Family School. The system supports day-to-day school operations including pupil records, fees, attendance, exams, parent views, notifications, SMS, banking, inventory, procurement, staff, reports, and Android app support through Capacitor.
+A Next.js school management application for Trinity Family School. The system supports day-to-day school operations including pupil records, fees, attendance, exams, parent views, notifications, SMS, banking, inventory, procurement, staff, and reports.
 
 ## Tech Stack
 
@@ -9,7 +9,6 @@ A Next.js school management application for Trinity Family School. The system su
 - TypeScript
 - Tailwind CSS
 - Firebase Authentication, Firestore, Storage, Hosting, and Functions
-- Capacitor Android
 - Firebase Cloud Messaging and web push notifications
 - Genkit
 - React Query
@@ -113,27 +112,6 @@ npm run generate-icons
 
 Generate app icons.
 
-## Android / Capacitor
-
-The Capacitor Android project is stored in:
-
-```text
-android/
-```
-
-Useful commands:
-
-```bash
-npm run cap:sync
-npm run cap:sync:android
-npm run cap:open:android
-npm run cap:build:android
-npm run cap:build:release
-npm run cap:run:android
-```
-
-Use these after installing dependencies and configuring the app.
-
 ## Project Structure
 
 ```text
@@ -145,7 +123,6 @@ src/hooks        Reusable React hooks
 src/scripts      Data migration, setup, cleanup, and maintenance scripts
 src/types        Shared TypeScript types
 public           Static files, icons, images, fonts, manifest, and service worker
-android          Capacitor Android project
 functions        Firebase Functions project
 scripts          Build and icon generation helper scripts
 ```

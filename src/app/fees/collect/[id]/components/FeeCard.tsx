@@ -7,7 +7,7 @@ import { useStaffById } from '@/lib/hooks/use-staff';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { useUniformTrackingRecord, useUpdateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useUniforms } from '@/lib/hooks/use-uniforms';
-import { useUniformInventory, useReduceStockBatch } from '@/lib/hooks/use-uniform-inventory';
+import { useUniformInventory, useReduceStockBatch, useIncrementStockBatch } from '@/lib/hooks/use-uniform-inventory';
 import { CollectionModal } from '@/components/common/collection-modal';
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
 import { Badge } from '@/components/ui/badge';
@@ -78,6 +78,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
   // Update uniform tracking mutation
   const updateUniformTracking = useUpdateUniformTracking();
   const reduceStockBatch = useReduceStockBatch();
+  const incrementStockBatch = useIncrementStockBatch();
   const queryClient = useQueryClient();
 
   // Uniform inventory for size/stock tracking
@@ -151,6 +152,65 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
     }
   };
 
+  // Handle unmark — remove a previously collected item
+  const handleUnmarkItem = async (uniformId: string, size: string | undefined) => {
+    if (!uniformTrackingId || !uniformTrackingRecord) return;
+
+    try {
+      // Restore stock if a size was recorded
+      if (size) {
+        try {
+          await incrementStockBatch.mutateAsync([{ uniformId, size, quantity: 1 }]);
+        } catch (stockError) {
+          console.error('Error restoring stock:', stockError);
+        }
+      }
+
+      // Use the authoritative top-level collectedItems on the record
+      const currentCollectedItems: string[] = uniformTrackingRecord.collectedItems || [];
+      const newCollectedItems = currentCollectedItems.filter((id: string) => id !== uniformId);
+
+      // Determine new collection status
+      const allItemIds = trackingUniforms.map(u => u.id);
+      const newCollectionStatus =
+        newCollectedItems.length === 0
+          ? 'pending'
+          : newCollectedItems.length >= allItemIds.length
+          ? 'collected'
+          : 'partial';
+
+      // Remove the size from selectedSizes
+      const updatedSizes = { ...(uniformTrackingRecord.selectedSizes || {}) };
+      delete updatedSizes[uniformId];
+
+      await updateUniformTracking.mutateAsync({
+        id: uniformTrackingId,
+        data: {
+          collectedItems: newCollectedItems,
+          collectionStatus: newCollectionStatus,
+          selectedSizes: updatedSizes,
+          history: [
+            ...(uniformTrackingRecord.history || []),
+            {
+              date: new Date().toISOString(),
+              type: 'unmark',
+              collectedItems: [],
+              unmarkedItems: [uniformId],
+              releasedBy: 'Current User',
+            },
+          ],
+        },
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['uniform-fees'] });
+      queryClient.invalidateQueries({ queryKey: ['uniform-inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['uniform-tracking'] });
+    } catch (error) {
+      console.error('Error unmarking item:', error);
+      alert('Failed to unmark item. Please try again.');
+    }
+  };
+
   // Get uniforms for the tracking record
   const trackingUniforms = React.useMemo(() => {
     if (!uniformTrackingRecord || !allUniforms.length) return [];
@@ -160,13 +220,11 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
     return allUniforms.filter(u => uniformIds.includes(u.id));
   }, [uniformTrackingRecord, allUniforms]);
 
-  // Get previously collected items
+  // Get previously collected items — use the authoritative top-level collectedItems field
   const previouslyCollectedItems = React.useMemo(() => {
-    if (!uniformTrackingRecord?.history) return [];
-    return uniformTrackingRecord.history
-      .flatMap(h => h.collectedItems || [])
-      .filter(Boolean);
+    return uniformTrackingRecord?.collectedItems || [];
   }, [uniformTrackingRecord]);
+
   // For carry forward fees, use the pre-calculated balance to avoid double-counting payments
   const balance = fee.id === 'previous-balance' ? (fee.balance || 0) : ((fee.amount || 0) - totalPaid);
   const { data: schoolSettings } = useSchoolSettings();
@@ -395,7 +453,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
       </div>
 
       <div className="min-w-0">
-          {fee.description && (
+          {fee.description && fee.id !== 'previous-balance' && (
             <p className="text-xs sm:text-sm text-gray-500 mt-0.5 break-words">{fee.description}</p>
           )}
 
@@ -419,26 +477,32 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
                   </div>
                 </>
               ) : (
-                // Regular Discount Display
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                    <div className="font-medium text-sm text-purple-900">
+                // Regular Discount Display - Compact Dynamic Layout
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-x-4 gap-y-1.5 w-full">
+                  {/* Left Column: Discount Name & Amount */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+                    <span className="font-semibold text-purple-900 bg-purple-150/70 border border-purple-200 px-2 py-0.5 rounded text-[11px] uppercase tracking-wider truncate max-w-[150px]" title={fee.discount.name}>
                       {fee.discount.name}
-                    </div>
-                    <span className="px-1.5 py-0.5 text-xs font-medium rounded-full self-start bg-purple-100 text-purple-800">
-                      active
+                    </span>
+                    <span className="text-purple-700 font-medium text-xs sm:text-sm">
+                      Active Discount: <span className="font-bold text-purple-900">{formatCurrency(fee.discount.amount)}</span>
                     </span>
                   </div>
-                  <div className="text-xs sm:text-sm mt-1 text-purple-700">
-                    Discount: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.discount.amount)}
+                  
+                  {/* Right Column: Calculations and Term */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm font-medium">
+                    <span className="text-purple-650">
+                      Old amount: <span className="line-through text-purple-500/80">{formatCurrency(fee.originalAmount || (fee.amount + fee.discount.amount))}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-150 px-2 py-0.5 rounded-md">
+                      New amount: <span className="font-bold text-emerald-800">{formatCurrency(fee.amount)}</span>
+                    </span>
+                    <span className="text-purple-300 text-xs hidden sm:inline">|</span>
+                    <span className="text-purple-500 text-xs font-normal">
+                      {selectedTerm} - {selectedAcademicYear?.name}
+                    </span>
                   </div>
-                  <div className="text-xs sm:text-sm mt-0.5 break-words text-purple-600">
-                    Applied to: {fee.name} ({new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.originalAmount || fee.amount)})
-                  </div>
-                  <div className="text-xs sm:text-sm mt-0.5 text-purple-600">
-                    {selectedTerm} - {selectedAcademicYear?.name}
-                  </div>
-                </>
+                </div>
               )}
             </div>
           )}
@@ -446,7 +510,6 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
           {/* Previous Balance Breakdown - Redesigned: No scrolling, compact, color-coded */}
           {fee.id === 'previous-balance' && fee.feeBreakdown && (
             <div className="mt-2">
-              <p className="text-[11px] font-medium text-gray-700 mb-1.5">Outstanding Balances:</p>
               <div className="space-y-1.5">
                 {Object.entries(fee.feeBreakdown.reduce((acc, item) => {
                   const key = `${item.term} ${item.year}`;
@@ -1051,6 +1114,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
           previouslyCollectedItems={previouslyCollectedItems}
           selectedSizes={uniformTrackingRecord.selectedSizes || {}}
           uniformInventory={uniformInventory}
+          onUnmark={handleUnmarkItem}
         />
       )}
     </div>

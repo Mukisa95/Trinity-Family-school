@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { FeeStructure } from "@/types";
 import { FeeStructuresService } from "@/lib/services/fee-structures.service";
 import { useAcademicYears } from "@/lib/hooks/use-academic-years";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import {
   Card,
   CardHeader,
@@ -165,32 +165,52 @@ export default function AssignPage() {
 
   if (isLoading || isLoadingAcademicYears) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Assign" description="Assignment fees & discounts" />
-        <Card className="p-8 flex items-center justify-center">
-          <LoadingIndicator isLoading size="lg" text="Loading assignment data..." />
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <GlassPageTopBar
+          title="Fee Assignments"
+          subtitle="Assignment fees & discounts management"
+          backHref="/fees"
+          backLabel="Back to fees"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Card className="p-8 flex items-center justify-center">
+            <LoadingIndicator isLoading size="lg" text="Loading assignment data..." />
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Assign" description="Assignment fees & discounts" />
-        <Alert variant="destructive">
-          <AlertTitle>Unable to load assignment data</AlertTitle>
-          <AlertDescription>
-            {(error as Error)?.message || "Please try again shortly."}
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <GlassPageTopBar
+          title="Fee Assignments"
+          subtitle="Assignment fees & discounts management"
+          backHref="/fees"
+          backLabel="Back to fees"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Alert variant="destructive">
+            <AlertTitle>Unable to load assignment data</AlertTitle>
+            <AlertDescription>
+              {(error as Error)?.message || "Please try again shortly."}
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-3 sm:p-4 space-y-3">
-      <PageHeader title="Assign" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="Fee Assignments"
+        subtitle="Assignment fees & discounts management"
+        backHref="/fees"
+        backLabel="Back to fees"
+      />
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-blue-100">
@@ -335,6 +355,7 @@ export default function AssignPage() {
           </CardContent>
         </Card>
       </div>
+      </div>  {/* close max-w-7xl */}
     </div>
   );
 }

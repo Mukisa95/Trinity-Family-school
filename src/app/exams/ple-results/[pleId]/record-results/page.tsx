@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ArrowLeft, Save, Calculator, GraduationCap, User, Hash, Calendar, Search, X, ArrowUpDown } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -42,15 +42,15 @@ import { PLESubjectReorderModal } from '@/components/ple/PLESubjectReorderModal'
 
 // PLE Aggregates
 const PLE_AGGREGATES = [
-  { value: 'D1', label: 'D1 (Distinction 1)', points: 1 },
-  { value: 'D2', label: 'D2 (Distinction 2)', points: 2 },
-  { value: 'C3', label: 'C3 (Credit 3)', points: 3 },
-  { value: 'C4', label: 'C4 (Credit 4)', points: 4 },
-  { value: 'C5', label: 'C5 (Credit 5)', points: 5 },
-  { value: 'C6', label: 'C6 (Credit 6)', points: 6 },
-  { value: 'P7', label: 'P7 (Pass 7)', points: 7 },
-  { value: 'P8', label: 'P8 (Pass 8)', points: 8 },
-  { value: 'F9', label: 'F9 (Fail 9)', points: 9 },
+  { value: 'D1', label: 'D1', points: 1 },
+  { value: 'D2', label: 'D2', points: 2 },
+  { value: 'C3', label: 'C3', points: 3 },
+  { value: 'C4', label: 'C4', points: 4 },
+  { value: 'C5', label: 'C5', points: 5 },
+  { value: 'C6', label: 'C6', points: 6 },
+  { value: 'P7', label: 'P7', points: 7 },
+  { value: 'P8', label: 'P8', points: 8 },
+  { value: 'F9', label: 'F9', points: 9 },
 ];
 
 // PLE Divisions
@@ -309,8 +309,13 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
   if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-7xl mx-auto p-3 space-y-4">
-          <PageHeader title="Record PLE Results" />
+        <GlassPageTopBar
+          title="Record Results"
+          subtitle="Loading PLE record..."
+          backHref="/exams/ple-results"
+          backLabel="Back to PLE"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-6">
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="ml-2">Loading PLE record...</span>
@@ -323,8 +328,13 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
   if (!pleRecord) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-7xl mx-auto p-3 space-y-4">
-          <PageHeader title="Record PLE Results" />
+        <GlassPageTopBar
+          title="Record Results"
+          subtitle="PLE record not found"
+          backHref="/exams/ple-results"
+          backLabel="Back to PLE"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-6">
             <div className="text-center">
               <p className="text-red-600 mb-2">PLE record not found</p>
@@ -339,94 +349,64 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-      <div className="max-w-7xl mx-auto p-3 space-y-4">
-        <PageHeader
-          title={`Record Results - ${pleRecord.examName}`}
-          description="Enter PLE aggregates for each subject and candidate."
-          actions={
-            <div className="flex items-center gap-2">
-              {/* Search Bar */}
-              <div className="relative w-48 sm:w-64 bg-white rounded-full px-3 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search pupils..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 pr-8 h-7 text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-                {searchTerm && (
-                  <button
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                    onClick={() => setSearchTerm('')}
-                  >
-                    <X className="h-3 w-3 text-gray-500" />
-                  </button>
-                )}
-              </div>
-
-              {/* Action Buttons Container */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-                <button
-                  onClick={() => setIsReorderModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <ArrowUpDown className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Reorder</span>
-                </button>
-
-                <button
-                  onClick={() => router.push('/exams/ple-results')}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <ArrowLeft className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Back</span>
-                </button>
-
-                <button
-                  onClick={handleSaveResults}
-                  disabled={savePLEResultsMutation.isPending}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                >
-                  {savePLEResultsMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mb-0.5 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mb-0.5" />
-                  )}
-                  <span className="text-[8px] font-semibold leading-tight">
-                    {savePLEResultsMutation.isPending ? 'Saving' : 'Save'}
-                  </span>
-                </button>
-              </div>
-            </div>
-          }
-        />
-
-        {/* Compact Exam Info */}
-        <div className="bg-white rounded-lg border p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <GraduationCap className="h-5 w-5 text-purple-600" />
-              <div>
-                <h2 className="font-semibold text-lg">{pleRecord.examName}</h2>
-                <p className="text-sm text-gray-600">{pleRecord.totalCandidates} candidates • {orderedSubjects.length} subjects • Year {pleRecord.year}</p>
-                {signatures && signatures.length > 0 && (
-                  <div className="mt-1">
-                    <DigitalSignatureDisplay
-                      signature={signatures[0].signature}
-                      variant="inline"
-                      className="text-xs text-gray-500"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Calculator className="h-4 w-4" />
-              <span>Aggregate System</span>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title={`Record Results - ${pleRecord.examName}`}
+        subtitle="Enter PLE aggregates for each subject and candidate."
+        backHref="/exams/ple-results"
+        backLabel="Back to PLE"
+        meta={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-purple-50 text-purple-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100/80 whitespace-nowrap">
+              {pleRecord.totalCandidates} candidates
+            </span>
+            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap">
+              {orderedSubjects.length} subjects
+            </span>
+            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap">
+              Year {pleRecord.year}
+            </span>
           </div>
-        </div>
+        }
+        actionsLeading={
+          <div className="flex items-center gap-2">
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              containerClassName="w-[140px] sm:w-[180px] lg:w-[220px]"
+            />
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Reorder"
+              icon={<ArrowUpDown className="h-4 w-4" />}
+              tone="slate"
+              onClick={() => setIsReorderModalOpen(true)}
+            />
+            <GlassActionButton
+              label={savePLEResultsMutation.isPending ? 'Saving...' : 'Save'}
+              icon={savePLEResultsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              tone="purple"
+              onClick={handleSaveResults}
+              disabled={savePLEResultsMutation.isPending}
+            />
+          </GlassActionDock>
+        }
+      />
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+
+        {signatures && signatures.length > 0 && (
+          <div className="flex items-center justify-end">
+            <DigitalSignatureDisplay
+              signature={signatures[0].signature}
+              variant="inline"
+              className="text-xs text-gray-500 bg-white/60 backdrop-blur border border-white/40 px-3 py-1.5 rounded-full shadow-sm"
+            />
+          </div>
+        )}
 
         {/* Results Entry Table */}
         <div className="rounded-lg border bg-white overflow-hidden">
@@ -435,7 +415,6 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
               <thead>
                 <tr className="bg-gray-50 border-b">
                   <th className="text-left p-2 font-medium text-gray-700 border-r text-sm min-w-[200px]">Candidate</th>
-                  <th className="text-left p-2 font-medium text-gray-700 border-r text-sm min-w-[120px]">PIN / Index</th>
                   <th className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[100px]">Status</th>
                   {orderedSubjects.map(subject => (
                     <th key={subject.id} className="text-center p-2 font-medium text-gray-700 border-r text-sm min-w-[80px]">
@@ -457,18 +436,6 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
                         <div className="text-xs text-gray-500 mt-0.5">
                           {pupil.gender}
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-2 border-r">
-                      <div className="space-y-1">
-                        <div className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">
-                          {pupil.admissionNumber || 'N/A'}
-                        </div>
-                        {pupil.indexNumber && (
-                          <div className="text-xs font-mono bg-blue-100 px-2 py-0.5 rounded text-blue-700">
-                            {pupil.indexNumber}
-                          </div>
-                        )}
                       </div>
                     </td>
                     <td className="p-2 border-r text-center">

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, LogIn, School, MapPin, Phone, Mail, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, LogIn, School, MapPin, Phone, Mail, User, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
@@ -759,7 +759,7 @@ export default function LoginPage() {
           overflow:hidden;
           backdrop-filter:blur(10px);
           -webkit-backdrop-filter:blur(10px);
-          background:rgba(0,0,0,.25);
+          background:rgba(15,23,42,0.65);
         }
         .trinity-portal-landing .modal-overlay.open { opacity:1; pointer-events:auto; }
         
@@ -784,8 +784,8 @@ export default function LoginPage() {
           position:relative; z-index:5;
           width:min(420px,92vw); margin:20px;
           padding:32px; border-radius:28px;
-          background:rgba(255,255,255,.12);
-          border:1px solid rgba(255,255,255,.2);
+          background:rgba(15,23,42,0.55);
+          border:1px solid rgba(255,255,255,.15);
           backdrop-filter:blur(24px) saturate(180%);
           -webkit-backdrop-filter:blur(24px) saturate(180%);
           box-shadow:0 10px 50px rgba(0,0,0,.25);
@@ -807,19 +807,19 @@ export default function LoginPage() {
         .trinity-portal-landing .modal-top h2 { font-size:1.6rem; font-weight:700; margin-bottom:8px; color:#fff; }
         .trinity-portal-landing .modal-top p  { font-size:.95rem; color:rgba(255,255,255,.8); margin-bottom:0; }
 
-        .trinity-portal-landing .mfield { margin-bottom:18px; }
-        .trinity-portal-landing .mfield label { display:block; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.6); margin-bottom:8px; }
+        .trinity-portal-landing .mfield { margin-bottom:14px; }
+        .trinity-portal-landing .mfield label { display:block; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.85); margin-bottom:6px; }
         .trinity-portal-landing .input-row { position:relative; }
-        .trinity-portal-landing .input-row .iicon { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,.35); pointer-events:none; }
+        .trinity-portal-landing .input-row .iicon { position:absolute; left:15px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,.5); pointer-events:none; }
         
         .trinity-portal-landing .mfield input {
-          width:100%; padding:15px 15px 15px 44px;
+          width:100%; padding:10px 16px 10px 42px;
           background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
-          border-radius:14px; color:#fff; font-size:14px;
+          border-radius:99px; color:#fff; font-size:14px;
           outline:none;
           transition:background .25s, border-color .25s, box-shadow .25s;
         }
-        .trinity-portal-landing .mfield input::placeholder { color:rgba(255,255,255,.4); }
+        .trinity-portal-landing .mfield input::placeholder { color:rgba(255,255,255,.65); }
         .trinity-portal-landing .mfield input:focus { border-color:#60a5fa; box-shadow:0 0 0 4px rgba(96,165,250,.15); background:rgba(255,255,255,.12); }
         
         .trinity-portal-landing .eye-btn { position:absolute; right:16px; top:50%; transform:translateY(-50%); cursor:pointer; color:rgba(255,255,255,.35); transition:color .2s; }
@@ -827,7 +827,7 @@ export default function LoginPage() {
 
         .trinity-portal-landing .mrow {
           display:flex; align-items:center; justify-content:space-between;
-          margin-bottom:24px; font-size:12.5px;
+          margin-bottom:18px; font-size:12.5px;
         }
         .trinity-portal-landing .mrow label { display:flex; align-items:center; gap:7px; color:rgba(255,255,255,.6); cursor:pointer; }
         .trinity-portal-landing .mrow input[type=checkbox] { accent-color:#4F63FF; }
@@ -835,7 +835,7 @@ export default function LoginPage() {
         .trinity-portal-landing .mrow a:hover { text-decoration:underline; }
 
         .trinity-portal-landing .modal-submit {
-          width:100%; padding:15px; border:none; border-radius:14px;
+          width:100%; padding:11px; border:none; border-radius:99px;
           background:linear-gradient(135deg,#2563eb,#4f46e5);
           color:#fff; font-weight:700; font-size:14.5px;
           cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
@@ -849,11 +849,11 @@ export default function LoginPage() {
         .trinity-portal-landing .modal-submit.loading .spinner { display:inline-block; }
         .trinity-portal-landing .modal-submit.loading .btn-text { display:none; }
 
-        .trinity-portal-landing .modal-divider { display:flex;align-items:center;gap:10px;margin:22px 0 14px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3); }
+        .trinity-portal-landing .modal-divider { display:flex;align-items:center;gap:10px;margin:22px 0 14px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.60); }
         .trinity-portal-landing .modal-divider::before,
         .trinity-portal-landing .modal-divider::after { content:'';flex:1;height:1px;background:rgba(255,255,255,.08); }
         
-        .trinity-portal-landing .modal-foot { text-align:center;font-size:12.5px;color:rgba(255,255,255,.4); }
+        .trinity-portal-landing .modal-foot { text-align:center;font-size:12.5px;color:rgba(255,255,255,.75); }
         .trinity-portal-landing .modal-foot strong { color:rgba(255,255,255,.75); }
 
         @keyframes orbFloat { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(50px,-40px) scale(1.1);} 66%{transform:translate(-30px,40px) scale(.92);} }
@@ -1524,7 +1524,6 @@ export default function LoginPage() {
 
               <div className="modal-top">
                 <h2>Welcome Back</h2>
-                <p>Sign in to access your academic dashboard.</p>
               </div>
 
               {error && (
@@ -1535,14 +1534,14 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit}>
                 <div className="mfield">
-                  <label className="block text-[11.5px] font-bold tracking-wider uppercase text-white/60 mb-2">Email or Username</label>
+                  <label className="block text-[11.5px] font-bold tracking-wider uppercase text-white/60 mb-2">Username</label>
                   <div className="input-row relative">
                     <span className="iicon absolute left-[15px] top-1/2 -translate-y-1/2 text-white/35">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                      <User className="w-[15px] h-[15px]" />
                     </span>
                     <input
                       type="text"
-                      placeholder="you@trinityschool.ac.ug"
+                      placeholder="Username"
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
@@ -1576,12 +1575,14 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* 
                 <div className="mrow flex items-center justify-between text-[12.5px] mb-6">
                   <label className="flex items-center gap-[7px] text-white/60 cursor-pointer">
                     <input type="checkbox" className="accent-[#4F63FF]" /> Keep me signed in
                   </label>
                   <a href="#" className="text-[#67e8f9] font-bold hover:underline">Forgot password?</a>
                 </div>
+                */}
 
                 <button
                   className="modal-submit w-full py-3.5 rounded-full border-none bg-gradient-to-r from-[#4F63FF] to-[#00C2E0] text-white font-bold text-[14.5px] tracking-wide cursor-pointer flex items-center justify-center gap-2 shadow-[0_8px_28px_rgba(79,99,255,0.5)] hover:translate-y-[-2px] hover:shadow-[0_14px_38px_rgba(79,99,255,0.65)] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
@@ -1599,12 +1600,12 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="modal-divider flex items-center gap-2.5 my-5 uppercase text-[11px] tracking-wider text-white/30">
+              <div className="modal-divider flex items-center gap-2.5 my-5 uppercase text-[11px] tracking-wider text-white/60">
                 Secure Access
               </div>
 
-              <p className="modal-foot text-center text-[12.5px] text-white/45">
-                Trinity Family School <strong className="text-white/75">Staff Portal</strong>
+              <p className="modal-foot text-center text-[12.5px] text-white/75">
+                Trinity Family School
               </p>
             </div>
           </div>

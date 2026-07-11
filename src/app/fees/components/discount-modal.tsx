@@ -21,6 +21,7 @@ interface DiscountModalProps {
     amount: number; // Positive from form, stored negative
     description?: string;
     linkedFeeIds?: string[];
+    action: 'save' | 'create'; // 'save' updates the existing discount, 'create' makes a new one
   }) => void;
   feeItems: FeeStructure[]; // For linking discount to a fee
   initialData?: FeeStructure | null; // For editing an existing discount
@@ -73,7 +74,7 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
     }
   }, [initialData, isOpen, mode]);
 
-  const handleSubmit = () => {
+  const handleSubmit = (action: 'save' | 'create') => {
     const numericAmount = parseFormattedMoney(typeof amount === 'string' ? amount : amount.toString());
     if (!name.trim() || numericAmount <= 0) {
       toast({ variant: "destructive", title: "Validation Error", description: "Please fill all required fields (Name, Amount)." });
@@ -84,12 +85,12 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
         return;
     }
 
-
     onSubmit({
       name,
       amount: numericAmount, // Will be converted to negative by parent
       description,
       linkedFeeIds,
+      action,
     });
     onClose(); // Close modal on successful submission
   };
@@ -148,9 +149,34 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
             </div>
           </div>
         </div>
-        <ModernDialogFooter className="flex-shrink-0 px-6 pb-6 pt-4 border-t flex-col sm:flex-row gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
-          <Button onClick={handleSubmit} className="w-full sm:w-auto">Save Discount</Button>
+        <ModernDialogFooter className="flex-shrink-0 px-6 pb-6 pt-4 border-t">
+          {mode === 'edit' ? (
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto">
+                <Button
+                  variant="secondary"
+                  onClick={() => handleSubmit('create')}
+                  className="w-full sm:w-auto"
+                  title="Save as a new discount, keeping the original unchanged"
+                >
+                  Create New
+                </Button>
+                <Button
+                  onClick={() => handleSubmit('save')}
+                  className="w-full sm:w-auto"
+                  title="Save changes to the existing discount"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:justify-end">
+              <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={() => handleSubmit('create')} className="w-full sm:w-auto">Save Discount</Button>
+            </div>
+          )}
         </ModernDialogFooter>
       </ModernDialogContent>
     </ModernDialog>

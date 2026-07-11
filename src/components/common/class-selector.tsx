@@ -13,6 +13,7 @@ interface ClassSelectorProps {
   includeAllOption?: boolean;
   allOptionLabel?: string;
   className?: string;
+  triggerClassName?: string;
   disabled?: boolean;
   showIcon?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -25,6 +26,7 @@ export function ClassSelector({
   includeAllOption = true,
   allOptionLabel = "All Classes",
   className = "",
+  triggerClassName = "",
   disabled = false,
   showIcon = true,
   size = 'md'
@@ -81,7 +83,7 @@ export function ClassSelector({
           isLoading ? 'opacity-50' : ''
         } ${
           selectedClass || isAllSelected ? 'border-blue-200 bg-blue-50/50' : ''
-        }`}>
+        } ${triggerClassName} [&>svg]:hidden`}>
           <div className="flex items-center gap-2 min-w-0">
             {showIcon && (
               <div className="flex-shrink-0">
@@ -126,9 +128,9 @@ export function ClassSelector({
                   <span className="text-blue-700 font-bold text-xs">
                     {classItem.code || classItem.name}
                   </span>
-                  {classItem.pupilCount !== undefined && (
+                  {(classItem as any).pupilCount !== undefined && (
                     <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex-shrink-0">
-                      {classItem.pupilCount}
+                      {(classItem as any).pupilCount}
                     </span>
                   )}
                 </div>

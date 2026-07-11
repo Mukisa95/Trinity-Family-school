@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
+import { GlassPageRouteSkeleton } from '@/components/common/glass-page-loading';
 import {
   ArrowCircleLeft,
   Calendar,
@@ -509,8 +511,8 @@ export default function FamilyFeesCollection() {
 
   if (isFamilyPupilsLoading || isFeesInfoLoading || isAcademicYearsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen pb-12">
+        <GlassPageRouteSkeleton />
       </div>
     );
   }
@@ -536,241 +538,119 @@ export default function FamilyFeesCollection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-12">
-      <div className="bg-white/90 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="space-y-3">
-            <h1 className="text-lg sm:text-xl font-bold text-indigo-900 truncate">
-              Family Fees Summary
-            </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      {(() => {
+        const totalFees = familyPupils.reduce((sum, pupil) => {
+          const summary = feesInfo[pupil.id];
+          return sum + (summary?.totalFees || 0);
+        }, 0);
 
-            {/* Family Summary Card */}
-            {(() => {
-              const totalFees = familyPupils.reduce((sum, pupil) => {
-                const summary = feesInfo[pupil.id];
-                return sum + (summary?.totalFees || 0);
-              }, 0);
+        const totalPaid = familyPupils.reduce((sum, pupil) => {
+          const summary = feesInfo[pupil.id];
+          return sum + (summary?.totalPaid || 0);
+        }, 0);
 
-              const totalPaid = familyPupils.reduce((sum, pupil) => {
-                const summary = feesInfo[pupil.id];
-                return sum + (summary?.totalPaid || 0);
-              }, 0);
+        const totalBalance = familyPupils.reduce((sum, pupil) => {
+          const summary = feesInfo[pupil.id];
+          return sum + (summary?.balance || 0);
+        }, 0);
 
-              const totalBalance = familyPupils.reduce((sum, pupil) => {
-                const summary = feesInfo[pupil.id];
-                return sum + (summary?.balance || 0);
-              }, 0);
+        return (
+          <GlassPageTopBar
+            title="Family Fees Summary"
+            subtitle={"Family ID: " + familyId}
+            backHref="/fees/collection"
+            backLabel="Fees"
+            meta={
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  Total: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalFees)}
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                  Paid: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalPaid)}
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-100">
+                  Balance: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalBalance)}
+                </span>
+              </div>
+            }
+            actions={
+              <GlassActionDock>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => {
+                    const yearId = e.target.value;
+                    setSelectedYear(yearId);
+                    const year = academicYears.find(y => y.id === yearId);
+                    setSelectedTermId(getCurrentTerm(year as any)?.id || year?.terms[0]?.id || '');
+                    setSelectedAcademicYear(year || null);
+                  }}
+                  className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8"
+                >
+                  <option value="">Select Year</option>
+                  {[...academicYears].reverse().map((year) => {
+                    const isCurrent = year.id === currentAcademicYearId;
+                    const today = new Date();
+                    const yearEnd = new Date(year.endDate);
+                    const hasEnded = today > yearEnd;
 
-              return (
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Back button - icon only */}
-                  <button
-                    onClick={() => router.back()}
-                    className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                    title="Back"
-                  >
-                    <ArrowCircleLeft className="w-5 h-5" weight="bold" />
-                  </button>
+                    let label = '';
+                    if (isCurrent) label = '(Current)';
+                    else if (year.isLocked) label = '(Locked)';
+                    else if (!hasEnded) label = '(Upcoming)';
 
-                  {/* Family totals pill - compact and matching button style */}
-                  <div className="bg-white rounded-full px-3 py-2 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-2 flex-1 min-w-0 h-11">
-                    <div className="flex flex-col items-center justify-center gap-0">
-                      <span className="text-[10px] font-medium text-indigo-600 whitespace-nowrap leading-tight">Total Amount</span>
-                      <span className="text-sm font-bold text-indigo-900 whitespace-nowrap leading-tight">
-                        {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalFees)}
-                      </span>
-                    </div>
-                    <div className="w-px h-5 bg-gray-300"></div>
-                    <div className="flex flex-col items-center justify-center gap-0">
-                      <span className="text-[10px] font-medium text-green-600 whitespace-nowrap leading-tight">Total Paid</span>
-                      <span className="text-sm font-bold text-green-900 whitespace-nowrap leading-tight">
-                        {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalPaid)}
-                      </span>
-                    </div>
-                    <div className="w-px h-5 bg-gray-300"></div>
-                    <div className="flex flex-col items-center justify-center gap-0">
-                      <span className="text-[10px] font-medium text-red-600 whitespace-nowrap leading-tight">Balance</span>
-                      <span className="text-sm font-bold text-red-900 whitespace-nowrap leading-tight">
-                        {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalBalance)}
-                      </span>
-                    </div>
-                  </div>
+                    return (
+                      <option key={year.id} value={year.id}>
+                        {year.name} {label}
+                      </option>
+                    );
+                  })}
+                </select>
 
-                  {/* Desktop actions: modern round platform aligned with totals */}
-                  <div className="hidden sm:flex flex-wrap items-center gap-2 flex-shrink-0">
-                    {/* Academic Year & Term Selector - matching button style */}
-                    <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-11 flex-shrink-0">
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => {
-                          const yearId = e.target.value;
-                          setSelectedYear(yearId);
-                          const year = academicYears.find(y => y.id === yearId);
-                          setSelectedTermId(getCurrentTerm(year as any)?.id || year?.terms[0]?.id || '');
-                          setSelectedAcademicYear(year || null);
-                        }}
-                        className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                        style={{ width: 'auto', minWidth: 'fit-content' }}
-                      >
-                        <option value="">Select Year</option>
-                        {[...academicYears].reverse().map((year) => {
-                          // Dynamic label based on effective term
-                          const isCurrent = year.id === currentAcademicYearId;
-                          const today = new Date();
-                          const yearEnd = new Date(year.endDate);
-                          const hasEnded = today > yearEnd;
+                <select
+                  value={selectedTermId}
+                  onChange={(e) => setSelectedTermId(e.target.value)}
+                  disabled={!selectedYear}
+                  className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {selectedYearTerms.map((term) => (
+                    <option key={term.id} value={term.id}>
+                      {term.name}
+                    </option>
+                  ))}
+                </select>
 
-                          let label = '';
-                          if (isCurrent) {
-                            label = '(Current)';
-                          } else if (year.isLocked) {
-                            label = '(Locked)';
-                          } else if (!hasEnded) {
-                            label = '(Upcoming)';
-                          }
-                          // Ended years get no label
+                <GlassActionButton
+                  label="Pay"
+                  icon={<CurrencyCircleDollar className="w-4 h-4" weight="bold" />}
+                  tone="emerald"
+                  disabled={familyPupils.length === 0 || isLoading}
+                  onClick={() => setIsFamilyPaymentModalOpen(true)}
+                  title="Pay for Family"
+                />
 
-                          return (
-                            <option key={year.id} value={year.id}>
-                              {year.name} {label}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <div className="w-px h-5 bg-gray-300"></div>
-                      <select
-                        value={selectedTermId}
-                        onChange={(e) => setSelectedTermId(e.target.value)}
-                        disabled={!selectedYear}
-                        className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-                        style={{ width: 'auto', minWidth: 'fit-content' }}
-                      >
-                        {selectedYearTerms.map((term) => (
-                          <option key={term.id} value={term.id}>
-                            {term.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                <GlassActionButton
+                  label={viewMode === 'summary' ? 'Detail' : 'Summary'}
+                  icon={viewMode === 'summary' ? <ListBullets className="w-4 h-4" weight="bold" /> : <List className="w-4 h-4" weight="bold" />}
+                  tone="orange"
+                  onClick={() => setViewMode(viewMode === 'summary' ? 'detail' : 'summary')}
+                  title={viewMode === 'summary' ? 'Switch to Detail View' : 'Switch to Summary View'}
+                />
 
-                    <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex flex-wrap items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => setIsFamilyPaymentModalOpen(true)}
-                        disabled={familyPupils.length === 0 || isLoading}
-                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed flex-shrink-0"
-                        title="Pay for Family"
-                      >
-                        <CurrencyCircleDollar className="w-4 h-4 mb-0.5" weight="bold" />
-                        <span className="text-[8px] font-semibold leading-tight">Pay</span>
-                      </button>
-
-                      <button
-                        onClick={() => setViewMode(viewMode === 'summary' ? 'detail' : 'summary')}
-                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                        title={viewMode === 'summary' ? 'Switch to Detail View' : 'Switch to Summary View'}
-                      >
-                        {viewMode === 'summary' ? (
-                          <ListBullets className="w-4 h-4 mb-0.5" weight="bold" />
-                        ) : (
-                          <List className="w-4 h-4 mb-0.5" weight="bold" />
-                        )}
-                        <span className="text-[8px] font-semibold leading-tight">{viewMode === 'summary' ? 'Detail' : 'Summary'}</span>
-                      </button>
-
-                      <button
-                        onClick={handlePrint}
-                        disabled={familyPupils.length === 0 || isLoading}
-                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-rose-600 border border-rose-400 shadow-sm hover:bg-gradient-to-br hover:from-rose-400 hover:via-pink-500 hover:to-rose-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed flex-shrink-0"
-                        title="Print Family Summary"
-                      >
-                        <Printer className="w-4 h-4 mb-0.5" weight="bold" />
-                        <span className="text-[8px] font-semibold leading-tight">Print</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Mobile actions: same round platform below totals */}
-                  <div className="flex sm:hidden items-center gap-2 flex-shrink-0">
-                    {/* Academic Year & Term Selector - matching button style */}
-                    <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 h-10">
-                      <select
-                        value={selectedYear}
-                        onChange={(e) => {
-                          const yearId = e.target.value;
-                          setSelectedYear(yearId);
-                          const year = academicYears.find(y => y.id === yearId);
-                          setSelectedTermId(getCurrentTerm(year as any)?.id || year?.terms[0]?.id || '');
-                          setSelectedAcademicYear(year || null);
-                        }}
-                        className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full"
-                        style={{ width: 'auto', minWidth: 'fit-content' }}
-                      >
-                        <option value="">Select Year</option>
-                        {[...academicYears].reverse().map((year) => (
-                          <option key={year.id} value={year.id}>
-                            {year.name}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="w-px h-4 bg-gray-300"></div>
-                      <select
-                        value={selectedTermId}
-                        onChange={(e) => setSelectedTermId(e.target.value)}
-                        disabled={!selectedYear}
-                        className="bg-white rounded-full px-2 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm w-auto min-w-0 h-full disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-                        style={{ width: 'auto', minWidth: 'fit-content' }}
-                      >
-                        {selectedYearTerms.map((term) => (
-                          <option key={term.id} value={term.id}>
-                            {term.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 overflow-x-auto">
-                      <button
-                        onClick={() => setIsFamilyPaymentModalOpen(true)}
-                        disabled={familyPupils.length === 0 || isLoading}
-                        className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
-                        title="Pay for Family"
-                      >
-                        <CurrencyCircleDollar className="w-3.5 h-3.5 mb-0.5" weight="bold" />
-                        <span className="text-[7px] font-semibold leading-tight">Pay</span>
-                      </button>
-
-                      <button
-                        onClick={() => setViewMode(viewMode === 'summary' ? 'detail' : 'summary')}
-                        className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                        title={viewMode === 'summary' ? 'Switch to Detail View' : 'Switch to Summary View'}
-                      >
-                        {viewMode === 'summary' ? (
-                          <ListBullets className="w-3.5 h-3.5 mb-0.5" weight="bold" />
-                        ) : (
-                          <List className="w-3.5 h-3.5 mb-0.5" weight="bold" />
-                        )}
-                        <span className="text-[7px] font-semibold leading-tight">{viewMode === 'summary' ? 'Detail' : 'Summary'}</span>
-                      </button>
-
-                      <button
-                        onClick={handlePrint}
-                        disabled={familyPupils.length === 0 || isLoading}
-                        className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-rose-600 border border-rose-400 shadow-sm hover:bg-gradient-to-br hover:from-rose-400 hover:via-pink-500 hover:to-rose-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
-                        title="Print Family Summary"
-                      >
-                        <Printer className="w-3.5 h-3.5 mb-0.5" weight="bold" />
-                        <span className="text-[7px] font-semibold leading-tight">Print</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <GlassActionButton
+                  label="Print"
+                  icon={<Printer className="w-4 h-4" weight="bold" />}
+                  tone="rose"
+                  disabled={familyPupils.length === 0 || isLoading}
+                  onClick={handlePrint}
+                  title="Print Family Summary"
+                />
+              </GlassActionDock>
+            }
+          />
+        );
+      })()}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Mobile-responsive grid - single column on mobile, 2 columns on tablet, 2 on desktop for wider cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           {familyPupils.map((pupil) => {

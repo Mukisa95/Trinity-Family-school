@@ -366,11 +366,27 @@ export function usePupilFees({
       console.log('⚡ Added previous balance:', (previousBalance as PreviousTermBalance).amount);
     }
 
-    // Add uniform fees
+    // Add uniform fees — hydrate their payments from the live listener
     if (uniformFees.length > 0) {
-      allFees.push(...uniformFees);
-      console.log('⚡ Added uniform fees:', uniformFees.length);
+      const hydratedUniformFees = uniformFees.map(uf => {
+        // Payments are saved with feeStructureId === uf.id (e.g. 'uniform-<trackingId>')
+        const matchingPayments = pupilPayments.filter(
+          p => p.feeStructureId === uf.id ||
+               (p as any).uniformTrackingId === uf.uniformTrackingId
+        );
+        const totalPaid = matchingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const balance = Math.max(0, uf.amount - totalPaid);
+        return {
+          ...uf,
+          payments: matchingPayments,
+          paid: totalPaid,
+          balance,
+        };
+      });
+      allFees.push(...hydratedUniformFees);
+      console.log('⚡ Added uniform fees:', hydratedUniformFees.length, 'with payments hydrated');
     }
+
 
     console.log('✅ Total fees ready:', allFees.length);
     return allFees;

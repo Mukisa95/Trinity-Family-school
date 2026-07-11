@@ -18,7 +18,7 @@ import { PaymentsService } from "@/lib/services/payments.service";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { detectCurrentAcademicYear, getActiveOrMostRecentTerm } from "@/lib/utils/academic-year-utils";
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import {
   Card,
   CardContent,
@@ -47,7 +47,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronUp, ArrowLeft, Info, Wallet, MoreVertical } from "lucide-react";
+import { ChevronDown, ChevronUp, ArrowLeft, Info, Wallet, MoreVertical, Sliders, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -134,6 +134,24 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
 
   const { data: academicYears = [] } = useAcademicYears();
   const { data: activeAcademicYear } = useActiveAcademicYear();
+
+  const isAssignDisabled = useMemo(() => {
+    if (!selectedYearId || !activeAcademicYear) return false;
+    const selYear = academicYears.find(y => y.id === selectedYearId);
+    if (!selYear) return false;
+    const selStart = new Date(selYear.startDate).getTime();
+    const actStart = new Date(activeAcademicYear.startDate).getTime();
+    if (selStart < actStart) return true;
+    if (selStart > actStart) return false;
+    if (selectedTermId) {
+      const selTerm = selYear.terms.find(t => t.id === selectedTermId);
+      const actTerm = activeAcademicYear.terms.find(t => t.isCurrent) || activeAcademicYear.terms[0];
+      if (selTerm && actTerm) {
+        return new Date(selTerm.startDate).getTime() < new Date(actTerm.startDate).getTime();
+      }
+    }
+    return false;
+  }, [selectedYearId, activeAcademicYear, academicYears, selectedTermId]);
 
   // Helper: determine if an assignment is active for the selected context
   const isAssignmentActiveForContext = (
@@ -870,13 +888,85 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     }
   };
 
+  const yearSelectorDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+        >
+          {(academicYears.find(y => y.id === selectedYearId)?.name) || "Year"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[200px] max-h-[70vh] overflow-y-auto bg-white border shadow-lg z-[999999]">
+        <DropdownMenuLabel className="text-xs sticky top-0 bg-popover z-10">Select Year</DropdownMenuLabel>
+        {academicYears.map(y => (
+          <DropdownMenuItem
+            key={y.id}
+            onClick={() => {
+              setSelectedYearId(y.id);
+              const globalEffective = getEffectiveTermForDataDisplay(academicYears);
+              if (
+                globalEffective.term?.id &&
+                globalEffective.academicYear?.id === y.id
+              ) {
+                setSelectedTermId(globalEffective.term.id);
+                return;
+              }
+              const cur =
+                getCurrentTermForYear(y) ||
+                getActiveOrMostRecentTerm(y) ||
+                y.terms?.[0];
+              if (cur?.id) setSelectedTermId(cur.id);
+            }}
+          >
+            {y.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const termSelectorDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          className="h-[34px] min-w-[95px] rounded-full border border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+          disabled={!selectedYearId}
+        >
+          {(selectedYearId && academicYears.find(y => y.id === selectedYearId)?.terms.find(t => t.id === selectedTermId)?.name) || "Term"}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="min-w-[180px] max-h-[50vh] overflow-y-auto bg-white border shadow-lg z-[999999]">
+        <DropdownMenuLabel className="text-xs sticky top-0 bg-popover z-10">Select Term</DropdownMenuLabel>
+        {(selectedYearId
+          ? academicYears.find(y => y.id === selectedYearId)?.terms || []
+          : []
+        ).map(t => (
+          <DropdownMenuItem
+            key={t.id}
+            onClick={() => setSelectedTermId(t.id)}
+          >
+            {t.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   if (isLoadingFee || isLoadingPupils || isFetchingAssignments) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Assign Details" description="Loading assignment information..." />
-        <Card className="p-10 flex justify-center">
-          <LoadingIndicator isLoading size="lg" text="Loading assignment details..." />
-        </Card>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Assign Details"
+          subtitle="Loading assignment information..."
+          backHref="/assign"
+          backLabel="Back to assign"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Card className="p-10 flex justify-center">
+            <LoadingIndicator isLoading size="lg" text="Loading assignment details..." />
+          </Card>
+        </div>
       </div>
     );
   }
@@ -889,144 +979,80 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
       "Unable to load assignment details. Please try again.";
 
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Assign Details" description="View assignment usage and payments." />
-        <Alert variant="destructive">
-          <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-        <SmartBackButton fallbackHref="/assign" className="inline-flex gap-2">
-  <ArrowLeft className="w-4 h-4" />
-  Back to Assign
-</SmartBackButton>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Assign Details"
+          subtitle="View assignment usage and payments."
+          backHref="/assign"
+          backLabel="Back to assign"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+          <Alert variant="destructive">
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
   if (!feeStructure) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Assign Details" description="View assignment usage and payments." />
-        <Alert>
-          <AlertTitle>Fee structure not found</AlertTitle>
-          <AlertDescription>The requested assignment fee could not be located.</AlertDescription>
-        </Alert>
-        <SmartBackButton fallbackHref="/assign" className="inline-flex gap-2">
-  <ArrowLeft className="w-4 h-4" />
-  Back to Assign
-</SmartBackButton>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Assign Details"
+          subtitle="View assignment usage and payments."
+          backHref="/assign"
+          backLabel="Back to assign"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+          <Alert>
+            <AlertTitle>Fee structure not found</AlertTitle>
+            <AlertDescription>The requested assignment fee could not be located.</AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <PageHeader
+    <div className="min-h-screen animate-in fade-in duration-500">
+      <GlassPageTopBar
         title={feeStructure.name}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <SmartBackButton fallbackHref="/assign" className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-r from-slate-600 to-slate-800 text-white shadow-md hover:shadow-lg hover:from-slate-700 hover:to-slate-900 border-0">
-  <ArrowLeft className="w-4 h-4" />
-  
-</SmartBackButton>
-            {/* Year Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="inline-flex gap-2 h-8 px-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-teal-600 border-0"
-                >
-                  <span className="text-xs font-semibold">
-                    {(academicYears.find(y => y.id === selectedYearId)?.name) || "Year"}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[200px] max-h-[70vh] overflow-y-auto">
-                <DropdownMenuLabel className="text-xs sticky top-0 bg-popover z-10">Select Year</DropdownMenuLabel>
-                {academicYears.map(y => (
-                  <DropdownMenuItem
-                    key={y.id}
-                    onClick={() => {
-                      setSelectedYearId(y.id);
-                      const globalEffective = getEffectiveTermForDataDisplay(academicYears);
-                      if (
-                        globalEffective.term?.id &&
-                        globalEffective.academicYear?.id === y.id
-                      ) {
-                        setSelectedTermId(globalEffective.term.id);
-                        return;
-                      }
-                      const cur =
-                        getCurrentTermForYear(y) ||
-                        getActiveOrMostRecentTerm(y) ||
-                        y.terms?.[0];
-                      if (cur?.id) setSelectedTermId(cur.id);
-                    }}
-                  >
-                    {y.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Term Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  className="inline-flex gap-2 h-8 px-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md hover:shadow-lg hover:from-purple-600 hover:to-pink-600 border-0"
-                  disabled={!selectedYearId}
-                >
-                  <span className="text-xs font-semibold">
-                    {(selectedYearId && academicYears.find(y => y.id === selectedYearId)?.terms.find(t => t.id === selectedTermId)?.name) || "Term"}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[180px] max-h-[50vh] overflow-y-auto">
-                <DropdownMenuLabel className="text-xs sticky top-0 bg-popover z-10">Select Term</DropdownMenuLabel>
-                {(selectedYearId
-                  ? academicYears.find(y => y.id === selectedYearId)?.terms || []
-                  : []
-                ).map(t => (
-                  <DropdownMenuItem
-                    key={t.id}
-                    onClick={() => setSelectedTermId(t.id)}
-                  >
-                    {t.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              onClick={() => setIsModifyModalOpen(true)}
-              className="inline-flex gap-2 h-8 px-3 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-md hover:shadow-lg hover:from-indigo-600 hover:to-blue-600 border-0"
-            >
-              <span className="text-xs font-semibold">Modify</span>
-            </Button>
-            <Button
-              onClick={() => setIsAssignModalOpen(true)}
-              className="inline-flex gap-2 h-8 px-3 rounded-full bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md hover:shadow-lg hover:from-orange-600 hover:to-rose-600 border-0"
-              disabled={(() => {
-                if (!selectedYearId || !activeAcademicYear) return false;
-                const selYear = academicYears.find(y => y.id === selectedYearId);
-                if (!selYear) return false;
-                const selStart = new Date(selYear.startDate).getTime();
-                const actStart = new Date(activeAcademicYear.startDate).getTime();
-                if (selStart < actStart) return true;
-                if (selStart > actStart) return false;
-                if (selectedTermId) {
-                  const selTerm = selYear.terms.find(t => t.id === selectedTermId);
-                  const actTerm = activeAcademicYear.terms.find(t => t.isCurrent) || activeAcademicYear.terms[0];
-                  if (selTerm && actTerm) {
-                    return new Date(selTerm.startDate).getTime() < new Date(actTerm.startDate).getTime();
-                  }
-                }
-                return false;
-              })()}
-            >
-              <span className="text-xs font-semibold">Assign Pupil(s)</span>
-            </Button>
+        subtitle="View assignment usage and payments."
+        backHref="/assign"
+        backLabel="Back to assign"
+        titleControls={
+          <div className="flex items-center gap-1.5 lg:hidden">
+            {yearSelectorDropdown}
+            {termSelectorDropdown}
           </div>
         }
+        center={
+          <div className="hidden lg:flex items-center gap-2">
+            {yearSelectorDropdown}
+            {termSelectorDropdown}
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Modify"
+              icon={<Sliders className="h-4 w-4" />}
+              tone="violet"
+              onClick={() => setIsModifyModalOpen(true)}
+            />
+            <GlassActionButton
+              label="Assign"
+              icon={<UserPlus className="h-4 w-4" />}
+              tone="orange"
+              onClick={() => setIsAssignModalOpen(true)}
+              disabled={isAssignDisabled}
+            />
+          </GlassActionDock>
+        }
       />
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
       <div className="grid gap-3 lg:grid-cols-4">
         <Card className="py-2">
@@ -1675,7 +1701,8 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
           </div>
         </DialogContent>
       </Dialog>
-    </div >
+      </div>  {/* close max-w-7xl */}
+    </div>
   );
 }
 

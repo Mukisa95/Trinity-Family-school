@@ -116,6 +116,13 @@ import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTeacherNameWithTitle } from '@/lib/utils/teacher-formatter';
 import { calculatePromotionStatus, isTermThree } from '@/lib/utils/promotion-ranking';
 import { getSchoolPayCode } from '@/lib/utils/schoolpay';
+import {
+  GlassActionButton,
+  GlassActionDock,
+  GlassPageSearchInput,
+  GlassPageTopBar,
+} from '@/components/common/glass-page-top-bar';
+import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -1090,6 +1097,7 @@ export default function ViewResultsView() {
   });
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [selectedPupilIdForPopup, setSelectedPupilIdForPopup] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showProgressiveExamModal, setShowProgressiveExamModal] = useState(false);
   const [selectedProgressiveExam, setSelectedProgressiveExam] = useState<string | null>(null);
@@ -1488,6 +1496,11 @@ export default function ViewResultsView() {
       passRate
     };
   }, [processedResults, subjectSnaps, examDetails]);
+
+  const selectedPupilData = useMemo(() => {
+    if (!selectedPupilIdForPopup) return null;
+    return processedResults.find(r => r.pupilInfo.pupilId === selectedPupilIdForPopup);
+  }, [selectedPupilIdForPopup, processedResults]);
 
   // Filter and sort results
   const filteredAndSortedResults = useMemo(() => {
@@ -3745,7 +3758,7 @@ export default function ViewResultsView() {
   // Loading state
   if (showLoadingSpinner) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
           <p className="mt-4 text-lg text-gray-700">Loading exam results...</p>
@@ -3757,7 +3770,7 @@ export default function ViewResultsView() {
   // Error state
   if (examResultError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <X className="h-12 w-12 text-red-500 mx-auto" />
           <h2 className="mt-4 text-xl font-semibold text-gray-900">Error loading exam results</h2>
@@ -3771,7 +3784,7 @@ export default function ViewResultsView() {
   // No data state - but allow rendering even if processedResults is empty to show the UI
   if (!examDetails) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <FileText className="h-12 w-12 text-orange-500 mx-auto" />
           <h2 className="mt-4 text-xl font-semibold text-gray-900">Exam Not Found</h2>
@@ -3785,7 +3798,7 @@ export default function ViewResultsView() {
   // If no results data but exam exists, show empty state but still render the UI
   if (!examResultData || !processedResults.length) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
+      <div className="min-h-screen p-2">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden mb-4">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 border-b border-gray-200">
@@ -3814,133 +3827,134 @@ export default function ViewResultsView() {
   const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
-      <div className="max-w-7xl mx-auto">
-        {/* Compact Header Card */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden mb-4">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 border-b border-gray-200">
-            <div className="flex justify-between items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <h1 className="text-lg font-bold text-white truncate">
-                  {examDetails?.name || 'Loading...'} - {examDetails?.examTypeName ? examDetails.examTypeName.toUpperCase() + ' RESULTS' : 'RESULTS'}
-                </h1>
-                <p className="text-xs text-blue-100 truncate">
-                  {examDetails?.examTypeName || 'Loading...'} | Class: {classSnap?.name || 'Loading...'} |
-                  {' '}{academicInfo.academicYearName} - {academicInfo.termName} |
-                  {' '}{examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} -
-                  {examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}
-                </p>
-                {examDetails && (
-                  <div className="mt-1">
-                    <ExamSignatureDisplay exam={examDetails} variant="inline" className="text-xs text-blue-100" />
-                  </div>
-                )}
-              </div>
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-                <button
-                  onClick={() => router.back()}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <ArrowLeft className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Back</span>
-                </button>
-                <Link href={`/exams/${examId}/record-results?classId=${classId}`}>
-                  <button
-                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                  >
-                    <Edit3 className="w-4 h-4 mb-0.5" />
-                    <span className="text-[8px] font-semibold leading-tight">Edit</span>
-                  </button>
-                </Link>
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <Filter className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">{showFilters ? 'Hide' : 'Filter'}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('🖨️ Print button clicked, termName:', examDetails?.termName);
-                    // Check if Term 3 and show promotion ranking dialog first
-                    const isTerm3 = isTermThree(examDetails?.termName);
-                    console.log('Is Term 3?', isTerm3);
-                    if (isTerm3) {
-                      console.log('📊 Showing promotion ranking modal');
-                      setShowPromotionRankingModal(true);
-                    } else {
-                      console.log('📄 Showing regular print modal');
-                      setShowPrintModal(true);
-                    }
-                  }}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <Printer className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Print</span>
-                </button>
-                <button
-                  onClick={() => setShowAnalysis(true)}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <TrendingUp className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Analysis</span>
-                </button>
-              </div>
-            </div>
+    <div className="min-h-screen">
+        <GlassPageTopBar
+          title={examDetails?.name || 'Loading...'}
+          subtitle={`${classSnap?.code || classSnap?.name || 'Loading...'} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
+          backHref="/exams"
+          className="mb-1.5"
+          meta={
+            <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              {filteredAndSortedResults.length} of {processedResults.length} pupils
+            </span>
+          }
+          center={
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          }
+          actionsLeading={
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              containerClassName="lg:hidden"
+            />
+          }
+          actions={
+            <GlassActionDock>
+              <GlassActionButton
+                label="Edit"
+                icon={<Edit3 className="h-4 w-4" />}
+                tone="orange"
+                href={`/exams/${examId}/record-results?classId=${classId}`}
+              />
+              <GlassActionButton
+                label={viewMode === 'table' ? 'Cards' : 'Table'}
+                icon={viewMode === 'table' ? <Grid3X3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                tone="slate"
+                onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+              />
+              <GlassActionButton
+                label={showFilters ? 'Hide' : 'Filter'}
+                icon={<Filter className="h-4 w-4" />}
+                tone="slate"
+                onClick={() => setShowFilters(!showFilters)}
+              />
+              <GlassActionButton
+                label="Print"
+                icon={<Printer className="h-4 w-4" />}
+                tone="blue"
+                onClick={() => {
+                  const isTerm3 = isTermThree(academicInfo.termName);
+                  if (isTerm3) {
+                    setShowPromotionRankingModal(true);
+                  } else {
+                    setShowPrintModal(true);
+                  }
+                }}
+              />
+              <GlassActionButton
+                label="Analysis"
+                icon={<TrendingUp className="h-4 w-4" />}
+                tone="purple"
+                onClick={() => setShowAnalysis(true)}
+              />
+            </GlassActionDock>
+          }
+        />
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Exam Analytics
+            </span>
           </div>
-
-          {/* Compact Analytics Tiles */}
-          {analytics && (
-            <div className="p-2 grid grid-cols-2 lg:grid-cols-4 gap-2">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-md p-2 border border-green-100">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-medium text-green-800">Best</h3>
-                  <Trophy className="w-3 h-3 text-green-600" />
-                </div>
-                <div className="text-sm font-semibold text-green-900 truncate">{analytics.bestPupil.name}</div>
-                <div className="text-xs text-green-600">
-                  {analytics.bestPupil.totalMarks} marks | Agg: {analytics.bestPupil.totalAggregates} | Div {calculateDivision(analytics.bestPupil.totalAggregates)}
-                </div>
+        }
+        right={
+          analytics ? (
+            <>
+              <div 
+                className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-800 transition-all duration-200"
+                onClick={() => {
+                  const p = processedResults.find(r => r.pupilInfo.admissionNumber === analytics.bestPupil.admissionNumber);
+                  if (p) setSelectedPupilIdForPopup(p.pupilInfo.pupilId);
+                }}
+              >
+                <span className="text-green-700/85 dark:text-indigo-300 font-medium">Best Pupil:</span>
+                <span className="font-bold text-green-600 dark:text-green-400 truncate max-w-[120px]" title={analytics.bestPupil.name}>
+                  {analytics.bestPupil.name} ({analytics.bestPupil.totalMarks}m / Agg {analytics.bestPupil.totalAggregates})
+                </span>
               </div>
-
-              <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-lg p-2 sm:p-3 border border-red-100">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-medium text-red-800">Needs Improvement</h3>
-                  <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
-                </div>
-                <div className="text-sm sm:text-base font-semibold text-red-900 truncate">{analytics.worstPupil.name}</div>
-                <div className="text-xs text-red-600">
-                  {analytics.worstPupil.totalMarks} marks | Agg: {analytics.worstPupil.totalAggregates} | Div {calculateDivision(analytics.worstPupil.totalAggregates)}
-                </div>
+              <div 
+                className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs cursor-pointer hover:bg-red-100/50 dark:hover:bg-red-900/30 hover:border-red-300 dark:hover:border-red-800 transition-all duration-200"
+                onClick={() => {
+                  const p = processedResults.find(r => r.pupilInfo.admissionNumber === analytics.worstPupil.admissionNumber);
+                  if (p) setSelectedPupilIdForPopup(p.pupilInfo.pupilId);
+                }}
+              >
+                <span className="text-red-700/85 dark:text-indigo-300 font-medium">Needs Imp:</span>
+                <span className="font-bold text-red-600 dark:text-red-400 truncate max-w-[120px]" title={analytics.worstPupil.name}>
+                  {analytics.worstPupil.name} ({analytics.worstPupil.totalMarks}m / Agg {analytics.worstPupil.totalAggregates})
+                </span>
               </div>
-
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-2 sm:p-3 border border-blue-100">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-medium text-blue-800">Best Subject</h3>
-                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                </div>
-                <div className="text-sm sm:text-base font-semibold text-blue-900 truncate">{analytics.bestSubject.name}</div>
-                <div className="text-xs text-blue-600">
-                  Avg: {analytics.bestSubject.averageMarks.toFixed(1)}%
-                </div>
+              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-blue-700/85 dark:text-indigo-300 font-medium">Best Subj:</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400 truncate max-w-[100px]" title={analytics.bestSubject.name}>
+                  {analytics.bestSubject.code} ({analytics.bestSubject.averageMarks.toFixed(1)}%)
+                </span>
               </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-2 sm:p-3 border border-purple-100">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-xs font-medium text-purple-800">Worst Subject</h3>
-                  <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
-                </div>
-                <div className="text-sm sm:text-base font-semibold text-purple-900 truncate">{analytics.worstSubject.name}</div>
-                <div className="text-xs text-purple-600">
-                  Avg: {analytics.worstSubject.averageMarks.toFixed(1)}%
-                </div>
+              <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-purple-700/85 dark:text-indigo-300 font-medium">Worst Subj:</span>
+                <span className="font-bold text-purple-600 dark:text-purple-400 truncate max-w-[100px]" title={analytics.worstSubject.name}>
+                  {analytics.worstSubject.code} ({analytics.worstSubject.averageMarks.toFixed(1)}%)
+                </span>
               </div>
-            </div>
-          )}
+            </>
+          ) : (
+            <div className="text-xs text-muted-foreground">Calculating analytics...</div>
+          )
+        }
+      />
+
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 pb-12">
 
           {/* Filters Section */}
           {showFilters && (
-            <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
+            <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm border border-gray-100 mb-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Min Marks</label>
@@ -4008,86 +4022,43 @@ export default function ViewResultsView() {
               )}
             </div>
           )}
-        </div>
 
         {/* Compact Results Table */}
         <div className="bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden">
           <div className="p-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-              <div className="relative flex-1 max-w-sm">
-                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                  <Search className="h-3 w-3 text-gray-400" />
-                </div>
-                <Input
-                  type="text"
-                  placeholder="Search pupils..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-7 h-8 text-xs"
-                />
-                <div className="text-xs text-gray-600 mt-1">
-                  Showing {filteredAndSortedResults.length} of {processedResults.length} pupils
+            {viewMode === 'cards' && (
+              <div className="flex justify-end mb-3">
+                <div className="flex items-center gap-1">
+                  <Select value={sortField} onValueChange={setSortField}>
+                    <SelectTrigger className="w-28 h-8 text-xs">
+                      <SelectValue placeholder="Sort..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="position">Position</SelectItem>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="marks">Marks</SelectItem>
+                      <SelectItem value="aggregates">Agg</SelectItem>
+                      {subjectSnaps?.map(subject => (
+                        <SelectItem key={`subject_${subject.code}`} value={`subject_${subject.code}`}>
+                          {subject.code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    {sortDirection === 'asc' ?
+                      <ChevronUp className="w-3 h-3" /> :
+                      <ChevronDown className="w-3 h-3" />
+                    }
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                {/* Compact View Mode Toggle - only show on desktop */}
-                {!isMobile && (
-                  <div className="flex items-center border rounded-md overflow-hidden">
-                    <Button
-                      variant={viewMode === 'table' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('table')}
-                      className="h-8 px-2 rounded-none"
-                    >
-                      <List className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('cards')}
-                      className="h-8 px-2 rounded-none"
-                    >
-                      <Grid3X3 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-
-                {/* Compact Mobile Sorting - only show in card view */}
-                {viewMode === 'cards' && (
-                  <div className="flex items-center gap-1">
-                    <Select value={sortField} onValueChange={setSortField}>
-                      <SelectTrigger className="w-28 h-8 text-xs">
-                        <SelectValue placeholder="Sort..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="position">Position</SelectItem>
-                        <SelectItem value="name">Name</SelectItem>
-                        <SelectItem value="marks">Marks</SelectItem>
-                        <SelectItem value="aggregates">Agg</SelectItem>
-                        {subjectSnaps?.map(subject => (
-                          <SelectItem key={`subject_${subject.code}`} value={`subject_${subject.code}`}>
-                            {subject.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                    >
-                      {sortDirection === 'asc' ?
-                        <ChevronUp className="w-3 h-3" /> :
-                        <ChevronDown className="w-3 h-3" />
-                      }
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-
+            )}
             {/* Compact Results Display - Table or Cards */}
             {displayedResults.length === 0 ? (
               <div className="p-6 text-center">
@@ -5260,6 +5231,90 @@ export default function ViewResultsView() {
         subjectSnaps={subjectSnaps || []}
         examDetails={examDetails}
       />
+
+      {/* Individual Pupil Performance Popup */}
+      <Dialog open={!!selectedPupilIdForPopup} onOpenChange={(open) => !open && setSelectedPupilIdForPopup(null)}>
+        <DialogContent className="max-w-md rounded-2xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 p-6 backdrop-blur-sm shadow-2xl">
+          {selectedPupilData && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    {selectedPupilData.pupilInfo.name.charAt(0)}
+                  </div>
+                  <div className="text-left">
+                    <DialogTitle className="text-base font-bold text-indigo-950 dark:text-white">
+                      {selectedPupilData.pupilInfo.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                      Admission: {selectedPupilData.pupilInfo.admissionNumber} | Class: {classSnap?.code || classSnap?.name || 'N/A'}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="mt-4 space-y-4">
+                {/* Summary Badges */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 border rounded-xl bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 border-indigo-100 text-center">
+                    <div className="text-xs text-indigo-700/80 font-medium">Total Marks</div>
+                    <div className="text-lg font-black text-indigo-900 dark:text-indigo-200">{selectedPupilData.totalMarks}</div>
+                  </div>
+                  <div className="p-2 border rounded-xl bg-gradient-to-br from-emerald-50/50 to-emerald-100/30 border-emerald-100 text-center">
+                    <div className="text-xs text-emerald-700/80 font-medium">Aggregates / Div</div>
+                    <div className="text-lg font-black text-indigo-900 dark:text-indigo-200">
+                      {selectedPupilData.totalAggregates} (Div {selectedPupilData.division})
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subject-wise Marks Table */}
+                <div className="border border-border/50 rounded-xl overflow-hidden shadow-sm">
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 border-b">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-muted-foreground uppercase">Subject</th>
+                          <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Marks</th>
+                          <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Grade</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {subjectSnaps.map((subject) => {
+                          const res = selectedPupilData.results[subject.code];
+                          return (
+                            <tr key={subject.code} className="hover:bg-muted/10">
+                              <td className="px-3 py-2 text-left font-medium text-foreground">{subject.name}</td>
+                              <td className="px-3 py-2 text-center font-bold text-indigo-950 dark:text-white">{res ? `${res.marks}%` : '-'}</td>
+                              <td className="px-3 py-2 text-center">
+                                {res ? (
+                                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${getGradeColor(res.grade)}`}>
+                                    {res.grade}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Rank and Class Position */}
+                <div className="flex items-center justify-between px-3 py-2 border rounded-xl bg-muted/20">
+                  <span className="text-xs font-semibold text-muted-foreground">Class Position</span>
+                  <span className="text-sm font-black text-indigo-900 dark:text-indigo-300">
+                    #{selectedPupilData.position} of {processedResults.length}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* PDF Viewer */}
       <PDFViewer

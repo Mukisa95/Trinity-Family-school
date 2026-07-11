@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,9 +107,17 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6 pb-6">
-      {/* Hero Profile Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      <GlassPageTopBar
+        title="My Profile"
+        subtitle="View and manage your account details and permissions"
+        backHref="/dashboard"
+        backLabel="Dashboard"
+      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="space-y-6">
+          {/* Hero Profile Section */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border border-blue-100/50 shadow-lg">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-0" />
         <div className="relative p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
@@ -278,6 +286,8 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+      </div>
       </div>
     </div>
   );

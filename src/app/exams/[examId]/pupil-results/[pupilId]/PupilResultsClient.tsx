@@ -37,6 +37,7 @@ import {
   FileText as FileTextIcon,
   FileSpreadsheet
 } from 'lucide-react';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1328,10 +1329,16 @@ export default function PupilResultsClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-lg text-gray-700">Loading pupil results...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <GlassPageTopBar
+          title="Individual Results"
+          backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="text-muted-foreground font-medium">Loading pupil results...</p>
+          </div>
         </div>
       </div>
     );
@@ -1339,18 +1346,24 @@ export default function PupilResultsClient() {
 
   if (examResultError || !pupilDetails || !pupilResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <X className="h-12 w-12 text-red-500 mx-auto" />
-          <h2 className="mt-4 text-xl font-semibold text-gray-900">Error loading results</h2>
-          <p className="mt-2 text-gray-500">Unable to load pupil results. Please try again.</p>
-          <Button
-            onClick={() => router.back()}
-            className="mt-6"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Back
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <GlassPageTopBar
+          title="Individual Results"
+          backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
+            <h2 className="text-xl font-semibold text-gray-900">Error loading results</h2>
+            <p className="text-muted-foreground">Unable to load pupil results. Please try again.</p>
+            <Button
+              onClick={() => router.back()}
+              className="mt-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Back
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -1359,54 +1372,35 @@ export default function PupilResultsClient() {
   const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-3 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Modern Header with Gradient */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden backdrop-blur-sm backdrop-filter mb-6">
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => router.back()}
-                  size="sm"
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-10 w-10 p-0 rounded-full"
-                  variant="outline"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-white">
-                    Individual Results
-                  </h1>
-                  <p className="mt-1 text-xs sm:text-sm text-blue-100">
-                    {examDetails?.name || 'Loading...'} | {academicInfo.academicYearName} - {academicInfo.termName}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  size="sm"
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 text-xs"
-                  variant="outline"
-                  onClick={() => setShowPrintModal(true)}
-                >
-                  <PrinterIcon className="w-3 h-3 mr-1" />
-                  Print Report
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 h-8 text-xs"
-                  variant="outline"
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  Export
-                </Button>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="Individual Results"
+        subtitle={examDetails?.name ? `${examDetails.name} | ${academicInfo.academicYearName} - ${academicInfo.termName}` : 'Individual Results Details'}
+        backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
+        backLabel="Back to exam results"
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Print"
+              tone="blue"
+              icon={<Printer className="h-4 w-4" />}
+              onClick={() => setShowPrintModal(true)}
+              aria-label="Print Report"
+            />
+            <GlassActionButton
+              label="Export"
+              tone="slate"
+              icon={<Download className="h-4 w-4" />}
+              aria-label="Export Report"
+            />
+          </GlassActionDock>
+        }
+      />
 
-          {/* Pupil Information Card */}
-          <div className="p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto px-4 pb-12">
+        {/* Pupil Information Card */}
+        <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm mb-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 sm:p-6 border border-gray-100">
               <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
                 {/* Pupil Avatar */}
@@ -1443,8 +1437,8 @@ export default function PupilResultsClient() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Performance Analytics Tiles - Enhanced */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">

@@ -15,6 +15,8 @@ import { ArrowLeft, Plus, Minus, Banknote, Loader2, TrendingUp, TrendingDown, Ca
 import { format, parseISO } from 'date-fns';
 import { formatCurrency } from '@/utils/format';
 import { DatePicker } from '@/components/common/date-picker';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
+import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 
 import {
   useAccountByPupilId,
@@ -94,7 +96,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
   if (showPupilLoadingSpinner) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
@@ -111,7 +113,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
   if (!pupil) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <div className="min-h-screen p-4">
         <div className="max-w-2xl mx-auto">
           <div className="text-center py-16 space-y-6">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
@@ -137,7 +139,7 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
   if (showAccountSpinner) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
@@ -154,16 +156,36 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
 
   if (!account) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <SmartBackButton fallbackHref="/banking/list" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-xl transition-all duration-200">
-  <ArrowLeft className="w-5 h-5" />
-  Back to Banking
-</SmartBackButton>
-          </div>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title={
+            <div className="flex items-center gap-3 py-0.5">
+              {pupil.photo ? (
+                <img
+                  src={pupil.photo}
+                  alt={`${pupil.firstName} ${pupil.lastName}`}
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
+                  {pupil.firstName[0]}
+                </div>
+              )}
+              <div className="min-w-0 flex flex-col">
+                <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900">
+                  {`${pupil.firstName} ${pupil.lastName}`}
+                </span>
+                <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
+                  ID: {pupil.admissionNumber}{pupil.className ? ` • ${pupil.className}` : ''}
+                </span>
+              </div>
+            </div>
+          }
+          backHref="/banking/list"
+          backLabel="Accounts"
+        />
 
+        <div className="max-w-2xl mx-auto px-4 py-8">
           {/* No Account Card */}
           <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
             <CardContent className="p-8 text-center">
@@ -221,158 +243,99 @@ function PupilBankingDetailContent({ pupilId }: PupilBankingClientProps) {
     );
   }
 
+
   const activeLoans = loans.filter(loan => loan.status === 'ACTIVE');
   const totalOutstanding = activeLoans.reduce((total, loan) => total + (loan.amount - loan.amountRepaid), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <SmartBackButton fallbackHref="/banking/list" className="flex items-center gap-2 text-gray-700 hover:text-gray-900 hover:bg-white/60 rounded-xl transition-all duration-200">
-  <ArrowLeft className="w-5 h-5" />
-  <span className="hidden sm:inline">Back to Banking</span>
-            <span className="sm:hidden">Back</span>
-</SmartBackButton>
-
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Clock className="w-4 h-4" />
-            <span className="hidden sm:inline">Last updated: {account.updatedAt ? format(parseISO(account.updatedAt), 'MMM d, HH:mm') : 'Now'}</span>
-            <span className="sm:hidden">Updated: {account.updatedAt ? format(parseISO(account.updatedAt), 'MMM d') : 'Now'}</span>
-          </div>
-        </div>
-
-        {/* Pupil Header Card */}
-        <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-              {/* Avatar & Info */}
-              <div className="flex items-center gap-4 flex-1">
-                {pupil.photo ? (
-                  <img
-                    src={pupil.photo}
-                    alt={`${pupil.firstName} ${pupil.lastName}`}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white/30 shadow-lg"
-                  />
-                ) : (
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/20 flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg">
-                    {pupil.firstName[0]}
-                  </div>
-                )}
-
-                <div className="space-y-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <h2 className="text-xl sm:text-2xl font-bold text-white">
-                      {`${pupil.firstName} ${pupil.lastName}`}
-                    </h2>
-                    {pupil.className && (
-                      <Badge className="bg-white/20 text-white border-white/30 text-xs w-fit">
-                        {pupil.className}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-white/90">
-                    <span>ID: {pupil.admissionNumber}</span>
-                    <span className="hidden sm:inline">•</span>
-                    <span>Account: {account.accountNumber}</span>
-                  </div>
-                </div>
+    <div className="min-h-screen">
+      <GlassPageTopBar
+        title={
+          <div className="flex items-center gap-3 py-0.5">
+            {pupil.photo ? (
+              <img
+                src={pupil.photo}
+                alt={`${pupil.firstName} ${pupil.lastName}`}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-indigo-200 shadow-md shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-base sm:text-lg font-bold text-white shadow-md shrink-0">
+                {pupil.firstName[0]}
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Button
-                  onClick={() => setOpenDeposit(true)}
-                  className="bg-green-500 hover:bg-green-600 text-white border-0 rounded-full px-4 py-2 transition-all duration-200 hover:scale-105 shadow-lg"
-                  size="sm"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Deposit
-                </Button>
-                <Button
-                  onClick={() => setOpenWithdraw(true)}
-                  className="bg-red-500 hover:bg-red-600 text-white border-0 rounded-full px-4 py-2 transition-all duration-200 hover:scale-105 shadow-lg"
-                  size="sm"
-                >
-                  <Minus className="w-4 h-4 mr-2" />
-                  Withdraw
-                </Button>
-                <Button
-                  onClick={() => setOpenLoan(true)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white border-0 rounded-full px-4 py-2 transition-all duration-200 hover:scale-105 shadow-lg"
-                  size="sm"
-                >
-                  <Banknote className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">New Loan</span>
-                  <span className="sm:hidden">Loan</span>
-                </Button>
-              </div>
+            )}
+            <div className="min-w-0 flex flex-col">
+              <span className="truncate text-base sm:text-lg font-bold leading-tight text-indigo-900">
+                {`${pupil.firstName} ${pupil.lastName}`}
+              </span>
+              <span className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
+                ID: {pupil.admissionNumber}{pupil.className ? ` • ${pupil.className}` : ''} • Account: {account.accountNumber}
+              </span>
             </div>
           </div>
-        </Card>
+        }
+        backHref="/banking/list"
+        backLabel="Accounts"
+        className="mb-1.5"
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Deposit"
+              icon={<Plus className="h-4 w-4" />}
+              tone="emerald"
+              onClick={() => setOpenDeposit(true)}
+            />
+            <GlassActionButton
+              label="Withdraw"
+              icon={<Minus className="h-4 w-4" />}
+              tone="rose"
+              onClick={() => setOpenWithdraw(true)}
+            />
+            <GlassActionButton
+              label="Loan"
+              icon={<Banknote className="h-4 w-4" />}
+              tone="orange"
+              onClick={() => setOpenLoan(true)}
+            />
+          </GlassActionDock>
+        }
+      />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Balance Card */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">Balance</p>
-                  <p className="text-lg font-bold text-gray-900">{formatCurrency(account.balance)}</p>
-                </div>
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Wallet className="w-4 h-4 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Active Loans Card */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">Loans</p>
-                  <p className="text-lg font-bold text-amber-600">{activeLoans.length}</p>
-                </div>
-                <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-amber-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Outstanding Amount Card */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">Outstanding</p>
-                  <p className="text-lg font-bold text-red-600">{formatCurrency(totalOutstanding)}</p>
-                </div>
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <TrendingDown className="w-4 h-4 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Total Transactions Card */}
-          <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl transition-all duration-200">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">Transactions</p>
-                  <p className="text-lg font-bold text-green-600">{transactions.length}</p>
-                </div>
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <History className="w-4 h-4 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-indigo-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Pupil Account Summary
+            </span>
+          </div>
+        }
+        right={
+          <>
+            <div className={`flex items-center gap-1 border px-2 py-0.5 rounded-md text-[10px] sm:text-xs ${
+              account.balance >= 0
+                ? 'bg-green-50/80 border-green-100/50 text-green-700 dark:bg-green-950/20 dark:border-green-900/30 dark:text-green-400'
+                : 'bg-red-50/80 border-red-100/50 text-red-700 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400'
+            }`}>
+              <span className="font-medium">Balance:</span>
+              <span className="font-bold font-tabular-nums">{formatCurrency(account.balance)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-amber-700/85 dark:text-amber-350 font-medium">Loans:</span>
+              <span className="font-bold text-amber-700 dark:text-amber-400">{activeLoans.length}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-red-700/85 dark:text-red-350 font-medium">Outstanding:</span>
+              <span className="font-bold text-red-650 dark:text-red-400 font-tabular-nums">{formatCurrency(totalOutstanding)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Transactions:</span>
+              <span className="font-bold text-blue-700 dark:text-blue-400">{transactions.length}</span>
+            </div>
+          </>
+        }
+      />
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 p-4 md:p-6 lg:p-8 space-y-6">
+        {/* Stats moved to GlassSummaryBar above */}        
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1058,7 +1021,7 @@ export default function PupilBankingDetailPage() {
   // like query parameters, to ensure proper remounting and state reset if needed.
   return (
     <Suspense key={pupilId} fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <div className="relative">
             <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto" />

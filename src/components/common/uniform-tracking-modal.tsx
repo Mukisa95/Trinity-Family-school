@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  ModernDialog,
-  ModernDialogContent,
-  ModernDialogHeader,
-  ModernDialogTitle,
-  ModernDialogFooter,
-} from '@/components/ui/modern-dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -549,13 +548,13 @@ export function UniformTrackingModal({
   };
 
   return (
-    <ModernDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <ModernDialogContent size="2xl" open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-        <ModernDialogHeader>
-          <ModernDialogTitle>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
             {selectedRecord ? 'Edit Uniform Tracking' : 'Add Uniform Tracking'}
-          </ModernDialogTitle>
-        </ModernDialogHeader>
+          </DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -566,31 +565,31 @@ export function UniformTrackingModal({
                 <RadioGroup
                   value={formData.selectionMode}
                   onValueChange={handleSelectionModeChange}
-                  className="flex flex-col space-y-2 mt-2"
+                  className="flex flex-row space-x-3.5 space-y-0 mt-2 flex-nowrap overflow-x-auto pb-1"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="full" id="mode-full" />
-                    <Label htmlFor="mode-full" className="font-normal">
-                      Full Set - All eligible uniforms
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <RadioGroupItem value="full" id="mode-full" className="w-3.5 h-3.5" />
+                    <Label htmlFor="mode-full" className="text-xs font-normal cursor-pointer whitespace-nowrap">
+                      Full Set
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="partial" id="mode-partial" />
-                    <Label htmlFor="mode-partial" className="font-normal">
-                      Multiple Items - Select specific items
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <RadioGroupItem value="partial" id="mode-partial" className="w-3.5 h-3.5" />
+                    <Label htmlFor="mode-partial" className="text-xs font-normal cursor-pointer whitespace-nowrap">
+                      multi
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="item" id="mode-item" />
-                    <Label htmlFor="mode-item" className="font-normal">
-                      Single Item - One uniform item
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    <RadioGroupItem value="item" id="mode-item" className="w-3.5 h-3.5" />
+                    <Label htmlFor="mode-item" className="text-xs font-normal cursor-pointer whitespace-nowrap">
+                      one item
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
 
               {/* Academic Year and Term Selection */}
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="academicYear">Academic Year *</Label>
                   <Select
@@ -607,22 +606,19 @@ export function UniformTrackingModal({
                       }
                     }}
                   >
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger className="mt-1 rounded-full h-8 text-xs px-3">
                       <SelectValue placeholder="Select academic year" />
                     </SelectTrigger>
                     <SelectContent>
                       {academicYears.map((year) => {
-                        const isCurrent = year.id === currentAcademicYearId;
                         const today = new Date();
                         const yearEnd = new Date(year.endDate);
                         const hasEnded = today > yearEnd;
 
                         let label = '';
-                        if (isCurrent) {
-                          label = '(Current)';
-                        } else if (year.isLocked) {
+                        if (year.isLocked) {
                           label = '(Locked)';
-                        } else if (!hasEnded) {
+                        } else if (!hasEnded && year.id !== currentAcademicYearId) {
                           label = '(Upcoming)';
                         }
 
@@ -643,14 +639,13 @@ export function UniformTrackingModal({
                     onValueChange={(value) => handleInputChange('termId', value)}
                     disabled={!formData.academicYearId || availableTerms.length === 0}
                   >
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger className="mt-1 rounded-full h-8 text-xs px-3">
                       <SelectValue placeholder={formData.academicYearId ? "Select term" : "Select academic year first"} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableTerms.map((term) => (
                         <SelectItem key={term.id} value={term.id}>
                           {term.name}
-                          {currentTerm?.id === term.id && selectedAcademicYear?.id === currentAcademicYear?.id && ' (Current)'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -723,17 +718,12 @@ export function UniformTrackingModal({
                 if (uniformsForSizeSelection.length === 0) return null;
 
                 return (
-                  <div className="mt-4">
-                    <Label className="text-base font-medium flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                        Size Selection
-                      </Badge>
+                  <div className="mt-2.5">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      Size Selection
                     </Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Select size for each uniform (stock info shown for reference)
-                    </p>
-                    <ScrollArea className="max-h-48 border rounded-md p-3 mt-2">
-                      <div className="space-y-3">
+                    <ScrollArea className="max-h-36 border rounded-md p-2 mt-1.5">
+                      <div className="space-y-1.5">
                         {uniformsForSizeSelection.map((uniform) => {
                           const inventory = getInventoryForUniform(uniform.id);
                           const selectedSize = formData.selectedSizes[uniform.id];
@@ -742,16 +732,16 @@ export function UniformTrackingModal({
                             : null;
 
                           return (
-                            <div key={uniform.id} className="flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800">
+                            <div key={uniform.id} className="flex items-center gap-2 p-1.5 px-2 rounded-md bg-slate-50 dark:bg-slate-800">
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium text-sm truncate">{uniform.name}</div>
-                                <div className="text-xs text-muted-foreground">{uniform.group}</div>
+                                <div className="font-medium text-xs truncate text-gray-800 dark:text-gray-200">{uniform.name}</div>
+                                <div className="text-[10px] text-muted-foreground">{uniform.group}</div>
                               </div>
                               <Select
                                 value={selectedSize || ''}
                                 onValueChange={(value) => handleSizeSelection(uniform.id, value)}
                               >
-                                <SelectTrigger className="w-32">
+                                <SelectTrigger className="w-24 h-7 text-xs px-2.5 rounded-full">
                                   <SelectValue placeholder="Size" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -777,11 +767,11 @@ export function UniformTrackingModal({
                               </Select>
                               {selectedSize && selectedSizeStock !== null && (
                                 selectedSizeStock > 0 ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 py-0 px-1.5 text-[10px] rounded-full">
                                     ✓ In Stock
                                   </Badge>
                                 ) : (
-                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 py-0 px-1.5 text-[10px] rounded-full">
                                     ⚠ Out
                                   </Badge>
                                 )
@@ -792,90 +782,73 @@ export function UniformTrackingModal({
                       </div>
                     </ScrollArea>
                     {uniformsForSizeSelection.some(u => !formData.selectedSizes[u.id]) && (
-                      <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                      <p className="text-[10px] text-amber-600 mt-1.5 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        Please select a size for all items before marking as collected
+                        Select sizes before marking as collected
                       </p>
                     )}
                   </div>
                 );
               })()}
 
-              {/* Payment Information */}
-              <div className="space-y-4">
+              {/* Payment & Collection Information */}
+              <div className="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                  <Label htmlFor="paidAmount">Payment Amount (UGX)</Label>
+                  <Label htmlFor="paidAmount">Pay</Label>
                   <Input
                     id="paidAmount"
                     value={formData.paidAmount}
                     onChange={handlePriceChange}
-                    placeholder="e.g., 25,000 (optional - leave empty for no initial payment)"
+                    placeholder="e.g., 25,000"
+                    className="mt-1 rounded-full h-8 text-xs px-3"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Leave empty to create tracking record without initial payment
-                  </p>
                 </div>
 
                 <div>
-                  <Label>Collection Status</Label>
+                  <Label>Collection</Label>
                   <Select
                     value={formData.collectionStatus}
                     onValueChange={(value: CollectionStatus) => handleInputChange('collectionStatus', value)}
                   >
-                    <SelectTrigger className="mt-2">
+                    <SelectTrigger className="mt-1 rounded-full h-8 text-xs px-3">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending Collection</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="collected">Collected</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <Separator />
+              <Separator />
 
                 {/* Dynamic Discount Auto-Apply Notification */}
                 {bestDynamicDiscount && !selectedRecord && !formData.hasDiscount && (
-                  <Alert className="border-green-200 bg-green-50">
-                    <AlertCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      <div className="space-y-3">
-                        <div>
-                          <div className="font-medium">Dynamic Discount Available!</div>
-                          <div className="text-sm mt-1">
-                            A {bestDynamicDiscount.valueType === 'percentage'
-                              ? `${bestDynamicDiscount.value}%`
-                              : `UGX ${bestDynamicDiscount.value.toLocaleString()}`} discount
-                            is available for: {bestDynamicDiscount.reason}
-                          </div>
-                          <div className="text-xs mt-1 text-green-600">
-                            Applies to: {bestDynamicDiscount.selectionMode} mode, {pupil?.className}, {pupil?.section}, {pupil?.gender}
-                          </div>
+                  <Alert className="border-green-200 bg-green-50 p-2.5 rounded-xl">
+                    <AlertDescription className="text-green-800 text-xs">
+                      <div className="flex justify-between items-center gap-3">
+                        <div className="space-y-0.5">
+                          <span className="font-bold block">Dynamic Discount Available!</span>
+                          <span className="text-[11px] leading-tight block text-green-700">
+                            <strong>{formatCurrency(bestDynamicDiscount.valueType === 'percentage'
+                              ? (getTotalAmount() * bestDynamicDiscount.value) / 100
+                              : bestDynamicDiscount.value)} off</strong> for {bestDynamicDiscount.reason} ({pupil?.className || 'N/A'}, {pupil?.section || 'N/A'})
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-right">
-                            <div className="text-xs text-green-600">Discount Amount</div>
-                            <div className="font-semibold text-green-700">
-                              -{formatCurrency(bestDynamicDiscount.valueType === 'percentage'
-                                ? (getTotalAmount() * bestDynamicDiscount.value) / 100
-                                : bestDynamicDiscount.value)}
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => {
-                              handleInputChange('hasDiscount', true);
-                              handleInputChange('discountType', 'dynamic');
-                              handleInputChange('discountValueType', bestDynamicDiscount.valueType);
-                              handleInputChange('discountValue', bestDynamicDiscount.value.toString());
-                              handleInputChange('discountReason', bestDynamicDiscount.reason);
-                            }}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            Accept Discount
-                          </Button>
-                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            handleInputChange('hasDiscount', true);
+                            handleInputChange('discountType', 'dynamic');
+                            handleInputChange('discountValueType', bestDynamicDiscount.valueType);
+                            handleInputChange('discountValue', bestDynamicDiscount.value.toString());
+                            handleInputChange('discountReason', bestDynamicDiscount.reason);
+                          }}
+                          className="bg-green-600 hover:bg-green-700 h-7 text-xs rounded-full shrink-0 px-3"
+                        >
+                          Accept
+                        </Button>
                       </div>
                     </AlertDescription>
                   </Alert>
@@ -1007,190 +980,192 @@ export function UniformTrackingModal({
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Summary */}
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Selected Items:</Label>
-                    {getSelectedUniformsDisplay().length > 0 ? (
-                      <div className="space-y-2">
-                        {getSelectedUniformsDisplay().map((uniform) => (
-                          <div key={uniform.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                            <div>
-                              <div className="font-medium text-sm">{uniform.name}</div>
-                              <div className="text-xs text-gray-500">{uniform.group}</div>
-                            </div>
-                            <div className="font-semibold">{formatCurrency(uniform.price)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500">No items selected</div>
-                    )}
-                  </div>
-
-                  <div className="border-t pt-3 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Original Amount:</span>
-                      <span className="text-lg font-semibold">{formatCurrency(getTotalAmount())}</span>
-                    </div>
-
-                    {/* Discount Display */}
-                    {(() => {
-                      const originalAmount = getTotalAmount();
-                      let discountAmount = 0;
-                      let finalAmount = originalAmount;
-                      let discountSource = '';
-
-                      if (formData.hasDiscount && formData.discountValue) {
-                        const discountConfig: DiscountConfig = {
-                          isEnabled: true,
-                          type: formData.discountType,
-                          valueType: formData.discountValueType,
-                          value: parseFloat(formData.discountValue) || 0,
-                          reason: formData.discountReason,
-                          appliedBy: 'Current User',
-                          appliedAt: new Date().toISOString()
-                        };
-
-                        const result = calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts);
-                        discountAmount = result.discountAmount;
-                        finalAmount = result.finalAmount;
-                        discountSource = result.discountSource;
-                      } else {
-                        const result = calculateFinalAmount(originalAmount, undefined, applicableDiscounts);
-                        discountAmount = result.discountAmount;
-                        finalAmount = result.finalAmount;
-                        discountSource = result.discountSource;
-                      }
-
-                      return (
-                        <>
-                          {discountAmount > 0 && (
-                            <>
-                              <div className="flex justify-between items-center text-green-600">
-                                <span className="text-sm">
-                                  Discount ({discountSource}):
-                                  {formData.hasDiscount && (
-                                    <span className="ml-1">
-                                      {formatDiscountDisplay(formData.discountValueType, parseFloat(formData.discountValue) || 0)}
-                                    </span>
-                                  )}
-                                </span>
-                                <span className="font-medium">-{formatCurrency(discountAmount)}</span>
-                              </div>
-
-                              {discountSource === 'dynamic' && (
-                                <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                                  Auto-applied dynamic discount
-                                </div>
-                              )}
-                            </>
-                          )}
-
-                          <div className="border-t pt-2">
-                            <div className="flex justify-between items-center font-bold text-lg">
-                              <span>Final Amount:</span>
-                              <span className={discountAmount > 0 ? 'text-green-600' : ''}>{formatCurrency(finalAmount)}</span>
-                            </div>
-                          </div>
-                        </>
-                      );
-                    })()}
-
-                    <div className="flex justify-between items-center text-sm border-t pt-2">
-                      <span>Paid Amount:</span>
-                      <span>{formatCurrency(formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0)}</span>
-                    </div>
-
-                    {(() => {
-                      const finalAmount = (() => {
-                        const originalAmount = getTotalAmount();
-                        if (formData.hasDiscount && formData.discountValue) {
-                          const discountConfig: DiscountConfig = {
-                            isEnabled: true,
-                            type: formData.discountType,
-                            valueType: formData.discountValueType,
-                            value: parseFloat(formData.discountValue) || 0,
-                            reason: formData.discountReason,
-                            appliedBy: 'Current User',
-                            appliedAt: new Date().toISOString()
-                          };
-                          return calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts).finalAmount;
-                        }
-                        return calculateFinalAmount(originalAmount, undefined, applicableDiscounts).finalAmount;
-                      })();
-
-                      const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
-                      const balance = finalAmount - paidAmount;
-
-                      return (
-                        <div className="flex justify-between items-center text-sm">
-                          <span>Balance:</span>
-                          <span className={balance > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
-                            {formatCurrency(balance)}
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  <div className="border-t pt-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <span>Payment Status:</span>
-                      {(() => {
-                        const finalAmount = (() => {
-                          const originalAmount = getTotalAmount();
-                          if (formData.hasDiscount && formData.discountValue) {
-                            const discountConfig: DiscountConfig = {
-                              isEnabled: true,
-                              type: formData.discountType,
-                              valueType: formData.discountValueType,
-                              value: parseFloat(formData.discountValue) || 0,
-                              reason: formData.discountReason,
-                              appliedBy: 'Current User',
-                              appliedAt: new Date().toISOString()
-                            };
-                            return calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts).finalAmount;
-                          }
-                          return calculateFinalAmount(originalAmount, undefined, applicableDiscounts).finalAmount;
-                        })();
-
-                        const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
-
-                        return (
-                          <Badge variant={
-                            paidAmount >= finalAmount ? 'default' :
-                              paidAmount > 0 ? 'secondary' : 'outline'
-                          }>
-                            {paidAmount >= finalAmount ? 'Paid' :
-                              paidAmount > 0 ? 'Partial' : 'Pending'}
-                          </Badge>
-                        );
-                      })()}
-                    </div>
+             {/* Summary */}
+             <div className="space-y-4">
+               <Card className="shadow-none border border-gray-200">
+                 <CardHeader className="pb-1.5 pt-3.5 px-4">
+                   <CardTitle className="text-sm font-semibold text-gray-900">Order Summary</CardTitle>
+                 </CardHeader>
+                 <CardContent className="space-y-2.5 px-4 pb-3.5 pt-1">
+                   <div className="space-y-1">
+                     <Label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Selected Items:</Label>
+                     {getSelectedUniformsDisplay().length > 0 ? (
+                       <ul className="divide-y divide-gray-100 text-xs">
+                         {getSelectedUniformsDisplay().map((uniform) => (
+                           <li key={uniform.id} className="py-1 flex justify-between items-center text-xs">
+                             <span className="text-gray-800 font-medium">
+                               {uniform.name} <span className="text-[10px] text-gray-400 font-normal">({uniform.group})</span>
+                             </span>
+                             <span className="font-semibold text-gray-900">{formatCurrency(uniform.price)}</span>
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <div className="text-xs text-gray-400">No items selected</div>
+                     )}
+                   </div>
+ 
+                   <div className="border-t pt-2 space-y-1.5 text-xs">
+                     <div className="flex justify-between items-center text-gray-600">
+                       <span>Original Amount:</span>
+                       <span className="font-semibold text-gray-900">{formatCurrency(getTotalAmount())}</span>
+                     </div>
+ 
+                     {/* Discount Display */}
+                     {(() => {
+                       const originalAmount = getTotalAmount();
+                       let discountAmount = 0;
+                       let finalAmount = originalAmount;
+                       let discountSource = '';
+ 
+                       if (formData.hasDiscount && formData.discountValue) {
+                         const discountConfig: DiscountConfig = {
+                           isEnabled: true,
+                           type: formData.discountType,
+                           valueType: formData.discountValueType,
+                           value: parseFloat(formData.discountValue) || 0,
+                           reason: formData.discountReason,
+                           appliedBy: 'Current User',
+                           appliedAt: new Date().toISOString()
+                         };
+ 
+                         const result = calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts);
+                         discountAmount = result.discountAmount;
+                         finalAmount = result.finalAmount;
+                         discountSource = result.discountSource;
+                       } else {
+                         const result = calculateFinalAmount(originalAmount, undefined, applicableDiscounts);
+                         discountAmount = result.discountAmount;
+                         finalAmount = result.finalAmount;
+                         discountSource = result.discountSource;
+                       }
+ 
+                       return (
+                         <>
+                           {discountAmount > 0 && (
+                             <>
+                               <div className="flex justify-between items-center text-green-600">
+                                 <span>
+                                   Discount ({discountSource}):
+                                   {formData.hasDiscount && (
+                                     <span className="ml-1 font-semibold">
+                                       {formatDiscountDisplay(formData.discountValueType, parseFloat(formData.discountValue) || 0)}
+                                     </span>
+                                   )}
+                                 </span>
+                                 <span className="font-bold">-{formatCurrency(discountAmount)}</span>
+                               </div>
+                              </>
+                           )}
+ 
+                           <div className="border-t pt-1.5">
+                             <div className="flex justify-between items-center font-bold text-xs">
+                               <span>Final Amount:</span>
+                               <span className={`text-sm font-bold ${discountAmount > 0 ? 'text-green-600' : 'text-gray-900'}`}>{formatCurrency(finalAmount)}</span>
+                             </div>
+                           </div>
+                         </>
+                       );
+                     })()}
+ 
+                     <div className="flex justify-between items-center text-xs border-t pt-1.5 text-gray-600">
+                       <span>Paid Amount:</span>
+                       <span className="font-semibold text-gray-900">{formatCurrency(formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0)}</span>
+                     </div>
+ 
+                     {(() => {
+                       const finalAmount = (() => {
+                         const originalAmount = getTotalAmount();
+                         if (formData.hasDiscount && formData.discountValue) {
+                           const discountConfig: DiscountConfig = {
+                             isEnabled: true,
+                             type: formData.discountType,
+                             valueType: formData.discountValueType,
+                             value: parseFloat(formData.discountValue) || 0,
+                             reason: formData.discountReason,
+                             appliedBy: 'Current User',
+                             appliedAt: new Date().toISOString()
+                           };
+                           return calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts).finalAmount;
+                         }
+                         return calculateFinalAmount(originalAmount, undefined, applicableDiscounts).finalAmount;
+                       })();
+ 
+                       const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
+                       const balance = finalAmount - paidAmount;
+ 
+                       return (
+                         <div className="flex justify-between items-center text-xs text-gray-600">
+                           <span>Balance:</span>
+                           <span className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                             {formatCurrency(balance)}
+                           </span>
+                         </div>
+                       );
+                     })()}
+                   </div>
+ 
+                   <div className="border-t pt-2">
+                     <div className="flex justify-between items-center text-xs text-gray-600">
+                       <span>Payment Status:</span>
+                       {(() => {
+                         const finalAmount = (() => {
+                           const originalAmount = getTotalAmount();
+                           if (formData.hasDiscount && formData.discountValue) {
+                             const discountConfig: DiscountConfig = {
+                               isEnabled: true,
+                               type: formData.discountType,
+                               valueType: formData.discountValueType,
+                               value: parseFloat(formData.discountValue) || 0,
+                               reason: formData.discountReason,
+                               appliedBy: 'Current User',
+                               appliedAt: new Date().toISOString()
+                             };
+                             return calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts).finalAmount;
+                           }
+                           return calculateFinalAmount(originalAmount, undefined, applicableDiscounts).finalAmount;
+                         })();
+ 
+                         const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
+ 
+                         return (
+                           <Badge variant={
+                             paidAmount >= finalAmount ? 'default' :
+                               paidAmount > 0 ? 'secondary' : 'outline'
+                           } className="py-0 px-2 text-[10px] rounded-full">
+                             {paidAmount >= finalAmount ? 'Paid' :
+                               paidAmount > 0 ? 'Partial' : 'Pending'}
+                           </Badge>
+                         );
+                       })()}
+                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            </div>
-          </div>
+               </Card>
 
-          <ModernDialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto" disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : (selectedRecord ? 'Update Tracking' : 'Add Tracking')}
-            </Button>
-          </ModernDialogFooter>
-        </form>
-      </ModernDialogContent>
-    </ModernDialog>
-  );
-} 
+               <div className="flex items-center justify-end gap-2 pt-2">
+                 <Button
+                   type="button"
+                   variant="outline"
+                   onClick={onClose}
+                   className="rounded-full px-5 text-xs h-8"
+                   disabled={isSubmitting}
+                 >
+                   Cancel
+                 </Button>
+                 <Button
+                   type="submit"
+                   className="rounded-full px-5 text-xs h-8 bg-green-600 hover:bg-green-700 text-white"
+                   disabled={isSubmitting}
+                 >
+                   {isSubmitting ? 'Saving...' : (selectedRecord ? 'Update Tracking' : 'Add Tracking')}
+                 </Button>
+               </div>
+             </div>
+           </div>
+         </form>
+       </DialogContent>
+     </Dialog>
+   );
+ }

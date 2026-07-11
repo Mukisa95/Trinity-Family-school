@@ -12,6 +12,7 @@ import { FeesHolidayService } from '@/lib/services/fees-holiday.service';
 // Utilities
 import {
     filterApplicableFees,
+    isPupilFeesActiveForTerm,
     processPupilFees,
     calculatePreviousTermBalances
 } from '../../../collect/[id]/utils/feeProcessing';
@@ -290,6 +291,19 @@ export function useFamilyFees({
                 let totalFees = 0;
                 let totalPaid = 0;
                 let lastPayment: FeePayment | null = null;
+                const selectedTerm = selectedAcademicYear.terms.find(t => t.id === selectedTermId);
+
+                if (selectedTerm && !isPupilFeesActiveForTerm(pupil, selectedTerm)) {
+                    result[pupil.id] = {
+                        type: 'total',
+                        totalFees: 0,
+                        totalPaid: 0,
+                        balance: 0,
+                        lastPayment: null,
+                        applicableFees: []
+                    };
+                    continue;
+                }
 
                 const allPayments = allPaymentsMap.get(pupil.id) || [];
                 const historicalPupil = historicalPupilsMap.get(pupil.id) || pupil;

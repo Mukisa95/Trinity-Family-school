@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, PencilSimple, Trash, Power, FunnelSimple, CaretUp, CaretDown, X, Printer, ChartLine, DotsThree, MagnifyingGlass, Users } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
+import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from '@/components/common/glass-page-top-bar';
 import { useToast } from '@/hooks/use-toast';
 import { useDeletePupil, useUpdatePupil, usePupils, usePupilPhotos, pupilsKeys } from '@/lib/hooks/use-pupils';
 import { useClassPupilsManager } from '@/lib/hooks/use-class-pupils';
@@ -32,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Shield, Loader2, Edit, Settings, ChevronDown, UserPlus, CreditCard, Eye, Trash2, User, Clock, Tag, Download } from "lucide-react";
+import { Shield, Loader2, Edit, Settings, ChevronDown, UserPlus, CreditCard, Eye, Trash2, User, Clock, Tag, Download, DollarSign, ArrowRight, Receipt, Users as LucideUsers } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -249,6 +250,7 @@ function PupilsContent() {
   // selectedClassId is now handled by pupilsManager
   const [showClassSelection, setShowClassSelection] = useState(false);
   const [selectedPupilGuardians, setSelectedPupilGuardians] = useState<{
+    pupil: Pupil;
     pupilName: string;
     guardians: Guardian[];
     emergencyContactId: string;
@@ -256,9 +258,17 @@ function PupilsContent() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isExportConfigModalOpen, setIsExportConfigModalOpen] = useState(false);
   const [selectedPupilSiblings, setSelectedPupilSiblings] = useState<{
+    pupil: Pupil;
     pupilName: string;
     siblings: Pupil[];
   } | null>(null);
+  const [selectedFamilyPupil, setSelectedFamilyPupil] = useState<Pupil | null>(null);
+  const [unlinkSiblingConfirm, setUnlinkSiblingConfirm] = useState<{
+    siblingToUnlink: Pupil;
+    remainingSiblings: Pupil[];
+    viewedPupilName: string;
+  } | null>(null);
+  const [isUnlinking, setIsUnlinking] = useState(false);
 
   // Add column selection state with default values
   const [columnSelection, setColumnSelection] = useState<ColumnSelection>({
@@ -1434,6 +1444,36 @@ function PupilsContent() {
     setIsLinkSiblingsModalOpen(true);
   };
 
+  // Unlink a sibling: give them a brand-new unique familyId
+  const handleUnlinkSibling = async () => {
+    if (!unlinkSiblingConfirm) return;
+    const { siblingToUnlink } = unlinkSiblingConfirm;
+    setIsUnlinking(true);
+    try {
+      const newFamilyId = `fam-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      await updatePupilMutation.mutateAsync({
+        id: siblingToUnlink.id,
+        data: { familyId: newFamilyId },
+      });
+      toast({
+        title: 'Sibling Unlinked',
+        description: `${siblingToUnlink.firstName} ${siblingToUnlink.lastName} has been unlinked and given a new family code.`,
+      });
+      // Close both dialogs
+      setUnlinkSiblingConfirm(null);
+      setSelectedPupilSiblings(null);
+    } catch (error) {
+      console.error('Failed to unlink sibling:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to unlink sibling. Please try again.',
+      });
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+
   // Add register sibling handler
   const handleRegisterSibling = (pupil: Pupil) => {
     const siblingParams = new URLSearchParams({
@@ -1451,7 +1491,7 @@ function PupilsContent() {
     // Optionally refresh pupils data or show success message
   };
 
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
 
   // Export to Excel function
   // Customizable Export to Excel function using config from the modal
@@ -2902,8 +2942,65 @@ function PupilsContent() {
     }
   };
 
+  const statusCount = useMemo(() => {
+    const currentStatus = filters.status || '';
+    if (currentStatus === '') {
+      return pupils.length;
+    }
+    return pupils.filter(p => p.status === currentStatus).length;
+  }, [pupils, filters.status]);
+
+  const statusLabel = useMemo(() => {
+    const currentStatus = filters.status;
+    if (!currentStatus) return 'PUPILS';
+    if (currentStatus === 'Active') return 'PUPILS';
+    return `${currentStatus.toUpperCase()} PUPILS`;
+  }, [filters.status]);
+
+  const dynamicHeading = useMemo(() => {
+    if (!selectedClassId || selectedClassId === '') {
+      return "Select a class";
+    }
+
+    if (selectedClassId === 'all') {
+      return `Pupils in all classes (${statusCount})`;
+    }
+
+    const selectedClass = classes.find(c => c.id === selectedClassId);
+    const classCode = selectedClass?.code || selectedClass?.name || 'N/A';
+    
+    const statusWord = filters.status && filters.status !== 'Active' ? `${filters.status.toLowerCase()} ` : '';
+    const pupilWord = statusCount === 1 ? 'pupil' : 'pupils';
+    
+    return `${classCode} ${statusWord}${pupilWord} (${statusCount})`;
+  }, [selectedClassId, statusCount, classes, filters.status]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.gender) count++;
+    if (filters.status && filters.status !== 'Active') count++;
+    if (filters.section) count++;
+    if (filters.houseId) count++;
+    if (filters.ageRange.min > 0 || filters.ageRange.max < 100) count++;
+    if (filters.hasCodeType) count++;
+    return count;
+  }, [filters]);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      classId: '',
+      gender: '',
+      status: 'Active',
+      section: '',
+      houseId: '',
+      ageRange: { min: 0, max: 100 },
+      hasCodeType: '',
+      hasCodeFilterType: 'with'
+    });
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-2 sm:p-6">
+    <div className="min-h-screen">
       {/* Background fetching indicator - Fixed at top */}
       {pupilsManager.isFetching && !isLoadingPupils && (
         <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
@@ -2913,37 +3010,211 @@ function PupilsContent() {
 
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
-      <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 -mx-2 sm:-mx-6 px-2 sm:px-6 py-2 sm:py-4 mb-4 sm:mb-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Mobile: Stack layout, Desktop: Single row */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            {/* First row on mobile: Title and buttons */}
-            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4 w-full sm:w-auto">
-              <h1 className="text-lg sm:text-xl font-bold text-indigo-900 whitespace-nowrap">Pupils</h1>
 
-              {/* Action buttons - visible on all screens */}
-              <div className="bg-white rounded-full px-1.5 py-1 shadow-sm border border-gray-200 backdrop-blur-sm flex items-center justify-center gap-1 flex-shrink-0">
+      <GlassPageTopBar
+        title={dynamicHeading}
+        backHref="/"
+        backLabel="Back to dashboard"
+        meta={null}
+        titleControls={
+          <div className="lg:hidden">
+            <ClassSelector
+              selectedClassId={selectedClassId}
+              onClassChange={handleClassChangeWithTransition}
+              placeholder="Class"
+              size="sm"
+              showIcon={false}
+              className="shrink-0"
+              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              includeAllOption={true}
+              allOptionLabel="All Classes"
+            />
+          </div>
+        }
+        center={
+          <>
+            <ClassSelector
+              selectedClassId={selectedClassId}
+              onClassChange={handleClassChangeWithTransition}
+              placeholder="Class"
+              size="sm"
+              showIcon={false}
+              className="shrink-0"
+              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              includeAllOption={true}
+              allOptionLabel="All Classes"
+            />
+
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </>
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search pupils..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
+        actions={
+          <GlassActionDock>
+            {pendingPupilsCount > 0 && selectedClassId && selectedClassId !== '' && selectedClassId !== 'all' && (
+              <GlassActionButton
+                label="Pending"
+                tone="orange"
+                icon={<Clock className="h-4 w-4" />}
+                href={`/classes/pending?classId=${selectedClassId}`}
+                badge={pendingPupilsCount > 9 ? '9+' : pendingPupilsCount}
+                aria-label={`Pending Pupils (${pendingPupilsCount})`}
+              />
+            )}
+
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<FunnelSimple size={16} weight="duotone" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+              onClick={() => setIsFilterPopupOpen(true)}
+              aria-label="Filter Pupils"
+            />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <GlassActionButton
+                  label="Export"
+                  tone="emerald"
+                  icon={<Download className="h-4 w-4" strokeWidth={2.5} />}
+                  aria-label="Export Options"
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="font-semibold text-xs text-muted-foreground">Export Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-indigo-50">
+                  <Printer size={14} className="mr-2 text-indigo-600" weight="duotone" />
+                  <span className="font-medium text-[11px] text-gray-700">Print List</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsExportConfigModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-green-50">
+                  <ChartLine size={14} className="mr-2 text-green-600" weight="duotone" />
+                  <span className="font-medium text-[11px] text-gray-700">Export to Excel</span>
+                </DropdownMenuItem>
+                {filteredAndSortedPupils.some((pupil) => !!getSchoolPayCode(pupil)) && (
+                  <DropdownMenuItem onClick={handleGenerateBatchPaymentSlipsPDF} className="cursor-pointer py-1.5 focus:bg-amber-50">
+                    <CreditCard size={14} className="mr-2 text-amber-600" />
+                    <span className="font-medium text-[11px] text-gray-700">Payment Slips</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <ActionGuard module="pupils" page="create" action="access_page">
+              <GlassActionButton
+                label="Add"
+                tone="blue"
+                icon={<Plus size={16} weight="bold" />}
+                onClick={() => router.push('/pupils/new')}
+                aria-label="Add New Pupil"
+              />
+            </ActionGuard>
+          </GlassActionDock>
+        }
+      />
+
+      <div className="hidden">
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+        <div className="max-w-7xl mx-auto py-1">
+          <div className="flex flex-row items-center justify-between gap-1.5 sm:gap-3 w-full flex-nowrap">
+            
+            {/* Left section: Title + count badge + class selector */}
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+              <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-blue-50/80 border border-blue-200/60 text-blue-600 shadow-sm flex-shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <h1 className="text-xs sm:text-lg font-bold text-indigo-900 leading-tight">
+                    Pupils
+                  </h1>
+                  <span className="bg-indigo-50 text-indigo-700 text-[8px] sm:text-[10px] font-bold px-1 sm:px-2 py-0.5 rounded-full border border-indigo-100/80 whitespace-nowrap">
+                    {statusCount} {statusLabel}
+                  </span>
+                  
+                  <span className="text-gray-300 hidden xs:inline">•</span>
+                  
+                  <div className="flex items-center gap-0.5">
+                    <ClassSelector
+                      selectedClassId={selectedClassId}
+                      onClassChange={handleClassChangeWithTransition}
+                      placeholder="Class"
+                      size="sm"
+                      className="bg-transparent border-0 ring-0 focus:ring-0 text-blue-700 font-semibold text-[10px] sm:text-xs min-w-[70px] sm:min-w-[100px]"
+                      includeAllOption={true}
+                      allOptionLabel="All Classes"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle section: Dynamic flex-growing Search bar */}
+            <div className="relative group flex-1 min-w-[50px] max-w-[200px] sm:max-w-xs mx-1 sm:mx-2">
+              <div className="absolute inset-y-0 left-0 pl-1.5 sm:pl-2.5 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-all duration-500 z-10">
+                <MagnifyingGlass size={11} className="w-3 h-3 sm:w-3.5 sm:h-3.5" weight="duotone" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-5 sm:pl-8 pr-1.5 py-1 text-[10px] sm:text-xs bg-white/70 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 border border-gray-200/60"
+              />
+            </div>
+
+            {/* Right section: Action buttons floating pill */}
+            <div className="bg-white/85 rounded-full px-1.5 sm:px-2 py-1 shadow-sm border border-gray-200/60 backdrop-blur-sm flex items-center justify-center gap-1 sm:gap-1.5 flex-shrink-0">
                 {pendingPupilsCount > 0 && selectedClassId && selectedClassId !== '' && selectedClassId !== 'all' && (
                   <Link
                     href={`/classes/pending?classId=${selectedClassId}`}
-                    className="relative flex flex-col items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-amber-600 border border-amber-300 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="relative flex items-center justify-center w-7 h-7 rounded-full bg-white text-amber-600 border border-amber-300 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white transition-all duration-300 hover:scale-105 active:scale-95"
                     title={`Pending Pupils (${pendingPupilsCount})`}
                   >
-                    <Clock size={14} className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" weight="duotone" />
-                    <span className="text-[7px] sm:text-[8px] font-semibold leading-none">Pending</span>
-                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 sm:h-4 sm:w-4 flex items-center justify-center bg-red-500 text-white text-[8px] sm:text-[9px] font-bold rounded-full border border-white">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 flex items-center justify-center bg-red-500 text-white text-[8px] font-bold rounded-full border border-white">
                       {pendingPupilsCount > 9 ? '9+' : pendingPupilsCount}
                     </span>
                   </Link>
                 )}
+
+                {/* Filter button */}
+                <button
+                  onClick={() => setIsFilterPopupOpen(true)}
+                  className="relative flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap border bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 flex-shrink-0 active:scale-95"
+                  title="Filter Pupils"
+                >
+                  <FunnelSimple size={13} className="sm:mr-1" weight="duotone" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="absolute sm:relative -top-1 -right-1 sm:top-auto sm:right-auto sm:ml-1.5 px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-blue-600 text-white leading-none">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </button>
+
+                <div className="h-4 w-px bg-gray-200 mx-0.5 flex-shrink-0"></div>
+
+                {/* Export dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="flex flex-col items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-emerald-600 border border-emerald-300 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-teal-500 hover:to-emerald-600 hover:text-white hover:shadow transition-all duration-300 hover:scale-105 active:scale-95"
+                      className="flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap border bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 flex-shrink-0 active:scale-95"
                       title="Export Options"
                     >
-                      <Download size={14} className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" strokeWidth={2.5} />
-                      <span className="text-[7px] sm:text-[8px] font-semibold leading-none">Export</span>
+                      <Download size={13} className="sm:mr-1" strokeWidth={2.5} />
+                      <span className="hidden sm:inline">Export</span>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -2965,231 +3236,26 @@ function PupilsContent() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                <div className="h-4 w-px bg-gray-200 mx-0.5 flex-shrink-0"></div>
+
+                {/* Add button */}
                 <ActionGuard module="pupils" page="create" action="access_page">
                   <button
                     onClick={() => router.push('/pupils/new')}
-                    className="flex flex-col items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-indigo-600 border border-indigo-300 shadow-sm hover:bg-gradient-to-br hover:from-indigo-400 hover:via-purple-500 hover:to-indigo-600 hover:text-white hover:shadow transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="flex items-center justify-center h-7 w-7 sm:w-auto px-0 sm:px-3 rounded-full font-semibold text-xs transition-all whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 shadow-sm active:scale-95"
                     title="Add New Pupil"
                   >
-                    <UserPlus size={14} className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" strokeWidth={2.5} />
-                    <span className="text-[7px] sm:text-[8px] font-semibold leading-none">Add</span>
+                    <Plus size={13} className="sm:mr-1" strokeWidth={2.5} />
+                    <span className="hidden sm:inline">Add</span>
                   </button>
                 </ActionGuard>
               </div>
-            </div>
 
-            {/* Second row on mobile: Search bar and class selector */}
-            <div className="flex flex-row items-center gap-2 sm:gap-4 w-full sm:flex-1">
-              {/* Search bar - half width on mobile */}
-              <div className="relative group flex-1 min-w-0">
-                <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none text-blue-500/80 group-hover:text-blue-600 transition-all duration-500 z-10">
-                  <MagnifyingGlass size={14} className="sm:w-4 sm:h-4" weight="duotone" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search pupils..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full pl-8 sm:pl-10 pr-3 sm:pr-6 py-2 sm:py-2 text-sm bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-500 ease-in-out placeholder:text-gray-400 placeholder:text-xs sm:placeholder:text-sm"
-                  style={{
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(226, 232, 240, 0.5)",
-                    border: "none"
-                  }}
-                />
-              </div>
-
-              {/* Class Selector for Fast Filtering */}
-              <div className="flex-shrink-0 w-auto">
-                <ClassSelector
-                  selectedClassId={selectedClassId}
-                  onClassChange={handleClassChangeWithTransition}
-                  placeholder="Select class"
-                  size="sm"
-                  className="w-auto min-w-[120px] sm:min-w-[160px]"
-                  includeAllOption={true}
-                  allOptionLabel="All Classes"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
-
-      <div className="mx-auto px-1 sm:px-0">
-        {/* Compact Filter Panel */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden">
-          <div className="px-2 sm:px-4 py-2 sm:py-3">
-            {/* Single Row: Stats and Controls */}
-            <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
-              {/* Statistics Pills */}
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-green-50 rounded-full border border-green-100">
-                  <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-green-500"></div>
-                  <span className="text-xs text-green-700 font-medium">{pupils.filter(p => p.status === 'Active').length}</span>
-                  <span className="text-xs text-green-600">Active</span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-red-50 rounded-full border border-red-100">
-                  <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-red-500"></div>
-                  <span className="text-xs text-red-700 font-medium">{pupils.filter(p => p.status === 'Inactive').length}</span>
-                  <span className="text-xs text-red-600">Inactive</span>
-                </div>
-                {Object.entries(filters).some(([key, value]) => {
-                  if (key === 'ageRange') return (value as any).min > 0 || (value as any).max < 100;
-                  if (key === 'hasCodeFilterType') return false;
-                  return !!value;
-                }) && (
-                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-blue-50 rounded-full border border-blue-100">
-                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-blue-500"></div>
-                      <span className="text-xs text-blue-600 font-medium">Filtered</span>
-                    </div>
-                  )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                {Object.entries(filters).some(([key, value]) => {
-                  if (key === 'ageRange') return (value as any).min > 0 || (value as any).max < 100;
-                  if (key === 'hasCodeFilterType') return false;
-                  return !!value;
-                }) && (
-                    <button
-                      onClick={() => setFilters({
-                        classId: '',
-                        gender: '',
-                        status: 'Active',
-                        section: '',
-                        houseId: '',
-                        ageRange: { min: 0, max: 100 },
-                        hasCodeType: '',
-                        hasCodeFilterType: 'with'
-                      })}
-                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 transition-all duration-200 hover:scale-105"
-                    >
-                      <X size={10} className="sm:w-3 sm:h-3" />
-                      <span className="hidden sm:inline">Clear</span>
-                    </button>
-                  )}
-                <button
-                  onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-100 transition-all duration-200 hover:scale-105"
-                >
-                  <FunnelSimple size={10} className="sm:w-3 sm:h-3" weight="duotone" />
-                  {isFiltersExpanded ? 'Hide' : 'Filter'}
-                </button>
-              </div>
-            </div>
-
-            {/* Expandable Filter Controls */}
-            {isFiltersExpanded && (
-              <div className="border-t border-blue-50 pt-2 sm:pt-3 animate-in slide-in-from-top-2 duration-300">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                  {/* Code Filter */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Codes</label>
-                    <div className="flex gap-1">
-                      <select
-                        value={filters.hasCodeType || ''}
-                        onChange={(e) => setFilters(prev => ({ ...prev, hasCodeType: e.target.value }))}
-                        className="w-[60%] rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
-                      >
-                        <option value="">Any Code</option>
-                        {availableIdTypes.map(type => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={filters.hasCodeFilterType || 'with'}
-                        onChange={(e) => setFilters(prev => ({ ...prev, hasCodeFilterType: e.target.value as 'with' | 'without' }))}
-                        disabled={!filters.hasCodeType}
-                        className="w-[40%] rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white disabled:opacity-50"
-                      >
-                        <option value="with">With</option>
-                        <option value="without">Without</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Section Filter */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Section</label>
-                    <select
-                      value={filters.section}
-                      onChange={(e) => setFilters(prev => ({ ...prev, section: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
-                    >
-                      <option value="">All Sections</option>
-                      <option value="Boarding">Boarding</option>
-                      <option value="Day">Day</option>
-                    </select>
-                  </div>
-
-                  {/* Gender Filter */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Gender</label>
-                    <select
-                      value={filters.gender}
-                      onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
-                    >
-                      <option value="">All Genders</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-
-                  {/* Status Filter */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-blue-700">Status</label>
-                    <select
-                      value={filters.status}
-                      onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1.5 sm:px-2.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white"
-                    >
-                      <option value="">All Status</option>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Graduated">Graduated</option>
-                      <option value="Transferred">Transferred</option>
-                      <option value="Suspended">Suspended</option>
-                      <option value="Withdrawn">Withdrawn</option>
-                    </select>
-                  </div>
-
-                  {/* Age Range Filter */}
-                  <div className="space-y-1 col-span-2 sm:col-span-1">
-                    <label className="block text-xs font-medium text-blue-700">Age Range</label>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max={filters.ageRange.max}
-                        value={filters.ageRange.min}
-                        onChange={(e) => setFilters(prev => ({
-                          ...prev,
-                          ageRange: { ...prev.ageRange, min: parseInt(e.target.value) || 0 }
-                        }))}
-                        className="w-10 sm:w-12 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center"
-                        placeholder="0"
-                      />
-                      <span className="text-xs text-blue-400 font-medium">-</span>
-                      <input
-                        type="number"
-                        min={filters.ageRange.min}
-                        value={filters.ageRange.max}
-                        onChange={(e) => setFilters(prev => ({
-                          ...prev,
-                          ageRange: { ...prev.ageRange, max: parseInt(e.target.value) || 0 }
-                        }))}
-                        className="w-10 sm:w-12 rounded-lg border-0 bg-blue-50/50 py-1 sm:py-1.5 px-1 sm:px-1.5 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white text-center"
-                        placeholder="100"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="mx-auto px-2 sm:px-6 pt-0 sm:pt-0 -mt-3 sm:-mt-5 pb-4 sm:pb-6">
 
         {/* Optimization messages hidden per user request */}
 
@@ -3218,33 +3284,56 @@ function PupilsContent() {
             <p className="text-indigo-500">No pupils found for the selected class</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-t-xl">
               <table className="min-w-full divide-y divide-indigo-100">
-                <thead className="bg-gradient-to-r from-indigo-50 to-white">
+                <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 backdrop-blur-sm">
                   <tr>
                     <th
-                      className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider cursor-pointer hover:text-indigo-700 transition-colors"
+                      className="px-2 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider sm:px-3"
                       onClick={() => handleSort('name')}
                     >
-                      <span className="hidden sm:inline">Pupil Info</span>
-                      <span className="sm:hidden">Pupil</span>
-                      {getSortIcon('name')}
+                      <button
+                        type="button"
+                        className="flex items-center space-x-2 rounded-lg px-2 py-1 transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-primary"
+                      >
+                        <span className="hidden sm:inline">PUPIL DETAILS</span>
+                        <span className="sm:hidden">PUPIL</span>
+                        <div className="hidden h-1 w-1 rounded-full bg-primary/40 sm:block" />
+                        {getSortIcon('name')}
+                      </button>
                     </th>
                     <th
-                      className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider cursor-pointer hover:text-indigo-700 transition-colors"
+                      className="hidden px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider sm:table-cell"
                       onClick={() => handleSort('class')}
                     >
-                      Class & Section {getSortIcon('class')}
+                      <button
+                        type="button"
+                        className="flex items-center space-x-1 rounded-lg px-2 py-1 transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-primary"
+                      >
+                        <span>MOPH</span>
+                        {getSortIcon('class')}
+                      </button>
                     </th>
-                    <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider">
-                      Codes
+                    <th className="hidden px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider lg:table-cell">
+                      <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
+                        <span>CODES</span>
+                      </span>
                     </th>
-                    <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-indigo-500 uppercase tracking-wider">
-                      Family
+                    <th className="hidden px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider md:table-cell">
+                      <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
+                        <span>FAMILY</span>
+                      </span>
                     </th>
-                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-indigo-500 uppercase tracking-wider">
-                      Actions
+                    <th className="hidden px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider sm:table-cell">
+                      <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
+                        <span>FEES</span>
+                      </span>
+                    </th>
+                    <th className="px-2 py-3 text-right text-xs font-semibold text-foreground uppercase tracking-wider sm:px-3">
+                      <span className="inline-flex items-center space-x-1 rounded-lg px-2 py-1 justify-end w-full">
+                        <Settings className="h-4 w-4 text-foreground/75" />
+                      </span>
                     </th>
                   </tr>
                 </thead>
@@ -3393,6 +3482,7 @@ function PupilsContent() {
                                         <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Family Information</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => setSelectedPupilGuardians({
+                                          pupil,
                                           pupilName: formatPupilDisplayName(pupil),
                                           guardians: pupil.guardians || [],
                                           emergencyContactId: pupil.emergencyContactGuardianId || ''
@@ -3405,6 +3495,7 @@ function PupilsContent() {
                                         <DropdownMenuItem onClick={() => {
                                           const siblings = getSiblings(pupil);
                                           setSelectedPupilSiblings({
+                                            pupil,
                                             pupilName: formatPupilDisplayName(pupil),
                                             siblings
                                           });
@@ -3418,7 +3509,7 @@ function PupilsContent() {
                                     </DropdownMenu>
                                     <span className="text-xs text-gray-400">•</span>
                                     {pupil.additionalIdentifiers && pupil.additionalIdentifiers.length > 0 ? (
-                                      <div className="flex flex-col gap-1 mt-1 w-full relative left-0.5">
+                                      <div className="flex flex-col gap-0.5 mt-1 w-full relative left-0.5">
                                         {pupil.additionalIdentifiers.map((id, index) => {
                                           let prefix = id.idType;
                                           const lowerType = prefix.toLowerCase();
@@ -3427,9 +3518,9 @@ function PupilsContent() {
                                           else if (lowerType.includes('schoolpay') || lowerType.includes('pay code')) prefix = 'SP';
                                           
                                           return (
-                                            <div key={index} className="text-[10px] font-mono whitespace-nowrap bg-indigo-50/50 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center">
-                                              <span className="font-bold text-indigo-800 w-6">{prefix}:</span>
-                                              <span className="text-indigo-950 font-semibold ml-1">{id.idValue}</span>
+                                            <div key={index} className="text-[10px] font-mono whitespace-nowrap text-gray-600">
+                                              <span className="font-semibold text-gray-800 w-6 inline-block">{prefix}:</span>
+                                              <span className="text-gray-700 ml-1">{id.idValue}</span>
                                             </div>
                                           );
                                         })}
@@ -3511,7 +3602,7 @@ function PupilsContent() {
                           <td className="hidden lg:table-cell px-4 py-3">
                             <div className="text-sm">
                               {pupil.additionalIdentifiers && pupil.additionalIdentifiers.length > 0 ? (
-                                <div className="flex flex-col gap-1.5">
+                                <div className="flex flex-col gap-0.5">
                                   {pupil.additionalIdentifiers.map((id, index) => {
                                     let prefix = id.idType;
                                     const lowerType = prefix.toLowerCase();
@@ -3520,15 +3611,15 @@ function PupilsContent() {
                                     else if (lowerType.includes('schoolpay') || lowerType.includes('pay code')) prefix = 'SP';
                                     
                                     return (
-                                      <div key={index} className="text-[11px] font-mono whitespace-nowrap bg-indigo-50/80 px-2 py-0.5 rounded border border-indigo-100/50 flex items-center shadow-sm">
-                                        <span className="font-bold text-indigo-800 tracking-wide w-8">{prefix}: </span>
-                                        <span className="text-indigo-950 font-medium ml-1">{id.idValue}</span>
+                                      <div key={index} className="text-xs font-mono whitespace-nowrap text-gray-600">
+                                        <span className="font-semibold text-gray-800 w-8 inline-block">{prefix}:</span>
+                                        <span className="text-gray-700 ml-1">{id.idValue}</span>
                                       </div>
                                     );
                                   })}
                                   <button
                                     onClick={() => handleManageIdCodes(pupil)}
-                                    className="text-[10px] text-indigo-500 hover:text-indigo-700 transition-colors self-start mt-0.5 font-medium flex items-center gap-1"
+                                    className="text-[10px] text-indigo-500 hover:text-indigo-700 hover:underline transition-colors self-start mt-1 font-medium flex items-center gap-1"
                                   >
                                     <Edit className="h-3 w-3" /> Edit
                                   </button>
@@ -3547,67 +3638,104 @@ function PupilsContent() {
                             </div>
                           </td>
                           <td className="hidden md:table-cell px-4 py-3">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button className={`text-left text-sm hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 transition-colors font-medium`}>
-                                  {(() => {
-                                    const guardianCount = pupil.guardians?.length || 0;
-                                    const siblings = getSiblings(pupil);
-                                    const siblingCount = siblings.length;
+                            {(() => {
+                              const guardianCount = pupil.guardians?.length || 0;
+                              const siblings = getSiblings(pupil);
+                              const siblingCount = siblings.length;
 
-                                    if (guardianCount === 0 && siblingCount === 0) {
-                                      return <span className="text-gray-500">No family info</span>;
-                                    }
+                              if (guardianCount === 0 && siblingCount === 0) {
+                                return <span className="text-gray-400 text-xs">—</span>;
+                              }
 
-                                    return (
-                                      <div className="flex flex-col">
-                                        <span className="font-medium text-indigo-900">Family</span>
-                                        <span className="text-xs text-gray-500">
-                                          {guardianCount} guardian{guardianCount !== 1 ? 's' : ''} • {siblingCount} sibling{siblingCount !== 1 ? 's' : ''}
-                                        </span>
-                                      </div>
-                                    );
-                                  })()}
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-48">
-                                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Family Information</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setSelectedPupilGuardians({
-                                  pupilName: formatPupilDisplayName(pupil),
-                                  guardians: pupil.guardians || [],
-                                  emergencyContactId: pupil.emergencyContactGuardianId || ''
-                                })}>
-                                  <svg className="mr-2 h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                  </svg>
-                                  View Guardians ({pupil.guardians?.length || 0})
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  const siblings = getSiblings(pupil);
-                                  setSelectedPupilSiblings({
-                                    pupilName: formatPupilDisplayName(pupil),
-                                    siblings
-                                  });
-                                }}>
-                                  <svg className="mr-2 h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                  </svg>
-                                  View Siblings ({getSiblings(pupil).length})
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              return (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {guardianCount > 0 && (
+                                    <button
+                                      onClick={() => setSelectedPupilGuardians({
+                                        pupil,
+                                        pupilName: formatPupilDisplayName(pupil),
+                                        guardians: pupil.guardians || [],
+                                        emergencyContactId: pupil.emergencyContactGuardianId || ''
+                                      })}
+                                      className="text-xs text-blue-700 hover:text-blue-900 hover:underline transition-colors"
+                                    >
+                                      {guardianCount} guardian{guardianCount !== 1 ? 's' : ''}
+                                    </button>
+                                  )}
+                                  {guardianCount > 0 && siblingCount > 0 && (
+                                    <span className="text-gray-300 text-xs">•</span>
+                                  )}
+                                  {siblingCount > 0 && (
+                                    <button
+                                      onClick={() => setSelectedPupilSiblings({
+                                        pupil,
+                                        pupilName: formatPupilDisplayName(pupil),
+                                        siblings
+                                      })}
+                                      className="text-xs text-green-700 hover:text-green-900 hover:underline transition-colors"
+                                    >
+                                      {siblingCount} sibling{siblingCount !== 1 ? 's' : ''}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td className="hidden sm:table-cell px-4 py-3">
+                            {(() => {
+                              const siblings = getSiblings(pupil);
+                              const hasSiblings = siblings.length > 0;
+                              
+                              if (hasSiblings) {
+                                return (
+                                  <button
+                                    onClick={() => setSelectedFamilyPupil(pupil)}
+                                    className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/50 hover:border-emerald-300 transition-all duration-200 active:scale-95 group/fees shadow-sm"
+                                    title="View Family / Sibling Fees Options"
+                                    aria-label="View Family / Sibling Fees Options"
+                                  >
+                                    <DollarSign className="h-4 w-4 transition-transform duration-200 group-hover/fees:scale-110 text-teal-600" />
+                                  </button>
+                                );
+                              }
+
+                              return (
+                                <Link
+                                  href={`/fees/collect/${pupil.id}`}
+                                  className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/50 hover:border-emerald-300 transition-all duration-200 active:scale-95 group/fees shadow-sm"
+                                  title="Collect Fees"
+                                  aria-label="Collect Fees"
+                                >
+                                  <DollarSign className="h-4 w-4 transition-transform duration-200 group-hover/fees:scale-110" />
+                                </Link>
+                              );
+                            })()}
                           </td>
                           <td className="px-2 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-indigo-500 uppercase tracking-wider">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button className={`text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 transition-colors font-medium`}>
-                                  Actions
+                                <button 
+                                  className={`p-1.5 rounded-lg text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:bg-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-50/50 transition-all duration-200 inline-flex items-center justify-center group`}
+                                  title="Actions"
+                                  aria-label="Actions"
+                                >
+                                  <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
                                 </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-52">
                                 <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Pupil Management</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => {
+                                  const siblings = getSiblings(pupil);
+                                  if (siblings.length > 0) {
+                                    setSelectedFamilyPupil(pupil);
+                                  } else {
+                                    window.location.href = `/fees/collect/${pupil.id}`;
+                                  }
+                                }}>
+                                  <DollarSign className="mr-2 h-4 w-4 text-emerald-600" />
+                                  Collect Fees
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEditName(pupil)}>
                                   <User className="mr-2 h-4 w-4 text-purple-600" />
                                   Edit Name
@@ -3778,79 +3906,116 @@ function PupilsContent() {
         onOpenChange={() => setSelectedPupilGuardians(null)}
       >
         <ModernDialogContent size="lg">
-          <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center">
-              <svg className="mr-2 h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Guardian Information - {selectedPupilGuardians?.pupilName}
-            </ModernDialogTitle>
-            <ModernDialogDescription>
-              View guardian details and emergency contact information for this pupil.
-            </ModernDialogDescription>
-          </ModernDialogHeader>
+          {/* Switch-to-siblings button — absolute, sits left of the ✕ close button */}
+          {(() => {
+            const sibCount = selectedPupilGuardians ? getSiblings(selectedPupilGuardians.pupil).length : 0;
+            return sibCount > 0 ? (
+              <button
+                onClick={() => {
+                  const p = selectedPupilGuardians!.pupil;
+                  const siblings = getSiblings(p);
+                  setSelectedPupilGuardians(null);
+                  setSelectedPupilSiblings({ pupil: p, pupilName: formatPupilDisplayName(p), siblings });
+                }}
+                className="absolute right-12 top-3 sm:right-14 sm:top-3.5 flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-semibold border bg-white border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 active:scale-95 transition-all z-50"
+                title="Switch to Siblings"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Siblings ({sibCount})
+              </button>
+            ) : null;
+          })()}
+          {/* Compact inline header — sits on same line as built-in close button */}
+          <div className="flex items-center gap-2 pr-32 mb-3">
+            <svg className="h-4 w-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <h2 className="text-sm font-semibold text-gray-900 truncate">
+              Guardians of <span className="text-blue-700">{selectedPupilGuardians?.pupilName}</span>
+            </h2>
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {selectedPupilGuardians?.guardians && selectedPupilGuardians.guardians.length > 0 ? (
               selectedPupilGuardians.guardians.map((guardian, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-lg">{guardian.firstName} {guardian.lastName}</h4>
-                    {guardian.id === selectedPupilGuardians?.emergencyContactId && (
-                      <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        Emergency Contact
-                      </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-600">Relationship:</span>
-                      <span className="ml-2">{guardian.relationship}</span>
+                <div key={index} className="border rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group">
+                  <div className="flex items-start gap-3">
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 mt-0.5">
+                      {guardian.firstName.charAt(0)}{guardian.lastName.charAt(0)}
                     </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Phone:</span>
-                      <span className="ml-2">
-                        {guardian.phone ? (
-                          <a
-                            href={`tel:${guardian.phone}`}
-                            className="text-primary hover:underline font-medium cursor-pointer"
-                          >
-                            {guardian.phone}
-                          </a>
-                        ) : (
-                          guardian.phone
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      {/* Name + emergency badge */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-gray-900">{guardian.firstName} {guardian.lastName}</span>
+                        {guardian.id === selectedPupilGuardians?.emergencyContactId && (
+                          <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                            Emergency
+                          </span>
                         )}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Email:</span>
-                      <span className="ml-2">{guardian.email || 'Not provided'}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Occupation:</span>
-                      <span className="ml-2">{guardian.occupation || 'Not provided'}</span>
-                    </div>
-                    {guardian.address && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-600">Address:</span>
-                        <span className="ml-2">{guardian.address}</span>
                       </div>
-                    )}
+
+                      {/* Compact info line — relationship · phones · email · occupation */}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        {guardian.relationship && (
+                          <span className="text-xs text-gray-500 capitalize">{guardian.relationship}</span>
+                        )}
+                        {guardian.phone && (
+                          <>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <a href={`tel:${guardian.phone}`} className="text-xs text-blue-600 hover:underline font-medium">
+                              {guardian.phone}
+                            </a>
+                          </>
+                        )}
+                        {guardian.secondaryPhone && (
+                          <>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <a href={`tel:${guardian.secondaryPhone}`} className="text-xs text-blue-600 hover:underline font-medium">
+                              {guardian.secondaryPhone}
+                            </a>
+                          </>
+                        )}
+                        {guardian.additionalPhones && guardian.additionalPhones.filter(Boolean).map((ph, i) => (
+                          <React.Fragment key={i}>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <a href={`tel:${ph}`} className="text-xs text-blue-600 hover:underline font-medium">{ph}</a>
+                          </React.Fragment>
+                        ))}
+                        {guardian.email && (
+                          <>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <a href={`mailto:${guardian.email}`} className="text-xs text-blue-600 hover:underline">
+                              {guardian.email}
+                            </a>
+                          </>
+                        )}
+                        {guardian.occupation && (
+                          <>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <span className="text-xs text-gray-600">{guardian.occupation}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Address on its own line only if provided */}
+                      {guardian.address && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{guardian.address}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 text-sm">
                 No guardian information available for this pupil.
               </div>
             )}
           </div>
-
-          <ModernDialogFooter>
-            <Button variant="outline" onClick={() => setSelectedPupilGuardians(null)}>
-              Close
-            </Button>
-          </ModernDialogFooter>
         </ModernDialogContent>
       </ModernDialog>
 
@@ -3860,83 +4025,223 @@ function PupilsContent() {
         onOpenChange={() => setSelectedPupilSiblings(null)}
       >
         <ModernDialogContent size="lg">
-          <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center">
-              <svg className="mr-2 h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              Siblings - {selectedPupilSiblings?.pupilName}
-            </ModernDialogTitle>
-            <ModernDialogDescription>
-              View sibling information for this pupil.
-            </ModernDialogDescription>
-          </ModernDialogHeader>
+          {/* Switch-to-guardians button — absolute, sits left of the ✕ close button */}
+          {(() => {
+            const guardCount = selectedPupilSiblings?.pupil?.guardians?.length ?? 0;
+            return guardCount > 0 ? (
+              <button
+                onClick={() => {
+                  const p = selectedPupilSiblings!.pupil;
+                  setSelectedPupilSiblings(null);
+                  setSelectedPupilGuardians({
+                    pupil: p,
+                    pupilName: formatPupilDisplayName(p),
+                    guardians: p.guardians || [],
+                    emergencyContactId: p.emergencyContactGuardianId || '',
+                  });
+                }}
+                className="absolute right-12 top-3 sm:right-14 sm:top-3.5 flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-semibold border bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 active:scale-95 transition-all z-50"
+                title="Switch to Guardians"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Guardians ({guardCount})
+              </button>
+            ) : null;
+          })()}
+          <div className="flex items-center gap-2 pr-32 mb-3">
+            <svg className="h-4 w-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h2 className="text-sm font-semibold text-gray-900 truncate">
+              Siblings of <span className="text-green-700">{selectedPupilSiblings?.pupilName}</span>
+            </h2>
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {selectedPupilSiblings?.siblings && selectedPupilSiblings.siblings.length > 0 ? (
-              selectedPupilSiblings.siblings.map((sibling, index) => (
-                <Link key={index} href={`/pupil-detail?id=${sibling.id}`}>
-                  <div className="border rounded-lg p-4 space-y-2 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 cursor-pointer group">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-10 h-10 group-hover:ring-2 group-hover:ring-blue-300 transition-all duration-200">
-                        {sibling.photo && sibling.photo.trim() !== '' && sibling.photo.startsWith('http') ? (
-                          <AvatarImage
-                            src={sibling.photo}
-                            alt={`${sibling.firstName} ${sibling.lastName}`}
-                            onError={(e) => {
-                              console.log('Sibling avatar image failed to load:', sibling.photo);
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : null}
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold">
-                          {sibling.firstName.charAt(0)}{sibling.lastName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">{formatPupilDisplayName(sibling)}</h4>
-                        <p className="text-sm text-gray-600">{sibling.admissionNumber}</p>
-                      </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <Eye className="w-4 h-4 text-blue-500" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-600">Class:</span>
-                        <span className="ml-2">{classes.find(c => c.id === sibling.classId)?.name || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-600">Section:</span>
-                        <span className="ml-2 capitalize">{sibling.section}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-600">Status:</span>
-                        <span className={`ml-2 inline-flex px-2 py-1 text-xs font-medium rounded-full ${sibling.status === 'Active'
-                          ? 'bg-green-100 text-green-800'
-                          : sibling.status === 'Inactive'
-                            ? 'bg-red-100 text-red-800'
-                            : sibling.status === 'Graduated'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                          {sibling.status || 'Unknown'}
-                        </span>
+              selectedPupilSiblings.siblings.map((sibling, index) => {
+                const siblingClass = classes.find(c => c.id === sibling.classId);
+                return (
+                  <div key={index} className="border rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 group">
+                    <div className="flex items-center gap-3">
+                      <Link href={`/pupil-detail?id=${sibling.id}`} className="flex items-center gap-3 flex-1 cursor-pointer min-w-0">
+                        <Avatar className="w-8 h-8 flex-shrink-0 group-hover:ring-2 group-hover:ring-blue-300 transition-all duration-200">
+                          {sibling.photo && sibling.photo.trim() !== '' && sibling.photo.startsWith('http') ? (
+                            <AvatarImage
+                              src={sibling.photo}
+                              alt={`${sibling.firstName} ${sibling.lastName}`}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : null}
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-xs">
+                            {sibling.firstName.charAt(0)}{sibling.lastName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm text-gray-900 group-hover:text-blue-600 transition-colors duration-200 truncate">{formatPupilDisplayName(sibling)}</h4>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-gray-500">{sibling.admissionNumber}</span>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <span className="text-xs text-gray-600 font-medium">
+                              {siblingClass ? siblingClass.code : 'N/A'}
+                            </span>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <span className="text-xs text-gray-600 capitalize">{sibling.section}</span>
+                            <span className="text-gray-300 text-xs">·</span>
+                            <span className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded-full ${sibling.status === 'Active'
+                              ? 'bg-green-100 text-green-800'
+                              : sibling.status === 'Inactive'
+                                ? 'bg-red-100 text-red-800'
+                                : sibling.status === 'Graduated'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {sibling.status || 'Unknown'}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Link
+                          href={`/pupil-detail?id=${sibling.id}`}
+                          className="flex items-center justify-center h-7 w-7 rounded-full transition-all border bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 active:scale-95"
+                          title="View pupil"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const remaining = (selectedPupilSiblings?.siblings || []).filter(s => s.id !== sibling.id);
+                            setUnlinkSiblingConfirm({
+                              siblingToUnlink: sibling,
+                              remainingSiblings: remaining,
+                              viewedPupilName: selectedPupilSiblings?.pupilName || '',
+                            });
+                          }}
+                          className="flex items-center justify-center h-7 w-7 rounded-full transition-all border bg-white border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 active:scale-95"
+                          title="Unlink this sibling"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   </div>
-                </Link>
-              ))
+                );
+              })
             ) : (
               <div className="text-center py-8 text-gray-500">
                 No siblings found for this pupil.
               </div>
             )}
           </div>
+        </ModernDialogContent>
+      </ModernDialog>
 
-          <ModernDialogFooter>
-            <Button variant="outline" onClick={() => setSelectedPupilSiblings(null)}>
-              Close
+      {/* Unlink Sibling Confirmation Dialog */}
+      <ModernDialog
+        open={unlinkSiblingConfirm !== null}
+        onOpenChange={(open) => { if (!open && !isUnlinking) setUnlinkSiblingConfirm(null); }}
+      >
+        <ModernDialogContent size="md">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center text-red-700">
+              <svg className="mr-2 h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Unlink Sibling
+            </ModernDialogTitle>
+            <ModernDialogDescription>
+              Please review the following before confirming.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+
+          {unlinkSiblingConfirm && (
+            <div className="space-y-4">
+              {/* What will happen */}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  What will happen:
+                </p>
+                <ul className="text-sm text-amber-700 space-y-1.5 list-disc list-inside">
+                  <li>
+                    The system will unlink{' '}
+                    <span className="font-bold">
+                      {unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}
+                    </span>{' '}
+                    from the family of{' '}
+                    <span className="font-bold">
+                      {unlinkSiblingConfirm.remainingSiblings.length > 0
+                        ? unlinkSiblingConfirm.remainingSiblings.map(s => `${s.firstName} ${s.lastName}`).join(', ')
+                        : unlinkSiblingConfirm.viewedPupilName
+                      }
+                    </span>.
+                  </li>
+                  <li>
+                    A new family code will be created for{' '}
+                    <span className="font-bold">
+                      {unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}
+                    </span>.
+                  </li>
+                  <li>This action will <span className="font-bold">not</span> delete any pupil records.</li>
+                </ul>
+              </div>
+
+              {/* Pupil being unlinked */}
+              <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <Avatar className="w-10 h-10">
+                  {unlinkSiblingConfirm.siblingToUnlink.photo && unlinkSiblingConfirm.siblingToUnlink.photo.startsWith('http') ? (
+                    <AvatarImage src={unlinkSiblingConfirm.siblingToUnlink.photo} alt={`${unlinkSiblingConfirm.siblingToUnlink.firstName}`} />
+                  ) : null}
+                  <AvatarFallback className="bg-gradient-to-br from-red-400 to-rose-600 text-white font-bold">
+                    {unlinkSiblingConfirm.siblingToUnlink.firstName.charAt(0)}{unlinkSiblingConfirm.siblingToUnlink.lastName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-gray-900">{unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}</p>
+                  <p className="text-xs text-gray-500">{unlinkSiblingConfirm.siblingToUnlink.admissionNumber}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <ModernDialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setUnlinkSiblingConfirm(null)}
+              disabled={isUnlinking}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleUnlinkSibling}
+              disabled={isUnlinking}
+              className="gap-2"
+            >
+              {isUnlinking ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Unlinking...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  Yes, Unlink Sibling
+                </>
+              )}
             </Button>
           </ModernDialogFooter>
         </ModernDialogContent>
@@ -4657,6 +4962,261 @@ function PupilsContent() {
         showDownload={true}
         showPrint={true}
       />
+      {/* Filters Modal */}
+      <ModernDialog
+        open={isFilterPopupOpen}
+        onOpenChange={setIsFilterPopupOpen}
+      >
+        <ModernDialogContent size="md">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900">
+              <FunnelSimple size={20} className="text-indigo-600 animate-[pulse_2s_infinite]" weight="duotone" />
+              Filter Pupils
+            </ModernDialogTitle>
+            <ModernDialogDescription className="text-gray-500">
+              Apply filters to narrow down the list of pupils.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+            {/* Status Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white"
+              >
+                <option value="">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Graduated">Graduated</option>
+                <option value="Transferred">Transferred</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Withdrawn">Withdrawn</option>
+              </select>
+            </div>
+
+            {/* Gender Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Gender</label>
+              <select
+                value={filters.gender}
+                onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white"
+              >
+                <option value="">All Genders</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            {/* Section Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Section</label>
+              <select
+                value={filters.section}
+                onChange={(e) => setFilters(prev => ({ ...prev, section: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white"
+              >
+                <option value="">All Sections</option>
+                <option value="Boarding">Boarding</option>
+                <option value="Day">Day</option>
+              </select>
+            </div>
+
+            {/* Age Range Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Age Range</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max={filters.ageRange.max}
+                  value={filters.ageRange.min}
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    ageRange: { ...prev.ageRange, min: parseInt(e.target.value) || 0 }
+                  }))}
+                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white text-center focus:outline-none transition-all duration-200 hover:bg-white"
+                  placeholder="Min age"
+                />
+                <span className="text-xs text-indigo-400 font-medium">—</span>
+                <input
+                  type="number"
+                  min={filters.ageRange.min}
+                  value={filters.ageRange.max}
+                  onChange={(e) => setFilters(prev => ({
+                    ...prev,
+                    ageRange: { ...prev.ageRange, max: parseInt(e.target.value) || 0 }
+                  }))}
+                  className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white text-center focus:outline-none transition-all duration-200 hover:bg-white"
+                  placeholder="Max age"
+                />
+              </div>
+            </div>
+
+            {/* Codes Filter */}
+            <div className="col-span-1 sm:col-span-2 space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Codes Filter</label>
+              <div className="flex gap-2">
+                <select
+                  value={filters.hasCodeType || ''}
+                  onChange={(e) => setFilters(prev => ({ ...prev, hasCodeType: e.target.value }))}
+                  className="w-[60%] rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white"
+                >
+                  <option value="">Any Identifier Code</option>
+                  {availableIdTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+                <select
+                  value={filters.hasCodeFilterType || 'with'}
+                  onChange={(e) => setFilters(prev => ({ ...prev, hasCodeFilterType: e.target.value as 'with' | 'without' }))}
+                  disabled={!filters.hasCodeType}
+                  className="w-[40%] rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white disabled:opacity-55"
+                >
+                  <option value="with">With</option>
+                  <option value="without">Without</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <ModernDialogFooter className="flex justify-between items-center mt-2">
+            {activeFiltersCount > 0 ? (
+              <button
+                onClick={() => {
+                  handleClearFilters();
+                  setIsFilterPopupOpen(false);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200"
+              >
+                <X size={12} />
+                <span>Clear All ({activeFiltersCount})</span>
+              </button>
+            ) : (
+              <div />
+            )}
+            <button
+              onClick={() => setIsFilterPopupOpen(false)}
+              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all duration-200"
+            >
+              Done
+            </button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
+
+      {/* Family Account & Siblings Modal for Fees Collection */}
+      <ModernDialog open={selectedFamilyPupil !== null} onOpenChange={(open) => { if (!open) setSelectedFamilyPupil(null); }}>
+        <ModernDialogContent className="max-w-md">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2">
+              <LucideUsers className="h-5 w-5 text-teal-600" />
+              Family Account Options
+            </ModernDialogTitle>
+            <ModernDialogDescription>
+              Choose whether to view the combined family account or navigate to a sibling's fee collection.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+
+          <div className="space-y-4 py-3">
+            {/* Family Account Link Button */}
+            <Link
+              href={`/fees/family/${selectedFamilyPupil?.familyId}`}
+              onClick={() => setSelectedFamilyPupil(null)}
+              className="flex items-center justify-between p-4 rounded-xl border border-teal-100 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-200 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-teal-100 text-teal-700">
+                  <LucideUsers className="h-5 w-5" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-sm text-teal-900">View Family Account</p>
+                  <p className="text-xs text-teal-700/80">Combined school fees statement for all siblings</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-teal-500 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            {/* Sibling Fees Links */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">Sibling Fees Collection</p>
+              <div className="max-h-[220px] overflow-y-auto space-y-1.5 pr-1">
+                {/* Current Pupil option first */}
+                {selectedFamilyPupil && (
+                  <Link
+                    key={selectedFamilyPupil.id}
+                    href={`/fees/collect/${selectedFamilyPupil.id}`}
+                    onClick={() => setSelectedFamilyPupil(null)}
+                    className="flex items-center justify-between p-3 rounded-lg border border-indigo-100 bg-indigo-50/30 hover:bg-indigo-50/60 transition-all group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Avatar className="h-8 w-8 border border-indigo-200">
+                        <AvatarImage
+                          src={selectedFamilyPupil.photo && selectedFamilyPupil.photo.trim() !== '' ? selectedFamilyPupil.photo : undefined}
+                          alt={`${selectedFamilyPupil.firstName} ${selectedFamilyPupil.lastName}`}
+                        />
+                        <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700 font-bold">
+                          {selectedFamilyPupil.firstName?.[0] || 'P'}{selectedFamilyPupil.lastName?.[0] || 'P'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left">
+                        <p className="font-semibold text-sm text-indigo-900 transition-colors">
+                          {selectedFamilyPupil.firstName} {selectedFamilyPupil.lastName} (Current)
+                        </p>
+                        <p className="text-xs text-indigo-700/80 font-mono">
+                          {classes.find(c => c.id === selectedFamilyPupil.classId)?.code || classes.find(c => c.id === selectedFamilyPupil.classId)?.name || 'N/A'} • {selectedFamilyPupil.admissionNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <Receipt className="h-4 w-4 text-indigo-500 group-hover:text-indigo-700 transition-colors" />
+                  </Link>
+                )}
+
+                {/* Sibling options */}
+                {selectedFamilyPupil && getSiblings(selectedFamilyPupil).map((sibling) => (
+                  <Link
+                    key={sibling.id}
+                    href={`/fees/collect/${sibling.id}`}
+                    onClick={() => setSelectedFamilyPupil(null)}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-all group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Avatar className="h-8 w-8 border">
+                        <AvatarImage
+                          src={sibling.photo && sibling.photo.trim() !== '' ? sibling.photo : undefined}
+                          alt={`${sibling.firstName} ${sibling.lastName}`}
+                        />
+                        <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                          {sibling.firstName?.[0] || 'S'}{sibling.lastName?.[0] || 'S'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-left">
+                        <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                          {sibling.firstName} {sibling.lastName}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {classes.find(c => c.id === sibling.classId)?.code || classes.find(c => c.id === sibling.classId)?.name || 'N/A'} • {sibling.admissionNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <Receipt className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 transition-colors" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <ModernDialogFooter>
+            <Button variant="outline" onClick={() => setSelectedFamilyPupil(null)} className="w-full">
+              Close
+            </Button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
+
       <ManagePayCodeModal
         isOpen={isManagePayCodeModalOpen}
         onClose={() => {
@@ -4683,7 +5243,7 @@ export default function PupilsPage() {
 
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6">
+      <div className="min-h-screen p-6">
         <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 -mx-6 px-6 py-4 mb-6">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-xl font-bold text-indigo-900">🚀 Loading Pupils...</h1>

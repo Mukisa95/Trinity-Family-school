@@ -101,9 +101,7 @@ export async function getDocsWithTimeout<T>(
   timeoutMs: number = 30000, // Default 30 seconds timeout
   retryCount: number = 0 // Internal retry counter
 ): Promise<T[]> {
-  // Increase timeout for Android/Capacitor (slower network/processing)
-  const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
-  const actualTimeout = isNative ? Math.max(timeoutMs, 60000) : timeoutMs; // 60s min for native
+  const actualTimeout = timeoutMs;
   
   // Get collection path for better error logging
   let collectionPath = 'unknown';

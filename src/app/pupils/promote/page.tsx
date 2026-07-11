@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { PromotionHistoryDialog } from "@/components/pupils/PromotionHistoryDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -505,9 +505,14 @@ export default function PromotePupilsPage() {
 
   if (pupilsLoading || classesLoading || academicYearLoading) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Promote / Demote Pupils" />
-        <div className="flex items-center justify-center py-8">
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Promote / Demote Pupils"
+          subtitle="Manage pupil progression between classes."
+          backHref="/pupils"
+          backLabel="Back to pupils"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading data...</span>
         </div>
@@ -516,20 +521,24 @@ export default function PromotePupilsPage() {
   }
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-6">
-        <PageHeader
-          title="Promote / Demote Pupils"
-          description="Manage pupil progression between classes."
-        />
-        <Button
-          variant="outline"
-          onClick={() => setShowHistoryDialog(true)}
-        >
-          <History className="mr-2 h-4 w-4" />
-          History
-        </Button>
-      </div>
+    <div className="min-h-screen">
+      <GlassPageTopBar
+        title="Promote / Demote Pupils"
+        subtitle="Manage pupil progression between classes."
+        backHref="/pupils"
+        backLabel="Back to pupils"
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="History"
+              icon={<History className="h-4 w-4" />}
+              tone="slate"
+              onClick={() => setShowHistoryDialog(true)}
+            />
+          </GlassActionDock>
+        }
+      />
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
       <PromotionHistoryDialog
         open={showHistoryDialog}
@@ -899,7 +908,8 @@ export default function PromotePupilsPage() {
           </Card>
         </div>
       </div>
-    </>
+    </div>
+  </div>
   );
 }
 

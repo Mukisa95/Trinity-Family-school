@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { PlusCircle, MoreHorizontal, Edit, Trash2, Book, Users, GraduationCap, Baby, School, Crown, Award, Clock, ChevronDown, Save, History, User } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -749,30 +749,32 @@ export default function ClassesPage() {
   };
 
   return (
-    <>
-      <PageHeader
+    <div className="min-h-screen animate-in fade-in duration-500">
+      <GlassPageTopBar
         title="Class Management"
-        description="Manage school classes, assign teachers, and organize subjects by academic levels."
+        subtitle="Manage school classes, assign teachers, and organize subjects by academic levels."
+        backHref="/"
+        backLabel="Back to dashboard"
         actions={
-          <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-            <Link href="/classes/pending">
-              <button
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-amber-600 border border-amber-400 shadow-sm hover:bg-gradient-to-br hover:from-amber-400 hover:via-orange-500 hover:to-amber-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <Clock className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-semibold leading-tight">Pending</span>
-              </button>
-            </Link>
-            <button 
+          <GlassActionDock>
+            <GlassActionButton
+              label="Pending"
+              tone="orange"
+              icon={<Clock className="h-4 w-4" />}
+              href="/classes/pending"
+              aria-label="Pending Classes"
+            />
+            <GlassActionButton
+              label="Add Class"
+              tone="blue"
+              icon={<PlusCircle className="h-4 w-4" />}
               onClick={handleAddClass}
-              className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4 mb-0.5" />
-              <span className="text-[8px] font-semibold leading-tight">Add</span>
-            </button>
-          </div>
+              aria-label="Add Class"
+            />
+          </GlassActionDock>
         }
       />
+      <div className="max-w-7xl mx-auto px-4 pb-12 space-y-6">
       
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
@@ -1214,6 +1216,7 @@ export default function ClassesPage() {
 
         </ModernDialogContent>
       </ModernDialog>
-    </>
+      </div>
+    </div>
   );
 }

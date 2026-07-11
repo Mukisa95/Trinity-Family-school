@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import SMSConfirmationDialog from '@/components/BulkSMS/SMSConfirmationDialog';
 import SMSResultDialog from '@/components/BulkSMS/SMSResultDialog';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
 import { AccountBalance } from '@/components/BulkSMS/AccountBalance';
 import SMSSettingsModal from '@/components/BulkSMS/SMSSettingsModal';
 import { WizaSMSDashboard } from '@/components/BulkSMS/WizaSMSDashboard';
@@ -669,50 +670,47 @@ const BulkSMS: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-        {/* Left Side: Title */}
-        <div className="flex items-center space-x-2 md:flex-1">
-          <MessageSquare className="h-7 w-7 text-primary" />
-          <h1 className="text-3xl font-bold text-gray-900">Bulk SMS</h1>
-        </div>
-
-        {/* Center: Live Balance Badge */}
-        <div className="flex items-center justify-center md:flex-1">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-sm transition-colors ${
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        title="Bulk SMS"
+        subtitle="Send mass text messages and manage parent communications"
+        backHref="/dashboard"
+        backLabel="Dashboard"
+        meta={
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm transition-colors text-xs font-semibold ${
             balanceLoading 
               ? 'bg-gray-50 border-gray-200' 
               : wizaBalance && Number(wizaBalance) < 1000 
                 ? 'bg-red-50 border-red-200 text-red-700' 
                 : 'bg-green-50 border-green-200 text-green-700'
           }`}>
-            <Wallet className="h-4 w-4" />
+            <Wallet className="h-3.5 w-3.5" />
             {balanceLoading ? (
-              <div className="flex items-center gap-2 text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm font-medium">Checking balance...</span>
+              <div className="flex items-center gap-1.5 text-gray-500">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Checking...</span>
               </div>
             ) : wizaBalance !== null ? (
               <div className="flex flex-col items-center leading-tight">
-                <span className="text-sm font-bold">
+                <span>
                   UGX {Number(availableBalance || wizaBalance).toLocaleString()}
                 </span>
                 {lockedBalance > 0 ? (
-                  <span className="text-[10px] opacity-80 font-medium tracking-wide text-amber-600">
+                  <span className="text-[9px] opacity-80 font-medium text-amber-600">
                     ({lockedBalance.toLocaleString()} locked)
                   </span>
                 ) : (
-                  <span className="text-[10px] opacity-80 font-medium tracking-wide uppercase">
-                    ~{Math.floor(Number(availableBalance || wizaBalance) / 35).toLocaleString()} SMS Available
+                  <span className="text-[9px] opacity-80 font-medium">
+                    ~{Math.floor(Number(availableBalance || wizaBalance) / 35).toLocaleString()} SMS
                   </span>
                 )}
               </div>
             ) : (
-              <span className="text-sm font-medium text-gray-500">Balance unavailable</span>
+              <span className="text-gray-500">Balance unavailable</span>
             )}
             <button
               onClick={fetchWizaBalance}
-              className={`ml-1 pt-0.5 rounded-full p-1 transition-all ${
+              className={`ml-0.5 pt-0.5 rounded-full transition-all ${
                 balanceLoading 
                   ? 'text-gray-400 cursor-not-allowed' 
                   : wizaBalance && Number(wizaBalance) < 1000 
@@ -722,55 +720,51 @@ const BulkSMS: React.FC = () => {
               title="Refresh balance"
               disabled={balanceLoading}
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${balanceLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 ${balanceLoading ? 'animate-spin' : ''}`} />
             </button>
           </div>
-        </div>
-
-        {/* Right Side: Actions */}
-        <div className="flex items-center justify-end gap-3 md:flex-1">
-          <Button
-            size="sm"
-            onClick={() => setShowRecharge(true)}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-full px-4"
-          >
-            <CreditCard className="h-4 w-4" />
-            Recharge
-          </Button>
-
-          {/* Settings/More Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                aria-label="Settings"
-              >
-                <Settings className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-semibold leading-tight">More</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Tools</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/sms-templates')} className="cursor-pointer">
-                <FileText className="mr-2 h-4 w-4 text-blue-600" />
-                Message Templates
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowWizaDashboard(true)} className="cursor-pointer">
-                <Monitor className="mr-2 h-4 w-4 text-purple-600" />
-                Wiza SMS Dashboard
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setShowSettings(true)} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4 text-gray-600" />
-                Provider Settings
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <WizaSMSDashboard open={showWizaDashboard} onClose={() => setShowWizaDashboard(false)} />
-        </div>
-      </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Recharge"
+              icon={<CreditCard className="h-4 w-4" />}
+              tone="emerald"
+              onClick={() => setShowRecharge(true)}
+            />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <GlassActionButton
+                  label="More"
+                  icon={<Settings className="h-4 w-4" />}
+                  tone="slate"
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 font-medium">
+                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">SMS Tools</DropdownMenuLabel>
+                <DropdownMenuSeparator className="my-1 border-gray-100" />
+                <DropdownMenuItem onClick={() => router.push('/sms-templates')} className="cursor-pointer py-2.5">
+                  <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                  <span>Message Templates</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowWizaDashboard(true)} className="cursor-pointer py-2.5">
+                  <Monitor className="mr-2 h-4 w-4 text-purple-600" />
+                  <span>Wiza SMS Dashboard</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="my-1 border-gray-100" />
+                <DropdownMenuItem onClick={() => setShowSettings(true)} className="cursor-pointer py-2.5">
+                  <Settings className="mr-2 h-4 w-4 text-gray-600" />
+                  <span>Provider Settings</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </GlassActionDock>
+        }
+      />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <WizaSMSDashboard open={showWizaDashboard} onClose={() => setShowWizaDashboard(false)} />
 
       {/* Recharge Dialog */}
       <WizaRechargeDialog
@@ -812,34 +806,48 @@ const BulkSMS: React.FC = () => {
         }`}
       >
         {/* Recipients Selection Card */}
-        <Card className="h-fit min-w-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Recipients
-              </CardTitle>
-              <CardDescription>Select message recipients</CardDescription>
-            </CardHeader>
+        <Card className="h-fit min-w-0 pt-6">
             <CardContent className="space-y-4">
               {/* Classes Selection */}
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm font-medium text-gray-700">Classes <span className="text-red-500">*</span></p>
+                <div className="flex justify-between items-center gap-4">
+                  <div className="flex gap-1.5 flex-1 max-w-[180px]">
+                    <Input
+                      placeholder="Add phone..."
+                      value={newNumber}
+                      onChange={(e) => setNewNumber(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddNumber();
+                        }
+                      }}
+                      className="h-8 text-xs flex-1"
+                    />
+                    <Button
+                      onClick={handleAddNumber}
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleSelectAllClasses}
-                    className="h-8"
+                    className="h-8 text-xs px-2.5 rounded-md"
                   >
                     {selectedClasses.length === classes.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-1.5 p-3 bg-gray-50 rounded-lg min-h-[50px]">
+                <div className="flex flex-row justify-between w-full gap-1 p-3 bg-gray-50 rounded-lg min-h-[50px]">
                   {classes.map((cls) => (
                     <Badge
                       key={cls.id}
                       variant={selectedClasses.includes(cls.id) ? "default" : "outline"}
-                      className="cursor-pointer hover:opacity-80 transition-opacity text-xs py-1 px-2.5"
+                      className="cursor-pointer hover:opacity-80 transition-opacity text-[10px] py-1 px-1 flex-1 text-center justify-center truncate min-w-0"
                       onClick={() => handleClassToggle(cls.id)}
                     >
                       {cls.code}
@@ -853,96 +861,97 @@ const BulkSMS: React.FC = () => {
 
               {selectedClasses.length > 0 && (
                 <>
-                  {/* Selection Mode */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Selection Method</p>
-                    <div className="flex gap-2">
-                      <Badge
-                        variant={selectionMode === 'class' ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => {
-                          setSelectionMode('class');
-                          setSelectedPupilIds([]);
-                        }}
-                      >
-                        By Class
-                      </Badge>
-                      <Badge
-                        variant={selectionMode === 'individual' ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => setSelectionMode('individual')}
-                      >
-                        Individual Selection
-                      </Badge>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Selection Mode */}
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-gray-700">Selection Method</p>
+                      <div className="flex gap-1.5">
+                        <Badge
+                          variant={selectionMode === 'class' ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => {
+                            setSelectionMode('class');
+                            setSelectedPupilIds([]);
+                          }}
+                        >
+                          Class
+                        </Badge>
+                        <Badge
+                          variant={selectionMode === 'individual' ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => setSelectionMode('individual')}
+                        >
+                          Pupil
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Guardian Selection - Always show this */}
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-gray-700">Guardian Types <span className="text-red-500">*</span></p>
+                      <div className="flex gap-1.5">
+                        <Badge
+                          variant={selectedGuardians.includes('primary') ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => handleGuardianToggle('primary')}
+                        >
+                          Primary
+                        </Badge>
+                        <Badge
+                          variant={selectedGuardians.includes('secondary') ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => handleGuardianToggle('secondary')}
+                        >
+                          Secondary
+                        </Badge>
+                      </div>
+                      {selectedGuardians.length === 0 && (
+                        <p className="text-[9px] text-red-500 mt-1">Required</p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Guardian Selection - Always show this */}
-                  <div className="space-y-2 relative">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-gray-700">Guardian Types <span className="text-red-500">*</span></p>
-                      <p className="text-[10px] text-gray-500">Select which guardians to message</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Section Selection */}
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-gray-700">Section</p>
+                      <div className="flex gap-1.5">
+                        <Badge
+                          variant={selectedSections.includes('Boarding') ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => handleSectionToggle('Boarding')}
+                        >
+                          Boarding
+                        </Badge>
+                        <Badge
+                          variant={selectedSections.includes('Day') ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => handleSectionToggle('Day')}
+                        >
+                          Day
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Badge
-                        variant={selectedGuardians.includes('primary') ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => handleGuardianToggle('primary')}
-                      >
-                        Primary
-                      </Badge>
-                      <Badge
-                        variant={selectedGuardians.includes('secondary') ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => handleGuardianToggle('secondary')}
-                      >
-                        Secondary
-                      </Badge>
-                    </div>
-                    {selectedGuardians.length === 0 && (
-                      <p className="text-xs text-red-500">Please select at least one guardian type</p>
-                    )}
-                  </div>
 
-                  {/* Section Selection */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Section</p>
-                    <div className="flex gap-2">
-                      <Badge
-                        variant={selectedSections.includes('Boarding') ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => handleSectionToggle('Boarding')}
-                      >
-                        Boarding
-                      </Badge>
-                      <Badge
-                        variant={selectedSections.includes('Day') ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => handleSectionToggle('Day')}
-                      >
-                        Day
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Gender Selection */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Gender</p>
-                    <div className="flex gap-2">
-                      <Badge
-                        variant={selectedGenders.includes('Male') ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => handleGenderToggle('Male')}
-                      >
-                        Male
-                      </Badge>
-                      <Badge
-                        variant={selectedGenders.includes('Female') ? "default" : "outline"}
-                        className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1.5 text-xs font-semibold"
-                        onClick={() => handleGenderToggle('Female')}
-                      >
-                        Female
-                      </Badge>
+                    {/* Gender Selection */}
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-gray-700">Gender</p>
+                      <div className="flex gap-1.5">
+                        <Badge
+                          variant={selectedGenders.includes('Male') ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => handleGenderToggle('Male')}
+                        >
+                          Male
+                        </Badge>
+                        <Badge
+                          variant={selectedGenders.includes('Female') ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity flex-1 justify-center py-1 text-[10px] font-semibold"
+                          onClick={() => handleGenderToggle('Female')}
+                        >
+                          Female
+                        </Badge>
+                      </div>
                     </div>
                   </div>
 
@@ -999,173 +1008,138 @@ const BulkSMS: React.FC = () => {
                 </>
               )}
 
-              {/* Manual Numbers */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Additional Numbers</p>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add phone..."
-                    value={newNumber}
-                    onChange={(e) => setNewNumber(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddNumber();
-                      }
-                    }}
-                    className="flex-1 h-8 text-sm"
-                  />
-                  <Button
-                    onClick={handleAddNumber}
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {manualNumbers.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 p-2.5 bg-gray-50 rounded-lg">
-                    {manualNumbers.map((number) => (
-                      <div
-                        key={number}
-                        className="flex items-center gap-1 bg-white border px-2 py-0.5 rounded-full text-xs shadow-sm"
+              {/* Manual Numbers Chips List */}
+              {manualNumbers.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-gray-50 rounded-lg">
+                  {manualNumbers.map((number) => (
+                    <div
+                      key={number}
+                      className="flex items-center gap-1 bg-white border px-2 py-0.5 rounded-full text-xs shadow-sm"
+                    >
+                      {number}
+                      <button
+                        onClick={() => handleRemoveNumber(number)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
                       >
-                        {number}
-                        <button
-                          onClick={() => handleRemoveNumber(number)}
-                          className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
         </Card>
 
         {/* Message + SMS Cost */}
         <div className="flex flex-col gap-6 min-w-0 lg:col-start-2">
-          <Card className="h-fit">
-            <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Message
-                </CardTitle>
-                <CardDescription>Compose your message</CardDescription>
-              </div>
-              <Select onValueChange={handleTemplateSelect}>
-                <SelectTrigger className="h-9 w-full sm:w-[220px]">
-                  <SelectValue placeholder="Select a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-4">
-              <Textarea
-                ref={messageTextareaRef}
-                placeholder="Type your message here..."
-                value={message}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
-                className="resize-none overflow-hidden"
-              />
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center justify-between text-sm px-1 text-gray-500">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono tabular-nums font-medium">
-                      <span style={{ color: characterCountColor, transition: 'color 0.2s ease' }}>
-                        {characterCount}
+          <Card className="h-fit pt-6">
+            <CardContent className="space-y-5">
+              <div className="space-y-4">
+                <Textarea
+                  ref={messageTextareaRef}
+                  placeholder="Type your message here..."
+                  value={message}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
+                  className="resize-none overflow-hidden"
+                />
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center justify-between text-sm px-1 text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono tabular-nums font-medium">
+                        <span style={{ color: characterCountColor, transition: 'color 0.2s ease' }}>
+                          {characterCount}
+                        </span>
+                        <span>/160</span>
                       </span>
-                      <span>/160</span>
+                      {characterCount > 160 && (
+                        <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium">
+                          Exceeds 160 limit
+                        </span>
+                      )}
+                    </div>
+                    <span>
+                      Message count: <span className={characterCount > 160 ? 'font-bold text-red-600' : ''}>{messageCount}</span>
                     </span>
-                    {characterCount > 160 && (
-                      <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-medium">
-                        Exceeds 160 limit
-                      </span>
+                  </div>
+
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${Math.min(100, (characterCount / 160) * 100)}%`,
+                        backgroundColor: characterCountColor,
+                        transition: 'width 0.3s ease-in-out, background-color 0.2s ease',
+                      }}
+                    />
+                  </div>
+
+                  {characterCount > 160 && (
+                    <div className="text-xs text-red-500 bg-red-50 p-2 rounded-md">
+                      Warning: Your message exceeds 160 characters and will be charged as {messageCount} separate SMS messages.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-2">
+                <Select onValueChange={handleTemplateSelect}>
+                  <SelectTrigger className="h-9 w-full sm:w-[220px]">
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    onClick={handleSendSMS}
+                    disabled={loading || !message.trim() || allRecipients.length === 0}
+                    size="sm"
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-full px-4 h-9"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Send
+                      </>
                     )}
-                  </div>
-                  <span>
-                    Message count: <span className={characterCount > 160 ? 'font-bold text-red-600' : ''}>{messageCount}</span>
-                  </span>
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="icon"
+                        aria-label="Schedule SMS"
+                        className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white rounded-full shrink-0"
+                      >
+                        <Calendar className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
+                        <Calendar className="mr-2 h-4 w-4 text-blue-600" />
+                        Schedule SMS
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowScheduleList(true)} className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4 text-indigo-600" />
+                        Schedule List
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full"
-                    style={{
-                      width: `${Math.min(100, (characterCount / 160) * 100)}%`,
-                      backgroundColor: characterCountColor,
-                      transition: 'width 0.3s ease-in-out, background-color 0.2s ease',
-                    }}
-                  />
-                </div>
-
-                {characterCount > 160 && (
-                  <div className="text-xs text-red-500 bg-red-50 p-2 rounded-md">
-                    Warning: Your message exceeds 160 characters and will be charged as {messageCount} separate SMS messages.
-                  </div>
-                )}
               </div>
-            </div>
-
-            <div className="relative flex items-center justify-center min-h-9">
-              <Button
-                onClick={handleSendSMS}
-                disabled={loading || !message.trim() || allRecipients.length === 0}
-                size="sm"
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-full px-4"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Send
-                  </>
-                )}
-              </Button>
-
-              <div className="absolute right-0">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="icon"
-                      aria-label="Schedule SMS"
-                      className="h-9 w-9 bg-green-600 hover:bg-green-700 text-white rounded-full shrink-0"
-                    >
-                      <Calendar className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">SMS Scheduling</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setShowSchedule(true)} className="cursor-pointer">
-                      <Calendar className="mr-2 h-4 w-4 text-blue-600" />
-                      Schedule SMS
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowScheduleList(true)} className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4 text-indigo-600" />
-                      Schedule List
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
             </CardContent>
           </Card>
 
@@ -1209,6 +1183,7 @@ const BulkSMS: React.FC = () => {
         open={showSettings}
         onOpenChange={setShowSettings}
       />
+      </div>
     </div>
   );
 };

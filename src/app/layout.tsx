@@ -11,7 +11,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { GlobalDataPreloader } from '@/components/providers/global-data-preloader';
 import { PrintProvider } from '@/lib/contexts/print-context';
 import { ServiceWorkerProvider } from '@/components/providers/service-worker-provider';
-import { AndroidAppInit } from '@/components/android/AndroidAppInit';
+import { PremiumSplashLoader } from '@/components/common/premium-splash-loader';
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
@@ -164,12 +164,12 @@ export default function RootLayout({
         */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <PremiumSplashLoader />
         <QueryProvider>
           <AuthProvider>
             <PrintProvider>
               <ServiceWorkerProvider />
               <GlobalDataPreloader />
-              <AndroidAppInit />
               <SyncProvider>
                 <AppLayout>
                   {children}

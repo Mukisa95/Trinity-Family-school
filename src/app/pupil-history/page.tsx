@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassPageSearchInput, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -426,177 +427,150 @@ export default function PupilHistoryPage() {
   // Loading state
   if (pupilsLoading || classesLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="container mx-auto px-4 py-6 space-y-6">
-          <PageHeader
-            title="Pupil History"
-            description="Comprehensive tracking of pupils' academic journey and status changes"
-          />
-          <div className="text-center py-12">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-            <p className="mt-4 text-gray-600">Loading pupil history data...</p>
-          </div>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Pupil History"
+          subtitle="Comprehensive tracking of pupils' academic journey and status changes"
+          backHref="/pupils"
+          backLabel="Back to pupils"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col items-center justify-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <p className="mt-4 text-gray-600">Loading pupil history data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <PageHeader
-          title="Pupil History"
-          description="Comprehensive tracking of pupils' academic journey and status changes"
-        />
+    <div className="min-h-screen">
+      <GlassPageTopBar
+        title="Pupil History"
+        subtitle="Comprehensive tracking of pupils' academic journey and status changes"
+        backHref="/pupils"
+        backLabel="Back to pupils"
+        className="mb-1.5"
+        titleControls={
+          <div className="flex items-center gap-1.5 lg:hidden">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+                <SelectItem value="all">All Classes</SelectItem>
+                {availableClasses.map(className => (
+                  <SelectItem key={className} value={className}>{className}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        {/* Filters and Controls */}
-        <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-3 flex-1">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="class-select" className="text-sm font-medium whitespace-nowrap">Class:</Label>
-                  <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger id="class-select" className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
-                      <SelectItem value="all">All Classes</SelectItem>
-                      {availableClasses.map(className => (
-                        <SelectItem key={className} value={className}>{className}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="graduated">Graduated</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="on leave">On Leave</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        center={
+          <div className="hidden lg:flex items-center gap-2">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+                <SelectItem value="all">All Classes</SelectItem>
+                {availableClasses.map(className => (
+                  <SelectItem key={className} value={className}>{className}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="status-select" className="text-sm font-medium whitespace-nowrap">Status:</Label>
-                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                    <SelectTrigger id="status-select" className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="graduated">Graduated</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="on leave">On Leave</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="graduated">Graduated</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="on leave">On Leave</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        actionsLeading={
+          <div className="flex items-center gap-2">
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              containerClassName="w-[140px] sm:w-[180px] lg:w-[220px]"
+            />
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Export"
+              icon={<Download className="h-4 w-4" />}
+              tone="blue"
+              onClick={exportData}
+            />
+            <GlassActionButton
+              label={viewMode === 'table' ? 'Cards' : 'Table'}
+              icon={viewMode === 'table' ? <Users className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+              tone="slate"
+              onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+            />
+          </GlassActionDock>
+        }
+      />
 
-                <div className="flex items-center gap-2 flex-1 max-w-sm">
-                  <Search className="w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search pupils, admission number, or guardian..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={exportData}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <Button
-                    variant={viewMode === 'table' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('table')}
-                    className="h-8"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('cards')}
-                    className="h-8"
-                  >
-                    <Users className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Pupil History Summary
+            </span>
+          </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-blue-600 dark:text-blue-400">{stats.total}</span>
+              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Pupils</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-green-600 dark:text-green-400">{stats.active}</span>
+              <span className="text-green-700/85 dark:text-green-300 font-medium">Active</span>
+            </div>
+            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-purple-600 dark:text-purple-400">{stats.graduated}</span>
+              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Graduated</span>
+            </div>
+            <div className="flex items-center gap-1 bg-gray-50/80 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-gray-600 dark:text-gray-400">{stats.inactive}</span>
+              <span className="text-gray-700/85 dark:text-gray-300 font-medium">Inactive</span>
+            </div>
+            <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-orange-700/85 dark:text-orange-300 font-medium">Avg. Stay:</span>
+              <span className="font-bold text-orange-600 dark:text-orange-400">{stats.averageStay}y</span>
+            </div>
+          </>
+        }
+      />
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-xs font-medium mb-0.5">Total Pupils</p>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                </div>
-                <Users className="w-8 h-8 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-xs font-medium mb-0.5">Active</p>
-                  <p className="text-2xl font-bold">{stats.active}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-xs font-medium mb-0.5">Graduated</p>
-                  <p className="text-2xl font-bold">{stats.graduated}</p>
-                </div>
-                <Award className="w-8 h-8 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-gray-500 to-slate-600 text-white border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-100 text-xs font-medium mb-0.5">Inactive</p>
-                  <p className="text-2xl font-bold">{stats.inactive}</p>
-                </div>
-                <XCircle className="w-8 h-8 text-gray-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-xs font-medium mb-0.5">Avg. Stay</p>
-                  <p className="text-2xl font-bold">{stats.averageStay}y</p>
-                </div>
-                <Clock className="w-8 h-8 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
         <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="w-5 h-5 text-blue-600" />
-              Pupil History Records
-              <Badge variant="outline" className="ml-2">{filteredData.length} pupils</Badge>
-            </CardTitle>
-          </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>

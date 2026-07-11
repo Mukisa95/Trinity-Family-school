@@ -1,20 +1,29 @@
 import type { NavigationItem } from '@/types';
-import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Images, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Database, Warehouse, TableProperties, Activity, Zap, Bell } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell } from 'lucide-react';
 
 export const navItems: NavigationItem[] = [
   {
     title: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
+    section: 'Overview',
   },
   {
     title: 'Timetable',
     href: '/timetable',
     icon: TableProperties,
+    section: 'Overview',
+  },
+  {
+    title: 'Events & Calendar',
+    href: '/events',
+    icon: Calendar,
+    section: 'Overview',
   },
   {
     title: 'Pupils',
     icon: UserSquare,
+    section: 'Academics',
     items: [
       {
         title: 'Pupils Management',
@@ -57,47 +66,30 @@ export const navItems: NavigationItem[] = [
     title: 'Staff',
     href: '/staff',
     icon: GraduationCap,
+    section: 'Academics',
   },
   {
     title: 'Classes',
     href: '/classes',
     icon: Presentation,
+    section: 'Academics',
   },
   {
     title: 'Exams',
     href: '/exams',
     icon: FileText,
+    section: 'Academics',
   },
   {
-    title: 'Events & Calendar',
-    href: '/events',
-    icon: Calendar,
-  },
-  {
-    title: 'Communications',
-    icon: Mail,
-    items: [
-      {
-        title: 'Bulk SMS',
-        href: '/bulk-sms',
-        icon: MessageSquare,
-      },
-      {
-        title: 'Push Notifications',
-        href: '/push-notifications',
-        icon: Bell,
-      },
-      {
-        title: 'WhatsApp Group',
-        href: 'https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t',
-        icon: MessageCircle,
-        external: true,
-      },
-    ],
+    title: 'Duty & Service',
+    href: '/duty-service',
+    icon: Shield,
+    section: 'Academics',
   },
   {
     title: 'Accounts',
     icon: Receipt,
+    section: 'Finance',
     items: [
       {
         title: 'Collect Fees',
@@ -129,22 +121,40 @@ export const navItems: NavigationItem[] = [
         href: '/assign',
         icon: Tag,
       },
+      {
+        title: 'Inventory',
+        href: '/inventory',
+        icon: Warehouse,
+      },
     ],
   },
   {
-    title: 'Duty & Service',
-    href: '/duty-service',
-    icon: Shield,
-  },
-  {
-    title: 'Inventory',
-    href: '/inventory',
-    icon: Warehouse,
+    title: 'Communications',
+    icon: Mail,
+    section: 'Communications',
+    items: [
+      {
+        title: 'Bulk SMS',
+        href: '/bulk-sms',
+        icon: MessageSquare,
+      },
+      {
+        title: 'Push Notifications',
+        href: '/push-notifications',
+        icon: Bell,
+      },
+      {
+        title: 'WhatsApp Group',
+        href: 'https://chat.whatsapp.com/LfKtwT6Qn5eDImR4gagwU3?mode=ac_t',
+        icon: MessageCircle,
+        external: true,
+      },
+    ],
   },
   {
     title: 'Settings',
-
     icon: Settings,
+    section: 'Administration',
     items: [
       {
         title: 'Users',
@@ -152,59 +162,19 @@ export const navItems: NavigationItem[] = [
         icon: Users,
       },
       {
-        title: 'Access Levels',
-        href: '/access-levels',
-        icon: Shield,
-      },
-      {
-        title: 'Fees Management',
+        title: 'Accounts',
         href: '/fees',
         icon: DollarSign,
       },
       {
-        title: 'Requirements',
-        href: '/requirements',
-        icon: Package,
-      },
-      {
-        title: 'Uniform Management',
-        href: '/uniforms',
-        icon: Shirt,
-      },
-      {
-        title: 'Academic Years',
+        title: 'Academic Setup',
         href: '/academic-years',
         icon: CalendarDays,
-      },
-      {
-        title: 'Subjects',
-        href: '/subjects',
-        icon: BookOpen,
-      },
-      {
-        title: 'Commentary Box',
-        href: '/admin/commentary-box',
-        icon: MessageSquare,
-      },
-      {
-        title: 'Photos Manager',
-        href: '/admin/photos',
-        icon: Images,
       },
       {
         title: 'About School',
         href: '/about-school',
         icon: Info,
-      },
-      {
-        title: 'Data Migration',
-        href: '/admin/migrate-data',
-        icon: Database,
-      },
-      {
-        title: 'SchoolPay Monitor',
-        href: '/settings/schoolpay-monitor',
-        icon: Activity,
       },
       {
         title: 'History Log',

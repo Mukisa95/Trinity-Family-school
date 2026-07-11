@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { STAFF_DEPARTMENTS, RELIGIONS, NATIONALITIES } from "@/lib/constants";
 import { useStaffById, useCreateStaff, useUpdateStaff } from "@/lib/hooks/use-staff";
 import { useSubmissionState } from "@/lib/hooks/use-submission-state";
@@ -474,18 +474,31 @@ export default function StaffForm() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <GlassPageTopBar
+          title={id ? 'Edit Staff Member' : 'Add New Staff Member'}
+          subtitle={id ? 'Update staff member information' : 'Register a new staff member to the system'}
+          backHref="/staff"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading staff details...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <PageHeader
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <GlassPageTopBar
         title={id ? 'Edit Staff Member' : 'Add New Staff Member'}
-        description={id ? 'Update staff member information' : 'Register a new staff member to the system'}
+        subtitle={id ? 'Update staff member information' : 'Register a new staff member to the system'}
+        backHref={id ? `/staff/${id}` : "/staff"}
+        backLabel={id ? "Back to profile" : "Back to list"}
       />
+      <div className="max-w-4xl mx-auto px-4 pb-12">
       
       <form onSubmit={handleSubmit} className="space-y-3 pb-6">
         {/* Photo Upload & Employee ID Section */}
@@ -1018,6 +1031,7 @@ export default function StaffForm() {
           onClose={() => setShowCamera(false)}
         />
       )}
-    </>
+      </div>
+    </div>
   );
 } 

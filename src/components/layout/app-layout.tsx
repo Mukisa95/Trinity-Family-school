@@ -9,9 +9,7 @@ import {
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
-  SidebarTrigger,
   SidebarInset,
-  SidebarMenuButton,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { SidebarNav } from './sidebar-nav';
@@ -20,7 +18,7 @@ import { navItems } from '@/config/nav';
 import { School, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { User, LogOut, Settings, PanelLeft, PanelRight, Menu } from 'lucide-react';
+import { User, LogOut, Settings, Menu } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -40,13 +38,12 @@ import { LoadingOverlay } from '@/components/ui/loading-indicator';
 import { ParentLayout } from '@/components/parent/parent-layout';
 import EnhancedHeader from './enhanced-header';
 import AuthGuard from '@/components/common/AuthGuard';
-import { VersionLink } from './version-link';
+import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useState, useEffect, memo } from 'react';
+import { BrandedAuthScreen } from '@/components/common/premium-splash-loader';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
-import { PullToRefresh } from '@/components/android/PullToRefresh';
-import { clearCacheAndRefresh } from '@/lib/utils/android-navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
 import { logger } from '@/lib/utils/logger';
@@ -69,28 +66,6 @@ function NavigationWrapper({ children }: { children: ReactNode }) {
   );
 }
 
-function DesktopSidebarToggle() {
-  const { toggleSidebar, state, isMobile } = useSidebar();
-
-  if (isMobile) {
-    return null;
-  }
-
-  const IconToRender = state === 'expanded' ? PanelLeft : PanelRight;
-  const label = state === 'expanded' ? "Collapse sidebar" : "Expand sidebar";
-
-  return (
-    <SidebarMenuButton
-      onClick={toggleSidebar}
-      className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-      tooltip={{ children: label, side: "right", align: "center", hidden: state === 'expanded' && !isMobile }}
-      aria-label={label}
-    >
-      <IconToRender className="h-5 w-5" />
-      <span></span>
-    </SidebarMenuButton>
-  );
-}
 
 function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
@@ -103,7 +78,6 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-// 🚀 CRITICAL OPTIMIZATION: Memoize layout to prevent sidebar re-renders on navigation
 function SessionStaleBanner({
   message,
   onRefresh,
@@ -147,6 +121,98 @@ function SessionStaleBanner({
   );
 }
 
+const SidebarHeaderWrapper = ({ isLoadingSettings, currentSettings }: { isLoadingSettings: boolean; currentSettings: any }) => {
+  const { state } = useSidebar();
+  const isCollapsed = state === 'collapsed';
+  const [showName, setShowName] = useState(false);
+
+  useEffect(() => {
+    if (isCollapsed) {
+      setShowName(false);
+      return;
+    }
+    // Logo zooms in at the center first, then slides to the side to reveal the name after 500ms
+    const timer = setTimeout(() => {
+      setShowName(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [isCollapsed]);
+
+  return (
+    <SidebarHeader
+      className={cn(
+        "p-3 flex flex-row items-center border-b border-gray-100 transition-all duration-300 ease-in-out min-h-[56px] relative",
+        (isCollapsed || !showName) ? "justify-center" : "justify-start gap-2.5"
+      )}
+    >
+      {/* Logo — centered when collapsed or during initial load zoom */}
+      {!isLoadingSettings && currentSettings.generalInfo.logo && (
+        <motion.div
+          layout
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{
+            scale: { type: "spring", stiffness: 200, damping: 18, delay: 0.1 },
+            opacity: { duration: 0.2, delay: 0.1 },
+            layout: { type: "spring", stiffness: 120, damping: 18 }
+          }}
+          className="flex-shrink-0"
+        >
+          <Link href="/">
+            <div className="relative w-10 h-10 bg-transparent">
+              <Image
+                src={currentSettings.generalInfo.logo}
+                alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
+                fill
+                sizes="40px"
+                className="rounded-lg object-contain bg-transparent"
+                data-ai-hint="school logo"
+              />
+            </div>
+          </Link>
+        </motion.div>
+      )}
+
+      {/* School name + motto — hidden when collapsed or before reveal */}
+      <AnimatePresence initial={false}>
+        {!isCollapsed && showName && (
+          <motion.div
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: 'auto' }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ 
+              opacity: { duration: 0.2 },
+              width: { type: "spring", stiffness: 100, damping: 15 } 
+            }}
+            className="flex flex-col items-start min-w-0 flex-1 overflow-hidden"
+          >
+            <div className="w-[180px]">
+              <AnimatePresence mode="wait">
+                {isLoadingSettings ? (
+                  <div className="h-8 w-24 bg-gray-100 animate-pulse rounded" />
+                ) : (
+                  <motion.div
+                    key="text-content"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col items-start min-w-0 w-full"
+                  >
+                    <h2 className="text-sm font-bold text-gray-900 leading-tight w-full break-words">
+                      {currentSettings.generalInfo.name || "School Name"}
+                    </h2>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </SidebarHeader>
+  );
+};
+
 const MemoizedAppLayout = memo(function MemoizedAppLayout({
   children,
   pathname,
@@ -172,11 +238,9 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // Swipe hint state
   const [showSwipeHint, setShowSwipeHint] = useState(false);
 
-  // 🚀 OPTIMIZED: Use props instead of calling hooks again (props are passed from parent)
-
   // Check if this is a public route
   const publicRoutes = ['/login', '/admin/setup', '/test-firebase'];
-  const isPublicRoute = pathname ? (publicRoutes.includes(pathname) || publicRoutes.some(route => pathname.startsWith(route + '/'))) : false;
+  const isPublicRoute = pathname ? (publicRoutes.includes(pathname) || publicRoutes.some((route: string) => pathname.startsWith(route + '/'))) : false;
 
   // Check if this is a parent route (should use its own layout)
   const isParentRoute = pathname?.startsWith('/parent') || false;
@@ -208,16 +272,14 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     const distanceX = touchStart.x - touchEnd.x;
     const distanceY = touchStart.y - touchEnd.y;
     const isHorizontalSwipe = Math.abs(distanceX) > Math.abs(distanceY);
-    const isLeftToRightSwipe = distanceX < -80; // Swipe from left to right (negative distance) - increased threshold
-    const isFromLeftEdge = touchStart.x < 80; // Start from left edge of screen - increased area
-    const hasMinimumDistance = Math.abs(distanceX) > 50; // Minimum swipe distance
+    const isLeftToRightSwipe = distanceX < -80;
+    const isFromLeftEdge = touchStart.x < 80;
+    const hasMinimumDistance = Math.abs(distanceX) > 50;
 
-    // Only trigger if it's a horizontal swipe from left to right starting from the left edge
     if (isHorizontalSwipe && isLeftToRightSwipe && isFromLeftEdge && hasMinimumDistance && windowWidth < 768) {
       setIsMobileSidebarOpen(true);
     }
 
-    // Reset touch state
     setTouchStart(null);
     setTouchEnd(null);
   };
@@ -234,7 +296,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
       const handleResize = () => {
         setWindowWidth(window.innerWidth);
-        // Close mobile sidebar on resize to desktop
         if (window.innerWidth >= 768) {
           setIsMobileSidebarOpen(false);
         }
@@ -245,7 +306,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     }
   }, []);
 
-  // Keep hasStoredUser in sync whenever authentication state changes
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('trinity_user');
@@ -253,10 +313,8 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     }
   }, [isAuthenticated]);
 
-  // Keyboard shortcut handler for print (Ctrl+P or Cmd+P)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Ctrl+P (Windows/Linux) or Cmd+P (Mac)
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
         e.stopPropagation();
@@ -268,13 +326,10 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [triggerPrint]);
 
-  // Show swipe hint on mobile
   React.useEffect(() => {
     if (windowWidth < 768 && !isPublicRoute && !isParentRoute) {
-      // Show hint after a short delay
       const timer = setTimeout(() => {
         setShowSwipeHint(true);
-        // Hide hint after 3 seconds
         setTimeout(() => setShowSwipeHint(false), 3000);
       }, 1000);
 
@@ -282,12 +337,10 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     }
   }, [windowWidth, isPublicRoute, isParentRoute]);
 
-  // Close mobile sidebar when route changes
   React.useEffect(() => {
     setIsMobileSidebarOpen(false);
   }, [pathname]);
 
-  // Keep auth diagnostics controlled by the shared logger.
   React.useEffect(() => {
     logger.debug('Auth state debug', {
       pathname,
@@ -299,20 +352,13 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     });
   }, [pathname, isPublicRoute, authLoading, isAuthenticated, user, hasStoredUser]);
 
-  // Use Firebase data if available, otherwise fallback to sample data
-  // Only use fallback if query has finished loading and we have no data
   const currentSettings = React.useMemo(() => {
-    // If still loading, don't use fallback yet - wait for the query to finish
     if (isLoadingSettings) {
-      return sampleSchoolSettings; // Temporary fallback while loading
+      return sampleSchoolSettings;
     }
-
-    // If we have real data, use it
     if (schoolSettings) {
       return schoolSettings;
     }
-
-    // Only use sample data if query finished and we have no data
     if (settingsError) {
       logger.warn('Using sample school settings due to Firebase error', settingsError);
     } else {
@@ -320,22 +366,17 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     }
     return sampleSchoolSettings;
   }, [schoolSettings, settingsError, isLoadingSettings]);
-  // Handle authentication redirects for protected routes only
+
   React.useEffect(() => {
-    // Don't redirect immediately on auth state change to avoid flashing/premature redirects
-    // Use longer delay if there's a stored user that might still be loading
-    const delay = hasStoredUser ? 2500 : 1000; // Even longer delay for stored users
+    const delay = hasStoredUser ? 2500 : 1000;
 
     const timer = setTimeout(() => {
-      // Only redirect if we're confident the auth state is stable
       if (!isPublicRoute && !authLoading && !isAuthenticated && !user) {
-        // Multiple additional checks to prevent premature redirects
         if (hasStoredUser) {
           logger.debug('Stored user found, not redirecting to login');
           return;
         }
 
-        // Double-check localStorage one more time
         const currentStoredUser = localStorage.getItem('trinity_user');
         if (currentStoredUser) {
           logger.debug('Found stored user in localStorage, not redirecting to login');
@@ -345,7 +386,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
         logger.debug('Redirecting to login due to no authentication');
         router.replace('/login');
       } else if (!authLoading && isAuthenticated && user && pathname === '/login') {
-        // Redirect all authenticated users from login page to home page
         logger.debug('Authenticated user on login page, redirecting home', { role: user.role });
         router.replace('/');
       }
@@ -367,6 +407,39 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     setIsMobileSidebarOpen(false);
   };
 
+  // ── Background blur effect ──
+  // On dashboard (/): clear at top, blurs up to 8px as user scrolls 200px
+  // On all other pages: fixed 6px blur so background stays blurred
+  const mainRef = useRef<HTMLElement>(null);
+  const isDashboard = pathname === '/';
+
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return;
+    const bgWrapper = mainEl.closest<HTMLElement>('.dashboard-bg-wrapper');
+    if (!bgWrapper) return;
+
+    if (!isDashboard) {
+      // Non-dashboard pages: immediately blurred
+      bgWrapper.style.setProperty('--scroll-blur', '6px');
+      return () => {
+        bgWrapper.style.setProperty('--scroll-blur', '0px');
+      };
+    }
+
+    // Dashboard: 0px blur at top, grows as user scrolls
+    bgWrapper.style.setProperty('--scroll-blur', '0px');
+    const onScroll = () => {
+      const blur = Math.min(8, (mainEl.scrollTop / 200) * 8);
+      bgWrapper.style.setProperty('--scroll-blur', `${blur}px`);
+    };
+    mainEl.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      mainEl.removeEventListener('scroll', onScroll);
+      bgWrapper.style.setProperty('--scroll-blur', '0px');
+    };
+  }, [isDashboard]);
+
   // If it's a public route, render without any authentication checks
   if (isPublicRoute) {
     return <>{children}</>;
@@ -379,38 +452,19 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   // Show loading screen while checking authentication for protected routes
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4 animate-pulse">
-            <School className="h-8 w-8 text-white" />
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <BrandedAuthScreen message="Strive to Excel…" />;
   }
 
-  // If not authenticated for protected route, this will be handled by the useEffect above.
-  // If there is a stored user in localStorage, keep showing the loading screen rather than
-  // the redirect screen — auth context may still be restoring the session.
   if (!isAuthenticated) {
-    // If we have a stored user, render the same loading screen (not "Redirecting") so the
-    // user does not see a flash of the redirect message while auth context hydrates.
     const showLoadingInstead = hasStoredUser || (typeof window !== 'undefined' && !!localStorage.getItem('trinity_user'));
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4 animate-pulse">
-            <School className="h-8 w-8 text-white" />
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">{showLoadingInstead ? 'Loading...' : 'Redirecting to login...'}</p>
-        </div>
-      </div>
+      <BrandedAuthScreen
+        message={showLoadingInstead ? "Strive to Excel…" : "Redirecting to login…"}
+      />
     );
   }
 
-  // PARENT INTERFACE - No routing, just render the dashboard directly
+  // PARENT INTERFACE
   if (user?.role === 'Parent') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -419,7 +473,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           showMenuButton={false}
           loadSchoolSettings={false}
         />
-          <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+        <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
           {isSessionStale && (
             <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
           )}
@@ -439,13 +493,11 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     return (
       <NavigationWrapper>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-          {/* Enhanced Header for Mobile */}
           <EnhancedHeader
             onMenuClick={handleMobileMenuClick}
             showMenuButton={true}
           />
 
-          {/* Swipe Hint Indicator */}
           {showSwipeHint && (
             <div className="fixed top-20 left-4 z-40 bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-sm animate-pulse">
               <div className="flex items-center space-x-2">
@@ -455,7 +507,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             </div>
           )}
 
-          {/* Mobile Main Content */}
           <main
             className="px-3 pb-4 pt-0"
             onTouchStart={handleTouchStart}
@@ -470,14 +521,12 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             </AuthGuard>
           </main>
 
-          {/* Custom Mobile Sidebar */}
           <MobileSidebar
             items={navItems}
             isOpen={isMobileSidebarOpen}
             onClose={handleMobileSidebarClose}
           />
 
-          {/* Push notification permission prompt */}
           <AutoNotificationPermission />
         </div>
       </NavigationWrapper>
@@ -491,68 +540,16 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
       {/* Dashboard background wrapper — background image covers the full viewport */}
       <div className="dashboard-bg-wrapper">
         <SidebarProvider defaultOpen>
-          <Sidebar연구 variant="sidebar" collapsible="icon">
-            <SidebarHeader
-              className={cn(
-                "p-3 flex flex-row items-center gap-2.5 transition-all duration-300 ease-in-out h-13 min-h-[52px]",
-                "group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-2"
-              )}
-            >
-              {/* Logo (shown in both states) */}
-              {!isLoadingSettings && currentSettings.generalInfo.logo && (
-                <Link href="/" className="flex-shrink-0">
-                  <div className="relative w-9 h-9 bg-transparent transition-all duration-300">
-                    <Image
-                      src={currentSettings.generalInfo.logo}
-                      alt={`${currentSettings.generalInfo.name || 'School'} Logo`}
-                      fill
-                      sizes="36px"
-                      className="rounded-md object-contain bg-transparent"
-                      data-ai-hint="school logo"
-                    />
-                  </div>
-                </Link>
-              )}
-
-              {/* Text info (hidden when collapsed) */}
-              <div
-                className={cn(
-                  "flex flex-col items-start min-w-0 transition-all duration-300 ease-in-out overflow-hidden w-full",
-                  "group-data-[state=collapsed]:w-0 group-data-[state=collapsed]:opacity-0 group-data-[state=collapsed]:invisible"
-                )}
-              >
-                <AnimatePresence mode="wait">
-                  {isLoadingSettings ? (
-                    <div className="h-8 w-24 bg-slate-100 animate-pulse rounded" />
-                  ) : (
-                    <motion.div
-                      key="text-content"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex flex-col items-start min-w-0 w-full"
-                    >
-                      <h2 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight leading-tight w-full break-words">
-                        {currentSettings.generalInfo.name || "School Name"}
-                      </h2>
-                      {currentSettings.generalInfo.motto && (
-                        <p className="text-[9px] text-slate-500 font-medium uppercase tracking-wider leading-none mt-0.5 truncate w-full">
-                          {currentSettings.generalInfo.motto}
-                        </p>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </SidebarHeader>
+          <Sidebar variant="sidebar" collapsible="icon">
+            <SidebarHeaderWrapper isLoadingSettings={isLoadingSettings} currentSettings={currentSettings} />
             <SidebarContent>
               <SidebarNav items={navItems} />
             </SidebarContent>
-            <SidebarFooter className="p-2 border-t border-sidebar-border flex flex-col gap-1.5">
-              <VersionLink />
+            <SidebarFooter className="p-3 group-data-[state=collapsed]:p-1.5 border-t border-gray-100">
+              <SidebarUserFooter />
             </SidebarFooter>
-          </Sidebar연구>
+          </Sidebar>
+
           {/* SidebarInset is transparent so the background image shows through */}
           <SidebarInset className="relative flex flex-col overflow-hidden min-w-0 h-[100dvh] !bg-transparent">
             <EnhancedHeader
@@ -560,6 +557,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
               showMenuButton={false}
             />
             <main
+              ref={mainRef}
               className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-0 md:pt-[52px]"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}

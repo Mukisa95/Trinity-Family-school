@@ -3,7 +3,7 @@
 import * as React from "react";
 import ReactDOM from "react-dom";
 import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, LayoutList, LayoutGrid, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer } from "lucide-react"; // Added more icons
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -240,6 +240,17 @@ export default function ExamsPage() {
     examTypeId: 'all',
     searchTerm: ''
   });
+
+  const [isFilterPopupOpen, setIsFilterPopupOpen] = React.useState(false);
+
+  const activeFiltersCount = React.useMemo(() => {
+    let count = 0;
+    if (listFilters.academicYearId !== 'all') count++;
+    if (listFilters.termId !== 'all') count++;
+    if (listFilters.classId !== 'all') count++;
+    if (listFilters.examTypeId !== 'all') count++;
+    return count;
+  }, [listFilters]);
 
   // Find the current term within the active academic year (fallback for backward compatibility)
   const getCurrentTerm = React.useCallback(() => {
@@ -1364,7 +1375,7 @@ export default function ExamsPage() {
   // 🚀 ENHANCED: Keep loader until page is truly ready
   if (coreDataLoading || !mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
@@ -1393,7 +1404,7 @@ export default function ExamsPage() {
   // 🚀 ENHANCED: Show error state with better UX
   if (examsError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md mx-auto p-6">
           <div className="flex items-center justify-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
@@ -1417,56 +1428,78 @@ export default function ExamsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+    <div className="min-h-screen animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="Exam Management"
+        subtitle="Schedule, track, and manage all school examinations."
+        backHref="/dashboard"
+        backLabel="Dashboard"
+        className="mb-1.5"
+        center={
+          <GlassPageSearchInput
+            placeholder="Search exams..."
+            value={listFilters.searchTerm}
+            onChange={(e) => handleListFilterChange('searchTerm', e.target.value)}
+          />
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search exams..."
+            value={listFilters.searchTerm}
+            onChange={(e) => handleListFilterChange('searchTerm', e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              onClick={() => setIsFilterPopupOpen(true)}
+              label="Filters"
+              icon={<Filter className="w-4 h-4" />}
+              tone="blue"
+              title="Filter Exams"
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+            />
+
+            <GlassActionButton
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setViewType(viewType === 'table' ? 'cards' : 'table');
+              }}
+              label="View"
+              icon={viewType === 'table' ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
+              tone="slate"
+              title={viewType === 'table' ? 'Switch to Card View' : 'Switch to Table View'}
+            />
+
+            <GlassActionButton
+              href="/remark-report"
+              label="Nursery"
+              icon={<GraduationCap className="w-4 h-4" />}
+              tone="indigo"
+              title="Nursery Reports"
+            />
+
+            <GlassActionButton
+              href="/exams/ple-results"
+              label="PLE"
+              icon={<BookOpen className="w-4 h-4" />}
+              tone="purple"
+              title="PLE Results"
+            />
+
+            <GlassActionButton
+              onClick={handleAddExam}
+              label="Schedule"
+              icon={<PlusCircle className="w-4 h-4" />}
+              tone="emerald"
+              title="Schedule New Exam"
+            />
+          </GlassActionDock>
+        }
+      />
       <div className="max-w-7xl mx-auto p-4 space-y-6 animate-in slide-in-from-bottom-4 duration-700">
-        <PageHeader
-          title="Exam Management"
-          description="Schedule, track, and manage all school examinations."
-          actions={
-            <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setViewType(viewType === 'table' ? 'cards' : 'table');
-                }}
-                type="button"
-                className="hidden sm:flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                title={viewType === 'table' ? 'Switch to Card View' : 'Switch to Table View'}
-              >
-                {viewType === 'table' ? <LayoutGrid className="w-4 h-4 mb-0.5" /> : <LayoutList className="w-4 h-4 mb-0.5" />}
-                <span className="text-[8px] font-semibold leading-tight">View</span>
-              </button>
-
-              <button
-                onClick={() => router.push('/remark-report')}
-                type="button"
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-indigo-600 border border-indigo-400 shadow-sm hover:bg-gradient-to-br hover:from-indigo-400 hover:via-purple-500 hover:to-indigo-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <GraduationCap className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-semibold leading-tight">Nursery</span>
-              </button>
-
-              <button
-                onClick={() => router.push('/exams/ple-results')}
-                type="button"
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <BookOpen className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-semibold leading-tight">PLE</span>
-              </button>
-
-              <button
-                onClick={handleAddExam}
-                type="button"
-                className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-              >
-                <PlusCircle className="w-4 h-4 mb-0.5" />
-                <span className="text-[8px] font-semibold leading-tight">Add</span>
-              </button>
-            </div>
-          }
-        />
 
         {/* Offline Indicator */}
         {isOffline && (
@@ -1482,192 +1515,166 @@ export default function ExamsPage() {
         {/* Show recess status banner if in recess mode */}
         <RecessStatusBanner />
 
-        {/* Responsive filters section */}
-        <div className="rounded-lg border shadow-sm mb-4">
-          <div
-            className="p-3 border-b bg-muted/30 flex items-center justify-between cursor-pointer"
-            onClick={() => setFiltersExpanded(!filtersExpanded)}
-          >
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium">Filters</h3>
-              {(listFilters.academicYearId !== 'all' ||
-                listFilters.termId !== 'all' ||
-                listFilters.classId !== 'all' ||
-                listFilters.examTypeId !== 'all' ||
-                listFilters.searchTerm.trim() !== '') && (
-                  <Badge variant="secondary" className="text-xs">Active</Badge>
-                )}
+      {/* Filters Dialog */}
+      <ModernDialog
+        open={isFilterPopupOpen}
+        onOpenChange={setIsFilterPopupOpen}
+      >
+        <ModernDialogContent size="md">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900">
+              <Filter size={20} className="text-indigo-600 animate-[pulse_2s_infinite]" />
+              Filter Exams
+            </ModernDialogTitle>
+            <ModernDialogDescription className="text-gray-500">
+              Apply filters to narrow down the list of examinations.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs font-medium">Academic Year</Label>
+              </div>
+              <Select
+                value={listFilters.academicYearId}
+                onValueChange={(value) => handleListFilterChange('academicYearId', value)}
+                disabled={academicYearsLoading}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+                  <SelectItem value="all">All Academic Years</SelectItem>
+                  {academicYears.map(year => {
+                    const isCurrent = year.id === currentAcademicYearId;
+                    const today = new Date();
+                    const yearEnd = new Date(year.endDate);
+                    const hasEnded = today > yearEnd;
+
+                    let label = '';
+                    if (isCurrent) {
+                      label = ' (Current)';
+                    } else if (year.isLocked) {
+                      label = ' (Locked)';
+                    } else if (!hasEnded) {
+                      label = ' (Upcoming)';
+                    }
+
+                    return (
+                      <SelectItem key={year.id} value={year.id}>
+                        {year.name}{label}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            {filtersExpanded ?
-              <ChevronUp className="h-4 w-4 text-muted-foreground" /> :
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            }
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <InfoIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs font-medium">Term</Label>
+              </div>
+              <Select
+                value={listFilters.termId}
+                onValueChange={(value) => handleListFilterChange('termId', value)}
+                disabled={academicYearsLoading || listFilters.academicYearId === 'all'}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select Term" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+                  <SelectItem value="all">All Terms</SelectItem>
+                  {listFilters.academicYearId !== 'all' &&
+                    academicYears.find(ay => ay.id === listFilters.academicYearId)?.terms.map(term => (
+                      <SelectItem key={term.id} value={term.id}>
+                        {term.name}{term.isCurrent ? ' (Current)' : ''}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <School className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs font-medium">Class</Label>
+              </div>
+              <Select
+                value={listFilters.classId}
+                onValueChange={(value) => handleListFilterChange('classId', value)}
+                disabled={classesLoading}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {allClasses.map(cls => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Type className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs font-medium">Exam Type</Label>
+              </div>
+              <Select
+                value={listFilters.examTypeId}
+                onValueChange={(value) => handleListFilterChange('examTypeId', value)}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select Type" />
+                </SelectTrigger>
+                <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+                  <SelectItem value="all">All Types</SelectItem>
+                  {sampleExamTypes.map(type => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {filtersExpanded && (
-            <div className="p-3">
-              {/* Search bar */}
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search exams..."
-                    value={listFilters.searchTerm}
-                    onChange={(e) => handleListFilterChange('searchTerm', e.target.value)}
-                    className="pl-8 h-9"
-                  />
-                  {listFilters.searchTerm && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 rounded-full hover:bg-red-50 hover:text-red-600 transition-all duration-200"
-                      onClick={() => handleListFilterChange('searchTerm', '')}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label className="text-xs font-medium">Academic Year</Label>
-                  </div>
-                  <Select
-                    value={listFilters.academicYearId}
-                    onValueChange={(value) => handleListFilterChange('academicYearId', value)}
-                    disabled={academicYearsLoading}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
-                      <SelectItem value="all">All Academic Years</SelectItem>
-                      {academicYears.map(year => {
-                        const isCurrent = year.id === currentAcademicYearId;
-                        const today = new Date();
-                        const yearEnd = new Date(year.endDate);
-                        const hasEnded = today > yearEnd;
-
-                        let label = '';
-                        if (isCurrent) {
-                          label = ' (Current)';
-                        } else if (year.isLocked) {
-                          label = ' (Locked)';
-                        } else if (!hasEnded) {
-                          label = ' (Upcoming)';
-                        }
-
-                        return (
-                          <SelectItem key={year.id} value={year.id}>
-                            {year.name}{label}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <InfoIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label className="text-xs font-medium">Term</Label>
-                  </div>
-                  <Select
-                    value={listFilters.termId}
-                    onValueChange={(value) => handleListFilterChange('termId', value)}
-                    disabled={academicYearsLoading || listFilters.academicYearId === 'all'}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select Term" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
-                      <SelectItem value="all">All Terms</SelectItem>
-                      {listFilters.academicYearId !== 'all' &&
-                        academicYears.find(ay => ay.id === listFilters.academicYearId)?.terms.map(term => (
-                          <SelectItem key={term.id} value={term.id}>
-                            {term.name}{term.isCurrent ? ' (Current)' : ''}
-                          </SelectItem>
-                        ))
-                      }
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <School className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label className="text-xs font-medium">Class</Label>
-                  </div>
-                  <Select
-                    value={listFilters.classId}
-                    onValueChange={(value) => handleListFilterChange('classId', value)}
-                    disabled={classesLoading}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select Class" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
-                      <SelectItem value="all">All Classes</SelectItem>
-                      {allClasses.map(cls => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Type className="h-3.5 w-3.5 text-muted-foreground" />
-                    <Label className="text-xs font-medium">Exam Type</Label>
-                  </div>
-                  <Select
-                    value={listFilters.examTypeId}
-                    onValueChange={(value) => handleListFilterChange('examTypeId', value)}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
-                      <SelectItem value="all">All Types</SelectItem>
-                      {sampleExamTypes.map(type => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full border-2 border-gray-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200 shadow-sm hover:shadow-md h-8 px-4"
-                  onClick={() => {
-                    const effectiveTerm = getEffectiveTermForDataDisplay(academicYears);
-                    setListFilters({
-                      academicYearId: effectiveTerm?.academicYear?.id || 'all',
-                      termId: effectiveTerm?.term?.id || 'all',
-                      classId: 'all',
-                      examTypeId: 'all',
-                      searchTerm: ''
-                    });
-                  }}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  <span className="font-medium text-xs">Reset Filters</span>
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+          <ModernDialogFooter>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={() => {
+                  const effectiveTerm = getEffectiveTermForDataDisplay(academicYears);
+                  setListFilters({
+                    academicYearId: effectiveTerm?.academicYear?.id || 'all',
+                    termId: effectiveTerm?.term?.id || 'all',
+                    classId: 'all',
+                    examTypeId: 'all',
+                    searchTerm: listFilters.searchTerm
+                  });
+                  setIsFilterPopupOpen(false);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200"
+              >
+                <X size={12} />
+                <span>Clear All ({activeFiltersCount})</span>
+              </button>
+            )}
+            <button
+              onClick={() => setIsFilterPopupOpen(false)}
+              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all duration-200"
+            >
+              Done
+            </button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
 
         {/* Show either table or card view based on viewType */}
         {viewType === 'table' ? (
@@ -2682,8 +2689,8 @@ export default function ExamsPage() {
                     <div className={`${showBatchHeader ? 'p-2.5 lg:p-3' : 'p-0'}`}>
                       {!showBatchHeader && (
                         <div className="bg-white px-4 py-4 sm:px-5">
-                          <div className="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-3 xl:grid-cols-[minmax(260px,1.22fr)_minmax(150px,0.72fr)_minmax(150px,0.72fr)_minmax(240px,1fr)_auto] xl:items-center xl:gap-x-0 xl:gap-y-0">
-                            <div className="flex min-w-0 items-center gap-3 xl:pr-5">
+                          <div className="grid gap-3 md:grid-cols-2 md:gap-x-5 md:gap-y-3 xl:grid-cols-[minmax(180px,1.2fr)_minmax(100px,0.7fr)_minmax(100px,0.7fr)_minmax(180px,1fr)_auto] xl:items-center xl:gap-x-0 xl:gap-y-0">
+                            <div className="flex min-w-0 items-center gap-3 xl:pr-3">
                               <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white shadow-sm">
                                 {allClasses.find(c => c.id === firstExam.classId)?.code || 'N/A'}
                               </div>
@@ -2697,11 +2704,11 @@ export default function ExamsPage() {
                               </div>
                             </div>
 
-                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-5">
+                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3">
                               <p className="font-medium text-slate-900">{firstExam.examTypeName || firstExam.examTypeId}</p>
                             </div>
 
-                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-5">
+                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3">
                               <p className="font-medium text-slate-900">
                                 {firstExam.examNature === 'Subject based'
                                   ? (firstExam.subjectIds && firstExam.subjectIds.length > 0
@@ -2711,7 +2718,7 @@ export default function ExamsPage() {
                               </p>
                             </div>
 
-                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-5">
+                            <div className="text-sm text-slate-700 xl:border-l xl:border-slate-100 xl:px-3">
                               <div className="flex flex-wrap items-center gap-2 text-sm">
                                 <p className="font-medium text-slate-900">{formatDateRange(firstExam.startDate, firstExam.endDate)}</p>
                                 {(() => {
@@ -2731,7 +2738,7 @@ export default function ExamsPage() {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end xl:border-l xl:border-slate-100 xl:pl-5">
+                            <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end xl:border-l xl:border-slate-100 xl:pl-3">
                               <Button variant="outline" size="sm" asChild className="h-9 w-9 rounded-full border-2 border-blue-300 p-0 text-blue-700 shadow-sm transition-all duration-200 hover:border-blue-500 hover:bg-blue-50">
                                 <Link href={`/exams/${firstExam.id}/record-results?classId=${firstExam.classId}`}>
                                   <FilePenLine className="h-4 w-4" />
@@ -3297,8 +3304,8 @@ export default function ExamsPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="sm:col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                      <div className="sm:col-span-6">
                         <Label htmlFor="examName" className="text-sm font-medium text-slate-700">Exam Name <span className="text-rose-500">*</span></Label>
                         <Input
                           id="examName"
@@ -3308,7 +3315,7 @@ export default function ExamsPage() {
                           className="mt-1.5"
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-3">
                         <Label htmlFor="examTypeId" className="text-sm font-medium text-slate-700">Exam Type <span className="text-rose-500">*</span></Label>
                         <Select value={examTypeId} onValueChange={(val) => {
                           setExamTypeId(val);
@@ -3322,7 +3329,7 @@ export default function ExamsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div>
+                      <div className="sm:col-span-3">
                         <Label htmlFor="examNature" className="text-sm font-medium text-slate-700">
                           {selectedClassIdsForm.length > 1 && !editingExam ? "Default Exam Nature" : "Exam Nature"} <span className="text-rose-500">*</span>
                         </Label>
@@ -3349,11 +3356,11 @@ export default function ExamsPage() {
                             {EXAM_NATURES.map(nature => <SelectItem key={nature} value={nature}>{nature}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                        {selectedClassIdsForm.length > 1 && !editingExam && (
-                          <p className="mt-1.5 text-xs text-slate-500">This applies to all selected classes first. You can still override each class below.</p>
-                        )}
                       </div>
                     </div>
+                    {selectedClassIdsForm.length > 1 && !editingExam && (
+                      <p className="mt-1.5 text-xs text-slate-500">This applies to all selected classes first. You can still override each class below.</p>
+                    )}
 
                     {examTypeId === 'et_cat' && (
                       <div>
@@ -3370,212 +3377,170 @@ export default function ExamsPage() {
                   </div>
                 </div>
 
-                {/* SECTION 2: Schedule & Grading */}
+                {/* SECTION 2: Schedule and class */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
                     <CalendarClock className="h-4 w-4 text-purple-500" />
-                    <h3 className="text-sm font-semibold text-slate-700">Schedule & Grading</h3>
+                    <h3 className="text-sm font-semibold text-slate-700">Schedule and class</h3>
                   </div>
                   <div className="p-4 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                      <div className={isAddingSet ? "sm:col-span-6" : "sm:col-span-4"}>
                         <Label className="text-sm font-medium text-slate-700">Start Date <span className="text-rose-500">*</span></Label>
                         <div className="mt-1.5">
                           <ModernDatePicker date={startDate} setDate={setStartDate} placeholder="Select start date" showQuickSelects={true} minDate={getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} />
                         </div>
                       </div>
-                      <div>
+                      <div className={isAddingSet ? "sm:col-span-6" : "sm:col-span-4"}>
                         <Label className="text-sm font-medium text-slate-700">End Date <span className="text-rose-500">*</span></Label>
                         <div className="mt-1.5">
                           <ModernDatePicker date={endDate} setDate={setEndDate} placeholder="Select end date" showQuickSelects={true} minDate={startDate || getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} />
                         </div>
                       </div>
+                      {!isAddingSet && (
+                        <div className="sm:col-span-4">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium text-slate-700">Target Class(es) <span className="text-rose-500">*</span></Label>
+                            {selectedClassIdsForm.length > 0 && (
+                              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{selectedClassIdsForm.length} selected</span>
+                            )}
+                          </div>
+                          <div className="mt-1.5">
+                            <MultiSelect
+                              options={allClasses.map(cls => ({ value: cls.id, label: cls.code }))}
+                              selected={selectedClassIdsForm}
+                              onChange={(selected) => {
+                                setSelectedClassIdsForm(selected);
+                                if (selected.length < selectedClassIdsForm.length) {
+                                  const removedClasses = selectedClassIdsForm.filter(id => !selected.includes(id));
+                                  setPerClassExamNatures(prev => {
+                                    const updated = { ...prev };
+                                    removedClasses.forEach(classId => { delete updated[classId]; });
+                                    return updated;
+                                  });
+                                  setPerClassSelectedSubjects(prev => {
+                                    const updated = { ...prev };
+                                    removedClasses.forEach(classId => { delete updated[classId]; });
+                                    return updated;
+                                  });
+                                }
+                              }}
+                              placeholder="Select classes..."
+                              searchPlaceholder="Search classes..."
+                              disabled={!!editingExam || allClasses.length === 0}
+                              className="w-full"
+                            />
+                            {allClasses.length === 0 && <p className="text-xs text-slate-500 mt-2">No classes available.</p>}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {!isAddingSet && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                        <div>
-                          <Label htmlFor="maxMarks" className="text-sm font-medium text-slate-700">Max Marks <span className="text-rose-500">*</span></Label>
-                          <Input id="maxMarks" type="number" value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)} placeholder="100" className="mt-1.5" />
+                    {!isAddingSet && pupilsLoading && (
+                      <div className="flex items-center p-2.5 mb-2 bg-blue-50 rounded-lg border border-blue-100">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2 text-blue-500" />
+                        <span className="text-sm text-blue-700">Loading class data...</span>
+                      </div>
+                    )}
+
+                    {!isAddingSet && selectedClassIdsForm.length > 1 && !editingExam && (
+                      <div className="pt-3 border-t border-slate-100">
+                        <Label className="text-sm font-medium text-slate-700">Per Class Setup <span className="text-rose-500">*</span></Label>
+                        <p className="text-xs text-slate-500 mt-0.5 mb-3">Choose the exam nature for each class. Subject-based classes can then pick their own subjects.</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedClassIdsForm.map(classId => {
+                            const currentClass = allClasses.find(c => c.id === classId);
+                            const classNature = getExamNatureForClass(classId);
+                            const subjectsInThisClass = getSubjectsForClass(classId);
+
+                            return (
+                              <div key={`class-setup-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
+                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
+                                  <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
+                                </div>
+                                <div className="p-3 space-y-3">
+                                  <div>
+                                    <Label className="text-xs font-medium text-slate-600">Exam Nature</Label>
+                                    <Select value={classNature} onValueChange={(value) => handlePerClassExamNatureChange(classId, value as ExamNature)}>
+                                      <SelectTrigger className="mt-1.5">
+                                        <SelectValue placeholder="Select nature" />
+                                      </SelectTrigger>
+                                      <SelectContent position="popper">
+                                        {EXAM_NATURES.map(nature => <SelectItem key={`${classId}-${nature}`} value={nature}>{nature}</SelectItem>)}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  {classNature === 'Subject based' && (
+                                    <div>
+                                      <Label className="text-xs font-medium text-slate-600">Subjects</Label>
+                                      <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5">
+                                        {subjectsInThisClass.length === 0 ? (
+                                          <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
+                                        ) : (
+                                          subjectsInThisClass.map(sub => (
+                                            <label key={`multi-class-${classId}-${sub.id}`} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors">
+                                              <Checkbox
+                                                id={`class-${classId}-subj-${sub.id}`}
+                                                checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
+                                                onCheckedChange={(checked) => handlePerClassSubjectIdChange(classId, sub.id, checked)}
+                                                className="h-4 w-4"
+                                              />
+                                              <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
+                                            </label>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div>
-                          <Label htmlFor="passingMarks" className="text-sm font-medium text-slate-700">Passing Marks <span className="text-rose-500">*</span></Label>
-                          <Input id="passingMarks" type="number" value={passingMarks} onChange={(e) => setPassingMarks(e.target.value)} placeholder="40" className="mt-1.5" />
+                      </div>
+                    )}
+
+                    {!isAddingSet && selectedClassIdsForm.length > 0 && selectedClassIdsForm.some(classId => getExamNatureForClass(classId) === 'Subject based') && selectedClassIdsForm.length <= 1 && (
+                      <div className="pt-3 border-t border-slate-100">
+                        <Label className="text-sm font-medium text-slate-700">Target Subjects per Class <span className="text-rose-500">*</span></Label>
+                        <p className="text-xs text-slate-500 mt-0.5 mb-3">Select subjects for each selected class.</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedClassIdsForm.map(classId => {
+                            const subjectsInThisClass = getSubjectsForClass(classId);
+                            const currentClass = allClasses.find(c => c.id === classId);
+                            return (
+                              <div key={`class-subjects-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
+                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
+                                  <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
+                                </div>
+                                <div className="p-3 max-h-40 overflow-y-auto space-y-1.5">
+                                  {subjectsInThisClass.length === 0 ? (
+                                    <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
+                                  ) : (
+                                    subjectsInThisClass.map(sub => (
+                                      <label key={sub.id} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors">
+                                        <Checkbox
+                                          id={`class-${classId}-subj-${sub.id}`}
+                                          checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
+                                          onCheckedChange={(checked) => handlePerClassSubjectIdChange(classId, sub.id, checked)}
+                                          className="h-4 w-4"
+                                        />
+                                        <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
+                                      </label>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* SECTION 3: Target Audience */}
-                {!isAddingSet && (
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
-                      <Users className="h-4 w-4 text-emerald-500" />
-                      <h3 className="text-sm font-semibold text-slate-700">Target Audience</h3>
-                    </div>
-                    <div className="p-4 space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-sm font-medium text-slate-700">Target Class(es) <span className="text-rose-500">*</span></Label>
-                          {selectedClassIdsForm.length > 0 && (
-                            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{selectedClassIdsForm.length} selected</span>
-                          )}
-                        </div>
-                        {pupilsLoading && (
-                          <div className="flex items-center p-2.5 mb-2 bg-blue-50 rounded-lg border border-blue-100">
-                            <Loader2 className="h-4 w-4 animate-spin mr-2 text-blue-500" />
-                            <span className="text-sm text-blue-700">Loading class data...</span>
-                          </div>
-                        )}
-                        <MultiSelect
-                          options={allClasses.map(cls => ({ value: cls.id, label: cls.code }))}
-                          selected={selectedClassIdsForm}
-                          onChange={(selected) => {
-                            setSelectedClassIdsForm(selected);
-                            if (selected.length < selectedClassIdsForm.length) {
-                              const removedClasses = selectedClassIdsForm.filter(id => !selected.includes(id));
-                              setPerClassExamNatures(prev => {
-                                const updated = { ...prev };
-                                removedClasses.forEach(classId => { delete updated[classId]; });
-                                return updated;
-                              });
-                              setPerClassSelectedSubjects(prev => {
-                                const updated = { ...prev };
-                                removedClasses.forEach(classId => { delete updated[classId]; });
-                                return updated;
-                              });
-                            }
-                          }}
-                          placeholder="Select one or more classes..."
-                          searchPlaceholder="Search classes..."
-                          disabled={!!editingExam || allClasses.length === 0}
-                          className="w-full"
-                        />
-                        {allClasses.length === 0 && <p className="text-xs text-slate-500 mt-2">No classes available for this term.</p>}
-                      </div>
 
-                      {selectedClassIdsForm.length > 1 && !editingExam && (
-                        <div className="pt-3 border-t border-slate-100">
-                          <Label className="text-sm font-medium text-slate-700">Per Class Setup <span className="text-rose-500">*</span></Label>
-                          <p className="text-xs text-slate-500 mt-0.5 mb-3">Choose the exam nature for each class. Subject-based classes can then pick their own subjects.</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {selectedClassIdsForm.map(classId => {
-                              const currentClass = allClasses.find(c => c.id === classId);
-                              const classNature = getExamNatureForClass(classId);
-                              const subjectsInThisClass = getSubjectsForClass(classId);
-
-                              return (
-                                <div key={`class-setup-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
-                                  <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
-                                    <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
-                                  </div>
-                                  <div className="p-3 space-y-3">
-                                    <div>
-                                      <Label className="text-xs font-medium text-slate-600">Exam Nature</Label>
-                                      <Select value={classNature} onValueChange={(value) => handlePerClassExamNatureChange(classId, value as ExamNature)}>
-                                        <SelectTrigger className="mt-1.5">
-                                          <SelectValue placeholder="Select nature" />
-                                        </SelectTrigger>
-                                        <SelectContent position="popper">
-                                          {EXAM_NATURES.map(nature => <SelectItem key={`${classId}-${nature}`} value={nature}>{nature}</SelectItem>)}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-
-                                    {classNature === 'Subject based' && (
-                                      <div>
-                                        <Label className="text-xs font-medium text-slate-600">Subjects</Label>
-                                        <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5">
-                                          {subjectsInThisClass.length === 0 ? (
-                                            <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
-                                          ) : (
-                                            subjectsInThisClass.map(sub => (
-                                              <label key={`multi-class-${classId}-${sub.id}`} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors">
-                                                <Checkbox
-                                                  id={`class-${classId}-subj-${sub.id}`}
-                                                  checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
-                                                  onCheckedChange={(checked) => handlePerClassSubjectIdChange(classId, sub.id, checked)}
-                                                  className="h-4 w-4"
-                                                />
-                                                <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
-                                              </label>
-                                            ))
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedClassIdsForm.length > 0 && selectedClassIdsForm.some(classId => getExamNatureForClass(classId) === 'Subject based') && selectedClassIdsForm.length <= 1 && (
-                        <div className="pt-3 border-t border-slate-100">
-                          <Label className="text-sm font-medium text-slate-700">Target Subjects per Class <span className="text-rose-500">*</span></Label>
-                          <p className="text-xs text-slate-500 mt-0.5 mb-3">Select subjects for each selected class.</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {selectedClassIdsForm.map(classId => {
-                              const subjectsInThisClass = getSubjectsForClass(classId);
-                              const currentClass = allClasses.find(c => c.id === classId);
-                              return (
-                                <div key={`class-subjects-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
-                                  <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
-                                    <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
-                                  </div>
-                                  <div className="p-3 max-h-40 overflow-y-auto space-y-1.5">
-                                    {subjectsInThisClass.length === 0 ? (
-                                      <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
-                                    ) : (
-                                      subjectsInThisClass.map(sub => (
-                                        <label key={sub.id} className="flex items-center gap-2.5 bg-white border border-slate-200 rounded-md px-3 py-1.5 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-colors">
-                                          <Checkbox
-                                            id={`class-${classId}-subj-${sub.id}`}
-                                            checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
-                                            onCheckedChange={(checked) => handlePerClassSubjectIdChange(classId, sub.id, checked)}
-                                            className="h-4 w-4"
-                                          />
-                                          <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
-                                        </label>
-                                      ))
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* SECTION 4: Options */}
-                {!isAddingSet && (
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-amber-500" />
-                      <h3 className="text-sm font-semibold text-slate-700">Options</h3>
-                    </div>
-                    <div className="p-4">
-                      <label className="flex items-start gap-3 cursor-pointer group">
-                        <Checkbox
-                          id="markAsEvent"
-                          checked={markAsEvent}
-                          onCheckedChange={(checked) => setMarkAsEvent(checked as boolean)}
-                          className="mt-0.5 h-4 w-4"
-                        />
-                        <div>
-                          <span className="text-sm font-medium text-slate-800 group-hover:text-amber-700 transition-colors">Publish to School Calendar</span>
-                          <p className="text-xs text-slate-500 mt-0.5">Automatically create calendar events for the exam start and end dates.</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                )}
 
               </div>
               {/* --- END SCROLLABLE BODY --- */}

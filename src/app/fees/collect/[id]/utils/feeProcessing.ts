@@ -18,7 +18,7 @@ import { PaymentType } from '../types';
 /**
  * Checks if an assignment is currently valid based on its time settings
  */
-function isAssignmentCurrentlyValid(
+export function isAssignmentCurrentlyValid(
   assignment: PupilAssignedFee,
   currentTermId: string,
   currentAcademicYear: AcademicYear,
@@ -1121,7 +1121,21 @@ function getPupilStatusOnDate(pupil: Pupil, dateStr: string): string {
  *   Start=Graduated, End=Graduated → ❌ excluded (post-graduation terms)
  *   Start=Inactive, End=Active    → ✅ included (mid-term activation)
  */
-function isPupilFeesActiveForTerm(
+function hasStatusTransitionDuringTerm(
+  pupil: Pupil,
+  term: { startDate: string; endDate: string },
+  toStatus: string
+): boolean {
+  const termStart = term.startDate.split('T')[0];
+  const termEnd = term.endDate.split('T')[0];
+
+  return (pupil.statusChangeHistory || []).some(entry => {
+    const entryDate = entry.date.split('T')[0];
+    return entry.toStatus === toStatus && entryDate >= termStart && entryDate <= termEnd;
+  });
+}
+
+export function isPupilFeesActiveForTerm(
   pupil: Pupil,
   term: { startDate: string; endDate: string }
 ): boolean {
@@ -1131,11 +1145,17 @@ function isPupilFeesActiveForTerm(
 
   // Active at term start → include (catches normal terms + graduation term)
   const statusAtTermStart = getPupilStatusOnDate(pupil, term.startDate);
-  if (FEES_ACTIVE_STATUSES.has(statusAtTermStart)) return true;
+  const statusAtTermEnd = getPupilStatusOnDate(pupil, term.endDate);
+
+  // Active by term end covers normal, newly activated, and reactivated terms.
+  // Graduation keeps its term as the only start-date exception.
+  if (FEES_ACTIVE_STATUSES.has(statusAtTermEnd)) return true;
 
   // Active at term end → include (catches mid-term re-activation)
-  const statusAtTermEnd = getPupilStatusOnDate(pupil, term.endDate);
-  return FEES_ACTIVE_STATUSES.has(statusAtTermEnd);
+  return (
+    FEES_ACTIVE_STATUSES.has(statusAtTermStart) &&
+    hasStatusTransitionDuringTerm(pupil, term, 'Graduated')
+  );
 }
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -1497,7 +1517,9 @@ export function isPupilValidForTerm(
   term: { id: string; name: string; startDate: string; endDate: string },
   academicYear: AcademicYear
 ): boolean {
-  if (!pupil.registrationDate) return true; // If no registration date, show in all terms
+  if (!isPupilFeesActiveForTerm(pupil, term)) return false;
+
+  if (!pupil.registrationDate) return true; // If no registration date, show in all fees-active terms
 
   const registrationDate = new Date(pupil.registrationDate);
   const termEndDate = new Date(term.endDate);

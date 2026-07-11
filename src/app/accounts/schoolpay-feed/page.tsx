@@ -8,6 +8,7 @@ import {
   Zap, ArrowLeft, ExternalLink, ChevronDown, ChevronRight,
   RefreshCw, Calendar, ShieldAlert
 } from 'lucide-react';
+import { GlassPageTopBar } from '@/components/common/glass-page-top-bar';
 import { useSchoolPayFeedState, type TxStatus } from '@/lib/hooks/use-schoolpay-feed-state';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
@@ -321,6 +322,7 @@ function FeedContent() {
   const [allTermLabels, setAllTermLabels] = useState<Map<string, string>>(new Map());
   const [connectionState, setConnectionState] = useState<FeedConnectionState>('connecting');
   const [isLoadingPupils, setIsLoadingPupils] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'seen' | 'clicked' | 'today'>('all');
 
   // Mark feed as viewed on mount — clears the badge
   useEffect(() => {
@@ -493,8 +495,21 @@ function FeedContent() {
 
     transactions.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
 
+    // Apply statusFilter
+    let filteredTransactions = transactions;
+    if (statusFilter === 'new') {
+      filteredTransactions = transactions.filter(tx => getTxStatus(tx.key, tx.paymentDate) === 'new');
+    } else if (statusFilter === 'seen') {
+      filteredTransactions = transactions.filter(tx => getTxStatus(tx.key, tx.paymentDate) === 'seen');
+    } else if (statusFilter === 'clicked') {
+      filteredTransactions = transactions.filter(tx => getTxStatus(tx.key, tx.paymentDate) === 'clicked');
+    } else if (statusFilter === 'today') {
+      const todayKey = toDateKey(new Date().toISOString());
+      filteredTransactions = transactions.filter(tx => toDateKey(tx.paymentDate) === todayKey);
+    }
+
     const dayMap = new Map<string, GroupedTransaction[]>();
-    for (const tx of transactions) {
+    for (const tx of filteredTransactions) {
       const dk = toDateKey(tx.paymentDate);
       if (!dayMap.has(dk)) dayMap.set(dk, []);
       dayMap.get(dk)!.push(tx);
@@ -508,7 +523,7 @@ function FeedContent() {
         transactions: txs,
         dayTotal: txs.reduce((s, tx) => s + tx.totalAmount, 0),
       }));
-  }, [payments, pupils]);
+  }, [payments, pupils, statusFilter, getTxStatus]);
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const allTxKeys = useMemo(() => {
@@ -523,26 +538,28 @@ function FeedContent() {
   const newCount = Array.from(allTxKeys.entries()).filter(([k, d]) => getTxStatus(k, d) === 'new').length;
   const seenCount = Array.from(allTxKeys.entries()).filter(([k, d]) => getTxStatus(k, d) === 'seen').length;
   const clickedCount = Array.from(allTxKeys.entries()).filter(([k, d]) => getTxStatus(k, d) === 'clicked').length;
-  const totalToday = dayGroups[0]?.dateLabel === 'Today' ? dayGroups[0].dayTotal : 0;
+
+  const totalToday = useMemo(() => {
+    const todayKey = toDateKey(new Date().toISOString());
+    const txMap = new Map<string, number>();
+    for (const p of payments) {
+      if (toDateKey(p.paymentDate) === todayKey) {
+        const key = p.schoolPayReceiptNumber || p.schoolPayTransactionId || p.id;
+        txMap.set(key, (txMap.get(key) || 0) + (p.amount || 0));
+      }
+    }
+    return Array.from(txMap.values()).reduce((sum, amt) => sum + amt, 0);
+  }, [payments]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/20 to-purple-50/10">
-      <div className="w-full px-3 sm:px-4 lg:px-6 py-4 space-y-4 pb-10">
-
-        {/* Header */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => router.back()}
-            className="w-8 h-8 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors flex-shrink-0"
-          >
-            <ArrowLeft size={15} />
-          </button>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-              <Zap size={14} />
-            </div>
-            <h1 className="text-base font-bold text-gray-900 truncate">SchoolPay Live Feed</h1>
-            {/* Connection badge */}
+      <GlassPageTopBar
+        title="SchoolPay Live Feed"
+        subtitle="Real-time SchoolPay payment transactions"
+        backHref="/accounts"
+        backLabel="Back to accounts"
+        meta={
+          <div className="flex items-center gap-1.5 flex-wrap">
             <div className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
               connectionState === 'live'
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
@@ -553,28 +570,67 @@ function FeedContent() {
               }`} />
               {connectionState === 'live' ? 'Live' : connectionState === 'reconnecting' ? 'Reconnecting' : 'Listening'}
             </div>
+            
+            <button
+              onClick={() => setStatusFilter(prev => prev === 'today' ? 'all' : 'today')}
+              className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
+                statusFilter === 'today'
+                  ? 'bg-slate-200 border-slate-400 text-slate-900 font-extrabold ring-2 ring-slate-400/40 shadow-md scale-105'
+                  : 'bg-white/80 border-gray-200/60 shadow-sm hover:bg-gray-100/70'
+              }`}
+              title={statusFilter === 'today' ? "Click to clear filter" : "Filter by payments received today"}
+            >
+              <span className="font-bold text-gray-500 uppercase">Today:</span>
+              <span className="font-bold text-gray-900">{fmt(totalToday)}</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter(prev => prev === 'new' ? 'all' : 'new')}
+              className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
+                statusFilter === 'new'
+                  ? 'bg-orange-100 border-orange-400 text-orange-900 font-extrabold ring-2 ring-orange-400/40 shadow-md scale-105'
+                  : 'bg-orange-50 border-orange-200/55 shadow-sm hover:bg-orange-100/60'
+              }`}
+              title={statusFilter === 'new' ? "Click to clear filter" : "Filter by new unread payments"}
+            >
+              <span className="font-bold text-orange-500 uppercase">New:</span>
+              <span className="font-bold text-orange-700">{newCount}</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter(prev => prev === 'seen' ? 'all' : 'seen')}
+              className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
+                statusFilter === 'seen'
+                  ? 'bg-blue-100 border-blue-400 text-blue-900 font-extrabold ring-2 ring-blue-400/40 shadow-md scale-105'
+                  : 'bg-blue-50 border-blue-200/55 shadow-sm hover:bg-blue-100/60'
+              }`}
+              title={statusFilter === 'seen' ? "Click to clear filter" : "Filter by viewed/seen payments"}
+            >
+              <span className="font-bold text-blue-500 uppercase">Seen:</span>
+              <span className="font-bold text-blue-700">{seenCount}</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter(prev => prev === 'clicked' ? 'all' : 'clicked')}
+              className={`rounded-full border transition-all duration-200 active:scale-95 px-2 py-0.5 flex items-center gap-1 text-[10px] ${
+                statusFilter === 'clicked'
+                  ? 'bg-emerald-100 border-emerald-400 text-emerald-900 font-extrabold ring-2 ring-emerald-400/40 shadow-md scale-105'
+                  : 'bg-emerald-50 border-emerald-200/55 shadow-sm hover:bg-emerald-100/60'
+              }`}
+              title={statusFilter === 'clicked' ? "Click to clear filter" : "Filter by processed/viewed fees"}
+            >
+              <span className="font-bold text-emerald-500 uppercase">Done:</span>
+              <span className="font-bold text-emerald-700">{clickedCount}</span>
+            </button>
+            {statusFilter !== 'all' && (
+              <button
+                onClick={() => setStatusFilter('all')}
+                className="text-[9px] font-bold text-violet-600 hover:text-violet-800 transition-colors uppercase px-1 py-0.5 border border-dashed border-violet-300 rounded hover:bg-violet-50/50"
+              >
+                Clear Filter
+              </button>
+            )}
           </div>
-        </div>
-
-        {/* Stats strip — compact, responsive */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-2 py-2 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400">Today</p>
-            <p className="text-xs font-bold text-gray-900 mt-0.5 truncate">{fmt(totalToday)}</p>
-          </div>
-          <div className="bg-orange-50 rounded-xl border border-orange-200 shadow-sm px-2 py-2 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-orange-400">New</p>
-            <p className="text-sm font-bold text-orange-700 mt-0.5">{newCount}</p>
-          </div>
-          <div className="bg-blue-50 rounded-xl border border-blue-200 shadow-sm px-2 py-2 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-blue-400">Seen</p>
-            <p className="text-sm font-bold text-blue-700 mt-0.5">{seenCount}</p>
-          </div>
-          <div className="bg-emerald-50 rounded-xl border border-emerald-200 shadow-sm px-2 py-2 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Done</p>
-            <p className="text-sm font-bold text-emerald-700 mt-0.5">{clickedCount}</p>
-          </div>
-        </div>
+        }
+      />
+      <div className="w-full px-3 sm:px-4 lg:px-6 py-4 space-y-4 pb-10">
 
         {/* Feed */}
         {payments.length === 0 && !isLoadingPupils ? (

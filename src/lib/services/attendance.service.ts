@@ -67,10 +67,7 @@ export class AttendanceService {
         limit(500) // Prevent loading thousands of records
       );
 
-      // Increase timeout for Android/Capacitor
-      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
-      const timeout = isNative ? 60000 : 30000; // 60s for native, 30s for web
-      const docs = await getDocsWithTimeout<any>(q, timeout);
+      const docs = await getDocsWithTimeout<any>(q, 30000);
 
       const records = docs.map(doc => {
         const data = doc;

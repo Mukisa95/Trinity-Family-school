@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, GraduationCap, User, Calendar, Trophy, TrendingUp, Printer, Download } from 'lucide-react';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -192,8 +192,13 @@ Division: ${pupilResult.division}`;
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-4xl mx-auto p-4 space-y-6">
-          <PageHeader title="Loading PLE Performance..." />
+        <GlassPageTopBar
+          title="PLE Performance"
+          subtitle="Loading pupil performance..."
+          backHref={`/exams/ple-results/${pleId}/view-results`}
+          backLabel="Back to results"
+        />
+        <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="ml-2">Loading pupil performance...</span>
@@ -206,8 +211,13 @@ Division: ${pupilResult.division}`;
   if (!pupilResult || !pleRecord) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-4xl mx-auto p-4 space-y-6">
-          <PageHeader title="PLE Performance Not Found" />
+        <GlassPageTopBar
+          title="PLE Performance"
+          subtitle="PLE Performance Not Found"
+          backHref={`/exams/ple-results/${pleId}/view-results`}
+          backLabel="Back to results"
+        />
+        <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center py-8">
             <p className="text-muted-foreground">No PLE performance data found for this pupil.</p>
             <Button onClick={() => router.back()} className="mt-4">
@@ -221,26 +231,26 @@ Division: ${pupilResult.division}`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
-        <PageHeader
-          title={`PLE Performance - ${pleRecord.year}`}
-          description={`Detailed PLE examination results for ${formatPupilDisplayName(pupilResult)}`}
-          actions={
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => router.back()}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              {pupilResult.status !== 'missed' && (
-                <Button onClick={handlePrintCertificate}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Certificate
-                </Button>
-              )}
-            </div>
-          }
-        />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title={`PLE Performance - ${pleRecord.year}`}
+        subtitle={`Detailed PLE examination results for ${formatPupilDisplayName(pupilResult)}`}
+        backHref={`/exams/ple-results/${pleId}/view-results`}
+        backLabel="Back to results"
+        actions={
+          pupilResult.status !== 'missed' ? (
+            <GlassActionDock>
+              <GlassActionButton
+                label="Download Certificate"
+                icon={<Download className="h-4 w-4" />}
+                tone="blue"
+                onClick={handlePrintCertificate}
+              />
+            </GlassActionDock>
+          ) : undefined
+        }
+      />
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
         {/* Pupil Information */}
         <Card>

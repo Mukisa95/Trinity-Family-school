@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -159,30 +160,70 @@ export default function DormitoriesPage() {
   };
 
   return (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none" />
-      <div className="relative p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 p-[2px]">
-              <div className="rounded-full bg-white px-3 py-1 text-[11px] font-medium text-indigo-700">
-                In-House
-              </div>
+    <div className="min-h-screen animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="Dormitories"
+        subtitle="Manage student housing, patrons, and in-charge pupil assignments"
+        backHref="/boarding"
+        backLabel="Back to boarding"
+        className="mb-1.5"
+        meta={
+          <div className="rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 p-[1px] shrink-0 shadow-sm">
+            <div className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+              In-House
             </div>
-            <PageHeader title="Dormitories" />
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/boarding/list">
-              <Button className="rounded-full bg-white/60 backdrop-blur border border-white/60 shadow-sm hover:bg-white text-indigo-700">
-                List
-              </Button>
-            </Link>
-            <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); setOpen(v); }}>
-              <DialogTrigger asChild>
-                <Button className="inline-flex gap-2 rounded-full bg-gradient-to-r from-orange-500 to-rose-600 text-white shadow-lg hover:from-orange-600 hover:to-rose-700">
-                  <Plus className="h-4 w-4" /> {editing ? 'Edit' : 'Create'}
-                </Button>
-              </DialogTrigger>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="List"
+              icon={<Bed className="h-4 w-4" />}
+              tone="slate"
+              href="/boarding/list"
+            />
+            <GlassActionButton
+              label={editing ? 'Edit' : 'Create'}
+              icon={<Plus className="h-4 w-4" />}
+              tone="orange"
+              onClick={() => setOpen(true)}
+            />
+          </GlassActionDock>
+        }
+      />
+
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Dormitories Summary
+            </span>
+          </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">{dormitories.length}</span>
+              <span className="text-indigo-700/85 dark:text-indigo-300 font-medium">Total Dorms</span>
+            </div>
+            <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-green-600 dark:text-green-400">{dormitories.reduce((n, d) => n + (d.bedCapacity ?? 0), 0)}</span>
+              <span className="text-green-700/85 dark:text-green-300 font-medium">Total Capacity</span>
+            </div>
+            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-blue-600 dark:text-blue-400">{dormitories.filter(d => d.gender === 'Male').length}</span>
+              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Boys Dorms</span>
+            </div>
+            <div className="flex items-center gap-1 bg-fuchsia-50/80 dark:bg-fuchsia-950/20 border border-fuchsia-100/50 dark:border-fuchsia-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-fuchsia-600 dark:text-fuchsia-400">{dormitories.filter(d => d.gender === 'Female').length}</span>
+              <span className="text-fuchsia-700/85 dark:text-fuchsia-300 font-medium">Girls Dorms</span>
+            </div>
+          </>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); setOpen(v); }}>
               <DialogContent className="max-w-2xl border border-white/60 bg-white/70 backdrop-blur-xl">
                 <DialogHeader>
                   <DialogTitle className="text-lg">{editing ? 'Edit Dormitory' : 'Create Dormitory'}</DialogTitle>
@@ -255,27 +296,8 @@ export default function DormitoriesPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-white/60 bg-white/70 backdrop-blur p-3 shadow-sm">
-            <div className="text-[11px] text-muted-foreground">Total Dormitories</div>
-            <div className="text-xl font-semibold">{dormitories.length}</div>
-          </div>
-          <div className="rounded-xl border border-white/60 bg-white/70 backdrop-blur p-3 shadow-sm">
-            <div className="text-[11px] text-muted-foreground">Total Capacity</div>
-            <div className="text-xl font-semibold">{dormitories.reduce((n, d) => n + (d.bedCapacity ?? 0), 0)}</div>
-          </div>
-          <div className="rounded-xl border border-white/60 bg-white/70 backdrop-blur p-3 shadow-sm">
-            <div className="text-[11px] text-muted-foreground">Male Dorms</div>
-            <div className="text-xl font-semibold">{dormitories.filter(d => d.gender === 'Male').length}</div>
-          </div>
-          <div className="rounded-xl border border-white/60 bg-white/70 backdrop-blur p-3 shadow-sm">
-            <div className="text-[11px] text-muted-foreground">Female Dorms</div>
-            <div className="text-xl font-semibold">{dormitories.filter(d => d.gender === 'Female').length}</div>
-          </div>
-        </div>
+
 
         <Card className="border-white/60 bg-white/70 backdrop-blur-xl">
           <CardHeader className="py-3">

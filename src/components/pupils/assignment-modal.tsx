@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, Calendar, User, Tag, AlertCircle, Clock, Settings, Power, PowerOff, History, Edit3, Save, RotateCcw, ArrowRightLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { AssignmentPushFetchModal } from '@/components/pupils/assignment-push-fetch-modal';
 import {
   getAssignmentPushFetchOptions,
@@ -53,8 +54,9 @@ import type {
   DisableEffectType,
   AssignmentStatusHistory
 } from '@/types';
-import { useFeeStructures } from '@/lib/hooks/use-fee-structures';
+import { useFeeStructures, useCreateFeeStructure } from '@/lib/hooks/use-fee-structures';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { PivotDiscountForm } from '@/components/pupils/pivot-discount-form';
 
 interface AssignmentModalProps {
   isOpen: boolean;
@@ -66,10 +68,13 @@ interface AssignmentModalProps {
 export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentModalProps) {
   const { toast } = useToast();
   const { data: allFeeStructures = [] } = useFeeStructures();
+  const createFeeStructureMutation = useCreateFeeStructure();
   const { data: academicYears = [] } = useAcademicYears();
 
   const [assignedFees, setAssignedFees] = useState<PupilAssignedFee[]>(pupil.assignedFees || []);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [addMode, setAddMode] = useState<'assign' | 'direct'>('assign');
+  const [directFeeId, setDirectFeeId] = useState('');
   const [selectedFeeId, setSelectedFeeId] = useState('');
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -91,6 +96,25 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
   );
   const [pushFetchModalOpen, setPushFetchModalOpen] = useState(false);
   const [pushFetchAssignmentId, setPushFetchAssignmentId] = useState<string | null>(null);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const [showPivotForm, setShowPivotForm] = useState(false);
+  const [inlineDiscounts, setInlineDiscounts] = useState<Record<string, { name: string; amount: number; description?: string; linkedFeeIds: string[] }>>({});
+
+  const hasUnsavedChanges = useMemo(() => {
+    const isAdding = isAddingNew && selectedFeeId !== '';
+    const hasModifications = JSON.stringify(assignedFees) !== JSON.stringify(pupil.assignedFees || []);
+    return isAdding || hasModifications || showPivotForm;
+  }, [assignedFees, pupil.assignedFees, isAddingNew, selectedFeeId, showPivotForm]);
+
+  const handleAttemptClose = (open: boolean) => {
+    if (!open) {
+      if (hasUnsavedChanges) {
+        setShowUnsavedWarning(true);
+      } else {
+        onClose();
+      }
+    }
+  };
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -103,8 +127,12 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
       }));
       setAssignedFees(updatedAssignedFees);
       setIsAddingNew(false);
+      setAddMode('assign');
+      setDirectFeeId('');
       setSelectedFeeId('');
       setNotes('');
+      setShowPivotForm(false);
+      setInlineDiscounts({});
       setTimeSettings(DEFAULT_ASSIGNMENT_TIME_SETTINGS);
       setEditingAssignmentId(null);
       setDisableModalOpen(false);
@@ -114,22 +142,135 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
     }
   }, [isOpen, pupil.assignedFees]);
 
-  // Get available fees for assignment (assignment fees and discounts)
   const availableFees = useMemo(
     () =>
       allFeeStructures.filter(
-        (fee) =>
-          (fee.isAssignmentFee || fee.category === 'Discount') &&
-          fee.status === 'active' &&
-          !assignedFees.some((assigned) => assigned.feeStructureId === fee.id)
+        (fee) => {
+          if (fee.status !== 'active') return false;
+          if (assignedFees.some((assigned) => assigned.feeStructureId === fee.id)) return false;
+
+          if (fee.category === 'Discount') {
+            const linkedIds = fee.linkedFeeIds || (fee.linkedFeeId ? [fee.linkedFeeId] : []);
+            if (linkedIds.length > 0) {
+              const hasApplicableLinkedFee = linkedIds.some(id => {
+                // 1. Is this fee explicitly assigned to the pupil and active?
+                if (assignedFees.some(assigned => assigned.feeStructureId === id && assigned.status === 'active')) return true;
+                
+                // 2. Is this fee a standard general fee applicable to the pupil's class and section?
+                const linkedFee = allFeeStructures.find(f => f.id === id);
+                if (linkedFee && !linkedFee.isAssignmentFee && linkedFee.status === 'active') {
+                   const matchesClass = linkedFee.classFeeType === 'all' || (linkedFee.classIds && linkedFee.classIds.includes(pupil.classId));
+                   const matchesSection = linkedFee.sectionFeeType === 'all' || (pupil.section && linkedFee.section === pupil.section);
+                   if (matchesClass && matchesSection) return true;
+                }
+                return false;
+              });
+              
+              if (!hasApplicableLinkedFee) return false;
+            }
+          }
+
+          return fee.isAssignmentFee || fee.category === 'Discount';
+        }
       ),
-    [allFeeStructures, assignedFees]
+    [allFeeStructures, assignedFees, pupil]
   );
 
-  const selectedFeeName = useMemo(
-    () => allFeeStructures.find((f) => f.id === selectedFeeId)?.name,
-    [allFeeStructures, selectedFeeId]
-  );
+  const pupilApplicableFees = useMemo(() => {
+    return allFeeStructures.filter(fee => {
+      if (fee.status !== 'active') return false;
+      if (fee.category === 'Discount') return false;
+      if (assignedFees.some(assigned => assigned.feeStructureId === fee.id && assigned.status === 'active')) return true;
+      if (!fee.isAssignmentFee) {
+         const matchesClass = fee.classFeeType === 'all' || (fee.classIds && fee.classIds.includes(pupil.classId));
+         const matchesSection = fee.sectionFeeType === 'all' || (pupil.section && fee.section === pupil.section);
+         if (matchesClass && matchesSection) return true;
+      }
+      return false;
+    });
+  }, [allFeeStructures, assignedFees, pupil]);
+
+  const directAvailableDiscounts = useMemo(() => {
+    if (!directFeeId) return [];
+    return allFeeStructures.filter(fee => {
+      if (fee.category !== 'Discount' || fee.status !== 'active') return false;
+      if (assignedFees.some(assigned => assigned.feeStructureId === fee.id)) return false;
+      const linkedIds = fee.linkedFeeIds || (fee.linkedFeeId ? [fee.linkedFeeId] : []);
+      return linkedIds.includes(directFeeId);
+    });
+  }, [allFeeStructures, assignedFees, directFeeId]);
+
+  const selectedFeeName = useMemo(() => {
+    if (selectedFeeId && selectedFeeId.startsWith('pivot-') && inlineDiscounts[selectedFeeId]) {
+      return `${inlineDiscounts[selectedFeeId].name} (Pupil-Specific)`;
+    }
+    return allFeeStructures.find((f) => f.id === selectedFeeId)?.name;
+  }, [allFeeStructures, selectedFeeId, inlineDiscounts]);
+
+  // Automatically determine term applicability for discounts based on linked fees
+  useEffect(() => {
+    if (selectedFeeId) {
+      const fee = allFeeStructures.find(f => f.id === selectedFeeId);
+      if (fee && fee.category === 'Discount') {
+        const linkedIds = fee.linkedFeeIds || (fee.linkedFeeId ? [fee.linkedFeeId] : []);
+        if (linkedIds.length > 0) {
+          const linkedFees = allFeeStructures.filter(f => linkedIds.includes(f.id));
+          const originalTermIds = linkedFees.map(f => f.termId).filter(Boolean) as string[];
+
+          if (originalTermIds.length > 0) {
+            // Find the original term objects to know their names/orders
+            const originalTerms = originalTermIds.map(id => {
+              for (const year of academicYears) {
+                const term = year.terms.find(t => t.id === id);
+                if (term) return term;
+              }
+              return null;
+            }).filter(Boolean) as Term[];
+
+            // Helper to match terms across years
+            const extractOrder = (name: string) => {
+              const match = name.match(/(\d+)/);
+              if (match) return parseInt(match[1], 10);
+              const n = name.toLowerCase();
+              if (n.includes('first')) return 1;
+              if (n.includes('second')) return 2;
+              if (n.includes('third')) return 3;
+              return null;
+            };
+
+            const originalOrders = originalTerms.map(t => extractOrder(t.name)).filter(o => o !== null);
+            const originalNames = originalTerms.map(t => t.name.toLowerCase().trim());
+
+            // Collect all matching term IDs from ALL years
+            const allMatchingTermIds: string[] = [];
+            academicYears.forEach(year => {
+              year.terms.forEach(term => {
+                const order = extractOrder(term.name);
+                if ((order !== null && originalOrders.includes(order)) || originalNames.includes(term.name.toLowerCase().trim())) {
+                  allMatchingTermIds.push(term.id);
+                }
+              });
+            });
+
+            const uniqueTermIds = Array.from(new Set(allMatchingTermIds));
+
+            if (uniqueTermIds.length > 0) {
+              setTimeSettings(prev => ({
+                ...prev,
+                termApplicability: 'specific_terms',
+                applicableTermIds: uniqueTermIds,
+                allowedTermIds: uniqueTermIds,
+              }));
+              return;
+            }
+          }
+        }
+      }
+      // Reset if not a discount with specific terms, but preserve valid settings if they were manually changed? 
+      // It's safer to reset to default when switching fees.
+      setTimeSettings(DEFAULT_ASSIGNMENT_TIME_SETTINGS);
+    }
+  }, [selectedFeeId, allFeeStructures, academicYears]);
 
   const handleAddAssignment = () => {
     if (!selectedFeeId) {
@@ -140,6 +281,15 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
       });
       return;
     }
+
+    const inlineDiscountData = (selectedFeeId.startsWith('pivot-') && inlineDiscounts[selectedFeeId])
+      ? {
+          name: inlineDiscounts[selectedFeeId].name,
+          amount: -Math.abs(inlineDiscounts[selectedFeeId].amount),
+          description: inlineDiscounts[selectedFeeId].description,
+          linkedFeeIds: inlineDiscounts[selectedFeeId].linkedFeeIds,
+        }
+      : undefined;
 
     const newAssignment: PupilAssignedFee = {
       id: `paf-${Date.now()}`,
@@ -153,6 +303,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
       endAcademicYearId: timeSettings.endAcademicYearId,
       termApplicability: timeSettings.termApplicability,
       applicableTermIds: timeSettings.applicableTermIds,
+      inlineDiscount: inlineDiscountData,
       statusHistory: [{
         date: new Date().toISOString(),
         action: 'enabled',
@@ -166,11 +317,8 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
     setSelectedFeeId('');
     setNotes('');
     setTimeSettings(DEFAULT_ASSIGNMENT_TIME_SETTINGS);
-
-    toast({
-      title: "Assignment Added",
-      description: "Fee assignment has been added successfully.",
-    });
+    setShowPivotForm(false);
+    setInlineDiscounts({});
   };
 
   const handleCancelAddAssignment = () => {
@@ -178,6 +326,8 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
     setSelectedFeeId('');
     setNotes('');
     setTimeSettings(DEFAULT_ASSIGNMENT_TIME_SETTINGS);
+    setShowPivotForm(false);
+    setInlineDiscounts({});
   };
 
   const handleRemoveAssignment = (assignmentId: string) => {
@@ -372,15 +522,89 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
     }
   };
 
-  const getFeeStructure = (feeId: string) => {
+  const getFeeStructure = (feeId: string, inlineDiscount?: any) => {
+    if (inlineDiscount) {
+      return {
+        id: feeId,
+        name: inlineDiscount.name,
+        amount: inlineDiscount.amount, // negative
+        category: 'Discount',
+        status: 'active',
+        linkedFeeIds: inlineDiscount.linkedFeeIds,
+      } as any;
+    }
+    if (feeId && feeId.startsWith('pivot-') && inlineDiscounts[feeId]) {
+      return {
+        id: feeId,
+        name: inlineDiscounts[feeId].name,
+        amount: -Math.abs(inlineDiscounts[feeId].amount),
+        category: 'Discount',
+        status: 'active',
+        linkedFeeIds: inlineDiscounts[feeId].linkedFeeIds,
+      } as any;
+    }
     return allFeeStructures.find(f => f.id === feeId);
+  };
+
+  const handleOpenSavePivot = async (data: { name: string; amount: number; description?: string; linkedFeeIds: string[] }) => {
+    try {
+      const discountPayload = {
+        name: data.name,
+        amount: -Math.abs(Number(data.amount) || 0), // stored negative
+        category: "Discount" as const,
+        academicYearId: undefined,
+        termId: undefined,
+        classFeeType: 'all' as const,
+        classIds: undefined,
+        sectionFeeType: 'all' as const,
+        section: undefined,
+        isRequired: false,
+        isRecurring: false,
+        frequency: undefined,
+        status: "active" as const,
+        linkedFeeIds: data.linkedFeeIds,
+        linkedFeeId: data.linkedFeeIds?.[0],
+        disableHistory: [],
+        isAssignmentFee: false,
+        description: data.description,
+      };
+
+      const result = await createFeeStructureMutation.mutateAsync(discountPayload);
+      setSelectedFeeId(result.id);
+      setShowPivotForm(false);
+      toast({
+        title: "Global Discount Created",
+        description: `Discount "${data.name}" has been created and is now selected.`,
+      });
+    } catch (err) {
+      console.error(err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save discount globally.",
+      });
+    }
+  };
+
+  const handleCloseSavePivot = (data: { name: string; amount: number; description?: string; linkedFeeIds: string[] }) => {
+    const customId = `pivot-${Date.now()}`;
+    setInlineDiscounts(prev => ({
+      ...prev,
+      [customId]: data
+    }));
+    setSelectedFeeId(customId);
+    setShowPivotForm(false);
+    toast({
+      title: "Pupil-Specific Discount Created",
+      description: `Bespoke discount "${data.name}" is now configured for this assignment.`,
+    });
   };
 
   const pushFetchAssignment = pushFetchAssignmentId
     ? assignedFees.find((a) => a.id === pushFetchAssignmentId) ?? null
     : null;
   const pushFetchFeeName = pushFetchAssignment
-    ? getFeeStructure(pushFetchAssignment.feeStructureId)?.name ?? 'Assignment'
+    ? getFeeStructure(pushFetchAssignment.feeStructureId, pushFetchAssignment.inlineDiscount)?.name ?? 'Assignment'
     : 'Assignment';
 
   const formatCurrency = (amount: number) => {
@@ -428,17 +652,30 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
 
   return (
     <>
-      <ModernDialog open={isOpen} onOpenChange={onClose}>
+      <ModernDialog open={isOpen} onOpenChange={handleAttemptClose}>
         <ModernDialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <ModernDialogHeader>
-            <ModernDialogTitle className="flex items-center gap-2">
-              <Tag className="h-5 w-5" />
-              Manage Fee Assignments & Discounts
-            </ModernDialogTitle>
-            <ModernDialogDescription>
-              Assign special fees and discounts to {pupil.firstName} {pupil.lastName} with time management and status control
-            </ModernDialogDescription>
-          </ModernDialogHeader>
+          <div className="flex justify-between items-start mb-3 -mt-4 -ml-2 relative">
+            <ModernDialogHeader className="text-left space-y-0.5 m-0 p-0">
+              <ModernDialogTitle className="flex items-center gap-1.5 text-sm font-bold leading-none text-indigo-900">
+                <Tag className="h-4 w-4 text-blue-600" />
+                Manage Fee Assignments & Discounts
+              </ModernDialogTitle>
+              <ModernDialogDescription className="text-[11px] font-medium text-gray-500 leading-tight">
+                Assign special fees and discounts to {pupil.firstName} {pupil.lastName} with time management and status control.
+              </ModernDialogDescription>
+            </ModernDialogHeader>
+            <div className="flex items-center gap-1.5 pt-0.5 pr-8">
+              {!isAddingNew && (
+                <Button variant="outline" size="sm" onClick={() => setIsAddingNew(true)} className="rounded-full h-6 px-2.5 text-[10px] font-medium flex items-center gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                  <Plus className="h-3 w-3" />
+                  Add New
+                </Button>
+              )}
+              <Button size="sm" onClick={handleSave} disabled={isSaving} className="rounded-full h-6 px-3 text-[10px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white">
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
 
           <div className="space-y-6">
             {/* Current Assignments */}
@@ -458,169 +695,186 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
               ) : (
                 <div className="space-y-3">
                   {assignedFees.map((assignment) => {
-                    const feeStructure = getFeeStructure(assignment.feeStructureId);
+                    const feeStructure = getFeeStructure(assignment.feeStructureId, assignment.inlineDiscount);
                     if (!feeStructure) return null;
-
+ 
                     return (
-                      <Card key={assignment.id} className={assignment.status === 'disabled' ? 'opacity-60' : ''}>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-medium">{feeStructure.name}</h4>
-                                <Badge variant={feeStructure.category === 'Discount' ? 'secondary' : 'default'}>
-                                  {feeStructure.category === 'Discount' ? 'Discount' : 'Assignment Fee'}
-                                </Badge>
-                                <Badge variant={assignment.status === 'active' ? 'default' : 'destructive'}>
-                                  {assignment.status}
-                                </Badge>
-                                {feeStructure.category === 'Discount' && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {feeStructure.amount < 0
-                                      ? `${formatCurrency(Math.abs(feeStructure.amount))} off`
-                                      : `${feeStructure.amount}% off`
-                                    }
+                      <Card key={assignment.id} className={`overflow-hidden ${assignment.status === 'disabled' ? 'opacity-60' : ''}`}>
+                        <Collapsible>
+                          <div className="p-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
+                                  <h4 className="font-medium text-sm truncate mr-2">{feeStructure.name}</h4>
+                                  <Badge variant={feeStructure.category === 'Discount' ? 'secondary' : 'default'} className="h-5 px-1.5 text-[10px]">
+                                    {feeStructure.category === 'Discount' ? 'Discount' : 'Assignment Fee'}
                                   </Badge>
+                                  {assignment.inlineDiscount && (
+                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-slate-100 border-slate-300 text-slate-700 font-semibold">
+                                      Pupil-Specific
+                                    </Badge>
+                                  )}
+                                  <Badge variant={assignment.status === 'active' ? 'default' : 'destructive'} className="h-5 px-1.5 text-[10px]">
+                                    {assignment.status}
+                                  </Badge>
+                                  {feeStructure.category === 'Discount' && (
+                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                                      {feeStructure.amount < 0
+                                        ? `${formatCurrency(Math.abs(feeStructure.amount))} off`
+                                        : `${feeStructure.amount}% off`
+                                      }
+                                    </Badge>
+                                  )}
+                                  {feeStructure.category !== 'Discount' && (
+                                    <span className="font-semibold text-green-600 text-sm ml-auto">
+                                      {formatCurrency(feeStructure.amount)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span className="truncate max-w-[150px]">{getValidityDescription(assignment)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    <span className="truncate max-w-[200px]" title={getTermApplicabilityDescription(assignment)}>
+                                      {getTermApplicabilityDescription(assignment)}
+                                    </span>
+                                  </div>
+                                  {feeStructure.category === 'Discount' && (feeStructure.linkedFeeId || (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)) && (
+                                    <div className="flex items-center gap-1 text-blue-600">
+                                      <span className="font-medium">Linked:</span>
+                                      <span className="truncate max-w-[200px]" title={
+                                        (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)
+                                          ? feeStructure.linkedFeeIds.map(id => allFeeStructures.find(f => f.id === id)?.name || 'Unknown Fee').join(', ')
+                                          : (allFeeStructures.find(f => f.id === feeStructure.linkedFeeId)?.name || 'Unknown Fee')
+                                      }>
+                                        {
+                                          (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)
+                                            ? feeStructure.linkedFeeIds.map(id => allFeeStructures.find(f => f.id === id)?.name || 'Unknown Fee').join(', ')
+                                            : (allFeeStructures.find(f => f.id === feeStructure.linkedFeeId)?.name || 'Unknown Fee')
+                                        }
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {assignment.notes && (
+                                  <div className="mt-1.5 text-xs text-gray-600 bg-gray-50 p-1.5 rounded line-clamp-1" title={assignment.notes}>
+                                    <span className="font-medium mr-1">Note:</span> {assignment.notes}
+                                  </div>
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground mb-3">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>{getValidityDescription(assignment)}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{getTermApplicabilityDescription(assignment)}</span>
-                                </div>
-                              </div>
-
-                              {feeStructure.category === 'Discount' && (feeStructure.linkedFeeId || (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)) && (
-                                <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                                  <span className="text-blue-700">
-                                    Linked to: {
-                                      (feeStructure.linkedFeeIds && feeStructure.linkedFeeIds.length > 0)
-                                        ? feeStructure.linkedFeeIds.map(id => allFeeStructures.find(f => f.id === id)?.name || 'Unknown Fee').join(', ')
-                                        : (allFeeStructures.find(f => f.id === feeStructure.linkedFeeId)?.name || 'Unknown Fee')
-                                    }
-                                  </span>
-                                </div>
-                              )}
-
-                              {assignment.notes && (
-                                <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                                  <span className="text-gray-700">{assignment.notes}</span>
-                                </div>
-                              )}
-
-                              {feeStructure.category !== 'Discount' && (
-                                <div className="mt-2 text-lg font-semibold text-green-600">
-                                  {formatCurrency(feeStructure.amount)}
-                                </div>
-                              )}
-
-                              {/* Status History */}
-                              {assignment.statusHistory && assignment.statusHistory.length > 0 && (
-                                <Collapsible>
-                                  <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="mt-2 p-0 h-auto text-xs text-muted-foreground hover:text-foreground">
-                                      <History className="h-3 w-3 mr-1" />
-                                      View History ({assignment.statusHistory.length})
+                              <div className="flex flex-row flex-wrap justify-end gap-1 shrink-0">
+                                {(() => {
+                                  const moveOptions = getAssignmentPushFetchOptions(
+                                    assignment,
+                                    academicYears
+                                  );
+                                  const canMove =
+                                    assignment.status === 'active' &&
+                                    (moveOptions.push ||
+                                      moveOptions.fetch ||
+                                      moveOptions.customTargets.length > 0);
+                                  if (!canMove) return null;
+                                  return (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                      title="Push / Fetch to another term"
+                                      onClick={() => handleOpenPushFetch(assignment.id)}
+                                    >
+                                      <ArrowRightLeft className="h-3.5 w-3.5" />
                                     </Button>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2">
-                                    <div className="space-y-1 text-xs">
-                                      {assignment.statusHistory
-                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                        .map((entry, index) => (
-                                          <div key={index} className="p-2 bg-muted/50 rounded text-xs">
-                                            <div className="flex items-center gap-2">
-                                              <Badge variant="outline" className="text-xs">
-                                                {entry.action}
-                                              </Badge>
-                                              <span>{new Date(entry.date).toLocaleDateString()}</span>
-                                            </div>
-                                            {entry.reason && (
-                                              <div className="mt-1 text-muted-foreground">{entry.reason}</div>
-                                            )}
-                                            {entry.disableEffect && (
-                                              <div className="mt-1 text-muted-foreground">
-                                                Effect: {entry.disableEffect === 'from_next_term' ? 'From next term' : 'From current term'}
-                                              </div>
-                                            )}
-                                          </div>
-                                        ))}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              )}
-                            </div>
+                                  );
+                                })()}
 
-                            <div className="flex flex-col gap-1 ml-4">
-                              {(() => {
-                                const moveOptions = getAssignmentPushFetchOptions(
-                                  assignment,
-                                  academicYears
-                                );
-                                const canMove =
-                                  assignment.status === 'active' &&
-                                  (moveOptions.push ||
-                                    moveOptions.fetch ||
-                                    moveOptions.customTargets.length > 0);
-                                if (!canMove) return null;
-                                return (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title="Edit Time Settings"
+                                  onClick={() => handleEditTimeSettings(assignment.id)}
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </Button>
+
+                                {assignment.status === 'active' ? (
                                   <Button
                                     variant="ghost"
-                                    size="sm"
-                                    title="Push / Fetch to another term"
-                                    onClick={() => handleOpenPushFetch(assignment.id)}
-                                    className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                    size="icon"
+                                    className="h-7 w-7 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                    title="Disable Assignment"
+                                    onClick={() => handleDisableAssignment(assignment.id)}
                                   >
-                                    <ArrowRightLeft className="h-4 w-4" />
+                                    <PowerOff className="h-3.5 w-3.5" />
                                   </Button>
-                                );
-                              })()}
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    title="Enable Assignment"
+                                    onClick={() => handleEnableAssignment(assignment.id)}
+                                  >
+                                    <Power className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
 
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditTimeSettings(assignment.id)}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              >
-                                <Edit3 className="h-4 w-4" />
-                              </Button>
-
-                              {assignment.status === 'active' ? (
                                 <Button
                                   variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDisableAssignment(assignment.id)}
-                                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                  size="icon"
+                                  className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  title="Remove Assignment"
+                                  onClick={() => handleRemoveAssignment(assignment.id)}
                                 >
-                                  <PowerOff className="h-4 w-4" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEnableAssignment(assignment.id)}
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                >
-                                  <Power className="h-4 w-4" />
-                                </Button>
-                              )}
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveAssignment(assignment.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                
+                                {assignment.statusHistory && assignment.statusHistory.length > 0 && (
+                                  <CollapsibleTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                                      title={`View History (${assignment.statusHistory.length})`}
+                                    >
+                                      <History className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                )}
+                              </div>
                             </div>
+                            
+                            {/* Status History Content */}
+                            {assignment.statusHistory && assignment.statusHistory.length > 0 && (
+                              <CollapsibleContent className="mt-2 pt-2 border-t border-slate-100">
+                                <div className="space-y-1 text-[10px]">
+                                  {assignment.statusHistory
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map((entry, index) => (
+                                      <div key={index} className="px-2 py-1 bg-muted/50 rounded flex flex-wrap items-center justify-between gap-1">
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline" className="text-[9px] h-4 px-1 leading-none">{entry.action}</Badge>
+                                          <span>{new Date(entry.date).toLocaleDateString()}</span>
+                                          {entry.reason && <span className="text-muted-foreground truncate max-w-[150px]">- {entry.reason}</span>}
+                                        </div>
+                                        {entry.disableEffect && (
+                                          <span className="text-muted-foreground">
+                                            {entry.disableEffect === 'from_next_term' ? 'From next term' : 'From current term'}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                </div>
+                              </CollapsibleContent>
+                            )}
                           </div>
-                        </CardContent>
+                        </Collapsible>
                       </Card>
                     );
                   })}
@@ -630,75 +884,121 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
 
             {/* Add New Assignment */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Add New Assignment</h3>
-                {!isAddingNew && (
-                  <Button onClick={() => setIsAddingNew(true)} className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Assignment
-                  </Button>
-                )}
-              </div>
+              {isAddingNew && (
+                <h3 className="text-lg font-semibold mb-4">Add New Assignment</h3>
+              )}
 
               {isAddingNew && (
                 <Card>
-                  <CardContent className="p-4 space-y-4">
-                    <div>
-                      <Label htmlFor="fee-select">Select Fee or Discount</Label>
-                      <FeeAssignmentPicker
-                        fees={availableFees}
-                        selectedFeeId={selectedFeeId}
-                        selectedFeeName={selectedFeeName}
-                        onSelectFeeId={setSelectedFeeId}
-                      />
-                    </div>
-
-                    {/* Time Management Section */}
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium mb-3 flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Time Management
-                      </h4>
-                      <AssignmentTimeManagementForm
+                  {showPivotForm ? null : (
+                    <CardHeader className="pb-3 border-b px-4 py-3">
+                      <div className="flex bg-slate-100 p-1 rounded-md w-max">
+                        <button 
+                          type="button"
+                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'assign' ? "bg-white shadow-sm text-indigo-900" : "text-slate-600 hover:text-slate-900")} 
+                          onClick={() => { setAddMode('assign'); setSelectedFeeId(''); setDirectFeeId(''); }}
+                        >
+                          Assign Mode
+                        </button>
+                        <button 
+                          type="button"
+                          className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-colors", addMode === 'direct' ? "bg-white shadow-sm text-indigo-900" : "text-slate-600 hover:text-slate-900")} 
+                          onClick={() => { setAddMode('direct'); setSelectedFeeId(''); }}
+                        >
+                          Direct Mode
+                        </button>
+                      </div>
+                    </CardHeader>
+                  )}
+                  <CardContent className="p-4 space-y-4 pt-4">
+                    {showPivotForm ? (
+                      <PivotDiscountForm
+                        targetFeeId={directFeeId}
+                        feeItems={pupilApplicableFees}
                         academicYears={academicYears}
-                        settings={timeSettings}
-                        onSettingsChange={setTimeSettings}
+                        onOpenSave={handleOpenSavePivot}
+                        onCloseSave={handleCloseSavePivot}
+                        onCancel={() => setShowPivotForm(false)}
+                        isSaving={createFeeStructureMutation.isPending}
                       />
-                    </div>
+                    ) : (
+                      <>
+                        {addMode === 'assign' ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="fee-select">Select Assignment Fee</Label>
+                              <FeeAssignmentPicker
+                                fees={availableFees.filter(f => f.category !== 'Discount')}
+                                academicYears={academicYears}
+                                selectedFeeId={selectedFeeId}
+                                selectedFeeName={selectedFeeName}
+                                onSelectFeeId={setSelectedFeeId}
+                                placeholder="Choose an assignment fee..."
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="discount-select">Select Discount</Label>
+                              <FeeAssignmentPicker
+                                fees={availableFees.filter(f => f.category === 'Discount')}
+                                academicYears={academicYears}
+                                selectedFeeId={selectedFeeId}
+                                selectedFeeName={selectedFeeName}
+                                onSelectFeeId={setSelectedFeeId}
+                                placeholder="Choose a discount..."
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="direct-fee-select">Select Target Fee</Label>
+                              <FeeAssignmentPicker
+                                fees={pupilApplicableFees}
+                                academicYears={academicYears}
+                                selectedFeeId={directFeeId}
+                                onSelectFeeId={setDirectFeeId}
+                                placeholder="Choose an active fee..."
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="direct-discount-select">Select Discount</Label>
+                              <FeeAssignmentPicker
+                                fees={directAvailableDiscounts}
+                                academicYears={academicYears}
+                                selectedFeeId={selectedFeeId}
+                                selectedFeeName={selectedFeeName}
+                                onSelectFeeId={setSelectedFeeId}
+                                onPivotRequest={() => setShowPivotForm(true)}
+                                placeholder={directFeeId ? "Choose a discount..." : "Select a fee first..."}
+                              />
+                            </div>
+                          </div>
+                        )}
 
-                    <div>
-                      <Label htmlFor="notes">Notes (Optional)</Label>
-                      <Textarea
-                        id="notes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value.toUpperCase())}
-                        placeholder="Add any notes about this assignment..."
-                        rows={3}
-                      />
-                    </div>
+                        <div className="pt-2">
+                          <AssignmentTimeManagementForm
+                            academicYears={academicYears}
+                            settings={timeSettings}
+                            onSettingsChange={setTimeSettings}
+                          />
+                        </div>
 
-                    <div className="flex gap-2">
-                      <Button onClick={handleAddAssignment} disabled={!selectedFeeId}>
-                        Add Assignment
-                      </Button>
-                      <Button variant="outline" onClick={handleCancelAddAssignment}>
-                        Cancel
-                      </Button>
-                    </div>
+                        <div className="flex gap-2">
+                          <Button onClick={handleAddAssignment} disabled={!selectedFeeId}>
+                            Add Assignment
+                          </Button>
+                          <Button variant="outline" onClick={handleCancelAddAssignment}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               )}
             </div>
           </div>
 
-          <ModernDialogFooter>
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </ModernDialogFooter>
         </ModernDialogContent>
       </ModernDialog>
 
@@ -777,6 +1077,34 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         academicYears={academicYears}
         onApply={handleApplyPushFetch}
       />
+
+      <ModernDialog open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
+        <ModernDialogContent size="sm">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertCircle className="h-5 w-5" />
+              Unsaved Changes
+            </ModernDialogTitle>
+            <ModernDialogDescription>
+              You have unsaved changes. Would you like to save them or discard them?
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+          <div className="flex justify-end gap-2 pt-4 mt-4">
+            <Button variant="outline" onClick={() => {
+              setShowUnsavedWarning(false);
+              onClose();
+            }}>
+              Discard
+            </Button>
+            <Button onClick={() => {
+              setShowUnsavedWarning(false);
+              handleSave();
+            }} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </ModernDialogContent>
+      </ModernDialog>
 
       {/* Time Settings Edit Modal */}
       <ModernDialog open={timeEditModalOpen} onOpenChange={setTimeEditModalOpen}>

@@ -32,11 +32,8 @@ export class PupilsService {
 
       // 🚀 OPTIMIZED: Remove orderBy to avoid slow index scan - sort on client instead
       const q = query(collection(db, COLLECTION_NAME));
-      // Use cache-first optimized helper - returns array directly
-      // Increased timeout to 60 seconds for Android/Capacitor (slower network)
-      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
-      const timeout = isNative ? 60000 : 30000; // 60s for native, 30s for web
-      const pupils = await getDocsWithTimeout<Pupil>(q, timeout);
+      // Use cache-first optimized helper - returns an array directly.
+      const pupils = await getDocsWithTimeout<Pupil>(q, 30000);
 
       const pupilsLoadTime = performance.now();
       console.log(`✅ Loaded ${pupils.length} pupils in ${(pupilsLoadTime - startTime).toFixed(2)}ms`);

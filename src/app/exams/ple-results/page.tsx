@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { PlusCircle, MoreHorizontal, Edit, Trash2, BookOpen, Eye, Search, X, Users, UserCheck, UserX, GraduationCap, InfoIcon, Camera } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -267,8 +267,13 @@ export default function PLEResultsPage() {
   if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-7xl mx-auto p-4 space-y-6">
-          <PageHeader title="PLE Results Management" />
+        <GlassPageTopBar
+          title="PLE Results"
+          subtitle="Loading PLE records..."
+          backHref="/exams"
+          backLabel="Back to exams"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="ml-2">Loading PLE records...</span>
@@ -279,65 +284,68 @@ export default function PLEResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <PageHeader
-          title="PLE Results Management"
-          description="Manage Primary Leaving Examination records and results by year."
-          actions={
-            <div className="flex items-center gap-2">
-              {/* Search Bar - Rounded to match button design */}
-              <div className="relative w-48 sm:w-64 bg-white rounded-full px-3 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search PLE records..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 pr-8 h-7 text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-                {searchTerm && (
-                  <button
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                    onClick={() => setSearchTerm('')}
-                  >
-                    <X className="h-3 w-3 text-gray-500" />
-                  </button>
-                )}
-              </div>
-
-              {/* Year Filter - Rounded to match button design */}
-              <div className="relative w-32 sm:w-40 bg-white rounded-full px-3 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm">
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="border-0 bg-transparent h-7 text-sm focus:ring-0 focus:ring-offset-0">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Years</SelectItem>
-                    {availableYears.map(year => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Action Buttons Container */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-                <button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  type="button"
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <PlusCircle className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">New</span>
-                </button>
-              </div>
-            </div>
-          }
-        />
-
-        {/* Filters Section - Removed, now in header */}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="PLE Results"
+        subtitle="Manage Primary Leaving Examination records and results by year."
+        backHref="/exams"
+        backLabel="Back to exams"
+        titleControls={
+          <div className="flex items-center gap-1.5 lg:hidden">
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+                <SelectItem value="all">All Years</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        center={
+          <div className="hidden lg:flex items-center gap-2">
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999]">
+                <SelectItem value="all">All Years</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        actionsLeading={
+          <div className="flex items-center gap-2">
+            <GlassPageSearchInput
+              placeholder="Search PLE records..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              containerClassName="w-[140px] sm:w-[180px] lg:w-[220px]"
+            />
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="New Record"
+              icon={<PlusCircle className="h-4 w-4" />}
+              tone="purple"
+              onClick={() => setIsCreateModalOpen(true)}
+            />
+          </GlassActionDock>
+        }
+      />
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
         {/* PLE Records Table */}
         <div className="rounded-lg border shadow-sm bg-white">

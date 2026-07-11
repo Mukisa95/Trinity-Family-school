@@ -21,6 +21,8 @@ import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { AnimatedCurrency, AnimatedNumber, AnimatedPercentage } from '@/components/ui/animated-number';
 import { PaymentsService } from '@/lib/services/payments.service';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 
 export default function CollectionAnalyticsPage() {
   const router = useRouter();
@@ -459,7 +461,7 @@ export default function CollectionAnalyticsPage() {
   // Show setup required if no years
   if (!yearsLoading && allYears.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen p-6 flex items-center justify-center">
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center max-w-md">
           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-yellow-900 mb-2">Setup Required</h2>
@@ -472,8 +474,108 @@ export default function CollectionAnalyticsPage() {
   // Data is ready when we have stats (but animations will start from 0)
   const isDataReady = !isLoading && !isProcessing && stats && activeYear;
 
+  const periodFilterBar = (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Year Selector */}
+      <select
+        value={activeYearId || ''}
+        onChange={(e) => {
+          setManualYearId(e.target.value);
+          setManualTermId(undefined);
+        }}
+        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center"
+      >
+        {allYears.map(year => (
+          <option key={year.id} value={year.id} className="text-gray-900 bg-white">
+            {year.name}
+          </option>
+        ))}
+      </select>
+
+      {/* Term Selector */}
+      <select
+        value={effectiveTermId}
+        onChange={(e) => setManualTermId(e.target.value)}
+        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center"
+      >
+        {activeYear?.terms?.map(term => (
+          <option key={term.id} value={term.id} className="text-gray-900 bg-white">
+            {term.name}
+          </option>
+        ))}
+      </select>
+
+      {/* Separator / Divider */}
+      <div className="w-px h-5 bg-indigo-200/40 mx-0.5" />
+
+      {/* Analysis View Selector */}
+      <select
+        value={analysisView}
+        onChange={(e) => {
+          setAnalysisView(e.target.value as 'daily' | 'weekly' | 'term');
+        }}
+        className="appearance-none h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-3 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer text-center"
+      >
+        <option value="daily" className="text-gray-900 bg-white">Daily</option>
+        <option value="weekly" className="text-gray-900 bg-white">Weekly</option>
+        <option value="term" className="text-gray-900 bg-white">Termly</option>
+      </select>
+
+      {/* Date/Week Selector */}
+      {analysisView === 'daily' && (
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          min={termDates?.startDate.toISOString().split('T')[0]}
+          max={termDates?.endDate.toISOString().split('T')[0]}
+          className="h-[30px] rounded-full border border-indigo-200/60 bg-white/90 px-2 text-[10px] font-semibold text-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+        />
+      )}
+
+      {analysisView === 'weekly' && (
+        <div className="flex items-center gap-1 bg-white/90 rounded-full border border-indigo-200/60 shadow-sm px-2.5 h-[30px] text-[10px] font-semibold text-indigo-700">
+          <span className="text-gray-400 font-medium">Week:</span>
+          <input
+            type="date"
+            value={selectedWeekStart}
+            onChange={(e) => {
+              const selectedDate = new Date(e.target.value);
+              const day = selectedDate.getDay();
+              const diff = selectedDate.getDate() - day + (day === 0 ? -6 : 1);
+              const monday = new Date(selectedDate);
+              monday.setDate(diff);
+              setSelectedWeekStart(monday.toISOString().split('T')[0]);
+            }}
+            min={termDates?.startDate.toISOString().split('T')[0]}
+            max={termDates?.endDate.toISOString().split('T')[0]}
+            className="border-0 focus:ring-0 focus:outline-none text-[10px] font-semibold text-indigo-700 bg-transparent w-[95px] cursor-pointer"
+            title="Click to select week"
+          />
+          <span className="text-indigo-600 font-extrabold ml-1">
+            {selectedWeekStart && (() => {
+              const monday = new Date(selectedWeekStart);
+              const sunday = new Date(monday);
+              sunday.setDate(sunday.getDate() + 6);
+              return `${monday.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${sunday.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
+            })()}
+          </span>
+        </div>
+      )}
+
+      {analysisView === 'term' && termDates && (
+        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50/80 border border-indigo-200/60 text-[10px] font-semibold text-indigo-700 shadow-sm h-[30px]">
+          <Calendar className="w-3 h-3" />
+          <span>
+            {termDates.startDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {termDates.endDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-indigo-50 p-6">
+    <div className="min-h-screen pb-12">
       {/* Non-blocking Loading Indicator */}
       {(isLoading || isProcessing) && (
         <div className="fixed top-0 left-0 right-0 z-50">
@@ -498,203 +600,59 @@ export default function CollectionAnalyticsPage() {
         </div>
       )}
 
-      {/* Compact Header */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex flex-wrap items-center gap-4 bg-white rounded-lg shadow-sm p-4">
-          {/* Title */}
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-indigo-600" />
-            <h1 className="text-2xl font-bold text-indigo-900">Collection Analytics</h1>
-          </div>
+      <GlassPageTopBar
+        title="Collection Analytics"
+        subtitle="Manage and view fee collections, trends, and projections"
+        backHref="/fees/collection"
+        backLabel="Collection"
+        className="mb-1.5"
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Refresh"
+              icon={<RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
+              tone="purple"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            />
+          </GlassActionDock>
+        }
+      />
 
-          {/* Divider */}
-          <div className="hidden md:block h-8 w-px bg-gray-300"></div>
-
-          {/* Year Selector */}
-          <div className="flex items-center gap-2">
-            <select
-              value={activeYearId || ''}
-              onChange={(e) => {
-                setManualYearId(e.target.value);
-                setManualTermId(undefined);
-              }}
-              className="appearance-none px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white cursor-pointer"
-            >
-              {allYears.map(year => (
-                <option key={year.id} value={year.id} className="text-gray-900 bg-white">
-                  {year.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Term Selector */}
-          <div className="flex items-center gap-2">
-            <select
-              value={effectiveTermId}
-              onChange={(e) => setManualTermId(e.target.value)}
-              className="appearance-none px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white cursor-pointer"
-            >
-              {activeYear?.terms?.map(term => (
-                <option key={term.id} value={term.id} className="text-gray-900 bg-white">
-                  {term.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date Range */}
-          {termDates && (
+      <GlassSummaryBar
+        left={periodFilterBar}
+        right={
+          isDataReady && stats ? (
             <>
-              <div className="hidden md:block h-8 w-px bg-gray-300"></div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span className="font-medium">
-                  {termDates.startDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {termDates.endDate.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-blue-700/85 dark:text-blue-300 font-medium">Expected:</span>
+                <span className="font-bold text-blue-700 dark:text-blue-400">
+                  {formatCurrency(stats.totalExpected)} ({stats.totalPupils} pupils)
+                </span>
+              </div>
+              <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-green-700/85 dark:text-green-300 font-medium">Collected:</span>
+                <span className="font-bold text-green-700 dark:text-green-400 font-tabular-nums">
+                  {formatCurrency(stats.totalCollected)} ({stats.collectionRate.toFixed(1)}%)
+                </span>
+              </div>
+              <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-red-700/85 dark:text-red-350 font-medium">Outstanding:</span>
+                <span className="font-bold text-red-650 dark:text-red-400 font-tabular-nums">
+                  {formatCurrency(stats.outstanding)} ({stats.unpaidPupils} unpaid)
                 </span>
               </div>
             </>
-          )}
+          ) : (
+            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-md text-[10px] sm:text-xs animate-pulse">
+              <span>Calculating statistics...</span>
+            </div>
+          )
+        }
+      />
 
-          {/* Refresh Button */}
-          <div className="ml-auto">
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center justify-center p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={isRefreshing ? 'Refreshing...' : 'Refresh'}
-            >
-              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
-        {/* Overview Cards - Load instantly with counting animations */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
-                <h3 className="text-[11px] md:text-xs font-medium text-gray-600">Total Expected</h3>
-              </div>
-              <p className="text-base md:text-xl font-bold text-blue-900">
-                {isDataReady ? (
-                  <AnimatedCurrency amount={stats.totalExpected} duration={2000} />
-                ) : (
-                  <span className="animate-pulse">Loading...</span>
-                )}
-              </p>
-              <p className="text-[9px] md:text-[10px] text-blue-600">
-                From{' '}
-                {isDataReady ? (
-                  <AnimatedNumber value={stats.totalPupils} duration={2000} />
-                ) : (
-                  '...'
-                )}{' '}
-                pupils
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
-                <h3 className="text-[11px] md:text-xs font-medium text-gray-600">Total Collected</h3>
-              </div>
-              <p className="text-base md:text-xl font-bold text-green-900">
-                {isDataReady ? (
-                  <AnimatedCurrency amount={stats.totalCollected} duration={2000} />
-                ) : (
-                  <span className="animate-pulse">Loading...</span>
-                )}
-              </p>
-              <p className="text-[9px] md:text-[10px] text-green-600">
-                {isDataReady ? (
-                  <AnimatedNumber value={stats.paidPupils} duration={2000} />
-                ) : (
-                  '...'
-                )}{' '}
-                fully paid
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-red-600" />
-                <h3 className="text-[11px] md:text-xs font-medium text-gray-600">Outstanding</h3>
-              </div>
-              <p className="text-base md:text-xl font-bold text-red-900">
-                {isDataReady ? (
-                  <AnimatedCurrency amount={stats.outstanding} duration={2000} />
-                ) : (
-                  <span className="animate-pulse">Loading...</span>
-                )}
-              </p>
-              <p className="text-[9px] md:text-[10px] text-red-600">
-                {isDataReady ? (
-                  <AnimatedNumber value={stats.unpaidPupils} duration={2000} />
-                ) : (
-                  '...'
-                )}{' '}
-                not paid
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
-            <CardContent className="p-3 md:p-4">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Users className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
-                <h3 className="text-[11px] md:text-xs font-medium text-gray-600">Collection Rate</h3>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-base md:text-xl font-bold text-purple-900">
-                  {isDataReady ? (
-                    <AnimatedPercentage value={stats.collectionRate} duration={2000} decimals={1} />
-                  ) : (
-                    <span className="animate-pulse">...</span>
-                  )}
-                </p>
-                <p className="text-[9px] md:text-[10px] text-purple-600">
-                  •{' '}
-                  {isDataReady ? (
-                    <AnimatedNumber value={stats.partiallyPaidPupils} duration={2000} />
-                  ) : (
-                    '...'
-                  )}{' '}
-                  partial
-                </p>
-              </div>
-
-              {/* Compact Progress Bar */}
-              <div className="mt-1.5">
-                <p className="text-[8px] md:text-[9px] text-gray-600 mb-0.5">
-                  {isDataReady ? (
-                    <>
-                      <AnimatedCurrency amount={stats.totalCollected} duration={2000} /> of{' '}
-                      <AnimatedCurrency amount={stats.totalExpected} duration={2000} />
-                    </>
-                  ) : (
-                    <span className="animate-pulse">Loading...</span>
-                  )}
-                </p>
-                <div className="w-full h-1 bg-purple-200 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-1 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: isDataReady ? `${stats.collectionRate}%` : '0%' }}
-                    transition={{ duration: 2, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
+        {/* Stats moved to GlassSummaryBar above */}
 
         {/* Date-Based Analysis Section - Redesigned */}
         <Card className="border-0 shadow-lg overflow-hidden">
@@ -704,77 +662,11 @@ export default function CollectionAnalyticsPage() {
             className={`bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all ${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
               }`}
           >
-            {/* Top Row: Title + Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            {/* Top Row: Title */}
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 <h3 className="text-base md:text-lg font-bold text-blue-900">Collection by Date</h3>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* View Selector */}
-                <select
-                  value={analysisView}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    setAnalysisView(e.target.value as 'daily' | 'weekly' | 'term');
-                  }}
-                  className="appearance-none px-2 md:px-3 py-1 md:py-1.5 border-2 border-blue-300 rounded-md text-xs md:text-sm font-medium text-blue-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-400 cursor-pointer shadow-sm"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="term">Term</option>
-                </select>
-
-                {/* Date/Week Selector */}
-                {analysisView === 'daily' && (
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      setSelectedDate(e.target.value);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    min={termDates?.startDate.toISOString().split('T')[0]}
-                    max={termDates?.endDate.toISOString().split('T')[0]}
-                    className="px-2 py-1 border-2 border-blue-300 rounded-md text-xs md:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-400 bg-white shadow-sm"
-                  />
-                )}
-
-                {analysisView === 'weekly' && (
-                  <div className="flex items-center gap-1 bg-white rounded-md border-2 border-blue-300 shadow-sm px-2 py-1">
-                    <span className="text-[10px] md:text-xs text-gray-500">Week:</span>
-                    <input
-                      type="date"
-                      value={selectedWeekStart}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        // Ensure it's a Monday
-                        const selectedDate = new Date(e.target.value);
-                        const day = selectedDate.getDay();
-                        const diff = selectedDate.getDate() - day + (day === 0 ? -6 : 1);
-                        const monday = new Date(selectedDate);
-                        monday.setDate(diff);
-                        setSelectedWeekStart(monday.toISOString().split('T')[0]);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      min={termDates?.startDate.toISOString().split('T')[0]}
-                      max={termDates?.endDate.toISOString().split('T')[0]}
-                      className="border-0 focus:ring-0 focus:outline-none text-xs md:text-sm bg-transparent w-[140px]"
-                      title="Click to select week"
-                    />
-                    <span className="text-[10px] md:text-xs text-blue-600 font-medium">
-                      {selectedWeekStart && (() => {
-                        const monday = new Date(selectedWeekStart);
-                        const sunday = new Date(monday);
-                        sunday.setDate(sunday.getDate() + 6);
-                        return `${monday.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${sunday.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
-                      })()}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 

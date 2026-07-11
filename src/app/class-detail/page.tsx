@@ -1,5 +1,6 @@
 'use client';
-import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 
 import React, { Suspense } from 'react';
 import { flushSync } from 'react-dom';
@@ -13,7 +14,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { PageHeader } from '@/components/common/page-header';
 import { DetailItem } from '@/components/common/detail-item';
 import { useClassDetail } from '@/lib/hooks/use-class-detail';
 import { useExamsByClass } from '@/lib/hooks/use-exams';
@@ -31,6 +31,7 @@ import {
   Edit,
   Search,
   Filter,
+  AlertTriangle,
   Info,
   Users,
   BookOpen,
@@ -50,7 +51,9 @@ import {
   Book,
   Baby,
   Check,
-  FileText
+  FileText,
+  List,
+  Grid3X3
 } from 'lucide-react';
 import {
   ModernDialog,
@@ -577,7 +580,6 @@ function ClassDetailContent() {
   const [viewMode, setViewMode] = React.useState<'tiles' | 'list'>('list');
   const [sortBy, setSortBy] = React.useState<'name' | 'section' | 'gender' | 'age'>('name');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
-  const [searchExpanded, setSearchExpanded] = React.useState(false);
 
   // Responsive view mode - automatically switch based on screen size
   React.useEffect(() => {
@@ -613,6 +615,16 @@ function ClassDetailContent() {
     ageMin: '',
     ageMax: ''
   });
+
+  const activeFiltersCount = React.useMemo(() => {
+    let count = 0;
+    if (filters.section !== 'all') count++;
+    if (filters.status !== 'all') count++;
+    if (filters.gender !== 'all') count++;
+    if (filters.ageMin) count++;
+    if (filters.ageMax) count++;
+    return count;
+  }, [filters]);
 
   // State for requirements modal
   const [isRequirementsModalOpen, setIsRequirementsModalOpen] = React.useState(false);
@@ -987,11 +999,16 @@ function ClassDetailContent() {
 
   if (showLoadingSpinner) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Loading Class Details..." />
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading class details...</span>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Loading Class Details..."
+          backHref="/classes"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="text-muted-foreground font-medium">Loading class details...</p>
+          </div>
         </div>
       </div>
     );
@@ -1001,13 +1018,22 @@ function ClassDetailContent() {
   // Don't show error while loading or if we have cached data
   if (!classDetail && !isLoading && !classLoading) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Class Not Found" />
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">The requested class could not be found.</p>
-          <Button asChild className="mt-4 rounded-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold px-6 py-2 h-auto">
-            <Link href="/classes">Back to Classes</Link>
-          </Button>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Class Not Found"
+          backHref="/classes"
+        />
+        <div className="container mx-auto px-4 py-12 max-w-md">
+          <Card>
+            <CardContent className="text-center p-8">
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Class Not Found</h2>
+              <p className="text-muted-foreground mb-4">The requested class could not be found.</p>
+              <Button asChild className="w-full">
+                <Link href="/classes">Back to Classes</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -1017,11 +1043,16 @@ function ClassDetailContent() {
   // This handles the case where we don't have cached data
   if (!classDetail && isLoading) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Loading Class Details..." />
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading class details...</span>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Loading Class Details..."
+          backHref="/classes"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="text-muted-foreground font-medium">Loading class details...</p>
+          </div>
         </div>
       </div>
     );
@@ -1035,108 +1066,150 @@ function ClassDetailContent() {
 
   const classTeacher = allStaff.find((s: any) => s.id === classDetail.classTeacherId);
 
+  const teacherName = classTeacher ? `${classTeacher.firstName} ${classTeacher.lastName}` : classDetail.classTeacherName || "Not Assigned";
+  const captain = classDetail.classCaptainId ? pupilsInClassWithPhotos.find(p => p.id === classDetail.classCaptainId) : null;
+  const assistantCaptain = classDetail.assistantClassCaptainId ? pupilsInClassWithPhotos.find(p => p.id === classDetail.assistantClassCaptainId) : null;
+
   return (
-    <>
-      <div className="mb-6">
-        <div className="flex items-center justify-between gap-4">
-          {/* Class Name */}
-          <div className={`transition-all duration-300 ease-out ${searchExpanded ? 'scale-75 opacity-60' : 'scale-100 opacity-100'
-            }`}>
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent">
-              {classDetail.name}
-            </h1>
+    <div className="min-h-screen animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title={classDetail.name}
+        subtitle="Class overview, teacher, leaders, and pupil roster"
+        backHref="/classes"
+        backLabel="Back to classes"
+        className="mb-1.5"
+        meta={
+          <div className="flex items-center gap-1.5">
+            <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+              {classDetail.level}
+            </span>
+            <span className="whitespace-nowrap rounded-full border border-emerald-100/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+              {filteredPupils.length} {filteredPupils.length === 1 ? 'Pupil' : 'Pupils'}
+            </span>
           </div>
-
-          {/* Search and Actions */}
-          <div className="flex items-center gap-2">
-            {/* Back and Edit buttons */}
-            <div className="flex gap-2 sm:gap-3">
-              <SmartBackButton fallbackHref="/classes" className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-background via-background to-muted/20 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/10 hover:to-primary/5">
-  <ArrowLeft className="h-4 w-4 sm:h-4 sm:w-4" />
-  
-</SmartBackButton>
-
-              <Button
-                variant="outline"
-                size="icon"
-                title="Edit Class"
-                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-background via-background to-muted/20 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/10 hover:to-primary/5"
-                onClick={handleOpenEditDialog}
-              >
-                <Edit className="h-4 w-4 sm:h-4 sm:w-4" />
-              </Button>
-            </div>
-
-            {/* Search Container */}
-            <div
-              className={`relative transition-all duration-500 ease-in-out ${searchExpanded
-                ? 'w-48 sm:w-64 md:w-80'
-                : 'w-12'
-                }`}
-            >
-              <div className="relative">
-                <div
-                  className={`absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent opacity-0 transition-opacity duration-500 ${searchExpanded ? 'opacity-100 animate-pulse' : ''
-                    }`}
-                  style={{
-                    animation: searchExpanded ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
-                  }}
-                />
-                <Search
-                  className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 z-10 transition-all duration-500 ${searchExpanded
-                    ? 'text-primary scale-110'
-                    : 'text-muted-foreground scale-100'
-                    }`}
-                />
-                <Input
-                  placeholder="Search pupils..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className={`pl-10 pr-10 h-9 sm:h-10 rounded-full border-2 transition-all duration-500 ease-in-out bg-gradient-to-br from-background via-background to-muted/10 backdrop-blur-sm ${searchExpanded
-                    ? 'border-primary/50 shadow-xl focus:shadow-2xl focus:border-primary scale-105'
-                    : 'border-primary/20 shadow-lg hover:border-primary/30'
-                    }`}
-                  onFocus={() => setSearchExpanded(true)}
-                  onBlur={() => {
-                    if (!filters.search) {
-                      setSearchExpanded(false);
-                    }
-                  }}
-                  style={{
-                    transform: searchExpanded ? 'scale(1.02)' : 'scale(1)',
-                  }}
-                />
-                {filters.search && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 rounded-full hover:bg-primary/10 transition-all duration-300 animate-in fade-in slide-in-from-right-2"
-                    onClick={() => {
-                      setFilters(prev => ({ ...prev, search: '' }));
-                      setSearchExpanded(false);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Filter Button */}
-            <Button
-              variant="outline"
-              size="icon"
+        }
+        center={
+          <GlassPageSearchInput
+            placeholder="Search pupils..."
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+          />
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search pupils..."
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            containerClassName="lg:hidden"
+          />
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label={shouldLoadSubjects ? "Hide Subjects" : "Subjects"}
+              icon={<BookOpen className="h-4 w-4" />}
+              tone={shouldLoadSubjects ? "orange" : "slate"}
+              onClick={() => setShouldLoadSubjects(!shouldLoadSubjects)}
+            />
+            <GlassActionButton
+              label={shouldLoadExams ? "Hide Exams" : "Exams"}
+              icon={<Calendar className="h-4 w-4" />}
+              tone={shouldLoadExams ? "orange" : "slate"}
+              onClick={() => setShouldLoadExams(!shouldLoadExams)}
+            />
+            <GlassActionButton
+              label="Req"
+              icon={<FileText className="h-4 w-4" />}
+              tone="slate"
+              onClick={() => setIsClassRequirementsModalOpen(true)}
+            />
+            <GlassActionButton
+              label="History"
+              icon={<History className="h-4 w-4" />}
+              tone="slate"
+              href={`/classes/history/${classDetail.id}`}
+            />
+            {hasGraduates && (
+              <GlassActionButton
+                label="Graduated"
+                icon={<GraduationCap className="h-4 w-4" />}
+                tone="slate"
+                href={`/classes/graduates/${classDetail.id}`}
+              />
+            )}
+            {pendingPupilsCount > 0 && (
+              <GlassActionButton
+                label={`Pending (${pendingPupilsCount})`}
+                icon={<Clock className="h-4 w-4 text-amber-600" />}
+                tone="orange"
+                href={`/classes/pending?classId=${classDetail.id}`}
+              />
+            )}
+            <GlassActionButton
+              label={viewMode === 'tiles' ? "List" : "Tiles"}
+              icon={viewMode === 'tiles' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
+              tone="slate"
+              onClick={() => setViewMode(viewMode === 'tiles' ? 'list' : 'tiles')}
+              aria-label={viewMode === 'tiles' ? "Switch to List View" : "Switch to Tiles View"}
+            />
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<Filter className="h-4 w-4" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
               onClick={() => setShowFilters(!showFilters)}
-              className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-background via-background to-muted/20 border-2 border-primary/20 hover:border-primary/40 shadow-lg hover:shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/10 hover:to-primary/5"
-            >
-              <Filter className="h-4 w-4 sm:h-4 sm:w-4" />
-            </Button>
-          </div>
-        </div>
+              aria-label="Toggle Filters"
+            />
+            <GlassActionButton
+              label="Edit"
+              tone="slate"
+              icon={<Edit className="h-4 w-4" />}
+              onClick={handleOpenEditDialog}
+              aria-label="Edit Class"
+            />
+          </GlassActionDock>
+        }
+      />
 
-        {/* Description */}
-        <p className="text-muted-foreground hidden lg:block mt-3 text-sm font-medium">Details for class: {classDetail.name}</p>
-      </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Class Leaders & Teacher
+            </span>
+          </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-indigo-700/85 dark:text-indigo-300 font-medium">Class Teacher:</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">{teacherName}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-amber-700/85 dark:text-amber-300 font-medium">Class Captain:</span>
+              {captain ? (
+                <Link href={`/pupil-detail?id=${captain.id}`} className="font-bold text-amber-600 dark:text-amber-400 hover:underline">
+                  {captain.firstName} {captain.lastName}
+                </Link>
+              ) : (
+                <span className="font-bold text-amber-600 dark:text-amber-400">Not Assigned</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-orange-700/85 dark:text-orange-300 font-medium">Assistant Class Captain:</span>
+              {assistantCaptain ? (
+                <Link href={`/pupil-detail?id=${assistantCaptain.id}`} className="font-bold text-orange-600 dark:text-orange-400 hover:underline">
+                  {assistantCaptain.firstName} {assistantCaptain.lastName}
+                </Link>
+              ) : (
+                <span className="font-bold text-orange-600 dark:text-orange-400">Not Assigned</span>
+              )}
+            </div>
+          </>
+        }
+      />
+
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 pb-12">
 
       {/* Filter Panel - shown when filter button is clicked */}
       {showFilters && (
@@ -1239,486 +1312,148 @@ function ClassDetailContent() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-12rem)]">
-        {/* Left Column: Basic Class Info */}
-        <div className="lg:col-span-1 space-y-3 lg:space-y-6 lg:overflow-y-auto lg:pr-2">
-          <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
-            <CardContent className="space-y-0.5 lg:space-y-1 text-xs lg:text-sm pt-6">
-              <DetailItem
-                label="Class Teacher"
-                value={<span className="text-sm lg:text-base font-semibold">{classTeacher ? `${classTeacher.firstName} ${classTeacher.lastName}` : classDetail.classTeacherName || "N/A"}</span>}
-              />
-
-              {/* Class Captain */}
-              <DetailItem
-                label="Class Captain"
-                value={
-                  classDetail.classCaptainId ? (
-                    (() => {
-                      const captain = pupilsInClassWithPhotos.find(p => p.id === classDetail.classCaptainId);
-                      return captain ? (
-                        <div className="flex items-center gap-2">
-                          <Crown className="h-3.5 w-3.5 text-amber-600" />
-                          <Link
-                            href={`/pupil-detail?id=${captain.id}`}
-                            className="text-sm lg:text-base font-semibold hover:text-primary hover:underline transition-colors"
-                          >
-                            {captain.firstName} {captain.lastName}
-                          </Link>
-                        </div>
-                      ) : (
-                        <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
-                      );
-                    })()
-                  ) : (
-                    <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
-                  )
-                }
-              />
-
-              {/* Assistant Class Captain */}
-              <DetailItem
-                label="Assistant Class Captain"
-                value={
-                  classDetail.assistantClassCaptainId ? (
-                    (() => {
-                      const assistantCaptain = pupilsInClassWithPhotos.find(p => p.id === classDetail.assistantClassCaptainId);
-                      return assistantCaptain ? (
-                        <div className="flex items-center gap-2">
-                          <Award className="h-3.5 w-3.5 text-amber-600" />
-                          <Link
-                            href={`/pupil-detail?id=${assistantCaptain.id}`}
-                            className="text-sm lg:text-base font-semibold hover:text-primary hover:underline transition-colors"
-                          >
-                            {assistantCaptain.firstName} {assistantCaptain.lastName}
-                          </Link>
-                        </div>
-                      ) : (
-                        <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
-                      );
-                    })()
-                  ) : (
-                    <span className="text-sm lg:text-base text-muted-foreground">Not Assigned</span>
-                  )
-                }
-              />
-
-              {/* Subjects, Exams, History, and Graduated Class Buttons */}
-              <div className="py-3 border-b border-border/50">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    onClick={() => setShouldLoadSubjects(!shouldLoadSubjects)}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 font-semibold px-3 py-1.5 h-auto"
-                  >
-                    <BookOpen className="mr-1 h-3 w-3" />
-                    {shouldLoadSubjects ? 'Hide' : 'Subjects'}
-                  </Button>
-                  <Button
-                    onClick={() => setShouldLoadExams(!shouldLoadExams)}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 font-semibold px-3 py-1.5 h-auto"
-                  >
-                    <Calendar className="mr-1 h-3 w-3" />
-                    {shouldLoadExams ? 'Hide' : 'Exams'}
-                  </Button>
-                  <TooltipProvider>
-                    {pendingPupilsCount > 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9 rounded-full bg-gradient-to-br from-amber-50 via-amber-50/50 to-transparent border-2 border-amber-300 hover:border-amber-400 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 relative"
-                          >
-                            <Link href={`/classes/pending?classId=${classDetail.id}`}>
-                              <Clock className="h-4 w-4 text-amber-600" />
-                              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-amber-600 text-white text-[10px] font-bold rounded-full">
-                                {pendingPupilsCount > 9 ? '9+' : pendingPupilsCount}
-                              </Badge>
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Pending Pupils ({pendingPupilsCount})</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={() => setIsClassRequirementsModalOpen(true)}
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Class Requirements</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
-                        >
-                          <Link href={`/classes/history/${classDetail.id}`}>
-                            <History className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Class History</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    {hasGraduates && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-2 border-primary/30 hover:border-primary/50 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105"
-                          >
-                            <Link href={`/classes/graduates/${classDetail.id}`}>
-                              <GraduationCap className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Graduated Class</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                  </TooltipProvider>
-                </div>
-              </div>
-
-              {/* Exams List */}
-              {shouldLoadExams && (
-                <div className="mt-3 pt-3 border-t border-border/50">
-                  <div className="text-xs font-medium text-muted-foreground mb-2">Class Exams</div>
-                  {examsLoading ? (
-                    <div className="text-center py-4">
-                      <div className="text-xs text-muted-foreground">Loading exams...</div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:h-[calc(100vh-12rem)]">
+        {/* Left Column: Basic Class Info / Exams / Subjects */}
+        {(shouldLoadExams || shouldLoadSubjects) && (
+          <div className="lg:col-span-1 space-y-3 lg:space-y-6 lg:overflow-y-auto lg:pr-2 animate-in slide-in-from-left duration-300">
+            <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
+              <CardContent className="space-y-4 text-xs lg:text-sm p-4 sm:p-6">
+                {/* Exams List */}
+                {shouldLoadExams && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Calendar className="h-3.5 w-3.5 text-primary" />
+                      Class Exams
                     </div>
-                  ) : (
-                    <>
-                      {/* Academic Year and Term filters - always visible when exams loaded */}
-                      <div className="space-y-2 mb-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs font-medium">Academic Year</Label>
-                          <Select
-                            value={examFilters.academicYearId}
-                            onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
-                            disabled={academicYears.length === 0}
-                          >
-                            <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                              <SelectValue placeholder="Select Year" />
-                            </SelectTrigger>
-                            <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                              <SelectItem value="all">All Academic Years</SelectItem>
-                              {academicYears.map(year => (
-                                <SelectItem key={year.id} value={year.id}>
-                                  {year.name}{year.isActive ? ' (Active)' : ''}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Label className="text-xs font-medium">Term</Label>
-                          <Select
-                            value={examFilters.termId}
-                            onValueChange={(value) => handleExamFilterChange('termId', value)}
-                            disabled={terms.length === 0}
-                          >
-                            <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                              <SelectValue placeholder="Select Term" />
-                            </SelectTrigger>
-                            <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                              <SelectItem value="all">All Terms</SelectItem>
-                              {terms
-                                .filter(term => !examFilters.academicYearId || examFilters.academicYearId === 'all' || term.academicYearId === examFilters.academicYearId)
-                                .map(term => (
-                                  <SelectItem key={term.id} value={term.id}>
-                                    {term.name}{term.isCurrent ? ' (Current)' : ''}
+                    {examsLoading ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary mx-auto" />
+                        <div className="text-xs text-muted-foreground mt-2">Loading exams...</div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Academic Year and Term filters - always visible when exams loaded */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="space-y-1 flex-1">
+                            <Label className="text-xs font-medium text-muted-foreground">Academic Year</Label>
+                            <Select
+                              value={examFilters.academicYearId}
+                              onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
+                              disabled={academicYears.length === 0}
+                            >
+                              <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
+                                <SelectValue placeholder="Select Year" />
+                              </SelectTrigger>
+                              <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
+                                <SelectItem value="all">All Academic Years</SelectItem>
+                                {academicYears.map(year => (
+                                  <SelectItem key={year.id} value={year.id}>
+                                    {year.name}{year.isActive ? ' (Active)' : ''}
                                   </SelectItem>
                                 ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                      {/* Exam list or no-results message */}
-                      {filteredExams.length > 0 ? (
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {filteredExams.map((exam) => (
-                            <Link
-                              key={exam.id}
-                              href={`/exams/${exam.id}`}
-                              className="block p-3 border-2 border-primary/10 rounded-xl text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-md transition-all duration-200 cursor-pointer"
+                          <div className="space-y-1 flex-1">
+                            <Label className="text-xs font-medium text-muted-foreground">Term</Label>
+                            <Select
+                              value={examFilters.termId}
+                              onValueChange={(value) => handleExamFilterChange('termId', value)}
+                              disabled={terms.length === 0}
                             >
-                              <div className="font-semibold text-foreground">{exam.name}</div>
-                              <div className="text-muted-foreground mt-1">
-                                {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4">
-                          <div className="text-xs text-muted-foreground">No exams found for the selected filters.</div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Subjects List */}
-              {shouldLoadSubjects && (
-                <div className="mt-3 pt-3 border-t border-border/50">
-                  <div className="text-xs font-medium text-muted-foreground mb-2">Subjects & Teachers</div>
-                  {subjectsLoading ? (
-                    <div className="text-center py-4">
-                      <div className="text-xs text-muted-foreground">Loading subjects...</div>
-                    </div>
-                  ) : subjectsWithTeacherNames.length > 0 ? (
-                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                      {subjectsWithTeacherNames.map((subject) => (
-                        <div key={subject.id} className="px-2.5 py-2 border-2 border-primary/10 rounded-lg text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-sm transition-all duration-200">
-                          <div className="font-semibold text-foreground text-xs">{subject.name}</div>
-                          <div className="text-muted-foreground text-xs mt-0.5">
-                            <span className="font-medium">{subject.teacherNames && subject.teacherNames.length > 1 ? 'Teachers:' : 'Teacher:'}</span> {subject.teacherName}
+                              <SelectTrigger className="h-8 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
+                                <SelectValue placeholder="Select Term" />
+                              </SelectTrigger>
+                              <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
+                                <SelectItem value="all">All Terms</SelectItem>
+                                {terms
+                                  .filter(term => !examFilters.academicYearId || examFilters.academicYearId === 'all' || term.academicYearId === examFilters.academicYearId)
+                                  .map(term => (
+                                    <SelectItem key={term.id} value={term.id}>
+                                      {term.name}{term.isCurrent ? ' (Current)' : ''}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="text-xs text-muted-foreground">No subjects assigned to this class</div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Exams Dropdown - Mobile - Removed since exams are now in main card */}
-          <div className="block lg:hidden mt-4 hidden">
-            <DetailItem
-              label="Exams"
-              value={
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <span>{shouldLoadExams ? classExams.length : 'View'}</span>
-                  {showExamsDropdown ? <ChevronDown className="h-3 w-3 lg:h-4 lg:w-4" /> : <ChevronRight className="h-3 w-3 lg:h-4 lg:w-4" />}
-                </div>
-              }
-              clickable
-              onClick={() => {
-                if (!shouldLoadExams) {
-                  setShouldLoadExams(true);
-                }
-                setShowExamsDropdown(!showExamsDropdown);
-              }}
-            />
-            {showExamsDropdown && (
-              <div className="mt-2 space-y-2">
-                {/* Academic Year and Term filters - Mobile */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="space-y-1 flex-1">
-                    <Label className="text-xs font-medium">Academic Year</Label>
-                    <Select
-                      value={examFilters.academicYearId}
-                      onValueChange={(value) => handleExamFilterChange('academicYearId', value)}
-                      disabled={academicYears.length === 0}
-                    >
-                      <SelectTrigger className="h-9 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                        <SelectValue placeholder="Select Year" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                        <SelectItem value="all">All Academic Years</SelectItem>
-                        {academicYears.map(year => (
-                          <SelectItem key={year.id} value={year.id}>
-                            {year.name}{year.isActive ? ' (Active)' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        {filteredExams.length > 0 ? (
+                          <div className="space-y-2 max-h-60 lg:max-h-80 overflow-y-auto pr-1">
+                            {filteredExams.map((exam) => (
+                              <Link
+                                key={exam.id}
+                                href={`/exams/${exam.id}`}
+                                className="block p-3 border-2 border-primary/10 rounded-xl hover:border-primary/30 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-card to-muted/5 group/exam"
+                              >
+                                <div className="font-semibold text-foreground text-xs group-hover/exam:text-primary transition-colors">{exam.name}</div>
+                                <div className="text-[10px] text-muted-foreground mt-1">
+                                  {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-xl border border-dashed">
+                            No exams found for the selected filters.
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
-
-                  <div className="space-y-1 flex-1">
-                    <Label className="text-xs font-medium">Term</Label>
-                    <Select
-                      value={examFilters.termId}
-                      onValueChange={(value) => handleExamFilterChange('termId', value)}
-                      disabled={terms.length === 0}
-                    >
-                      <SelectTrigger className="h-9 text-xs rounded-xl border-2 border-primary/20 focus:border-primary/50 shadow-sm bg-gradient-to-br from-background to-muted/10">
-                        <SelectValue placeholder="Select Term" />
-                      </SelectTrigger>
-                      <SelectContent position="popper" className="max-h-[200px] overflow-y-auto rounded-xl border-2">
-                        <SelectItem value="all">All Terms</SelectItem>
-                        {terms
-                          .filter(term => !examFilters.academicYearId || term.academicYearId === examFilters.academicYearId)
-                          .map(term => (
-                            <SelectItem key={term.id} value={term.id}>
-                              {term.name}{term.isCurrent ? ' (Current)' : ''}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Hide Exams Button - Mobile */}
-                {shouldLoadExams && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShouldLoadExams(false)}
-                    className="w-full h-9 text-xs rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-3 py-1.5"
-                  >
-                    <X className="h-3.5 w-3.5 mr-2" />
-                    Hide Exams
-                  </Button>
                 )}
 
-                {/* Exams List - Mobile */}
-                {shouldLoadExams && (
-                  <>
-                    {examsLoading ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        <span className="text-xs text-muted-foreground">Loading exams...</span>
+                {/* Divider if both shown */}
+                {shouldLoadExams && shouldLoadSubjects && (
+                  <div className="border-t border-border/50 my-2" />
+                )}
+
+                {/* Subjects List */}
+                {shouldLoadSubjects && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-1.5 uppercase tracking-wider">
+                      <BookOpen className="h-3.5 w-3.5 text-primary" />
+                      Subjects & Teachers
+                    </div>
+                    {subjectsLoading ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary mx-auto" />
+                        <div className="text-xs text-muted-foreground mt-2">Loading subjects...</div>
                       </div>
-                    ) : filteredExams.length > 0 ? (
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {filteredExams.map((exam) => (
-                          <div key={exam.id} className="p-3 border-2 border-primary/10 rounded-xl text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-md transition-all duration-200">
-                            <div className="font-semibold text-foreground">{exam.name}</div>
-                            <div className="text-muted-foreground mt-1">
-                              {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date set'}
+                    ) : subjectsWithTeacherNames.length > 0 ? (
+                      <div className="space-y-2 max-h-60 lg:max-h-80 overflow-y-auto pr-1">
+                        {subjectsWithTeacherNames.map((subject) => (
+                          <div
+                            key={subject.id}
+                            className="p-3 border-2 border-primary/10 rounded-xl bg-gradient-to-br from-card to-muted/5 text-xs"
+                          >
+                            <div className="font-semibold text-foreground">{subject.name}</div>
+                            <div className="text-muted-foreground text-[10px] mt-1">
+                              <span className="font-medium">Teacher:</span> {subject.teacherName}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-4">
-                        <p className="text-xs text-muted-foreground">No exams found for the selected filters.</p>
+                      <div className="text-xs text-muted-foreground text-center py-4 bg-muted/20 rounded-xl border border-dashed">
+                        No subjects assigned to this class
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Subjects Dropdown - Mobile */}
-          <div className="block lg:hidden mt-4">
-            <DetailItem
-              label="Subjects"
-              value={
-                <div className="flex items-center gap-1 lg:gap-2">
-                  <span>{shouldLoadSubjects ? subjectsWithTeacherNames.length : 'View'}</span>
-                  <ChevronRight className="h-3 w-3 lg:h-4 lg:w-4" />
-                </div>
-              }
-              clickable
-              onClick={() => setShouldLoadSubjects(!shouldLoadSubjects)}
-            />
-            {shouldLoadSubjects && (
-              <div className="mt-2 space-y-2">
-                {/* Hide Subjects Button - Mobile */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShouldLoadSubjects(false)}
-                  className="w-full h-9 text-xs rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-3 py-1.5"
-                >
-                  <X className="h-3.5 w-3.5 mr-2" />
-                  Hide Subjects
-                </Button>
-
-                {/* Subjects List - Mobile */}
-                {subjectsLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-xs text-muted-foreground">Loading subjects...</span>
-                  </div>
-                ) : subjectsWithTeacherNames.length > 0 ? (
-                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                    {subjectsWithTeacherNames.map((subject) => (
-                      <div key={subject.id} className="px-2.5 py-2 border-2 border-primary/10 rounded-lg text-xs bg-gradient-to-br from-card to-muted/5 hover:border-primary/30 hover:shadow-sm transition-all duration-200">
-                        <div className="font-semibold text-foreground text-xs">{subject.name}</div>
-                        <div className="text-muted-foreground text-xs mt-0.5">
-                          <span className="font-medium">Teacher:</span> {subject.teacherName}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-xs text-muted-foreground">No subjects assigned to this class.</p>
                   </div>
                 )}
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
-        </div>
+        )}
 
         {/* Right Column: Pupils List */}
-        <div className="lg:col-span-2 space-y-3 lg:space-y-6 lg:overflow-y-auto">
+        <div className={cn(
+          "space-y-3 lg:space-y-6 lg:overflow-y-auto",
+          (shouldLoadExams || shouldLoadSubjects) ? "lg:col-span-3" : "lg:col-span-4"
+        )}>
           <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
-            <CardHeader className="pb-2 lg:pb-6">
-              <CardTitle className="flex items-center justify-between text-base lg:text-xl">
-                <div className="flex items-center">
-                  <Users className="mr-1.5 lg:mr-3 h-4 w-4 lg:h-6 lg:w-6 text-primary" />
-                  Pupils ({filteredPupils.length})
-                  <span className="lg:hidden ml-2 text-xs text-muted-foreground">
-                    ({viewMode === 'list' ? 'List' : 'Tiles'} view)
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {/* View Mode Toggle - Desktop Only */}
-                  <div className="hidden lg:flex border-2 border-primary/20 rounded-full p-1 bg-gradient-to-br from-muted/30 to-muted/10 backdrop-blur-sm shadow-md">
-                    <Button
-                      variant={viewMode === 'list' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('list')}
-                      className={viewMode === 'list'
-                        ? "rounded-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg font-semibold transition-all duration-200 px-4 py-1.5 h-auto"
-                        : "rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-4 py-1.5 h-auto"
-                      }
-                    >
-                      List
-                    </Button>
-                    <Button
-                      variant={viewMode === 'tiles' ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => setViewMode('tiles')}
-                      className={viewMode === 'tiles'
-                        ? "rounded-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-lg font-semibold transition-all duration-200 px-4 py-1.5 h-auto"
-                        : "rounded-full hover:bg-primary/10 transition-all duration-200 font-medium px-4 py-1.5 h-auto"
-                      }
-                    >
-                      Tiles
-                    </Button>
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="p-0">
               {pupilsInClass.length === 0 && pupilsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1744,7 +1479,7 @@ function ClassDetailContent() {
                   {/* Desktop List View - Show on large screens when viewMode is list */}
                   {viewMode === 'list' && (
                     <div className="hidden lg:block">
-                      <div className="overflow-x-auto max-h-[calc(100vh-20rem)]">
+                      <div className="overflow-x-auto max-h-[calc(100vh-13.5rem)]">
                         <table className="w-full text-sm">
                           <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 sticky top-0 z-10 backdrop-blur-sm">
                             <tr>
@@ -2309,18 +2044,24 @@ function ClassDetailContent() {
           classId={classDetail.id}
         />
       )}
-    </>
+      </div>
+    </div>
   );
 }
 
 export default function ClassDetailPage() {
   return (
     <Suspense fallback={
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Loading Class Details..." />
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading class details...</span>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Loading Class Details..."
+          backHref="/classes"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="text-muted-foreground font-medium">Loading class details...</p>
+          </div>
         </div>
       </div>
     }>

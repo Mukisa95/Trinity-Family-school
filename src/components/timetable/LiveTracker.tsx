@@ -150,66 +150,61 @@ export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrac
     });
 
     return (
-        <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 rounded-xl shadow-sm p-3 sm:p-4 flex flex-col text-white overflow-hidden border border-blue-200 gap-3">
-            {/* Top Row: Main Tracker */}
-            <div className="flex flex-row items-center gap-2 sm:gap-3 w-full pb-0.5 min-w-0">
-                {/* Branding Icon Only */}
-                <div className="flex flex-shrink-0 items-center justify-center bg-white/10 p-1.5 rounded-lg" title={viewOffset === 0 ? "Live Lesson" : "Previewing"}>
-                    <Navigation className={`w-4 h-4 text-white opacity-90 ${viewOffset === 0 ? 'animate-pulse fill-white' : ''}`} />
+        <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 rounded-xl shadow-sm p-2.5 sm:p-3 flex flex-col text-white overflow-hidden border border-indigo-500/30 gap-1.5">
+            {/* Top Row: Details & Navigation */}
+            <div className="flex items-center gap-1.5 w-full min-w-0 flex-wrap sm:flex-nowrap">
+                {/* Status dot pulse */}
+                <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-white/30 flex items-center justify-center">
+                    <div className={`w-1.5 h-1.5 rounded-full bg-white ${isLive ? "animate-pulse" : "opacity-30"}`} />
                 </div>
 
-                {/* Time (Hidden on very small screens to save space) */}
-                <span className="hidden sm:inline-flex flex-shrink-0 text-white font-bold font-mono text-xs md:text-sm bg-white/10 px-2 py-1 rounded-md">
+                {/* Period & Profile Details */}
+                <div className="flex items-center flex-wrap gap-1 text-xs font-bold tracking-tight">
+                    {profileName && (
+                        <span className="text-white/70 uppercase tracking-wider text-[9px] sm:text-[10px] truncate max-w-[80px] sm:max-w-none">
+                            {profileName}
+                        </span>
+                    )}
+                    {profileName && <span className="text-white/30 select-none">|</span>}
+                    
+                    <span className="text-white">{periodLabel}</span>
+
+                    {/* Compact Countdown Badge */}
+                    <span className={`px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md tracking-wider leading-none ${
+                        currentSecs < startSecs 
+                            ? 'bg-amber-400/20 border border-amber-400/30 text-amber-200' 
+                            : currentSecs >= endSecs 
+                                ? 'bg-white/10 border border-white/20 text-white/60' 
+                                : 'bg-emerald-400/20 border border-emerald-400/30 text-emerald-200'
+                    }`}>
+                        {countdownStr}
+                    </span>
+
+                    <span className="text-white/30 font-normal select-none">·</span>
+                    <span className="text-white/70 font-mono font-medium text-[10px]">{activePeriod.startTime}–{activePeriod.endTime}</span>
+                </div>
+
+                <div className="flex-1" />
+
+                {/* Clock */}
+                <span className="hidden sm:inline-flex flex-shrink-0 text-white/90 font-bold font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded">
                     {currentTimeStr}
                 </span>
 
-                {/* Current Lesson Label */}
-                <span className="flex-shrink-0 font-semibold text-xs sm:text-sm md:text-base truncate max-w-[120px] sm:max-w-[300px] flex items-center">
-                    {profileName && (
-                        <>
-                            <span className="text-white/70 uppercase tracking-widest text-[9px] sm:text-[10px] mr-1.5 truncate max-w-[90px] sm:max-w-[150px]">{profileName}</span>
-                            <span className="text-white/40 mr-1.5 hidden sm:inline">|</span>
-                        </>
-                    )}
-                    <span className="truncate">{periodLabel}</span>
-                </span>
-
-                {/* Dynamic Progress Pill */}
-                <div className="flex items-center bg-white rounded-full px-1 py-1 shadow-inner overflow-hidden border border-blue-200 flex-1 min-w-[50px] max-w-4xl flex-shrink">
-                    <div className="h-4 bg-indigo-100 rounded-full w-full mx-1 relative overflow-hidden flex items-center justify-center">
-                        <div
-                            className="absolute top-0 left-0 bottom-0 bg-indigo-500 rounded-full transition-all duration-1000 ease-linear"
-                            style={{ width: `${clampedPct}%` }}
-                        />
-                        <span className="absolute text-[9px] sm:text-[10px] font-bold text-indigo-900 z-10 bg-white/80 px-1.5 rounded-full shadow-sm backdrop-blur-sm whitespace-nowrap">
-                            {countdownStr}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Next Lesson Label */}
-                {nextPeriod && (
-                    <div className="hidden md:flex flex-shrink-0 items-center bg-white/20 backdrop-blur-md rounded-lg px-2.5 py-1 border border-white/20">
-                        <span className="text-xs font-medium opacity-90 truncate max-w-[150px]">
-                            Next: {nextPeriod.type === 'lesson' ? `Lesson ${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)}
-                        </span>
-                    </div>
-                )}
-
-                {/* Navigation Controls */}
-                <div className="flex flex-shrink-0 items-center gap-1 bg-white/10 rounded-lg p-1 ml-auto">
+                {/* Navigation Buttons */}
+                <div className="flex flex-shrink-0 items-center gap-0.5 bg-white/10 rounded-lg p-0.5 ml-auto">
                     <button
                         onClick={handlePrev}
                         disabled={!prevPeriod}
-                        className="p-1.5 rounded bg-transparent hover:bg-white/20 disabled:opacity-30 transition"
-                        title="Previous Lesson"
+                        className="p-1 rounded bg-transparent hover:bg-white/10 disabled:opacity-30 transition"
+                        title="Previous Period"
                     >
-                        <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <ChevronLeft className="w-3 h-3" />
                     </button>
                     {viewOffset !== 0 && (
                         <button
                             onClick={handleLive}
-                            className="px-2 py-1 rounded bg-amber-500 hover:bg-amber-600 text-[9px] sm:text-[10px] font-bold uppercase transition"
+                            className="px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-[8px] font-bold uppercase transition leading-none"
                             title="Return to Live Time"
                         >
                             Reset
@@ -218,22 +213,33 @@ export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrac
                     <button
                         onClick={handleNext}
                         disabled={!nextPeriod}
-                        className="p-1.5 rounded bg-transparent hover:bg-white/20 disabled:opacity-30 transition"
-                        title="Next Lesson"
+                        className="p-1 rounded bg-transparent hover:bg-white/10 disabled:opacity-30 transition"
+                        title="Next Period"
                     >
-                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>
             </div>
 
-            {/* Bottom Row: Active Subjects & Classes Array */}
+            {/* Row 2: Slim Progress Line */}
+            <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden mt-0.5 mb-0.5">
+                <div
+                    className="h-full bg-white rounded-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${clampedPct}%` }}
+                />
+            </div>
+
+            {/* Row 3: Active Subjects Array (Glassmorphic Badges) */}
             {activeSubjectCards.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
+                <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/10">
                     {activeSubjectCards.map((sc, idx) => (
-                        <div key={`${sc.id}-${idx}`} className="bg-white border border-blue-400 shadow-sm rounded-md px-2 py-1 flex items-center gap-1.5">
-                            <span className="text-[11px] sm:text-xs font-bold text-blue-700">{sc.classCode}</span>
-                            <div className="w-1 h-1 rounded-full bg-blue-300"></div>
-                            <span className="text-[11px] sm:text-xs font-bold text-blue-900">{sc.subjectCode}</span>
+                        <div 
+                            key={`${sc.id}-${idx}`} 
+                            className="bg-white/10 border border-white/15 rounded px-2 py-0.5 flex items-center gap-1 text-[9px] font-bold tracking-tight hover:bg-white/15 transition-all shadow-sm"
+                        >
+                            <span className="opacity-90">{sc.classCode}</span>
+                            <span className="opacity-40 select-none">·</span>
+                            <span className="opacity-95">{sc.subjectCode}</span>
                         </div>
                     ))}
                 </div>

@@ -1,5 +1,8 @@
 "use client";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { ClassSelector } from "@/components/common/class-selector";
+import { GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 
 import * as React from "react";
 import Link from "next/link";
@@ -556,9 +559,6 @@ export default function RecordAttendancePage() {
     }
   }, [selectedClassId, pupilsInClass, attendanceData, formattedCurrentDate, selectedClass?.name, bulkCreateMutation, bulkUpdateMutation, toast]);
 
-
-
-
   const getStatusBadgeColor = (status: AttendanceStatus | "") => {
     switch (status) {
       case "Present": return "bg-green-100 text-green-800";
@@ -600,267 +600,141 @@ export default function RecordAttendancePage() {
   }
 
   return (
-    <>
-      {/* Mobile Header with Clock */}
-      <div className="block sm:hidden mb-6 px-2">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Record Daily Attendance</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Recording attendance for {displayDate}</p>
-          </div>
-          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950 rounded-xl px-3 py-2 shadow-md border border-blue-100 dark:border-blue-800">
-            <div className="flex items-center space-x-2">
-              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
-                <Clock className="h-3 w-3 text-white" />
-              </div>
-              <div>
-                <div className="text-sm font-mono font-bold bg-gradient-to-r from-blue-900 to-indigo-900 dark:from-blue-100 dark:to-indigo-100 bg-clip-text text-transparent">
-                  {currentTime}
-                </div>
-                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                  Current Time
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen">
+      {/* Show recess status banner if in recess mode */}
+      <RecessStatusBanner />
 
-        {/* Mobile Class Selection with Back Button */}
-        <div className="space-y-3">
-          {/* Before Selection: Heading with Back Button */}
-          {!selectedClassId && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 rounded-xl shadow-sm">
-                  <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <Label htmlFor="class-select-mobile" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                  Select Class
-                </Label>
-              </div>
-              <SmartBackButton fallbackHref="/attendance" className="h-8 w-8 p-0">
-  <ArrowLeft className="h-4 w-4" />
-  
-</SmartBackButton>
-            </div>
-          )}
-
-          {/* Select Field - With Back Button when class is selected */}
-          {!selectedClassId ? (
-            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger
-                id="class-select-mobile"
-                className="h-14 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 backdrop-blur-sm text-base"
-              >
-                <SelectValue placeholder="Choose a class code" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border-2 shadow-xl backdrop-blur-sm max-h-[40vh] min-h-[200px] sm:max-h-[50vh] sm:min-h-[250px] lg:max-h-[60vh] lg:min-h-[300px] overflow-y-auto">
-                {allClasses.map((cls) => (
-                  <SelectItem
-                    key={cls.id}
-                    value={cls.id}
-                    className="py-3 px-4 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 focus:bg-emerald-50 dark:focus:bg-emerald-900/20 rounded-xl my-1 mx-1 transition-colors duration-200"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full shadow-sm"></div>
-                      <span className="font-medium text-base">{cls.code}</span>
-                      <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full font-medium">
-                        {cls.name}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <div className="flex-1">
-                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger
-                    id="class-select-mobile"
-                    className="h-12 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 backdrop-blur-sm px-3 w-full"
-                  >
-                    <SelectValue placeholder="Select Class" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-2 shadow-xl backdrop-blur-sm max-h-[40vh] min-h-[200px] sm:max-h-[50vh] sm:min-h-[250px] lg:max-h-[60vh] lg:min-h-[300px] overflow-y-auto">
-                    {allClasses.map((cls) => (
-                      <SelectItem
-                        key={cls.id}
-                        value={cls.id}
-                        className="py-3 px-4 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 focus:bg-emerald-50 dark:focus:bg-emerald-900/20 rounded-xl my-1 mx-1 transition-colors duration-200"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full shadow-sm"></div>
-                          <span className="font-medium text-base">{cls.code}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full font-medium">
-                            {cls.name}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <SmartBackButton fallbackHref="/attendance" className="h-12 w-12 rounded-xl flex-shrink-0 border-2 border-gray-200 dark:border-gray-700">
-  <ArrowLeft className="h-5 w-5" />
-  
-</SmartBackButton>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop Header */}
-      <div className="hidden sm:block">
-        <PageHeader
-          title="Record Daily Attendance"
-          description={`Recording attendance for ${displayDate}`}
-          actions={
-            <SmartBackButton fallbackHref="/attendance" className="mr-2 h-4 w-4">
-  <ArrowLeft className="mr-2 h-4 w-4" />
-  Back to Attendance Hub
-</SmartBackButton>
-          }
-        />
-
-        {/* Show recess status banner if in recess mode */}
-        <RecessStatusBanner />
-
-        {/* Desktop Time Display and Class Selection */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Beautiful Time Display */}
-          <div className="order-2 lg:order-1 flex items-center justify-center lg:justify-start">
-            <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950 rounded-2xl px-6 py-4 shadow-lg border border-blue-100 dark:border-blue-800 hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
-              <div className="flex items-center space-x-3">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md">
-                  <Clock className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <div className="text-xl font-mono font-bold bg-gradient-to-r from-blue-900 to-indigo-900 dark:from-blue-100 dark:to-indigo-100 bg-clip-text text-transparent">
-                    {currentTime}
-                  </div>
-                  <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                    Current Time
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop Class Selection */}
-          <div className="order-1 lg:order-2 space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 rounded-xl shadow-sm">
-                <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <Label htmlFor="class-select-desktop" className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                Select Class
-              </Label>
-            </div>
-            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger
-                id="class-select-desktop"
-                className="h-14 border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-300 dark:hover:border-emerald-600 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-800 backdrop-blur-sm text-base"
-              >
-                <SelectValue placeholder="Choose a class code" />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl border-2 shadow-xl backdrop-blur-sm max-h-[40vh] min-h-[200px] sm:max-h-[50vh] sm:min-h-[250px] lg:max-h-[60vh] lg:min-h-[300px] overflow-y-auto">
-                {allClasses.map((cls) => (
-                  <SelectItem
-                    key={cls.id}
-                    value={cls.id}
-                    className="py-3 px-4 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 focus:bg-emerald-50 dark:focus:bg-emerald-900/20 rounded-xl my-1 mx-1 transition-colors duration-200"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full shadow-sm"></div>
-                      <span className="font-medium text-base">{cls.code}</span>
-                      <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full font-medium">
-                        {cls.name}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-        {/* Stats Card - Only show when class is selected */}
-        {selectedClass && (
-          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 backdrop-blur-sm">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="p-2 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-xl">
-                <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
-                    {selectedClass.name} - {pupilsInClass.length} Students
-                  </h3>
-                  {/* Auto-save indicator — updated via DOM ref, causes NO React re-renders */}
-                  <span
-                    ref={autoSaveIndicatorRef}
-                    style={{ display: 'none' }}
-                    className="attendance-autosave-indicator"
-                  />
-                </div>
-                {/* Show signature for latest attendance record */}
-                {existingAttendanceRecords.length > 0 && (
-                  <AttendanceSignatureDisplay
-                    recordId={`${selectedClassId}-${formattedCurrentDate}`}
-                    date={formattedCurrentDate}
-                    variant="inline"
-                    className="mt-1"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg sm:rounded-2xl p-2 sm:p-3 lg:p-4 text-center border border-green-200/50 dark:border-green-700/50">
-                <div className="text-sm sm:text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{attendanceStats.present}</div>
-                <div className="text-xs sm:text-sm text-green-700 dark:text-green-300 font-medium leading-tight">Present</div>
-              </div>
-              <div className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 rounded-lg sm:rounded-2xl p-2 sm:p-3 lg:p-4 text-center border border-red-200/50 dark:border-red-700/50">
-                <div className="text-sm sm:text-xl lg:text-2xl font-bold text-red-600 dark:text-red-400">{attendanceStats.absent}</div>
-                <div className="text-xs sm:text-sm text-red-700 dark:text-red-300 font-medium leading-tight">Absent</div>
-              </div>
-              <div className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg sm:rounded-2xl p-2 sm:p-3 lg:p-4 text-center border border-yellow-200/50 dark:border-yellow-700/50">
-                <div className="text-sm sm:text-xl lg:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{attendanceStats.late}</div>
-                <div className="text-xs sm:text-sm text-yellow-700 dark:text-yellow-300 font-medium leading-tight">Late</div>
-              </div>
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg sm:rounded-2xl p-2 sm:p-3 lg:p-4 text-center border border-blue-200/50 dark:border-blue-700/50">
-                <div className="text-sm sm:text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">{attendanceStats.excused}</div>
-                <div className="text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium leading-tight">Excused</div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-lg sm:rounded-2xl p-2 sm:p-3 lg:p-4 text-center border border-purple-200/50 dark:border-purple-700/50">
-                <div className="text-sm sm:text-xl lg:text-2xl font-bold text-purple-600 dark:text-purple-400">{attendanceStats.delayed}</div>
-                <div className="text-xs sm:text-sm text-purple-700 dark:text-purple-300 font-medium leading-tight">Delayed</div>
-              </div>
-              <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 rounded-lg sm:rounded-2xl p-2 sm:p-3 lg:p-4 text-center border border-gray-200/50 dark:border-gray-700/50">
-                <div className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-600 dark:text-gray-400">{attendanceStats.notMarked}</div>
-                <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">Not Marked</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Search Bar - Only show when class is selected */}
-        {selectedClassId && (
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search pupils by name or admission number..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl"
+      <GlassPageTopBar
+        title="Record Attendance"
+        backHref="/attendance"
+        backLabel="Back to Attendance Hub"
+        className={selectedClass ? "mb-1.5" : "mb-4"}
+        meta={
+          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+            {format(today, "MMM d")}
+          </span>
+        }
+        titleControls={
+          <div className="lg:hidden">
+            <ClassSelector
+              selectedClassId={selectedClassId}
+              onClassChange={setSelectedClassId}
+              placeholder="Class"
+              size="sm"
+              showIcon={false}
+              className="shrink-0"
+              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              includeAllOption={false}
             />
           </div>
-        )}
+        }
+        center={
+          <>
+            <ClassSelector
+              selectedClassId={selectedClassId}
+              onClassChange={setSelectedClassId}
+              placeholder="Class"
+              size="sm"
+              showIcon={false}
+              className="shrink-0"
+              triggerClassName="h-[34px] min-w-[120px] max-w-[160px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              includeAllOption={false}
+            />
+            {selectedClassId && (
+              <GlassPageSearchInput
+                placeholder="Search pupils..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            )}
+          </>
+        }
+        actionsLeading={
+          selectedClassId ? (
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              containerClassName="lg:hidden"
+            />
+          ) : null
+        }
+        actions={
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {selectedClassId && (
+              <span
+                ref={autoSaveIndicatorRef}
+                style={{ display: 'none' }}
+                className="attendance-autosave-indicator text-[9px] sm:text-[10px]"
+              />
+            )}
+            <div className="flex h-[34px] items-center gap-1 rounded-full border border-blue-200/60 bg-white/90 px-3 shadow-sm">
+              <Clock className="h-3.5 w-3.5 text-blue-500" />
+              <span className="font-mono text-[10px] font-bold text-blue-700 sm:text-xs">
+                {currentTime}
+              </span>
+            </div>
+          </div>
+        }
+      />
 
-        {/* Show warning only when attendance cannot be recorded */}
+      {/* Stats Card / Summary Bar - Placed here outside the max-w-7xl container to match topbar width! */}
+      {selectedClass && (
+        <GlassSummaryBar
+          left={
+            <>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+                  {selectedClass.name}
+                </span>
+                <span className="text-xs text-gray-300 font-medium">•</span>
+                <span className="text-[10px] sm:text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100/80 dark:bg-gray-800 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  {pupilsInClass.length} Students
+                </span>
+              </div>
+              {/* Show signature for latest attendance record */}
+              {existingAttendanceRecords.length > 0 && (
+                <AttendanceSignatureDisplay
+                  recordId={`${selectedClassId}-${formattedCurrentDate}`}
+                  date={formattedCurrentDate}
+                  variant="inline"
+                  className="mt-0.5"
+                />
+              )}
+            </>
+          }
+          right={
+            <>
+              <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-green-600 dark:text-green-400">{attendanceStats.present}</span>
+                <span className="text-green-700/85 dark:text-green-300 font-medium">Present</span>
+              </div>
+              <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-red-600 dark:text-red-400">{attendanceStats.absent}</span>
+                <span className="text-red-700/85 dark:text-green-300 font-medium">Absent</span>
+              </div>
+              <div className="flex items-center gap-1 bg-yellow-50/80 dark:bg-yellow-950/20 border border-yellow-100/50 dark:border-yellow-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-yellow-600 dark:text-yellow-400">{attendanceStats.late}</span>
+                <span className="text-yellow-700/85 dark:text-green-300 font-medium">Late</span>
+              </div>
+              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-blue-600 dark:text-blue-400">{attendanceStats.excused}</span>
+                <span className="text-blue-700/85 dark:text-green-300 font-medium">Excused</span>
+              </div>
+              <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-purple-600 dark:text-purple-400">{attendanceStats.delayed}</span>
+                <span className="text-purple-700/85 dark:text-green-300 font-medium">Delayed</span>
+              </div>
+              <div className="flex items-center gap-1 bg-gray-50/80 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-gray-600 dark:text-gray-400">{attendanceStats.notMarked}</span>
+                <span className="text-gray-700/85 dark:text-green-300 font-medium">Not Marked</span>
+              </div>
+            </>
+          }
+        />
+      )}
+
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 pt-4 sm:pt-6 pb-12 space-y-4 sm:space-y-6">
         {!attendanceStatus.canRecord && (
           <div className="bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-2 border-red-200 dark:border-red-700 rounded-2xl p-4 sm:p-6 backdrop-blur-sm">
             <div className="flex items-start space-x-3">
@@ -998,6 +872,6 @@ export default function RecordAttendancePage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
-} 
+}

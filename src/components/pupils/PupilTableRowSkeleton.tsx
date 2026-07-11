@@ -20,6 +20,7 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
             opacity: 1
           }}
         >
+          {/* 1. Pupil Details */}
           <td className="px-2 sm:px-4 py-2 sm:py-3">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="flex-shrink-0">
@@ -50,6 +51,7 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
               </div>
             </div>
           </td>
+          {/* 2. MOPH (Class) */}
           <td className="hidden sm:table-cell px-4 py-3">
             <TextSkeleton 
               width="4rem" 
@@ -57,14 +59,16 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
               delay={index * 0.05 + 0.25}
             />
           </td>
-          <td className="hidden md:table-cell px-4 py-3">
+          {/* 3. CODES */}
+          <td className="hidden lg:table-cell px-4 py-3">
             <TextSkeleton 
               width="5rem" 
               height="1rem"
               delay={index * 0.05 + 0.3}
             />
           </td>
-          <td className="px-2 sm:px-4 py-2 sm:py-3">
+          {/* 4. FAMILY */}
+          <td className="hidden md:table-cell px-4 py-3">
             <div className="space-y-1">
               <TextSkeleton 
                 width="3.5rem" 
@@ -78,13 +82,16 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
               />
             </div>
           </td>
-          <td className="hidden md:table-cell px-4 py-3">
-            <TextSkeleton 
-              width="4rem" 
-              height="1rem"
+          {/* 5. FEES */}
+          <td className="hidden sm:table-cell px-4 py-3">
+            <EnhancedSkeleton 
+              variant="button" 
+              width="2rem" 
+              height="2rem"
               delay={index * 0.05 + 0.45}
             />
           </td>
+          {/* 6. ACTIONS */}
           <td className="px-2 sm:px-4 py-2 sm:py-3 text-right">
             <div className="flex justify-end">
               <EnhancedSkeleton 
@@ -100,4 +107,3 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
     </>
   );
 }
-

@@ -2,8 +2,17 @@
 
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusCircle, Edit, Trash2, DollarSign, ChevronDown, ChevronRight, Power, MinusCircle, ArrowDownUp, Calendar } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { PlusCircle, Edit, Trash2, DollarSign, ChevronDown, ChevronRight, Power, MinusCircle, ArrowDownUp, Calendar, Loader2, Plus, Filter } from "lucide-react";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { cn } from "@/lib/utils";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
+import { UniformManagement } from "./components/uniform-management";
+import { RequirementManagement } from "./components/requirement-management";
+import { useUniforms } from "@/lib/hooks/use-uniforms";
+import { useRequirements } from "@/lib/hooks/use-requirements";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -48,7 +57,7 @@ import { format } from "date-fns";
 
 type ActiveFilter = 'general' | 'assignment' | 'discounts';
 
-export default function FeesManagementPage() {
+export function FeesManagementPageContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -97,6 +106,38 @@ export default function FeesManagementPage() {
   const [editingFeeStructure, setEditingFeeStructure] = React.useState<FeeStructure | null>(null);
   const [selectedFeeForDisable, setSelectedFeeForDisable] = React.useState<FeeStructure | null>(null);
   const [selectedFeeForAdjustment, setSelectedFeeForAdjustment] = React.useState<FeeStructure | null>(null);
+
+  // Tab and routing state
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeSettingTab = (searchParams.get('tab') as 'fees' | 'uniforms' | 'requirements') || 'fees';
+
+  const handleTabChange = (newTab: 'fees' | 'uniforms' | 'requirements') => {
+    router.push(`/fees?tab=${newTab}`);
+  };
+
+  // Uniform/Requirements hooks and stats
+  const { data: uniforms = [] } = useUniforms();
+  const uniqueUniformGroups = Array.from(new Set(uniforms.map(u => u.group).filter(Boolean))).sort();
+  const totalUniforms = uniforms.length;
+  const activeUniforms = uniforms.filter(u => u.isActive).length;
+  const averageUniformPrice = totalUniforms > 0 ? uniforms.reduce((sum, u) => sum + (u.price || 0), 0) / totalUniforms : 0;
+
+  const { data: requirements = [] } = useRequirements();
+  const uniqueRequirementGroups = Array.from(new Set(requirements.map(r => r.group).filter(Boolean))).sort();
+  const totalRequirements = requirements.length;
+  const activeRequirements = requirements.filter(r => r.isActive).length;
+  const totalRequirementsValue = requirements.reduce((sum, r) => sum + (r.price || 0), 0);
+
+  // States
+  const [showUniformFilters, setShowUniformFilters] = React.useState(false);
+  const [uniformAddTrigger, setUniformAddTrigger] = React.useState(0);
+  const [showRequirementFilters, setShowRequirementFilters] = React.useState(false);
+  const [requirementAddTrigger, setRequirementAddTrigger] = React.useState(0);
+
+  const totalFeesCount = feeStructures.length;
+  const activeFeesCount = feeStructures.filter(f => f.status === 'active').length;
+  const discountsCount = feeStructures.filter(f => f.category === 'Discount').length;
   const [modalMode, setModalMode] = React.useState<'add' | 'edit'>('add');
   const [activeFilter, setActiveFilter] = React.useState<ActiveFilter>('general');
   const [selectedAcademicYearId, setSelectedAcademicYearId] = React.useState<string | null>(null);
@@ -616,12 +657,7 @@ export default function FeesManagementPage() {
   // Allow page to render even if adjustments or classes are still loading
   // This prevents the page from being stuck in loading state when non-critical data is slow
   if (isLoadingFees || academicYearsLoading) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Loading Fees Management..." />
-        <div className="text-center text-muted-foreground">Loading fees data...</div>
-      </div>
-    );
+    return <GlassPageRouteSkeleton />;
   }
 
   // Show offline notice if there are connectivity errors
@@ -629,28 +665,34 @@ export default function FeesManagementPage() {
     const isOfflineError = feesError?.message?.includes('offline') || adjustmentsError?.message?.includes('offline');
 
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Fees Management" />
-        <div className="text-center space-y-4">
-          <div className="text-muted-foreground">
-            {isOfflineError ? (
-              <>
-                <p>🔌 You're currently offline</p>
-                <p className="text-sm">Firebase data is not available. Please check your internet connection.</p>
-              </>
-            ) : (
-              <>
-                <p>⚠️ Unable to load fees data</p>
-                <p className="text-sm">There was an error connecting to the database. Please try again later.</p>
-              </>
-            )}
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Fees Management"
+          subtitle="Connection Status"
+          backHref="/"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="text-center space-y-4">
+            <div className="text-muted-foreground">
+              {isOfflineError ? (
+                <>
+                  <p>🔌 You're currently offline</p>
+                  <p className="text-sm">Firebase data is not available. Please check your internet connection.</p>
+                </>
+              ) : (
+                <>
+                  <p>⚠️ Unable to load fees data</p>
+                  <p className="text-sm">There was an error connecting to the database. Please try again later.</p>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Retry
+            </button>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Retry
-          </button>
         </div>
       </div>
     );
@@ -866,8 +908,9 @@ export default function FeesManagementPage() {
     amount: number;
     description?: string;
     linkedFeeIds?: string[];
+    action: 'save' | 'create';
   }) => {
-    const newDiscountData = {
+    const discountPayload = {
       name: data.name,
       amount: -Math.abs(Number(data.amount) || 0),
       category: "Discount" as const,
@@ -882,30 +925,42 @@ export default function FeesManagementPage() {
       frequency: undefined,
       status: "active" as FeeStatus,
       linkedFeeIds: data.linkedFeeIds,
-      linkedFeeId: data.linkedFeeIds?.[0], // Keep first for backward compatibility if needed
+      linkedFeeId: data.linkedFeeIds?.[0], // Keep first for backward compatibility
       disableHistory: [],
       isAssignmentFee: false,
       description: data.description,
     };
 
-    try {
-      await createFeeStructureMutation.mutateAsync(newDiscountData);
-      
-      // Force aggressive invalidation of ALL fee structure queries across the app
+    const invalidateAll = () => {
       queryClient.invalidateQueries({ queryKey: ['fee-structures-management'] });
       queryClient.invalidateQueries({ queryKey: ['feeStructures'] });
       queryClient.invalidateQueries({ queryKey: ['fees'] });
       queryClient.invalidateQueries({ queryKey: ['fee-structures-applicable-to-year'] });
       queryClient.invalidateQueries({ queryKey: ['all-fee-structures-for-carryforward'] });
-      
-      toast({ title: "Discount Created", description: `Discount "${data.name}" has been added.` });
+    };
+
+    try {
+      if (data.action === 'save' && editingFeeStructure) {
+        // Update the existing discount record in place
+        await updateFeeStructureMutation.mutateAsync({
+          id: editingFeeStructure.id,
+          data: discountPayload,
+        });
+        invalidateAll();
+        toast({ title: "Discount Updated", description: `Discount "${data.name}" has been updated.` });
+      } else {
+        // Create a brand-new discount record
+        await createFeeStructureMutation.mutateAsync(discountPayload);
+        invalidateAll();
+        toast({ title: "Discount Created", description: `Discount "${data.name}" has been added.` });
+      }
       setIsDiscountModalOpen(false);
     } catch (error) {
-      console.error('Error creating discount:', error);
+      console.error('Error saving discount:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create discount. Please try again."
+        description: "Failed to save discount. Please try again."
       });
     }
   }
@@ -1322,149 +1377,315 @@ export default function FeesManagementPage() {
     })
   );
 
+  // Dynamic top bar attributes based on active tab
+  const pageTitle = activeSettingTab === 'fees' ? 'Fees Management' :
+                    activeSettingTab === 'uniforms' ? 'Uniform Management' :
+                    'Requirement Management';
+
+  const pageSubtitle = activeSettingTab === 'fees' ? (
+    selectedAcademicYear
+      ? `Manage ${selectedAcademicYear.name} fees${selectedAcademicYear.id !== currentAcademicYear?.id ? ' (Future Year)' : ''}.`
+      : `Manage ${currentAcademicYear?.name || "current academic year"} fees.`
+  ) : activeSettingTab === 'uniforms' ? (
+    'Manage school uniform items, pricing, and availability for different classes and sections'
+  ) : (
+    'Configure standard school requirements for pupils'
+  );
+
   return (
-    <>
-      <PageHeader
-        title="Fees Management"
-        description={
-          selectedAcademicYear
-            ? `Manage ${selectedAcademicYear.name} fees${selectedAcademicYear.id !== currentAcademicYear?.id ? ' (Future Year)' : ''}.`
-            : `Manage ${currentAcademicYear?.name || "current academic year"} fees.`
-        }
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        title={pageTitle}
+        subtitle={pageSubtitle}
+        className="mb-1.5"
+        backHref="/dashboard"
+        backLabel="Dashboard"
         actions={
-          <Button onClick={handleMainActionClick}>
-            <PlusCircle className="mr-2 h-4 w-4" /> {mainActionText}
-          </Button>
+          <GlassActionDock>
+            {activeSettingTab === 'fees' && (
+              <>
+                {/* Filter buttons */}
+                {(['general', 'assignment', 'discounts'] as ActiveFilter[]).map(filter => (
+                  <GlassActionButton
+                    key={filter}
+                    label={`${filter.charAt(0).toUpperCase() + filter.slice(1)} Fees`}
+                    tone={activeFilter === filter ? 'violet' : 'slate'}
+                    onClick={() => setActiveFilter(filter)}
+                    title={`Show ${filter} fees`}
+                  />
+                ))}
+                
+                {/* Academic Year Selector */}
+                {availableAcademicYears.length > 0 && (
+                  <select
+                    value={selectedAcademicYearId || ''}
+                    onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                    className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8"
+                  >
+                    {availableAcademicYears.map((year) => {
+                      const isCurrent = year.id === currentAcademicYear?.id;
+                      const yearStartDate = new Date(year.startDate).getTime();
+                      const currentYearStartDate = currentAcademicYear ? new Date(currentAcademicYear.startDate).getTime() : 0;
+                      const isPast = yearStartDate < currentYearStartDate;
+                      const isFuture = yearStartDate > currentYearStartDate;
+
+                      return (
+                        <option key={year.id} value={year.id}>
+                          {year.name}
+                          {isCurrent ? ' (Current)' : ''}
+                          {isPast ? ' (Past)' : ''}
+                          {isFuture ? ' (Future)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+
+                {/* Main Action button */}
+                <GlassActionButton
+                  label={mainActionText}
+                  icon={<PlusCircle className="h-4 w-4" />}
+                  tone="purple"
+                  onClick={handleMainActionClick}
+                  title={mainActionText}
+                />
+              </>
+            )}
+
+            {activeSettingTab === 'uniforms' && (
+              <>
+                <GlassActionButton
+                  label="Filters"
+                  tone={showUniformFilters ? "violet" : "slate"}
+                  icon={<Filter className="h-4 w-4" />}
+                  onClick={() => setShowUniformFilters(!showUniformFilters)}
+                  title="Toggle Filters"
+                />
+                <GlassActionButton
+                  label="Add Uniform"
+                  tone="purple"
+                  icon={<Plus className="h-4 w-4" />}
+                  onClick={() => setUniformAddTrigger(t => t + 1)}
+                  title="Add New Uniform"
+                />
+              </>
+            )}
+
+            {activeSettingTab === 'requirements' && (
+              <>
+                <GlassActionButton
+                  label="Filters"
+                  tone={showRequirementFilters ? "violet" : "slate"}
+                  icon={<Filter className="h-4 w-4" />}
+                  onClick={() => setShowRequirementFilters(!showRequirementFilters)}
+                  title="Toggle Filters"
+                />
+                <GlassActionButton
+                  label="Add Requirement"
+                  tone="purple"
+                  icon={<Plus className="h-4 w-4" />}
+                  onClick={() => setRequirementAddTrigger(t => t + 1)}
+                  title="Add New Requirement"
+                />
+              </>
+            )}
+          </GlassActionDock>
         }
       />
 
-      {/* Show recess status banner if in recess mode */}
-      <RecessStatusBanner />
+      <GlassSummaryBar
+        left={
+          <div className="flex flex-wrap items-center gap-2">
+            <DollarSign className="h-4 w-4 text-indigo-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
+              Accounts Overview
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeSettingTab === 'fees' && (
+                <>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-blue-700">{totalFeesCount}</span>
+                    <span className="text-blue-700/85 font-medium">total fee structures</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-green-700">{activeFeesCount}</span>
+                    <span className="text-green-700/85 font-medium">active structures</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-amber-700">{discountsCount}</span>
+                    <span className="text-amber-700/85 font-medium">discounts configured</span>
+                  </div>
+                </>
+              )}
 
-      {/* Academic Year Switcher */}
-      {availableAcademicYears.length > 0 && (
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Academic Year:</span>
+              {activeSettingTab === 'uniforms' && (
+                <>
+                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-purple-700">{totalUniforms}</span>
+                    <span className="text-purple-700/85 font-medium">uniform items</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-blue-700">{activeUniforms}</span>
+                    <span className="text-blue-700/85 font-medium">active items</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-green-700">{uniqueUniformGroups.length}</span>
+                    <span className="text-green-700/85 font-medium">groups</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="text-amber-700/85 font-medium">avg price:</span>
+                    <span className="font-bold text-amber-700">{formatCurrency(averageUniformPrice)}</span>
+                  </div>
+                </>
+              )}
+
+              {activeSettingTab === 'requirements' && (
+                <>
+                  <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-emerald-700">{totalRequirements}</span>
+                    <span className="text-emerald-700/85 font-medium">requirement items</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-blue-700">{activeRequirements}</span>
+                    <span className="text-blue-700/85 font-medium">active items</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-green-700">{uniqueRequirementGroups.length}</span>
+                    <span className="text-green-700/85 font-medium">groups</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="text-amber-700/85 font-medium">total value:</span>
+                    <span className="font-bold text-amber-700">{formatCurrency(totalRequirementsValue)}</span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          <Select
-            value={selectedAcademicYearId || ''}
-            onValueChange={(value) => {
-              if (process.env.NODE_ENV === 'development') {
-                const year = allAcademicYears.find(ay => ay.id === value);
-                console.log('🎯 Academic year selector changed:', {
-                  value,
-                  yearName: year?.name || 'Not found'
-                });
-              }
-              setSelectedAcademicYearId(value);
-            }}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select academic year" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableAcademicYears.map((year) => {
-                const isCurrent = year.id === currentAcademicYear?.id;
-                const yearStartDate = new Date(year.startDate).getTime();
-                const currentYearStartDate = currentAcademicYear ? new Date(currentAcademicYear.startDate).getTime() : 0;
-                const isPast = yearStartDate < currentYearStartDate;
-                const isFuture = yearStartDate > currentYearStartDate;
+        }
+        right={
+          <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
+            {[
+              { id: 'fees', label: 'Fees' },
+              { id: 'uniforms', label: 'Uniforms' },
+              { id: 'requirements', label: 'Requirements' }
+            ].map((tab) => {
+              const isActive = activeSettingTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id as any)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
+                    isActive
+                      ? "bg-white text-indigo-700 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        }
+      />
 
-                return (
-                  <SelectItem key={year.id} value={year.id}>
-                    {year.name}
-                    {isCurrent && ' (Current)'}
-                    {isPast && ' (Past)'}
-                    {isFuture && ' (Future)'}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 py-6">
+        {activeSettingTab === 'fees' && (
+          <div className="space-y-6">
+            <RecessStatusBanner />
 
-      <div className="mb-4 flex space-x-2">
-        {(['general', 'assignment', 'discounts'] as ActiveFilter[]).map(filter => (
-          <Button
-            key={filter}
-            variant={activeFilter === filter ? 'default' : 'outline'}
-            onClick={() => setActiveFilter(filter)}
-            className="capitalize"
-          >
-            {filter.replace('-', ' ')} Fees
-          </Button>
-        ))}
+            {activeFilter === 'assignment' ? (
+              <div className="rounded-lg border shadow-sm mt-4 bg-white/60 backdrop-blur-md">
+                {renderTableForAssignmentFees()}
+              </div>
+            ) : activeFilter === 'discounts' ? (
+              <div className="rounded-lg border shadow-sm mt-4 bg-white/60 backdrop-blur-md">
+                {renderTableForDiscounts()}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {renderTableForGeneralFees()}
+              </div>
+            )}
+
+            {(activeFilter === 'general' && groupedFeesByTerm.length === 0 && filteredFeeStructures.length > 0) && (
+              <p className="text-center text-muted-foreground mt-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl">
+                No {activeFilter} fees found for the current academic year terms.
+              </p>
+            )}
+            {filteredFeeStructures.length === 0 && (
+              <p className="text-center text-muted-foreground mt-6 bg-white/50 backdrop-blur-sm p-4 rounded-xl">
+                No fee items defined yet. Click the button above to start.
+              </p>
+            )}
+          </div>
+        )}
+
+        {activeSettingTab === 'uniforms' && (
+          <UniformManagement
+            showFilters={showUniformFilters}
+            addTrigger={uniformAddTrigger}
+          />
+        )}
+
+        {activeSettingTab === 'requirements' && (
+          <RequirementManagement
+            showFilters={showRequirementFilters}
+            addTrigger={requirementAddTrigger}
+          />
+        )}
       </div>
 
+        {isFeeStructureModalOpen && currentAcademicYear && (
+          <FeeStructureModal
+            isOpen={isFeeStructureModalOpen}
+            onClose={() => setIsFeeStructureModalOpen(false)}
+            onSubmit={handleSubmitFeeStructure}
+            initialData={editingFeeStructure}
+            mode={modalMode}
+            academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
+            allClasses={classes || []}
+            currentAcademicYearId={selectedAcademicYearId || currentAcademicYear?.id}
+            currentTermId={currentTerm?.id}
+            isAssignmentFeeDefault={activeFilter === 'assignment'}
+          />
+        )}
+        {isDiscountModalOpen && currentAcademicYear && (
+          <DiscountModal
+            isOpen={isDiscountModalOpen}
+            onClose={() => setIsDiscountModalOpen(false)}
+            onSubmit={handleSubmitDiscount}
+            feeItems={feeStructures.filter(f => f.category !== 'Discount' && f.status === 'active' && f.amount >= 0)}
+            initialData={editingFeeStructure?.category === 'Discount' ? editingFeeStructure : null}
+            mode={editingFeeStructure?.category === 'Discount' ? 'edit' : 'add'}
+          />
+        )}
+        {isDisableModalOpen && selectedFeeForDisable && (
+          <FeeDisableModal
+            isOpen={isDisableModalOpen}
+            onClose={() => { setIsDisableModalOpen(false); setSelectedFeeForDisable(null); }}
+            onSubmit={handleDisableSubmit}
+            feeToDisable={selectedFeeForDisable}
+            academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
+          />
+        )}
+        {isAdjustmentModalOpen && selectedFeeForAdjustment && (
+          <FeeAdjustmentModal
+            isOpen={isAdjustmentModalOpen}
+            onClose={() => { setIsAdjustmentModalOpen(false); setSelectedFeeForAdjustment(null); }}
+            onSubmit={handleAdjustmentSubmit}
+            feeToAdjust={selectedFeeForAdjustment}
+            academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
+          />
+        )}
+    </div>
+  );
+}
 
-
-      {activeFilter === 'assignment' ? (
-        <div className="rounded-lg border shadow-sm mt-4">
-          {renderTableForAssignmentFees()}
-        </div>
-      ) : activeFilter === 'discounts' ? (
-        <div className="rounded-lg border shadow-sm mt-4">
-          {renderTableForDiscounts()}
-        </div>
-      ) :
-        renderTableForGeneralFees()
-      }
-      {(activeFilter === 'general' && groupedFeesByTerm.length === 0 && filteredFeeStructures.length > 0) && (
-        <p className="text-center text-muted-foreground mt-6">
-          No {activeFilter} fees found for the current academic year terms.
-        </p>
-      )}
-      {filteredFeeStructures.length === 0 && (
-        <p className="text-center text-muted-foreground mt-6">
-          No fee items defined yet. Click the button above to start.
-        </p>
-      )}
-
-      {isFeeStructureModalOpen && currentAcademicYear && (
-        <FeeStructureModal
-          isOpen={isFeeStructureModalOpen}
-          onClose={() => setIsFeeStructureModalOpen(false)}
-          onSubmit={handleSubmitFeeStructure}
-          initialData={editingFeeStructure}
-          mode={modalMode}
-          academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
-          allClasses={classes || []}
-          currentAcademicYearId={selectedAcademicYearId || currentAcademicYear?.id}
-          currentTermId={currentTerm?.id}
-          isAssignmentFeeDefault={activeFilter === 'assignment'}
-        />
-      )}
-      {isDiscountModalOpen && currentAcademicYear && (
-        <DiscountModal
-          isOpen={isDiscountModalOpen}
-          onClose={() => setIsDiscountModalOpen(false)}
-          onSubmit={handleSubmitDiscount}
-          feeItems={feeStructures.filter(f => f.category !== 'Discount' && f.status === 'active' && f.amount >= 0)}
-          initialData={editingFeeStructure?.category === 'Discount' ? editingFeeStructure : null}
-          mode={editingFeeStructure?.category === 'Discount' ? 'edit' : 'add'}
-        />
-      )}
-      {isDisableModalOpen && selectedFeeForDisable && (
-        <FeeDisableModal
-          isOpen={isDisableModalOpen}
-          onClose={() => { setIsDisableModalOpen(false); setSelectedFeeForDisable(null); }}
-          onSubmit={handleDisableSubmit}
-          feeToDisable={selectedFeeForDisable}
-          academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
-        />
-      )}
-      {isAdjustmentModalOpen && selectedFeeForAdjustment && (
-        <FeeAdjustmentModal
-          isOpen={isAdjustmentModalOpen}
-          onClose={() => { setIsAdjustmentModalOpen(false); setSelectedFeeForAdjustment(null); }}
-          onSubmit={handleAdjustmentSubmit}
-          feeToAdjust={selectedFeeForAdjustment}
-          academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
-        />
-      )}
-    </>
+export default function FeesManagementPage() {
+  return (
+    <Suspense fallback={<GlassPageRouteSkeleton />}>
+      <FeesManagementPageContent />
+    </Suspense>
   );
 }

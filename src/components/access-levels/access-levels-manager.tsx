@@ -18,9 +18,19 @@ import { GranularPermissionsEditor } from '@/components/users/granular-permissio
 import { MODULE_ACTIONS } from '@/types/permissions';
 import { ActionGuard } from '@/components/auth/action-guard';
 
-export function AccessLevelsManager() {
+export function AccessLevelsManager({
+  showHeader = true,
+  isCreateDialogOpen: controlledOpen,
+  onOpenCreateDialogChange: setControlledOpen
+}: {
+  showHeader?: boolean;
+  isCreateDialogOpen?: boolean;
+  onOpenCreateDialogChange?: (open: boolean) => void;
+}) {
   const { toast } = useToast();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const isCreateDialogOpen = controlledOpen !== undefined ? controlledOpen : localOpen;
+  const setIsCreateDialogOpen = setControlledOpen !== undefined ? setControlledOpen : setLocalOpen;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLevel, setEditingLevel] = useState<AccessLevel | null>(null);
   const [selectedPredefinedLevel, setSelectedPredefinedLevel] = useState<string>('');
@@ -201,33 +211,38 @@ export function AccessLevelsManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Access Levels</h2>
-          <p className="text-muted-foreground">
-            Manage access levels to simplify user permission assignment
-          </p>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Access Levels</h2>
+            <p className="text-muted-foreground">
+              Manage access levels to simplify user permission assignment
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <ActionGuard module="users" page="list" action="manage_permissions">
+              <Button
+                variant="outline"
+                onClick={handleInitializePredefined}
+                disabled={initializePredefinedLevelsMutation.isPending}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Initialize Predefined
+              </Button>
+            </ActionGuard>
+            <ActionGuard module="users" page="list" action="create_user">
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Access Level
+              </Button>
+            </ActionGuard>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <ActionGuard module="users" page="list" action="manage_permissions">
-            <Button
-              variant="outline"
-              onClick={handleInitializePredefined}
-              disabled={initializePredefinedLevelsMutation.isPending}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Initialize Predefined
-            </Button>
-          </ActionGuard>
-          <ActionGuard module="users" page="list" action="create_user">
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Access Level
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      )}
+
+      <ActionGuard module="users" page="list" action="create_user">
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create Access Level</DialogTitle>
                   <DialogDescription>
@@ -331,8 +346,6 @@ export function AccessLevelsManager() {
               </DialogContent>
             </Dialog>
           </ActionGuard>
-        </div>
-      </div>
 
       {/* Access Levels Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Class, Pupil } from '@/types';
-import { RefreshCw, CheckCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Printer, FileText, List, MessageSquare, Clock, Loader2 } from 'lucide-react';
+import { RefreshCw, CheckCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Printer, FileText, List, MessageSquare, Clock, Loader2, Filter, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AcademicYear, Term } from '@/types';
 import Link from 'next/link';
@@ -21,7 +21,7 @@ import PupilPerformanceListPDF from '@/components/reports/PupilPerformanceListPD
 import NurseryAssessmentReport, { NurseryAssessmentReportPageContent } from '@/components/reports/NurseryAssessmentReport';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,6 +83,8 @@ export default function RemarkReportPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [updatedPupils, setUpdatedPupils] = useState<Record<string, string>>({});
   const [expandedPupils, setExpandedPupils] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+
   // Persist bulkTie preference to localStorage so it survives page reloads
   const [bulkTieEnabled, setBulkTieEnabled] = useState<boolean>(() => {
     try {
@@ -127,6 +129,13 @@ export default function RemarkReportPage() {
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedStatusFilter !== 'all') count++;
+    if (showPayCode) count++;
+    return count;
+  }, [selectedStatusFilter, showPayCode]);
 
   // Use existing hooks
   const { data: allClasses = [], isLoading: classesLoading } = useClasses();
@@ -1382,11 +1391,14 @@ export default function RemarkReportPage() {
   if (classesLoading || pupilsLoading || academicYearsLoading || settingsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="max-w-7xl mx-auto p-4 space-y-6">
-          <PageHeader title="Pupil Performance Report" />
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading data...</span>
+        <GlassPageTopBar
+          title="Pupil Performance Report"
+          backHref="/"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="text-muted-foreground font-medium">Loading data...</p>
           </div>
         </div>
       </div>
@@ -1394,51 +1406,128 @@ export default function RemarkReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <PageHeader
-          title="Pupil Performance Report"
-          description="Manage and track pupil performance status for nursery classes. Select subject-based statuses for detailed assessment reports."
-          actions={
-            <div className="flex gap-2">
-              <Link href="/commentary-management">
-                <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Commentary
-                </Button>
-              </Link>
-              {selectedClass && filteredPupils.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="border-green-600 text-green-600 hover:bg-green-50"
-                      disabled={batchProgress.isGenerating}
-                    >
-                      {batchProgress.isGenerating ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Printer className="mr-2 h-4 w-4" />
-                      )}
-                      Print
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={handlePrintList} className="cursor-pointer">
-                      <List className="mr-2 h-4 w-4" />
-                      Print List
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handlePrintReportLight} className="cursor-pointer">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Print Report
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          }
-        />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="Pupil Performance Report"
+        subtitle="Manage and track pupil performance status for nursery classes. Select subject-based statuses for detailed assessment reports."
+        backHref="/"
+        backLabel="Back to dashboard"
+        titleControls={
+          <div className="flex items-center gap-1.5 lg:hidden">
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="h-[34px] min-w-[70px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {nurseryClasses.map((cls: Class) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
+            <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+              <SelectTrigger className="h-[34px] min-w-[65px] max-w-[85px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Term" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTerms.map((term: Term) => (
+                  <SelectItem key={term.id} value={term.id}>
+                    {term.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+        center={
+          <>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[115px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {nurseryClasses.map((cls: Class) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[95px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+                <SelectValue placeholder="Term" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTerms.map((term: Term) => (
+                  <SelectItem key={term.id} value={term.id}>
+                    {term.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <GlassPageSearchInput
+              placeholder="Search pupils..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            />
+          </>
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search pupils..."
+            value={searchTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<Filter className="h-4 w-4" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+              onClick={() => setShowFilters(!showFilters)}
+              aria-label="Filter Pupils"
+            />
+            <GlassActionButton
+              label="Settings"
+              tone="blue"
+              icon={<Settings className="h-4 w-4" />}
+              href="/commentary-management"
+            />
+            {selectedClass && filteredPupils.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <GlassActionButton
+                    label="Print"
+                    tone="slate"
+                    icon={batchProgress.isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                    disabled={batchProgress.isGenerating}
+                    aria-label="Print Options"
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handlePrintList} className="cursor-pointer">
+                    <List className="mr-2 h-4 w-4" />
+                    Print List
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handlePrintReportLight} className="cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Print Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </GlassActionDock>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 pb-12">
         {/* Show recess status banner if in recess mode */}
         <RecessStatusBanner />
 
@@ -1488,104 +1577,49 @@ export default function RemarkReportPage() {
           </div>
         )}
 
-        {/* Modern Filter Bar */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            {/* Class Selection */}
-            <div className="w-full">
-              <Label htmlFor="classSelect" className="text-sm font-medium text-gray-700 mb-1">
-                Select Class
-              </Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="-- Select a Class --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {nurseryClasses.map((cls: Class) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Collapsible Filter Panel */}
+        {showFilters && (
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200 animate-in slide-in-from-top-2 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              {/* Status Filter */}
+              <div className="w-full">
+                <Label htmlFor="statusFilter" className="text-sm font-medium text-gray-700 mb-1">
+                  Filter by Status
+                </Label>
+                <Select value={selectedStatusFilter} onValueChange={setSelectedStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {PERFORMANCE_STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Term Selection */}
-            <div className="w-full">
-              <Label htmlFor="termSelect" className="text-sm font-medium text-gray-700 mb-1">
-                Select Term
-              </Label>
-              <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="-- Select a Term --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableTerms.map((term: Term) => (
-                    <SelectItem key={term.id} value={term.id}>
-                      {term.name}
-                      {term.id === effectiveTerm?.term?.id && ' (Current)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Search Bar */}
-            <div className="w-full">
-              <Label htmlFor="searchInput" className="text-sm font-medium text-gray-700 mb-1">
-                Search Pupils
-              </Label>
-              <div className="relative">
-                <Input
-                  id="searchInput"
-                  type="text"
-                  placeholder="Search by name or reg no..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+              {/* School Pay Code Toggle */}
+              <div className="flex items-center gap-3 h-10">
+                <Switch
+                  id="showPayCode"
+                  checked={showPayCode}
+                  onCheckedChange={setShowPayCode}
                 />
-                <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <Label htmlFor="showPayCode" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
+                  Show School Pay Code on Reports
+                </Label>
+                {showPayCode && (
+                  <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                    Only shown for pupils with code
+                  </span>
+                )}
               </div>
             </div>
-
-            {/* Status Filter */}
-            <div className="w-full">
-              <Label htmlFor="statusFilter" className="text-sm font-medium text-gray-700 mb-1">
-                Filter by Status
-              </Label>
-              <Select value={selectedStatusFilter} onValueChange={setSelectedStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {PERFORMANCE_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-
-          {/* School Pay Code Toggle */}
-          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-3">
-            <Switch
-              id="showPayCode"
-              checked={showPayCode}
-              onCheckedChange={setShowPayCode}
-            />
-            <Label htmlFor="showPayCode" className="text-sm font-medium text-gray-700 cursor-pointer select-none">
-              Show School Pay Code on Reports
-            </Label>
-            {showPayCode && (
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
-                Only shown for pupils with a code assigned
-              </span>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Save Changes Button */}
         {selectedClass && (Object.keys(updatedPupils).length > 0 || Object.keys(updatedSubjectStatuses).length > 0) && (
@@ -1616,45 +1650,41 @@ export default function RemarkReportPage() {
             filteredPupils.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 sticky top-0 z-10 backdrop-blur-sm">
                     <tr>
-                      <th className="w-12 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="w-12 px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                         <span className="sr-only">Expand</span>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSortColumn('name')}
                       >
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-2 hover:text-primary transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10 w-fit">
                           <span>Name</span>
                           {(sortBy === 'name' || sortBy === 'firstName' || sortBy === 'lastName') && (
-                            sortOrder === 'asc' ?
-                              <ArrowUp className="h-3 w-3" /> :
-                              <ArrowDown className="h-3 w-3" />
+                            <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                           )}
                         </div>
                       </th>
                       <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider cursor-pointer"
                         onClick={() => handleSortColumn('status')}
                       >
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-2 hover:text-primary transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10 w-fit">
                           <span>Current Status</span>
                           {sortBy === 'status' && (
-                            sortOrder === 'asc' ?
-                              <ArrowUp className="h-3 w-3" /> :
-                              <ArrowDown className="h-3 w-3" />
+                            <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                         New Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                         <button
                           type="button"
                           onClick={toggleBulkTie}
-                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-medium uppercase tracking-wider text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                         >
                           <span>Tie</span>
                           <span className={`rounded-full px-2 py-0.5 text-[10px] ${bulkTieEnabled ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -1662,10 +1692,10 @@ export default function RemarkReportPage() {
                           </span>
                         </button>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                         Subject Statuses
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>

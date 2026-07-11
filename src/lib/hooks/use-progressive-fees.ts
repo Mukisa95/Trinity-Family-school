@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Pupil, AcademicYear, FeeStructure, PaymentRecord } from '@/types';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { PaymentsService } from '@/lib/services/payments.service';
-import { filterApplicableFees, processPupilFees as processFeesWithDiscounts } from '@/app/fees/collect/[id]/utils/feeProcessing';
+import { filterApplicableFees, isPupilFeesActiveForTerm, processPupilFees as processFeesWithDiscounts } from '@/app/fees/collect/[id]/utils/feeProcessing';
 import { feeGroupCacheService, type OptimizedPupilFees } from '@/lib/services/fee-group-cache.service';
 import { isTermEnded } from '@/lib/utils/academic-year-utils';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
@@ -114,6 +114,15 @@ export function useProgressiveFees({
       // MUST use snapshot data - no fallback to current pupil for ended terms
       let pupilForFees = pupil;
       const selectedTerm = selectedYear.terms.find(t => t.id === selectedTermId);
+
+      if (selectedTerm && !isPupilFeesActiveForTerm(pupil, selectedTerm)) {
+        return {
+          totalFees: 0,
+          totalPaid: 0,
+          balance: 0,
+          applicableFees: []
+        };
+      }
       
       if (selectedTerm && isTermEnded(selectedTerm)) {
         // Term has ended - MUST use snapshot data (pre-loaded in snapshotsMap)
@@ -235,7 +244,12 @@ export function useProgressiveFees({
           paid: fee.paid,
           balance: fee.balance,
           originalAmount: fee.originalAmount,
-          discount: fee.discount
+          discount: fee.discount ? {
+            id: fee.discount.id,
+            name: fee.discount.name,
+            amount: fee.discount.amount,
+            type: fee.discount.type === 'fees-holiday' ? 'fixed' : fee.discount.type
+          } : undefined
         });
 
         totalFees += fee.amount;

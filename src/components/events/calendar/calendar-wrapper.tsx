@@ -35,6 +35,7 @@ import { EventsList } from '../ui/events-list';
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
 import { cn } from '@/lib/utils';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
 
 // Event type color mapping
 const EVENT_TYPE_COLORS = {
@@ -404,7 +405,7 @@ export function CalendarWrapper({
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${className}`}>
+    <div className={`min-h-screen ${className}`}>
       {/* Modern Loading State */}
       {eventsLoading && (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -447,153 +448,89 @@ export function CalendarWrapper({
       {/* Main Content */}
       {!eventsLoading && !eventsError && (
         <div className="animate-in fade-in duration-500">
-          {/* Modern Header - Mobile Optimized */}
-          <div className="bg-white/80 backdrop-blur-xl sm:rounded-2xl shadow-sm border-b sm:border border-slate-200/60 p-4 sm:p-5 mb-6 sm:mx-6 lg:mx-8 relative overflow-hidden">
-            {/* Soft decorative background glow */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="flex flex-col xl:flex-row gap-4 relative z-10 xl:items-center xl:justify-between">
-              {/* Top Row - Title and Primary Action (Mobile only) */}
-              <div className="flex flex-row items-center justify-between gap-4 xl:w-auto">
-                {/* Title Section */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md text-white">
-                    <CalendarIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate tracking-tight">
-                      Events & Calendar
-                    </h1>
-                    <div className="flex items-center gap-2 mt-0.5 opacity-90 overflow-x-auto hide-scrollbar pb-1">
-                      <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 shrink-0">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-                        {allEvents.length} event{allEvents.length !== 1 ? 's' : ''}
-                      </div>
-                      {ugandaHolidays.data && ugandaHolidays.data.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shrink-0">
-                          <span>🇺🇬</span>
-                          {ugandaHolidays.data.length} holiday{ugandaHolidays.data.length !== 1 ? 's' : ''}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+          <GlassPageTopBar
+            title="Events & Calendar"
+            subtitle="View and manage school events, exams, and holidays"
+            backHref="/dashboard"
+            backLabel="Dashboard"
+            meta={
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50/80 border border-blue-200/60 text-[10px] font-semibold text-blue-700">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                  {allEvents.length} event{allEvents.length !== 1 ? 's' : ''}
                 </div>
-
-                {/* Mobile Primary Action (Hidden on Desktop) */}
-                <div className="xl:hidden shrink-0 flex items-center gap-2 w-auto">
-                  <div className="backdrop-blur-sm flex items-center shrink-0 w-auto">
-                    <button
-                      onClick={handleCreateEvent}
-                      className="flex flex-col items-center justify-center w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] md:w-[46px] md:h-[46px] shrink-0 rounded-full ring-[3.5px] ring-white transition-all duration-300 hover:scale-105 active:scale-95 bg-gradient-to-br from-[#1565c0] via-[#2979ff] to-[#1565c0] text-white shadow-[0_0_0_5px_rgba(41,121,255,0.35),0_8px_20px_rgba(41,121,255,0.5)]"
-                      aria-label="New Event"
-                      title="New Event"
-                    >
-                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 mb-0.5" />
-                      <span className="text-[7.5px] sm:text-[9.5px] md:text-[11px] font-semibold tracking-tighter md:tracking-normal leading-none mb-0.5">New</span>
-                    </button>
+                {ugandaHolidays.data && ugandaHolidays.data.length > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50/80 border border-amber-200/60 text-[10px] font-semibold text-amber-700">
+                    <span>🇺🇬</span>
+                    {ugandaHolidays.data.length} holiday{ugandaHolidays.data.length !== 1 ? 's' : ''}
                   </div>
-                </div>
+                )}
               </div>
-
-              {/* Bottom Row (Mobile) / Right Content (Desktop) - Search, Views & Filters */}
-              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between xl:justify-end bg-slate-50/50 xl:bg-transparent p-1.5 sm:p-2 xl:p-0 rounded-xl xl:rounded-none border border-slate-100 xl:border-transparent flex-1 w-full xl:w-auto">
-                {/* Event Search */}
-                <div className="relative w-full md:max-w-xs shrink-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search events..."
-                    value={filters.searchTerm || ''}
-                    onChange={(e) => handleFilterChange({ searchTerm: e.target.value || undefined })}
-                    className="w-full bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg h-10 pl-9 text-sm shadow-sm transition-all"
+            }
+            actionsLeading={
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search events..."
+                  value={filters.searchTerm || ''}
+                  onChange={(e) => handleFilterChange({ searchTerm: e.target.value || undefined })}
+                  className="pl-8 pr-3 h-[30px] w-36 sm:w-48 focus:w-56 transition-all duration-200 rounded-full border border-blue-200/60 bg-white/90 text-[11px] text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 placeholder:text-gray-400"
+                />
+              </div>
+            }
+            actions={
+              <GlassActionDock>
+                <GlassActionButton
+                  label="Month"
+                  icon={<CalendarDays className="h-4 w-4" />}
+                  tone={currentView === 'month' ? 'blue' : 'slate'}
+                  onClick={() => handleViewChange('month')}
+                />
+                <GlassActionButton
+                  label="Week"
+                  icon={<CalendarRange className="h-4 w-4" />}
+                  tone={currentView === 'week' ? 'blue' : 'slate'}
+                  onClick={() => handleViewChange('week')}
+                />
+                <GlassActionButton
+                  label="Day"
+                  icon={<Clock className="h-4 w-4" />}
+                  tone={currentView === 'day' ? 'blue' : 'slate'}
+                  onClick={() => handleViewChange('day')}
+                />
+                <GlassActionButton
+                  label="Agenda"
+                  icon={<List className="h-4 w-4" />}
+                  tone={currentView === 'agenda' ? 'blue' : 'slate'}
+                  onClick={() => handleViewChange('agenda')}
+                />
+                <GlassActionButton
+                  label="Term"
+                  icon={<BookOpen className="h-4 w-4" />}
+                  tone={currentView === 'term' ? 'blue' : 'slate'}
+                  onClick={() => setCurrentView('term')}
+                />
+                {showFilters && (
+                  <GlassActionButton
+                    label="Filters"
+                    icon={<Filter className="h-4 w-4" />}
+                    tone={isMobileFiltersOpen ? 'emerald' : 'slate'}
+                    onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
                   />
-                </div>
+                )}
+                <GlassActionButton
+                  label="New Event"
+                  icon={<Plus className="h-4 w-4" />}
+                  tone="emerald"
+                  onClick={handleCreateEvent}
+                />
+              </GlassActionDock>
+            }
+          />
 
-                {/* View Options & Filters */}
-                <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
-                  {/* View Circular Buttons */}
-                  <div className="bg-white/60 rounded-full px-2 py-1.5 shadow-sm backdrop-blur-sm flex items-center justify-between gap-2 sm:gap-2.5 w-full md:w-auto">
-                    {(['month', 'week', 'day', 'agenda', 'term'] as (CalendarViewType | 'term')[]).map((view) => {
-                      let ViewIcon = CalendarIcon;
-                      if (view === 'month') ViewIcon = CalendarDays;
-                      else if (view === 'week') ViewIcon = CalendarRange;
-                      else if (view === 'day') ViewIcon = Clock;
-                      else if (view === 'agenda') ViewIcon = List;
-                      else if (view === 'term') ViewIcon = BookOpen;
-
-                      // Unique fluorescent ring color per button
-                      const colorMap: Record<string, {
-                        ring: string; shadow: string; hoverShadow: string;
-                        activeGrad: string; activeRing: string; activeShadow: string;
-                        text: string;
-                      }> = {
-                        month: { ring: 'ring-[#00d4c8]', shadow: 'shadow-[0_6px_16px_rgba(0,212,200,0.5)]', hoverShadow: 'hover:shadow-[0_8px_22px_rgba(0,212,200,0.65)]', activeGrad: 'from-[#00b4ae] via-[#00d4c8] to-[#00b4ae]', activeRing: 'ring-white', activeShadow: 'shadow-[0_0_0_5px_rgba(0,212,200,0.35),0_8px_20px_rgba(0,212,200,0.5)]', text: 'text-[#00b4ae]' },
-                        week: { ring: 'ring-[#2979ff]', shadow: 'shadow-[0_6px_16px_rgba(41,121,255,0.5)]', hoverShadow: 'hover:shadow-[0_8px_22px_rgba(41,121,255,0.65)]', activeGrad: 'from-[#1565c0] via-[#2979ff] to-[#1565c0]', activeRing: 'ring-white', activeShadow: 'shadow-[0_0_0_5px_rgba(41,121,255,0.35),0_8px_20px_rgba(41,121,255,0.5)]', text: 'text-[#2979ff]' },
-                        day: { ring: 'ring-[#ff9100]', shadow: 'shadow-[0_6px_16px_rgba(255,145,0,0.5)]', hoverShadow: 'hover:shadow-[0_8px_22px_rgba(255,145,0,0.65)]', activeGrad: 'from-[#e65100] via-[#ff9100] to-[#e65100]', activeRing: 'ring-white', activeShadow: 'shadow-[0_0_0_5px_rgba(255,145,0,0.35),0_8px_20px_rgba(255,145,0,0.5)]', text: 'text-[#e65100]' },
-                        agenda: { ring: 'ring-[#ff1a75]', shadow: 'shadow-[0_6px_16px_rgba(255,26,117,0.5)]', hoverShadow: 'hover:shadow-[0_8px_22px_rgba(255,26,117,0.65)]', activeGrad: 'from-[#c2185b] via-[#ff1a75] to-[#c2185b]', activeRing: 'ring-white', activeShadow: 'shadow-[0_0_0_5px_rgba(255,26,117,0.35),0_8px_20px_rgba(255,26,117,0.5)]', text: 'text-[#c2185b]' },
-                        term: { ring: 'ring-[#aa00ff]', shadow: 'shadow-[0_6px_16px_rgba(170,0,255,0.5)]', hoverShadow: 'hover:shadow-[0_8px_22px_rgba(170,0,255,0.65)]', activeGrad: 'from-[#6a00c8] via-[#aa00ff] to-[#6a00c8]', activeRing: 'ring-white', activeShadow: 'shadow-[0_0_0_5px_rgba(170,0,255,0.35),0_8px_20px_rgba(170,0,255,0.5)]', text: 'text-[#7b00d4]' },
-                      };
-                      const c = colorMap[view] ?? colorMap['week'];
-                      const isActive = currentView === view;
-
-                      return (
-                        <button
-                          key={view}
-                          onClick={() => view === 'term' ? setCurrentView('term') : handleViewChange(view as CalendarViewType)}
-                          disabled={isViewTransitioning}
-                          className={`flex flex-col items-center justify-center w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] md:w-[46px] md:h-[46px] shrink-0 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 ring-[3.5px] ${isActive
-                            ? `bg-gradient-to-br ${c.activeGrad} text-white ${c.activeRing} ${c.activeShadow}`
-                            : `bg-white ${c.text} ${c.ring} ${c.shadow} ${c.hoverShadow}`
-                            }`}
-                          aria-label={`${view} view`}
-                          title={view.charAt(0).toUpperCase() + view.slice(1)}
-                        >
-                          {isViewTransitioning && currentView === view ? (
-                            <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin mb-0.5" />
-                          ) : (
-                            <ViewIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 sm:h-5 mb-0.5" />
-                          )}
-                          <span className="capitalize text-[7.5px] sm:text-[9.5px] md:text-[11px] font-semibold tracking-tighter md:tracking-normal leading-none mb-0.5">{view}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Filter Button */}
-                  {showFilters && (
-                    <div className="bg-white rounded-full p-1 shadow-sm border border-slate-200 backdrop-blur-sm flex items-center shrink-0">
-                      <button
-                        onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-                        className={`xl:hidden flex flex-col items-center justify-center w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] md:w-[46px] md:h-[46px] shrink-0 rounded-full ring-[3.5px] transition-all duration-300 hover:scale-105 active:scale-95 ${isMobileFiltersOpen
-                          ? 'bg-gradient-to-br from-[#00b300] via-[#00e600] to-[#00b300] text-white ring-white shadow-[0_0_0_5px_rgba(0,200,0,0.35),0_8px_20px_rgba(0,200,0,0.5)]'
-                          : 'bg-white text-[#00a300] ring-[#00e600] shadow-[0_6px_16px_rgba(0,200,0,0.4)] hover:shadow-[0_8px_22px_rgba(0,200,0,0.55)]'
-                          }`}
-                        aria-label="Filters"
-                        title="Filters"
-                      >
-                        <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 mb-0.5" />
-                        <span className="text-[7.5px] sm:text-[9.5px] md:text-[11px] font-semibold tracking-tighter md:tracking-normal leading-none mb-0.5">Filters</span>
-                      </button>
-                    </div>
-                  )}
-                  {/* Desktop Primary Action (Hidden on Mobile) */}
-                  <div className="hidden xl:flex shrink-0 items-center gap-2">
-                    <div className="bg-white rounded-full p-1 shadow-sm border border-slate-200 backdrop-blur-sm flex items-center shrink-0 w-full sm:w-auto">
-                      <button
-                        onClick={handleCreateEvent}
-                        className="flex flex-col items-center justify-center w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] md:w-[46px] md:h-[46px] shrink-0 rounded-full ring-[3.5px] ring-white transition-all duration-300 hover:scale-105 active:scale-95 bg-gradient-to-br from-[#1565c0] via-[#2979ff] to-[#1565c0] text-white shadow-[0_0_0_5px_rgba(41,121,255,0.35),0_8px_20px_rgba(41,121,255,0.5)]"
-                        aria-label="New Event"
-                        title="New Event"
-                      >
-                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 mb-0.5" />
-                        <span className="text-[7.5px] sm:text-[9.5px] md:text-[11px] font-semibold tracking-tighter md:tracking-normal leading-none mb-0.5">New</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Wrapper for body layout spacing */}
+          <div className="px-4 sm:px-6 lg:px-8 pb-12">
 
           {/* Mobile Filters - Desktop Inspired */}
           <AnimatePresence>
@@ -1388,6 +1325,7 @@ export function CalendarWrapper({
               background: rgba(148, 163, 184, 0.6);
             }
           `}</style>
+        </div>
         </div>
       )}
     </div>

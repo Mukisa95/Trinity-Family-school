@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 
 const actionLabels: Record<string, string> = {
   create: 'Added',
@@ -290,25 +291,37 @@ export default function HistoryLogPage() {
   }, [logs]);
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">History Log</h1>
-          <p className="text-sm text-muted-foreground">
-            Central activity trail for edits, reversals, approvals, permission changes, and sensitive exports.
-          </p>
-        </div>
-        <Button
-          onClick={loadLogs}
-          variant="outline"
-          size="icon"
-          disabled={loading}
-          className="h-10 w-10 rounded-full"
-          aria-label="Refresh history"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        title="History Log"
+        subtitle="Central activity trail for edits, reversals, approvals, permission changes, and sensitive exports."
+        backHref="/dashboard"
+        backLabel="Dashboard"
+        actionsLeading={
+          <div className="flex items-center gap-2">
+            <GlassPageSearchInput
+              placeholder="Search by item, user, field, amount..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              containerClassName="w-[180px] sm:w-[240px] lg:w-[320px]"
+            />
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Refresh"
+              icon={<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}
+              tone="slate"
+              onClick={loadLogs}
+              disabled={loading}
+              title="Refresh history logs"
+            />
+          </GlassActionDock>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -349,15 +362,9 @@ export default function HistoryLogPage() {
         </Card>
       </div>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by item, user, field, amount..."
-          className="rounded-full md:flex-1"
-        />
+      <div className="flex flex-wrap gap-3 items-center bg-white/40 backdrop-blur-md p-4 rounded-2xl border border-gray-150 shadow-sm">
         <Select value={entity} onValueChange={setEntity}>
-          <SelectTrigger className="rounded-full md:w-[200px]">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px]">
             <SelectValue placeholder="All modules" />
           </SelectTrigger>
           <SelectContent>
@@ -370,7 +377,7 @@ export default function HistoryLogPage() {
           </SelectContent>
         </Select>
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="rounded-full md:w-[200px]">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px]">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
@@ -382,7 +389,7 @@ export default function HistoryLogPage() {
           </SelectContent>
         </Select>
         <Select value={action} onValueChange={setAction}>
-          <SelectTrigger className="rounded-full md:w-[200px]">
+          <SelectTrigger className="rounded-full bg-white/80 w-full sm:w-[200px]">
             <SelectValue placeholder="All actions" />
           </SelectTrigger>
           <SelectContent>
@@ -462,6 +469,7 @@ export default function HistoryLogPage() {
             </CardContent>
           </Card>
         )}
+      </div>
       </div>
     </div>
   );

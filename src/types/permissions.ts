@@ -492,18 +492,6 @@ export const MODULE_ACTIONS = {
           { id: 'edit_vision', name: 'Edit vision/mission', description: 'Can edit vision and mission' },
           { id: 'manage_logo', name: 'Manage logo', description: 'Can manage school logo' }
         ]
-      },
-      {
-        page: 'photos',
-        path: '/admin/photos',
-        name: 'Photo Management',
-        actions: [
-          { id: 'view_photos', name: 'View photos', description: 'Can see photos' },
-          { id: 'upload_photos', name: 'Upload photos', description: 'Can upload new photos' },
-          { id: 'edit_photos', name: 'Edit photos', description: 'Can edit photo details' },
-          { id: 'delete_photos', name: 'Delete photos', description: 'Can delete photos' },
-          { id: 'set_primary', name: 'Set primary', description: 'Can set primary photos' }
-        ]
       }
     ]
   },

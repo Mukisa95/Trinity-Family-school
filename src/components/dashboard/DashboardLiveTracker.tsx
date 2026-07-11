@@ -223,102 +223,94 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
     const BAR_HEIGHT = 22; // px
 
     return (
-        <div className="flex flex-col gap-2 w-full min-w-0 py-1">
-            {/* Row 1: indicator · period · times | clock | nav */}
-            <div className="flex items-center gap-1.5 w-full min-w-0">
-                <div className="flex-shrink-0 w-4 h-4 rounded-full border-2 border-red-300 flex items-center justify-center">
+        <div className="flex flex-col gap-1 w-full min-w-0 py-0.5">
+            {/* Row 1: indicator · profile/period details + countdown badge · times | clock | nav */}
+            <div className="flex flex-wrap items-center gap-1.5 w-full min-w-0">
+                <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-red-300 flex items-center justify-center">
                     <div className={`w-1.5 h-1.5 rounded-full bg-red-500 ${isLive && !isUpcoming ? "animate-pulse" : "opacity-25"}`} />
                 </div>
-                <span className="font-bold text-gray-900 text-xs tracking-tight flex-shrink-0 flex items-center">
+                
+                <div className="flex items-center flex-wrap gap-1 text-xs font-bold text-gray-900 tracking-tight">
                     {profileName && (
-                        <>
-                            <span className="text-gray-500 uppercase tracking-wider text-[10px] sm:text-[11px] mr-1 truncate max-w-[80px] sm:max-w-none">{profileName}</span>
-                            <span className="text-gray-300 mr-1.5 hidden sm:inline">·</span>
-                        </>
+                        <span className="text-gray-500 uppercase tracking-wider text-[10px] sm:text-[11px] truncate max-w-[80px] sm:max-w-none">
+                            {profileName}
+                        </span>
                     )}
-                    {periodLabel}
-                    <span className="text-gray-400 font-normal mx-1">·</span>
-                    <span className="text-gray-600 font-semibold">{activePeriod.startTime}–{activePeriod.endTime}</span>
-                </span>
+                    {profileName && <span className="text-gray-300 select-none">|</span>}
+                    
+                    <span className="text-gray-800">{periodLabel}</span>
+                    
+                    {/* Compact Countdown Badge */}
+                    <span className={`px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md tracking-wider leading-none ${
+                        isUpcoming 
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                            : currentSecs >= endSecs 
+                                ? 'bg-gray-100 text-gray-500 border border-gray-200' 
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}>
+                        {countdownStr}
+                    </span>
+
+                    <span className="text-gray-300 font-normal select-none">·</span>
+                    <span className="text-gray-500 font-mono font-medium text-[11px]">{activePeriod.startTime}–{activePeriod.endTime}</span>
+                </div>
+
                 <div className="flex-1" />
+                
                 {showClock && (
-                    <div className="hidden sm:flex items-center px-2 py-1 bg-indigo-50/50 border border-indigo-100/60 rounded-full shadow-[inset_0_1px_2px_rgba(255,255,255,0.8)] mr-1 flex-shrink-0">
-                        <Clock className="w-3 h-3 text-indigo-400 mr-1.5" />
-                        <span className="font-mono text-[11px] font-bold bg-gradient-to-br from-indigo-700 to-indigo-900 bg-clip-text text-transparent tabular-nums tracking-tight">
+                    <div className="hidden sm:flex items-center px-2 py-0.5 bg-indigo-50/50 border border-indigo-100/60 rounded-full mr-1 flex-shrink-0">
+                        <Clock className="w-2.5 h-2.5 text-indigo-400 mr-1" />
+                        <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-indigo-700 to-indigo-900 bg-clip-text text-transparent tabular-nums tracking-tight">
                             {format(currentTime, "h:mm a")}
                         </span>
                     </div>
                 )}
+                
                 <div className="flex-shrink-0 flex items-center gap-0.5 p-0.5 bg-gray-50 border border-gray-200 rounded-full shadow-sm">
-                    <button onClick={handlePrev} disabled={!prevPeriod} className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all">
-                        <ChevronLeft className="w-3.5 h-3.5" />
+                    <button onClick={handlePrev} disabled={!prevPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all">
+                        <ChevronLeft className="w-3 h-3" />
                     </button>
                     {!isLive && (
-                        <button onClick={handleLive} className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-white shadow-sm border border-amber-200 text-amber-600 rounded-full hover:bg-amber-50 hover:border-amber-300 transition-all">
+                        <button onClick={handleLive} className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-white shadow-sm border border-amber-200 text-amber-600 rounded-full hover:bg-amber-50 hover:border-amber-300 transition-all leading-none">
                             Live
                         </button>
                     )}
-                    <button onClick={handleNext} disabled={!nextPeriod} className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all">
-                        <ChevronRight className="w-3.5 h-3.5" />
+                    <button onClick={handleNext} disabled={!nextPeriod} className="p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all">
+                        <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>
             </div>
 
-            {/* Row 2: progress bar */}
-            <div className="relative w-full mt-1 mb-0.5" style={{ height: BAR_HEIGHT }}>
+            {/* Row 2: Sleek, slim progress line */}
+            <div className="relative w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-0.5 mb-1 shadow-[inset_0_1px_1px_rgba(0,0,0,0.05)]">
                 <div
-                    className="absolute inset-0 rounded-full overflow-hidden ring-4 ring-indigo-50/50 outline outline-1 outline-indigo-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]"
+                    className="h-full rounded-full transition-all duration-1000 ease-linear"
                     style={{
+                        width: `${clampedPct}%`,
                         background: isUpcoming
-                            ? "linear-gradient(90deg, #fde68a 0%, #fbbf24 60%, #f59e0b 100%)"
-                            : "linear-gradient(90deg, #c7d2fe 0%, #818cf8 45%, #4f46e5 80%, #3730a3 100%)"
+                            ? "linear-gradient(90deg, #fcd34d, #f59e0b)"
+                            : "linear-gradient(90deg, #818cf8, #4f46e5)"
                     }}
-                >
-                    <div
-                        className="absolute top-0 bottom-0 left-0 rounded-full transition-all duration-1000 ease-linear"
-                        style={{
-                            width: `max(${clampedPct}%, 14px)`,
-                            background: "rgba(255,255,255,0.52)",
-                            zIndex: 8
-                        }}
-                    />
-                    <span
-                        className="absolute top-0 bottom-0 flex items-center text-[10px] font-bold whitespace-nowrap pointer-events-none select-none transition-colors duration-500"
-                        style={{
-                            right: "24px",
-                            zIndex: 10,
-                            color: clampedPct > 85 ? "#312e81" : "#ffffff",
-                            textShadow: clampedPct > 85 ? "none" : "0 1px 3px rgba(0,0,0,0.3)"
-                        }}
-                    >
-                        {countdownStr}
-                    </span>
-                </div>
-
-                <div
-                    className="absolute top-1/2 -translate-y-1/2 transition-all duration-1000 ease-linear pointer-events-none"
-                    style={{ left: `calc(${clampedPct}% - 7px)`, zIndex: 20 }}
-                >
-                    <div
-                        className="w-3.5 h-3.5 rounded-full bg-white"
-                        style={{ boxShadow: "0 1px 6px rgba(79,70,229,0.40), 0 0 0 2.5px rgba(255,255,255,1)" }}
-                    />
-                </div>
+                />
             </div>
 
             {/* Row 3: pills + next */}
-            <div className="relative flex items-center gap-1.5 flex-wrap">
+            <div className="relative flex items-center gap-1 flex-wrap">
                 {subjectCards.map((sc, idx) => (
                     <div key={`${sc.id}-${idx}`} className="relative">
                         <button
                             data-pill-btn
                             onClick={() => setOpenPillIdx(openPillIdx === idx ? null : idx)}
-                            className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap transition-all hover:brightness-110 active:scale-95"
-                            style={{ backgroundColor: sc.bg, color: sc.text }}
+                            className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all hover:brightness-105 active:scale-95 border"
+                            style={{ 
+                                backgroundColor: `${sc.bg}15`, 
+                                color: sc.bg, 
+                                borderColor: `${sc.bg}30` 
+                            }}
                         >
-                            {sc.classCode}
-                            <span style={{ opacity: 0.55 }}>·</span>
-                            {sc.subjectCode}
+                            <span>{sc.classCode}</span>
+                            <span style={{ opacity: 0.4 }}>·</span>
+                            <span>{sc.subjectCode}</span>
                         </button>
                         {openPillIdx === idx && (
                             <PillPopover pill={sc} onClose={() => setOpenPillIdx(null)} />
@@ -326,11 +318,10 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                     </div>
                 ))}
                 {nextLabel && (
-                    <span className="ml-auto text-[10px] text-gray-400 whitespace-nowrap select-none">
-                        Next <span className="text-gray-300">·</span>{" "}
-                        <span className="font-bold text-gray-600 uppercase">{nextLabel}</span>{" "}
+                    <span className="ml-auto text-[9px] text-gray-400 whitespace-nowrap select-none font-medium">
+                        Next: <span className="font-bold text-gray-500 uppercase">{nextLabel}</span>{" "}
                         <span className="text-gray-300">·</span>{" "}
-                        <span className="text-gray-500">{nextPeriod?.startTime}</span>
+                        <span className="text-gray-400 font-mono">{nextPeriod?.startTime}</span>
                     </span>
                 )}
             </div>

@@ -278,12 +278,20 @@ function WeekGridView({
                                         <div className={`text-[9px] font-bold uppercase leading-none ${isBreak ? "text-gray-400" : "text-gray-500 bg-gray-100 px-1 py-0.5 rounded-sm"}`}>
                                             {isBreak ? (p.customLabel || p.type) : `L${p.periodNumber}`}
                                         </div>
-                                        {!isBreak && (
-                                            <>
-                                                <div className="text-[8px] text-gray-400 leading-none mt-0.5">{fmt(p.startTime)}</div>
-                                                <div className="text-[8px] text-gray-400 leading-none">{fmt(p.endTime)}</div>
-                                            </>
-                                        )}
+                                        {(() => {
+                                            if (isBreak) return null;
+                                            const showAmPm = w >= 55;
+                                            const formatTime = (t: string) => {
+                                                const formatted = fmt(t);
+                                                return showAmPm ? formatted : formatted.replace(/\s*[aApP]\.?[mM]\.?/g, "").trim();
+                                            };
+                                            return (
+                                                <>
+                                                    <div className="text-[8px] text-gray-400 leading-none mt-0.5 whitespace-nowrap overflow-hidden max-w-full text-center select-none">{formatTime(p.startTime)}</div>
+                                                    <div className="text-[8px] text-gray-400 leading-none whitespace-nowrap overflow-hidden max-w-full text-center select-none">{formatTime(p.endTime)}</div>
+                                                </>
+                                            );
+                                        })()}
                                     </th>
                                 );
                             })}
@@ -297,199 +305,211 @@ function WeekGridView({
                                 key={day.id}
                                 className={isToday ? "relative z-10 outline outline-2 outline-indigo-500 -outline-offset-[2px] shadow-[0_4px_20px_rgba(99,102,241,0.2)]" : ""}
                             >
-                                {visibleClasses.map((cls, clsIdx) => (
-                                    <tr
-                                        key={`${day.id}-${cls.id}`}
-                                        className={`${isToday ? (dayIdx % 2 === 0 ? "bg-indigo-50/30" : "bg-indigo-50/50") : (dayIdx % 2 === 0 ? "bg-white" : "bg-slate-50/40")} border-b border-gray-100`}
-                                    >
-                                        {/* Day label cell — only on first class row, spans all class rows */}
-                                        {clsIdx === 0 && (
-                                            <td
-                                                rowSpan={rowCount}
-                                                className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black ${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600'}`}
-                                                style={{ width: 48, minWidth: 48 }}
-                                            >
-                                                <div className="flex items-center justify-center h-full">
-                                                    <span
-                                                        className="text-[11px] font-black tracking-widest uppercase"
-                                                        style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.15em" }}
-                                                    >
-                                                        {day.label}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                        )}
-                                        {/* Class name — hidden when filtering by one class */}
-                                        {showClassCol && (
-                                            <td className={`sticky left-[48px] z-10 py-0.5 px-1 border-r border-b border-gray-200 text-[10px] font-bold text-gray-700 whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}>
-                                                {cls.code || cls.name}
-                                            </td>
-                                        )}
-                                        {/* Period cells */}
-                                        {templatePeriods.map(templatePeriod => {
-                                            const isBreak = templatePeriod.type === "break" || templatePeriod.type === "lunch" || templatePeriod.type === "assembly";
-                                            const isActivePeriodForToday = day.id === todayDayOfWeek && currentTimeStr >= templatePeriod.startTime && currentTimeStr < templatePeriod.endTime;
-
-                                            if (isBreak) {
-                                                // Only render break cell on first class row, spanning all
-                                                if (clsIdx === 0) {
-                                                    return (
-                                                        <td
-                                                            key={templatePeriod.id}
-                                                            ref={isActivePeriodForToday ? activeColRef : null}
-                                                            rowSpan={rowCount}
-                                                            className={`border-r border-gray-200 text-center align-middle relative overflow-hidden ${isActivePeriodForToday ? "bg-amber-100/60" : "bg-gray-100/90"}`}
+                                {visibleClasses.map((cls, clsIdx) => {
+                                    let skipCells = 0;
+                                    return (
+                                        <tr
+                                            key={`${day.id}-${cls.id}`}
+                                            className={`${isToday ? (dayIdx % 2 === 0 ? "bg-indigo-50/30" : "bg-indigo-50/50") : (dayIdx % 2 === 0 ? "bg-white" : "bg-slate-50/40")} border-b border-gray-100`}
+                                        >
+                                            {/* Day label cell — only on first class row, spans all class rows */}
+                                            {clsIdx === 0 && (
+                                                <td
+                                                    rowSpan={rowCount}
+                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black ${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600'}`}
+                                                    style={{ width: 48, minWidth: 48 }}
+                                                >
+                                                    <div className="flex items-center justify-center h-full">
+                                                        <span
+                                                            className="text-[11px] font-black tracking-widest uppercase"
+                                                            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.15em" }}
                                                         >
-                                                            {isActivePeriodForToday && (
-                                                                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-400/20 blur-xl rounded-full pointer-events-none" />
-                                                            )}
-                                                            <span
-                                                                className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActivePeriodForToday ? "text-amber-700" : "text-gray-400"}`}
-                                                                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-                                                            >
-                                                                {templatePeriod.customLabel || templatePeriod.type}
-                                                            </span>
-                                                        </td>
-                                                    );
-                                                }
-                                                return null; // Other class rows skip this cell (rowSpan covers it)
-                                            }
+                                                            {day.label}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            )}
+                                            {/* Class name — hidden when filtering by one class */}
+                                            {showClassCol && (
+                                                <td className={`sticky left-[48px] z-10 py-0.5 px-1 border-r border-b border-gray-200 text-[10px] font-bold text-gray-700 whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}>
+                                                    {cls.code || cls.name}
+                                                </td>
+                                            )}
+                                            {/* Period cells */}
+                                            {templatePeriods.map(templatePeriod => {
+                                                if (skipCells > 0) { skipCells--; return null; }
+                                                const isBreak = templatePeriod.type === "break" || templatePeriod.type === "lunch" || templatePeriod.type === "assembly";
+                                                const isActivePeriodForToday = day.id === todayDayOfWeek && currentTimeStr >= templatePeriod.startTime && currentTimeStr < templatePeriod.endTime;
 
-                                            // Check for grouped activity via linkedClassIds
-                                            const groupEntry = visibleClasses
-                                                .map(c => getEntry(c.id, day.id, templatePeriod))
-                                                .find(e => e?.entryType === 'activity' && e?.linkedClassIds && e.linkedClassIds.length > 0);
-
-                                            if (groupEntry) {
-                                                const groupClassIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
-                                                const isInGroup = groupClassIds.includes(cls.id);
-                                                if (isInGroup) {
-                                                    const firstGroupClsIdx = visibleClasses.findIndex(c => groupClassIds.includes(c.id));
-                                                    if (clsIdx === firstGroupClsIdx) {
-                                                        const groupRowSpan = visibleClasses.filter(c => groupClassIds.includes(c.id)).length;
-                                                        const actTeacher = staffList.find(s => s.id === groupEntry.teacherId);
+                                                if (isBreak) {
+                                                    // Only render break cell on first class row, spanning all
+                                                    if (clsIdx === 0) {
                                                         return (
-                                                            <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} className="border-r border-gray-100 text-center align-middle p-0">
-                                                                <div
-                                                                    className="flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border"
-                                                                    style={{ background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,28%)' }}
+                                                            <td
+                                                                key={templatePeriod.id}
+                                                                ref={isActivePeriodForToday ? activeColRef : null}
+                                                                rowSpan={rowCount}
+                                                                className={`border-r border-gray-200 text-center align-middle relative overflow-hidden ${isActivePeriodForToday ? "bg-amber-100/60" : "bg-gray-100/90"}`}
+                                                            >
+                                                                {isActivePeriodForToday && (
+                                                                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-400/20 blur-xl rounded-full pointer-events-none" />
+                                                                )}
+                                                                <span
+                                                                    className={`text-[9px] font-black uppercase tracking-widest relative z-10 ${isActivePeriodForToday ? "text-amber-700" : "text-gray-400"}`}
+                                                                    style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
                                                                 >
-                                                                    <span className="text-[9px] font-black uppercase tracking-wide leading-tight text-center">{groupEntry.activityName || 'ACT'}</span>
-                                                                    {actTeacher && <span className="text-[8px] opacity-70 leading-tight">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
-                                                                    <span className="text-[7px] opacity-50 leading-none">All Classes</span>
-                                                                </div>
+                                                                    {templatePeriod.customLabel || templatePeriod.type}
+                                                                </span>
                                                             </td>
                                                         );
                                                     }
-                                                    return null; // covered by rowSpan
+                                                    return null; // Other class rows skip this cell (rowSpan covers it)
                                                 }
-                                            }
 
-                                            const entry = getEntry(cls.id, day.id, templatePeriod);
-                                            const subject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
-                                            const teacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
-                                            const highlighted = isHighlighted(entry);
-                                            const dimmed = isDimmed(entry);
+                                                // Check for grouped activity via linkedClassIds
+                                                const groupEntry = visibleClasses
+                                                    .map(c => getEntry(c.id, day.id, templatePeriod))
+                                                    .find(e => e?.entryType === 'activity' && e?.linkedClassIds && e.linkedClassIds.length > 0);
 
-                                            // Compute period state for this cell (only meaningful for today)
-                                            const isToday = day.id === todayDayOfWeek;
-                                            const activeTimeStr = currentTimeStr;
-                                            const periodState: WeekPeriodState = isToday
-                                                ? (activeTimeStr >= templatePeriod.startTime && activeTimeStr < templatePeriod.endTime
-                                                    ? 'active'
-                                                    : activeTimeStr >= templatePeriod.endTime ? 'past' : 'upcoming')
-                                                : 'upcoming';
-
-                                            if (entry && entry.entryType === 'activity') {
-                                                const actTeacher = staffList.find(s => s.id === entry.teacherId);
-                                                const isActiveActivity = periodState === 'active';
-                                                return (
-                                                    <td key={templatePeriod.id} ref={isActivePeriodForToday && clsIdx === 0 ? activeColRef : null} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0">
-                                                        <div
-                                                            className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center"
-                                                            style={isActiveActivity
-                                                                ? { background: 'hsl(270,55%,45%)', borderColor: 'hsl(270,55%,35%)', color: 'white' }
-                                                                : periodState === 'past'
-                                                                    ? { background: 'hsl(270,12%,91%)', borderColor: 'hsl(270,10%,82%)', color: 'hsl(270,14%,62%)' }
-                                                                    : { background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,30%)' }
+                                                if (groupEntry) {
+                                                    const groupClassIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
+                                                    const isInGroup = groupClassIds.includes(cls.id);
+                                                    if (isInGroup) {
+                                                        const firstGroupClsIdx = visibleClasses.findIndex(c => groupClassIds.includes(c.id));
+                                                        if (clsIdx === firstGroupClsIdx) {
+                                                            const groupRowSpan = visibleClasses.filter(c => groupClassIds.includes(c.id)).length;
+                                                            const actTeacher = staffList.find(s => s.id === groupEntry.teacherId);
+                                                            if (groupEntry.periodSpan && groupEntry.periodSpan > 1) {
+                                                                skipCells = groupEntry.periodSpan - 1;
                                                             }
-                                                        >
-                                                            <span className="text-[9px] font-black uppercase leading-tight tracking-wide">{entry.activityName || 'ACT'}</span>
-                                                            {actTeacher && <span className="text-[8px] leading-tight opacity-75">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
-                                                        </div>
-                                                    </td>
-                                                );
-                                            }
-
-                                            const cellStyle = entry && subject ? getWeekCellStyle(subject.id, dimmed, highlighted, periodState) : {};
-
-                                            return (
-                                                <td
-                                                    key={templatePeriod.id}
-                                                    ref={isActivePeriodForToday && clsIdx === 0 ? activeColRef : null}
-                                                    className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0"
-                                                >
-                                                    {entry && subject ? (() => {
-                                                        const optSubject = entry.optionalSubjectId ? subjects.find(s => s.id === entry.optionalSubjectId) : null;
-                                                        const optTeacher = entry.optionalTeacherId ? staffList.find(s => s.id === entry.optionalTeacherId) : null;
-                                                        const isSplit = !!optSubject;
-
-                                                        const primaryStyle = getWeekCellStyle(subject.id, dimmed, highlighted, periodState);
-                                                        const secondaryStyle = isSplit ? getWeekCellStyle(optSubject.id, dimmed, highlighted, periodState) : {};
-
-                                                        if (isSplit) {
                                                             return (
-                                                                <div className="absolute inset-0 m-px flex flex-col rounded border overflow-hidden" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
-                                                                    <div className="flex-1 flex flex-col items-center justify-center border-b border-white/40 min-h-0 py-[1px]" style={primaryStyle}>
-                                                                        <span className="text-[9px] font-bold leading-tight truncate px-1" style={{ color: 'inherit' }}>
-                                                                            {subject.code || subject.name?.substring(0, 4) || '?'}
-                                                                        </span>
-                                                                        {teacher && (
-                                                                            <span className="text-[7.5px] leading-tight opacity-75 truncate max-w-full px-1">
-                                                                                {teacher.firstName[0]}. {teacher.lastName?.split(' ')[0]}
-                                                                            </span>
-                                                                        )}
+                                                                <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} colSpan={groupEntry.periodSpan || 1} className="border-r border-gray-100 text-center align-middle p-0">
+                                                                    <div
+                                                                        className="flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border"
+                                                                        style={{ background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,28%)' }}
+                                                                    >
+                                                                        <span className="text-[9px] font-black uppercase tracking-wide leading-tight text-center">{groupEntry.activityName || 'ACT'}</span>
+                                                                        {actTeacher && <span className="text-[8px] opacity-70 leading-tight">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
+                                                                        <span className="text-[7px] opacity-50 leading-none">All Classes</span>
                                                                     </div>
-                                                                    <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-[1px]" style={secondaryStyle}>
-                                                                        <span className="text-[9px] font-bold leading-tight truncate px-1" style={{ color: 'inherit' }}>
-                                                                            {optSubject.code || optSubject.name?.substring(0, 4) || '?'}
-                                                                        </span>
-                                                                        {optTeacher && (
-                                                                            <span className="text-[7.5px] leading-tight opacity-75 truncate max-w-full px-1">
-                                                                                {optTeacher.firstName[0]}. {optTeacher.lastName?.split(' ')[0]}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
+                                                                </td>
                                                             );
                                                         }
+                                                        return null; // covered by rowSpan
+                                                    }
+                                                }
 
-                                                        return (
+                                                const entry = getEntry(cls.id, day.id, templatePeriod);
+                                                const subject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
+                                                const teacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
+                                                const highlighted = isHighlighted(entry);
+                                                const dimmed = isDimmed(entry);
+
+                                                // Compute period state for this cell (only meaningful for today)
+                                                const isToday = day.id === todayDayOfWeek;
+                                                const activeTimeStr = currentTimeStr;
+                                                const periodState: WeekPeriodState = isToday
+                                                    ? (activeTimeStr >= templatePeriod.startTime && activeTimeStr < templatePeriod.endTime
+                                                        ? 'active'
+                                                        : activeTimeStr >= templatePeriod.endTime ? 'past' : 'upcoming')
+                                                    : 'upcoming';
+
+                                                if (entry && entry.periodSpan && entry.periodSpan > 1) {
+                                                    skipCells = entry.periodSpan - 1;
+                                                }
+
+                                                if (entry && entry.entryType === 'activity') {
+                                                    const actTeacher = staffList.find(s => s.id === entry.teacherId);
+                                                    const isActiveActivity = periodState === 'active';
+                                                    return (
+                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && clsIdx === 0 ? activeColRef : null} colSpan={entry?.periodSpan || 1} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0">
                                                             <div
-                                                                style={primaryStyle}
-                                                                className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center p-0.5"
+                                                                className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center"
+                                                                style={isActiveActivity
+                                                                    ? { background: 'hsl(270,55%,45%)', borderColor: 'hsl(270,55%,35%)', color: 'white' }
+                                                                    : periodState === 'past'
+                                                                        ? { background: 'hsl(270,12%,91%)', borderColor: 'hsl(270,10%,82%)', color: 'hsl(270,14%,62%)' }
+                                                                        : { background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,30%)' }
+                                                                }
                                                             >
-                                                                <span className="font-bold text-[10px] sm:text-[11px] leading-tight truncate px-1 w-full block text-center" style={{ color: 'inherit' }}>
-                                                                    {subject.code || subject.name?.substring(0, 4) || '?'}
-                                                                </span>
-                                                                {teacher && (
-                                                                    <span className="text-[8px] sm:text-[9px] leading-tight opacity-75 truncate px-1 w-full text-center mt-0.5">
-                                                                        {teacher.firstName[0]}. {teacher.lastName?.split(' ')[0]}
-                                                                    </span>
-                                                                )}
-                                                                {periodState === 'active' && (
-                                                                    <span className="absolute bottom-0.5 left-0 right-0 flex justify-center">
-                                                                        <span className="inline-block w-1 h-1 rounded-full bg-white opacity-80 animate-pulse" />
-                                                                    </span>
-                                                                )}
+                                                                <span className="text-[9px] font-black uppercase leading-tight tracking-wide">{entry.activityName || 'ACT'}</span>
+                                                                {actTeacher && <span className="text-[8px] leading-tight opacity-75">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
                                                             </div>
-                                                        );
-                                                    })() : null}
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
+                                                        </td>
+                                                    );
+                                                }
+
+                                                const cellStyle = entry && subject ? getWeekCellStyle(subject.id, dimmed, highlighted, periodState) : {};
+
+                                                return (
+                                                    <td
+                                                        key={templatePeriod.id}
+                                                        ref={isActivePeriodForToday && clsIdx === 0 ? activeColRef : null}
+                                                        colSpan={entry?.periodSpan || 1}
+                                                        className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0"
+                                                    >
+                                                        {entry && subject ? (() => {
+                                                            const optSubject = entry.optionalSubjectId ? subjects.find(s => s.id === entry.optionalSubjectId) : null;
+                                                            const optTeacher = entry.optionalTeacherId ? staffList.find(s => s.id === entry.optionalTeacherId) : null;
+                                                            const isSplit = !!optSubject;
+
+                                                            const primaryStyle = getWeekCellStyle(subject.id, dimmed, highlighted, periodState);
+                                                            const secondaryStyle = isSplit ? getWeekCellStyle(optSubject.id, dimmed, highlighted, periodState) : {};
+
+                                                            if (isSplit) {
+                                                                return (
+                                                                    <div className="absolute inset-0 m-px flex flex-col rounded border overflow-hidden" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                                                                        <div className="flex-1 flex flex-col items-center justify-center border-b border-white/40 min-h-0 py-[1px]" style={primaryStyle}>
+                                                                            <span className="text-[9px] font-bold leading-tight truncate px-1" style={{ color: 'inherit' }}>
+                                                                                {subject.code || subject.name?.substring(0, 4) || '?'}
+                                                                            </span>
+                                                                            {teacher && (
+                                                                                <span className="text-[7.5px] leading-tight opacity-75 truncate max-w-full px-1">
+                                                                                    {teacher.firstName[0]}. {teacher.lastName?.split(' ')[0]}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-[1px]" style={secondaryStyle}>
+                                                                            <span className="text-[9px] font-bold leading-tight truncate px-1" style={{ color: 'inherit' }}>
+                                                                                {optSubject.code || optSubject.name?.substring(0, 4) || '?'}
+                                                                            </span>
+                                                                            {optTeacher && (
+                                                                                <span className="text-[7.5px] leading-tight opacity-75 truncate max-w-full px-1">
+                                                                                    {optTeacher.firstName[0]}. {optTeacher.lastName?.split(' ')[0]}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <div
+                                                                    style={primaryStyle}
+                                                                    className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center p-0.5"
+                                                                >
+                                                                    <span className="font-bold text-[10px] sm:text-[11px] leading-tight truncate px-1 w-full block text-center" style={{ color: 'inherit' }}>
+                                                                        {subject.code || subject.name?.substring(0, 4) || '?'}
+                                                                    </span>
+                                                                    {teacher && (
+                                                                        <span className="text-[8px] sm:text-[9px] leading-tight opacity-75 truncate px-1 w-full text-center mt-0.5">
+                                                                            {teacher.firstName[0]}. {teacher.lastName?.split(' ')[0]}
+                                                                        </span>
+                                                                    )}
+                                                                    {periodState === 'active' && (
+                                                                        <span className="absolute bottom-0.5 left-0 right-0 flex justify-center">
+                                                                            <span className="inline-block w-1 h-1 rounded-full bg-white opacity-80 animate-pulse" />
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })() : null}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
                                 {/* Day separator */}
                                 <tr className="h-[2px] bg-gray-300" key={`sep-${day.id}`}>
                                     <td colSpan={2 + templatePeriods.length} className="bg-gray-300 p-0" />
@@ -526,16 +546,19 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     // same as TimetableGrid does with classes.filter(c => profile.classIds.includes(c.id))
     const profileClasses = React.useMemo(() => {
         if (currentProfile?.classIds && currentProfile.classIds.length > 0) {
-            const filtered = classes.filter(c => currentProfile.classIds.includes(c.id));
-            return filtered.length > 0 ? filtered : classes;
+            // Filter to profile's classes then sort by the class 'order' field (set at class creation)
+            const ordered = classes
+                .filter(c => currentProfile.classIds.includes(c.id))
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            return ordered.length > 0 ? ordered : [...classes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         }
         // Fallback: derive from entries
         if (entries.length > 0) {
             const ids = new Set(entries.map(e => e.classId));
-            const filtered = classes.filter(c => ids.has(c.id));
+            const filtered = classes.filter(c => ids.has(c.id)).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
             if (filtered.length > 0) return filtered;
         }
-        return classes;
+        return [...classes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     }, [currentProfile, entries, classes]);
 
     // Reset filterId when filterMode changes

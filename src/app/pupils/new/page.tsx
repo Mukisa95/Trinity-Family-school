@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft, Save, User, GraduationCap, Users, Heart, Upload, X, RefreshCw, Download, AlertTriangle, Plus } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -675,223 +675,126 @@ function NewPupilContent() {
     );
   };
 
-  const pageContainerRef = React.useRef<HTMLDivElement>(null);
-  const [barStyle, setBarStyle] = React.useState<React.CSSProperties>({});
-
-  React.useEffect(() => {
-    const updateBar = () => {
-      const container = pageContainerRef.current;
-      if (!container) return;
-      const rect = container.getBoundingClientRect();
-      const headerEl = document.querySelector('header');
-      const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 56;
-      setBarStyle({
-        left: `${rect.left}px`,
-        width: `${rect.width}px`,
-        top: `${headerHeight + 8}px`,
-      });
-    };
-
-    updateBar();
-
-    const ro = new ResizeObserver(() => updateBar());
-    if (pageContainerRef.current) ro.observe(pageContainerRef.current);
-    window.addEventListener('resize', updateBar);
-
-    return () => {
-      window.removeEventListener('resize', updateBar);
-      ro.disconnect();
-    };
-  }, []);
-
   const validGuardiansForEmergencyContactSelection = guardians.filter(g => g.firstName && g.lastName && g.relationship && g.phone && g.id);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div ref={pageContainerRef} className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Sticky Navigation and Action Buttons Bar */}
-        <div className="fixed z-30" style={barStyle}>
-          <div className="relative p-4 rounded-2xl bg-gradient-to-r from-white/95 to-blue-50/95 backdrop-blur-lg border border-white/20 shadow-lg shadow-blue-100/50">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              {/* Back Button */}
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-                className="hover:bg-white/50 dark:hover:bg-gray-800/50 flex-shrink-0"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Pupils
-          </Button>
-          
-              {/* Action Buttons */}
-              <div className="flex gap-1 sm:gap-2 flex-wrap">
-                <button
-                  onClick={handleDownloadPdf}
-                  disabled={isSubmitting}
-                  className="group relative px-2 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium text-xs transition-all duration-300 transform hover:scale-105 active:scale-95 flex-shrink-0 bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-blue-600/60 hover:bg-blue-50/30 hover:border-blue-600/80 shadow-md shadow-blue-200/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-center">
-                    <Download className="w-3 h-3 mr-1 sm:mr-1.5 transition-colors text-blue-700" />
-                    <span className="whitespace-nowrap text-blue-700">
-                      <span className="hidden sm:inline">Download PDF</span>
-                      <span className="sm:hidden">PDF</span>
-                    </span>
-                  </div>
-                </button>
+      <GlassPageTopBar
+        title={addingSibling ? 'Add Sibling' : 'Register New Pupil'}
+        subtitle={
+          addingSibling
+            ? isLoadingOriginalPupil
+              ? 'Loading family information...'
+              : originalPupil
+                ? `Adding a sibling to ${originalPupil.firstName} ${originalPupil.lastName}'s family`
+                : 'Adding a sibling to family'
+            : 'Complete the form below to register a new pupil'
+        }
+        backHref="/pupils"
+        backLabel="Back to Pupils"
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="PDF"
+              icon={<Download className="h-4 w-4" />}
+              tone="blue"
+              disabled={isSubmitting}
+              onClick={handleDownloadPdf}
+            />
+            <GlassActionButton
+              label={isSubmitting ? 'Saving' : 'Sibling'}
+              icon={isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
+              tone="emerald"
+              disabled={isSubmitting}
+              onClick={handleSaveAndAddSibling}
+            />
+            <GlassActionButton
+              label={isSubmitting ? 'Saving' : 'Register'}
+              icon={isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              tone="violet"
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+            />
+          </GlassActionDock>
+        }
+      />
 
-                <button
-                  onClick={handleSaveAndAddSibling}
-                  disabled={isSubmitting}
-                  className="group relative px-2 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium text-xs transition-all duration-300 transform hover:scale-105 active:scale-95 flex-shrink-0 bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-green-600/60 hover:bg-green-50/30 hover:border-green-600/80 shadow-md shadow-green-200/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-center">
-                    {isSubmitting ? (
-                      <RefreshCw className="w-3 h-3 mr-1 sm:mr-1.5 transition-colors text-green-700 animate-spin" />
-                    ) : (
-                      <Users className="w-3 h-3 mr-1 sm:mr-1.5 transition-colors text-green-700" />
-                    )}
-                    <span className="whitespace-nowrap text-green-700">
-                      {isSubmitting ? (
-                        <span className="hidden sm:inline">Saving & Opening...</span>
-                      ) : (
-                        <>
-                          <span className="hidden sm:inline">Save & Add Sibling</span>
-                          <span className="sm:hidden">+ Sibling</span>
-                        </>
-                      )}
-                    </span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="group relative px-2 sm:px-3 py-1.5 sm:py-2 rounded-full font-medium text-xs transition-all duration-300 transform hover:scale-105 active:scale-95 flex-shrink-0 bg-white text-violet-600 shadow-md shadow-violet-600/20 hover:shadow-lg hover:shadow-violet-600/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <div className="flex items-center">
-                    {isSubmitting ? (
-                      <RefreshCw className="w-3 h-3 mr-1 sm:mr-1.5 transition-colors text-violet-600 animate-spin" />
-                    ) : (
-                      <Save className="w-3 h-3 mr-1 sm:mr-1.5 transition-colors text-violet-600" />
-                    )}
-                    <span className="whitespace-nowrap text-violet-600">
-                      {isSubmitting ? (
-                        <span className="hidden sm:inline">Registering...</span>
-                      ) : (
-                        <>
-                          <span className="hidden sm:inline">Register Pupil</span>
-                          <span className="sm:hidden">Register</span>
-                        </>
-                      )}
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-400/20 to-purple-400/20 animate-pulse"></div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Spacer to offset fixed bar height (matches bar height + gap) */}
-        <div className="h-20"></div>
-
-        {/* Page Title */}
-        <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              {addingSibling ? 'Add Sibling' : 'Register New Pupil'}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
-              {addingSibling 
-                ? isLoadingOriginalPupil
-                  ? 'Loading family information...'
-                  : originalPupil 
-                    ? `Adding a sibling to ${originalPupil.firstName} ${originalPupil.lastName}'s family`
-                    : 'Adding a sibling to family'
-                : 'Complete the form below to register a new pupil'
-              }
-            </p>
-        </div>
+      <div className="container mx-auto max-w-6xl px-4 pb-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Photo and Quick Info */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Photo Upload Card */}
+          <div className="lg:col-span-1 space-y-6 order-last lg:order-first">
+            {/* Consolidated Photo and Preview Card */}
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm photo-upload-card">
-              <CardHeader className="text-center">
-                <CardTitle className="flex items-center justify-center gap-2">
-                  <User className="h-5 w-5 text-blue-600" />
-                  Pupil Photo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6 space-y-6">
                 <PhotoUploadCrop
                   onPhotoChange={handlePhotoChange}
                   currentPhoto={photoPreview}
                 />
-              </CardContent>
-            </Card>
 
-            {/* Quick Info Card - Positioned below photo with proper spacing */}
-            <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm quick-preview-card">
-              <CardHeader>
-                <CardTitle className="text-center text-lg">Quick Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="text-center space-y-4">
-                {(firstName || lastName) && (
+                {/* Separator if any preview info is available */}
+                {((firstName || lastName) || gender || admissionNumber || registrationDate || predictedHouse) && (
+                  <Separator className="bg-gray-200 dark:bg-gray-700" />
+                )}
+
+                <div className="text-center space-y-4">
+                  {(firstName || lastName) && (
+                    <div className="space-y-1">
+                      <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                        {lastName}{lastName && firstName && ', '}{firstName}
+                      </p>
+                      {otherNames && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{otherNames}</p>
+                      )}
+                    </div>
+                  )}
+                  {gender && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Gender</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">{gender}</p>
+                    </div>
+                  )}
+                  
+                  {/* Admission Number */}
                   <div className="space-y-1">
-                    <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                      {lastName}{lastName && firstName && ', '}{firstName}
-                    </p>
-                    {otherNames && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{otherNames}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Admission Number</p>
+                    {admissionNumber ? (
+                      <Badge variant="outline" className="text-sm font-mono bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300">
+                        {admissionNumber}
+                      </Badge>
+                    ) : (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">Auto-generated</p>
                     )}
                   </div>
-                )}
-                {gender && (
+
+                  {/* Registration Date */}
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Gender</p>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{gender}</p>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Registration Date</p>
+                    <p className="text-sm font-mono text-gray-900 dark:text-gray-100">
+                      {registrationDate?.toLocaleDateString() || new Date().toLocaleDateString()}
+                    </p>
                   </div>
-                )}
-                
-                {/* Admission Number */}
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Admission Number</p>
-                  {admissionNumber ? (
-                    <Badge variant="outline" className="text-sm font-mono bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300">
-                      {admissionNumber}
-                    </Badge>
-                  ) : (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 italic">Auto-generated</p>
-                  )}
-                </div>
 
-                {/* Registration Date */}
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Registration Date</p>
-                  <p className="text-sm font-mono text-gray-900 dark:text-gray-100">
-                    {registrationDate?.toLocaleDateString() || new Date().toLocaleDateString()}
-                  </p>
-                </div>
-
-                {/* Predicted House */}
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Auto House</p>
-                  {predictedHouse ? (
-                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full border text-sm"
-                         style={{ borderColor: predictedHouse.themeColor, color: predictedHouse.themeColor }}>
-                      <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: predictedHouse.themeColor }} />
-                      <span className="font-medium">{predictedHouse.name}</span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 italic">Determining...</p>
-                  )}
+                  {/* Predicted House */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Auto House</p>
+                    {predictedHouse ? (
+                      <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full border text-sm mx-auto"
+                           style={{ borderColor: predictedHouse.themeColor, color: predictedHouse.themeColor }}>
+                        <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: predictedHouse.themeColor }} />
+                        <span className="font-medium">{predictedHouse.name}</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 italic">Determining...</p>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Right Column - Form */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 order-first lg:order-none">
             {/* Personal Information */}
             <Card className="shadow-lg border-0 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm">
               <CardHeader>
@@ -901,7 +804,7 @@ function NewPupilContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <div>
                     <Label htmlFor="lastName" className="text-sm font-medium">
                       Surname <span className="text-red-500">*</span>
@@ -1083,16 +986,16 @@ function NewPupilContent() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                <div>
-                  <Label htmlFor="pupilAddress" className="text-sm font-medium">Residential Address</Label>
-                  <Input
-                    id="pupilAddress"
-                    value={pupilAddress || ""}
-                    onChange={(e) => setPupilAddress(e.target.value.toUpperCase())}
-                    className="mt-1"
-                    placeholder="Enter residential address"
-                  />
+                  <div>
+                    <Label htmlFor="pupilAddress" className="text-sm font-medium">Residential Address</Label>
+                    <Input
+                      id="pupilAddress"
+                      value={pupilAddress || ""}
+                      onChange={(e) => setPupilAddress(e.target.value.toUpperCase())}
+                      className="mt-1"
+                      placeholder="Enter residential address"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1106,7 +1009,7 @@ function NewPupilContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <div>
                     <Label htmlFor="classId" className="text-sm font-medium">
                       Class <span className="text-red-500">*</span>
@@ -1203,7 +1106,7 @@ function NewPupilContent() {
                     
                     <div className="space-y-4">
                       {/* Basic Information - 2 columns on larger screens */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor={ `guardian_relationship_${index}` } className="text-sm font-medium">
                             Relationship <span className="text-red-500">*</span>
@@ -1248,34 +1151,33 @@ function NewPupilContent() {
                           <Label htmlFor={ `guardian_phone_${index}` } className="text-sm font-medium">
                             Phone <span className="text-red-500">*</span>
                           </Label>
-                          <PhoneInput
-                            id={`guardian_phone_${index}`}
-                            value={guardian.phone}
-                            onChange={(value) => handleGuardianChange(index, 'phone', value)}
-                            className="mt-1"
-                          />
+                          <div className="flex items-center gap-2 mt-1">
+                            <PhoneInput
+                              id={`guardian_phone_${index}`}
+                              value={guardian.phone}
+                              onChange={(value) => handleGuardianChange(index, 'phone', value)}
+                              className="flex-grow"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => addAdditionalPhone(index)}
+                              className="h-9 w-9 p-0 flex-shrink-0"
+                              title="Add additional phone number"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                       
                       {/* Additional Phone Numbers - Full width */}
-                      <div className="border-t pt-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                          <Label className="text-sm font-medium text-gray-600">
+                      {guardian.additionalPhones && guardian.additionalPhones.length > 0 && (
+                        <div className="border-t pt-4">
+                          <Label className="text-sm font-medium text-gray-600 block mb-3">
                             Additional Phone Numbers
                           </Label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addAdditionalPhone(index)}
-                            className="h-8 px-3 text-xs self-start sm:self-auto"
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add Phone
-                          </Button>
-                        </div>
-                        
-                        {guardian.additionalPhones && guardian.additionalPhones.length > 0 && (
                           <div className="space-y-3">
                             {guardian.additionalPhones.map((phone, phoneIndex) => (
                               <div key={phoneIndex} className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
@@ -1297,11 +1199,11 @@ function NewPupilContent() {
                               </div>
                             ))}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       
                       {/* Contact Information - 2 columns on larger screens */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor={ `guardian_email_${index}` } className="text-sm font-medium">Email</Label>
                           <Input
@@ -1323,17 +1225,17 @@ function NewPupilContent() {
                             placeholder="Enter occupation"
                           />
                         </div>
+                        <div>
+                          <Label htmlFor={ `guardian_address_${index}` } className="text-sm font-medium">Address</Label>
+                          <Input
+                            id={`guardian_address_${index}`}
+                            value={guardian.address ?? ""}
+                            onChange={(e) => handleGuardianChange(index, 'address', e.target.value.toUpperCase())}
+                            className="mt-1"
+                            placeholder="Enter address"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-4">
-                      <Label htmlFor={ `guardian_address_${index}` } className="text-sm font-medium">Address</Label>
-                      <Input
-                        id={`guardian_address_${index}`}
-                        value={guardian.address ?? ""}
-                        onChange={(e) => handleGuardianChange(index, 'address', e.target.value.toUpperCase())}
-                        className="mt-1"
-                        placeholder="Enter address"
-                      />
                     </div>
                   </div>
                 ))}
@@ -1361,7 +1263,7 @@ function NewPupilContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <div>
                     <Label htmlFor="emergencyContactGuardianId" className="text-sm font-medium">
                       Emergency Contact
@@ -1451,8 +1353,13 @@ export default function NewPupilPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <PageHeader title="Loading..." />
+        <GlassPageTopBar
+          title="Loading..."
+          subtitle="Preparing pupil registration form"
+          backHref="/pupils"
+          backLabel="Back to Pupils"
+        />
+        <div className="container mx-auto px-4 pb-8">
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="h-8 w-8 animate-spin" />
             <span className="ml-2">Loading registration form...</span>

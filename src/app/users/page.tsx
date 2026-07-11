@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, UserCheck, Users, Shield, Eye, EyeOff, Key, Search, X } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, UserCheck, Users, Shield, Eye, EyeOff, Key, Search, X, Filter } from "lucide-react";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ActionGuard } from "@/components/auth/action-guard";
 import {
   Table,
   TableBody,
@@ -120,6 +123,8 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [permissionFilter, setPermissionFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
+  const [isFilterPopupOpen, setIsFilterPopupOpen] = useState(false);
+  const activeFiltersCount = (permissionFilter !== 'all' ? 1 : 0) + (moduleFilter !== 'all' ? 1 : 0);
 
   // Form states for editing
   const [editFormData, setEditFormData] = useState<{
@@ -603,13 +608,104 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageHeader
+      <GlassPageTopBar
         title="User Management"
-        description="Manage staff and parent access to the school management system"
+        subtitle="Manage staff and parent access to the school management system"
+        className="mb-1.5"
+        center={
+          <GlassPageSearchInput
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
         actions={
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Create User Account
-          </Button>
+          <GlassActionDock>
+            <ActionGuard module="users" page="list" action="manage_permissions">
+              <GlassActionButton
+                label="Access"
+                icon={<Shield className="h-4 w-4" />}
+                tone="violet"
+                href="/access-levels"
+                title="Access Levels"
+              />
+            </ActionGuard>
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<Filter className="h-4 w-4" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+              onClick={() => setIsFilterPopupOpen(true)}
+              aria-label="Filter Users"
+            />
+            <GlassActionButton
+              label="User"
+              icon={<PlusCircle className="h-4 w-4" />}
+              tone="blue"
+              onClick={() => setIsCreateDialogOpen(true)}
+              title="Create User Account"
+            />
+          </GlassActionDock>
+        }
+      />
+
+      <GlassSummaryBar
+        left={
+          <div className="flex flex-wrap items-center gap-2">
+            <Users className="h-4 w-4 text-indigo-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
+              Users Overview
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-blue-700">{availableStaff.length}</span>
+                <span className="text-blue-700/85 font-medium">staff without accounts</span>
+              </div>
+              <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-amber-700">{availablePupils.length}</span>
+                <span className="text-amber-700/85 font-medium">pupils without parent accounts</span>
+              </div>
+              {currentUser?.role === 'Admin' && (
+                <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                  <span className="font-bold text-emerald-700">{filteredAdminUsers.length}</span>
+                  <span className="text-emerald-700/85 font-medium">Full system access</span>
+                </div>
+              )}
+            </div>
+          </div>
+        }
+        right={
+          <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
+            {[
+              { id: 'staff', label: `Staff Users (${filteredStaffUsers.length})` },
+              { id: 'parents', label: `Parent Users (${filteredParentUsers.length})` },
+              ...(currentUser?.role === 'Admin' ? [{ id: 'admins', label: `Admin Users (${filteredAdminUsers.length})` }] : [])
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
+                    isActive
+                      ? "bg-white text-indigo-700 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         }
       />
 
@@ -618,112 +714,9 @@ export default function UsersPage() {
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading users...</span>
         </div>
-      ) : error ? (
-        <div className="text-center text-destructive py-8">
-          <p>Error loading users data. Please try again.</p>
-        </div>
       ) : (
-        <div className="space-y-6">
-          {/* Summary Cards */}
-          <div className={`grid grid-cols-1 ${currentUser?.role === 'Admin' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-3`}>
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{filteredStaffUsers.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {availableStaff.length} staff without accounts
-                  </p>
-                </div>
-                <UserCheck className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </Card>
-            
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{filteredParentUsers.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {availablePupils.length} pupils without parent accounts
-                  </p>
-                </div>
-                <Users className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </Card>
-            
-            {currentUser?.role === 'Admin' && (
-              <Card className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-2xl font-bold">{filteredAdminUsers.length}</div>
-                    <p className="text-xs text-muted-foreground">
-                      Full system access
-                    </p>
-                  </div>
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </Card>
-            )}
-          </div>
+        <div className="max-w-none px-4 sm:px-6 lg:px-8 py-4 space-y-6">
 
-          {/* Search and Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              {/* All Filters on One Line */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="search">Search Users</Label>
-                  <Input
-                    id="search"
-                    placeholder="Search by name, username, email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="permission-filter">Permission Level</Label>
-                  <Select value={permissionFilter} onValueChange={setPermissionFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Permissions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Permissions</SelectItem>
-                      <SelectItem value="view_only">View Only</SelectItem>
-                      <SelectItem value="edit">View & Edit</SelectItem>
-                      <SelectItem value="full_access">Full Access</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="module-filter">Module Access</Label>
-                  <Select value={moduleFilter} onValueChange={setModuleFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Modules" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Modules</SelectItem>
-                      <SelectItem value="pupils">Pupils</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="classes">Classes</SelectItem>
-                      <SelectItem value="fees">Fees</SelectItem>
-                      <SelectItem value="exams">Exams</SelectItem>
-                      <SelectItem value="attendance">Attendance</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={clearFilters}
-                    className="w-full"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Clear Filters
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* No Results Message */}
           {filteredUsers.length === 0 && (searchTerm || permissionFilter !== 'all' || moduleFilter !== 'all') && (
@@ -764,25 +757,11 @@ export default function UsersPage() {
             </Card>
           )}
 
-                    {/* Users Table */}
-          <Tabs defaultValue="staff" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="staff">Staff Users ({filteredStaffUsers.length})</TabsTrigger>
-              <TabsTrigger value="parents">Parent Users ({filteredParentUsers.length})</TabsTrigger>
-              {currentUser?.role === 'Admin' && (
-                <TabsTrigger value="admins">Admin Users ({filteredAdminUsers.length})</TabsTrigger>
-              )}
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
             <TabsContent value="staff" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Staff User Accounts</CardTitle>
-                  <CardDescription>
-                    Manage staff access and permissions to different modules
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
         <Table>
           <TableHeader>
             <TableRow>
@@ -890,13 +869,7 @@ export default function UsersPage() {
 
             <TabsContent value="parents" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Parent User Accounts</CardTitle>
-                  <CardDescription>
-                    Parent accounts automatically created for pupil families
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -988,13 +961,7 @@ export default function UsersPage() {
             {currentUser?.role === 'Admin' && (
               <TabsContent value="admins" className="space-y-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Administrator Accounts</CardTitle>
-                    <CardDescription>
-                      Users with full system access and administrative privileges
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1061,7 +1028,84 @@ export default function UsersPage() {
           </Tabs>
         </div>
       )}
+      {/* Filters Modal */}
+      <ModernDialog
+        open={isFilterPopupOpen}
+        onOpenChange={setIsFilterPopupOpen}
+      >
+        <ModernDialogContent size="md">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-900">
+              <Filter className="h-5 w-5 text-indigo-600 animate-[pulse_2s_infinite]" />
+              Filter Users
+            </ModernDialogTitle>
+            <ModernDialogDescription className="text-gray-500">
+              Apply filters to narrow down the list of users.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+            {/* Permission Level Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Permission Level</label>
+              <Select value={permissionFilter} onValueChange={setPermissionFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Permissions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Permissions</SelectItem>
+                  <SelectItem value="view_only">View Only</SelectItem>
+                  <SelectItem value="edit">View & Edit</SelectItem>
+                  <SelectItem value="full_access">Full Access</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Module Access Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Module Access</label>
+              <Select value={moduleFilter} onValueChange={setModuleFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Modules" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Modules</SelectItem>
+                  <SelectItem value="pupils">Pupils</SelectItem>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="classes">Classes</SelectItem>
+                  <SelectItem value="fees">Fees</SelectItem>
+                  <SelectItem value="exams">Exams</SelectItem>
+                  <SelectItem value="attendance">Attendance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <ModernDialogFooter className="flex justify-between items-center mt-2">
+            {activeFiltersCount > 0 ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  clearFilters();
+                  setIsFilterPopupOpen(false);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full border border-rose-100 transition-all duration-200 h-8"
+              >
+                <X size={12} />
+                <span>Clear All ({activeFiltersCount})</span>
+              </Button>
+            ) : (
+              <div />
+            )}
+            <Button
+              onClick={() => setIsFilterPopupOpen(false)}
+              className="inline-flex items-center justify-center h-8 px-4 rounded-full font-semibold text-xs bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all duration-200"
+            >
+              Done
+            </Button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
       {/* Create User Dialog */}
       <ModernDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <ModernDialogContent 

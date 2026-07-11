@@ -1,5 +1,7 @@
 'use client';
-import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback, useTransition } from 'react';
 import { flushSync } from 'react-dom';
@@ -194,6 +196,18 @@ export default function FeesCollectionPage() {
   });
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [isBulkSMSModalOpen, setIsBulkSMSModalOpen] = useState(false);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.section !== 'all') count++;
+    if (filters.class !== 'all') count++;
+    if (filters.status !== 'Active') count++;
+    if (filters.balanceStatus !== 'all') count++;
+    if (filters.balanceMin) count++;
+    if (filters.balanceMax) count++;
+    if (filters.feeItem) count++;
+    return count;
+  }, [filters]);
 
   // Add column selection state with default values (removed lastPayment and status for speed)
   const [columnSelection, setColumnSelection] = useState<ColumnSelection>({
@@ -1233,19 +1247,11 @@ export default function FeesCollectionPage() {
 
   // Show loading state
   if (isLoadingPupils || isLoadingClasses || isLoadingAcademicYears || isLoadingFeeStructures) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">Loading Fees Collection</h2>
-          <p className="text-gray-500">Please wait while we prepare your data...</p>
-        </div>
-      </div>
-    );
+    return <GlassPageRouteSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="glass-page-route-skeleton min-h-screen">
       {/* Background fetching indicator - Fixed at top */}
       {(isFetchingPupils || isFetchingFeeStructures) && !isLoadingPupils && !isLoadingFeeStructures && (
         <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse">
@@ -1256,253 +1262,225 @@ export default function FeesCollectionPage() {
       {/* Show recess status banner if in recess mode */}
       <RecessStatusBanner />
 
-      {/* Header - Mobile Optimized */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-white/20 shadow-lg">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          {/* Top Row: Title & Back */}
-          <div className="flex items-center justify-between py-2 sm:py-3 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <SmartBackButton
-                fallbackHref="/fees"
-                className="group flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md"
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span className="font-medium text-xs hidden sm:inline">Back</span>
-              </SmartBackButton>
-
-              <div className="hidden sm:block w-px h-6 bg-gray-200"></div>
-
-              <div>
-                <h1 className="text-base sm:text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Fees Collection
-                </h1>
-                <p className="text-[10px] text-gray-500 hidden lg:block">
-                  Manage student fee payments and balances
-                </p>
-              </div>
+      <GlassPageTopBar
+        title="Fees Collection"
+        subtitle="Manage student fee payments and balances"
+        backHref="/fees"
+        backLabel="Back to fees management"
+        className="mb-1.5"
+        titleControls={
+          <div className="flex items-center gap-1.5 lg:hidden">
+            <ClassSelector
+              selectedClassId={filters.selectedClassId}
+              onClassChange={handleClassChange}
+              placeholder="Class"
+              size="sm"
+              showIcon={false}
+              className="shrink-0"
+              triggerClassName="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              includeAllOption={true}
+              allOptionLabel="All Classes"
+            />
+            {/* Year & Term - Compact */}
+            <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-sm overflow-hidden h-[34px] shrink-0">
+              <Select value={filters.year} onValueChange={(value) => setFilters(prev => ({ ...prev, year: value }))}>
+                <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-full rounded-r-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      <span className="text-xs">{year.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="w-px h-4 bg-white/20"></div>
+              <Select value={filters.term} onValueChange={(value) => setFilters(prev => ({ ...prev, term: value }))}>
+                <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-full rounded-l-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
+                  <SelectValue placeholder="Term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedAcademicYear?.terms.map((term) => (
+                    <SelectItem key={term.id} value={term.id}>
+                      <span className="text-xs">{term.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-
-          {/* Bottom Row: Controls */}
-          <div className="flex items-center justify-between py-2 gap-2">
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              {/* Class Selector */}
-              <div className="flex-shrink-0 min-w-0">
-                <ClassSelector
-                  selectedClassId={filters.selectedClassId}
-                  onClassChange={handleClassChange}
-                  placeholder="Class"
-                  size="sm"
-                  className="min-w-[80px] max-w-[120px]"
-                  includeAllOption={true}
-                  allOptionLabel="All"
-                />
-              </div>
-
-              {/* Year & Term - Compact */}
-              <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-md shadow-sm overflow-hidden">
-                <Select value={filters.year} onValueChange={(value) => setFilters(prev => ({ ...prev, year: value }))}>
-                  <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-md rounded-r-none h-7 px-2 sm:px-2.5 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto">
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {academicYears.map((year) => (
-                      <SelectItem key={year.id} value={year.id}>
-                        <span className="text-xs">{year.name}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <div className="w-px h-3 bg-white/20"></div>
-
-                <Select value={filters.term} onValueChange={(value) => setFilters(prev => ({ ...prev, term: value }))}>
-                  <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-md rounded-l-none h-7 px-2 sm:px-2.5 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto">
-                    <SelectValue placeholder="Term" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedAcademicYear?.terms.map((term) => (
-                      <SelectItem key={term.id} value={term.id}>
-                        <span className="text-xs">{term.name}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        }
+        center={
+          <>
+            <ClassSelector
+              selectedClassId={filters.selectedClassId}
+              onClassChange={handleClassChange}
+              placeholder="Class"
+              size="sm"
+              showIcon={false}
+              className="shrink-0"
+              triggerClassName="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
+              includeAllOption={true}
+              allOptionLabel="All Classes"
+            />
+            <div className="flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-sm overflow-hidden h-[34px] shrink-0">
+              <Select value={filters.year} onValueChange={(value) => setFilters(prev => ({ ...prev, year: value }))}>
+                <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-l-full rounded-r-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      <span className="text-xs">{year.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="w-px h-4 bg-white/20"></div>
+              <Select value={filters.term} onValueChange={(value) => setFilters(prev => ({ ...prev, term: value }))}>
+                <SelectTrigger className="border-0 bg-transparent text-white hover:bg-white/10 transition-colors rounded-r-full rounded-l-none h-full px-2 focus:ring-0 focus:ring-offset-0 text-xs [&>svg]:hidden w-auto font-semibold">
+                  <SelectValue placeholder="Term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedAcademicYear?.terms.map((term) => (
+                    <SelectItem key={term.id} value={term.id}>
+                      <span className="text-xs">{term.name}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            <GlassPageSearchInput
+              placeholder="Search students..."
+              value={searchQuery}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            />
+          </>
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search students..."
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<Filter className="h-4 w-4" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+              onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+              aria-label="Filter Students"
+            />
+            <GlassActionButton
+              label="SMS"
+              tone="blue"
+              icon={<MessageSquare className="h-4 w-4" />}
+              onClick={() => setIsBulkSMSModalOpen(true)}
+              disabled={sortedPupils.length === 0}
+              aria-label="SMS"
+            />
+            <GlassActionButton
+              label="Print"
+              tone="slate"
+              icon={<Printer className="h-4 w-4" />}
+              onClick={() => setIsColumnSelectionModalOpen(true)}
+              disabled={sortedPupils.length === 0}
+              aria-label="Print"
+            />
+          </GlassActionDock>
+        }
+      />
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-1.5 sm:px-2 text-xs whitespace-nowrap"
-                onClick={() => setIsBulkSMSModalOpen(true)}
-                disabled={sortedPupils.length === 0}
-              >
-                <MessageSquare className="w-3 h-3" />
-                <span className="hidden md:inline ml-1">Communicate</span>
-              </Button>
-
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg h-7 px-1.5 sm:px-2 text-xs whitespace-nowrap"
-                onClick={() => setIsColumnSelectionModalOpen(true)}
-              >
-                <Printer className="w-3 h-3" />
-                <span className="hidden md:inline ml-1">Print</span>
-              </Button>
-            </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-indigo-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Class Fees Summary
+            </span>
           </div>
-        </div>
-      </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Students:</span>
+              <span className="font-bold text-blue-700 dark:text-blue-400">
+                {sortedPupils.length !== pupils.length ? `${sortedPupils.length}/${pupils.length}` : sortedPupils.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Total Fees:</span>
+              <span className="font-bold text-purple-700 dark:text-purple-400">{formatCurrency(totals.totalFees)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-green-700/85 dark:text-green-300 font-medium">Collected:</span>
+              <span className="font-bold text-green-700 dark:text-green-400">{formatCurrency(totals.totalPaid)}</span>
+            </div>
+            <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-red-700/85 dark:text-red-300 font-medium">Outstanding:</span>
+              <span className="font-bold text-red-700 dark:text-red-400">{formatCurrency(totals.balance)}</span>
+            </div>
+          </>
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-6">
-          <Card className="hidden md:block bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-xs font-medium">Total Students</p>
-                  <p className="text-lg font-bold">
-                    {sortedPupils.length !== pupils.length ? (
-                      <span>{sortedPupils.length}<span className="text-sm opacity-75">/{pupils.length}</span></span>
-                    ) : (
-                      sortedPupils.length
-                    )}
-                  </p>
-                </div>
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-green-100 text-xs font-medium truncate">Collected</p>
-                  <p className="text-xs sm:text-lg font-bold">{formatCurrency(totals.totalPaid)}</p>
-                </div>
-                <div className="hidden sm:block p-2 bg-white/20 rounded-lg ml-2">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-lg">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-orange-100 text-xs font-medium truncate">Outstanding</p>
-                  <p className="text-xs sm:text-lg font-bold">{formatCurrency(totals.balance)}</p>
-                </div>
-                <div className="hidden sm:block p-2 bg-white/20 rounded-lg ml-2">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-purple-100 text-xs font-medium truncate">Total Fees</p>
-                  <p className="text-xs sm:text-lg font-bold">{formatCurrency(totals.totalFees)}</p>
-                </div>
-                <div className="hidden sm:block p-2 bg-white/20 rounded-lg ml-2">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 pb-12">
 
         {/* Class-Based Optimization Indicator - Hidden per user request */}
 
         {/* Compact Filter Panel - Same design as Pupils page */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden">
-          <div className="px-2 sm:px-4 py-2 sm:py-3">
-            {/* Single Row: Stats and Controls */}
-            <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
-              {/* Statistics Pills */}
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax) && (
-                  <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-purple-50 rounded-full border border-purple-100">
-                    <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-500"></div>
-                    <span className="text-xs text-purple-600 font-medium">Filtered</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Clear Button */}
-              <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax || filters.feeItem) && (
-                  <button
-                    onClick={() => {
-                      setFilters({
-                        section: 'all',
-                        class: 'all',
-                        selectedClassId: '',
-                        status: 'Active',
-                        balanceStatus: 'all',
-                        balanceMin: '',
-                        balanceMax: '',
-                        feeItem: '',
-                        year: selectedAcademicYear?.id || '',
-                        term: selectedAcademicYear?.terms.find(t => t.isCurrent)?.id || selectedAcademicYear?.terms[0]?.id || ''
-                      });
-                      setSearchQuery('');
-                    }}
-                    className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 transition-all duration-200 hover:scale-105"
-                  >
-                    <X size={10} className="sm:w-3 sm:h-3" />
-                    <span className="hidden sm:inline">Clear</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Search Bar with Filter Button */}
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
-                  <Search size={10} className="sm:w-3 sm:h-3 text-blue-500/80" />
+        {isFiltersExpanded && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-sm border border-blue-100/50 mb-4 sm:mb-6 overflow-hidden animate-in slide-in-from-top-2 duration-300">
+            <div className="px-2 sm:px-4 py-2 sm:py-3">
+              {/* Single Row: Stats and Controls */}
+              <div className="flex items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-3">
+                {/* Statistics Pills */}
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax) && (
+                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-purple-50 rounded-full border border-purple-100">
+                      <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-500"></div>
+                      <span className="text-xs text-purple-600 font-medium">Filtered</span>
+                    </div>
+                  )}
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-6 sm:pl-8 pr-6 sm:pr-8 py-1 sm:py-1.5 text-xs bg-blue-50/50 rounded-full border border-blue-100 focus:ring-2 focus:ring-blue-400/50 focus:bg-white transition-all duration-200 hover:bg-white placeholder:text-blue-400/70"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-red-500 transition-colors"
-                  >
-                    <X size={10} className="sm:w-3 sm:h-3" />
-                  </button>
-                )}
+
+                {/* Clear Button */}
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                  {(searchQuery || filters.class !== 'all' || filters.section !== 'all' || filters.status !== 'Active' || filters.balanceStatus !== 'all' || filters.balanceMin || filters.balanceMax || filters.feeItem) && (
+                    <button
+                      onClick={() => {
+                        setFilters({
+                          section: 'all',
+                          class: 'all',
+                          selectedClassId: '',
+                          status: 'Active',
+                          balanceStatus: 'all',
+                          balanceMin: '',
+                          balanceMax: '',
+                          feeItem: '',
+                          year: selectedAcademicYear?.id || '',
+                          term: selectedAcademicYear?.terms.find(t => t.isCurrent)?.id || selectedAcademicYear?.terms[0]?.id || ''
+                        });
+                        setSearchQuery('');
+                      }}
+                      className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-100 transition-all duration-200 hover:scale-105"
+                    >
+                      <X size={10} className="sm:w-3 sm:h-3" />
+                      <span className="hidden sm:inline">Clear</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <button
-                onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-100 transition-all duration-200 hover:scale-105"
-              >
-                <Filter size={10} className="sm:w-3 sm:h-3" />
-                {isFiltersExpanded ? 'Hide' : 'Filter'}
-              </button>
-            </div>
 
-            {/* Expandable Filter Controls */}
-            {isFiltersExpanded && (
-              <div className="border-t border-blue-50 pt-2 sm:pt-3 animate-in slide-in-from-top-2 duration-300">
+
+              {/* Expandable Filter Controls */}
+              <div className="border-t border-blue-50 pt-2 sm:pt-3">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                   {/* Class Filter */}
                   <div className="space-y-1">
@@ -1643,9 +1621,9 @@ export default function FeesCollectionPage() {
                   )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Results Section with Beautiful Slide-Up Animation */}
         {sortedPupils.length === 0 ? (

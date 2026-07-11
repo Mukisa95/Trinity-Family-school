@@ -1,5 +1,6 @@
 "use client";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -589,42 +590,42 @@ export default function CommentaryManagementPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl">
-      <div className="flex items-center gap-4 mb-4">
-        <SmartBackButton fallbackHref="/" className="h-5 w-5">
-  <ArrowLeft className="h-5 w-5" />
-  
-</SmartBackButton>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">Commentary Management</h1>
-          <p className="text-gray-600 text-sm mt-1">
-            Manage comment templates for pupil performance reports
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {templates.length === 0 && !loading && (
-            <Button
-              onClick={seedDefaultComments}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              🌱 Seed Database
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => router.push('/commentary-management/seed-subjects')}
-            className="gap-2 border-purple-600 text-purple-600 hover:bg-purple-50"
-          >
-            <Layers className="h-4 w-4" />
-            Seed Subjects
-          </Button>
-          <Button onClick={() => setIsAddModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Comment
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        title="Commentary Box"
+        subtitle="Manage comment templates for pupil performance reports"
+        backHref="/"
+        backLabel="Dashboard"
+        actions={
+          <GlassActionDock>
+            {templates.length === 0 && !loading && (
+              <GlassActionButton
+                label="Seed Database"
+                icon={<span>🌱</span>}
+                tone="emerald"
+                onClick={seedDefaultComments}
+                title="Seed default comment templates"
+              />
+            )}
+            <GlassActionButton
+              label="Seed Subjects"
+              icon={<Layers className="h-4 w-4" />}
+              tone="violet"
+              onClick={() => router.push('/commentary-management/seed-subjects')}
+              title="Seed performance comment templates by subject"
+            />
+            <GlassActionButton
+              label="Add Comment"
+              icon={<Plus className="h-4 w-4" />}
+              tone="purple"
+              onClick={() => setIsAddModalOpen(true)}
+              title="Add New Comment Template"
+            />
+          </GlassActionDock>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
       <div className="grid gap-4">
         {Object.entries(statusLabels).map(([status, label]) => {
@@ -1186,6 +1187,7 @@ export default function CommentaryManagementPage() {
           </div>
         </ModernDialogContent>
       </ModernDialog>
+      </div>
     </div>
   );
 }

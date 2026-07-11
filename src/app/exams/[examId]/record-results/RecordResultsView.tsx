@@ -48,6 +48,13 @@ import type { Exam, Pupil, Class, ExamResult as ImportedExamResult, ExamRecordPu
 import { useExamResultByExamId, useUpdateExamResult } from '@/lib/hooks/use-exams';
 import { ExamSignatureDisplay } from '@/components/exam/ExamSignatureDisplay';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
+import {
+  GlassActionButton,
+  GlassActionDock,
+  GlassPageSearchInput,
+  GlassPageTopBar,
+} from '@/components/common/glass-page-top-bar';
+import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -800,7 +807,7 @@ export default function RecordResultsView() {
   
   if (showLoadingSpinner) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
           <p className="mt-2 text-sm text-gray-700">Loading exam data...</p>
@@ -811,7 +818,7 @@ export default function RecordResultsView() {
 
   if (examResultError) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <X className="h-8 w-8 text-red-500 mx-auto" />
           <p className="mt-2 text-sm text-red-700">Error loading exam results.</p>
@@ -832,7 +839,7 @@ export default function RecordResultsView() {
         message = `Exam results for ID '${examId}' were not found. Result data might be missing or an error occurred fetching it.`;
     }
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <X className="h-8 w-8 text-orange-500 mx-auto" />
           <p className="mt-2 text-sm text-orange-700">Exam Data Not Available</p>
@@ -1129,151 +1136,93 @@ export default function RecordResultsView() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2">
-      <div className="max-w-7xl mx-auto">
-        <Card className="shadow-sm overflow-hidden">
-          {/* Compact Header */}
-          <CardHeader className="p-3 border-b bg-gradient-to-r from-blue-50 to-white">
-            <div className="flex justify-between items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <CardTitle className="text-lg font-bold text-blue-900 truncate">{getHeaderContent().title}</CardTitle>
-                <CardDescription className="text-xs text-gray-600 truncate">
-                  {examDetails?.examTypeName || 'N/A'} | {classSnap?.name || 'N/A'} | {examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - {examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}
-                </CardDescription>
-                {examDetails && (
-                  <div className="mt-1">
-                    <ExamSignatureDisplay exam={examDetails} variant="inline" className="text-xs" />
-                  </div>
-                )}
-              </div>
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => router.back()}
-                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                      >
-                        <ArrowLeft className="w-4 h-4 mb-0.5" />
-                        <span className="text-[8px] font-semibold leading-tight">Back</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Back</TooltipContent>
-                  </Tooltip>
-                  
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setIsGradingModalOpen(true)}
-                        className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                      >
-                        <Settings className="w-4 h-4 mb-0.5" />
-                        <span className="text-[8px] font-semibold leading-tight">Scale</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Grading Scale</TooltipContent>
-                  </Tooltip>
-
-                  {/* SAVE BUTTON - PROMINENT */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || (examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
-                        className={`flex flex-col items-center justify-center w-11 h-11 rounded-full border shadow-sm transition-all duration-300 hover:scale-105 active:scale-95 ${
-                          isSubmitting || (examSubjects.length > 4 && selectedMajorSubjects.length < 4)
-                            ? 'bg-white text-gray-500 border-gray-400 cursor-not-allowed'
-                            : 'bg-white text-blue-600 border-blue-400 hover:bg-gradient-to-br hover:from-blue-400 hover:via-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-md'
-                        }`}
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="w-4 h-4 mb-0.5 animate-spin" />
-                        ) : (
-                          <Save className="w-4 h-4 mb-0.5" />
-                        )}
-                        <span className="text-[8px] font-semibold leading-tight">
-                          {isSubmitting ? 'Saving...' : 'Save'}
-                        </span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isSubmitting 
-                        ? "Saving results..." 
-                        : (examSubjects.length > 4 && selectedMajorSubjects.length < 4)
-                          ? `Select 4 major subjects above to enable saving (${selectedMajorSubjects.length}/4 selected)`
-                          : "Save exam results"
-                      }
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {/* Compact Grading Scale Display */}
-            <div className="p-2 bg-blue-50 border-b overflow-x-auto">
-              <p className="text-xs text-blue-700 mb-1">Grading Scale:</p>
-              <div className="flex gap-1 min-w-max">
-                {gradingScaleItems
-                  .sort((a, b) => a.minMark - b.minMark)
-                  .map((scale, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="outline" 
-                      className={`${getGradeColor(scale.grade)} text-xs px-1 py-0 whitespace-nowrap`}
-                    >
-                      {scale.grade}: {scale.minMark}-{scale.maxMark}
-                    </Badge>
-                  ))
+    <div className="min-h-screen">
+      <GlassPageTopBar
+          title={examDetails?.name || getHeaderContent().title}
+          subtitle={`${classSnap?.code || classSnap?.name || 'N/A'} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
+        backHref="/exams"
+        className="mb-1.5"
+        meta={
+          <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
+          </span>
+        }
+        center={
+          <GlassPageSearchInput
+            placeholder="Search pupils..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search pupils..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
+          actions={
+            <GlassActionDock>
+              <GlassActionButton
+                label="Scale"
+                icon={<Settings className="h-4 w-4" />}
+                tone="slate"
+                onClick={() => setIsGradingModalOpen(true)}
+              />
+              <GlassActionButton
+                label={isSubmitting ? 'Saving' : 'Save'}
+                icon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                tone="blue"
+                disabled={isSubmitting || (examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
+                title={
+                  isSubmitting
+                    ? "Saving results..."
+                    : (examSubjects.length > 4 && selectedMajorSubjects.length < 4)
+                      ? `Select 4 major subjects above to enable saving (${selectedMajorSubjects.length}/4 selected)`
+                      : "Save exam results"
                 }
-              </div>
-            </div>
+                onClick={handleSubmit}
+              />
+            </GlassActionDock>
+          }
+        />
+
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Grading Scale
+            </span>
+          </div>
+        }
+        right={
+          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
+            {gradingScaleItems
+              .sort((a, b) => a.minMark - b.minMark)
+              .map((scale, index) => (
+                <div
+                  key={index}
+                  className={`border px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold whitespace-nowrap ${
+                    scale.grade === 'MISSED' ? 'bg-orange-50/80 text-orange-700 border-orange-200' :
+                    scale.grade.startsWith('D') ? 'bg-green-50/80 text-green-700 border-green-200' :
+                    scale.grade.startsWith('C') ? 'bg-blue-50/80 text-blue-700 border-blue-200' :
+                    scale.grade.startsWith('P') ? 'bg-yellow-50/80 text-yellow-700 border-yellow-200' :
+                    'bg-red-50/80 text-red-700 border-red-200'
+                  }`}
+                >
+                  <span className="opacity-80 font-medium">{scale.grade}:</span> {scale.minMark}-{scale.maxMark}
+                </div>
+              ))}
+          </div>
+        }
+      />
+
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 pb-12">
+        <Card className="shadow-sm overflow-hidden">
+          <CardContent className="p-0">
 
             <MajorSubjectsSelectorComponent />
-
-            {/* Search and Sort Controls */}
-            <div className="p-2 bg-white border-b flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center flex-1">
-                {/* Search Bar */}
-                <div className="relative flex-1 max-w-xs">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search by name or admission number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-8 text-xs"
-                  />
-                </div>
-                
-                {/* Sort Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 px-3 text-xs">
-                      <ArrowUpDown className="h-3 w-3 mr-1" />
-                      Sort: {sortField === 'name' ? 'Name' : sortField === 'admissionNumber' ? 'Admission' : 'Total Marks'}
-                      {sortDirection === 'desc' ? ' ↓' : ' ↑'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem onClick={() => handleSort('name')}>
-                      Name {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSort('admissionNumber')}>
-                      Admission Number {sortField === 'admissionNumber' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSort('totalMarks')}>
-                      Total Marks {sortField === 'totalMarks' && (sortDirection === 'asc' ? '↑' : '↓')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
-              {/* Results count */}
-              <div className="text-xs text-gray-500">
-                Showing {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
-              </div>
-            </div>
           
             {filteredAndSortedPupils.length === 0 ? (
               <div className="p-4 text-center">

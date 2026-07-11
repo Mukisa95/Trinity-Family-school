@@ -26,7 +26,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { detectCurrentAcademicYear, detectCurrentTerm } from '@/lib/utils/academic-year-utils';
 import {
@@ -160,194 +161,133 @@ export default function InventoryPage() {
     const isLoading = itemsLoading || summaryLoading || academicYearsLoading;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-950 dark:via-blue-950/20 dark:to-indigo-950/30">
-            <div className="container mx-auto px-4 py-6 max-w-7xl">
-                {/* Page Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                    <PageHeader
-                        title="Inventory Management"
-                        description="Track and manage school property, assets, and equipment"
-                        icon={Warehouse}
-                    />
-                    <a href="/inventory/uniforms">
-                        <Button className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-                            <Shirt className="h-4 w-4" />
-                            Uniforms Inventory
-                        </Button>
-                    </a>
-                </div>
+        <div className="min-h-screen pb-12">
+            <GlassPageTopBar
+                title="Inventory Management"
+                subtitle="Track and manage school property, assets, and equipment"
+                backHref="/dashboard"
+                backLabel="Dashboard"
+                meta={
+                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm">
+                        {[
+                            { id: 'overview', label: 'Overview' },
+                            { id: 'items', label: 'Items' },
+                            { id: 'issue-return', label: 'Issue/Return' },
+                            { id: 'transactions', label: 'History' },
+                            { id: 'reports', label: 'Reports' }
+                        ].map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        "h-6 px-3 rounded-full text-[10px] font-semibold transition-all duration-205",
+                                        isActive
+                                            ? "bg-white text-indigo-700 shadow-sm font-bold"
+                                            : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                                    )}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                }
+                actionsLeading={
+                    activeTab === 'items' ? (
+                        <div className="flex items-center gap-2">
+                            <GlassPageSearchInput
+                                placeholder="Search items..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                containerClassName="w-[140px] sm:w-[180px] lg:w-[220px]"
+                            />
+                        </div>
+                    ) : undefined
+                }
+                actions={
+                    <GlassActionDock>
+                        {activeTab === 'items' && (
+                            <>
+                                <GlassActionButton
+                                    label="Filters"
+                                    icon={<Filter className="h-4 w-4" />}
+                                    tone={hasActiveFilters ? "violet" : "slate"}
+                                    onClick={() => setFiltersExpanded(!filtersExpanded)}
+                                    title="Toggle Filters"
+                                />
+                                <GlassActionButton
+                                    label={viewMode === 'cards' ? "List View" : "Card View"}
+                                    icon={viewMode === 'cards' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                                    tone="slate"
+                                    onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+                                    title="Toggle View Mode"
+                                />
+                                <GlassActionButton
+                                    label="Refresh"
+                                    icon={<RefreshCw className="h-4 w-4" />}
+                                    tone="slate"
+                                    onClick={() => refetchItems()}
+                                    title="Refresh items list"
+                                />
+                            </>
+                        )}
+                        <a href="/inventory/uniforms">
+                            <GlassActionButton
+                                label="Uniforms"
+                                icon={<Shirt className="h-4 w-4" />}
+                                tone="purple"
+                                title="Uniforms Inventory"
+                            />
+                        </a>
+                    </GlassActionDock>
+                }
+            className="mb-1.5"
+            />
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    {/* Total Items */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                    >
-                        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-blue-100 text-sm font-medium">Total Items</p>
-                                        {summaryLoading ? (
-                                            <Skeleton className="h-8 w-16 bg-blue-400/30" />
-                                        ) : (
-                                            <p className="text-2xl font-bold">{summary?.totalItems || 0}</p>
-                                        )}
-                                    </div>
-                                    <div className="h-12 w-12 bg-blue-400/30 rounded-full flex items-center justify-center">
-                                        <Package className="h-6 w-6" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Low Stock Alerts */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                    >
-                        <Card className={cn(
-                            "border-0 shadow-lg",
+            <GlassSummaryBar
+                left={
+                    <div className="flex items-center gap-2">
+                        <Warehouse className="h-4 w-4 text-indigo-500" />
+                        <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+                            Inventory Overview
+                        </span>
+                    </div>
+                }
+                right={
+                    <>
+                        <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                            <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Items:</span>
+                            <span className="font-bold text-blue-700 dark:text-blue-400">{summary?.totalItems || 0}</span>
+                        </div>
+                        <div className={cn(
+                            "flex items-center gap-1 border px-2 py-0.5 rounded-md text-[10px] sm:text-xs",
                             (summary?.lowStockCount || 0) > 0
-                                ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white"
-                                : "bg-gradient-to-br from-emerald-500 to-green-500 text-white"
+                                ? "bg-amber-50/80 border-amber-100/50 text-amber-700 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400"
+                                : "bg-emerald-50/80 border-emerald-100/50 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400"
                         )}>
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-white/80 text-sm font-medium">Low Stock</p>
-                                        {summaryLoading ? (
-                                            <Skeleton className="h-8 w-16 bg-white/30" />
-                                        ) : (
-                                            <p className="text-2xl font-bold">{summary?.lowStockCount || 0}</p>
-                                        )}
-                                    </div>
-                                    <div className="h-12 w-12 bg-white/20 rounded-full flex items-center justify-center">
-                                        <AlertTriangle className="h-6 w-6" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
+                            <span className="font-medium">Low Stock:</span>
+                            <span className="font-bold">{summary?.lowStockCount || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                            <span className="text-purple-700/85 dark:text-purple-300 font-medium">Items Issued:</span>
+                            <span className="font-bold text-purple-700 dark:text-purple-400">{issuedItems?.length || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                            <span className="text-green-700/85 dark:text-green-300 font-medium">Total Value:</span>
+                            <span className="font-bold text-green-750 dark:text-green-400 font-tabular-nums">{formatCurrency(summary?.totalValue || 0)}</span>
+                        </div>
+                    </>
+                }
+            />
 
-                    {/* Currently Issued */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                    >
-                        <Card className="bg-gradient-to-br from-purple-500 to-violet-600 text-white border-0 shadow-lg">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-purple-100 text-sm font-medium">Items Issued</p>
-                                        {issuedLoading ? (
-                                            <Skeleton className="h-8 w-16 bg-purple-400/30" />
-                                        ) : (
-                                            <p className="text-2xl font-bold">{issuedItems?.length || 0}</p>
-                                        )}
-                                    </div>
-                                    <div className="h-12 w-12 bg-purple-400/30 rounded-full flex items-center justify-center">
-                                        <ArrowRightLeft className="h-6 w-6" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Total Value */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                    >
-                        <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-lg">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-emerald-100 text-sm font-medium">Total Value</p>
-                                        {summaryLoading ? (
-                                            <Skeleton className="h-8 w-20 bg-emerald-400/30" />
-                                        ) : (
-                                            <p className="text-xl font-bold">{formatCurrency(summary?.totalValue || 0)}</p>
-                                        )}
-                                    </div>
-                                    <div className="h-12 w-12 bg-emerald-400/30 rounded-full flex items-center justify-center">
-                                        <DollarSign className="h-6 w-6" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                </div>
+            <div className="max-w-none px-4 sm:px-6 lg:px-8 py-4 space-y-6">
+                {/* Stats moved to GlassSummaryBar above */}
 
                 {/* Main Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <TabsList className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border shadow-sm h-auto flex-wrap p-1">
-                            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                                <LayoutGrid className="h-4 w-4 mr-2" />
-                                {!isMobile && "Overview"}
-                            </TabsTrigger>
-                            <TabsTrigger value="items" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                                <Package className="h-4 w-4 mr-2" />
-                                {!isMobile && "Items"}
-                            </TabsTrigger>
-                            <TabsTrigger value="issue-return" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                {!isMobile && "Issue/Return"}
-                            </TabsTrigger>
-                            <TabsTrigger value="transactions" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                                <Clock className="h-4 w-4 mr-2" />
-                                {!isMobile && "History"}
-                            </TabsTrigger>
-                            <TabsTrigger value="reports" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-                                <FileBarChart className="h-4 w-4 mr-2" />
-                                {!isMobile && "Reports"}
-                            </TabsTrigger>
-                        </TabsList>
-
-                        {/* Search and Actions - show on items tab */}
-                        {activeTab === 'items' && (
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1 md:w-64">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Search items..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-9 bg-white dark:bg-slate-800"
-                                    />
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setFiltersExpanded(!filtersExpanded)}
-                                    className={cn(hasActiveFilters && "border-blue-500 text-blue-500")}
-                                >
-                                    <Filter className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-                                >
-                                    {viewMode === 'cards' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => refetchItems()}
-                                >
-                                    <RefreshCw className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        )}
-                    </div>
+                    {/* TabsList hidden - replaced by topbar select */}
 
                     {/* Tab Contents */}
                     <AnimatePresence mode="wait">

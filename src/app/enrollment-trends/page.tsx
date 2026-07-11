@@ -4,7 +4,8 @@ import { SmartBackButton } from "@/components/common/SmartBackButton";
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -297,7 +298,7 @@ export default function EnrollmentTrendsPage() {
 
   if (pupilsLoading || classesLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
             <div className="relative">
@@ -320,116 +321,113 @@ export default function EnrollmentTrendsPage() {
   // Show a message if no data is available
   if (!pupils || pupils.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <PageHeader
-            title="📊 Enrollment Trends"
-            description="Comprehensive analysis of student enrollment patterns and insights"
-            actions={
-              <SmartBackButton fallbackHref="/" className="shadow-sm">
-  <ArrowLeft className="w-4 h-4 mr-2" />
-  Back to Dashboard
-</SmartBackButton>
-            }
-          />
-          <div className="flex items-center justify-center min-h-[50vh]">
-            <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-              <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Users className="w-10 h-10 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">No Enrollment Data Available</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Start by adding student records to see comprehensive enrollment trends and analytics.
-                </p>
-                <Button onClick={() => router.push('/pupils')} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
-                  <UserCheck className="w-4 h-4 mr-2" />
-                  Manage Students
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Enrollment Trends"
+          subtitle="Comprehensive analysis of student enrollment patterns and insights"
+          backHref="/"
+          backLabel="Dashboard"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <Card className="w-full max-w-md bg-white/80 backdrop-blur-sm border-0 shadow-xl mx-auto">
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Users className="w-10 h-10 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">No Enrollment Data Available</h3>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Start by adding student records to see comprehensive enrollment trends and analytics.
+              </p>
+              <Button onClick={() => router.push('/pupils')} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
+                <UserCheck className="w-4 h-4 mr-2" />
+                Manage Students
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
+  const activeFiltersCount = [
+    selectedYear !== "all",
+    selectedClass !== "all",
+    searchTerm !== ""
+  ].filter(Boolean).length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-3 md:p-4">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Ultra Compact Header with Dropdown Filters */}
-        <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl">
-          <CardContent className="p-4">
-            {/* Main Header Row */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Activity className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">📊 Enrollment Trends</h1>
-                  <p className="text-sm text-gray-600">Student enrollment analysis & insights</p>
-                </div>
-              </div>
+    <div className="min-h-screen animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title="Enrollment Trends"
+        subtitle="Student enrollment analysis & insights"
+        backHref="/"
+        backLabel="Dashboard"
+        className="mb-1.5"
+        meta={
+          <div className="flex items-center gap-3">
+            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100/80 whitespace-nowrap">
+              {stats.total} total
+            </span>
+            <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap">
+              {stats.thisYear} this year
+            </span>
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<Filter className="h-4 w-4" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+            />
+            <GlassActionButton
+              label="Export"
+              tone="green"
+              icon={<Download className="h-4 w-4" />}
+              onClick={exportData}
+            />
+          </GlassActionDock>
+        }
+      />
 
-              {/* Action Buttons Row */}
-              <div className="flex items-center gap-2">
-                {/* Quick Stats Display */}
-                <div className="hidden sm:flex items-center gap-3 px-3 py-2 bg-white/60 rounded-lg border border-white/30">
-                  <div className="text-xs text-gray-600">
-                    <span className="font-semibold text-blue-600">{stats.total}</span> total
-                  </div>
-                  <div className="w-px h-4 bg-gray-300"></div>
-                  <div className="text-xs text-gray-600">
-                    <span className="font-semibold text-green-600">{stats.thisYear}</span> this year
-                  </div>
-                </div>
-
-                {/* Dropdown Filter Toggle */}
-                <Button
-                  variant="outline"
-                  onClick={() => setShowMobileFilters(!showMobileFilters)}
-                  className="bg-white/80 backdrop-blur-sm border-white/20 shadow-sm hover:bg-white/90 flex items-center gap-2 relative"
-                >
-                  <Filter className="w-4 h-4" />
-                  <span className="hidden sm:inline">Filters</span>
-                  {/* Active Filter Count */}
-                  {(() => {
-                    const activeFilters = [
-                      selectedYear !== "all",
-                      selectedClass !== "all",
-                      searchTerm !== ""
-                    ].filter(Boolean).length;
-
-                    return activeFilters > 0 ? (
-                      <span className="hidden md:inline text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
-                        {activeFilters}
-                      </span>
-                    ) : null;
-                  })()}
-                  {/* Mobile Active Filter Indicator */}
-                  {(selectedYear !== "all" || selectedClass !== "all" || searchTerm !== "") && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full absolute -top-1 -right-1 md:hidden"></div>
-                  )}
-                  <ChevronDown className={`w-4 h-4 transition-transform ${showMobileFilters ? 'rotate-180' : ''}`} />
-                </Button>
-
-                {/* Export Button */}
-                <Button
-                  onClick={exportData}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-sm"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Export</span>
-                </Button>
-
-                {/* Back to Dashboard */}
-                <SmartBackButton fallbackHref="/" className="bg-white/80 backdrop-blur-sm border-white/20 shadow-sm hover:bg-white/90">
-  <ArrowLeft className="w-4 h-4 mr-2" />
-  <span className="hidden sm:inline">Dashboard</span>
-</SmartBackButton>
-              </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Enrollment Summary
+            </span>
+          </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-blue-600 dark:text-blue-400">{stats.total.toLocaleString()}</span>
+              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Enrollments</span>
             </div>
+            <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-green-600 dark:text-green-400">{stats.thisYear.toLocaleString()}</span>
+              <span className="text-green-700/85 dark:text-green-300 font-medium">This Year</span>
+              {stats.growthRate !== 0 && (
+                <span className="text-green-600 dark:text-green-400 text-[9px] sm:text-[10px] font-bold">
+                  ({stats.growthRate > 0 ? '+' : ''}{stats.growthRate.toFixed(1)}%)
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-purple-600 dark:text-purple-400">{stats.classesInvolved}</span>
+              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Active Classes</span>
+            </div>
+            <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="text-orange-700/85 dark:text-orange-300 font-medium">Peak Month:</span>
+              <span className="font-bold text-orange-600 dark:text-orange-400">{stats.peakMonth}</span>
+            </div>
+          </>
+        }
+      />
+
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
             {/* Dropdown Filters */}
             {showMobileFilters && (
@@ -538,72 +536,8 @@ export default function EnrollmentTrendsPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Compact Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-xs font-medium mb-0.5">Total Enrollments</p>
-                  <p className="text-xl md:text-2xl font-bold">{stats.total.toLocaleString()}</p>
-                </div>
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-xs font-medium mb-0.5">This Year</p>
-                  <p className="text-xl md:text-2xl font-bold">{stats.thisYear.toLocaleString()}</p>
-                  {stats.growthRate !== 0 && (
-                    <p className="text-xs text-green-100">
-                      {stats.growthRate > 0 ? '+' : ''}{stats.growthRate.toFixed(1)}% vs last year
-                    </p>
-                  )}
-                </div>
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-lg">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-xs font-medium mb-0.5">Active Classes</p>
-                  <p className="text-xl md:text-2xl font-bold">{stats.classesInvolved}</p>
-                </div>
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <GraduationCap className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 shadow-lg">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-xs font-medium mb-0.5">Peak Month</p>
-                  <p className="text-xl md:text-2xl font-bold">{stats.peakMonth}</p>
-                </div>
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Target className="w-4 h-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Compact Main Content Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">

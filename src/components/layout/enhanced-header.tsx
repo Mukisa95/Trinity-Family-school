@@ -23,14 +23,13 @@ import {
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LogoutMessage from '@/components/common/LogoutMessage';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import quotes from '@/data/quotes.json';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { SidebarTrigger, useSidebar, SidebarContext } from '@/components/ui/sidebar';
 import { format } from 'date-fns';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { NetworkStrengthIndicator } from './network-strength-indicator';
@@ -154,17 +153,12 @@ const getTimeBasedGreeting = () => {
 const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true }: HeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   // Safely get sidebar context - handle case where SidebarProvider might not be available
-  let sidebarIsMobile = false;
-  try {
-    const sidebarContext = useSidebar();
-    sidebarIsMobile = sidebarContext.isMobile;
-  } catch (error) {
-    // useSidebar is not available (e.g., for Parent interface)
-    sidebarIsMobile = false;
-  }
+  const sidebarContext = useContext(SidebarContext);
+  const hasSidebarProvider = sidebarContext !== null;
+  const sidebarIsMobile = sidebarContext ? sidebarContext.isMobile : false;
 
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
@@ -175,14 +169,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [searchAnimationPhase, setSearchAnimationPhase] = useState<'logo' | 'name' | 'search'>('logo');
   const [searchAnimationComplete, setSearchAnimationComplete] = useState(false);
   const [searchBarWidth, setSearchBarWidth] = useState<'w-32' | 'w-64' | 'auto'>('w-32');
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [isQuoteExpanded, setIsQuoteExpanded] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
-  const [showLogoutMessage, setShowLogoutMessage] = useState(false);
 
   // State for the top bar message
   const { data: settings } = useSchoolSettings({ enabled: loadSchoolSettings });
@@ -191,7 +182,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [phase, setPhase] = useState<'welcome' | 'motto' | 'quote'>('welcome');
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
   const [currentMessage, setCurrentMessage] = useState<string>(getTimeBasedGreeting());
-  const [bellShouldShake, setBellShouldShake] = useState(false);
   const motto = loadSchoolSettings ? (settings?.generalInfo?.motto || "") : "";
 
   // SchoolPay feed badge — count of unseen payments
@@ -348,7 +338,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   // useEffect for Top Bar Message Logic
   useEffect(() => {
     let phaseTimer: NodeJS.Timeout;
-    let quoteInterval: NodeJS.Timeout;
 
     if (phase === 'welcome') {
       setCurrentMessage(getTimeBasedGreeting() + '!');
@@ -362,12 +351,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
         setPhase('welcome');
       }
     }
-    // Quote phase removed
 
     return () => {
       clearTimeout(phaseTimer);
     };
-  }, [phase, motto, currentQuoteIndex]);
+  }, [phase, motto]);
 
   // Format date and time with responsive formatting
   const formattedDateTime = useMemo(() => {
@@ -487,18 +475,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     }
   };
 
-  // Handle click outside for user menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // Handle click outside for mobile search
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -511,16 +487,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = async () => {
-    setShowUserMenu(false);
-    setShowLogoutMessage(true);
-
-    setTimeout(async () => {
-      await logout();
-      router.replace('/login');
-    }, 2000);
-  };
-
 
   return (
     <>
@@ -530,13 +496,24 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
             {/* Left side: Mobile Sidebar Trigger, Menu Button */}
             <div className="flex items-center gap-1.5 sm:gap-2 mr-1.5 sm:mr-3 lg:mr-4 flex-shrink-0">
               {/* Mobile Sidebar Trigger */}
-              {sidebarIsMobile && (
+              {hasSidebarProvider && sidebarIsMobile && (
                 <motion.div
                   whileHover={buttonHover}
                   whileTap={buttonTap}
                   transition={springConfig}
                 >
                   <SidebarTrigger className="md:hidden h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 hover:from-blue-600 hover:via-indigo-700 hover:to-purple-700 text-white shadow-sm flex-shrink-0 flex items-center justify-center border-0 relative overflow-hidden" />
+                </motion.div>
+              )}
+
+              {/* Desktop Sidebar Trigger */}
+              {hasSidebarProvider && !sidebarIsMobile && (
+                <motion.div
+                  whileHover={buttonHover}
+                  whileTap={buttonTap}
+                  transition={springConfig}
+                >
+                  <SidebarTrigger className="h-8 w-8 sm:h-[36px] sm:w-[36px] rounded-full bg-white text-gray-600 border border-gray-200/60 shadow-sm flex items-center justify-center hover:bg-blue-50/80 hover:text-blue-600 transition-all duration-300" />
                 </motion.div>
               )}
 
@@ -600,71 +577,40 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
               </motion.div>
             </div>
 
-            {/* Right side: Search, DateTime, User Menu */}
+            {/* Right side: Search, DateTime */}
             <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-3 transition-all duration-300 flex-shrink-0">
-              {/* DateTime — hidden on mobile, shown from lg */}
+              {/* Consolidated DateTime & Term Progress Pill — hidden on mobile, shown from lg */}
               <motion.div
                 whileHover={{
-                  scale: 1.02,
-                  y: -1,
-                  boxShadow: "0 4px 8px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.2)"
+                  scale: 1.015,
+                  y: -0.5,
+                  boxShadow: "0 4px 10px rgba(59, 130, 246, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.15)"
                 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.985 }}
                 transition={springConfig}
-                className="hidden lg:flex items-center gap-1.5 h-[34px] px-2.5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-purple-50/80 backdrop-blur-sm rounded-full border border-blue-200/60 shadow-sm relative overflow-hidden cursor-pointer header-shimmer"
+                className="hidden lg:flex items-center gap-2 h-[34px] px-3 sm:px-3.5 bg-gradient-to-r from-blue-50/80 via-indigo-50/80 to-emerald-50/80 backdrop-blur-sm rounded-full border border-blue-200/50 shadow-sm relative overflow-hidden cursor-pointer header-shimmer"
                 style={{ willChange: "transform" }}
               >
-                {/* Shimmer is now CSS-only — no motion loop needed */}
-
-                <Calendar size={14} className="text-blue-600 flex-shrink-0" weight="duotone" />
-                <span className="text-[11px] font-semibold bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent relative z-10 whitespace-nowrap">
+                <Calendar size={13} className="text-blue-600 flex-shrink-0 relative z-10" weight="duotone" />
+                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 relative z-10 whitespace-nowrap">
                   {formattedDateTime}
                 </span>
-              </motion.div>
 
-              {/* Term Progress — only xl+ screens */}
-              {currentAcademicYear && currentTerm && (
-                <motion.div
-                  whileHover={{
-                    scale: 1.02,
-                    y: -1,
-                    boxShadow: "0 4px 8px rgba(16, 185, 129, 0.15), 0 0 0 1px rgba(16, 185, 129, 0.2)"
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={springConfig}
-                  className="hidden xl:flex items-center gap-1.5 h-[34px] px-2.5 bg-gradient-to-r from-emerald-50/80 via-teal-50/80 to-cyan-50/80 backdrop-blur-sm rounded-full border border-emerald-200/60 shadow-sm relative overflow-hidden cursor-pointer header-shimmer"
-                  style={{ willChange: "transform" }}
-                >
-                  {/* Shimmer handled by CSS — no blocking framer-motion loop */}
-
-                  <GraduationCap size={13} className="text-emerald-600 flex-shrink-0 relative z-10" weight="duotone" />
-                  <div className="flex flex-col relative z-10 leading-tight justify-center">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider leading-none">
-                        {currentAcademicYear.name} • {currentTerm.name}
-                      </span>
-                      {termStats && (
-                        <span className="text-[9px] font-semibold text-emerald-600 opacity-90 leading-none">
-                          ({termStats.elapsedDays}/{termStats.totalDays}d)
-                        </span>
-                      )}
-                    </div>
+                {currentAcademicYear && currentTerm && (
+                  <div className="hidden xl:flex items-center gap-2 relative z-10">
+                    <div className="w-[1px] h-3.5 bg-slate-200 dark:bg-slate-700 self-center" />
+                    <GraduationCap size={13} className="text-emerald-600 flex-shrink-0" weight="duotone" />
+                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">
+                      {currentAcademicYear.name} • {currentTerm.name}
+                    </span>
                     {termStats && (
-                      <div className="flex items-center gap-1.5 mt-[4px]">
-                        <div className="w-16 h-1 bg-emerald-200/60 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${termStats.progress}%` }}
-                            transition={{ duration: 1, ease: "easeOut" }}
-                          />
-                        </div>
-                        <span className="text-[8px] font-bold text-emerald-700 leading-none">{termStats.progress}%</span>
-                      </div>
+                      <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40 whitespace-nowrap">
+                        {termStats.progress}% ({termStats.elapsedDays}/{termStats.totalDays}d)
+                      </span>
                     )}
                   </div>
-                </motion.div>
-              )}
+                )}
+              </motion.div>
 
               {/* Desktop Search Bar — hidden on mobile, shown from md */}
               {user?.role !== 'Parent' && (
@@ -1007,108 +953,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   )}
                 </motion.button>
               )}
-
-              {/* User Profile */}
-              <div className="relative" ref={userMenuRef}>
-                <motion.div
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  whileHover={{
-                    scale: 1.02,
-                    y: -1,
-                    boxShadow: "0 4px 8px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.2)"
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={springConfig}
-                  className="flex items-center gap-1 sm:gap-1.5 h-8 sm:h-[34px] px-1 sm:px-1.5 rounded-full cursor-pointer bg-gradient-to-r from-blue-50/80 via-white to-blue-50/80 backdrop-blur-sm border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer"
-                  style={{ willChange: "transform" }}
-                >
-                  {/* Shimmer is CSS-only — no framer-motion loop in user badge */}
-
-                  <div className="relative z-10 flex items-center justify-center">
-                    {false ? (
-                      <img
-                        src={undefined}
-                        alt={`${user?.firstName} ${user?.lastName}`}
-                        className="w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] rounded-full object-cover ring-1 ring-blue-300"
-                      />
-                    ) : (
-                      <motion.div
-                        whileHover={{ rotate: 360 }}
-                        transition={{ duration: 0.6, ease: "easeInOut" }}
-                        className="relative"
-                      >
-                        {/* Rotating gradient border */}
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: "linear"
-                          }}
-                          className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-sm opacity-75"
-                          style={{ padding: '2px' }}
-                        />
-                        <div
-                          className="relative w-[26px] h-[26px] sm:w-[28px] sm:h-[28px] rounded-full bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 flex items-center justify-center shadow-md"
-                        >
-                          <span className="text-[10px] font-bold text-white">
-                            {user?.firstName?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || '?'}
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-
-                  {/* Name — hidden on mobile, shown from sm */}
-                  <div className="hidden sm:block relative z-10">
-                    <div className="text-[11px] font-bold bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent truncate max-w-[80px] lg:max-w-[120px] leading-none">
-                      {user?.firstName && user?.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : user?.username || 'User'
-                      }
-                    </div>
-                    <div className="text-[10px] text-blue-600 font-semibold capitalize leading-none mt-0.5">
-                      {user?.role || 'Role'}
-                    </div>
-                  </div>
-                  <CaretDown size={10} className="text-blue-600 relative z-10 flex-shrink-0" />
-                </motion.div>
-
-                {/* User Dropdown Menu */}
-                {showUserMenu && (
-                  <div
-                    className="absolute right-0 mt-1 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-lg py-1 z-50 overflow-hidden border border-slate-200/70 animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200"
-                  >
-                    <div className="px-3 py-2 border-b border-blue-50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
-                      <p className="text-xs font-medium text-gray-600">Signed in as</p>
-                      <p className="text-xs font-bold text-blue-700 truncate">{user?.username || 'User'}</p>
-                    </div>
-
-                    <div className="mt-1">
-                      <button
-                        onClick={() => router.push('/profile')}
-                        className="flex items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50/80 hover:text-blue-700 transition-all duration-200"
-                        type="button"
-                      >
-                        <UserCircle size={16} className="mr-2" weight="duotone" />
-                        My Profile
-                      </button>
-
-
-                      <div className="my-1 border-b border-blue-50"></div>
-
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50/70 hover:text-red-700 transition-all duration-200"
-                        type="button"
-                      >
-                        <SignOut size={16} className="mr-2" weight="duotone" />
-                        Logout
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -1201,16 +1045,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
           </motion.div>
         )}
       </header>
-
-      <AnimatePresence>
-        {showLogoutMessage && (
-          <LogoutMessage
-            username={user?.firstName || user?.username || 'User'}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 };
 
-export default EnhancedHeader; 
+export default EnhancedHeader;

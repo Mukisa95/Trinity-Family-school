@@ -6,9 +6,7 @@
  *  - Server-side: send push to a list of userIds (called from API routes only)
  *  - Server-side: resolve "fees-access users" and push to them (SchoolPay hook)
  *
- * NOTE: On native Capacitor (Android), the @capacitor/push-notifications plugin
- * handles its own registration via AndroidAppInit. This service only covers
- * web-push subscriptions (desktop + mobile browsers).
+ * This service manages web-push subscriptions for desktop and mobile browsers.
  */
 
 import { db } from '@/lib/firebase';

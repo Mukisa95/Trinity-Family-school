@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { PlusCircle, MoreHorizontal, Edit, Trash2, GraduationCap, Loader2, UserPlus, UserCircle2, Search, Filter, X, Grid3X3, List, Users, Phone, Mail, Building, Calendar, MapPin } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -136,230 +138,180 @@ export default function StaffPage() {
     setStatusFilter('all');
   };
 
+  const activeFiltersCount = React.useMemo(() => {
+    let count = 0;
+    if (departmentFilter !== 'all') count++;
+    if (statusFilter !== 'all') count++;
+    return count;
+  }, [departmentFilter, statusFilter]);
+
   const hasActiveFilters = searchTerm || departmentFilter !== 'all' || statusFilter !== 'all';
 
   if (isLoading) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader 
-          title="Staff Management" 
-          description="Manage staff registration, profiles, and roles."
-        />
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading staff...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <GlassPageRouteSkeleton variant="list" />;
   }
 
   if (error) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader 
-          title="Staff Management" 
-          description="Manage staff registration, profiles, and roles."
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Staff Management"
+          subtitle="Manage staff registration, profiles, and roles."
+          backHref="/"
         />
-        <Card className="p-8">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-              <X className="w-8 h-8 text-red-600" />
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <Card className="p-8">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                <X className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Staff</h3>
+              <p className="text-gray-600 mb-4">There was a problem loading the staff data.</p>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Staff</h3>
-            <p className="text-gray-600 mb-4">There was a problem loading the staff data.</p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      <PageHeader
+    <div className="min-h-screen">
+      <GlassPageTopBar
         title="Staff Management"
-        description="Manage staff registration, profiles, and roles."
+        subtitle="Manage staff registration, profiles, and roles."
+        backHref="/"
+        backLabel="Back to dashboard"
+        className="mb-1.5"
+        meta={
+          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+            {filteredStaff.length} {filteredStaff.length === 1 ? 'Staff Member' : 'Staff Members'}
+          </span>
+        }
+        center={
+          <GlassPageSearchInput
+            placeholder="Search staff by name, ID, email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        }
+        actionsLeading={
+          <GlassPageSearchInput
+            placeholder="Search staff by name, ID, email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            containerClassName="lg:hidden"
+          />
+        }
         actions={
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button 
-              onClick={() => router.push('/staff/mofus')} 
-              variant="outline"
-              className="w-full sm:w-auto"
-            >
-              <Users className="mr-2 h-4 w-4" /> 
-              <span className="hidden sm:inline">Mofus</span>
-              <span className="sm:hidden">Mofus</span>
-            </Button>
-            <Button onClick={() => router.push('/staff/form')} className="w-full sm:w-auto">
-              <UserPlus className="mr-2 h-4 w-4" /> 
-              <span className="hidden sm:inline">Add New Staff</span>
-              <span className="sm:hidden">Add Staff</span>
-            </Button>
-          </div>
+          <GlassActionDock>
+            {!isMobile && (
+              <GlassActionButton
+                label={viewMode === 'table' ? "Cards" : "List"}
+                icon={viewMode === 'table' ? <Grid3X3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                tone="slate"
+                onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+                aria-label={viewMode === 'table' ? "Switch to Grid View" : "Switch to List View"}
+              />
+            )}
+            <GlassActionButton
+              label="Filters"
+              tone="blue"
+              icon={<Filter className="h-4 w-4" />}
+              badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              aria-label="Toggle Filters"
+            />
+            <GlassActionButton
+              label="Mofus"
+              tone="slate"
+              icon={<Users className="h-4 w-4" />}
+              onClick={() => router.push('/staff/mofus')}
+              aria-label="Staff Mofus Assignments"
+            />
+            <GlassActionButton
+              label="Add Staff"
+              tone="emerald"
+              icon={<UserPlus className="h-4 w-4" />}
+              onClick={() => router.push('/staff/form')}
+              aria-label="Add New Staff"
+            />
+          </GlassActionDock>
         }
       />
-      
-      {/* Show recess status banner if in recess mode */}
-      <RecessStatusBanner />
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-blue-600 font-medium">Total Staff</p>
-                <p className="text-lg sm:text-2xl font-bold text-blue-700">{stats.total}</p>
-              </div>
+      <GlassSummaryBar
+        left={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+              Staff Summary
+            </span>
+          </div>
+        }
+        right={
+          <>
+            <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-blue-600 dark:text-blue-400">{stats.total}</span>
+              <span className="text-blue-700/85 dark:text-blue-300 font-medium">Total Staff</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-green-600 font-medium">Teaching</p>
-                <p className="text-lg sm:text-2xl font-bold text-green-700">{stats.teaching}</p>
-              </div>
+            <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-green-600 dark:text-green-400">{stats.teaching}</span>
+              <span className="text-green-700/85 dark:text-green-300 font-medium">Teaching</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Building className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-orange-600 font-medium">Administration</p>
-                <p className="text-lg sm:text-2xl font-bold text-orange-700">{stats.administration}</p>
-              </div>
+            <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-orange-600 dark:text-orange-400">{stats.administration}</span>
+              <span className="text-orange-700/85 dark:text-orange-300 font-medium">Administration</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                <UserCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-purple-600 font-medium">Support</p>
-                <p className="text-lg sm:text-2xl font-bold text-purple-700">{stats.support}</p>
-              </div>
+            <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+              <span className="font-bold text-purple-600 dark:text-purple-400">{stats.support}</span>
+              <span className="text-purple-700/85 dark:text-purple-300 font-medium">Support</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Add new Management card if needed or adjust layout */}
-      {stats.management > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 mt-3 sm:mt-4">
-          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
-                  <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-indigo-600 font-medium">Management</p>
-                  <p className="text-lg sm:text-2xl font-bold text-indigo-700">{stats.management}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Search and Filters */}
-      <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50">
-        <CardContent className="p-3 sm:p-4">
-          {/* Top Row: Search and View Toggle */}
-          <div className="flex items-center gap-2 sm:gap-3 mb-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search staff by name, ID, email, or role..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-10 h-9 sm:h-10 text-sm"
-              />
-              {searchTerm && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-              className={cn(
-                "h-9 sm:h-10 px-3",
-                hasActiveFilters && "bg-blue-50 border-blue-200 text-blue-700"
-              )}
-            >
-              <Filter className="h-4 w-4 mr-1.5" />
-              Filter
-            </Button>
-
-            {!isMobile && (
-              <div className="flex border rounded-md overflow-hidden">
-                <Button
-                  variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('cards')}
-                  className="h-9 px-3 rounded-none"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className="h-9 px-3 rounded-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
+            {stats.management > 0 && (
+              <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-indigo-600 dark:text-indigo-400">{stats.management}</span>
+                <span className="text-indigo-700/85 dark:text-indigo-300 font-medium">Management</span>
               </div>
             )}
-          </div>
+          </>
+        }
+      />
 
-          {/* Expandable Filters */}
-          <AnimatePresence>
-            {filtersExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-3 border-t border-gray-200 space-y-3">
+      <div className="max-w-7xl mx-auto px-4 pb-6 space-y-4 sm:space-y-6">
+        {/* Show recess status banner if in recess mode */}
+        <RecessStatusBanner />
+
+        {/* Expandable Filters */}
+        <AnimatePresence>
+          {filtersExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-blue-100/50">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <h4 className="text-xs font-semibold text-gray-700">Filter Staff</h4>
+                    {activeFiltersCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="h-6 text-xs px-2 text-red-600 hover:text-red-700"
+                      >
+                        Clear All Filters
+                      </Button>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs font-medium mb-1.5 block">Department</Label>
                       <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                        <SelectTrigger className="h-8 text-xs">
+                        <SelectTrigger className="h-9 text-xs">
                           <SelectValue placeholder="All Departments" />
                         </SelectTrigger>
                         <SelectContent>
@@ -373,8 +325,8 @@ export default function StaffPage() {
 
                     <div>
                       <Label className="text-xs font-medium mb-1.5 block">Status</Label>
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-8 text-xs">
+                      <Select value={statusFilter} onValueChange={statusFilter => setStatusFilter(statusFilter)}>
+                        <SelectTrigger className="h-9 text-xs">
                           <SelectValue placeholder="All Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -390,32 +342,22 @@ export default function StaffPage() {
                         variant="outline"
                         size="sm"
                         onClick={clearFilters}
-                        className="h-8 text-xs"
+                        className="h-9 text-xs"
                         disabled={!hasActiveFilters}
                       >
                         Clear Filters
                       </Button>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Results Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
-          {filteredStaff.length} staff member{filteredStaff.length !== 1 ? 's' : ''} found
-          {hasActiveFilters && ` (filtered from ${staffList.length} total)`}
-        </p>
-        {hasActiveFilters && (
-          <Badge variant="secondary" className="text-xs">
-            Filtered Results
-          </Badge>
-        )}
-      </div>
+
+
+
 
       {/* Staff Display */}
       {filteredStaff.length === 0 ? (
@@ -580,6 +522,7 @@ export default function StaffPage() {
           )}
         </AnimatePresence>
       )}
+      </div>
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { ArrowLeft, UserSquare, BookOpen as AcademicIcon, Users as GuardianIconL
 import { X } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -122,12 +124,19 @@ const getClassName = (classId: string | undefined, classes: Class[]) => {
   return cls ? cls.name : "N/A";
 };
 
+const getClassCode = (classId: string | undefined, classes: Class[]) => {
+  if (!classId) return "N/A";
+  const cls = classes.find(c => c.id === classId);
+  return cls ? cls.code : "N/A";
+};
+
 interface DetailItemProps {
   icon?: React.ReactNode;
   label: string;
   value: string | React.ReactNode | undefined | null;
   multiline?: boolean;
   highlight?: boolean;
+  compact?: boolean;
 }
 
 interface EditableDetailItemProps extends DetailItemProps {
@@ -148,7 +157,8 @@ const DetailItem = React.memo(function DetailItem({
   fieldName,
   onValueChange,
   inputType = 'text',
-  selectOptions = []
+  selectOptions = [],
+  compact = false
 }: EditableDetailItemProps) {
   const [localValue, setLocalValue] = React.useState(value || '');
 
@@ -170,10 +180,10 @@ const DetailItem = React.memo(function DetailItem({
   };
 
   return (
-    <div className={`flex ${multiline ? 'flex-col items-start' : 'items-center justify-between'} py-1.5 border-b border-border/50 last:border-b-0`}>
+    <div className={`flex ${multiline ? 'flex-col items-start' : 'items-center justify-between'} ${compact ? 'py-0.5 text-xs' : 'py-1.5 text-xs sm:text-sm'} border-b border-border/50 last:border-b-0`}>
       <div className="flex items-center">
-        {icon && <span className="mr-2 text-muted-foreground">{icon}</span>}
-        <span className="font-medium text-muted-foreground">{label}:</span>
+        {icon && <span className={`mr-2 text-muted-foreground ${compact ? 'h-3.5 w-3.5 [&>svg]:h-3.5 [&>svg]:w-3.5' : ''}`}>{icon}</span>}
+        <span className={`font-medium text-muted-foreground ${compact ? 'text-[11px]' : ''}`}>{label}:</span>
       </div>
       {isEditMode ? (
         <div className={`flex-1 ${multiline ? 'w-full mt-1' : 'ml-4 max-w-[65%]'}`}>
@@ -216,7 +226,7 @@ const DetailItem = React.memo(function DetailItem({
           )}
         </div>
       ) : (
-        <span className={`text-right ${multiline ? 'mt-1 ml-0 sm:ml-6 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-primary' : 'text-foreground'}`}>
+        <span className={`text-right ${multiline ? 'mt-0.5 ml-0 sm:ml-4 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-primary' : 'text-foreground'} ${compact ? 'text-[11px]' : ''}`}>
           {value}
         </span>
       )}
@@ -401,6 +411,7 @@ function PupilDetailContent() {
   const [houses, setHouses] = React.useState<House[]>([]);
   const [housesLoading, setHousesLoading] = React.useState<boolean>(false);
   const [isHouseChangeOpen, setIsHouseChangeOpen] = React.useState(false);
+  const [isFamilyModalOpen, setIsFamilyModalOpen] = React.useState(false);
   const [selectedHouseId, setSelectedHouseId] = React.useState<string>(pupil?.houseId || '');
   const loadHouses = React.useCallback(async () => {
     setHousesLoading(true);
@@ -3450,19 +3461,7 @@ function PupilDetailContent() {
   // 🚀 CRITICAL: Only show loading if we don't have cached data at all (first load)
   // If we have cached data (even if stale), show it immediately even if loading in background
   if (isLoading && !hasCachedData) {
-    return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Loading Pupil Details..." />
-        <Card>
-          <CardHeader><Skeleton className="h-8 w-3/4" /></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-center"> <Skeleton className="h-32 w-32 rounded-full" /></div>
-            <Skeleton className="h-6 w-1/2 mx-auto mt-2" /> <Skeleton className="h-4 w-1/3 mx-auto" />
-            <div className="mt-4 space-y-2"> <Skeleton className="h-4 w-full" /> <Skeleton className="h-4 w-2/3" /> <Skeleton className="h-4 w-full" /> </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <GlassPageRouteSkeleton variant="default" />;
   }
 
   // 🚀 CRITICAL: Only show error if we've finished loading and still don't have data
@@ -3470,12 +3469,13 @@ function PupilDetailContent() {
   if (!pupil && !isLoading && !pupilLoading) {
     return (
       <div className="p-4 sm:p-6 text-center">
-        <PageHeader title="Pupil Profile" />
-        <p className="text-muted-foreground">The pupil you are looking for does not exist.</p>
-        <div className="mt-4">
-          <SmartBackButton fallbackHref="/pupils" className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to List
-          </SmartBackButton>
+        <GlassPageTopBar
+          title="Pupil Profile"
+          backHref="/pupils"
+          backLabel="Back to pupils"
+        />
+        <div className="mt-8 text-muted-foreground">
+          <p>The pupil you are looking for does not exist.</p>
         </div>
       </div>
     );
@@ -3488,8 +3488,21 @@ function PupilDetailContent() {
 
   return (
     <>
-      <PageHeader
-        title="Pupil Profile"
+      <GlassPageTopBar
+        title={`${formatPupilDisplayName(pupil)}'s Profile`}
+        subtitle={`${getClassCode(pupil?.classId, classes)} • ${pupil?.section || 'N/A'} • ${pupil?.admissionNumber || 'N/A'}`}
+        meta={
+          <Badge variant="outline" className={`text-xs border shadow-sm ${
+            pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300' :
+            pupil?.status === 'Inactive' ? 'bg-gray-100 text-gray-800 border-gray-300' :
+            pupil?.status === 'Graduated' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+            'bg-blue-100 text-blue-800 border-blue-300'
+          }`}>
+            {pupil?.status || 'Active'}
+          </Badge>
+        }
+        backHref="/pupils"
+        backLabel="Back to pupils"
         actions={
           <div className="flex flex-row items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 action-buttons-container">
             {isEditMode ? (
@@ -3546,6 +3559,24 @@ function PupilDetailContent() {
                     </button>
                   </Link>
                 </ActionGuard>
+
+                {/* Family Account Button */}
+                {pupil.familyId && actualSiblings.length > 0 && (
+                  <button
+                    onClick={() => setIsFamilyModalOpen(true)}
+                    className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-teal-600 border border-teal-400 shadow-sm hover:bg-gradient-to-br hover:from-teal-400 hover:via-teal-500 hover:to-teal-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 group"
+                    aria-label="Family Account"
+                  >
+                    <div className="w-4 h-4 mb-0.5 flex items-center justify-center font-bold text-xs">
+                      <GuardianIconLucide className="w-4 h-4 group-hover:hidden" />
+                      <span className="hidden group-hover:inline font-mono">
+                        {actualSiblings.length}
+                      </span>
+                    </div>
+                    <span className="text-[8px] font-semibold leading-tight group-hover:hidden">Family</span>
+                    <span className="text-[8px] font-semibold leading-tight hidden group-hover:block">Siblings</span>
+                  </button>
+                )}
 
                 {/* Assignment & Discounts Button */}
                 <ActionGuard module="pupils" page="detail" action="manage_assignments">
@@ -4258,44 +4289,73 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
             {pupil.familyId && actualSiblings.length > 0 && (
               <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center text-lg lg:text-xl"><GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> Family &amp; Siblings</CardTitle>
+                  <CardTitle className="flex items-center text-lg lg:text-xl"><GuardianIconLucide className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> {formatPupilDisplayName(pupil)}'s Siblings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div>
-                    <p className="font-medium text-muted-foreground mb-3">Siblings in School ({actualSiblings.length}):</p>
                     <div className="space-y-3">
                       {actualSiblings.map(sibling => (
                         <div key={sibling.id} className="p-3 rounded-md border bg-muted/20 hover:bg-muted/30 transition-colors">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <Link href={`/pupil-detail?id=${sibling.id}`} className="text-primary hover:underline font-medium">
-                                {sibling.firstName} {sibling.lastName} {sibling.otherNames || ''}
-                              </Link>
-                              <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-4">
-                                  <span>Adm. No: <span className="font-mono">{sibling.admissionNumber}</span></span>
-                                  <span>Class: <span className="font-medium">
-                                    {sibling.classId ? (
-                                      <Link
-                                        href={`/class-detail?id=${sibling.classId}`}
-                                        className="text-primary hover:underline cursor-pointer"
-                                      >
-                                        {getClassNameMemo(sibling.classId)}
-                                      </Link>
-                                    ) : (
-                                      getClassNameMemo(sibling.classId)
-                                    )}
-                                  </span></span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span>Gender: {sibling.gender}</span>
-                                  <span>Section: {sibling.section}</span>
-                                  <Badge variant={sibling.status === 'Active' ? 'default' : 'secondary'} className="text-xs px-1.5 py-0.5">
+                              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <Link href={`/pupil-detail?id=${sibling.id}`} className="text-primary hover:underline font-medium">
+                                    {sibling.firstName} {sibling.lastName} {sibling.otherNames || ''}
+                                  </Link>
+                                  <Badge variant={sibling.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] py-0 px-1.5 h-4">
                                     {sibling.status}
                                   </Badge>
                                 </div>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0"
+                                  >
+                                    <Link href={`/fees/collect/${sibling.id}`}>
+                                      <Receipt className="h-2.5 w-2.5 mr-0.5" />
+                                      Fees
+                                    </Link>
+                                  </Button>
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 rounded-full px-2 text-[10px] font-semibold border-indigo-300 text-indigo-700 hover:bg-indigo-50 shrink-0"
+                                  >
+                                    <Link href={`/pupil-detail?id=${sibling.id}#exams-card`}>
+                                      <BookOpen className="h-2.5 w-2.5 mr-0.5" />
+                                      Exams
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                <span className="font-mono text-gray-700 dark:text-gray-300">{sibling.admissionNumber}</span>
+                                <span className="text-gray-300">•</span>
+                                <span>
+                                  {sibling.classId ? (
+                                    <Link
+                                      href={`/class-detail?id=${sibling.classId}`}
+                                      className="text-primary hover:underline cursor-pointer"
+                                    >
+                                      {getClassCode(sibling.classId, classes)}
+                                    </Link>
+                                  ) : (
+                                    getClassCode(sibling.classId, classes)
+                                  )}
+                                </span>
+                                <span className="text-gray-300">•</span>
+                                <span>{sibling.section || 'N/A'}</span>
+                                <span className="text-gray-300">•</span>
+                                <span>{sibling.gender || 'N/A'}</span>
                                 {sibling.dateOfBirth && (
-                                  <div>Age: {new Date().getFullYear() - new Date(sibling.dateOfBirth).getFullYear()} years</div>
+                                  <>
+                                    <span className="text-gray-300">•</span>
+                                    <span>{new Date().getFullYear() - new Date(sibling.dateOfBirth).getFullYear()} yrs</span>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -4388,26 +4448,36 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
             )}
 
             {/* Exams Tile - moved to appear after Family & Siblings */}
-            <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
+            <Card id="exams-card" className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="flex items-center text-base lg:text-lg">
-                    <BookOpen className="mr-2 h-4 w-4 text-primary" /> Examination Records
+                    <BookOpen className="mr-2 h-4 w-4 text-primary" /> Exams
                   </CardTitle>
+                  {!shouldLoadExams && (
+                    <Button
+                      onClick={() => setShouldLoadExams(true)}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-7 px-3 text-xs font-semibold"
+                    >
+                      <BookOpen className="h-3.5 w-3.5 mr-1" />
+                      Show
+                    </Button>
+                  )}
                   {shouldLoadExams && (
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 rounded-md border border-border/50">
                         <Select
-                          value={examFilters.academicYearId}
-                          onValueChange={(value) => {
-                            setExamFilters(prev => ({ ...prev, academicYearId: value, termId: 'all' }));
-                            // Update term filter when year changes - use smart term selector
-                            const selectedYear = academicYears.find(y => y.id === value);
-                            if (selectedYear) {
-                              const activeTerm = getActiveOrMostRecentTerm(selectedYear);
-                              setExamFilters(prev => ({ ...prev, termId: activeTerm?.id || 'all' }));
-                            }
-                          }}
+                           value={examFilters.academicYearId}
+                           onValueChange={(value) => {
+                             setExamFilters(prev => ({ ...prev, academicYearId: value, termId: 'all' }));
+                             // Update term filter when year changes - use smart term selector
+                             const selectedYear = academicYears.find(y => y.id === value);
+                             if (selectedYear) {
+                               const activeTerm = getActiveOrMostRecentTerm(selectedYear);
+                               setExamFilters(prev => ({ ...prev, termId: activeTerm?.id || 'all' }));
+                             }
+                           }}
                         >
                           <SelectTrigger className="h-6 border-0 bg-transparent text-xs font-medium px-1 py-0 focus:ring-0 focus:ring-offset-0 [&>svg]:hidden">
                             <SelectValue placeholder="Year" />
@@ -4444,7 +4514,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                         onClick={() => setShouldLoadExams(false)}
                         variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0"
+                        className="h-7 w-7 p-0 rounded-full"
                         title="Hide Exams"
                         aria-label="Hide Exams"
                       >
@@ -4454,28 +4524,17 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
-                {/* PLE Results Section - Hidden because it's now shown in the inline card above */}
-
-                {/* Regular Exam Results Section - Load on demand */}
-                {pupilPLEResults.length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-lg mb-3">Other Examination Records</h3>
-                  </div>
-                )}
-                {!shouldLoadExams ? (
-                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <div className="flex flex-col items-center gap-2">
-                      <Button
-                        onClick={() => setShouldLoadExams(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
-                      >
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        {pupilExamHistory ? 'Show Exams' : 'View Exams'}
-                      </Button>
+              {shouldLoadExams && (
+                <CardContent>
+                  {/* PLE Results Section - Hidden because it's now shown in the inline card above */}
+  
+                  {/* Regular Exam Results Section - Load on demand */}
+                  {pupilPLEResults.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="font-semibold text-lg mb-3">Other Examination Records</h3>
                     </div>
-                  </div>
-                ) : isLoadingExamHistory ? (
+                  )}
+                  {isLoadingExamHistory ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
                     <span className="text-sm text-muted-foreground">Loading exam history...</span>
@@ -4681,6 +4740,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   </div>
                 )}
               </CardContent>
+              )}
             </Card>
 
             {/* Change House Modal */}
@@ -4733,6 +4793,83 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                     }}
                   >
                     Save
+                  </Button>
+                </ModernDialogFooter>
+              </ModernDialogContent>
+            </ModernDialog>
+
+            {/* Family Account & Siblings Modal */}
+            <ModernDialog open={isFamilyModalOpen} onOpenChange={setIsFamilyModalOpen}>
+              <ModernDialogContent className="max-w-md">
+                <ModernDialogHeader>
+                  <ModernDialogTitle className="flex items-center gap-2">
+                    <GuardianIconLucide className="h-5 w-5 text-teal-600" />
+                    Family Account Options
+                  </ModernDialogTitle>
+                  <ModernDialogDescription>
+                    Choose whether to view the combined family account or navigate to a sibling's fee collection.
+                  </ModernDialogDescription>
+                </ModernDialogHeader>
+
+                <div className="space-y-4 py-3">
+                  {/* Family Account Link Button */}
+                  <Link
+                    href={`/fees/family/${pupil?.familyId}`}
+                    onClick={() => setIsFamilyModalOpen(false)}
+                    className="flex items-center justify-between p-4 rounded-xl border border-teal-100 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-200 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-teal-100 text-teal-700">
+                        <GuardianIconLucide className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-semibold text-sm text-teal-900">View Family Account</p>
+                        <p className="text-xs text-teal-700/80">Combined school fees statement for all siblings</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-teal-500 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+
+                  {/* Sibling Fees Links */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">Sibling Fees Collection</p>
+                    <div className="max-h-[220px] overflow-y-auto space-y-1.5 pr-1">
+                      {actualSiblings.map((sibling) => (
+                        <Link
+                          key={sibling.id}
+                          href={`/fees/collect?pupilId=${sibling.id}`}
+                          onClick={() => setIsFamilyModalOpen(false)}
+                          className="flex items-center justify-between p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-all group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Avatar className="h-8 w-8 border">
+                              <AvatarImage
+                                src={sibling.photo && sibling.photo.trim() !== '' ? sibling.photo : undefined}
+                                alt={`${sibling.firstName} ${sibling.lastName}`}
+                              />
+                              <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
+                                {sibling.firstName?.[0] || 'S'}{sibling.lastName?.[0] || 'S'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="text-left">
+                              <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                                {sibling.firstName} {sibling.lastName}
+                              </p>
+                              <p className="text-xs text-muted-foreground font-mono">
+                                {getClassCode(sibling.classId, classes)} • {sibling.admissionNumber}
+                              </p>
+                            </div>
+                          </div>
+                          <Receipt className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 transition-colors" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <ModernDialogFooter>
+                  <Button variant="outline" onClick={() => setIsFamilyModalOpen(false)} className="w-full">
+                    Close
                   </Button>
                 </ModernDialogFooter>
               </ModernDialogContent>
@@ -4842,9 +4979,10 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               </CardHeader>
               <CardContent className="space-y-4">
                 {(isEditMode ? editableGuardians : (pupil.guardians || [])).length > 0 ? (
-                  (isEditMode ? editableGuardians : pupil.guardians || []).map((guardian, index) => (
-                    <div key={guardian.id || index} className={`p-3 rounded-md border bg-muted/30 ${index > 0 ? "mt-4" : ""}`}>
-                      <div className="flex items-center justify-between mb-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(isEditMode ? editableGuardians : pupil.guardians || []).map((guardian, index) => (
+                    <div key={guardian.id || index} className="p-2 px-3 rounded-md border bg-muted/30">
+                      <div className="flex items-center justify-between mb-1.5">
                         <h4 className="font-semibold text-sm lg:text-md text-foreground flex flex-wrap items-center gap-2">
                           {isEditMode ? (
                             <>
@@ -4907,7 +5045,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           </Button>
                         )}
                       </div>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-0.5 text-xs">
                         <DetailItem
                           key={`guardian-${index}-phone`}
                           icon={<Phone />}
@@ -4927,6 +5065,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             updated[index] = { ...updated[index], phone: value };
                             setEditableGuardians(updated);
                           }}
+                          compact={true}
                         />
                         <DetailItem
                           key={`guardian-${index}-secondary-phone`}
@@ -4947,6 +5086,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             updated[index] = { ...updated[index], secondaryPhone: value };
                             setEditableGuardians(updated);
                           }}
+                          compact={true}
                         />
                         <DetailItem
                           key={`guardian-${index}-email`}
@@ -4960,6 +5100,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             updated[index] = { ...updated[index], email: value };
                             setEditableGuardians(updated);
                           }}
+                          compact={true}
                         />
                         <DetailItem
                           key={`guardian-${index}-occupation`}
@@ -4973,6 +5114,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             updated[index] = { ...updated[index], occupation: value };
                             setEditableGuardians(updated);
                           }}
+                          compact={true}
                         />
                         <DetailItem
                           key={`guardian-${index}-address`}
@@ -4988,6 +5130,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                           }}
                           multiline={true}
                           inputType="textarea"
+                          compact={true}
                         />
                         <DetailItem
                           key={`guardian-${index}-nationalId`}
@@ -5000,10 +5143,12 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             updated[index] = { ...updated[index], nationalId: value };
                             setEditableGuardians(updated);
                           }}
+                          compact={true}
                         />
                       </div>
                     </div>
-                  ))
+                  ))}
+                  </div>
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-muted-foreground text-sm mb-3">No guardian information available.</p>
@@ -5066,7 +5211,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center text-lg lg:text-xl"><HeartPulse className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> Medical Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-1 text-sm">
+                <CardContent className="space-y-0.5 text-xs">
                   {emergencyContactGuardian && (
                     <DetailItem
                       key="emergency"
@@ -5088,12 +5233,13 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                         </span>
                       }
                       highlight
+                      compact={true}
                     />
                   )}
-                  <DetailItem key="bloodtype" label="Blood Type" value={pupil.bloodType} />
-                  <DetailItem key="conditions" label="Known Medical Conditions" value={pupil.medicalConditions} multiline />
-                  <DetailItem key="allergies" label="Allergies" value={pupil.allergies} multiline />
-                  <DetailItem key="medications" label="Current Medications" value={pupil.medications} multiline />
+                  <DetailItem key="bloodtype" label="Blood Type" value={pupil.bloodType} compact={true} />
+                  <DetailItem key="conditions" label="Known Medical Conditions" value={pupil.medicalConditions} multiline compact={true} />
+                  <DetailItem key="allergies" label="Allergies" value={pupil.allergies} multiline compact={true} />
+                  <DetailItem key="medications" label="Current Medications" value={pupil.medications} multiline compact={true} />
                 </CardContent>
               </Card>
             )}
@@ -5111,23 +5257,23 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   {pupil.statusChangeHistory
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((entry, index) => (
-                      <div key={index} className="p-3 rounded-md border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-300">
-                                {entry.fromStatus} → {entry.toStatus}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground flex items-center">
-                                <Clock className="mr-1 h-3 w-3" />
-                                {formatDate(entry.date)}
-                              </span>
-                            </div>
+                      <div key={index} className="p-2 px-3 rounded-md border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800 text-xs">
+                        <div className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-orange-100 text-orange-800 border-orange-300">
+                              {entry.fromStatus} → {entry.toStatus}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground flex items-center">
+                              <Clock className="mr-1 h-3 w-3" />
+                              {formatDate(entry.date)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {entry.reason && (
-                              <p className="text-xs text-muted-foreground mt-1">{entry.reason}</p>
+                              <span className="truncate">Reason: {entry.reason}</span>
                             )}
                             {entry.processedBy && (
-                              <p className="text-xs text-muted-foreground">Processed by: {entry.processedBy}</p>
+                              <span className="shrink-0 text-gray-500">By: {entry.processedBy}</span>
                             )}
                           </div>
                         </div>
@@ -5150,50 +5296,48 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                   {pupil.promotionHistory
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((entry, index) => (
-                      <div key={index} className="p-3 rounded-md border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <div className="flex items-center">
-                                {entry.type === 'Promotion' && <TrendingUp className="mr-1 h-3 w-3 text-green-600" />}
-                                {entry.type === 'Demotion' && <TrendingDown className="mr-1 h-3 w-3 text-red-600" />}
-                                {entry.type === 'Graduation' && <GraduationCap className="mr-1 h-3 w-3 text-yellow-600" />}
-                                {(entry.type === 'Transfer' || entry.type === 'Initial Placement') && <ArrowRight className="mr-1 h-3 w-3 text-blue-600" />}
-                                <Badge variant="outline" className={`text-xs ${entry.type === 'Promotion' ? 'bg-green-100 text-green-800 border-green-300' :
-                                  entry.type === 'Demotion' ? 'bg-red-100 text-red-800 border-red-300' :
-                                    entry.type === 'Graduation' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                      'bg-blue-100 text-blue-800 border-blue-300'
-                                  }`}>
-                                  {entry.type}
-                                </Badge>
+                      <div key={index} className="p-2 px-3 rounded-md border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-xs">
+                        <div className="flex flex-row items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center">
+                              {entry.type === 'Promotion' && <TrendingUp className="mr-1 h-3 w-3 text-green-600" />}
+                              {entry.type === 'Demotion' && <TrendingDown className="mr-1 h-3 w-3 text-red-600" />}
+                              {entry.type === 'Graduation' && <GraduationCap className="mr-1 h-3 w-3 text-yellow-600" />}
+                              {(entry.type === 'Transfer' || entry.type === 'Initial Placement') && <ArrowRight className="mr-1 h-3 w-3 text-blue-600" />}
+                              <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${
+                                entry.type === 'Promotion' ? 'bg-green-100 text-green-800 border-green-300' :
+                                entry.type === 'Demotion' ? 'bg-red-100 text-red-800 border-red-300' :
+                                entry.type === 'Graduation' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                                'bg-blue-100 text-blue-800 border-blue-300'
+                              }`}>
+                                {entry.type}
+                              </Badge>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground flex items-center">
+                              <Clock className="mr-1 h-3 w-3" />
+                              {formatDate(entry.date)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-[11px] font-medium text-gray-800 dark:text-gray-200 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {entry.type === 'Graduation' ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-yellow-700">Graduated from {entry.fromClassName || 'N/A'}</span>
+                                {entry.graduationYear && entry.toClassId && (
+                                  <Link
+                                    href={`/classes/graduates/${entry.toClassId}`}
+                                    className="text-[10px] text-yellow-600 hover:text-yellow-700 underline flex items-center gap-0.5 shrink-0"
+                                  >
+                                    <Award className="h-2.5 w-2.5" />
+                                    Class of {entry.graduationYear}
+                                  </Link>
+                                )}
                               </div>
-                              <span className="text-xs text-muted-foreground flex items-center">
-                                <Clock className="mr-1 h-3 w-3" />
-                                {formatDate(entry.date)}
+                            ) : (
+                              <span>
+                                {entry.fromClassName || 'N/A'} → {entry.toClassName}
                               </span>
-                            </div>
-                            <div className="text-sm">
-                              {entry.type === 'Graduation' ? (
-                                <div className="flex flex-col gap-1">
-                                  <span className="font-medium text-yellow-700">
-                                    Graduated from {entry.fromClassName || 'N/A'}
-                                  </span>
-                                  {entry.graduationYear && entry.toClassId && (
-                                    <Link
-                                      href={`/classes/graduates/${entry.toClassId}`}
-                                      className="inline-flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-700 underline"
-                                    >
-                                      <Award className="h-3 w-3" />
-                                      View Class of {entry.graduationYear} Graduates
-                                    </Link>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="font-medium">
-                                  {entry.fromClassName || 'N/A'} → {entry.toClassName}
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>

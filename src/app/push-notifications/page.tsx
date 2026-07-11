@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -293,19 +294,14 @@ export default function PushNotificationsPage() {
   const selectedOption = TARGET_OPTIONS.find((t) => t.value === target)!;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/20">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-
-        {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-4 pt-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-            <Bell className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Push Notifications</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Send direct push notifications to app users</p>
-          </div>
-        </div>
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        title="Push Notifications"
+        subtitle="Send direct push notifications to active app users"
+        backHref="/dashboard"
+        backLabel="Dashboard"
+      />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* ── This device subscription status ────────────────────────────── */}
         <Card className="border-0 shadow-sm">

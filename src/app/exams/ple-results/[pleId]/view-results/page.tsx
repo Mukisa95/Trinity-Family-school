@@ -6,7 +6,7 @@ import { pdf } from '@react-pdf/renderer';
 import CertificatePDFDocument from '@/components/certificates/PLECertificatePDF';
 import PLEBatchCertificatesPDF from '@/components/certificates/PLEBatchCertificatesPDF';
 import QRCode from 'qrcode';
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -743,8 +743,13 @@ Division: ${pupil.division}`;
   if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-7xl mx-auto p-4 space-y-6">
-          <PageHeader title="View PLE Results" />
+        <GlassPageTopBar
+          title="View Results"
+          subtitle="Loading PLE results..."
+          backHref="/exams/ple-results"
+          backLabel="Back to PLE"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="ml-2">Loading PLE results...</span>
@@ -757,8 +762,13 @@ Division: ${pupil.division}`;
   if (!pleRecord) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-        <div className="max-w-7xl mx-auto p-4 space-y-6">
-          <PageHeader title="View PLE Results" />
+        <GlassPageTopBar
+          title="View Results"
+          subtitle="PLE record not found"
+          backHref="/exams/ple-results"
+          backLabel="Back to PLE"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <p className="text-red-600 mb-2">PLE record not found</p>
@@ -773,76 +783,46 @@ Division: ${pupil.division}`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <PageHeader
-          title={`View Results - ${pleRecord.examName}`}
-          description="View PLE examination results and statistics."
-          actions={
-            <div className="flex items-center gap-2">
-              {/* Search Bar - Rounded to match button design */}
-              <div className="relative w-48 sm:w-64 bg-white rounded-full px-3 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search candidates..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 pr-8 h-7 text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-                {searchTerm && (
-                  <button
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                    onClick={() => setSearchTerm('')}
-                  >
-                    <X className="h-3 w-3 text-gray-500" />
-                  </button>
-                )}
-              </div>
-
-              {/* Action Buttons Container */}
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
-                <button
-                  onClick={() => setIsReorderModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <ArrowUpDown className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Reorder</span>
-                </button>
-
-                <button
-                  onClick={() => router.push('/exams/ple-results')}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <ArrowLeft className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Back</span>
-                </button>
-
-                <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-                  <CollapsibleTrigger asChild>
-                    <button
-                      onClick={() => setFiltersOpen(!filtersOpen)}
-                      className={`flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white border shadow-sm hover:bg-gradient-to-br hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 ${(divisionFilter !== "all" || genderFilter !== "all" || completionFilter !== "all")
-                        ? "text-purple-600 border-purple-400 hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white"
-                        : "text-gray-600 border-gray-400 hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white"
-                        }`}
-                    >
-                      <Filter className="w-4 h-4 mb-0.5" />
-                      <span className="text-[8px] font-semibold leading-tight">Filter</span>
-                    </button>
-                  </CollapsibleTrigger>
-                </Collapsible>
-
-                <button
-                  onClick={() => setShowPrintDialog(true)}
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-green-600 border border-green-400 shadow-sm hover:bg-gradient-to-br hover:from-green-400 hover:via-emerald-500 hover:to-green-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                >
-                  <Printer className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Print</span>
-                </button>
-              </div>
-            </div>
-          }
-        />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
+      <GlassPageTopBar
+        title={`View Results - ${pleRecord.examName}`}
+        subtitle="View PLE examination results and statistics."
+        backHref="/exams/ple-results"
+        backLabel="Back to PLE"
+        actionsLeading={
+          <div className="flex items-center gap-2">
+            <GlassPageSearchInput
+              placeholder="Search candidates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              containerClassName="w-[140px] sm:w-[180px] lg:w-[220px]"
+            />
+          </div>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Reorder"
+              icon={<ArrowUpDown className="h-4 w-4" />}
+              tone="slate"
+              onClick={() => setIsReorderModalOpen(true)}
+            />
+            <GlassActionButton
+              label="Filter"
+              icon={<Filter className="h-4 w-4" />}
+              tone={divisionFilter !== "all" || genderFilter !== "all" || completionFilter !== "all" ? "purple" : "slate"}
+              onClick={() => setFiltersOpen(!filtersOpen)}
+            />
+            <GlassActionButton
+              label="Print"
+              icon={<Printer className="h-4 w-4" />}
+              tone="green"
+              onClick={() => setShowPrintDialog(true)}
+            />
+          </GlassActionDock>
+        }
+      />
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
         {/* Statistics Cards - Hidden */}
         {false && statistics && (

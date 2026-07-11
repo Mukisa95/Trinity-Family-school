@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { X, CurrencyDollar, Users } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SimpleFee {
   id: string;
@@ -323,33 +324,30 @@ export function MultiFeePaymentModal({
     0
   );
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    if (!isRecording) {
+      onClose();
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-2">
+        <DialogHeader className="pl-4 pr-10 pt-3 pb-2 border-b">
+          <DialogTitle className="flex items-center gap-2">
             <CurrencyDollar className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <span className="text-lg font-semibold text-gray-900">
               Multi-Fee Payment - {pupilName}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={isRecording}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+            </span>
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="px-4 pt-2.5 pb-4 overflow-y-auto flex-1">
           {/* Payment Details */}
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Total Amount (UGX)
               </label>
               <input
@@ -359,19 +357,19 @@ export function MultiFeePaymentModal({
                   setTotalAmount(formatMoneyInput(e.target.value))
                 }
                 disabled={distributionMode === 'manual' || isRecording}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="Enter total amount"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Payment Method
               </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 disabled={isRecording}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white"
               >
                 <option value="Cash">Cash</option>
                 <option value="Bank Transfer">Bank Transfer</option>
@@ -380,7 +378,7 @@ export function MultiFeePaymentModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Distribution Mode
               </label>
               <select
@@ -391,30 +389,15 @@ export function MultiFeePaymentModal({
                   )
                 }
                 disabled={isRecording}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-1.5 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white"
               >
-                <option value="smart">Smart Distribution (Recommended)</option>
+                <option value="smart">Smart Distribution</option>
                 <option value="equal">Equal Distribution</option>
                 <option value="proportional">Proportional to Balance</option>
                 <option value="manual">Manual Allocation</option>
               </select>
             </div>
           </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Paid By
-            </label>
-            <input
-              type="text"
-              value={paidBy}
-              onChange={(e) => setPaidBy(e.target.value)}
-              disabled={isRecording}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-              placeholder="Enter payer name"
-            />
-          </div>
-
           {/* Fees list */}
           <div className="space-y-3">
             <h3 className="text-base font-medium text-gray-900 flex items-center gap-2">
@@ -446,16 +429,16 @@ export function MultiFeePaymentModal({
                     }`}
                     onClick={() => !isRecording && handleFeeSelection(fee, !isSelected)}
                   >
-                    <div className="flex flex-col">
-                      <span className="font-medium text-sm text-gray-900">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0 flex-1 mr-4">
+                      <span className="font-medium text-sm text-gray-900 truncate">
                         {fee.name}
                         {fee.isCarryForward && (
-                          <span className="ml-1 text-orange-600 text-xs">
+                          <span className="ml-1 text-orange-600 text-xs whitespace-nowrap">
                             (Carry Forward)
                           </span>
                         )}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
                         Balance:{' '}
                         {new Intl.NumberFormat('en-UG', {
                           style: 'currency',
@@ -519,25 +502,28 @@ export function MultiFeePaymentModal({
 
           {/* Summary */}
           {selectedFees.length > 0 && (
-            <div className="mt-4 bg-gray-50 rounded-lg p-3">
-              <h4 className="font-medium text-gray-900 mb-2 text-sm">
+            <div className="mt-4 bg-gray-50/70 border border-gray-200/50 rounded-xl p-4">
+              <h4 className="font-semibold text-gray-900 mb-3 text-sm">
                 Payment Summary
               </h4>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span>Selected Fees:</span>
-                  <span>{selectedFees.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>
-                    {distributionMode === 'manual'
-                      ? 'Total Payment Amount:'
-                      : 'Total Amount to Pay:'}
+              <div className={`grid gap-4 ${distributionMode === 'manual' ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                    Selected Fees
                   </span>
-                  <span className="font-medium">
+                  <span className="text-sm font-bold text-gray-900">
+                    {selectedFees.length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                    {distributionMode === 'manual' ? 'Total Payment' : 'Total to Pay'}
+                  </span>
+                  <span className="text-sm font-bold text-gray-900">
                     {new Intl.NumberFormat('en-UG', {
                       style: 'currency',
-                      currency: 'UGX'
+                      currency: 'UGX',
+                      minimumFractionDigits: 0
                     }).format(
                       distributionMode === 'manual'
                         ? totalSelectedAmount
@@ -546,28 +532,34 @@ export function MultiFeePaymentModal({
                   </span>
                 </div>
                 {distributionMode !== 'manual' && (
-                  <div className="flex justify-between">
-                    <span>Amount Distributed:</span>
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                      Distributed
+                    </span>
                     <span
-                      className={
+                      className={`text-sm font-bold ${
                         totalSelectedAmount === parseFormattedMoney(totalAmount)
                           ? 'text-green-600'
                           : 'text-red-600'
-                      }
+                      }`}
                     >
                       {new Intl.NumberFormat('en-UG', {
                         style: 'currency',
-                        currency: 'UGX'
+                        currency: 'UGX',
+                        minimumFractionDigits: 0
                       }).format(totalSelectedAmount)}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span>Max Payable:</span>
-                  <span>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">
+                    Max Payable
+                  </span>
+                  <span className="text-sm font-bold text-gray-900">
                     {new Intl.NumberFormat('en-UG', {
                       style: 'currency',
-                      currency: 'UGX'
+                      currency: 'UGX',
+                      minimumFractionDigits: 0
                     }).format(totalMaxAmount)}
                   </span>
                 </div>
@@ -577,18 +569,18 @@ export function MultiFeePaymentModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-4 border-t bg-gray-50">
+        <div className="flex items-center justify-center gap-2 pb-6 pt-2 px-6 bg-transparent">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isRecording}
-            className="px-3 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={selectedFees.length === 0 || isRecording}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+            className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {isRecording ? (
               <>
@@ -603,8 +595,8 @@ export function MultiFeePaymentModal({
             )}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

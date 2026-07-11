@@ -1,5 +1,6 @@
 "use client";
-import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { cn } from "@/lib/utils";
 
 import { useRouter } from 'next/navigation';
 import { useStaffById, useUpdateStaff } from '@/lib/hooks/use-staff';
@@ -183,10 +184,17 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading staff details...</p>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Staff Details"
+          subtitle="Loading profile..."
+          backHref="/staff"
+        />
+        <div className="max-w-7xl mx-auto px-4 py-12 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading staff details...</p>
+          </div>
         </div>
       </div>
     );
@@ -194,48 +202,53 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
 
   if (error || !staff) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="text-center p-8">
-            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Staff Member Not Found</h2>
-            <p className="text-muted-foreground mb-4">The staff member you're looking for doesn't exist or has been removed.</p>
-            <SmartBackButton 
-              fallbackHref="/staff"
-              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Staff List
-            </SmartBackButton>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen">
+        <GlassPageTopBar
+          title="Staff Details"
+          subtitle="Staff member not found"
+          backHref="/staff"
+        />
+        <div className="container mx-auto px-4 py-12 max-w-md">
+          <Card>
+            <CardContent className="text-center p-8">
+              <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Staff Member Not Found</h2>
+              <p className="text-muted-foreground mb-4">The staff member you're looking for doesn't exist or has been removed.</p>
+              <Button asChild className="w-full">
+                <Link href="/staff">Back to Staff List</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        {/* Navigation */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <SmartBackButton
-            fallbackHref="/staff"
-            className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium hover:bg-white/80 h-9 px-4 py-2 gap-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-gray-700"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Staff List
-          </SmartBackButton>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 bg-white/80 hover:bg-white"
+    <div className="min-h-screen">
+      <GlassPageTopBar
+        title={`${staff.firstName} ${staff.lastName}`}
+        subtitle={`Employee ID: ${staff.employeeId || 'N/A'} • ${formatStaffRoles(staff.role)}`}
+        backHref="/staff"
+        backLabel="Back to staff list"
+        meta={
+          <Badge className={cn("text-xs border shadow-sm", getStatusColor(staff.status || 'active'))}>
+            {staff.status ? (staff.status.charAt(0).toUpperCase() + staff.status.slice(1)) : 'Active'}
+          </Badge>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Edit"
+              tone="blue"
+              icon={<Pencil className="h-4 w-4" />}
               onClick={() => router.push(`/staff/form?id=${resolvedParams.id}`)}
-            >
-              <Pencil className="h-4 w-4" />
-              Edit Profile
-            </Button>
-          </div>
-        </div>
+              aria-label="Edit Profile"
+            />
+          </GlassActionDock>
+        }
+      />
+      <div className="container mx-auto px-4 pb-6 max-w-6xl">
 
         {/* Header Card */}
         <Card className="mb-6 overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-lg">

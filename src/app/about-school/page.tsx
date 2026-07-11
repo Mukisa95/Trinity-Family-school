@@ -3,7 +3,7 @@
 import * as React from "react";
 import { flushSync } from "react-dom";
 import Image from "next/image";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -543,36 +543,50 @@ export default function AboutSchoolPage() {
   }
 
   return (
-    <>
-      <PageHeader
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
         title="About School"
-        description="View and manage your school's information."
+        subtitle="View and manage your school's information."
+        backHref="/dashboard"
+        backLabel="Dashboard"
         actions={
-          !isEditing ? (
-            <Button onClick={() => setIsEditing(true)}>
-              <Edit3 className="mr-2 h-4 w-4" /> Edit Details
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleSaveChanges} 
-                variant="default"
-                disabled={updateSettingsMutation.isPending || initializeSettingsMutation.isPending}
-              >
-                {(updateSettingsMutation.isPending || initializeSettingsMutation.isPending) ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Save Changes
-              </Button>
-              <Button onClick={handleCancelEdit} variant="outline">
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-            </div>
-          )
+          <GlassActionDock>
+            {!isEditing ? (
+              <GlassActionButton
+                label="Edit Details"
+                icon={<Edit3 className="h-4 w-4" />}
+                tone="purple"
+                onClick={() => setIsEditing(true)}
+                title="Edit school settings"
+              />
+            ) : (
+              <>
+                <GlassActionButton
+                  label="Save Changes"
+                  icon={(updateSettingsMutation.isPending || initializeSettingsMutation.isPending) ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  tone="emerald"
+                  disabled={updateSettingsMutation.isPending || initializeSettingsMutation.isPending}
+                  onClick={handleSaveChanges}
+                  title="Save school settings changes"
+                />
+                <GlassActionButton
+                  label="Cancel"
+                  icon={<XCircle className="h-4 w-4" />}
+                  tone="slate"
+                  onClick={handleCancelEdit}
+                  title="Cancel editing"
+                />
+              </>
+            )}
+          </GlassActionDock>
         }
       />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
@@ -1235,7 +1249,8 @@ export default function AboutSchoolPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+      </div>
+    </div>
   );
 }
 

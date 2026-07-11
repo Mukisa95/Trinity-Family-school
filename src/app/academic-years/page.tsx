@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PageHeader } from "@/components/common/page-header";
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,18 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import type { AcademicYear, Term } from "@/types";
 import { format, parseISO, differenceInCalendarDays, isWithinInterval, isValid, compareAsc, startOfDay, endOfDay } from 'date-fns';
-import { CalendarDays, CheckCircle, Edit, Save, X, ArchiveIcon, ArrowUpDown, InfoIcon, Target, Loader2 } from "lucide-react"; // Added Target
+import { CalendarDays, CheckCircle, Edit, Save, X, ArchiveIcon, ArrowUpDown, InfoIcon, Target, Loader2, MessageSquare, PlusCircle } from "lucide-react"; // Added Target, MessageSquare, PlusCircle
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAcademicYears, useUpdateAcademicYear } from "@/lib/hooks/use-academic-years";
 import { DatePicker } from "@/components/common/date-picker";
+import { SubjectManagement } from "./components/subject-management";
+import { CommentaryBoxManagement } from "./components/commentary-box-management";
+import { useSubjects } from "@/lib/hooks/use-subjects";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
+import { cn } from "@/lib/utils";
+import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 
 
 // --- Utility Functions (adapted from example) ---
@@ -216,7 +224,7 @@ const getEditingHolidayPeriods = (terms: Term[]): Array<{ name: string, startDat
 
 // --- Main Component ---
 
-export default function AcademicYearsPage() {
+export function AcademicYearsPageContent() {
   const { toast } = useToast();
 
   // Firebase hooks
@@ -232,6 +240,20 @@ export default function AcademicYearsPage() {
   const activeYearCardRef = React.useRef<HTMLDivElement | null>(null);
   const [showScrollToActiveButton, setShowScrollToActiveButton] = React.useState(false);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
+
+  // Tab routing
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeSettingTab = (searchParams.get('tab') as 'years' | 'subjects' | 'commentary') || 'years';
+
+  const handleTabChange = (newTab: 'years' | 'subjects' | 'commentary') => {
+    router.push(`/academic-years?tab=${newTab}`);
+  };
+
+  // Subjects and commentary hooks/states
+  const { data: subjects = [] } = useSubjects();
+  const [subjectAddTrigger, setSubjectAddTrigger] = React.useState(0);
+  const [commentaryAddTrigger, setCommentaryAddTrigger] = React.useState(0);
 
   // Process academic years with current status
   const academicYears = React.useMemo(() => {
@@ -492,11 +514,16 @@ export default function AcademicYearsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Academic Years Management" />
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading academic years...</span>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+        <GlassPageTopBar
+          title="Academic Years"
+          subtitle="Loading academic years..."
+          backHref="/dashboard"
+          backLabel="Dashboard"
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Loading academic years...</span>
         </div>
       </div>
     );
@@ -504,9 +531,14 @@ export default function AcademicYearsPage() {
 
   if (error) {
     return (
-      <div className="p-4 sm:p-6 space-y-6">
-        <PageHeader title="Academic Years Management" />
-        <div className="text-center text-destructive py-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+        <GlassPageTopBar
+          title="Academic Years"
+          subtitle="Error loading data"
+          backHref="/dashboard"
+          backLabel="Dashboard"
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-destructive py-16">
           Error loading academic years. Please try again.
         </div>
       </div>
@@ -515,33 +547,171 @@ export default function AcademicYearsPage() {
 
   if (!academicYears.length) {
     return (
-      <div className="p-6 space-y-6">
-        <PageHeader title="Academic Years Management" description="System automatically manages academic years and terms." />
-        <Alert>
-          <InfoIcon className="h-4 w-4" />
-          <AlertTitle>No Academic Years</AlertTitle>
-          <AlertDescription>
-            No academic years found. Please create an academic year to get started.
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+        <GlassPageTopBar
+          title="Academic Years"
+          subtitle="System automatically manages academic years and terms"
+          backHref="/dashboard"
+          backLabel="Dashboard"
+        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Alert>
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>No Academic Years</AlertTitle>
+            <AlertDescription>
+              No academic years found. Please create an academic year to get started.
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
-    )
+    );
   }
 
+  // Dynamic top bar attributes based on active tab
+  const pageTitle = activeSettingTab === 'years' ? 'Academic Years' :
+                    activeSettingTab === 'subjects' ? 'Subject Management' :
+                    'Commentary Box';
+
+  const pageSubtitle = activeSettingTab === 'years' ? (
+    'View and manage academic terms. Active year and current term are automatically detected.'
+  ) : activeSettingTab === 'subjects' ? (
+    'Create, view, edit, and delete subjects'
+  ) : (
+    'Create and manage comment templates for report cards'
+  );
+
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      <PageHeader
-        title="Academic Years Management"
-        description="View and manage academic terms. Active year and current term are automatically detected."
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
+      <GlassPageTopBar
+        title={pageTitle}
+        subtitle={pageSubtitle}
+        className="mb-1.5"
+        backHref="/dashboard"
+        backLabel="Dashboard"
         actions={
-          <Button onClick={toggleSortDirection} variant="outline">
-            Sort: {academicYears[0]?.name || ''} - {academicYears[academicYears.length - 1]?.name || ''}
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          <GlassActionDock>
+            {/* Tab buttons */}
+            <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm mr-2">
+              {[
+                { id: 'years', label: 'Years' },
+                { id: 'subjects', label: 'Subjects' },
+                { id: 'commentary', label: 'Commentry' }
+              ].map((tab) => {
+                const isActive = activeSettingTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id as any)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
+                      isActive
+                        ? "bg-white text-indigo-700 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Actions */}
+            {activeSettingTab === 'years' && (
+              <GlassActionButton
+                label={`Sort: ${academicYears[0]?.name || ''} - ${academicYears[academicYears.length - 1]?.name || ''}`}
+                icon={<ArrowUpDown className="h-4 w-4" />}
+                tone="slate"
+                onClick={toggleSortDirection}
+              />
+            )}
+
+            {activeSettingTab === 'subjects' && (
+              <GlassActionButton
+                label="New Subject"
+                icon={<PlusCircle className="h-4 w-4" />}
+                tone="blue"
+                onClick={() => setSubjectAddTrigger(t => t + 1)}
+                title="Add New Subject"
+              />
+            )}
+
+            {activeSettingTab === 'commentary' && (
+              <GlassActionButton
+                label="New Comment"
+                icon={<PlusCircle className="h-4 w-4" />}
+                tone="blue"
+                onClick={() => setCommentaryAddTrigger(t => t + 1)}
+                title="Add Comment Template"
+              />
+            )}
+          </GlassActionDock>
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <GlassSummaryBar
+        left={
+          <div className="flex flex-wrap items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-indigo-500" />
+            <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
+              Academic Setup
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeSettingTab === 'years' && (
+                <>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-blue-700">{academicYears.length}</span>
+                    <span className="text-blue-700/85 font-medium">academic years</span>
+                  </div>
+                  {academicYears.find(y => y.isActive) && (
+                    <div className="flex items-center gap-1 bg-green-50/80 border border-green-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                      <span className="text-green-700/85 font-medium">active:</span>
+                      <span className="font-bold text-green-700">{academicYears.find(y => y.isActive)?.name}</span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {activeSettingTab === 'subjects' && (
+                <>
+                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-purple-700">{subjects.length}</span>
+                    <span className="text-purple-700/85 font-medium">subjects total</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-blue-700">{subjects.filter(s => s.type === 'Core').length}</span>
+                    <span className="text-blue-700/85 font-medium">core</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-amber-700">{subjects.filter(s => s.type !== 'Core').length}</span>
+                    <span className="text-amber-700/85 font-medium">elective</span>
+                  </div>
+                </>
+              )}
+
+              {activeSettingTab === 'commentary' && (
+                <>
+                  <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-emerald-700">2</span>
+                    <span className="text-emerald-700/85 font-medium">recipient roles</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-blue-50/80 border border-blue-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-blue-700">5</span>
+                    <span className="text-blue-700/85 font-medium">performance bands</span>
+                  </div>
+                  <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                    <span className="font-bold text-purple-700">50+</span>
+                    <span className="text-purple-700/85 font-medium">comment templates</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        }
+      />
+
+      <div className="max-w-none px-4 sm:px-6 lg:px-8 py-6">
+        {activeSettingTab === 'years' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {calculatedYears.map(({ year, status, currentTerm, nextTerm, totalDays }) => (
           <Card
             key={year.id}
@@ -560,7 +730,8 @@ export default function AcademicYearsPage() {
               }`} />
 
             <CardHeader className="pb-3 pt-4 px-4">
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                {/* Left: Icon + Year Name */}
                 <div className="flex items-center gap-2">
                   <status.icon className={`h-4 w-4 ${year.isLocked ? 'text-gray-500' :
                       year.isActive ? 'text-green-600' :
@@ -568,32 +739,45 @@ export default function AcademicYearsPage() {
                     }`} />
                   <CardTitle className="text-xl font-bold">{year.name}</CardTitle>
                 </div>
-                <Badge
-                  variant={year.isActive ? 'default' : 'secondary'}
-                  className={`text-xs font-medium ${year.isLocked ? 'bg-gray-100 text-gray-600' :
-                      year.isActive ? 'bg-green-100 text-green-700 border-green-200' :
-                        status.label === 'Upcoming' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                          'bg-amber-100 text-amber-700 border-amber-200'
-                    }`}
-                >
-                  {status.label}
-                </Badge>
+
+                {/* Center: Status Badge */}
+                <div className="flex justify-center">
+                  <Badge
+                    variant={year.isActive ? 'default' : 'secondary'}
+                    className={`text-xs font-medium ${year.isLocked ? 'bg-gray-100 text-gray-600' :
+                        year.isActive ? 'bg-green-100 text-green-700 border-green-200' :
+                          status.label === 'Upcoming' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            'bg-amber-100 text-amber-700 border-amber-200'
+                      }`}
+                  >
+                    {status.label}
+                  </Badge>
+                </div>
+
+                {/* Right: Edit Button (Icon only) */}
+                <div className="flex justify-end">
+                  {!year.isLocked && editingYearId !== year.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full animate-in fade-in zoom-in-95 duration-200"
+                      onClick={() => handleEditTerms(year)}
+                      disabled={editingYearId !== null}
+                      title="Edit Terms"
+                    >
+                      <Edit className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                      <span className="sr-only">Edit Terms</span>
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <div className="text-xs text-muted-foreground font-medium">
-                {year.startDate && typeof year.startDate === 'string' ? format(parseISO(year.startDate), 'MMM d, yyyy') : 'N/A'} - {year.endDate && typeof year.endDate === 'string' ? format(parseISO(year.endDate), 'MMM d, yyyy') : 'N/A'}
-              </div>
-
-              {/* Quick stats */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
-                <div className="flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" />
-                  <span>{year.terms?.length || 0} terms</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-current opacity-60" />
-                  <span>{totalDays} days</span>
-                </div>
+              <div className="text-xs text-muted-foreground font-medium mt-1.5 flex items-center gap-2">
+                <span>
+                  {year.startDate && typeof year.startDate === 'string' ? format(parseISO(year.startDate), 'MMM d') : 'N/A'} - {year.endDate && typeof year.endDate === 'string' ? format(parseISO(year.endDate), 'MMM d') : 'N/A'}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span>{totalDays} days</span>
               </div>
             </CardHeader>
 
@@ -714,48 +898,51 @@ export default function AcademicYearsPage() {
                           }`}>
 
                           {/* Term header */}
-                          <div className="flex items-center justify-between mb-2">
+                          <div className={cn(
+                            "items-center gap-2 mb-2",
+                            (term.isCurrent || nextTerm?.id === term.id) ? "grid grid-cols-[1fr_auto_1fr]" : "flex justify-between"
+                          )}>
                             <h4 className="font-semibold text-sm">{term.name}</h4>
-                            <div className="flex gap-1">
-                              {term.isCurrent && (
-                                <Badge variant="default" className="text-xs px-2 py-0.5 bg-green-600 hover:bg-green-600">
-                                  Current
-                                </Badge>
-                              )}
-                              {/* Display "Next" badge if this term is the designated nextTerm for the current year card */}
-                              {nextTerm?.id === term.id && (
-                                <Badge className="text-xs px-2 py-0.5 bg-purple-600 text-white hover:bg-purple-600">
-                                  Next
-                                </Badge>
-                              )}
-                            </div>
+                            
+                            {term.isCurrent ? (
+                              <>
+                                <div className="flex justify-center">
+                                  <Badge variant="default" className="text-xs px-2 py-0.5 bg-green-600 hover:bg-green-600">
+                                    Current
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-end text-xs font-semibold text-green-700">
+                                  {remainingDays} left
+                                </div>
+                              </>
+                            ) : nextTerm?.id === term.id ? (
+                              <>
+                                <div className="flex justify-center">
+                                  <Badge className="text-xs px-2 py-0.5 bg-purple-600 text-white hover:bg-purple-600">
+                                    Next
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-end text-xs font-semibold text-purple-700">
+                                  {daysUntilStart > 0 ? `in ${daysUntilStart} days` : ""}
+                                </div>
+                              </>
+                            ) : null}
                           </div>
 
-                          {/* Term dates */}
-                          <div className="text-xs text-muted-foreground mb-2">
-                            {term.startDate && typeof term.startDate === 'string' && isValid(parseISO(term.startDate)) ? format(parseISO(term.startDate), 'MMM d') : 'N/A'} - {term.endDate && typeof term.endDate === 'string' && isValid(parseISO(term.endDate)) ? format(parseISO(term.endDate), 'MMM d') : 'N/A'}
-                          </div>
-
-                          {/* Term info */}
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{termDays} days</span>
-                            {term.isCurrent && (
-                              <span className="font-medium text-green-700">{remainingDays} left</span>
-                            )}
-                            {/* Display "starts in X days" if this term is the designated nextTerm */}
-                            {nextTerm?.id === term.id && daysUntilStart > 0 && (
-                              <span className="font-medium text-purple-700">in {daysUntilStart} days</span>
-                            )}
+                          {/* Term dates & days */}
+                          <div className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <span>
+                              {term.startDate && typeof term.startDate === 'string' && isValid(parseISO(term.startDate)) ? format(parseISO(term.startDate), 'MMM d') : 'N/A'} - {term.endDate && typeof term.endDate === 'string' && isValid(parseISO(term.endDate)) ? format(parseISO(term.endDate), 'MMM d') : 'N/A'}
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <span>{termDays} days</span>
                           </div>
 
                           {/* Progress bar for current term */}
                           {term.isCurrent && (
-                            <div className="mt-2">
-                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Progress</span>
-                                <span>{Math.round(progress)}%</span>
-                              </div>
-                              <Progress value={progress} className="h-1.5" />
+                            <div className="mt-2.5 flex items-center gap-2 text-xs">
+                              <Progress value={progress} className="h-1.5 flex-1" />
+                              <span className="text-muted-foreground font-semibold min-w-[2rem] text-right">{Math.round(progress)}%</span>
                             </div>
                           )}
                         </div>
@@ -798,8 +985,8 @@ export default function AcademicYearsPage() {
               )}
             </CardContent>
 
-            <CardFooter className="px-4 pb-4 pt-0">
-              {editingYearId === year.id ? (
+            {editingYearId === year.id && (
+              <CardFooter className="px-4 pb-4 pt-0">
                 <div className="flex w-full gap-2">
                   <Button variant="outline" size="sm" onClick={handleCancelEdit} className="flex-1">
                     <X className="mr-1 h-3 w-3" />Cancel
@@ -808,23 +995,27 @@ export default function AcademicYearsPage() {
                     <Save className="mr-1 h-3 w-3" />Save
                   </Button>
                 </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                  onClick={() => handleEditTerms(year)}
-                  disabled={year.isLocked || editingYearId !== null}
-                >
-                  <Edit className="mr-2 h-3 w-3" /> Edit Terms
-                </Button>
-              )}
-            </CardFooter>
+              </CardFooter>
+            )}
           </Card>
-        ))}
+        ))}`
+      </div>
+    )}
+
+        {activeSettingTab === 'subjects' && (
+          <SubjectManagement
+            addTrigger={subjectAddTrigger}
+          />
+        )}
+
+        {activeSettingTab === 'commentary' && (
+          <CommentaryBoxManagement
+            addTrigger={commentaryAddTrigger}
+          />
+        )}
       </div>
 
-      {showScrollToActiveButton && (
+      {showScrollToActiveButton && activeSettingTab === 'years' && (
         <Button
           variant="outline"
           size="icon"
@@ -840,5 +1031,13 @@ export default function AcademicYearsPage() {
         </Button>
       )}
     </div>
+  );
+}
+
+export default function AcademicYearsPage() {
+  return (
+    <Suspense fallback={<GlassPageRouteSkeleton />}>
+      <AcademicYearsPageContent />
+    </Suspense>
   );
 }

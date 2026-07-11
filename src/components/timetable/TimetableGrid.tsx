@@ -141,9 +141,11 @@ export function TimetableGrid({
     const { data: staffList = [] } = useStaff();
 
     const classesToRender = React.useMemo(() => {
-        if (!profile || !profile.classIds || profile.classIds.length === 0) return classes;
-        // Keep original classes ordering but filter
-        let filtered = classes.filter(c => profile.classIds.includes(c.id));
+        if (!profile || !profile.classIds || profile.classIds.length === 0) return [...classes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        // Filter to profile's classes then sort by the class 'order' field (set at class creation)
+        let filtered = classes
+            .filter(c => profile.classIds.includes(c.id))
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         if (filterMode && filterId) {
             if (filterMode === "class") {
@@ -554,76 +556,86 @@ export function TimetableGrid({
                                                 />
                                             </div>
                                         )}
-                                        {isEditing ? (
-                                            <Popover
-                                                open={editingPeriod?.id === period.id}
-                                                onOpenChange={(isOpen) => {
-                                                    if (isOpen) {
-                                                        setEditingPeriod({ id: period.id, newStartTime: period.startTime, newEndTime: period.endTime });
-                                                    } else {
-                                                        setEditingPeriod(null);
-                                                    }
-                                                }}
-                                            >
-                                                <PopoverTrigger asChild>
-                                                    <div className="flex flex-col items-center cursor-pointer hover:bg-amber-50/50 p-1 rounded transition-colors group">
-                                                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-sm mb-1 uppercase group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
-                                                            {period.type === 'lesson' ? `Lesson ${period.periodNumber}` : period.customLabel || period.type}
-                                                        </span>
-                                                        <span className="text-[11px] text-gray-400 group-hover:text-amber-600 border-b border-transparent group-hover:border-amber-200 border-dashed">
-                                                            {formatDisplayTime(period.startTime, profile?.timeFormat)} - {formatDisplayTime(period.endTime, profile?.timeFormat)}
-                                                        </span>
-                                                    </div>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-64 p-4 shadow-xl border border-gray-200" align="center">
-                                                    <div className="space-y-4">
-                                                        <h4 className="font-bold text-sm text-gray-800 border-b pb-2">Edit Block Times</h4>
+                                        {(() => {
+                                            const showAmPm = cellWidth >= 55;
+                                            const formatTime = (t: string) => {
+                                                const formatted = formatDisplayTime(t, profile?.timeFormat);
+                                                return showAmPm ? formatted : formatted.replace(/\s*[aApP]\.?[mM]\.?/g, "").trim();
+                                            };
+                                            const tStart = formatTime(period.startTime);
+                                            const tEnd = formatTime(period.endTime);
 
-                                                        <div className="grid gap-3">
-                                                            <div className="grid grid-cols-3 items-center gap-2">
-                                                                <Label htmlFor="start" className="text-xs text-right">Start At</Label>
-                                                                <Input
-                                                                    id="start"
-                                                                    type="time"
-                                                                    className="col-span-2 h-8 text-xs font-mono"
-                                                                    value={editingPeriod?.newStartTime || period.startTime}
-                                                                    onChange={e => setEditingPeriod(prev => prev ? { ...prev, newStartTime: e.target.value } : null)}
-                                                                />
+                                            return isEditing ? (
+                                                <Popover
+                                                    open={editingPeriod?.id === period.id}
+                                                    onOpenChange={(isOpen) => {
+                                                        if (isOpen) {
+                                                            setEditingPeriod({ id: period.id, newStartTime: period.startTime, newEndTime: period.endTime });
+                                                        } else {
+                                                            setEditingPeriod(null);
+                                                        }
+                                                    }}
+                                                >
+                                                    <PopoverTrigger asChild>
+                                                        <div className="flex flex-col items-center cursor-pointer hover:bg-amber-50/50 p-1 rounded transition-colors group select-none">
+                                                            <span className="text-[9px] sm:text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm mb-1 uppercase group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
+                                                                {period.type === 'lesson' ? `L${period.periodNumber}` : period.customLabel || period.type}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 group-hover:text-amber-600 border-b border-transparent group-hover:border-amber-200 border-dashed whitespace-nowrap overflow-hidden max-w-full block text-center">
+                                                                {tStart} - {tEnd}
+                                                            </span>
+                                                        </div>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-64 p-4 shadow-xl border border-gray-200" align="center">
+                                                        <div className="space-y-4">
+                                                            <h4 className="font-bold text-sm text-gray-800 border-b pb-2">Edit Block Times</h4>
+
+                                                            <div className="grid gap-3">
+                                                                <div className="grid grid-cols-3 items-center gap-2">
+                                                                    <Label htmlFor="start" className="text-xs text-right">Start At</Label>
+                                                                    <Input
+                                                                        id="start"
+                                                                        type="time"
+                                                                        className="col-span-2 h-8 text-xs font-mono"
+                                                                        value={editingPeriod?.newStartTime || period.startTime}
+                                                                        onChange={e => setEditingPeriod(prev => prev ? { ...prev, newStartTime: e.target.value } : null)}
+                                                                    />
+                                                                </div>
+                                                                <div className="grid grid-cols-3 items-center gap-2">
+                                                                    <Label htmlFor="end" className="text-xs text-right">End At</Label>
+                                                                    <Input
+                                                                        id="end"
+                                                                        type="time"
+                                                                        className="col-span-2 h-8 text-xs font-mono"
+                                                                        value={editingPeriod?.newEndTime || period.endTime}
+                                                                        onChange={e => setEditingPeriod(prev => prev ? { ...prev, newEndTime: e.target.value } : null)}
+                                                                    />
+                                                                </div>
                                                             </div>
-                                                            <div className="grid grid-cols-3 items-center gap-2">
-                                                                <Label htmlFor="end" className="text-xs text-right">End At</Label>
-                                                                <Input
-                                                                    id="end"
-                                                                    type="time"
-                                                                    className="col-span-2 h-8 text-xs font-mono"
-                                                                    value={editingPeriod?.newEndTime || period.endTime}
-                                                                    onChange={e => setEditingPeriod(prev => prev ? { ...prev, newEndTime: e.target.value } : null)}
-                                                                />
+
+                                                            <div className="text-[10px] bg-amber-50 text-amber-700 p-2 rounded-md leading-tight border border-amber-200">
+                                                                <strong>Note:</strong> Editing these times will automatically shift all subsequent periods forward or backward by the time difference to prevent overlaps.
+                                                            </div>
+
+                                                            <div className="flex justify-end gap-2 pt-2">
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditingPeriod(null)}>Cancel</Button>
+                                                                <Button size="sm" className="h-7 text-xs bg-blue-600" onClick={handleSavePeriodTimes} disabled={savePeriodsMutation.isPending}>
+                                                                    {savePeriodsMutation.isPending ? "Saving..." : "Apply & Shift"}
+                                                                </Button>
                                                             </div>
                                                         </div>
-
-                                                        <div className="text-[10px] bg-amber-50 text-amber-700 p-2 rounded-md leading-tight border border-amber-200">
-                                                            <strong>Note:</strong> Editing these times will automatically shift all subsequent periods forward or backward by the time difference to prevent overlaps.
-                                                        </div>
-
-                                                        <div className="flex justify-end gap-2 pt-2">
-                                                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setEditingPeriod(null)}>Cancel</Button>
-                                                            <Button size="sm" className="h-7 text-xs bg-blue-600" onClick={handleSavePeriodTimes} disabled={savePeriodsMutation.isPending}>
-                                                                {savePeriodsMutation.isPending ? "Saving..." : "Apply & Shift"}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                        ) : (
-                                            <div className="flex flex-col items-center p-0.5">
-                                                <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1 py-0.5 rounded-sm mb-0.5 uppercase leading-none">
-                                                    {period.type === 'lesson' ? `L${period.periodNumber}` : period.customLabel || period.type}
-                                                </span>
-                                                <span className="text-[8px] text-gray-400 leading-none">{formatDisplayTime(period.startTime, profile?.timeFormat)}</span>
-                                                <span className="text-[8px] text-gray-400 leading-none">{formatDisplayTime(period.endTime, profile?.timeFormat)}</span>
-                                            </div>
-                                        )}
+                                                    </PopoverContent>
+                                                </Popover>
+                                            ) : (
+                                                <div className="flex flex-col items-center p-0.5 min-w-0">
+                                                    <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1 py-0.5 rounded-sm mb-0.5 uppercase leading-none">
+                                                        {period.type === 'lesson' ? `L${period.periodNumber}` : period.customLabel || period.type}
+                                                    </span>
+                                                    <span className="text-[8px] text-gray-400 leading-none whitespace-nowrap overflow-hidden max-w-full block text-center select-none">{tStart}</span>
+                                                    <span className="text-[8px] text-gray-400 leading-none whitespace-nowrap overflow-hidden max-w-full block text-center select-none">{tEnd}</span>
+                                                </div>
+                                            );
+                                        })()}
                                     </th>
                                 );
                             })}

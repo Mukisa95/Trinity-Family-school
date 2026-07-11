@@ -8,6 +8,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 
 // UI Components
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +31,9 @@ import {
   IdentificationCard
 } from '@phosphor-icons/react';
 import { Tag, BarChart3, Zap } from 'lucide-react';
+import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
+import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
+import { GlassPageRouteSkeleton } from '@/components/common/glass-page-loading';
 import { ManagePayCodeModal } from '@/components/pupils/manage-pay-code-modal';
 import { SchoolPayPaymentsModal } from './components/SchoolPayPaymentsModal';
 import { SchoolPayPaymentBanner, type GroupedSchoolPayTx } from './components/SchoolPayPaymentBanner';
@@ -55,7 +60,8 @@ import {
   getValidTermsForPupil,
   isAcademicYearValidForPupil,
   isTermValidForPupil,
-  getLastActiveTermForPupil
+  getLastActiveTermForPupil,
+  isAssignmentCurrentlyValid
 } from './utils/feeProcessing';
 
 // Types
@@ -256,6 +262,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [isUniformTrackingModalOpen, setIsUniformTrackingModalOpen] = useState(false);
   const [isManagePayCodeModalOpen, setIsManagePayCodeModalOpen] = useState(false);
+  const [isWirePopupOpen, setIsWirePopupOpen] = useState(false);
 
   // Selected items
   const [selectedFee, setSelectedFee] = useState<SelectedFee | null>(null);
@@ -294,31 +301,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   // Fetch fee structures to get names for assignments
   const { data: allFeeStructures = [] } = useFeeStructures();
 
-  // Check for active assignments and uniform tracking - get actual names
-  const activeAssignmentNames = useMemo(() => {
-    if (!pupil?.assignedFees) return [];
-
-    return pupil.assignedFees
-      .filter(fee => fee.status === 'active')
-      .map(fee => {
-        const structure = allFeeStructures.find(s => s.id === fee.feeStructureId);
-        return structure?.name || 'Unknown Assignment';
-      });
-  }, [pupil?.assignedFees, allFeeStructures]);
-
-  const activeUniformTrackingNames = useMemo(() => {
-    return uniformTrackingRecords
-      .filter(record => record.paymentStatus !== 'paid' || record.collectionStatus !== 'collected')
-      .map(record => {
-        // uniformId could be an array of IDs or a single ID string based on the types
-        const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
-        const names = uniformIds.map(id => {
-          const uniform = activeUniforms.find(u => u.id === id);
-          return uniform?.name || 'Unknown Uniform';
-        });
-        return names.join(', ');
-      });
-  }, [uniformTrackingRecords, activeUniforms]);
 
   // Get valid academic years for this pupil:
   // 1. Filters out years before the pupil's registration date
@@ -350,8 +332,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Get valid terms for the selected academic year and this pupil
   // Also filters out terms when the pupil was inactive (status-aware)
-  const validTerms = useMemo(() => {
-    if (!selectedAcademicYear) return selectedAcademicYear?.terms || [];
+  const validTerms = useMemo<AcademicYear['terms']>(() => {
+    if (!selectedAcademicYear) return [];
     return getValidTermsForPupil(
       selectedAcademicYear,
       pupil?.registrationDate,
@@ -377,6 +359,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       : false;
 
     if (validAcademicYears.length > 0 && (!selectedAcademicYear || !isSelectedYearStillValid)) {
+      const shouldUseLastActiveTerm = pupil && !['Active', 'Suspended', 'Pending', ''].includes(pupil.status);
+      const lastActiveTermData = shouldUseLastActiveTerm
+        ? getLastActiveTermForPupil(validAcademicYears, pupil)
+        : null;
+
+      if (lastActiveTermData) {
+        setSelectedAcademicYear(lastActiveTermData.academicYear);
+        setSelectedTermId(lastActiveTermData.term.id);
+        return;
+      }
       // 🚀 USE CENTRALIZED LOGIC: Use getEffectiveTermForDataDisplay for consistency
       // This ensures we follow the same rules as the Academic Years component:
       // - During active terms: show the current term
@@ -414,7 +406,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
             if (pupilValidTerms.length > 0) {
               const activeTerm = getActiveOrMostRecentTerm(currentYear);
-              const validActiveTerm = activeTerm && pupilValidTerms.find(t => t.id === activeTerm.id) ? activeTerm : pupilValidTerms[0];
+              const validActiveTerm = activeTerm && pupilValidTerms.find(t => t.id === activeTerm.id)
+                ? activeTerm
+                : [...pupilValidTerms].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
               setSelectedTermId(validActiveTerm.id);
             }
           }
@@ -431,12 +425,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             pupil ?? undefined
           );
           if (pupilValidTerms.length > 0) {
-            setSelectedTermId(pupilValidTerms[0].id);
+            const newestValidTerm = [...pupilValidTerms].sort(
+              (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+            )[0];
+            setSelectedTermId(newestValidTerm.id);
           }
         }
       });
     }
-  }, [validAcademicYears, selectedAcademicYear, pupil?.registrationDate]);
+  }, [validAcademicYears, selectedAcademicYear, pupil]);
 
   // Optimized: Only reset term if academic year changes (much faster)
   useEffect(() => {
@@ -446,13 +443,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
       if (!isCurrentTermValid) {
         console.log('⚡ Term validation: Resetting to first valid term');
-        setSelectedTermId(validTerms[0].id);
+        const newestValidTerm = [...validTerms].sort(
+          (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        )[0];
+        setSelectedTermId(newestValidTerm.id);
       }
     } else if (selectedAcademicYear && validTerms.length === 0) {
       console.log('⚡ No valid terms: Clearing term selection');
       setSelectedTermId('');
     }
-  }, [selectedAcademicYear?.id]); // Only depend on academic year ID, not validTerms or selectedTermId
+  }, [selectedAcademicYear?.id, selectedTermId, validTerms]);
 
   // Load historical pupil info when term/year selection changes
   // This ensures the pupil info display shows accurate class/section for the selected term
@@ -537,6 +537,71 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     lastPaymentTimestamp,
     feesHolidays
   });
+
+  // Check for active assignments and uniform tracking - get actual names and status
+  const activeAssignments = useMemo(() => {
+    if (!pupil?.assignedFees) return [];
+
+    return pupil.assignedFees
+      .filter(fee => fee.status === 'active')
+      .map(fee => {
+        const structure = allFeeStructures.find(s => s.id === fee.feeStructureId);
+        
+        let isActiveForCurrentTerm = true;
+        if (selectedTermId && selectedAcademicYear) {
+          isActiveForCurrentTerm = isAssignmentCurrentlyValid(
+            fee,
+            selectedTermId,
+            selectedAcademicYear,
+            academicYears
+          );
+        }
+
+        return {
+          id: fee.id,
+          name: structure?.name || 'Unknown Assignment',
+          category: structure?.category || '',
+          isActiveForCurrentTerm,
+          structure
+        };
+      });
+  }, [pupil?.assignedFees, allFeeStructures, selectedTermId, selectedAcademicYear, academicYears]);
+
+  const activeUniformTracking = useMemo(() => {
+    return uniformTrackingRecords
+      .filter(record => {
+        // Calculate payment status on client side for maximum accuracy
+        const matchingPayments = pupilPayments.filter(
+          p => p.feeStructureId === `uniform-${record.id}` || 
+               (p as any).uniformTrackingId === record.id
+        );
+        const totalPaid = matchingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const isFullyPaid = totalPaid >= (record.finalAmount || record.originalAmount);
+
+        // Calculate collection status on client side
+        const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
+        const isFullyCollected = uniformIds.length > 0 && uniformIds.every(id => record.collectedItems?.includes(id));
+
+        // Only show if NOT (fully paid AND fully collected)
+        return !(isFullyPaid && isFullyCollected);
+      })
+      .map(record => {
+        const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
+        const items = uniformIds.map(id => {
+          const uniform = activeUniforms.find(u => u.id === id);
+          const isCollected = record.collectedItems?.includes(id) || false;
+          return {
+            id,
+            name: uniform?.name || 'Unknown Uniform',
+            isCollected
+          };
+        });
+        return {
+          id: record.id,
+          items
+        };
+      });
+  }, [uniformTrackingRecords, activeUniforms, pupilPayments]);
 
   // Handler functions
   const handleMakePayment = (fee: any, balance: number, totalPaid: number) => {
@@ -1749,54 +1814,54 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   // Optimized loading states - show content as soon as basic data is available
   if (isPupilLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading pupil information...</p>
-        </div>
+      <div className="min-h-screen pb-12">
+        <GlassPageRouteSkeleton />
       </div>
     );
   }
 
-  // 🚀 OPTIMIZED: Show loading only if we don't have term/year selected yet
-  // Once term/year is set, fees can load in parallel and we show partial data
+  // OPTIMIZED: Show loading only if we don't have term/year selected yet
   const isWaitingForTermYear = !selectedTermId || !selectedAcademicYear;
   const shouldShowFullLoading = isPupilFeesLoading && pupil && isWaitingForTermYear;
 
   if (shouldShowFullLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-12">
-        <div className="bg-white/90 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Link
-                  href="/fees/collection"
-                  className="text-blue-600 hover:text-blue-700 flex items-center gap-2 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100 transition-all duration-300 hover:scale-95 origin-center text-xs sm:text-sm"
-                >
-                  <ArrowCircleLeft className="w-4 h-4" weight="bold" />
-                  <span className="font-medium">Back</span>
-                </Link>
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold text-indigo-900 leading-tight">
-                  Fees Collection - {pupil.firstName} {pupil.lastName}
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                  ID: {pupil.admissionNumber} • Class: {pupil.className} • Section: {pupil.section}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen pb-12">
+        <GlassPageTopBar
+          backHref="/fees/collection"
+          backLabel="Back to Fees"
+          title={`Fees Collection - ${pupil.firstName} ${pupil.lastName}`}
+          subtitle={`${pupil.admissionNumber} · ${pupil.className} · ${pupil.section}`}
+        />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 font-medium">Loading fees data...</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {isLoadingAcademicYears ? 'Loading academic years...' : 'Setting up term selection...'}
-              </p>
+          <div className="space-y-4 animate-pulse">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="rounded-lg border border-white/55 bg-white/65 p-4 shadow-sm backdrop-blur-sm h-28 relative overflow-hidden">
+                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-pass" />
+                  <div className="h-6 bg-slate-200/70 rounded-full w-12 mb-3"></div>
+                  <div className="h-4 bg-slate-200/70 rounded-full w-24 mb-2"></div>
+                  <div className="h-3 bg-slate-200/70 rounded-full w-32"></div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-white/55 bg-white/65 p-4 shadow-sm backdrop-blur-sm h-64 relative overflow-hidden">
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-pass" />
+              <div className="flex justify-between items-center mb-4">
+                <div className="h-4 bg-slate-200/70 rounded-full w-36"></div>
+                <div className="h-8 bg-slate-200/70 rounded-full w-24"></div>
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-slate-200/70 shrink-0"></div>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="h-3 bg-slate-200/70 rounded-full w-1/2"></div>
+                      <div className="h-3 bg-slate-200/70 rounded-full w-1/3"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1805,318 +1870,225 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-12">
-      {/* Compact Header */}
-      <div className="bg-white/90 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          {/* Header layout - dynamic: same line on desktop, stacked on mobile */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            {/* Back button and Pupil information */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              {/* Back button - icon only, separate from island */}
-              <Link
-                href="/fees/collection"
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                title="Back to Fees"
+    <div className="min-h-screen pb-12">
+      <GlassPageTopBar
+        backHref="/fees/collection"
+        backLabel="Back to Fees"
+        className="mb-1.5"
+        title={
+          pupil ? (
+            <Link
+              href={`/pupil-detail?id=${pupil.id}`}
+              className="text-indigo-900 hover:text-indigo-700 hover:underline transition-all duration-300"
+            >
+              {pupil.firstName} {pupil.lastName}
+            </Link>
+          ) : 'Loading...'
+        }
+        subtitle={pupil ? `${pupil.admissionNumber} · ${historicalPupilInfo ? (classes.find(c => c.id === historicalPupilInfo.classId)?.code || historicalPupilInfo.className) : (pupil.classCode || pupil.className || '')} · ${historicalPupilInfo ? historicalPupilInfo.section : (pupil.section || 'N/A')}` : undefined}
+        meta={
+          (() => {
+            const payCode = getSchoolPayCode(pupil);
+            return payCode ? (
+              <span
+                className="inline-flex items-center cursor-pointer"
+                onClick={() => setIsManagePayCodeModalOpen(true)}
+                title="SchoolPay Payment Code - click to manage"
               >
-                <ArrowCircleLeft className="w-4 h-4" weight="bold" />
-              </Link>
-
-              {/* Pupil information - takes available space */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-lg sm:text-xl font-bold text-indigo-900 leading-tight truncate">
-                    <span>Fees Collection </span>
-                    {pupil ? (
-                      <Link
-                        href={`/pupil-detail?id=${pupil.id}`}
-                        className="text-indigo-900 hover:text-indigo-700 hover:underline transition-all duration-300"
-                      >
-                        {pupil.firstName} {pupil.lastName}
-                      </Link>
-                    ) : 'Loading...'}
-                  </h1>
-                  {activeAssignmentNames.map((name, idx) => (
-                    <span key={`assignment-${idx}`} className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                      {name}
-                    </span>
-                  ))}
-                  {activeUniformTrackingNames.map((name, idx) => (
-                    <span key={`uniform-${idx}`} className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                      Tracking: {name}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">
-                  <span>{pupil?.admissionNumber || 'Loading...'}</span>
-                   {/* SchoolPay payment code display */}
-                   {(() => {
-                     const payCode = getSchoolPayCode(pupil);
-                     return payCode ? (
-                       <span
-                         className="ml-2 inline-flex items-center gap-1 cursor-pointer"
-                         onClick={() => setIsManagePayCodeModalOpen(true)}
-                      title="SchoolPay Payment Code — click to manage"
-                       >
-                         <span className="text-gray-400">·</span>
-                         <Tag className="inline h-2.5 w-2.5 text-emerald-600" />
-                         <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full font-mono text-[10px] tracking-wide">
-                           {payCode}
-                         </span>
-                       </span>
-                     ) : (
-                       <button
-                         className="ml-2 text-[10px] text-emerald-600 hover:text-emerald-700 underline underline-offset-2"
-                         onClick={() => setIsManagePayCodeModalOpen(true)}
-                      title="Add SchoolPay payment code"
-                       >
-                         + Add Pay Code
-                       </button>
-                     );
-                   })()}
-                  <span className="hidden sm:inline"> • </span>
-                  <span className="hidden sm:inline">
-                    {historicalPupilInfo ? (classes.find(c => c.id === historicalPupilInfo.classId)?.code || historicalPupilInfo.className) : (pupil?.classCode || pupil?.className || 'Loading...')}
-                    {/* Show camera icon if: term ended AND using real snapshot, OR values differ */}
-                    {historicalPupilInfo && (
-                      (historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot) ||
-                      historicalPupilInfo.className !== pupil?.className
-                    ) && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className="text-blue-600 text-xs ml-1 hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-                              title={
-                                historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot
-                                  ? `Historical snapshot data (Term ended) - Click to recapture`
-                                  : `Current class: ${pupil?.classCode || pupil?.className} - Click to recapture`
-                              }
-                            >
-                              📸
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="w-56">
-                            <DropdownMenuItem
-                              onClick={handleRecaptureSnapshot}
-                              disabled={!historicalPupilInfo.isRealSnapshot}
-                              className="cursor-pointer"
-                            >
-                              <span className="flex items-center gap-2">
-                                <span>🔄</span>
-                                <span>Recapture Snapshot</span>
-                              </span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleBatchRecapture}
-                              className="cursor-pointer"
-                            >
-                              <span className="flex items-center gap-2">
-                                <span>📸</span>
-                                <span>Batch Recapture</span>
-                              </span>
-                            </DropdownMenuItem>
-                            {!historicalPupilInfo.isRealSnapshot && (
-                              <p className="px-2 py-1 text-xs text-gray-500">
-                                Single recapture only for ended terms with snapshots
-                              </p>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                  </span>
-                  <span className="hidden sm:inline"> • </span>
-                  <span className="hidden sm:inline">
-                    {historicalPupilInfo ? historicalPupilInfo.section : (pupil?.section || 'N/A')}
-                    {/* Show camera icon if: term ended AND using real snapshot, OR values differ */}
-                    {historicalPupilInfo && (
-                      (historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot) ||
-                      historicalPupilInfo.section !== pupil?.section
-                    ) && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className="text-blue-600 text-xs ml-1 hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-                              title={
-                                historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot
-                                  ? `Historical snapshot data (Term ended) - Click to recapture`
-                                  : `Current section: ${pupil?.section} - Click to recapture`
-                              }
-                            >
-                              📸
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="w-56">
-                            <DropdownMenuItem
-                              onClick={handleRecaptureSnapshot}
-                              disabled={!historicalPupilInfo.isRealSnapshot}
-                              className="cursor-pointer"
-                            >
-                              <span className="flex items-center gap-2">
-                                <span>🔄</span>
-                                <span>Recapture Snapshot</span>
-                              </span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={handleBatchRecapture}
-                              className="cursor-pointer"
-                            >
-                              <span className="flex items-center gap-2">
-                                <span>📸</span>
-                                <span>Batch Recapture</span>
-                              </span>
-                            </DropdownMenuItem>
-                            {!historicalPupilInfo.isRealSnapshot && (
-                              <p className="px-2 py-1 text-xs text-gray-500">
-                                Single recapture only for ended terms with snapshots
-                              </p>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Action buttons - same line on desktop, second line on mobile */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 flex-wrap">
-                <button
-                  onClick={() => setIsMultiPaymentModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                  title="Pay Multiple Fees"
-                >
-                  <CurrencyCircleDollar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" weight="bold" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Pay</span>
-                </button>
-
-                {hasSiblings && (
+                <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-px rounded-full font-mono text-[10px] tracking-wide">
+                  {payCode}
+                </span>
+              </span>
+            ) : (
+              <button
+                className="text-[10px] text-emerald-600 hover:text-emerald-700 underline underline-offset-2"
+                onClick={() => setIsManagePayCodeModalOpen(true)}
+                title="Add SchoolPay payment code"
+              >
+                + Add Pay Code
+              </button>
+            );
+          })()
+        }
+        badges={
+          <>
+            {historicalPupilInfo && (
+              (historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot) ||
+              historicalPupilInfo.className !== pupil?.className
+            ) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <button
-                    onClick={() => {
-                      console.log('Family Accounts clicked - Pupil data:', {
-                        pupilId: pupil?.id,
-                        familyId: pupil?.familyId,
-                        firstName: pupil?.firstName,
-                        lastName: pupil?.lastName
-                      });
-
-                      if (!pupil?.familyId) {
-                        console.log('No familyId found for pupil:', pupil?.id);
-                        toast({
-                          title: "Family ID Missing",
-                          description: "This pupil does not have a family ID. Please contact the administrator.",
-                          variant: "destructive"
-                        });
-
-                        // Generate a family ID if none exists
-                        const generatedFamilyId = `fam-${pupil?.lastName?.toLowerCase() || 'unknown'}-${Date.now()}`;
-                        console.log('Generated family ID:', generatedFamilyId);
-                        toast({
-                          title: "Family ID Generated",
-                          description: `A family ID has been generated: ${generatedFamilyId}`,
-                          variant: "default"
-                        });
-                        router.push(`/fees/family/${generatedFamilyId}`);
-                        return;
-                      }
-
-                      console.log('Navigating to family page with familyId:', pupil.familyId);
-                      router.push(`/fees/family/${pupil.familyId}`);
-                    }}
-                    className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                    title="Family"
+                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                    title={historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot ? `Historical snapshot (Term ended) - Click to recapture` : `Current class: ${pupil?.classCode || pupil?.className} - Click to recapture`}
+                  ><ArrowCounterClockwise className="inline w-3 h-3" /></button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={handleRecaptureSnapshot} disabled={!historicalPupilInfo.isRealSnapshot} className="cursor-pointer">
+                    <span className="flex items-center gap-2"><ArrowCounterClockwise className="w-3.5 h-3.5" /><span>Recapture Snapshot</span></span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleBatchRecapture} className="cursor-pointer">
+                    <span className="flex items-center gap-2"><ArrowCounterClockwise className="w-3.5 h-3.5" /><span>Batch Recapture</span></span>
+                  </DropdownMenuItem>
+                  {!historicalPupilInfo.isRealSnapshot && <p className="px-2 py-1 text-xs text-gray-500">Single recapture only for ended terms with snapshots</p>}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {historicalPupilInfo && (
+              (historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot) ||
+              historicalPupilInfo.section !== pupil?.section
+            ) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="text-blue-600 text-xs hover:text-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                    title={historicalPupilInfo.termHasEnded && historicalPupilInfo.isRealSnapshot ? `Historical snapshot (Term ended) - Click to recapture` : `Current section: ${pupil?.section} - Click to recapture`}
+                  ><ArrowCounterClockwise className="inline w-3 h-3" /></button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem onClick={handleRecaptureSnapshot} disabled={!historicalPupilInfo.isRealSnapshot} className="cursor-pointer">
+                    <span className="flex items-center gap-2"><ArrowCounterClockwise className="w-3.5 h-3.5" /><span>Recapture Snapshot</span></span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleBatchRecapture} className="cursor-pointer">
+                    <span className="flex items-center gap-2"><ArrowCounterClockwise className="w-3.5 h-3.5" /><span>Batch Recapture</span></span>
+                  </DropdownMenuItem>
+                  {!historicalPupilInfo.isRealSnapshot && <p className="px-2 py-1 text-xs text-gray-500">Single recapture only for ended terms with snapshots</p>}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {activeAssignments.map((assignment) => {
+              const isDiscount = assignment.category === 'Discount';
+              const isActive = assignment.isActiveForCurrentTerm;
+              let pillStyles = '';
+              if (!isActive) pillStyles = 'bg-gray-100 text-gray-400 border-gray-200 opacity-60';
+              else if (isDiscount) pillStyles = 'bg-pink-100 text-pink-850 border-pink-250 hover:bg-pink-150/70';
+              else pillStyles = 'bg-purple-100 text-purple-800 border-purple-200';
+              if (isDiscount) {
+                const discountValue = assignment.structure ? (assignment.structure.amount || 0) : 0;
+                const displayAmount = `-${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(Math.abs(discountValue))}`;
+                let appliesTo = 'All applicable fees';
+                const assignmentStructure = assignment.structure;
+                if (assignmentStructure?.linkedFeeIds && assignmentStructure.linkedFeeIds.length > 0) {
+                  appliesTo = assignmentStructure.linkedFeeIds.map((id: string) => allFeeStructures.find(s => s.id === id)?.name).filter(Boolean).join(', ');
+                } else if (assignmentStructure?.linkedFeeId) {
+                  appliesTo = allFeeStructures.find(s => s.id === assignmentStructure.linkedFeeId)?.name || 'Linked Fee';
+                }
+                return (
+                  <TooltipProvider key={`assignment-${assignment.id}`}>
+                    <Tooltip delayDuration={150}>
+                      <TooltipTrigger asChild>
+                        <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-semibold border cursor-pointer transition-all shadow-sm select-none', pillStyles)}>
+                          {displayAmount}{!isActive && ' (Inactive)'}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="p-3 bg-white text-gray-900 border border-pink-200 shadow-xl rounded-lg max-w-xs z-50">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between border-b border-pink-100 pb-1.5 mb-1.5">
+                            <span className="font-bold text-xs uppercase tracking-wider text-pink-700 bg-pink-50 border border-pink-200/50 px-1.5 py-0.5 rounded truncate max-w-[140px]" title={assignment.name}>{assignment.name}</span>
+                            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Active Discount</span>
+                          </div>
+                          <div className="text-xs text-gray-600 flex items-center justify-between">
+                            <span className="font-semibold text-gray-700">Value:</span>
+                            <span className="font-bold text-pink-700">{displayAmount}</span>
+                          </div>
+                          {assignment.structure?.description && (
+                            <div className="text-xs text-gray-500 italic bg-gray-50 p-1.5 rounded border border-gray-100">"{assignment.structure.description}"</div>
+                          )}
+                          <div className="text-[11px] text-gray-500 pt-1.5 border-t border-gray-100">
+                            <span className="font-semibold text-gray-700 block mb-0.5">Applied To:</span>
+                            <span className="text-gray-600 block leading-tight">{appliesTo}</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                );
+              }
+              return (
+                <span key={`assignment-${assignment.id}`} className={cn('inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium border transition-all', pillStyles)}>
+                  {assignment.name}{!isActive && ' (Inactive)'}
+                </span>
+              );
+            })}
+            {activeUniformTracking.map((record, idx) => (
+              <span key={`uniform-${idx}`} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200 transition-all">
+                <span className="font-semibold text-blue-900">Uniform:</span>
+                <span className="flex flex-wrap items-center gap-x-1">
+                  {record.items.map((item, itemIdx) => (
+                    <span key={item.id} className={cn(item.isCollected && 'line-through opacity-50 font-normal')}>
+                      {item.name}{itemIdx < record.items.length - 1 && <span className="no-underline ml-0.5 opacity-100 text-blue-400">,</span>}
+                    </span>
+                  ))}
+                </span>
+              </span>
+            ))}
+          </>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Pay"
+              tone="emerald"
+              icon={<CurrencyCircleDollar className="w-4 h-4" weight="bold" />}
+              onClick={() => setIsMultiPaymentModalOpen(true)}
+              title="Pay Multiple Fees"
+            />
+            {hasSiblings && (
+              <GlassActionButton
+                label="Family"
+                tone="purple"
+                icon={<Users className="w-4 h-4" weight="bold" />}
+                onClick={() => {
+                  if (!pupil?.familyId) {
+                    toast({ title: 'Family ID Missing', description: 'This pupil does not have a family ID.', variant: 'destructive' });
+                    return;
+                  }
+                  router.push(`/fees/family/${pupil.familyId}`);
+                }}
+                title="Family Accounts"
+              />
+            )}
+            {hasSiblings && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border border-orange-400 bg-white text-orange-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:from-orange-400 hover:via-amber-500 hover:to-orange-600 hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11"
+                    title="Siblings"
                   >
-                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" weight="bold" />
-                    <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Family</span>
+                    <span className="text-sm font-bold mb-0.5" style={{ lineHeight: '1' }}>{siblings.length}</span>
+                    <span className="text-[7px] sm:text-[8px] font-semibold leading-tight mt-[-2px]">Siblings</span>
                   </button>
-                )}
-
-                {hasSiblings && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-orange-600 border border-orange-400 shadow-sm hover:bg-gradient-to-br hover:from-orange-400 hover:via-amber-500 hover:to-orange-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                        title="Siblings"
-                      >
-                        <span className="text-sm font-bold mb-0.5" style={{ lineHeight: '1' }}>{siblings.length}</span>
-                        <span className="text-[7px] sm:text-[8px] font-semibold leading-tight mt-[-2px]">Siblings</span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 border-b mb-1">
-                        Select Sibling
-                      </div>
-                      {siblings.map(sibling => (
-                        <DropdownMenuItem
-                          key={sibling.id}
-                          onClick={() => router.push(`/fees/collect/${sibling.id}`)}
-                          className="cursor-pointer flex flex-col items-start py-2"
-                        >
-                          <span className="font-medium text-gray-900">{sibling.firstName} {sibling.lastName}</span>
-                          <span className="text-xs text-gray-500">{sibling.className} • {sibling.admissionNumber}</span>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-
-                <button
-                  onClick={() => {
-                    if (pupil?.id) {
-                      router.push(`/requirement-tracking?id=${pupil.id}`);
-                    }
-                  }}
-                  className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-indigo-600 border border-indigo-400 shadow-sm hover:bg-gradient-to-br hover:from-indigo-400 hover:via-indigo-500 hover:to-indigo-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                  title="Requirements"
-                  disabled={!pupil?.id}
-                >
-                  <ClipboardText className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" weight="bold" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Req</span>
-                </button>
-
-                <button
-                  onClick={() => setIsAssignmentModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-purple-600 border border-purple-400 shadow-sm hover:bg-gradient-to-br hover:from-purple-400 hover:via-violet-500 hover:to-purple-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                  title="Assignment & Discounts"
-                  disabled={!pupil?.id}
-                >
-                  <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Assign</span>
-                </button>
-
-                {/* Pay Code button */}
-                <button
-                  onClick={() => setIsManagePayCodeModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                  title="Manage SchoolPay Payment Code"
-                  disabled={!pupil?.id}
-                >
-                  <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">PayCode</span>
-                </button>
-
-                {/* Payment ID button */}
-                <button
-                  onClick={handleGeneratePaymentID}
-                  className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                  title="Print Payment ID Card"
-                  disabled={!pupil?.id}
-                >
-                  <IdentificationCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" weight="bold" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Pay ID</span>
-                </button>
-
-                {/* SchoolPay payments button */}
-                {(() => {
-                  const schoolPayCount = (pupilPayments as any[]).filter(
-                    (p: any) => p.source === 'schoolpay' && !p.reverted &&
-                      p.termId === selectedTermId && p.academicYearId === selectedAcademicYear?.id
-                  ).length;
-                  return (
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 border-b mb-1">Select Sibling</div>
+                  {siblings.map(sibling => (
+                    <DropdownMenuItem key={sibling.id} onClick={() => router.push(`/fees/collect/${sibling.id}`)} className="cursor-pointer flex flex-col items-start py-2">
+                      <span className="font-medium text-gray-900">{sibling.firstName} {sibling.lastName}</span>
+                      <span className="text-xs text-gray-500">{sibling.className} • {sibling.admissionNumber}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <GlassActionButton
+              label="Assign"
+              tone="violet"
+              icon={<Tag className="w-4 h-4" />}
+              onClick={() => setIsAssignmentModalOpen(true)}
+              disabled={!pupil?.id}
+              title="Assignment & Discounts"
+            />
+            {(() => {
+              const schoolPayCount = (pupilPayments as any[]).filter(
+                (p: any) => p.source === 'schoolpay' && !p.reverted &&
+                  p.termId === selectedTermId && p.academicYearId === selectedAcademicYear?.id
+              ).length;
+              return (
+                <DropdownMenu open={isWirePopupOpen} onOpenChange={setIsWirePopupOpen}>
+                  <DropdownMenuTrigger asChild>
                     <button
-                      onClick={() => setIsSchoolPayModalOpen(true)}
-                      className="relative flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-violet-600 border border-violet-400 shadow-sm hover:bg-gradient-to-br hover:from-violet-500 hover:via-purple-500 hover:to-violet-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                      title="SchoolPay Payments"
+                      className="relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border border-violet-400 bg-white text-violet-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:from-violet-500 hover:via-purple-500 hover:to-violet-600 hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11"
+                      title="Wire / SchoolPay Options"
                       disabled={!pupil?.id}
                     >
                       {schoolPayCount > 0 && (
@@ -2127,74 +2099,86 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
                       <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Wire</span>
                     </button>
-                  );
-                })()}
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                      title="Tracking Options"
-                      disabled={!pupil?.id}
-                    >
-                      <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
-                      <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Track</span>
-                    </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => setIsUniformTrackingModalOpen(true)}
-                      className="cursor-pointer"
-                    >
-                      <ClipboardText className="mr-2 h-4 w-4 text-blue-600" weight="bold" />
-                      Add Uniform
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (pupil?.id) {
-                          router.push(`/requirement-tracking?id=${pupil.id}`);
-                        }
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <ClipboardText className="mr-2 h-4 w-4 text-purple-600" weight="bold" />
-                      Requirements Tracking
-                    </DropdownMenuItem>
+                  <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-violet-100 shadow-2xl rounded-2xl">
+                    <div className="mb-3 pb-2 border-b border-violet-100">
+                      <p className="text-[11px] font-bold text-violet-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <Zap className="w-3 h-3" />Wire &amp; Payment Options
+                      </p>
+                    </div>
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-violet-50 transition-all duration-200 group mb-1" onClick={() => { setIsWirePopupOpen(false); setIsSchoolPayModalOpen(true); }}>
+                      <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-violet-50 border border-violet-200 text-violet-600 group-hover:bg-violet-500 group-hover:text-white group-hover:border-violet-500 transition-all duration-200 flex-shrink-0">
+                        {schoolPayCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-violet-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white">{schoolPayCount > 9 ? '9+' : schoolPayCount}</span>}
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight">SchoolPay Wire</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5">View mobile money payments</p></div>
+                    </div>
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-emerald-50 transition-all duration-200 group mb-1" onClick={() => { setIsWirePopupOpen(false); setIsManagePayCodeModalOpen(true); }}>
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-500 transition-all duration-200 flex-shrink-0"><Tag className="w-4 h-4" /></div>
+                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight">Pay Code</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5">Manage SchoolPay payment code</p></div>
+                    </div>
+                    <div role="menuitem" className="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:bg-blue-50 transition-all duration-200 group" onClick={() => { setIsWirePopupOpen(false); handleGeneratePaymentID(); }}>
+                      <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 border border-blue-200 text-blue-600 group-hover:bg-blue-500 group-hover:text-white group-hover:border-blue-500 transition-all duration-200 flex-shrink-0"><IdentificationCard className="w-4 h-4" weight="bold" /></div>
+                      <div className="min-w-0"><p className="text-[12px] font-semibold text-gray-800 leading-tight">Pay ID Card</p><p className="text-[10px] text-gray-500 leading-tight mt-0.5">Print payment ID card (PDF)</p></div>
+                    </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
-
+              );
+            })()}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
-                  onClick={() => setIsPrintModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-rose-600 border border-rose-400 shadow-sm hover:bg-gradient-to-br hover:from-rose-400 hover:via-pink-500 hover:to-rose-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-                  title="Print"
+                  className="relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border border-blue-400 bg-white text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11"
+                  title="Tracking Options"
+                  disabled={!pupil?.id}
                 >
-                  <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" weight="bold" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Print</span>
+                  <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
+                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Track</span>
                 </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setIsUniformTrackingModalOpen(true)} className="cursor-pointer">
+                  <ClipboardText className="mr-2 h-4 w-4 text-blue-600" weight="bold" />Add Uniform
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { if (pupil?.id) router.push(`/requirement-tracking?id=${pupil.id}`); }} className="cursor-pointer">
+                  <ClipboardText className="mr-2 h-4 w-4 text-purple-600" weight="bold" />Requirements
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <GlassActionButton
+              label="Print"
+              tone="rose"
+              icon={<Printer className="w-4 h-4" weight="bold" />}
+              onClick={() => setIsPrintModalOpen(true)}
+              title="Print"
+            />
+          </GlassActionDock>
+        }
+      />
 
-      {/* Compact Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
-          {/* Compact Header Section */}
-          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-indigo-100 p-3">
-            {/* Academic Year Selection and Totals in one row for desktop */}
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
+      <Tabs value={selectedTermId} onValueChange={setSelectedTermId} className="w-full">
+        <GlassSummaryBar
+          left={
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
               {/* Academic Year Selection - Round and compact */}
-              <div className="flex w-full shrink-0 items-center lg:w-auto">
+              <div className="flex shrink-0 items-center">
                 <select
                   value={selectedAcademicYear?.id || ''}
                   onChange={(e) => {
                     const year = validAcademicYears.find(year => year.id === e.target.value);
                     setSelectedAcademicYear(year || null);
-                    // Reset term selection when academic year changes - will be handled by useEffect
-                    setSelectedTermId('');
+                    const yearValidTerms = year
+                      ? getValidTermsForPupil(year, pupil?.registrationDate, pupil ?? undefined)
+                      : [];
+                    const activeTerm = year ? getActiveOrMostRecentTerm(year) : null;
+                    const defaultTerm = activeTerm && yearValidTerms.find(term => term.id === activeTerm.id)
+                      ? activeTerm
+                      : [...yearValidTerms].sort(
+                        (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+                      )[0];
+                    setSelectedTermId(defaultTerm?.id || '');
                   }}
-                  className="bg-white rounded-full px-3 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-medium hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[140px]"
+                  className="bg-white rounded-full px-3 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[140px]"
                   disabled={isLoadingAcademicYears}
                 >
                   <option value="">Select Year</option>
@@ -2227,35 +2211,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 </select>
               </div>
 
-              {/* Totals summary — equal columns across full available width */}
-              <div className="grid h-11 min-h-[2.75rem] w-full min-w-0 flex-1 grid-cols-3 items-stretch rounded-full border border-gray-300 bg-white px-1 py-1.5 shadow-lg backdrop-blur-sm sm:px-2">
-                <div className="flex min-w-0 flex-col items-center justify-center gap-0 px-0.5 text-center sm:px-1">
-                  <span className="text-[9px] font-medium leading-tight text-indigo-600 sm:text-[10px]">Total Fees</span>
-                  <span className="w-full truncate text-[11px] font-bold tabular-nums leading-tight text-indigo-900 sm:text-sm">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col items-center justify-center gap-0 border-x border-gray-200 px-0.5 text-center sm:px-1">
-                  <span className="text-[9px] font-medium leading-tight text-green-600 sm:text-[10px]">Total Paid</span>
-                  <span className="w-full truncate text-[11px] font-bold tabular-nums leading-tight text-green-900 sm:text-sm">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col items-center justify-center gap-0 px-0.5 text-center sm:px-1">
-                  <span className="text-[9px] font-medium leading-tight text-red-600 sm:text-[10px]">Balance</span>
-                  <span className="w-full truncate text-[11px] font-bold tabular-nums leading-tight text-red-900 sm:text-sm">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Term tab switcher */}
-          {selectedAcademicYear && validTerms.length > 0 && (
-            <Tabs value={selectedTermId} onValueChange={setSelectedTermId} className="w-full">
-              <div className="flex justify-center border-b border-indigo-100/70 bg-gradient-to-r from-indigo-50/50 to-blue-50/50 px-3 py-2 sm:px-4">
-                <TabsList className="inline-flex h-auto w-auto max-w-full flex-wrap items-center justify-center gap-1.5 rounded-none border-0 bg-transparent p-0 shadow-none">
+              {/* Term switcher tabs next to year selection */}
+              {selectedAcademicYear && validTerms.length > 0 && (
+                <TabsList className="inline-flex h-auto w-auto max-w-full items-center gap-1.5 rounded-none border-0 bg-transparent p-0 shadow-none">
                   {validTerms.map((term, index) => (
                     <TabsTrigger
                       key={term.id}
@@ -2266,46 +2224,75 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     </TabsTrigger>
                   ))}
                 </TabsList>
+              )}
+            </div>
+          }
+          right={
+            <>
+              <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-indigo-700/85 dark:text-indigo-350 font-medium">Total Fees:</span>
+                <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
+                </span>
               </div>
+              <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-green-700/85 dark:text-green-350 font-medium">Total Paid:</span>
+                <span className="font-bold text-green-600 dark:text-green-400">
+                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="text-red-700/85 dark:text-red-350 font-medium">Balance:</span>
+                <span className="font-bold text-red-650 dark:text-red-400">
+                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
+                </span>
+              </div>
+            </>
+          }
+        />
 
+        <div className="max-w-none px-4 sm:px-6 lg:px-8 py-4">
+          <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
+            {/* Term content or empty state */}
+            {selectedAcademicYear && validTerms.length > 0 ? (
               <div className="px-4 pb-4 pt-4 sm:px-6">
                 {validTerms.map((term) => (
                   <TabsContent key={term.id} value={term.id} className="mt-0 focus-visible:outline-none">
-                      {/* SchoolPay payment banner for the current term */}
-                      {pupil && selectedAcademicYear && (
-                        <SchoolPayPaymentBanner
-                          payments={pupilPayments}
-                          feeStructures={allFeeStructuresFromHook}
-                          allAcademicYears={academicYears}
-                          selectedTermId={selectedTermId}
-                          selectedAcademicYear={selectedAcademicYear}
-                          pupilId={pupil.id}
-                          onRedistribute={handleRedistribute}
-                        />
-                      )}
+                    {/* SchoolPay payment banner for the current term */}
+                    {pupil && selectedAcademicYear && (
+                      <SchoolPayPaymentBanner
+                        payments={pupilPayments}
+                        feeStructures={allFeeStructuresFromHook}
+                        allAcademicYears={academicYears}
+                        selectedTermId={selectedTermId}
+                        selectedAcademicYear={selectedAcademicYear}
+                        pupilId={pupil.id}
+                        onRedistribute={handleRedistribute}
+                      />
+                    )}
 
-                      {renderTermFees(term.name)}
-                    </TabsContent>
-                  ))}
+                    {renderTermFees(term.name)}
+                  </TabsContent>
+                ))}
               </div>
-            </Tabs>
-          )}
-
-          {/* Show message if no valid terms */}
-          {selectedAcademicYear && validTerms.length === 0 && pupil?.registrationDate && (
-            <div className="px-4 py-8 text-center">
-              <div className="inline-block rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                <h3 className="mb-2 font-medium text-yellow-800">No Available Terms</h3>
-                <p className="text-sm text-yellow-700">
-                  This pupil was registered after all terms in {selectedAcademicYear.name} had ended.
-                  <br />
-                  <span className="font-medium">Registration Date:</span> {new Date(pupil.registrationDate).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          )}
+            ) : (
+              /* Show message if no valid terms */
+              selectedAcademicYear && validTerms.length === 0 && pupil?.registrationDate && (
+                <div className="px-4 py-8 text-center">
+                  <div className="inline-block rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                    <h3 className="mb-2 font-medium text-yellow-800">No Available Terms</h3>
+                    <p className="text-sm text-yellow-700">
+                      This pupil was registered after all terms in {selectedAcademicYear.name} had ended.
+                      <br />
+                      <span className="font-medium">Registration Date:</span> {new Date(pupil.registrationDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </div>
-      </div>
+      </Tabs>
 
       {/* Modals */}
       {selectedFee && (
@@ -2489,6 +2476,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           feeStructures={allFeeStructuresFromHook}
           allAcademicYears={academicYears}
           pupil={pupil}
+          siblings={siblings}
           selectedTermId={selectedTermId}
           selectedAcademicYear={selectedAcademicYear}
           allPayments={pupilPayments}

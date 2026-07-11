@@ -1,5 +1,7 @@
 "use client";
 import { SmartBackButton } from "@/components/common/SmartBackButton";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 
 import * as React from "react";
 import Link from "next/link";
@@ -1274,187 +1276,91 @@ export default function ViewAttendanceReportsPage() {
   }
 
   return (
-    <>
-      {/* Show recess status banner if in recess mode */}
+    <div className="min-h-screen">
+      {/* Recess status banner */}
       <RecessStatusBanner />
 
-      {/* Dynamic Header with Mobile-Responsive Layout */}
-      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 border border-blue-200 dark:border-blue-800 shadow-lg transition-all duration-500 hover:shadow-xl">
-        {/* Header Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg transition-all duration-300 hover:scale-110">
-              <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white transition-all duration-300">
-                Attendance Trend Analysis
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Comprehensive attendance analysis with academic year integration
-              </p>
-            </div>
-          </div>
+      <GlassPageTopBar
+        title="View Attendance"
+        backHref="/attendance"
+        backLabel="Back to Attendance Hub"
+        className={reportType === "school" && trendPeriod === "daily" && schoolAttendanceData.length > 0 ? "mb-1.5" : "mb-4"}
+        meta={
+          <span className="whitespace-nowrap rounded-full border border-indigo-100/80 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+            {trendPeriod}
+          </span>
+        }
+        titleControls={
+          <button
+            onClick={() => setIsPrintModalOpen(true)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-200/60 bg-white/90 text-blue-600 shadow-sm transition-all hover:scale-105 hover:bg-blue-50 active:scale-95 lg:hidden"
+            title="Print PDF"
+            type="button"
+            aria-label="Print PDF"
+          >
+            <Printer className="h-3.5 w-3.5" />
+          </button>
+        }
+        center={
+          <>
+            <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
+              <SelectTrigger className="h-[34px] w-[82px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {academicYears?.map((year) => {
+                  const isCurrent = year.id === currentAcademicYearId;
+                  const today = new Date();
+                  const yearEnd = new Date(year.endDate);
+                  const hasEnded = today > yearEnd;
+                  let label = '';
+                  if (year.isLocked) label = ' (Locked)';
+                  else if (!hasEnded) label = ' (Upcoming)';
+                  return (
+                    <SelectItem key={year.id} value={year.id} className="rounded-lg text-sm">
+                      {year.name}{label}
+                    </SelectItem>
+                  );
+                }) || []}
+              </SelectContent>
+            </Select>
 
-          {/* Academic Year and Back Button */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Academic Year Selector */}
-            <div className="group">
-              <Label htmlFor="academic-year-select-header" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                Academic Year
-              </Label>
-              <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-                <SelectTrigger
-                  id="academic-year-select-header"
-                  className="h-8 w-[120px] sm:w-[140px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                >
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                  {academicYears?.map((year) => {
-                    const isCurrent = year.id === currentAcademicYearId;
-                    const today = new Date();
-                    const yearEnd = new Date(year.endDate);
-                    const hasEnded = today > yearEnd;
+            <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+              <SelectTrigger className="h-[34px] w-[96px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="class" className="rounded-lg text-sm">Class</SelectItem>
+                <SelectItem value="pupil" className="rounded-lg text-sm">Pupil</SelectItem>
+                {trendPeriod === "daily" && (
+                  <SelectItem value="school" className="rounded-lg text-sm">School</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
 
-                    let label = '';
-                    if (isCurrent) {
-                      label = ' (Current)';
-                    } else if (year.isLocked) {
-                      label = ' (Locked)';
-                    } else if (!hasEnded) {
-                      label = ' (Upcoming)';
-                    }
+            <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
+              <SelectTrigger className="h-[34px] w-[90px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectValue placeholder="Range" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="day" className="rounded-lg text-sm">Today</SelectItem>
+                <SelectItem value="week" className="rounded-lg text-sm">Week</SelectItem>
+                <SelectItem value="month" className="rounded-lg text-sm">Month</SelectItem>
+                <SelectItem value="term" className="rounded-lg text-sm">Term</SelectItem>
+                <SelectItem value="year" className="rounded-lg text-sm">Year</SelectItem>
+              </SelectContent>
+            </Select>
 
-                    return (
-                      <SelectItem key={year.id} value={year.id} className="rounded-lg text-sm">
-                        {year.name}{label}
-                      </SelectItem>
-                    );
-                  }) || []}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Back Button */}
-            <div className="group">
-              <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block opacity-0">
-                Back
-              </Label>
-              <SmartBackButton 
-                fallbackHref="/attendance"
-                className="inline-flex items-center justify-center h-8 w-8 bg-white/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-[1.02] rounded-full border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-              </SmartBackButton>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile-Responsive Control Section */}
-        <div>
-          {/* Responsive Controls Layout - Stacks on Mobile */}
-          <div className="flex flex-wrap items-end gap-2 sm:gap-3 justify-start sm:justify-start">
-            {/* Quick Range Dial - FIRST */}
-            <div className="group">
-              <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                Quick Range
-              </Label>
-              <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-                <SelectTrigger className="h-8 w-[100px] sm:w-[120px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></div>
-                    <SelectValue placeholder="Choose range" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="min-w-[120px] rounded-xl border-gray-200 dark:border-gray-600">
-                  <SelectItem value="day" className="cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                      <span>Today</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="week" className="cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                      <span>Week</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="month" className="cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                      <span>Month</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="term" className="cursor-pointer hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
-                      <span>Term</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="year" className="cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                      <span>Year</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Print Button - Inserted Here */}
-            <div className="group">
-              <Label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block opacity-0">
-                Print
-              </Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsPrintModalOpen(true)}
-                className="h-8 bg-white/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-[1.02] rounded-full border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 flex items-center gap-2 px-3 text-sm font-medium"
-              >
-                <Printer className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="hidden sm:inline">Print PDF</span>
-              </Button>
-            </div>
-
-            {/* Report Type Selector - SECOND */}
-            <div className="group">
-              <Label htmlFor="report-type" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                Report Type
-              </Label>
-              <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-                <SelectTrigger
-                  id="report-type"
-                  className="h-8 w-[100px] sm:w-[120px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                  <SelectItem value="class" className="rounded-lg text-sm">Class Analysis</SelectItem>
-                  <SelectItem value="pupil" className="rounded-lg text-sm">Individual Pupil</SelectItem>
-                  {trendPeriod === "daily" && (
-                    <SelectItem value="school" className="rounded-lg text-sm">Entire School</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Universal Navigation Controls */}
             {startDate && (
-              <div className="flex items-center gap-1 sm:gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+              <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm">
+                <button
                   onClick={() => {
                     if (!startDate) return;
                     try {
                       const currentDate = parseISO(startDate);
                       if (isNaN(currentDate.getTime())) return;
-
                       let newStartDate: Date;
                       let newEndDate: Date;
-
                       switch (trendPeriod) {
                         case "daily":
                           newStartDate = new Date(currentDate);
@@ -1462,72 +1368,53 @@ export default function ViewAttendanceReportsPage() {
                           newEndDate = newStartDate;
                           break;
                         case "weekly":
-                          const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-                          const prevWeekStart = new Date(currentWeekStart);
-                          prevWeekStart.setDate(currentWeekStart.getDate() - 7);
-                          newStartDate = prevWeekStart;
-                          newEndDate = endOfWeek(prevWeekStart, { weekStartsOn: 1 });
+                          const cwS = startOfWeek(currentDate, { weekStartsOn: 1 });
+                          const pvS = new Date(cwS);
+                          pvS.setDate(cwS.getDate() - 7);
+                          newStartDate = pvS;
+                          newEndDate = endOfWeek(pvS, { weekStartsOn: 1 });
                           break;
                         case "monthly":
-                          const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                          const prevMonth = new Date(currentMonth);
-                          prevMonth.setMonth(currentMonth.getMonth() - 1);
-                          newStartDate = startOfMonth(prevMonth);
-                          newEndDate = endOfMonth(prevMonth);
+                          const cm = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                          const pm = new Date(cm);
+                          pm.setMonth(cm.getMonth() - 1);
+                          newStartDate = startOfMonth(pm);
+                          newEndDate = endOfMonth(pm);
                           break;
                         case "termly":
-                          // Find current term and navigate to previous term
                           if (selectedAcademicYear) {
-                            const currentTerm = selectedAcademicYear.terms.find(term => {
-                              const termStart = parseISO(term.startDate);
-                              const termEnd = parseISO(term.endDate);
-                              return currentDate >= termStart && currentDate <= termEnd;
+                            const ct = selectedAcademicYear.terms.find(t => {
+                              const ts = parseISO(t.startDate);
+                              const te = parseISO(t.endDate);
+                              return currentDate >= ts && currentDate <= te;
                             });
-                            if (currentTerm) {
-                              const currentTermIndex = selectedAcademicYear.terms.findIndex(t => t.id === currentTerm.id);
-                              const prevTerm = selectedAcademicYear.terms[currentTermIndex - 1];
-                              if (prevTerm) {
-                                setSelectedTermId(prevTerm.id);
-                                newStartDate = parseISO(prevTerm.startDate);
-                                newEndDate = parseISO(prevTerm.endDate);
-                              } else {
-                                return; // No previous term
-                              }
-                            } else {
-                              return;
-                            }
-                          } else {
-                            return;
-                          }
+                            if (ct) {
+                              const ci = selectedAcademicYear.terms.findIndex(t => t.id === ct.id);
+                              const pt = selectedAcademicYear.terms[ci - 1];
+                              if (pt) { setSelectedTermId(pt.id); newStartDate = parseISO(pt.startDate); newEndDate = parseISO(pt.endDate); }
+                              else return;
+                            } else return;
+                          } else return;
                           break;
-                        default:
-                          return;
+                        default: return;
                       }
-
                       setStartDate(format(newStartDate, "yyyy-MM-dd"));
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
-                    } catch (error) {
-                      console.warn('Error navigating to previous period:', error);
-                    }
+                    } catch (e) { console.warn(e); }
                   }}
-                  className="h-8 w-8 bg-white/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-[1.02] rounded-full border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 p-0 flex items-center justify-center"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                  type="button"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => {
                     const today = new Date();
                     let newStartDate: Date;
                     let newEndDate: Date;
-
                     switch (trendPeriod) {
-                      case "daily":
-                        newStartDate = today;
-                        newEndDate = today;
-                        break;
+                      case "daily": newStartDate = today; newEndDate = today; break;
                       case "weekly":
                         newStartDate = startOfWeek(today, { weekStartsOn: 1 });
                         newEndDate = endOfWeek(today, { weekStartsOn: 1 });
@@ -1538,184 +1425,62 @@ export default function ViewAttendanceReportsPage() {
                         break;
                       case "termly":
                         if (selectedAcademicYear) {
-                          const currentTerm = selectedAcademicYear.terms.find(term => {
-                            const termStart = parseISO(term.startDate);
-                            const termEnd = parseISO(term.endDate);
-                            return today >= termStart && today <= termEnd;
+                          const ct = selectedAcademicYear.terms.find(t => {
+                            const ts = parseISO(t.startDate);
+                            const te = parseISO(t.endDate);
+                            return today >= ts && today <= te;
                           });
-                          if (currentTerm) {
-                            setSelectedTermId(currentTerm.id);
-                            newStartDate = parseISO(currentTerm.startDate);
-                            newEndDate = parseISO(currentTerm.endDate);
-                          } else {
-                            return;
-                          }
-                        } else {
-                          return;
-                        }
+                          if (ct) { setSelectedTermId(ct.id); newStartDate = parseISO(ct.startDate); newEndDate = parseISO(ct.endDate); }
+                          else return;
+                        } else return;
                         break;
-                      default:
-                        return;
+                      default: return;
                     }
-
                     setStartDate(format(newStartDate, "yyyy-MM-dd"));
                     setEndDate(format(newEndDate, "yyyy-MM-dd"));
                   }}
-                  className={`${(() => {
-                    if (!startDate) return "bg-blue-100 dark:bg-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-700/50";
-
-                    try {
-                      const currentViewDate = parseISO(startDate);
-                      const today = new Date();
-
-                      switch (trendPeriod) {
-                        case "daily":
-                          return format(currentViewDate, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-                            ? "bg-blue-100 dark:bg-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-700/50"
-                            : "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                        case "weekly":
-                          const currentWeekStart = startOfWeek(currentViewDate, { weekStartsOn: 1 });
-                          const todayWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-                          return format(currentWeekStart, "yyyy-MM-dd") === format(todayWeekStart, "yyyy-MM-dd")
-                            ? "bg-blue-100 dark:bg-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-700/50"
-                            : "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                        case "monthly":
-                          return currentViewDate.getMonth() === today.getMonth() && currentViewDate.getFullYear() === today.getFullYear()
-                            ? "bg-blue-100 dark:bg-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-700/50"
-                            : "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                        case "termly":
-                          if (selectedAcademicYear) {
-                            const currentTerm = selectedAcademicYear.terms.find(term => {
-                              const termStart = parseISO(term.startDate);
-                              const termEnd = parseISO(term.endDate);
-                              return today >= termStart && today <= termEnd;
-                            });
-                            const viewTerm = selectedAcademicYear.terms.find(term => {
-                              const termStart = parseISO(term.startDate);
-                              const termEnd = parseISO(term.endDate);
-                              return currentViewDate >= termStart && currentViewDate <= termEnd;
-                            });
-                            return currentTerm && viewTerm && currentTerm.id === viewTerm.id
-                              ? "bg-blue-100 dark:bg-blue-800/50 hover:bg-blue-200 dark:hover:bg-blue-700/50"
-                              : "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                          }
-                          return "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                        default:
-                          return "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                      }
-                    } catch (error) {
-                      return "bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20";
-                    }
-                  })()
-                    } transition-all duration-200 hover:scale-[1.02] font-medium min-w-[80px] sm:min-w-[100px] h-8 rounded-full border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 text-sm px-2 sm:px-3`}
+                  className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700"
+                  type="button"
                 >
                   {(() => {
-                    if (!startDate) return `Current ${trendPeriod === "daily" ? "Day" : trendPeriod === "weekly" ? "Week" : trendPeriod === "monthly" ? "Month" : "Term"}`;
-
+                    if (!startDate) return "Now";
                     try {
-                      const currentViewDate = parseISO(startDate);
+                      const d = parseISO(startDate);
                       const today = new Date();
-
                       switch (trendPeriod) {
                         case "daily":
-                          const yesterday = new Date(today);
-                          yesterday.setDate(today.getDate() - 1);
-                          const tomorrow = new Date(today);
-                          tomorrow.setDate(today.getDate() + 1);
-
-                          const viewDateStr = format(currentViewDate, "yyyy-MM-dd");
-                          const todayStr = format(today, "yyyy-MM-dd");
-                          const yesterdayStr = format(yesterday, "yyyy-MM-dd");
-                          const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
-
-                          if (viewDateStr === todayStr) return "Today";
-                          if (viewDateStr === yesterdayStr) return "Yesterday";
-                          if (viewDateStr === tomorrowStr) return "Tomorrow";
-                          return format(currentViewDate, "MMM dd");
-
+                          if (format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")) return "Today";
+                          const yest = new Date(today); yest.setDate(today.getDate() - 1);
+                          if (format(d, "yyyy-MM-dd") === format(yest, "yyyy-MM-dd")) return "Yesterday";
+                          return format(d, "MMM dd");
                         case "weekly":
-                          const currentWeekStart = startOfWeek(currentViewDate, { weekStartsOn: 1 });
-                          const todayWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-
-                          if (format(currentWeekStart, "yyyy-MM-dd") === format(todayWeekStart, "yyyy-MM-dd")) {
-                            return "This Week";
-                          }
-
-                          const lastWeek = new Date(todayWeekStart);
-                          lastWeek.setDate(todayWeekStart.getDate() - 7);
-                          const nextWeek = new Date(todayWeekStart);
-                          nextWeek.setDate(todayWeekStart.getDate() + 7);
-
-                          if (format(currentWeekStart, "yyyy-MM-dd") === format(lastWeek, "yyyy-MM-dd")) {
-                            return "Last Week";
-                          }
-                          if (format(currentWeekStart, "yyyy-MM-dd") === format(nextWeek, "yyyy-MM-dd")) {
-                            return "Next Week";
-                          }
-
-                          return `Week of ${format(currentWeekStart, "MMM dd")}`;
-
+                          const cws = startOfWeek(d, { weekStartsOn: 1 });
+                          const tws = startOfWeek(today, { weekStartsOn: 1 });
+                          if (format(cws, "yyyy-MM-dd") === format(tws, "yyyy-MM-dd")) return "This Week";
+                          return `Wk ${format(cws, "MMM dd")}`;
                         case "monthly":
-                          if (currentViewDate.getMonth() === today.getMonth() && currentViewDate.getFullYear() === today.getFullYear()) {
-                            return "This Month";
-                          }
-
-                          const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                          const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-
-                          if (currentViewDate.getMonth() === lastMonth.getMonth() && currentViewDate.getFullYear() === lastMonth.getFullYear()) {
-                            return "Last Month";
-                          }
-                          if (currentViewDate.getMonth() === nextMonth.getMonth() && currentViewDate.getFullYear() === nextMonth.getFullYear()) {
-                            return "Next Month";
-                          }
-
-                          return format(currentViewDate, "MMM yyyy");
-
+                          if (d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) return "This Month";
+                          return format(d, "MMM yyyy");
                         case "termly":
                           if (selectedAcademicYear) {
-                            const currentTerm = selectedAcademicYear.terms.find(term => {
-                              const termStart = parseISO(term.startDate);
-                              const termEnd = parseISO(term.endDate);
-                              return today >= termStart && today <= termEnd;
-                            });
-
-                            const viewTerm = selectedAcademicYear.terms.find(term => {
-                              const termStart = parseISO(term.startDate);
-                              const termEnd = parseISO(term.endDate);
-                              return currentViewDate >= termStart && currentViewDate <= termEnd;
-                            });
-
-                            if (currentTerm && viewTerm) {
-                              if (currentTerm.id === viewTerm.id) return "Current Term";
-                              return viewTerm.name;
-                            }
-
-                            return viewTerm ? viewTerm.name : "Select Term";
+                            const vt = selectedAcademicYear.terms.find(t => d >= parseISO(t.startDate) && d <= parseISO(t.endDate));
+                            return vt?.name || "Term";
                           }
-                          return "Current Term";
-
-                        default:
-                          return "Current Period";
+                          return "Term";
+                        default: return "Period";
                       }
-                    } catch (error) {
-                      return `Current ${trendPeriod === "daily" ? "Day" : trendPeriod === "weekly" ? "Week" : trendPeriod === "monthly" ? "Month" : "Term"}`;
-                    }
+                    } catch { return "Now"; }
                   })()}
-                </Button>
+                </button>
 
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => {
                     if (!startDate) return;
                     try {
                       const currentDate = parseISO(startDate);
                       if (isNaN(currentDate.getTime())) return;
-
                       let newStartDate: Date;
                       let newEndDate: Date;
-
                       switch (trendPeriod) {
                         case "daily":
                           newStartDate = new Date(currentDate);
@@ -1723,338 +1488,949 @@ export default function ViewAttendanceReportsPage() {
                           newEndDate = newStartDate;
                           break;
                         case "weekly":
-                          const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-                          const nextWeekStart = new Date(currentWeekStart);
-                          nextWeekStart.setDate(currentWeekStart.getDate() + 7);
-                          newStartDate = nextWeekStart;
-                          newEndDate = endOfWeek(nextWeekStart, { weekStartsOn: 1 });
+                          const cwS = startOfWeek(currentDate, { weekStartsOn: 1 });
+                          const nwS = new Date(cwS);
+                          nwS.setDate(cwS.getDate() + 7);
+                          newStartDate = nwS;
+                          newEndDate = endOfWeek(nwS, { weekStartsOn: 1 });
                           break;
                         case "monthly":
-                          const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                          const nextMonth = new Date(currentMonth);
-                          nextMonth.setMonth(currentMonth.getMonth() + 1);
-                          newStartDate = startOfMonth(nextMonth);
-                          newEndDate = endOfMonth(nextMonth);
+                          const cm = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                          const nm = new Date(cm);
+                          nm.setMonth(cm.getMonth() + 1);
+                          newStartDate = startOfMonth(nm);
+                          newEndDate = endOfMonth(nm);
                           break;
                         case "termly":
-                          // Find current term and navigate to next term
                           if (selectedAcademicYear) {
-                            const currentTerm = selectedAcademicYear.terms.find(term => {
-                              const termStart = parseISO(term.startDate);
-                              const termEnd = parseISO(term.endDate);
-                              return currentDate >= termStart && currentDate <= termEnd;
+                            const ct = selectedAcademicYear.terms.find(t => {
+                              const ts = parseISO(t.startDate);
+                              const te = parseISO(t.endDate);
+                              return currentDate >= ts && currentDate <= te;
                             });
-                            if (currentTerm) {
-                              const currentTermIndex = selectedAcademicYear.terms.findIndex(t => t.id === currentTerm.id);
-                              const nextTerm = selectedAcademicYear.terms[currentTermIndex + 1];
-                              if (nextTerm) {
-                                setSelectedTermId(nextTerm.id);
-                                newStartDate = parseISO(nextTerm.startDate);
-                                newEndDate = parseISO(nextTerm.endDate);
-                              } else {
-                                return; // No next term
-                              }
-                            } else {
-                              return;
-                            }
-                          } else {
-                            return;
-                          }
+                            if (ct) {
+                              const ci = selectedAcademicYear.terms.findIndex(t => t.id === ct.id);
+                              const nt = selectedAcademicYear.terms[ci + 1];
+                              if (nt) { setSelectedTermId(nt.id); newStartDate = parseISO(nt.startDate); newEndDate = parseISO(nt.endDate); }
+                              else return;
+                            } else return;
+                          } else return;
                           break;
-                        default:
-                          return;
+                        default: return;
                       }
-
                       setStartDate(format(newStartDate, "yyyy-MM-dd"));
                       setEndDate(format(newEndDate, "yyyy-MM-dd"));
-                    } catch (error) {
-                      console.warn('Error navigating to next period:', error);
-                    }
+                    } catch (e) { console.warn(e); }
                   }}
-                  className="h-8 w-8 bg-white/80 dark:bg-gray-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 hover:scale-[1.02] rounded-full border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 p-0 flex items-center justify-center"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                  type="button"
                 >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                  <ChevronRight className="h-3 w-3" />
+                </button>
               </div>
             )}
 
-            {/* Dynamic Period Selector */}
-            <div className="group">
-              <Label htmlFor="period-select" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                {trendPeriod === "daily" ? "Selected Day" :
-                  trendPeriod === "weekly" ? "Selected Week" :
-                    trendPeriod === "monthly" ? "Selected Month" :
-                      trendPeriod === "termly" ? "Selected Term" : "Selected Period"}
-              </Label>
-              <div className="transition-all duration-500 ease-in-out">
-                {trendPeriod === "daily" ? (
-                  <Select value={startDate || ''} onValueChange={(value) => {
-                    if (value) {
-                      setStartDate(value);
-                      setEndDate(value);
+            {trendPeriod === "daily" ? (
+              <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
+                <SelectTrigger className="h-[34px] w-[132px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {(() => {
+                    const days = [];
+                    const today = new Date();
+                    for (let i = -30; i <= 7; i++) {
+                      const date = new Date(today); date.setDate(today.getDate() + i);
+                      const value = format(date, "yyyy-MM-dd");
+                      const label = format(date, "EEE, MMM dd");
+                      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                      days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500" : ""}>{label}</span></SelectItem>);
                     }
-                  }}>
-                    <SelectTrigger
-                      id="period-select"
-                      className="h-8 w-[140px] sm:w-[170px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                    >
-                      <SelectValue placeholder="Select day" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                      {(() => {
-                        const days = [];
-                        const today = new Date();
-                        for (let i = -30; i <= 7; i++) {
-                          const date = new Date(today);
-                          date.setDate(today.getDate() + i);
-                          const value = format(date, "yyyy-MM-dd");
-                          const label = format(date, "EEEE, MMM dd, yyyy");
-                          const dayOfWeek = date.getDay();
-                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                          days.push(
-                            <SelectItem key={value} value={value} className="rounded-lg text-sm">
-                              <span className={isWeekend ? "text-gray-500" : ""}>{label}</span>
-                            </SelectItem>
-                          );
-                        }
-                        return days;
-                      })()}
-                    </SelectContent>
-                  </Select>
-                ) : trendPeriod === "weekly" ? (
-                  <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(value) => {
-                    if (value) {
-                      const [start, end] = value.split('_');
-                      setStartDate(start);
-                      setEndDate(end);
+                    return days;
+                  })()}
+                </SelectContent>
+              </Select>
+            ) : trendPeriod === "weekly" ? (
+              <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
+                <SelectTrigger className="h-[34px] w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                  <SelectValue placeholder="Select week" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {(() => {
+                    const weeks = [];
+                    const today = new Date();
+                    for (let i = -8; i <= 4; i++) {
+                      const weekStart = startOfWeek(subDays(today, i * 7), { weekStartsOn: 1 });
+                      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                      const value = `${format(weekStart, "yyyy-MM-dd")}_${format(weekEnd, "yyyy-MM-dd")}`;
+                      weeks.push(<SelectItem key={value} value={value} className="rounded-lg text-sm">{format(weekStart, "MMM dd")} - {format(weekEnd, "MMM dd")}</SelectItem>);
                     }
-                  }}>
-                    <SelectTrigger
-                      id="period-select"
-                      className="h-8 w-[140px] sm:w-[170px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                    >
-                      <SelectValue placeholder="Select week" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                      {(() => {
-                        const weeks = [];
-                        const today = new Date();
-                        for (let i = -8; i <= 4; i++) {
-                          const weekStart = startOfWeek(subDays(today, i * 7), { weekStartsOn: 1 });
-                          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-                          const value = `${format(weekStart, "yyyy-MM-dd")}_${format(weekEnd, "yyyy-MM-dd")}`;
-                          const label = `Week of ${format(weekStart, "MMM dd")} - ${format(weekEnd, "MMM dd, yyyy")}`;
-                          weeks.push(
-                            <SelectItem key={value} value={value} className="rounded-lg text-sm">
-                              <span>{label}</span>
-                            </SelectItem>
-                          );
-                        }
-                        return weeks;
-                      })()}
-                    </SelectContent>
-                  </Select>
-                ) : trendPeriod === "monthly" ? (
-                  <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(value) => {
-                    if (value) {
-                      const [year, month] = value.split('-');
-                      const monthStart = new Date(parseInt(year), parseInt(month) - 1, 1);
-                      const monthEnd = new Date(parseInt(year), parseInt(month), 0);
-                      setStartDate(format(monthStart, "yyyy-MM-dd"));
-                      setEndDate(format(monthEnd, "yyyy-MM-dd"));
-                    }
-                  }}>
-                    <SelectTrigger
-                      id="period-select"
-                      className="h-8 w-[140px] sm:w-[170px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                    >
-                      <SelectValue placeholder="Select month" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                      {(() => {
-                        const months = [];
-                        const today = new Date();
-                        for (let i = -12; i <= 3; i++) {
-                          const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-                          const value = format(date, "yyyy-MM");
-                          const label = format(date, "MMMM yyyy");
-                          months.push(
-                            <SelectItem key={value} value={value} className="rounded-lg text-sm">
-                              <span>{label}</span>
-                            </SelectItem>
-                          );
-                        }
-                        return months;
-                      })()}
-                    </SelectContent>
-                  </Select>
-                ) : trendPeriod === "termly" ? (
-                  <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                    <SelectTrigger
-                      id="period-select"
-                      className="h-8 w-[140px] sm:w-[170px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                    >
-                      <SelectValue placeholder="Select term" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                      <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
-                      {academicYears?.map((academicYear) => (
-                        <React.Fragment key={academicYear.id}>
-                          <div className="px-2 py-1 text-sm font-medium text-gray-500 bg-gray-50 dark:bg-gray-800">
-                            {academicYear.name}
-                          </div>
-                          {academicYear.terms?.map((term) => (
-                            <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">
-                              <span>{term.name}</span>
-                            </SelectItem>
-                          ))}
-                        </React.Fragment>
-                      )) || []}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                    <SelectTrigger
-                      id="period-select"
-                      className="h-8 w-[140px] sm:w-[170px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                    >
-                      <SelectValue placeholder="Select period" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                      <SelectItem value="_all_" className="rounded-lg text-sm">All periods</SelectItem>
-                      {academicYears?.map((academicYear) => (
-                        <React.Fragment key={academicYear.id}>
-                          <div className="px-2 py-1 text-sm font-medium text-gray-500 bg-gray-50 dark:bg-gray-800">
-                            {academicYear.name}
-                          </div>
-                          {academicYear.terms?.map((term) => (
-                            <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">
-                              <span>{term.name}</span>
-                            </SelectItem>
-                          ))}
-                        </React.Fragment>
-                      )) || []}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-
-
-
-            {/* Class Selector (hide when daily view + school report type) */}
-            {!(trendPeriod === "daily" && reportType === "school") && (
-              <div className="group">
-                <Label htmlFor="class-select-header" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                  Class Filter
-                </Label>
-                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger
-                    id="class-select-header"
-                    className="h-8 w-[110px] sm:w-[140px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                  >
-                    <SelectValue placeholder="All classes" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
-                    <SelectItem value="_all_" className="rounded-lg text-sm">All Classes</SelectItem>
-                    {allClasses?.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id} className="rounded-lg text-sm">
-                        {cls.code}
+                    return weeks;
+                  })()}
+                </SelectContent>
+              </Select>
+            ) : trendPeriod === "monthly" ? (
+              <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
+                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {(() => { const months = []; const today = new Date(); for (let i = -12; i <= 3; i++) { const date = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(<SelectItem key={format(date, "yyyy-MM")} value={format(date, "yyyy-MM")} className="rounded-lg text-sm">{format(date, "MMM yyyy")}</SelectItem>); } return months; })()}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                  <SelectValue placeholder="Term" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
+                  {academicYears?.map((academicYear) => (
+                    <React.Fragment key={academicYear.id}>
+                      <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">{academicYear.name}</div>
+                      {academicYear.terms?.map((term) => (
+                        <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">{term.name}</SelectItem>
+                      ))}
+                    </React.Fragment>
+                  )) || []}
+                </SelectContent>
+              </Select>
+            )}
+          </>
+        }
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Print"
+              tone="blue"
+              icon={<Printer className="h-4 w-4" />}
+              onClick={() => setIsPrintModalOpen(true)}
+              aria-label="Print PDF"
+            />
+          </GlassActionDock>
+        }
+        actionsClassName="hidden lg:flex"
+        below={
+          <div className="space-y-2">
+            <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
+              <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
+                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {academicYears?.map((year) => {
+                    const isCurrent = year.id === currentAcademicYearId;
+                    const today = new Date();
+                    const yearEnd = new Date(year.endDate);
+                    const hasEnded = today > yearEnd;
+                    let label = '';
+                    if (year.isLocked) label = ' (Locked)';
+                    else if (!hasEnded) label = ' (Upcoming)';
+                    return (
+                      <SelectItem key={year.id} value={year.id} className="rounded-lg text-sm">
+                        {year.name}{label}
                       </SelectItem>
+                    );
+                  }) || []}
+                </SelectContent>
+              </Select>
+
+              <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+                <SelectTrigger className="h-[30px] w-[74px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="class" className="rounded-lg text-sm">Class</SelectItem>
+                  <SelectItem value="pupil" className="rounded-lg text-sm">Pupil</SelectItem>
+                  {trendPeriod === "daily" && (
+                    <SelectItem value="school" className="rounded-lg text-sm">School</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+
+              <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
+                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                  <SelectValue placeholder="Range" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="day" className="rounded-lg text-sm">Today</SelectItem>
+                  <SelectItem value="week" className="rounded-lg text-sm">Week</SelectItem>
+                  <SelectItem value="month" className="rounded-lg text-sm">Month</SelectItem>
+                  <SelectItem value="term" className="rounded-lg text-sm">Term</SelectItem>
+                  <SelectItem value="year" className="rounded-lg text-sm">Year</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {startDate && (
+                <div className="flex h-[34px] items-center gap-0.5 rounded-full border border-blue-200/60 bg-white/90 px-1 shadow-sm lg:hidden">
+                  <button
+                    onClick={() => {
+                      if (!startDate) return;
+                      try {
+                        const currentDate = parseISO(startDate);
+                        if (isNaN(currentDate.getTime())) return;
+                        let newStartDate: Date;
+                        let newEndDate: Date;
+                        switch (trendPeriod) {
+                          case "daily":
+                            newStartDate = new Date(currentDate);
+                            newStartDate.setDate(currentDate.getDate() - 1);
+                            newEndDate = newStartDate;
+                            break;
+                          case "weekly":
+                            const cwS = startOfWeek(currentDate, { weekStartsOn: 1 });
+                            const pvS = new Date(cwS);
+                            pvS.setDate(cwS.getDate() - 7);
+                            newStartDate = pvS;
+                            newEndDate = endOfWeek(pvS, { weekStartsOn: 1 });
+                            break;
+                          case "monthly":
+                            const cm = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                            const pm = new Date(cm);
+                            pm.setMonth(cm.getMonth() - 1);
+                            newStartDate = startOfMonth(pm);
+                            newEndDate = endOfMonth(pm);
+                            break;
+                          case "termly":
+                            if (selectedAcademicYear) {
+                              const ct = selectedAcademicYear.terms.find(t => {
+                                const ts = parseISO(t.startDate);
+                                const te = parseISO(t.endDate);
+                                return currentDate >= ts && currentDate <= te;
+                              });
+                              if (ct) {
+                                const ci = selectedAcademicYear.terms.findIndex(t => t.id === ct.id);
+                                const pt = selectedAcademicYear.terms[ci - 1];
+                                if (pt) { setSelectedTermId(pt.id); newStartDate = parseISO(pt.startDate); newEndDate = parseISO(pt.endDate); }
+                                else return;
+                              } else return;
+                            } else return;
+                            break;
+                          default: return;
+                        }
+                        setStartDate(format(newStartDate, "yyyy-MM-dd"));
+                        setEndDate(format(newEndDate, "yyyy-MM-dd"));
+                      } catch (e) { console.warn(e); }
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                    type="button"
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      let newStartDate: Date;
+                      let newEndDate: Date;
+                      switch (trendPeriod) {
+                        case "daily": newStartDate = today; newEndDate = today; break;
+                        case "weekly":
+                          newStartDate = startOfWeek(today, { weekStartsOn: 1 });
+                          newEndDate = endOfWeek(today, { weekStartsOn: 1 });
+                          break;
+                        case "monthly":
+                          newStartDate = startOfMonth(today);
+                          newEndDate = endOfMonth(today);
+                          break;
+                        case "termly":
+                          if (selectedAcademicYear) {
+                            const ct = selectedAcademicYear.terms.find(t => {
+                              const ts = parseISO(t.startDate);
+                              const te = parseISO(t.endDate);
+                              return today >= ts && today <= te;
+                            });
+                            if (ct) { setSelectedTermId(ct.id); newStartDate = parseISO(ct.startDate); newEndDate = parseISO(ct.endDate); }
+                            else return;
+                          } else return;
+                          break;
+                        default: return;
+                      }
+                      setStartDate(format(newStartDate, "yyyy-MM-dd"));
+                      setEndDate(format(newEndDate, "yyyy-MM-dd"));
+                    }}
+                    className="h-7 px-2 text-[10px] font-semibold text-gray-700 transition-all hover:text-blue-700"
+                    type="button"
+                  >
+                    {(() => {
+                      if (!startDate) return "Now";
+                      try {
+                        const d = parseISO(startDate);
+                        const today = new Date();
+                        switch (trendPeriod) {
+                          case "daily":
+                            if (format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")) return "Today";
+                            const yest = new Date(today); yest.setDate(today.getDate() - 1);
+                            if (format(d, "yyyy-MM-dd") === format(yest, "yyyy-MM-dd")) return "Yesterday";
+                            return format(d, "MMM dd");
+                          case "weekly":
+                            const cws = startOfWeek(d, { weekStartsOn: 1 });
+                            const tws = startOfWeek(today, { weekStartsOn: 1 });
+                            if (format(cws, "yyyy-MM-dd") === format(tws, "yyyy-MM-dd")) return "This Week";
+                            return `Wk ${format(cws, "MMM dd")}`;
+                          case "monthly":
+                            if (d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) return "This Month";
+                            return format(d, "MMM yyyy");
+                          case "termly":
+                            if (selectedAcademicYear) {
+                              const vt = selectedAcademicYear.terms.find(t => d >= parseISO(t.startDate) && d <= parseISO(t.endDate));
+                              return vt ? vt.name : "Term";
+                            }
+                            return "Term";
+                          default: return "Period";
+                        }
+                      } catch { return "Now"; }
+                    })()}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (!startDate) return;
+                      try {
+                        const currentDate = parseISO(startDate);
+                        if (isNaN(currentDate.getTime())) return;
+                        let newStartDate: Date;
+                        let newEndDate: Date;
+                        switch (trendPeriod) {
+                          case "daily":
+                            newStartDate = new Date(currentDate);
+                            newStartDate.setDate(currentDate.getDate() + 1);
+                            newEndDate = newStartDate;
+                            break;
+                          case "weekly":
+                            const cwS = startOfWeek(currentDate, { weekStartsOn: 1 });
+                            const nwS = new Date(cwS);
+                            nwS.setDate(cwS.getDate() + 7);
+                            newStartDate = nwS;
+                            newEndDate = endOfWeek(nwS, { weekStartsOn: 1 });
+                            break;
+                          case "monthly":
+                            const cm = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                            const nm = new Date(cm);
+                            nm.setMonth(cm.getMonth() + 1);
+                            newStartDate = startOfMonth(nm);
+                            newEndDate = endOfMonth(nm);
+                            break;
+                          case "termly":
+                            if (selectedAcademicYear) {
+                              const ct = selectedAcademicYear.terms.find(t => {
+                                const ts = parseISO(t.startDate);
+                                const te = parseISO(t.endDate);
+                                return currentDate >= ts && currentDate <= te;
+                              });
+                              if (ct) {
+                                const ci = selectedAcademicYear.terms.findIndex(t => t.id === ct.id);
+                                const nt = selectedAcademicYear.terms[ci + 1];
+                                if (nt) { setSelectedTermId(nt.id); newStartDate = parseISO(nt.startDate); newEndDate = parseISO(nt.endDate); }
+                                else return;
+                              } else return;
+                            } else return;
+                            break;
+                          default: return;
+                        }
+                        setStartDate(format(newStartDate, "yyyy-MM-dd"));
+                        setEndDate(format(newEndDate, "yyyy-MM-dd"));
+                      } catch (e) { console.warn(e); }
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-600 transition-all hover:bg-blue-50 hover:text-blue-700"
+                    type="button"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
+              {trendPeriod === "daily" ? (
+                <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
+                <SelectTrigger className="h-[30px] w-[112px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {(() => {
+                      const days = [];
+                      const today = new Date();
+                      for (let i = -30; i <= 7; i++) {
+                        const date = new Date(today); date.setDate(today.getDate() + i);
+                        const value = format(date, "yyyy-MM-dd");
+                        const label = format(date, "EEE, MMM dd");
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                        days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500" : ""}>{label}</span></SelectItem>);
+                      }
+                      return days;
+                    })()}
+                  </SelectContent>
+                </Select>
+              ) : trendPeriod === "weekly" ? (
+                <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
+                <SelectTrigger className="h-[30px] w-[122px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                    <SelectValue placeholder="Select week" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {(() => {
+                      const weeks = [];
+                      const today = new Date();
+                      for (let i = -8; i <= 4; i++) {
+                        const weekStart = startOfWeek(subDays(today, i * 7), { weekStartsOn: 1 });
+                        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                        const value = `${format(weekStart, "yyyy-MM-dd")}_${format(weekEnd, "yyyy-MM-dd")}`;
+                        weeks.push(<SelectItem key={value} value={value} className="rounded-lg text-sm">{format(weekStart, "MMM dd")} - {format(weekEnd, "MMM dd")}</SelectItem>);
+                      }
+                      return weeks;
+                    })()}
+                  </SelectContent>
+                </Select>
+              ) : trendPeriod === "monthly" ? (
+                <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
+                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {(() => { const months = []; const today = new Date(); for (let i = -12; i <= 3; i++) { const date = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(<SelectItem key={format(date, "yyyy-MM")} value={format(date, "yyyy-MM")} className="rounded-lg text-sm">{format(date, "MMM yyyy")}</SelectItem>); } return months; })()}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                    <SelectValue placeholder="Term" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
+                    {academicYears?.map((academicYear) => (
+                      <React.Fragment key={academicYear.id}>
+                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">{academicYear.name}</div>
+                        {academicYear.terms?.map((term) => (
+                          <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">{term.name}</SelectItem>
+                        ))}
+                      </React.Fragment>
                     )) || []}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              )}
 
-            {/* Start Date */}
-            <div className="group">
-              <Label htmlFor="start-date-header" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                Start Date
-              </Label>
-              <DatePicker
-                date={startDate ? (() => { try { const d = new Date(startDate); return isNaN(d.getTime()) ? undefined : d; } catch { return undefined; } })() : undefined}
-                setDate={(d) => setStartDate(d ? format(d, 'yyyy-MM-dd') : '')}
-                placeholder="Start date"
-              />
-            </div>
-
-            {/* End Date */}
-            <div className="group">
-              <Label htmlFor="end-date-header" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                End Date
-              </Label>
-              <DatePicker
-                date={endDate ? (() => { try { const d = new Date(endDate); return isNaN(d.getTime()) ? undefined : d; } catch { return undefined; } })() : undefined}
-                setDate={(d) => setEndDate(d ? format(d, 'yyyy-MM-dd') : '')}
-                placeholder="End date"
-              />
-            </div>
-
-            {/* Pupil Selector (only for pupil report type) */}
-            {reportType === "pupil" && (
-              <div className="group">
-                <Label htmlFor="pupil-select-header" className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
-                  Select Pupil
-                </Label>
-                <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
-                  <SelectTrigger
-                    id="pupil-select-header"
-                    className="h-8 w-[140px] sm:w-[170px] bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 hover:shadow-sm group-hover:scale-[1.02] rounded-full text-sm [&>svg]:hidden"
-                  >
-                    <SelectValue placeholder="Select pupil" />
+              {!(trendPeriod === "daily" && reportType === "school") && (
+                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                  <SelectTrigger className="h-[34px] w-[110px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                    <SelectValue placeholder="Class" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-gray-200 dark:border-gray-600">
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="_all_" className="rounded-lg text-sm">All Classes</SelectItem>
+                    {allClasses?.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id} className="rounded-lg text-sm">{cls.code}</SelectItem>
+                    )) || []}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {reportType === "pupil" && (
+                <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
+                  <SelectTrigger className="h-[34px] w-[150px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                    <SelectValue placeholder="Pupil" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
                     {allPupils
                       ?.filter(p => {
                         if (selectedClassId && selectedClassId !== "_all_" && p.classId !== selectedClassId) return false;
-                        if (startDate && endDate) {
-                          return wasPupilActiveInDateRange(p, startDate, endDate);
-                        }
+                        if (startDate && endDate) return wasPupilActiveInDateRange(p, startDate, endDate);
                         return true;
                       })
                       ?.sort((a, b) => {
-                        const nameA = `${a.lastName || ''} ${a.firstName || ''} ${a.otherNames || ''}`.trim().toLowerCase();
-                        const nameB = `${b.lastName || ''} ${b.firstName || ''} ${b.otherNames || ''}`.trim().toLowerCase();
+                        const nameA = `${a.lastName || ''} ${a.firstName || ''}`.trim().toLowerCase();
+                        const nameB = `${b.lastName || ''} ${b.firstName || ''}`.trim().toLowerCase();
                         return nameA.localeCompare(nameB);
                       })
                       ?.map((pupil) => (
                         <SelectItem key={pupil.id} value={pupil.id} className="rounded-lg text-sm">
-                          {pupil.lastName} {pupil.firstName} ({pupil.admissionNumber})
+                          {pupil.lastName} {pupil.firstName}
                         </SelectItem>
                       )) || []}
                   </SelectContent>
                 </Select>
+              )}
+            </div>
+
+            {(dateRangeValidation.warning || !selectedAcademicYear) && (
+              <div className="flex flex-col gap-1">
+                {dateRangeValidation.warning && (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50/80 px-2.5 py-1 text-[10px] text-amber-700 sm:text-xs">
+                    <Info className="h-3 w-3 flex-shrink-0" />
+                    <span>{dateRangeValidation.warning}</span>
+                  </div>
+                )}
+                {!selectedAcademicYear && (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-yellow-200 bg-yellow-50/80 px-2.5 py-1 text-[10px] text-yellow-700 sm:text-xs">
+                    <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                    <span>Select an academic year for accurate analysis.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        }
+      />
+
+      {/* School Summary - Compact Version */}
+      {reportType === "school" && trendPeriod === "daily" && schoolAttendanceData.length > 0 && (
+        <GlassSummaryBar
+          left={
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
+                School Attendance - {startDate ? format(parseISO(startDate), "MMM dd, yyyy") : "Select Date"}
+              </span>
+              <span className="text-xs text-gray-300 font-medium">•</span>
+              <span className="text-[10px] sm:text-xs font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20 px-2 py-0.5 rounded-full border border-green-100/80 whitespace-nowrap">
+                {(() => {
+                  const totalPresent = schoolAttendanceData.reduce((sum, cls) => sum + cls.present + cls.late, 0);
+                  const totalPupils = schoolAttendanceData.reduce((sum, cls) => sum + cls.totalPupils, 0);
+                  return totalPupils > 0 ? ((totalPresent / totalPupils) * 100).toFixed(1) : '0';
+                })()}% Rate
+              </span>
+            </div>
+          }
+          right={
+            <>
+              <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-green-600 dark:text-green-400">
+                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.present, 0)}
+                </span>
+                <span className="text-green-700/85 dark:text-green-300 font-medium">Present</span>
+              </div>
+              <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-red-600 dark:text-red-400">
+                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.absent, 0)}
+                </span>
+                <span className="text-red-700/85 dark:text-red-300 font-medium">Absent</span>
+              </div>
+              <div className="flex items-center gap-1 bg-yellow-50/80 dark:bg-yellow-950/20 border border-yellow-100/50 dark:border-yellow-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-yellow-600 dark:text-yellow-400">
+                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.late, 0)}
+                </span>
+                <span className="text-yellow-700/85 dark:text-green-300 font-medium">Late</span>
+              </div>
+              <div className="flex items-center gap-1 bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-blue-600 dark:text-blue-400">
+                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.excused, 0)}
+                </span>
+                <span className="text-blue-700/85 dark:text-blue-300 font-medium">Excused</span>
+              </div>
+              <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-purple-600 dark:text-purple-400">
+                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.delayed, 0)}
+                </span>
+                <span className="text-purple-700/85 dark:text-purple-300 font-medium">Delayed</span>
+              </div>
+              <div className="flex items-center gap-1 bg-gray-50/80 dark:bg-gray-800/30 border border-gray-100/50 dark:border-gray-700/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
+                <span className="font-bold text-gray-600 dark:text-gray-400">
+                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.notRecorded, 0)}
+                </span>
+                <span className="text-gray-700/85 dark:text-gray-300 font-medium">Not Recorded</span>
+              </div>
+            </>
+          }
+        />
+      )}
+
+      {/* Unified frosted-glass sticky header */}
+      {false && (
+      <div className="hidden">
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+        <div className="max-w-7xl mx-auto py-1">
+          {/* Wrapped row of controls on small screens */}
+          <div className="flex flex-row flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 w-full">
+
+            {/* Back button */}
+            <SmartBackButton
+              fallbackHref="/attendance"
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-50/80 border border-blue-200/60 text-blue-600 shadow-sm flex-shrink-0 hover:bg-blue-100 transition-colors"
+              title="Back to Attendance Hub"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </SmartBackButton>
+
+            {/* Title */}
+            <h1 className="text-xs sm:text-sm font-bold text-indigo-900 leading-tight flex-shrink-0 mr-1">
+              Attendance
+            </h1>
+
+            <span className="text-gray-300 flex-shrink-0">|</span>
+
+            {/* Academic Year */}
+            <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
+              <SelectTrigger className="h-7 w-[90px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {academicYears?.map((year) => {
+                  const isCurrent = year.id === currentAcademicYearId;
+                  const today = new Date();
+                  const yearEnd = new Date(year.endDate);
+                  const hasEnded = today > yearEnd;
+                  let label = '';
+                  if (isCurrent) label = ' (Current)';
+                  else if (year.isLocked) label = ' (Locked)';
+                  else if (!hasEnded) label = ' (Upcoming)';
+                  return (
+                    <SelectItem key={year.id} value={year.id} className="rounded-lg text-sm">
+                      {year.name}{label}
+                    </SelectItem>
+                  );
+                }) || []}
+              </SelectContent>
+            </Select>
+
+            {/* Report Type */}
+            <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
+              <SelectTrigger className="h-7 w-[80px] sm:w-[100px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="class" className="rounded-lg text-sm">Class</SelectItem>
+                <SelectItem value="pupil" className="rounded-lg text-sm">Pupil</SelectItem>
+                {trendPeriod === "daily" && (
+                  <SelectItem value="school" className="rounded-lg text-sm">School</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+
+            {/* Quick Range */}
+            <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
+              <SelectTrigger className="h-7 w-[75px] sm:w-[90px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                <div className="flex items-center gap-1">
+                  <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse flex-shrink-0" />
+                  <SelectValue placeholder="Range" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="day" className="rounded-lg text-sm">Today</SelectItem>
+                <SelectItem value="week" className="rounded-lg text-sm">Week</SelectItem>
+                <SelectItem value="month" className="rounded-lg text-sm">Month</SelectItem>
+                <SelectItem value="term" className="rounded-lg text-sm">Term</SelectItem>
+                <SelectItem value="year" className="rounded-lg text-sm">Year</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Period Navigator */}
+            {startDate && (
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                <button
+                  onClick={() => {
+                    if (!startDate) return;
+                    try {
+                      const currentDate = parseISO(startDate);
+                      if (isNaN(currentDate.getTime())) return;
+                      let newStartDate: Date;
+                      let newEndDate: Date;
+                      switch (trendPeriod) {
+                        case "daily":
+                          newStartDate = new Date(currentDate);
+                          newStartDate.setDate(currentDate.getDate() - 1);
+                          newEndDate = newStartDate;
+                          break;
+                        case "weekly":
+                          const cwS = startOfWeek(currentDate, { weekStartsOn: 1 });
+                          const pvS = new Date(cwS);
+                          pvS.setDate(cwS.getDate() - 7);
+                          newStartDate = pvS;
+                          newEndDate = endOfWeek(pvS, { weekStartsOn: 1 });
+                          break;
+                        case "monthly":
+                          const cm = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                          const pm = new Date(cm);
+                          pm.setMonth(cm.getMonth() - 1);
+                          newStartDate = startOfMonth(pm);
+                          newEndDate = endOfMonth(pm);
+                          break;
+                        case "termly":
+                          if (selectedAcademicYear) {
+                            const ct = selectedAcademicYear.terms.find(t => {
+                              const ts = parseISO(t.startDate);
+                              const te = parseISO(t.endDate);
+                              return currentDate >= ts && currentDate <= te;
+                            });
+                            if (ct) {
+                              const ci = selectedAcademicYear.terms.findIndex(t => t.id === ct.id);
+                              const pt = selectedAcademicYear.terms[ci - 1];
+                              if (pt) { setSelectedTermId(pt.id); newStartDate = parseISO(pt.startDate); newEndDate = parseISO(pt.endDate); }
+                              else return;
+                            } else return;
+                          } else return;
+                          break;
+                        default: return;
+                      }
+                      setStartDate(format(newStartDate, "yyyy-MM-dd"));
+                      setEndDate(format(newEndDate, "yyyy-MM-dd"));
+                    } catch (e) { console.warn(e); }
+                  }}
+                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600"
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    let newStartDate: Date;
+                    let newEndDate: Date;
+                    switch (trendPeriod) {
+                      case "daily": newStartDate = today; newEndDate = today; break;
+                      case "weekly":
+                        newStartDate = startOfWeek(today, { weekStartsOn: 1 });
+                        newEndDate = endOfWeek(today, { weekStartsOn: 1 });
+                        break;
+                      case "monthly":
+                        newStartDate = startOfMonth(today);
+                        newEndDate = endOfMonth(today);
+                        break;
+                      case "termly":
+                        if (selectedAcademicYear) {
+                          const ct = selectedAcademicYear.terms.find(t => {
+                            const ts = parseISO(t.startDate);
+                            const te = parseISO(t.endDate);
+                            return today >= ts && today <= te;
+                          });
+                          if (ct) { setSelectedTermId(ct.id); newStartDate = parseISO(ct.startDate); newEndDate = parseISO(ct.endDate); }
+                          else return;
+                        } else return;
+                        break;
+                      default: return;
+                    }
+                    setStartDate(format(newStartDate, "yyyy-MM-dd"));
+                    setEndDate(format(newEndDate, "yyyy-MM-dd"));
+                  }}
+                  className="h-6 sm:h-7 px-2 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-[9px] sm:text-[10px] font-medium text-gray-700 whitespace-nowrap"
+                >
+                  {(() => {
+                    if (!startDate) return "Now";
+                    try {
+                      const d = parseISO(startDate);
+                      const today = new Date();
+                      switch (trendPeriod) {
+                        case "daily":
+                          if (format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")) return "Today";
+                          const yest = new Date(today); yest.setDate(today.getDate() - 1);
+                          if (format(d, "yyyy-MM-dd") === format(yest, "yyyy-MM-dd")) return "Yesterday";
+                          return format(d, "MMM dd");
+                        case "weekly":
+                          const cws = startOfWeek(d, { weekStartsOn: 1 });
+                          const tws = startOfWeek(today, { weekStartsOn: 1 });
+                          if (format(cws, "yyyy-MM-dd") === format(tws, "yyyy-MM-dd")) return "This Week";
+                          return `Wk ${format(cws, "MMM dd")}`;
+                        case "monthly":
+                          if (d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) return "This Month";
+                          return format(d, "MMM yyyy");
+                        case "termly":
+                          if (selectedAcademicYear) {
+                            const vt = selectedAcademicYear?.terms.find(t => d >= parseISO(t.startDate) && d <= parseISO(t.endDate));
+                            return vt?.name || "Term";
+                          }
+                          return "Term";
+                        default: return "Period";
+                      }
+                    } catch { return "Now"; }
+                  })()}
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (!startDate) return;
+                    try {
+                      const currentDate = parseISO(startDate);
+                      if (isNaN(currentDate.getTime())) return;
+                      let newStartDate: Date;
+                      let newEndDate: Date;
+                      switch (trendPeriod) {
+                        case "daily":
+                          newStartDate = new Date(currentDate);
+                          newStartDate.setDate(currentDate.getDate() + 1);
+                          newEndDate = newStartDate;
+                          break;
+                        case "weekly":
+                          const cwS = startOfWeek(currentDate, { weekStartsOn: 1 });
+                          const nwS = new Date(cwS);
+                          nwS.setDate(cwS.getDate() + 7);
+                          newStartDate = nwS;
+                          newEndDate = endOfWeek(nwS, { weekStartsOn: 1 });
+                          break;
+                        case "monthly":
+                          const cm = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                          const nm = new Date(cm);
+                          nm.setMonth(cm.getMonth() + 1);
+                          newStartDate = startOfMonth(nm);
+                          newEndDate = endOfMonth(nm);
+                          break;
+                        case "termly":
+                          if (selectedAcademicYear) {
+                            const ct = selectedAcademicYear.terms.find(t => {
+                              const ts = parseISO(t.startDate);
+                              const te = parseISO(t.endDate);
+                              return currentDate >= ts && currentDate <= te;
+                            });
+                            if (ct) {
+                              const ci = selectedAcademicYear.terms.findIndex(t => t.id === ct.id);
+                              const nt = selectedAcademicYear.terms[ci + 1];
+                              if (nt) { setSelectedTermId(nt.id); newStartDate = parseISO(nt.startDate); newEndDate = parseISO(nt.endDate); }
+                              else return;
+                            } else return;
+                          } else return;
+                          break;
+                        default: return;
+                      }
+                      setStartDate(format(newStartDate, "yyyy-MM-dd"));
+                      setEndDate(format(newEndDate, "yyyy-MM-dd"));
+                    } catch (e) { console.warn(e); }
+                  }}
+                  className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all text-gray-600"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </button>
               </div>
             )}
 
+            {/* Period Selector (day / week / month / term) */}
+            <div className="flex-shrink-0">
+              {trendPeriod === "daily" ? (
+                <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
+                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {(() => {
+                      const days = [];
+                      const today = new Date();
+                      for (let i = -30; i <= 7; i++) {
+                        const date = new Date(today); date.setDate(today.getDate() + i);
+                        const value = format(date, "yyyy-MM-dd");
+                        const label = format(date, "EEE, MMM dd");
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                        days.push(<SelectItem key={value} value={value} className="rounded-lg text-sm"><span className={isWeekend ? "text-gray-500" : ""}>{label}</span></SelectItem>);
+                      }
+                      return days;
+                    })()}
+                  </SelectContent>
+                </Select>
+              ) : trendPeriod === "weekly" ? (
+                <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
+                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                    <SelectValue placeholder="Select week" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {(() => {
+                      const weeks = [];
+                      const today = new Date();
+                      for (let i = -8; i <= 4; i++) {
+                        const weekStart = startOfWeek(subDays(today, i * 7), { weekStartsOn: 1 });
+                        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                        const value = `${format(weekStart, "yyyy-MM-dd")}_${format(weekEnd, "yyyy-MM-dd")}`;
+                        weeks.push(<SelectItem key={value} value={value} className="rounded-lg text-sm">{format(weekStart, "MMM dd")} – {format(weekEnd, "MMM dd")}</SelectItem>);
+                      }
+                      return weeks;
+                    })()}
+                  </SelectContent>
+                </Select>
+              ) : trendPeriod === "monthly" ? (
+                <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
+                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {(() => { const months = []; const today = new Date(); for (let i = -12; i <= 3; i++) { const date = new Date(today.getFullYear(), today.getMonth() + i, 1); months.push(<SelectItem key={format(date, "yyyy-MM")} value={format(date, "yyyy-MM")} className="rounded-lg text-sm">{format(date, "MMM yyyy")}</SelectItem>); } return months; })()}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                    <SelectValue placeholder="Term" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="_all_" className="rounded-lg text-sm">All terms</SelectItem>
+                    {academicYears?.map((academicYear) => (
+                      <React.Fragment key={academicYear.id}>
+                        <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-50">{academicYear.name}</div>
+                        {academicYear.terms?.map((term) => (
+                          <SelectItem key={term.id} value={term.id} className="rounded-lg text-sm">{term.name}</SelectItem>
+                        ))}
+                      </React.Fragment>
+                    )) || []}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Class Selector */}
+            {!(trendPeriod === "daily" && reportType === "school") && (
+              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                <SelectTrigger className="h-7 w-[80px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                  <SelectValue placeholder="Class" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="_all_" className="rounded-lg text-sm">All Classes</SelectItem>
+                  {allClasses?.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id} className="rounded-lg text-sm">{cls.code}</SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Pupil Selector */}
+            {reportType === "pupil" && (
+              <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
+                <SelectTrigger className="h-7 w-[120px] sm:w-[150px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                  <SelectValue placeholder="Pupil" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {allPupils
+                    ?.filter(p => {
+                      if (selectedClassId && selectedClassId !== "_all_" && p.classId !== selectedClassId) return false;
+                      if (startDate && endDate) return wasPupilActiveInDateRange(p, startDate, endDate);
+                      return true;
+                    })
+                    ?.sort((a, b) => {
+                      const nameA = `${a.lastName || ''} ${a.firstName || ''}`.trim().toLowerCase();
+                      const nameB = `${b.lastName || ''} ${b.firstName || ''}`.trim().toLowerCase();
+                      return nameA.localeCompare(nameB);
+                    })
+                    ?.map((pupil) => (
+                      <SelectItem key={pupil.id} value={pupil.id} className="rounded-lg text-sm">
+                        {pupil.lastName} {pupil.firstName}
+                      </SelectItem>
+                    )) || []}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Print Button */}
+            <button
+              onClick={() => setIsPrintModalOpen(true)}
+              className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 border border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all flex-shrink-0 text-blue-600"
+              title="Print PDF"
+            >
+              <Printer className="h-3.5 w-3.5" />
+            </button>
+
           </div>
 
-
-
-          {/* Alerts */}
-          {dateRangeValidation.warning && (
-            <Alert className="mt-4 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
-              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
-                {dateRangeValidation.warning}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {!selectedAcademicYear && (
-            <Alert className="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                Please select an academic year for accurate attendance analysis.
-                Without an academic year, the system cannot properly exclude holidays and non-school days.
-              </AlertDescription>
-            </Alert>
+          {/* Inline alerts */}
+          {(dateRangeValidation.warning || !selectedAcademicYear) && (
+            <div className="mt-2 flex flex-col gap-1">
+              {dateRangeValidation.warning && (
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-amber-700 bg-amber-50/80 border border-amber-200 rounded-lg px-2.5 py-1">
+                  <Info className="h-3 w-3 flex-shrink-0" />
+                  <span>{dateRangeValidation.warning}</span>
+                </div>
+              )}
+              {!selectedAcademicYear && (
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-yellow-700 bg-yellow-50/80 border border-yellow-200 rounded-lg px-2.5 py-1">
+                  <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                  <span>Select an academic year for accurate analysis.</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
+      )}
 
-      <div className="space-y-4 sm:space-y-6">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 pt-4 sm:pt-6 pb-12">
+        <div className="space-y-4 sm:space-y-6">
 
         {/* Analysis Results */}
         <Tabs defaultValue="trends" className="space-y-4">
@@ -2062,29 +2438,22 @@ export default function ViewAttendanceReportsPage() {
 
           <TabsContent value="trends">
             <Card>
-              <CardHeader className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-                  <CardTitle>
-                    {reportType === "school"
-                      ? "School-wide Daily Attendance"
-                      : reportType === "class" && selectedClassId && selectedClassId !== "_all_"
+              {reportType !== "school" && (
+                <CardHeader className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                    <CardTitle>
+                      {reportType === "class" && selectedClassId && selectedClassId !== "_all_"
                         ? `Class Attendance Trends${classPupilTrendData.length > 0 && classPupilTrendData[0].periods.length > 0
                           ? ` - ${classPupilTrendData[0].periods.map(p => p.period).join(", ")}`
                           : ""}`
                         : reportType === "class"
                           ? "Class Attendance Trends"
                           : "Pupil Attendance Trends"
-                    }
-                  </CardTitle>
-                  <Button
-                    onClick={reportType === "pupil" ? exportPupilTrendData : exportTrendData}
-                    className="w-full sm:w-auto"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV
-                  </Button>
-                </div>
-              </CardHeader>
+                      }
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+              )}
               <CardContent className="p-4 sm:p-6">
                 {attendanceLoading ? (
                   <div className="flex items-center justify-center h-32">
@@ -2095,75 +2464,7 @@ export default function ViewAttendanceReportsPage() {
                     {reportType === "school" && trendPeriod === "daily" ? (
                       // School view - show all classes with expandable attendance details
                       <div className="space-y-4">
-                        {/* School Summary - Compact Version */}
-                        {schoolAttendanceData.length > 0 && (
-                          <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-green-900 dark:text-green-100 text-sm">
-                                School Attendance - {startDate ? format(parseISO(startDate), "MMM dd, yyyy") : "Select Date"}
-                              </h4>
-                              <div className="text-sm font-medium text-green-700 dark:text-green-400">
-                                {(() => {
-                                  const totalPresent = schoolAttendanceData.reduce((sum, cls) => sum + cls.present + cls.late, 0);
-                                  const totalPupils = schoolAttendanceData.reduce((sum, cls) => sum + cls.totalPupils, 0);
-                                  return totalPupils > 0 ? ((totalPresent / totalPupils) * 100).toFixed(1) : '0';
-                                })()}% Rate
-                              </div>
-                            </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-2">
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-green-200 dark:border-green-700 text-center">
-                                <div className="text-lg font-bold text-green-700 dark:text-green-400">
-                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.present, 0)}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">Present</div>
-                              </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-red-200 dark:border-red-700 text-center">
-                                <div className="text-lg font-bold text-red-700 dark:text-red-400">
-                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.absent, 0)}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">Absent</div>
-                              </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-yellow-200 dark:border-yellow-700 text-center">
-                                <div className="text-lg font-bold text-yellow-700 dark:text-yellow-400">
-                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.late, 0)}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">Late</div>
-                              </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-blue-200 dark:border-blue-700 text-center">
-                                <div className="text-lg font-bold text-blue-700 dark:text-blue-400">
-                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.excused, 0)}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">Excused</div>
-                              </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-purple-200 dark:border-purple-700 text-center">
-                                <div className="text-lg font-bold text-purple-700 dark:text-purple-400">
-                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.delayed, 0)}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">Delayed</div>
-                              </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700 text-center">
-                                <div className="text-lg font-bold text-gray-700 dark:text-gray-400">
-                                  {schoolAttendanceData.reduce((sum, cls) => sum + cls.notRecorded, 0)}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">Not Recorded</div>
-                              </div>
-                            </div>
-
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                              <div
-                                className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                                style={{
-                                  width: `${(() => {
-                                    const totalPresent = schoolAttendanceData.reduce((sum, cls) => sum + cls.present + cls.late, 0);
-                                    const totalPupils = schoolAttendanceData.reduce((sum, cls) => sum + cls.totalPupils, 0);
-                                    return totalPupils > 0 ? Math.min((totalPresent / totalPupils) * 100, 100) : 0;
-                                  })()}%`
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
 
                         {/* School Attendance Table - Mobile Scrollable */}
                         <div className="overflow-x-auto">
@@ -2237,11 +2538,8 @@ export default function ViewAttendanceReportsPage() {
                                 rows.push(
                                   <TableRow key={classData.classId} className="border-b border-gray-200 dark:border-gray-700">
                                     <TableCell className="font-medium p-2 sm:p-4">
-                                      <div>
-                                        <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
-                                          {classData.className}
-                                        </div>
-                                        <div className="text-xs sm:text-sm text-gray-500">{classData.classCode}</div>
+                                      <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+                                        {classData.classCode}
                                       </div>
                                     </TableCell>
                                     <TableCell className="p-2 sm:p-4">
@@ -3041,6 +3339,7 @@ export default function ViewAttendanceReportsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </div>
       {/* Modals and Overlays */}
       <AttendancePrintModal
         isOpen={isPrintModalOpen}
@@ -3049,6 +3348,7 @@ export default function ViewAttendanceReportsPage() {
           setPrintConfig(config);
           // Let the specific PDF Component call setPrintConfig(null) and setIsPrintModalOpen(false) when done
         }}
+        onExportCSV={reportType === "pupil" ? exportPupilTrendData : exportTrendData}
         classes={allClasses}
         academicYears={academicYears}
         selectedAcademicYearId={selectedAcademicYearId}
@@ -3087,6 +3387,6 @@ export default function ViewAttendanceReportsPage() {
             }}
         />
       )}
-    </>
+    </div>
   );
 } 

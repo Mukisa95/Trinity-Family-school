@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ModernDialog,
   ModernDialogContent,
@@ -20,13 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, CheckCircle, Package } from 'lucide-react';
+import { AlertCircle, CheckCircle, Package, RotateCcw } from 'lucide-react';
 import type { UniformItem, SelectionMode, UniformInventoryItem } from '@/types';
 
 interface CollectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (collectedItems: string[], isFullCollection: boolean, collectionSizes: Record<string, string>) => void;
+  onUnmark?: (uniformId: string, size: string | undefined) => void;
   uniforms: UniformItem[];
   selectionMode: SelectionMode;
   previouslyCollectedItems: string[];
@@ -39,6 +40,7 @@ export function CollectionModal({
   isOpen,
   onClose,
   onSubmit,
+  onUnmark,
   uniforms,
   selectionMode,
   previouslyCollectedItems,
@@ -48,14 +50,23 @@ export function CollectionModal({
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   // Track size selections for collection (may differ from tracking if out of stock)
   const [collectionSizes, setCollectionSizes] = useState<Record<string, string>>({});
+  // Track which previously-collected item the user is confirming an unmark for
+  const [confirmingUnmark, setConfirmingUnmark] = useState<string | null>(null);
 
   // Initialize collection sizes from tracking sizes when modal opens
   useEffect(() => {
     if (isOpen) {
       setCollectionSizes({ ...selectedSizes });
       setSelectedItems([]);
+      setConfirmingUnmark(null);
     }
   }, [isOpen, selectedSizes]);
+
+  const handleUnmark = useCallback((uniformId: string) => {
+    const size = selectedSizes[uniformId];
+    onUnmark?.(uniformId, size);
+    setConfirmingUnmark(null);
+  }, [onUnmark, selectedSizes]);
 
   // Get inventory item for a uniform
   const getInventory = (uniformId: string): UniformInventoryItem | undefined => {
@@ -278,7 +289,7 @@ export function CollectionModal({
               <CardContent>
                 <div className="space-y-2">
                   {collectedUniforms.map((uniform) => (
-                    <div key={uniform.id} className="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <div key={uniform.id} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-100">
                       <div>
                         <div className="font-medium text-sm">{uniform.name}</div>
                         <div className="text-xs text-gray-500">{uniform.group}</div>
@@ -292,6 +303,43 @@ export function CollectionModal({
                         <Badge variant="default" className="bg-green-600">
                           Collected
                         </Badge>
+                        {/* Unmark button — only shown if onUnmark is provided */}
+                        {onUnmark && (
+                          confirmingUnmark === uniform.id ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-amber-700 font-medium">Unmark?</span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="destructive"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => handleUnmark(uniform.id)}
+                              >
+                                Yes
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-6 px-2 text-xs"
+                                onClick={() => setConfirmingUnmark(null)}
+                              >
+                                No
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+                              onClick={() => setConfirmingUnmark(uniform.id)}
+                            >
+                              <RotateCcw className="h-3 w-3 mr-1" />
+                              Unmark
+                            </Button>
+                          )
+                        )}
                       </div>
                     </div>
                   ))}

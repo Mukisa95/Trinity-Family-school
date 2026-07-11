@@ -6,12 +6,14 @@ export type NavItem = {
   icon: LucideIcon;
   disabled?: boolean;
   external?: boolean;
+  section?: string;
 };
 
 export type NavGroup = {
   title: string;
   icon: LucideIcon;
   items: NavItem[];
+  section?: string;
 };
 
 export type NavigationItem = NavItem | NavGroup;
@@ -199,6 +201,14 @@ export interface PupilAssignedFee {
 
   // Status history tracking
   statusHistory?: AssignmentStatusHistory[];
+
+  // Inline custom discount for Close Save
+  inlineDiscount?: {
+    name: string;
+    amount: number; // Stored negative
+    description?: string;
+    linkedFeeIds: string[];
+  };
 }
 
 // Fees Holiday Types
