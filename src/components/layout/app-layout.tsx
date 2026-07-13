@@ -498,14 +498,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             showMenuButton={true}
           />
 
-          {showSwipeHint && (
-            <div className="fixed top-20 left-4 z-40 bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-sm animate-pulse">
-              <div className="flex items-center space-x-2">
-                <span>👆</span>
-                <span>Swipe from left edge to open menu</span>
-              </div>
-            </div>
-          )}
+          {/* Swipe hint removed as per user request */}
 
           <main
             className="px-3 pb-4 pt-0"

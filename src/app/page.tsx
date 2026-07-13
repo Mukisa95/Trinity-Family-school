@@ -176,25 +176,13 @@ const AnimatedDoughnut = ({
 
   return (
     <svg className="absolute inset-0 w-full h-full transform -rotate-90 overflow-visible" viewBox="0 0 36 36">
-      {/* Definitions for 3D Glow and Drop Shadow Effects */}
-      <defs>
-        <filter id="doughnut-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="currentColor" floodOpacity="0.4" />
-        </filter>
-        <filter id="inner-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="0.5" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-      </defs>
-
       {/* Richer Background Track */}
       <path
-        className="text-gray-200/50 dark:text-gray-700/50"
+        className="text-gray-200/50 dark:text-gray-700/50 drop-shadow-sm"
         d="M18 3 a 15 15 0 0 1 0 30 a 15 15 0 0 1 0 -30"
         fill="none"
         stroke="currentColor"
         strokeWidth="4"
-        style={{ filter: 'url(#inner-glow)' }}
       />
       {activeSegments.map((segment, index) => {
         // Calculate the starting offset for this segment
@@ -222,7 +210,7 @@ const AnimatedDoughnut = ({
             }}
             style={{
               strokeDashoffset: -previousTotal,
-              filter: 'url(#doughnut-shadow)'
+              filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.15))'
             }}
           />
         );
@@ -1581,24 +1569,6 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                     <stop offset="70%" stopColor="#EC4899" stopOpacity={1} />
                     <stop offset="100%" stopColor="#DB2777" stopOpacity={0.8} />
                   </linearGradient>
-                  {/* Enhanced 3D shadow filter */}
-                  <filter id="glow3D" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feOffset dx="0" dy="4" result="offsetBlur" />
-                    <feComponentTransfer>
-                      <feFuncA type="linear" slope="0.5" />
-                    </feComponentTransfer>
-                    <feMerge>
-                      <feMergeNode in="offsetBlur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                  {/* Inner glow for depth */}
-                  <filter id="innerGlow">
-                    <feGaussianBlur stdDeviation="1.5" result="blur" />
-                    <feComposite in="blur" in2="SourceAlpha" operator="in" result="innerGlow" />
-                    <feComposite in="SourceGraphic" in2="innerGlow" operator="over" />
-                  </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} opacity={0.3} />
                 <XAxis
@@ -1675,7 +1645,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                   cursor="pointer"
                   animationDuration={1200}
                   animationBegin={200}
-                  style={{ filter: 'url(#glow3D)' }}
+                  className="drop-shadow-sm"
                 />
                 <Bar
                   dataKey="Female"
@@ -1688,7 +1658,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                   animationDuration={1200}
                   animationBegin={200}
                   label={AnimatedBarLabel}
-                  style={{ filter: 'url(#glow3D)' }}
+                  className="drop-shadow-sm"
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -2357,7 +2327,12 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
 // Enhanced Header Component
 const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
-  const [showGreeting, setShowGreeting] = useState(true);
+  const [showGreeting, setShowGreeting] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !sessionStorage.getItem('hasSeenDashboardGreeting');
+    }
+    return true;
+  });
   const [greetingMessage, setGreetingMessage] = useState('');
   const { user } = useAuth();
 
@@ -2392,79 +2367,83 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
     setGreetingMessage(variations[Math.floor(Math.random() * variations.length)]);
   }, [user]);
 
-  // Show greeting for 6 seconds then reveal school name
+  // Show greeting for 6 seconds then reveal school name, only once per session
   useEffect(() => {
+    if (!showGreeting) return;
+    sessionStorage.setItem('hasSeenDashboardGreeting', 'true');
     const timer = setTimeout(() => setShowGreeting(false), 6000);
     return () => clearTimeout(timer);
-  }, []);
-
-  // Split greeting into words for staggered animation
-  const greetingWords = greetingMessage.split(' ');
+  }, [showGreeting]);
 
   return (
-    <div className="relative pb-4 md:pb-6">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 md:py-5">
-        <AnimatePresence mode="wait">
-          {showGreeting && greetingMessage ? (
-            /* ── Animated greeting — slides in from left, words stagger ── */
-            <motion.div
-              key="greeting"
-              initial={{ opacity: 0, x: -32 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="overflow-hidden">
-                <div className="flex flex-wrap gap-x-[0.35em] gap-y-0">
-                  {greetingWords.map((word, i) => (
-                    <motion.span
-                      key={i}
-                      className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight inline-block"
-                      style={{ textShadow: '0 1px 8px rgba(0,0,0,0.45), 0 2px 20px rgba(0,0,0,0.25)' }}
-                      initial={{ opacity: 0, y: 24 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        duration: 0.45,
-                        delay: 0.1 + i * 0.065,
-                        ease: [0.22, 1, 0.36, 1],
-                      }}
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                </div>
-              </div>
-              {/* Animated underline accent */}
+    <div className="relative pb-1 md:pb-2">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-1 sm:pt-3 sm:pb-2 md:pt-4 md:pb-2">
+        <div className="grid [grid-template-areas:'stack'] items-start min-h-[3.5rem] sm:min-h-[4rem]">
+          <AnimatePresence>
+            {showGreeting && greetingMessage ? (
+              /* ── Smooth, lightweight GPU-accelerated greeting ── */
               <motion.div
-                className="mt-2 h-0.5 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-transparent"
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: '120px', opacity: 0.7 }}
-                transition={{ duration: 0.6, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              />
-            </motion.div>
-          ) : (
-            /* ── School name & motto — fade up after greeting ── */
-            <motion.div
-              key="school-name"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <h1
-                className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900 leading-tight mb-0.5"
-                style={{ textShadow: '0 1px 8px rgba(0,0,0,0.45), 0 2px 20px rgba(0,0,0,0.25)' }}
+                key="greeting"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                style={{ willChange: "transform, opacity" }}
+                className="[grid-area:stack]"
               >
-                {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
-              </h1>
-              <p
-                className="text-xs sm:text-sm font-medium text-gray-700"
-                style={{ textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-900 drop-shadow-sm pb-1">
+                  {greetingMessage}
+                </h2>
+                <div className="mt-1 h-1 w-16 sm:w-20 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 opacity-80" />
+              </motion.div>
+            ) : (
+              /* ── School name & motto with animated logo reveal ── */
+              <motion.div
+                key="school-name"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                style={{ willChange: "opacity" }}
+                className="[grid-area:stack] flex items-center"
               >
-                {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                {/* Logo pops in and slides left */}
+                {schoolSettings?.generalInfo?.logo && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0, x: 40 }}
+                    animate={{ scale: 1, opacity: 1, x: 0 }}
+                    transition={{
+                      scale: { type: "spring", stiffness: 220, damping: 20, delay: 0.1 },
+                      opacity: { duration: 0.2, delay: 0.1 },
+                      x: { type: "spring", stiffness: 120, damping: 20, delay: 0.5 }
+                    }}
+                    className="flex-shrink-0 mr-3 sm:mr-4 z-10"
+                  >
+                    <img
+                      src={schoolSettings.generalInfo.logo}
+                      alt="School Logo"
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain bg-transparent rounded-lg"
+                    />
+                  </motion.div>
+                )}
+
+                {/* Text fades in as logo slides */}
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.6, ease: "easeOut" }}
+                  style={{ willChange: "transform, opacity" }}
+                >
+                  <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 tracking-tight drop-shadow-sm">
+                    {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
+                  </h1>
+                  <p className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wide uppercase mt-0.5">
+                    {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
@@ -2569,29 +2548,7 @@ export default function DashboardPage() {
         animate="show"
         className="container mx-auto px-3 sm:px-6 lg:px-8 pb-6 relative z-20"
       >
-        {/* Loading Indicator - Simple cached loading */}
-        {isLoading && (
-          <Card className="mb-6 border-blue-200 bg-blue-50 rounded-xl" style={{
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-            transform: 'translateZ(0)',
-          }}>
-            {/* 3D Depth Effect */}
-            <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/30 to-transparent pointer-events-none rounded-t-xl" />
-            <CardContent className="py-4 relative z-10">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">
-                    ⚡ Loading dashboard data...
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Data will be cached for faster subsequent loads
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Loading Indicator - Removed as per user request */}
 
         {/* Error Indicator */}
         {hasError && !isLoading && (

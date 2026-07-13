@@ -4,12 +4,10 @@ function SkeletonBlock({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-full bg-slate-200/70",
+        "relative overflow-hidden rounded-full bg-slate-200/70 animate-pulse",
         className
       )}
-    >
-      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent animate-shimmer-pass" />
-    </div>
+    />
   );
 }
 
@@ -17,7 +15,7 @@ export function GlassPageTopBarSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b border-white/45 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] sm:-mx-6",
+        "glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b border-white/45 bg-white/90 shadow-sm backdrop-blur-md sm:-mx-6",
         className
       )}
       aria-hidden="true"
@@ -60,7 +58,7 @@ function DefaultSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-lg border border-white/55 bg-white/65 p-4 shadow-sm backdrop-blur-sm"
+            className="rounded-lg border border-white/55 bg-white/90 p-4 shadow-sm"
           >
             <SkeletonBlock className="mb-4 h-8 w-8" />
             <SkeletonBlock className="mb-2 h-4 w-20" />
@@ -69,7 +67,7 @@ function DefaultSkeleton() {
         ))}
       </div>
 
-      <div className="rounded-lg border border-white/55 bg-white/65 p-4 shadow-sm backdrop-blur-sm">
+      <div className="rounded-lg border border-white/55 bg-white/90 p-4 shadow-sm">
         <div className="mb-4 flex items-center justify-between gap-3">
           <SkeletonBlock className="h-4 w-36" />
           <SkeletonBlock className="h-8 w-24" />
@@ -106,7 +104,7 @@ function ListSkeleton() {
       </div>
 
       {/* Table-like panel */}
-      <div className="rounded-lg border border-white/55 bg-white/65 shadow-sm backdrop-blur-sm overflow-hidden">
+      <div className="rounded-lg border border-white/55 bg-white/90 shadow-sm overflow-hidden">
         {/* Table header */}
         <div className="border-b border-white/40 bg-white/40 px-4 py-3 flex items-center gap-4">
           <SkeletonBlock className="h-3 w-6 shrink-0" />
@@ -152,7 +150,7 @@ function CardsSkeleton() {
         {Array.from({ length: 6 }).map((_, index) => (
           <div
             key={index}
-            className="rounded-xl border border-white/55 bg-white/65 p-5 shadow-sm backdrop-blur-sm space-y-3"
+            className="rounded-xl border border-white/55 bg-white/90 p-5 shadow-sm space-y-3"
           >
             {/* Card header */}
             <div className="flex items-center justify-between">
@@ -182,7 +180,7 @@ export function GlassSummaryBarSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "glass-page-topbar-enter -mx-3 mb-1.5 overflow-hidden rounded-[18px] border border-white/45 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] px-4 py-3 sm:-mx-6 sm:px-6 lg:px-8",
+        "glass-page-topbar-enter -mx-3 mb-1.5 overflow-hidden rounded-[18px] border border-white/45 bg-white/90 shadow-sm backdrop-blur-md px-4 py-3 sm:-mx-6 sm:px-6 lg:px-8",
         className
       )}
       aria-hidden="true"

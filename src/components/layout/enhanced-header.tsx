@@ -70,20 +70,17 @@ const softSpring = {
   mass: 0.8
 };
 
-// Text crossfade — opacity-only (no blur) for GPU perf
+// Text crossfade — optimized GPU-accelerated transition
 const messageVariants = {
-  enter: {
-    opacity: 0,
-    y: 8,
-  },
+  enter: { opacity: 0, y: 6 },
   center: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.3, ease: "easeOut" }
   },
   exit: {
     opacity: 0,
-    y: -8,
+    y: -6,
     transition: { duration: 0.2, ease: "easeIn" }
   },
 };
@@ -573,14 +570,12 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     initial="enter"
                     animate="center"
                     exit="exit"
+                    style={{ willChange: "transform, opacity" }}
                     className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
                   >
                     <span
-                      className="w-full text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent font-semibold tracking-wide truncate"
-                      style={{
-                        fontSize: "clamp(10px, 1.8vw, 13px)",
-                        backgroundSize: '200% auto',
-                      }}
+                      className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide truncate"
+                      style={{ fontSize: "clamp(10px, 1.8vw, 13px)" }}
                     >
                       {currentMessage}
                     </span>
