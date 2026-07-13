@@ -344,7 +344,12 @@ function UniformTrackingContent() {
     setSelectedCollectionRecord(null);
   };
 
-  const handleCollectionSubmit = async (collectedItems: string[], isFullCollection: boolean, collectionSizes: Record<string, string>) => {
+  const handleCollectionSubmit = async (
+    collectedItems: string[],
+    isFullCollection: boolean,
+    collectionSizes: Record<string, string>,
+    collectionQuantities?: Record<string, number>
+  ) => {
     if (!selectedCollectionRecord) return;
 
     try {
@@ -354,7 +359,7 @@ function UniformTrackingContent() {
         .map(itemId => ({
           uniformId: itemId,
           size: collectionSizes[itemId],
-          quantity: 1
+          quantity: collectionQuantities?.[itemId] || 1
         }));
 
       if (stockReductions.length > 0) {
@@ -393,6 +398,14 @@ function UniformTrackingContent() {
         ...collectionSizes
       };
 
+      const mergedCollectedQuantities: Record<string, number> = {
+        ...(selectedCollectionRecord.collectedQuantities || {})
+      };
+      collectedItems.forEach(itemId => {
+        const added = collectionQuantities?.[itemId] || 1;
+        mergedCollectedQuantities[itemId] = (mergedCollectedQuantities[itemId] || 0) + added;
+      });
+
       const allCollectedItems = [...new Set([
         ...(selectedCollectionRecord.history?.flatMap(h => h.collectedItems || []) || []),
         ...collectedItems
@@ -404,6 +417,7 @@ function UniformTrackingContent() {
         collectionDate: isFullCollection ? new Date().toISOString() : selectedCollectionRecord.collectionDate,
         collectedItems: allCollectedItems,
         selectedSizes: mergedSizes,
+        collectedQuantities: mergedCollectedQuantities,
         history: allHistory
       };
 
@@ -810,6 +824,8 @@ function UniformTrackingContent() {
             .filter(Boolean) || []
           }
           selectedSizes={selectedCollectionRecord.selectedSizes || {}}
+          selectedQuantities={selectedCollectionRecord.selectedQuantities || {}}
+          collectedQuantities={selectedCollectionRecord.collectedQuantities || {}}
           uniformInventory={uniformInventory}
         />
       )}

@@ -890,6 +890,10 @@ export interface UniformTracking {
   // Size selection for inventory integration (maps uniformId to selected size)
   selectedSizes?: Record<string, string>;
 
+  // Quantity selection (maps uniformId to quantity, default 1)
+  selectedQuantities?: Record<string, number>;
+  collectedQuantities?: Record<string, number>;
+
   // Academic year and term tracking for fees integration
   academicYearId: string;
   termId: string;
@@ -915,6 +919,10 @@ export interface UniformTrackingFormData {
 
   // Size selection for inventory integration (maps uniformId to selected size)
   selectedSizes: Record<string, string>;
+
+  // Quantity selection (maps uniformId to quantity)
+  selectedQuantities: Record<string, number>;
+  collectedQuantities?: Record<string, number>;
 
   // Academic year and term selection
   academicYearId: string;

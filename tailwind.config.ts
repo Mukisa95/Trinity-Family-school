@@ -61,6 +61,9 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			transitionTimingFunction: {
+				'spring': 'cubic-bezier(0.16, 1, 0.3, 1)',
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',

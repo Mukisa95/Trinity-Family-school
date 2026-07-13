@@ -593,7 +593,7 @@ export function CalendarWrapper({
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500" />
 
                 <div className={cn(
-                  "p-2 ssm:p-4 md:p-8 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                  "p-2 ssm:p-4 md:p-8 transition-all duration-300 ease-spring",
                   isViewTransitioning ? "opacity-60 scale-[0.98] blur-sm" : "opacity-100 scale-100 blur-0"
                 )}>
                   <div className="transition-opacity duration-200"

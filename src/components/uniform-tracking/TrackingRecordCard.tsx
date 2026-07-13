@@ -48,9 +48,15 @@ export function TrackingRecordCard({
     // --- Helper Functions ---
     const getUniformName = (uniformId: string | string[]) => {
         if (Array.isArray(uniformId)) {
-            return uniformId.map(id => finalEligibleUniforms.find(u => u.id === id)?.name || 'Unknown Uniform').join(', ');
+            return uniformId.map(id => {
+                const name = finalEligibleUniforms.find(u => u.id === id)?.name || 'Unknown Uniform';
+                const qty = record.selectedQuantities?.[id] || 1;
+                return qty > 1 ? `${qty} ${name}` : name;
+            }).join(', ');
         }
-        return finalEligibleUniforms.find(u => u.id === uniformId)?.name || 'Unknown Uniform';
+        const name = finalEligibleUniforms.find(u => u.id === uniformId)?.name || 'Unknown Uniform';
+        const qty = typeof uniformId === 'string' ? (record.selectedQuantities?.[uniformId] || 1) : 1;
+        return qty > 1 ? `${qty} ${name}` : name;
     };
 
     const getUniformIdsArray = (uniformId: string | string[]): string[] => {
@@ -61,11 +67,13 @@ export function TrackingRecordCard({
         if (Array.isArray(uniformId)) {
             return uniformId.reduce((total, id) => {
                 const uniform = finalEligibleUniforms.find(u => u.id === id);
-                return total + (uniform?.price || 0);
+                const qty = record.selectedQuantities?.[id] || 1;
+                return total + ((uniform?.price || 0) * qty);
             }, 0);
         }
         const uniform = finalEligibleUniforms.find(u => u.id === uniformId);
-        return uniform?.price || 0;
+        const qty = typeof uniformId === 'string' ? (record.selectedQuantities?.[uniformId] || 1) : 1;
+        return (uniform?.price || 0) * qty;
     };
 
     const getDiscountAmount = (record: UniformTracking) => {
@@ -287,12 +295,14 @@ export function TrackingRecordCard({
                         <div className="flex flex-wrap gap-2 mb-3">
                             {getUniformIdsArray(record.uniformId).map(uniformId => {
                                 const uniformName = finalEligibleUniforms.find(u => u.id === uniformId)?.name || 'Unknown';
+                                const qty = record.selectedQuantities?.[uniformId] || 1;
+                                const displayName = qty > 1 ? `${qty}x ${uniformName}` : uniformName;
                                 const sizeStatus = getSizeStatusForUniform(record, uniformId);
 
                                 return (
                                     <div key={uniformId} className="flex items-center gap-1.5 text-xs">
-                                        <span className="text-gray-600 truncate max-w-[100px]" title={uniformName}>
-                                            {uniformName.length > 12 ? uniformName.substring(0, 12) + '...' : uniformName}:
+                                        <span className="text-gray-600 truncate max-w-[120px]" title={displayName}>
+                                            {displayName.length > 15 ? displayName.substring(0, 15) + '...' : displayName}:
                                         </span>
                                         {sizeStatus.status === 'available' && (
                                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1.5 py-0">

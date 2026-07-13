@@ -72,7 +72,7 @@ export function GlassPageTopBar({
   return (
     <div
       className={cn(
-        "glass-page-topbar-enter -mx-3 mb-4 overflow-hidden rounded-b-[18px] border-b border-white/45 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] sm:-mx-6",
+        "glass-page-topbar-enter -mx-3 mb-4 overflow-visible rounded-b-[18px] border-b border-white/45 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] sm:-mx-6",
         sticky && "sticky top-0 z-30",
         className
       )}

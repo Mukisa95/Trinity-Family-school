@@ -3753,7 +3753,11 @@ html, body, * {
 .glass-page-topbar-enter {
   animation: glass-page-topbar-slide-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
   transform-origin: top center;
-  will-change: transform, opacity;
+  /* NOTE: will-change intentionally omitted here — it creates a permanent compositing
+     stacking context that clips Radix portals (tooltips, dropdowns) even when they are
+     rendered at document root. The browser will still use GPU acceleration for the
+     transform animation without the hint. */
+  overflow: visible;
 }
 
 .glass-page-route-skeleton {

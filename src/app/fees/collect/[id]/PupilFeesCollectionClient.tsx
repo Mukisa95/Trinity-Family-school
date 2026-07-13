@@ -545,8 +545,24 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     return pupil.assignedFees
       .filter(fee => fee.status === 'active')
       .map(fee => {
-        const structure = allFeeStructures.find(s => s.id === fee.feeStructureId);
-        
+        // For pivot (inline) discounts, the feeStructureId won't exist in allFeeStructures.
+        // Build a synthetic structure from the inlineDiscount data so every downstream
+        // render (pill, tooltip, amount, appliesTo) works correctly.
+        const inlineDisc = fee.inlineDiscount || (fee as any).pivotDiscount;
+        const isPivot = (fee.feeStructureId?.startsWith('pivot-') || !!inlineDisc) && inlineDisc;
+        const structure = isPivot
+          ? {
+              id: fee.feeStructureId,
+              name: inlineDisc!.name || 'Pivot Discount',
+              amount: inlineDisc!.amount, // stored negative
+              category: 'Discount' as const,
+              status: 'active' as const,
+              description: inlineDisc!.description,
+              linkedFeeIds: inlineDisc!.linkedFeeIds,
+              linkedFeeId: inlineDisc!.linkedFeeIds?.[0],
+            }
+          : allFeeStructures.find(s => s.id === fee.feeStructureId);
+
         let isActiveForCurrentTerm = true;
         if (selectedTermId && selectedAcademicYear) {
           isActiveForCurrentTerm = isAssignmentCurrentlyValid(
@@ -557,9 +573,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           );
         }
 
+        const fallbackName = fee.feeStructureId?.startsWith('pivot-') ? 'Pivot Discount' : 'Assigned Fee';
+
         return {
           id: fee.id,
-          name: structure?.name || 'Unknown Assignment',
+          name: structure?.name || inlineDisc?.name || (fee as any).name || fallbackName,
           category: structure?.category || '',
           isActiveForCurrentTerm,
           structure
@@ -589,11 +607,24 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
         const items = uniformIds.map(id => {
           const uniform = activeUniforms.find(u => u.id === id);
-          const isCollected = record.collectedItems?.includes(id) || false;
+          const totalQty = record.selectedQuantities?.[id] || 1;
+          const colQty = record.collectedQuantities?.[id] ?? (record.collectedItems?.includes(id) ? totalQty : 0);
+          const isFullyCollected = colQty >= totalQty && colQty > 0;
+          const isPartiallyCollected = colQty > 0 && colQty < totalQty;
+          const rawName = uniform?.name || 'Unknown Uniform';
+          let displayName = totalQty > 1 ? `${totalQty}x ${rawName}` : rawName;
+          if (isFullyCollected) {
+            displayName = `${rawName} (${colQty}/${totalQty} ✓)`;
+          } else if (isPartiallyCollected) {
+            displayName = `${rawName} (${colQty}/${totalQty} ◐)`;
+          } else if (totalQty > 1) {
+            displayName = `${rawName} (0/${totalQty})`;
+          }
           return {
             id,
-            name: uniform?.name || 'Unknown Uniform',
-            isCollected
+            name: displayName,
+            isFullyCollected,
+            isPartiallyCollected
           };
         });
         return {
@@ -1981,7 +2012,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                           {displayAmount}{!isActive && ' (Inactive)'}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent className="p-3 bg-white text-gray-900 border border-pink-200 shadow-xl rounded-lg max-w-xs z-50">
+                      <TooltipContent side="bottom" sideOffset={6} className="p-3 bg-white text-gray-900 border border-pink-200 shadow-xl rounded-lg max-w-xs z-[60]">
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between border-b border-pink-100 pb-1.5 mb-1.5">
                             <span className="font-bold text-xs uppercase tracking-wider text-pink-700 bg-pink-50 border border-pink-200/50 px-1.5 py-0.5 rounded truncate max-w-[140px]" title={assignment.name}>{assignment.name}</span>
@@ -2015,7 +2046,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 <span className="font-semibold text-blue-900">Uniform:</span>
                 <span className="flex flex-wrap items-center gap-x-1">
                   {record.items.map((item, itemIdx) => (
-                    <span key={item.id} className={cn(item.isCollected && 'line-through opacity-50 font-normal')}>
+                    <span
+                      key={item.id}
+                      className={cn(
+                        item.isFullyCollected && 'line-through opacity-70 text-green-700 font-normal',
+                        item.isPartiallyCollected && 'text-amber-800 font-semibold'
+                      )}
+                    >
                       {item.name}{itemIdx < record.items.length - 1 && <span className="no-underline ml-0.5 opacity-100 text-blue-400">,</span>}
                     </span>
                   ))}

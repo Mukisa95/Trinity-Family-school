@@ -261,6 +261,7 @@ class FeeGroupCacheService {
     const discounts = [];
     if (pupil.assignedFees) {
       for (const assignment of pupil.assignedFees) {
+        // Handle regular (global) discounts stored in feeStructures
         const feeStructure = feeStructures.find(fs => fs.id === assignment.feeStructureId);
         if (feeStructure && (feeStructure.category === 'Discount' || feeStructure.amount < 0)) {
           discounts.push({
@@ -269,6 +270,21 @@ class FeeGroupCacheService {
             amount: Math.abs(feeStructure.amount),
             linkedFeeId: feeStructure.linkedFeeId,
             linkedFeeIds: feeStructure.linkedFeeIds
+          });
+          continue;
+        }
+
+        // Handle pupil-specific (pivot / inline) discounts — these have a
+        // synthetic feeStructureId (e.g. "pivot-...") that is not in feeStructures,
+        // so their data lives exclusively on assignment.inlineDiscount.
+        if (assignment.inlineDiscount && assignment.feeStructureId.startsWith('pivot-')) {
+          const { name, amount, linkedFeeIds } = assignment.inlineDiscount;
+          discounts.push({
+            feeStructureId: assignment.feeStructureId,
+            name,
+            amount: Math.abs(amount), // amount is stored negative; we need the positive magnitude
+            linkedFeeId: linkedFeeIds?.[0],
+            linkedFeeIds: linkedFeeIds ?? []
           });
         }
       }

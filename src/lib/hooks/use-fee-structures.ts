@@ -50,7 +50,7 @@ export function useCreateFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: FeeStructuresService.createFeeStructure,
+    mutationFn: (data: CreateFeeStructureData) => FeeStructuresService.createFeeStructure(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feeStructureKeys.all });
     },
@@ -61,7 +61,7 @@ export function useCreateMultipleFeeStructures() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: FeeStructuresService.createMultipleFeeStructures,
+    mutationFn: (data: CreateFeeStructureData[]) => FeeStructuresService.createMultipleFeeStructures(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feeStructureKeys.all });
     },
@@ -85,7 +85,7 @@ export function useDeleteFeeStructure() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: FeeStructuresService.deleteFeeStructure,
+    mutationFn: (id: string) => FeeStructuresService.deleteFeeStructure(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: feeStructureKeys.all });
     },

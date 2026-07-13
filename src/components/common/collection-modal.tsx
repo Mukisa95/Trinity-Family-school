@@ -34,6 +34,8 @@ interface CollectionModalProps {
   // New props for inventory integration
   selectedSizes?: Record<string, string>; // Sizes specified during tracking
   uniformInventory?: UniformInventoryItem[]; // Inventory data for stock check
+  selectedQuantities?: Record<string, number>;
+  collectedQuantities?: Record<string, number>;
 }
 
 export function CollectionModal({
@@ -45,11 +47,14 @@ export function CollectionModal({
   selectionMode,
   previouslyCollectedItems,
   selectedSizes = {},
-  uniformInventory = []
+  uniformInventory = [],
+  selectedQuantities = {},
+  collectedQuantities = {}
 }: CollectionModalProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   // Track size selections for collection (may differ from tracking if out of stock)
   const [collectionSizes, setCollectionSizes] = useState<Record<string, string>>({});
+  const [collectionQuantities, setCollectionQuantities] = useState<Record<string, number>>({});
   // Track which previously-collected item the user is confirming an unmark for
   const [confirmingUnmark, setConfirmingUnmark] = useState<string | null>(null);
 
@@ -57,6 +62,7 @@ export function CollectionModal({
   useEffect(() => {
     if (isOpen) {
       setCollectionSizes({ ...selectedSizes });
+      setCollectionQuantities({});
       setSelectedItems([]);
       setConfirmingUnmark(null);
     }
@@ -108,13 +114,22 @@ export function CollectionModal({
   const handleItemSelection = (uniformId: string, checked: boolean) => {
     if (checked) {
       setSelectedItems(prev => [...prev, uniformId]);
+      const totalQty = selectedQuantities[uniformId] || 1;
+      const prevQty = collectedQuantities[uniformId] || (previouslyCollectedItems.includes(uniformId) ? 1 : 0);
+      const remainingQty = Math.max(1, totalQty - prevQty);
+      setCollectionQuantities(prev => ({ ...prev, [uniformId]: remainingQty }));
     } else {
       setSelectedItems(prev => prev.filter(id => id !== uniformId));
+      setCollectionQuantities(prev => {
+        const next = { ...prev };
+        delete next[uniformId];
+        return next;
+      });
     }
   };
 
-  const handleSizeChange = (uniformId: string, size: string) => {
-    setCollectionSizes(prev => ({ ...prev, [uniformId]: size }));
+  const handleQuantityChange = (uniformId: string, qty: number) => {
+    setCollectionQuantities(prev => ({ ...prev, [uniformId]: qty }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -125,19 +140,17 @@ export function CollectionModal({
       return;
     }
 
-    // Validate that all selected items with inventory have sizes and stock
+    // Check stock if a size was explicitly selected
     const itemsNeedingAttention: string[] = [];
     for (const itemId of selectedItems) {
       if (hasInventory(itemId)) {
         const size = collectionSizes[itemId];
-        if (!size) {
-          const uniform = uniforms.find(u => u.id === itemId);
-          itemsNeedingAttention.push(`${uniform?.name || itemId}: No size selected`);
-        } else {
+        if (size) {
           const stock = getStockForSize(itemId, size);
-          if (stock <= 0) {
+          const reqQty = collectionQuantities[itemId] || 1;
+          if (stock < reqQty) {
             const uniform = uniforms.find(u => u.id === itemId);
-            itemsNeedingAttention.push(`${uniform?.name || itemId}: Size ${size} is out of stock`);
+            itemsNeedingAttention.push(`${uniform?.name || itemId}: Size ${size} does not have enough stock (${stock} available)`);
           }
         }
       }
@@ -149,28 +162,45 @@ export function CollectionModal({
     }
 
     // Check if this collection completes all items
-    const allItemIds = uniforms.map(u => u.id);
-    const allCollectedItems = [...previouslyCollectedItems, ...selectedItems];
-    const isFullCollection = allItemIds.every(id => allCollectedItems.includes(id));
+    const isFullCollection = uniforms.every(u => {
+      const totalQty = selectedQuantities[u.id] || 1;
+      const prevQty = collectedQuantities[u.id] || (previouslyCollectedItems.includes(u.id) ? 1 : 0);
+      const newQty = selectedItems.includes(u.id) ? (collectionQuantities[u.id] || 1) : 0;
+      return (prevQty + newQty) >= totalQty;
+    });
 
-    onSubmit(selectedItems, isFullCollection, collectionSizes);
+    onSubmit(selectedItems, isFullCollection, collectionSizes, collectionQuantities);
     setSelectedItems([]);
     setCollectionSizes({});
+    setCollectionQuantities({});
   };
 
+  // Helper to get total and collected qty for any uniform
+  const getQtyInfo = (uniformId: string) => {
+    const totalQty = selectedQuantities[uniformId] || 1;
+    const colQty = collectedQuantities[uniformId] ?? (previouslyCollectedItems.includes(uniformId) ? totalQty : 0);
+    const remQty = Math.max(0, totalQty - colQty);
+    return { totalQty, colQty, remQty, isFullyCollected: colQty >= totalQty && colQty > 0 };
+  };
+
+  const availableUniforms = uniforms.filter(u => {
+    const { isFullyCollected } = getQtyInfo(u.id);
+    return !isFullyCollected;
+  });
+
+  const collectedUniforms = uniforms.filter(u => {
+    const { colQty } = getQtyInfo(u.id);
+    return colQty > 0;
+  });
+
   const handleSelectAll = () => {
-    const availableItems = uniforms
-      .filter(u => !previouslyCollectedItems.includes(u.id))
-      .map(u => u.id);
+    const availableItems = availableUniforms.map(u => u.id);
     setSelectedItems(availableItems);
   };
 
   const handleClearAll = () => {
     setSelectedItems([]);
   };
-
-  const availableUniforms = uniforms.filter(u => !previouslyCollectedItems.includes(u.id));
-  const collectedUniforms = uniforms.filter(u => previouslyCollectedItems.includes(u.id));
 
   // Render size status badge
   const renderSizeStatus = (uniformId: string) => {
@@ -195,7 +225,7 @@ export function CollectionModal({
         return (
           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
             <Package className="h-3 w-3 mr-1" />
-            Select Size
+            Size Optional
           </Badge>
         );
       case 'no-inventory':
@@ -288,7 +318,9 @@ export function CollectionModal({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {collectedUniforms.map((uniform) => (
+                  {collectedUniforms.map((uniform) => {
+                    const { totalQty, colQty, isFullyCollected } = getQtyInfo(uniform.id);
+                    return (
                     <div key={uniform.id} className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-100">
                       <div>
                         <div className="font-medium text-sm">{uniform.name}</div>
@@ -300,8 +332,8 @@ export function CollectionModal({
                             Size: {selectedSizes[uniform.id]}
                           </Badge>
                         )}
-                        <Badge variant="default" className="bg-green-600">
-                          Collected
+                        <Badge variant="default" className={isFullyCollected ? "bg-green-600" : "bg-amber-600"}>
+                          {isFullyCollected ? `Collected (${colQty}/${totalQty})` : `Partial (${colQty}/${totalQty})`}
                         </Badge>
                         {/* Unmark button — only shown if onUnmark is provided */}
                         {onUnmark && (
@@ -342,7 +374,8 @@ export function CollectionModal({
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -374,29 +407,81 @@ export function CollectionModal({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {availableUniforms.map((uniform) => (
-                    <div key={uniform.id}>
-                      <div className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50">
-                        <Checkbox
-                          id={`collect-${uniform.id}`}
-                          checked={selectedItems.includes(uniform.id)}
-                          onCheckedChange={(checked) => handleItemSelection(uniform.id, checked as boolean)}
-                        />
-                        <Label htmlFor={`collect-${uniform.id}`} className="flex-1 cursor-pointer">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="font-medium text-sm">{uniform.name}</div>
-                              <div className="text-xs text-gray-500">{uniform.group}</div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {renderSizeStatus(uniform.id)}
-                            </div>
+                  {availableUniforms.map((uniform) => {
+                    const totalQty = selectedQuantities[uniform.id] || 1;
+                    const prevQty = collectedQuantities[uniform.id] || (previouslyCollectedItems.includes(uniform.id) ? 1 : 0);
+                    const remainingQty = Math.max(1, totalQty - prevQty);
+                    const isSelected = selectedItems.includes(uniform.id);
+                    const currentReleaseQty = collectionQuantities[uniform.id] || remainingQty;
+
+                    return (
+                      <div key={uniform.id}>
+                        <div className="flex items-center justify-between space-x-3 p-2 border rounded hover:bg-gray-50">
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <Checkbox
+                              id={`collect-${uniform.id}`}
+                              checked={isSelected}
+                              onCheckedChange={(checked) => handleItemSelection(uniform.id, checked as boolean)}
+                            />
+                            <Label htmlFor={`collect-${uniform.id}`} className="flex-1 cursor-pointer">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium text-sm">
+                                    {totalQty > 1 ? `${totalQty}x ${uniform.name}` : uniform.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {uniform.group}
+                                    {totalQty > 1 && (
+                                      <span className="ml-1 text-blue-600 font-medium">
+                                        (Pending: {remainingQty} of {totalQty})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {renderSizeStatus(uniform.id)}
+                                </div>
+                              </div>
+                            </Label>
                           </div>
-                        </Label>
+
+                          {isSelected && remainingQty > 1 && (
+                            <div className="flex items-center gap-1.5 ml-2 bg-blue-50 dark:bg-blue-900/30 rounded-full px-2 py-0.5 border border-blue-200 shrink-0">
+                              <span className="text-[10px] text-blue-700 font-medium mr-1">Release:</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-full hover:bg-blue-100 text-xs font-bold"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleQuantityChange(uniform.id, Math.max(1, currentReleaseQty - 1));
+                                }}
+                              >
+                                -
+                              </Button>
+                              <span className="text-xs font-bold px-1.5 min-w-[20px] text-center text-blue-900 dark:text-blue-100">
+                                {currentReleaseQty}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-full hover:bg-blue-100 text-xs font-bold"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleQuantityChange(uniform.id, Math.min(remainingQty, currentReleaseQty + 1));
+                                }}
+                              >
+                                +
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {isSelected && renderSizeSelector(uniform)}
                       </div>
-                      {selectedItems.includes(uniform.id) && renderSizeSelector(uniform)}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

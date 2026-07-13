@@ -131,7 +131,7 @@ export class UniformFeesIntegrationService {
       }
 
       // Calculate amounts
-      const originalAmount = record.originalAmount || this.calculateOriginalAmount(uniformDetails);
+      const originalAmount = record.originalAmount || this.calculateOriginalAmount(uniformDetails, record.selectedQuantities);
       const finalAmount = record.finalAmount || originalAmount;
       const discountAmount = originalAmount - finalAmount;
       const paidAmount = record.paidAmount || 0;
@@ -139,14 +139,17 @@ export class UniformFeesIntegrationService {
 
       // Create uniform fee name based on selection mode
       let feeName = '';
-      const uniformNames = uniformDetails.map(u => u.name);
+      const uniformNames = uniformDetails.map(u => {
+        const qty = record.selectedQuantities?.[u.id] || 1;
+        return qty > 1 ? `${qty} x ${u.name}` : u.name;
+      });
       
       switch (record.selectionMode) {
         case 'full':
           feeName = 'Full Uniform Set';
           break;
         case 'partial':
-          feeName = `Uniform Items (${uniformNames.slice(0, 2).join(', ')}${uniformNames.length > 2 ? '...' : ''})`;
+          feeName = `Uniform Items (${uniformNames.slice(0, 3).join(', ')}${uniformNames.length > 3 ? '...' : ''})`;
           break;
         case 'item':
           feeName = `Uniform - ${uniformNames[0] || 'Unknown Item'}`;
@@ -210,8 +213,11 @@ export class UniformFeesIntegrationService {
   /**
    * Calculate original amount from uniform details
    */
-  private static calculateOriginalAmount(uniformDetails: UniformItem[]): number {
-    return uniformDetails.reduce((total, uniform) => total + (uniform.price || 0), 0);
+  private static calculateOriginalAmount(uniformDetails: UniformItem[], selectedQuantities?: Record<string, number>): number {
+    return uniformDetails.reduce((total, uniform) => {
+      const qty = selectedQuantities?.[uniform.id] || 1;
+      return total + ((uniform.price || 0) * qty);
+    }, 0);
   }
 
   /**

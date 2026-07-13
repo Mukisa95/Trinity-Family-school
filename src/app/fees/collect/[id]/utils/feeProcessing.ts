@@ -529,8 +529,15 @@ export function processPupilFees(
     feesHolidaysCount: feesHolidays.length
   });
 
-  // Find discounts assigned to this pupil that are currently valid
+  // Find discounts assigned to this pupil that are currently valid.
+  // Includes both global discounts (resolved via allFeeStructures) and
+  // pupil-specific pivot/inline discounts (stored on assignment.inlineDiscount).
   const assignedDiscounts = pupil.assignedFees?.filter(assignedFee => {
+    // Pupil-specific inline (pivot) discount — always treat as a discount
+    if (assignedFee.feeStructureId.startsWith('pivot-') && assignedFee.inlineDiscount) {
+      return isAssignmentCurrentlyValid(assignedFee, currentTermId, currentAcademicYear, allAcademicYears);
+    }
+
     const feeStructure = allFeeStructures.find(fs => fs.id === assignedFee.feeStructureId);
     const isDiscount = feeStructure && (feeStructure.category === 'Discount' || feeStructure.amount < 0);
 
@@ -544,9 +551,9 @@ export function processPupilFees(
     const discountStructure = allFeeStructures.find(fs => fs.id === ad.feeStructureId);
     return {
       discountId: ad.feeStructureId,
-      discountName: discountStructure?.name,
-      linkedFeeIds: discountStructure?.linkedFeeIds || (discountStructure?.linkedFeeId ? [discountStructure.linkedFeeId] : undefined),
-      discountAmount: discountStructure?.amount,
+      discountName: discountStructure?.name ?? ad.inlineDiscount?.name,
+      linkedFeeIds: discountStructure?.linkedFeeIds || (discountStructure?.linkedFeeId ? [discountStructure.linkedFeeId] : undefined) || ad.inlineDiscount?.linkedFeeIds,
+      discountAmount: discountStructure?.amount ?? ad.inlineDiscount?.amount,
       assignmentStatus: ad.status,
       validityType: ad.validityType
     };
@@ -647,6 +654,10 @@ export function processPupilFees(
     }
 
     const applicableDiscounts = assignedDiscounts.filter(assignedDiscount => {
+      // Inline (pivot) discounts: match using inlineDiscount.linkedFeeIds
+      if (assignedDiscount.feeStructureId.startsWith('pivot-') && assignedDiscount.inlineDiscount) {
+        return assignedDiscount.inlineDiscount.linkedFeeIds?.includes(fee.id);
+      }
       const discountStructure = allFeeStructures.find(fs => fs.id === assignedDiscount.feeStructureId);
       return discountStructure && (discountStructure.linkedFeeIds?.includes(fee.id) || discountStructure.linkedFeeId === fee.id);
     });
@@ -658,6 +669,14 @@ export function processPupilFees(
 
       // Apply all applicable discounts
       for (const assignedDiscount of applicableDiscounts) {
+        // Pivot / inline discount: read amount directly from inlineDiscount
+        if (assignedDiscount.feeStructureId.startsWith('pivot-') && assignedDiscount.inlineDiscount) {
+          const inlineAmt = assignedDiscount.inlineDiscount.amount;
+          totalDiscountAmount += Math.abs(inlineAmt); // stored negative, we want positive magnitude
+          console.log(`💸 Applied inline pivot discount "${assignedDiscount.inlineDiscount.name}" to fee "${fee.name}": ${inlineAmt}`);
+          continue;
+        }
+
         const discountStructure = allFeeStructures.find(fs => fs.id === assignedDiscount.feeStructureId);
         if (discountStructure && typeof discountStructure.amount === 'number') {
           if (discountStructure.amount < 0) {
@@ -687,12 +706,15 @@ export function processPupilFees(
           discountType: feesHolidayApplied.discountType
         };
       } else if (applicableDiscounts.length === 1) {
-        const discountStructure = allFeeStructures.find(fs => fs.id === applicableDiscounts[0].feeStructureId);
+        const singleDiscount = applicableDiscounts[0];
+        const discountStructure = allFeeStructures.find(fs => fs.id === singleDiscount.feeStructureId);
+        // For pivot/inline discounts there is no feeStructure in the global list
+        const isPivot = singleDiscount.feeStructureId.startsWith('pivot-') && singleDiscount.inlineDiscount;
         discount = {
-          id: applicableDiscounts[0].feeStructureId,
-          name: discountStructure?.name || 'Discount',
+          id: singleDiscount.feeStructureId,
+          name: discountStructure?.name ?? (isPivot ? singleDiscount.inlineDiscount!.name : 'Discount'),
           amount: totalDiscountAmount,
-          type: (discountStructure?.amount && discountStructure.amount < 0) ? 'fixed' : 'percentage'
+          type: isPivot ? 'fixed' : ((discountStructure?.amount && discountStructure.amount < 0) ? 'fixed' : 'percentage')
         };
       } else if (applicableDiscounts.length > 1) {
         discount = {
@@ -916,6 +938,13 @@ export async function calculatePreviousTermBalances(
 
         // Find discounts assigned to this pupil that are linked to this fee and valid for that period
         const assignedDiscounts = historicalPupil.assignedFees?.filter(assignedFee => {
+          // Inline pivot discount
+          if (assignedFee.feeStructureId.startsWith('pivot-') && assignedFee.inlineDiscount) {
+            const linksThisFee = assignedFee.inlineDiscount.linkedFeeIds?.includes(fee.id);
+            if (!linksThisFee) return false;
+            return isAssignmentCurrentlyValid(assignedFee, period.termId, period.academicYear, allAcademicYears);
+          }
+
           const discountStructure = allFeeStructures.find(fs => fs.id === assignedFee.feeStructureId);
           const isDiscount = discountStructure &&
             (discountStructure.category === 'Discount' || discountStructure.amount < 0) &&
@@ -931,6 +960,13 @@ export async function calculatePreviousTermBalances(
           let totalDiscountAmount = 0;
 
           for (const assignedDiscount of assignedDiscounts) {
+            // Inline pivot discount: read amount from inlineDiscount
+            if (assignedDiscount.feeStructureId.startsWith('pivot-') && assignedDiscount.inlineDiscount) {
+              totalDiscountAmount += Math.abs(assignedDiscount.inlineDiscount.amount);
+              console.log(`💸 Applied previous term pivot discount "${assignedDiscount.inlineDiscount.name}" to fee "${fee.name}": ${assignedDiscount.inlineDiscount.amount}`);
+              continue;
+            }
+
             const discountStructure = allFeeStructures.find(fs => fs.id === assignedDiscount.feeStructureId);
             if (discountStructure && typeof discountStructure.amount === 'number') {
               if (discountStructure.amount < 0) {

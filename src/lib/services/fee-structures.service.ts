@@ -17,6 +17,26 @@ import { HistoryLogService } from './history-log.service';
 
 const COLLECTION_NAME = 'feeStructures';
 
+// Module-level utility — not a class method so it can never lose `this` context
+function cleanUndefinedValues(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => cleanUndefinedValues(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanUndefinedValues(value);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 export class FeeStructuresService {
   static async getAllFeeStructures(): Promise<FeeStructure[]> {
     try {
@@ -214,7 +234,7 @@ export class FeeStructuresService {
       };
       
       // Clean undefined values before sending to Firebase
-      const cleanedData = this.cleanUndefinedValues(newFeeStructure);
+      const cleanedData = cleanUndefinedValues(newFeeStructure);
       
       const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedData);
 
@@ -264,7 +284,7 @@ export class FeeStructuresService {
       };
       
       // Clean undefined values before sending to Firebase
-      const cleanedData = this.cleanUndefinedValues(updateData);
+      const cleanedData = cleanUndefinedValues(updateData);
       
       // Get original fee structure for cache invalidation
       const originalFeeStructure = await this.getFeeStructureById(id);
@@ -330,28 +350,7 @@ export class FeeStructuresService {
     }
   }
 
-  // Utility function to recursively clean undefined values from objects
-  private static cleanUndefinedValues(obj: any): any {
-    if (obj === null || obj === undefined) {
-      return obj;
-    }
-    
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.cleanUndefinedValues(item));
-    }
-    
-    if (typeof obj === 'object') {
-      const cleaned: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (value !== undefined) {
-          cleaned[key] = this.cleanUndefinedValues(value);
-        }
-      }
-      return cleaned;
-    }
-    
-    return obj;
-  }
+  // cleanUndefinedValues has been moved to module level above the class
 
   static async deleteFeeStructure(id: string): Promise<void> {
     try {

@@ -111,6 +111,7 @@ export function UniformTrackingModal({
 
   const [selectedUniforms, setSelectedUniforms] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDynamicDiscountHalted, setIsDynamicDiscountHalted] = useState(false);
 
   // Get pupil data for dynamic discount matching
   const { data: pupil } = usePupil(pupilId);
@@ -142,13 +143,15 @@ export function UniformTrackingModal({
     } else if (formData.selectionMode === 'partial') {
       return selectedUniforms.reduce((total, uniformId) => {
         const uniform = eligibleUniforms.find(u => u.id === uniformId);
-        return total + (uniform?.price || 0);
+        const qty = formData.selectedQuantities?.[uniformId] || 1;
+        return total + ((uniform?.price || 0) * qty);
       }, 0);
     } else {
       const uniform = eligibleUniforms.find(u => u.id === formData.uniformId);
-      return uniform?.price || 0;
+      const qty = formData.selectedQuantities?.[formData.uniformId as string] || 1;
+      return (uniform?.price || 0) * qty;
     }
-  }, [formData.selectionMode, formData.uniformId, selectedUniforms, eligibleUniforms]);
+  }, [formData.selectionMode, formData.uniformId, formData.selectedQuantities, selectedUniforms, eligibleUniforms]);
 
   // Calculate the original amount separately to avoid circular dependencies
   const originalAmount = React.useMemo(() => {
@@ -171,11 +174,13 @@ export function UniformTrackingModal({
     } else if (formData.selectionMode === 'partial') {
       originalAmount = selectedUniforms.reduce((total, uniformId) => {
         const uniform = eligibleUniforms.find(u => u.id === uniformId);
-        return total + (uniform?.price || 0);
+        const qty = formData.selectedQuantities?.[uniformId] || 1;
+        return total + ((uniform?.price || 0) * qty);
       }, 0);
     } else {
       const uniform = eligibleUniforms.find(u => u.id === formData.uniformId);
-      originalAmount = uniform?.price || 0;
+      const qty = formData.selectedQuantities?.[formData.uniformId as string] || 1;
+      originalAmount = (uniform?.price || 0) * qty;
     }
 
     // Return the discount with highest reduction amount
@@ -190,7 +195,88 @@ export function UniformTrackingModal({
     });
 
     return bestDiscount;
-  }, [applicableDiscounts, pupil, selectedRecord, currentUniformIds, formData.selectionMode, formData.uniformId, selectedUniforms, eligibleUniforms]);
+  }, [applicableDiscounts, pupil, selectedRecord, currentUniformIds, formData.selectionMode, formData.uniformId, formData.selectedQuantities, selectedUniforms, eligibleUniforms]);
+
+  // Single source of truth for pricing that strictly honors halt state
+  const computedPricing = React.useMemo(() => {
+    const originalAmount = getTotalAmount();
+
+    if (formData.hasDiscount && formData.discountValue) {
+      const discountConfig: DiscountConfig = {
+        isEnabled: true,
+        type: formData.discountType,
+        valueType: formData.discountValueType,
+        value: parseFloat(formData.discountValue) || 0,
+        reason: formData.discountReason,
+        appliedBy: 'Current User',
+        appliedAt: new Date().toISOString()
+      };
+
+      const activeDynamicDiscounts = isDynamicDiscountHalted ? [] : applicableDiscounts;
+      const result = calculateFinalAmount(originalAmount, discountConfig, activeDynamicDiscounts);
+      return {
+        originalAmount,
+        finalAmount: result.finalAmount,
+        discountAmount: result.discountAmount,
+        discountSource: result.discountSource,
+        discountConfig
+      };
+    }
+
+    if (isDynamicDiscountHalted) {
+      return {
+        originalAmount,
+        finalAmount: originalAmount,
+        discountAmount: 0,
+        discountSource: 'none',
+        discountConfig: undefined
+      };
+    }
+
+    if (bestDynamicDiscount && !selectedRecord) {
+      const discountValue = bestDynamicDiscount.valueType === 'percentage'
+        ? (originalAmount * bestDynamicDiscount.value) / 100
+        : bestDynamicDiscount.value;
+      const finalAmount = Math.max(0, originalAmount - discountValue);
+      const discountConfig: DiscountConfig = {
+        isEnabled: true,
+        type: 'dynamic',
+        valueType: bestDynamicDiscount.valueType,
+        value: bestDynamicDiscount.value,
+        reason: bestDynamicDiscount.reason,
+        appliedBy: 'Auto-Applied Dynamic Discount',
+        appliedAt: new Date().toISOString(),
+        dynamicDiscountId: bestDynamicDiscount.id
+      };
+      return {
+        originalAmount,
+        finalAmount,
+        discountAmount: discountValue,
+        discountSource: 'dynamic',
+        discountConfig
+      };
+    }
+
+    const result = calculateFinalAmount(originalAmount, undefined, applicableDiscounts);
+    return {
+      originalAmount,
+      finalAmount: result.finalAmount,
+      discountAmount: result.discountAmount,
+      discountSource: result.discountSource,
+      discountConfig: result.appliedDiscount as DiscountConfig | undefined
+    };
+  }, [
+    getTotalAmount,
+    formData.hasDiscount,
+    formData.discountValue,
+    formData.discountType,
+    formData.discountValueType,
+    formData.discountReason,
+    isDynamicDiscountHalted,
+    bestDynamicDiscount,
+    selectedRecord,
+    applicableDiscounts
+  ]);
 
   // Mutation for creating dynamic discounts
   const createDynamicDiscountMutation = useCreateDynamicDiscount();
@@ -206,6 +292,7 @@ export function UniformTrackingModal({
         academicYearId: selectedRecord.academicYearId || '',
         termId: selectedRecord.termId || '',
         selectedSizes: selectedRecord.selectedSizes || {},
+        selectedQuantities: selectedRecord.selectedQuantities || {},
         hasDiscount: !!selectedRecord.discountConfig?.isEnabled,
         discountType: selectedRecord.discountConfig?.type || 'static',
         discountValueType: selectedRecord.discountConfig?.valueType || 'percentage',
@@ -232,6 +319,7 @@ export function UniformTrackingModal({
         academicYearId: initialAcademicYearId,
         termId: initialTermId,
         selectedSizes: {},
+        selectedQuantities: {},
         hasDiscount: false,
         discountType: 'static',
         discountValueType: 'percentage',
@@ -240,6 +328,7 @@ export function UniformTrackingModal({
       });
       setSelectedUniforms([]);
     }
+    setIsDynamicDiscountHalted(false);
   }, [selectedRecord, isOpen, currentAcademicYear, currentTerm]);
 
   // Update term when academic year changes (reset to first term if current term not available)
@@ -282,18 +371,37 @@ export function UniformTrackingModal({
     }
   };
 
+  const handleQuantityChange = (uniformId: string, quantity: number) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedQuantities: {
+        ...(prev.selectedQuantities || {}),
+        [uniformId]: Math.max(1, quantity)
+      }
+    }));
+  };
+
   const handleUniformSelection = (uniformId: string, checked: boolean) => {
     let newSelection: string[];
 
     if (checked) {
       newSelection = [...selectedUniforms, uniformId];
+      setFormData(prev => ({
+        ...prev,
+        selectedQuantities: {
+          ...(prev.selectedQuantities || {}),
+          [uniformId]: prev.selectedQuantities?.[uniformId] || 1
+        }
+      }));
     } else {
       newSelection = selectedUniforms.filter(id => id !== uniformId);
-      // Clear size selection when uniform is deselected
+      // Clear size and quantity selection when uniform is deselected
       setFormData(prev => {
         const newSizes = { ...prev.selectedSizes };
+        const newQuantities = { ...(prev.selectedQuantities || {}) };
         delete newSizes[uniformId];
-        return { ...prev, selectedSizes: newSizes };
+        delete newQuantities[uniformId];
+        return { ...prev, selectedSizes: newSizes, selectedQuantities: newQuantities };
       });
     }
 
@@ -402,48 +510,9 @@ export function UniformTrackingModal({
       return;
     }
 
-    const originalAmount = getTotalAmount();
-
-    // Create discount config if enabled or if dynamic discount is available
-    let discountConfig: DiscountConfig | undefined;
-    let finalAmount = originalAmount;
-
-    if (formData.hasDiscount) {
-      discountConfig = {
-        isEnabled: true,
-        type: formData.discountType,
-        valueType: formData.discountValueType,
-        value: parseFloat(formData.discountValue),
-        reason: formData.discountReason,
-        appliedBy: 'Current User', // TODO: Get from auth context
-        appliedAt: new Date().toISOString()
-      };
-
-      // Calculate final amount after discount
-      const discountResult = calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts);
-      finalAmount = discountResult.finalAmount;
-    } else if (bestDynamicDiscount && !selectedRecord) {
-      // Auto-apply dynamic discount for new records
-      discountConfig = {
-        isEnabled: true,
-        type: 'dynamic',
-        valueType: bestDynamicDiscount.valueType,
-        value: bestDynamicDiscount.value,
-        reason: bestDynamicDiscount.reason,
-        appliedBy: 'Auto-Applied Dynamic Discount',
-        appliedAt: new Date().toISOString(),
-        dynamicDiscountId: bestDynamicDiscount.id
-      };
-
-      // Calculate final amount with dynamic discount
-      finalAmount = bestDynamicDiscount.valueType === 'percentage'
-        ? originalAmount - (originalAmount * bestDynamicDiscount.value) / 100
-        : originalAmount - bestDynamicDiscount.value;
-    } else {
-      // Check for applicable dynamic discounts (fallback)
-      const discountResult = calculateFinalAmount(originalAmount, undefined, applicableDiscounts);
-      finalAmount = discountResult.finalAmount;
-    }
+    const originalAmount = computedPricing.originalAmount;
+    const finalAmount = computedPricing.finalAmount;
+    const discountConfig = computedPricing.discountConfig;
 
     // Determine payment status based on final amount
     let paymentStatus: PaymentStatus = 'pending';
@@ -462,6 +531,7 @@ export function UniformTrackingModal({
       academicYearId: formData.academicYearId,
       termId: formData.termId,
       selectedSizes: formData.selectedSizes,
+      selectedQuantities: formData.selectedQuantities,
       originalAmount,
       finalAmount,
       paidAmount,
@@ -482,7 +552,7 @@ export function UniformTrackingModal({
         const stockReductions = Object.entries(formData.selectedSizes).map(([uniformId, size]) => ({
           uniformId,
           size,
-          quantity: 1
+          quantity: formData.selectedQuantities?.[uniformId] || 1
         }));
         try {
           await reduceStockBatch.mutateAsync(stockReductions);
@@ -682,22 +752,61 @@ export function UniformTrackingModal({
                   ) : (
                     <ScrollArea className="h-48 border rounded-md p-3 mt-2">
                       <div className="space-y-3">
-                        {eligibleUniforms.map((uniform) => (
-                          <div key={uniform.id} className="flex items-center space-x-3">
-                            <Checkbox
-                              id={`uniform-${uniform.id}`}
-                              checked={selectedUniforms.includes(uniform.id)}
-                              onCheckedChange={(checked) => handleUniformSelection(uniform.id, checked as boolean)}
-                            />
-                            <Label htmlFor={`uniform-${uniform.id}`} className="flex-1 text-sm">
-                              <div className="flex justify-between items-center">
-                                <span>{uniform.name}</span>
-                                <span className="font-semibold">{formatCurrency(uniform.price)}</span>
+                        {eligibleUniforms.map((uniform) => {
+                          const isSelected = selectedUniforms.includes(uniform.id);
+                          const quantity = formData.selectedQuantities?.[uniform.id] || 1;
+
+                          return (
+                            <div key={uniform.id} className="flex items-center justify-between space-x-3">
+                              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                                <Checkbox
+                                  id={`uniform-${uniform.id}`}
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => handleUniformSelection(uniform.id, checked as boolean)}
+                                />
+                                <Label htmlFor={`uniform-${uniform.id}`} className="flex-1 text-sm cursor-pointer truncate">
+                                  <div className="flex justify-between items-center">
+                                    <span className="truncate">{uniform.name}</span>
+                                    <span className="font-semibold ml-2">{formatCurrency(uniform.price * (isSelected ? quantity : 1))}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500">{uniform.group}</div>
+                                </Label>
                               </div>
-                              <div className="text-xs text-gray-500">{uniform.group}</div>
-                            </Label>
-                          </div>
-                        ))}
+
+                              {isSelected && (
+                                <div className="flex items-center gap-1.5 ml-2 bg-slate-100 dark:bg-slate-800 rounded-full px-2 py-0.5 border border-slate-300 dark:border-slate-700 shrink-0">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 rounded-full hover:bg-slate-200 text-xs font-bold"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleQuantityChange(uniform.id, Math.max(1, quantity - 1));
+                                    }}
+                                  >
+                                    -
+                                  </Button>
+                                  <span className="text-xs font-bold px-1 min-w-[20px] text-center text-gray-900 dark:text-gray-100">
+                                    {quantity}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 rounded-full hover:bg-slate-200 text-xs font-bold"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleQuantityChange(uniform.id, quantity + 1);
+                                    }}
+                                  >
+                                    +
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </ScrollArea>
                   )}
@@ -824,7 +933,7 @@ export function UniformTrackingModal({
               <Separator />
 
                 {/* Dynamic Discount Auto-Apply Notification */}
-                {bestDynamicDiscount && !selectedRecord && !formData.hasDiscount && (
+                {bestDynamicDiscount && !selectedRecord && !formData.hasDiscount && !isDynamicDiscountHalted && (
                   <Alert className="border-green-200 bg-green-50 p-2.5 rounded-xl">
                     <AlertDescription className="text-green-800 text-xs">
                       <div className="flex justify-between items-center gap-3">
@@ -836,18 +945,53 @@ export function UniformTrackingModal({
                               : bestDynamicDiscount.value)} off</strong> for {bestDynamicDiscount.reason} ({pupil?.className || 'N/A'}, {pupil?.section || 'N/A'})
                           </span>
                         </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              handleInputChange('hasDiscount', true);
+                              handleInputChange('discountType', 'dynamic');
+                              handleInputChange('discountValueType', bestDynamicDiscount.valueType);
+                              handleInputChange('discountValue', bestDynamicDiscount.value.toString());
+                              handleInputChange('discountReason', bestDynamicDiscount.reason);
+                              setIsDynamicDiscountHalted(false);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 h-7 text-xs rounded-full px-3 text-white shadow-sm"
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsDynamicDiscountHalted(true)}
+                            className="border-green-300 text-green-800 hover:bg-green-100/80 h-7 text-xs rounded-full px-3"
+                          >
+                            Halt
+                          </Button>
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Dynamic Discount Halted Notification */}
+                {bestDynamicDiscount && !selectedRecord && !formData.hasDiscount && isDynamicDiscountHalted && (
+                  <Alert className="border-amber-200 bg-amber-50 p-2.5 rounded-xl">
+                    <AlertDescription className="text-amber-800 text-xs">
+                      <div className="flex justify-between items-center gap-3">
+                        <div className="space-y-0.5">
+                          <span className="font-bold block">Dynamic Discount Halted</span>
+                          <span className="text-[11px] leading-tight block text-amber-700">
+                            Auto-application of <strong>{bestDynamicDiscount.reason}</strong> is paused for this record.
+                          </span>
+                        </div>
                         <Button
                           type="button"
-                          onClick={() => {
-                            handleInputChange('hasDiscount', true);
-                            handleInputChange('discountType', 'dynamic');
-                            handleInputChange('discountValueType', bestDynamicDiscount.valueType);
-                            handleInputChange('discountValue', bestDynamicDiscount.value.toString());
-                            handleInputChange('discountReason', bestDynamicDiscount.reason);
-                          }}
-                          className="bg-green-600 hover:bg-green-700 h-7 text-xs rounded-full shrink-0 px-3"
+                          variant="outline"
+                          onClick={() => setIsDynamicDiscountHalted(false)}
+                          className="border-amber-300 text-amber-800 hover:bg-amber-100 h-7 text-xs rounded-full shrink-0 px-3"
                         >
-                          Accept
+                          Restore
                         </Button>
                       </div>
                     </AlertDescription>
@@ -863,7 +1007,9 @@ export function UniformTrackingModal({
                       </Label>
                       {bestDynamicDiscount && !selectedRecord && (
                         <div className="text-xs text-gray-500 mt-1">
-                          You can override or disable the auto-applied discount
+                          {isDynamicDiscountHalted
+                            ? 'Auto-applied dynamic discount is currently halted for this pupil'
+                            : 'You can override or disable the auto-applied discount'}
                         </div>
                       )}
                     </div>
@@ -992,14 +1138,21 @@ export function UniformTrackingModal({
                      <Label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider block mb-1">Selected Items:</Label>
                      {getSelectedUniformsDisplay().length > 0 ? (
                        <ul className="divide-y divide-gray-100 text-xs">
-                         {getSelectedUniformsDisplay().map((uniform) => (
-                           <li key={uniform.id} className="py-1 flex justify-between items-center text-xs">
-                             <span className="text-gray-800 font-medium">
-                               {uniform.name} <span className="text-[10px] text-gray-400 font-normal">({uniform.group})</span>
-                             </span>
-                             <span className="font-semibold text-gray-900">{formatCurrency(uniform.price)}</span>
-                           </li>
-                         ))}
+                         {getSelectedUniformsDisplay().map((uniform) => {
+                           const qty = formData.selectionMode === 'partial'
+                             ? (formData.selectedQuantities?.[uniform.id] || 1)
+                             : 1;
+
+                           return (
+                             <li key={uniform.id} className="py-1 flex justify-between items-center text-xs">
+                               <span className="text-gray-800 font-medium">
+                                 {qty > 1 ? `${qty} x ${uniform.name}` : uniform.name}{' '}
+                                 <span className="text-[10px] text-gray-400 font-normal">({uniform.group})</span>
+                               </span>
+                               <span className="font-semibold text-gray-900">{formatCurrency(uniform.price * qty)}</span>
+                             </li>
+                           );
+                         })}
                        </ul>
                      ) : (
                        <div className="text-xs text-gray-400">No items selected</div>
@@ -1013,133 +1166,76 @@ export function UniformTrackingModal({
                      </div>
  
                      {/* Discount Display */}
-                     {(() => {
-                       const originalAmount = getTotalAmount();
-                       let discountAmount = 0;
-                       let finalAmount = originalAmount;
-                       let discountSource = '';
- 
-                       if (formData.hasDiscount && formData.discountValue) {
-                         const discountConfig: DiscountConfig = {
-                           isEnabled: true,
-                           type: formData.discountType,
-                           valueType: formData.discountValueType,
-                           value: parseFloat(formData.discountValue) || 0,
-                           reason: formData.discountReason,
-                           appliedBy: 'Current User',
-                           appliedAt: new Date().toISOString()
-                         };
- 
-                         const result = calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts);
-                         discountAmount = result.discountAmount;
-                         finalAmount = result.finalAmount;
-                         discountSource = result.discountSource;
-                       } else {
-                         const result = calculateFinalAmount(originalAmount, undefined, applicableDiscounts);
-                         discountAmount = result.discountAmount;
-                         finalAmount = result.finalAmount;
-                         discountSource = result.discountSource;
-                       }
- 
-                       return (
-                         <>
-                           {discountAmount > 0 && (
-                             <>
-                               <div className="flex justify-between items-center text-green-600">
-                                 <span>
-                                   Discount ({discountSource}):
-                                   {formData.hasDiscount && (
-                                     <span className="ml-1 font-semibold">
-                                       {formatDiscountDisplay(formData.discountValueType, parseFloat(formData.discountValue) || 0)}
-                                     </span>
-                                   )}
-                                 </span>
-                                 <span className="font-bold">-{formatCurrency(discountAmount)}</span>
-                               </div>
-                              </>
-                           )}
- 
-                           <div className="border-t pt-1.5">
-                             <div className="flex justify-between items-center font-bold text-xs">
-                               <span>Final Amount:</span>
-                               <span className={`text-sm font-bold ${discountAmount > 0 ? 'text-green-600' : 'text-gray-900'}`}>{formatCurrency(finalAmount)}</span>
-                             </div>
-                           </div>
-                         </>
-                       );
-                     })()}
- 
-                     <div className="flex justify-between items-center text-xs border-t pt-1.5 text-gray-600">
-                       <span>Paid Amount:</span>
-                       <span className="font-semibold text-gray-900">{formatCurrency(formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0)}</span>
-                     </div>
- 
-                     {(() => {
-                       const finalAmount = (() => {
-                         const originalAmount = getTotalAmount();
-                         if (formData.hasDiscount && formData.discountValue) {
-                           const discountConfig: DiscountConfig = {
-                             isEnabled: true,
-                             type: formData.discountType,
-                             valueType: formData.discountValueType,
-                             value: parseFloat(formData.discountValue) || 0,
-                             reason: formData.discountReason,
-                             appliedBy: 'Current User',
-                             appliedAt: new Date().toISOString()
-                           };
-                           return calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts).finalAmount;
-                         }
-                         return calculateFinalAmount(originalAmount, undefined, applicableDiscounts).finalAmount;
-                       })();
- 
-                       const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
-                       const balance = finalAmount - paidAmount;
- 
-                       return (
-                         <div className="flex justify-between items-center text-xs text-gray-600">
-                           <span>Balance:</span>
-                           <span className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                             {formatCurrency(balance)}
-                           </span>
-                         </div>
-                       );
-                     })()}
-                   </div>
- 
-                   <div className="border-t pt-2">
-                     <div className="flex justify-between items-center text-xs text-gray-600">
-                       <span>Payment Status:</span>
-                       {(() => {
-                         const finalAmount = (() => {
-                           const originalAmount = getTotalAmount();
-                           if (formData.hasDiscount && formData.discountValue) {
-                             const discountConfig: DiscountConfig = {
-                               isEnabled: true,
-                               type: formData.discountType,
-                               valueType: formData.discountValueType,
-                               value: parseFloat(formData.discountValue) || 0,
-                               reason: formData.discountReason,
-                               appliedBy: 'Current User',
-                               appliedAt: new Date().toISOString()
-                             };
-                             return calculateFinalAmount(originalAmount, discountConfig, applicableDiscounts).finalAmount;
-                           }
-                           return calculateFinalAmount(originalAmount, undefined, applicableDiscounts).finalAmount;
-                         })();
- 
-                         const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
- 
-                         return (
-                           <Badge variant={
-                             paidAmount >= finalAmount ? 'default' :
-                               paidAmount > 0 ? 'secondary' : 'outline'
-                           } className="py-0 px-2 text-[10px] rounded-full">
-                             {paidAmount >= finalAmount ? 'Paid' :
-                               paidAmount > 0 ? 'Partial' : 'Pending'}
-                           </Badge>
-                         );
-                       })()}
-                     </div>
+                    {(() => {
+                      const { discountAmount, finalAmount, discountSource } = computedPricing;
+
+                      return (
+                        <>
+                          {discountAmount > 0 && (
+                            <>
+                              <div className="flex justify-between items-center text-green-600">
+                                <span>
+                                  Discount ({discountSource}):
+                                  {formData.hasDiscount && (
+                                    <span className="ml-1 font-semibold">
+                                      {formatDiscountDisplay(formData.discountValueType, parseFloat(formData.discountValue) || 0)}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="font-bold">-{formatCurrency(discountAmount)}</span>
+                              </div>
+                            </>
+                          )}
+
+                          <div className="border-t pt-1.5">
+                            <div className="flex justify-between items-center font-bold text-xs">
+                              <span>Final Amount:</span>
+                              <span className={`text-sm font-bold ${discountAmount > 0 ? 'text-green-600' : 'text-gray-900'}`}>{formatCurrency(finalAmount)}</span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    <div className="flex justify-between items-center text-xs border-t pt-1.5 text-gray-600">
+                      <span>Paid Amount:</span>
+                      <span className="font-semibold text-gray-900">{formatCurrency(formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0)}</span>
+                    </div>
+
+                    {(() => {
+                      const finalAmount = computedPricing.finalAmount;
+                      const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
+                      const balance = finalAmount - paidAmount;
+
+                      return (
+                        <div className="flex justify-between items-center text-xs text-gray-600">
+                          <span>Balance:</span>
+                          <span className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {formatCurrency(balance)}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between items-center text-xs text-gray-600">
+                      <span>Payment Status:</span>
+                      {(() => {
+                        const finalAmount = computedPricing.finalAmount;
+                        const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
+
+                        return (
+                          <Badge variant={
+                            paidAmount >= finalAmount ? 'default' :
+                              paidAmount > 0 ? 'secondary' : 'outline'
+                          } className="py-0 px-2 text-[10px] rounded-full">
+                            {paidAmount >= finalAmount ? 'Paid' :
+                              paidAmount > 0 ? 'Partial' : 'Pending'}
+                          </Badge>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </CardContent>
                </Card>
