@@ -440,6 +440,40 @@ function PupilDetailContent() {
     [siblings, pupilId]
   );
 
+  // Unlink sibling state
+  const [unlinkSiblingConfirm, setUnlinkSiblingConfirm] = React.useState<{
+    siblingToUnlink: typeof actualSiblings[0];
+    remainingSiblings: typeof actualSiblings;
+  } | null>(null);
+  const [isUnlinking, setIsUnlinking] = React.useState(false);
+
+  const handleUnlinkSibling = async () => {
+    if (!unlinkSiblingConfirm) return;
+    const { siblingToUnlink } = unlinkSiblingConfirm;
+    setIsUnlinking(true);
+    try {
+      await updatePupilMutation.mutateAsync({
+        id: siblingToUnlink.id,
+        data: { familyId: `solo-${siblingToUnlink.id}-${Date.now()}` }
+      });
+      toast({
+        title: 'Sibling Unlinked',
+        description: `${siblingToUnlink.firstName} ${siblingToUnlink.lastName} has been unlinked and given a new family ID.`
+      });
+      setUnlinkSiblingConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['pupils'] });
+    } catch (error) {
+      console.error('Failed to unlink sibling:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Unlink Failed',
+        description: 'Failed to unlink sibling. Please try again.'
+      });
+    } finally {
+      setIsUnlinking(false);
+    }
+  };
+
   // Memoize the getClassName function with classes
   const getClassNameMemo = React.useCallback((classId: string | undefined) => {
     return getClassName(classId, classes);
@@ -4330,6 +4364,46 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                       Exams
                                     </Link>
                                   </Button>
+                                  {/* Gear menu for sibling actions */}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        className="flex items-center justify-center h-6 w-6 rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 transition-all shrink-0"
+                                        title="Sibling actions"
+                                      >
+                                        <Settings className="h-3 w-3" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-44">
+                                      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Sibling Actions</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem asChild>
+                                        <Link href={`/pupil-detail?id=${sibling.id}`} className="flex items-center cursor-pointer">
+                                          <Eye className="mr-2 h-3.5 w-3.5 text-blue-600" />
+                                          View Profile
+                                        </Link>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem asChild>
+                                        <Link href={`/fees/collect/${sibling.id}`} className="flex items-center cursor-pointer">
+                                          <Receipt className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                                          Collect Fees
+                                        </Link>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
+                                        onClick={() => {
+                                          const remaining = actualSiblings.filter(s => s.id !== sibling.id);
+                                          setUnlinkSiblingConfirm({ siblingToUnlink: sibling, remainingSiblings: remaining });
+                                        }}
+                                      >
+                                        <svg className="mr-2 h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                        </svg>
+                                        Unlink Sibling
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground font-medium">
@@ -4379,6 +4453,71 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                 </CardContent>
               </Card>
             )}
+
+            {/* Unlink Sibling Confirmation Dialog */}
+            <ModernDialog
+              open={unlinkSiblingConfirm !== null}
+              onOpenChange={(open) => { if (!open && !isUnlinking) setUnlinkSiblingConfirm(null); }}
+            >
+              <ModernDialogContent size="sm">
+                <ModernDialogHeader>
+                  <ModernDialogTitle>Unlink Sibling</ModernDialogTitle>
+                  <ModernDialogDescription>
+                    {unlinkSiblingConfirm && (
+                      <>
+                        The system will unlink{' '}
+                        <strong>{unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}</strong>{' '}
+                        from{' '}
+                        <strong>
+                          {unlinkSiblingConfirm.remainingSiblings.length > 0
+                            ? unlinkSiblingConfirm.remainingSiblings.map(s => `${s.firstName} ${s.lastName}`).join(', ')
+                            : `${pupil?.firstName} ${pupil?.lastName}`}
+                        </strong>.
+                        {' '}They will be given a new independent family ID.
+                      </>
+                    )}
+                  </ModernDialogDescription>
+                </ModernDialogHeader>
+                {unlinkSiblingConfirm && (
+                  <div className="flex items-center gap-3 px-1 py-2">
+                    <Avatar className="h-10 w-10 border-2 border-red-200">
+                      {unlinkSiblingConfirm.siblingToUnlink.photo && (
+                        <AvatarImage src={unlinkSiblingConfirm.siblingToUnlink.photo} alt={`${unlinkSiblingConfirm.siblingToUnlink.firstName}`} />
+                      )}
+                      <AvatarFallback className="text-xs bg-red-100 text-red-700">
+                        {unlinkSiblingConfirm.siblingToUnlink.firstName.charAt(0)}{unlinkSiblingConfirm.siblingToUnlink.lastName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold text-gray-900">{unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}</p>
+                      <p className="text-xs text-gray-500">{unlinkSiblingConfirm.siblingToUnlink.admissionNumber}</p>
+                    </div>
+                  </div>
+                )}
+                <ModernDialogFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setUnlinkSiblingConfirm(null)}
+                    disabled={isUnlinking}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleUnlinkSibling}
+                    disabled={isUnlinking}
+                    className="w-full sm:w-auto"
+                  >
+                    {isUnlinking ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Unlinking...</>
+                    ) : (
+                      'Yes, Unlink Sibling'
+                    )}
+                  </Button>
+                </ModernDialogFooter>
+              </ModernDialogContent>
+            </ModernDialog>
 
             {/* Staff Relative Section */}
             {pupil.assignedStaffId && assignedStaff && (

@@ -637,16 +637,16 @@ function PupilsContent() {
 
   // Add a function to get siblings for a pupil
   // 🚀 OPTIMIZATION: Pre-compute siblings map for O(1) lookups instead of O(N²)
-  // NOTE: Use ALL pupils, not paginated, so siblings work across pages
+  // NOTE: Use ALL cached pupils (not class-filtered), so siblings from other classes are always found
   const siblingsMap = useMemo(() => {
-    console.log('🚀 OPTIMIZATION: Building siblings map for', pupils.length, 'pupils');
+    console.log('🚀 OPTIMIZATION: Building siblings map for', allCachedPupils.length, 'pupils');
     const startTime = performance.now();
 
     const map = new Map<string, Pupil[]>();
 
-    // Group pupils by familyId - use ALL pupils for complete sibling relationships
+    // Group ALL cached pupils by familyId — not the class-filtered subset
     const familiesMap = new Map<string, Pupil[]>();
-    pupils.forEach(pupil => {
+    allCachedPupils.forEach(pupil => {
       if (pupil.familyId) {
         if (!familiesMap.has(pupil.familyId)) {
           familiesMap.set(pupil.familyId, []);
@@ -656,12 +656,11 @@ function PupilsContent() {
     });
 
     // For each pupil, store their siblings (excluding themselves)
-    pupils.forEach(pupil => {
+    allCachedPupils.forEach(pupil => {
       if (pupil.familyId) {
         const family = familiesMap.get(pupil.familyId) || [];
         const siblings = family.filter(p =>
-          p.id !== pupil.id &&
-          (p.status === 'Active' || p.status === 'Inactive')
+          p.id !== pupil.id
         );
         map.set(pupil.id, siblings);
       } else {
@@ -674,7 +673,7 @@ function PupilsContent() {
     console.log(`📊 OPTIMIZATION: ${map.size} pupils processed, instant O(1) lookups now available`);
 
     return map;
-  }, [pupils]);
+  }, [allCachedPupils]);
 
   const getSiblings = (pupil: Pupil): Pupil[] => {
     return siblingsMap.get(pupil.id) || [];

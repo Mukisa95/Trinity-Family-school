@@ -174,6 +174,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [windowWidth, setWindowWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const prevSearchTermRef = useRef('');
 
   // State for the top bar message
   const { data: settings } = useSchoolSettings({ enabled: loadSchoolSettings });
@@ -292,6 +294,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
       if (searchTerm.length < 1 && !hasFilters) {
         setSearchResults([]);
         setShowResults(false);
+        prevSearchTermRef.current = '';
         return;
       }
 
@@ -322,7 +325,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
           });
 
           setSearchResults(filtered);
-          setShowResults(true);
+          const termChanged = prevSearchTermRef.current !== searchTerm;
+          prevSearchTermRef.current = searchTerm;
+          if (termChanged && searchTerms.length > 0) {
+            setShowResults(true);
+          }
         }
       } catch (error) {
         console.error('Error searching pupils:', error);
@@ -459,7 +466,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   // Handle pupil selection
   const handlePupilSelect = (pupilId: string) => {
     setShowResults(false);
-    setSearchTerm('');
     setShowMobileSearch(false);
 
     // Add zoom animation
@@ -475,11 +481,20 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     }
   };
 
-  // Handle click outside for mobile search
+  // Collapse results on page navigation
+  useEffect(() => {
+    setShowResults(false);
+    setShowMobileSearch(false);
+  }, [pathname]);
+
+  // Handle click outside for mobile and desktop search
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)) {
         setShowMobileSearch(false);
+      }
+      if (desktopSearchRef.current && !desktopSearchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
       }
     };
 
@@ -615,6 +630,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
               {/* Desktop Search Bar — hidden on mobile, shown from md */}
               {user?.role !== 'Parent' && (
                 <div
+                  ref={desktopSearchRef}
                   id="search-container"
                   className="hidden md:block relative z-50 transition-all duration-300 group"
                   onMouseEnter={() => setIsSearchHovered(true)}
@@ -644,8 +660,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         setSearchAnimationPhase('search');
                         setSearchBarWidth('w-32');
                       }}
-                      className={`pl-7 pr-8 h-[34px] text-xs bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border border-blue-200/60 ${searchTerm.length > 0 || isSearchHovered || showFilters
-                        ? 'w-56 lg:w-72'
+                      className={`pl-7 pr-16 h-[34px] text-xs bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border border-blue-200/60 ${searchTerm.length > 0 || isSearchHovered || showFilters
+                        ? 'w-60 lg:w-80'
                         : searchAnimationPhase === 'name'
                           ? 'w-auto min-w-[160px] max-w-[240px]'
                           : searchBarWidth
@@ -705,22 +721,46 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                       </div>
                     )}
 
-                    {/* Filter and Clear Buttons */}
+                    {/* Filter, Expand/Collapse, and Clear Buttons */}
                     <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1 z-10">
                       {isSearching ? (
                         <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent mr-1" />
                       ) : (
-                        searchTerm && (
-                          <button
-                            onClick={() => setSearchTerm('')}
-                            className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1"
-                            type="button"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )
+                        <>
+                          {searchTerm && searchResults.length > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowResults(!showResults);
+                              }}
+                              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200 ${
+                                showResults
+                                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                  : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm'
+                              }`}
+                              title={showResults ? "Collapse search results" : `Expand search results (${searchResults.length})`}
+                              type="button"
+                            >
+                              <span>{searchResults.length}</span>
+                              <CaretDown size={10} weight="bold" className={`transition-transform duration-200 ${showResults ? 'rotate-180' : ''}`} />
+                            </button>
+                          )}
+                          {searchTerm && (
+                            <button
+                              onClick={() => {
+                                setSearchTerm('');
+                                setShowResults(false);
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1"
+                              type="button"
+                              title="Clear search"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </>
                       )}
 
                       {/* Filter Button - Conditional Display */}
@@ -815,6 +855,23 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           </div>
                         )}
 
+                        {/* Search Results Header */}
+                        {searchResults.length > 0 && (
+                          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/90 border-b border-gray-100 text-xs">
+                            <span className="font-semibold text-gray-700">
+                              Results ({searchResults.length})
+                            </span>
+                            <button
+                              onClick={() => setShowResults(false)}
+                              className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+                              title="Collapse results"
+                              type="button"
+                            >
+                              <X size={13} weight="bold" />
+                            </button>
+                          </div>
+                        )}
+
                         {/* Search Results List */}
                         {searchResults.length > 0 ? (
                           <div className="max-h-60 overflow-y-auto">
@@ -846,13 +903,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               return (
                                 <div
                                   key={pupil.id}
+                                  onClick={() => handlePupilSelect(pupil.id)}
                                   className="px-3 py-2 border-b last:border-b-0 transition-all duration-200 hover:bg-blue-50/80 cursor-pointer"
                                 >
                                   <div className="flex items-center justify-between">
-                                    <div
-                                      onClick={() => handlePupilSelect(pupil.id)}
-                                      className="flex-1 min-w-0 mr-2"
-                                    >
+                                    <div className="flex-1 min-w-0 mr-2">
                                       <div className="flex items-center gap-2">
                                         {/* Status Icon - Inline before name */}
                                         <div className={`flex items-center justify-center p-0.5 rounded-full ${statusBg}`} title={pupil.status || 'Unknown'}>
@@ -883,6 +938,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          setShowResults(false);
                                           router.push(`/fees/collect/${pupil.id}`);
                                         }}
                                         className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
@@ -978,21 +1034,41 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 className="w-full pl-10 pr-8 py-2 text-sm bg-white rounded-full border border-blue-200 focus:ring-2 focus:ring-blue-400/50 focus:outline-none focus:border-blue-400"
                 autoFocus
               />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
                 {isSearching ? (
                   <div className="animate-spin rounded-full h-4 w-4 border border-blue-500 border-t-transparent" />
                 ) : (
-                  searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      className="text-gray-400 hover:text-red-500 transition-colors duration-200"
-                      type="button"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )
+                  <>
+                    {searchTerm && searchResults.length > 0 && (
+                      <button
+                        onClick={() => setShowResults(!showResults)}
+                        className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold transition-all ${
+                          showResults
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm'
+                        }`}
+                        title={showResults ? "Collapse search results" : `Expand search results (${searchResults.length})`}
+                        type="button"
+                      >
+                        <span>{searchResults.length}</span>
+                        <CaretDown size={12} weight="bold" className={`transition-transform duration-200 ${showResults ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                    {searchTerm && (
+                      <button
+                        onClick={() => {
+                          setSearchTerm('');
+                          setShowResults(false);
+                        }}
+                        className="text-gray-400 hover:text-red-500 transition-colors duration-200"
+                        type="button"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1003,13 +1079,11 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 {searchResults.map((pupil) => (
                   <div
                     key={pupil.id}
-                    className="px-3 py-2 border-b last:border-b-0 hover:bg-blue-50"
+                    onClick={() => handlePupilSelect(pupil.id)}
+                    className="px-3 py-2 border-b last:border-b-0 hover:bg-blue-50 cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
-                      <div
-                        onClick={() => handlePupilSelect(pupil.id)}
-                        className="flex-1 cursor-pointer"
-                      >
+                      <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">
                           {formatPupilDisplayName(pupil)}
                         </p>
@@ -1021,7 +1095,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log('Mobile fees button clicked for pupil:', pupil.id);
+                            setShowResults(false);
+                            setShowMobileSearch(false);
                             router.push(`/fees/collect/${pupil.id}`);
                           }}
                           className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
