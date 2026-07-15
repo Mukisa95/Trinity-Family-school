@@ -549,10 +549,13 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
         city: schoolSettings?.address?.city
       };
 
-      // Generate QR codes for all valid pupils
-      const qrCodes: Record<string, string> = {};
-
-      for (const pupil of validPupils) {
+      // Generate QR codes in parallel
+      toast({
+        title: "Generating QR Codes",
+        description: `Preparing data for ${validPupils.length} certificates...`,
+      });
+      
+      const qrEntries = await Promise.all(validPupils.map(async (pupil) => {
         const qrData = `Name: ${formatPupilDisplayName(pupil)}
 Index: ${pupil.indexNumber || 'N/A'}
 LIN: ${pupil.learnerIdentificationNumber || 'N/A'}
@@ -563,18 +566,52 @@ Division: ${pupil.division}`;
           const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
             width: 80,
             margin: 1,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            },
+            color: { dark: '#000000', light: '#FFFFFF' },
             errorCorrectionLevel: 'L',
             type: 'image/png'
           });
-          qrCodes[pupil.pupilId] = qrCodeDataUrl;
+          return [pupil.pupilId, qrCodeDataUrl];
         } catch (qrError) {
           console.warn(`Failed to generate QR code for pupil ${pupil.pupilId}:`, qrError);
+          return [pupil.pupilId, ''];
         }
-      }
+      }));
+      const qrCodes: Record<string, string> = Object.fromEntries(qrEntries);
+
+      // Pre-fetch pupil photos in parallel to avoid react-pdf sequential fetches
+      toast({
+        title: "Fetching Photos",
+        description: `Pre-fetching pupil photos for the PDF...`,
+      });
+      
+      const photoEntries = await Promise.all(validPupils.map(async (pupil) => {
+        if (!pupil.photo || pupil.photo.startsWith('data:')) {
+          return [pupil.pupilId, pupil.photo || null];
+        }
+        
+        try {
+          const res = await fetch(pupil.photo);
+          const blob = await res.blob();
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(blob);
+          });
+          return [pupil.pupilId, base64];
+        } catch (err) {
+          console.warn(`Failed to pre-fetch photo for ${pupil.pupilId}:`, err);
+          return [pupil.pupilId, null];
+        }
+      }));
+      const photosBase64 = Object.fromEntries(photoEntries);
+
+      // Yield to the UI thread before rendering the massive PDF
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      toast({
+        title: "Rendering PDF",
+        description: `Rendering ${validPupils.length} certificates...`,
+      });
 
       // Generate batch PDF
       const doc = (
@@ -588,6 +625,7 @@ Division: ${pupil.division}`;
           examName={pleRecord?.examName || 'PLE'}
           schoolContact={schoolContact}
           qrCodes={qrCodes}
+          photosBase64={photosBase64}
         />
       );
 

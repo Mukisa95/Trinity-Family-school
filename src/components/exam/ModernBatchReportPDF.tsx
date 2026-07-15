@@ -152,28 +152,21 @@ const generateTeacherInitials = (teacherName: string): string => {
 
 // Helper function to calculate age from date of birth using exam date
 const calculateAge = (dateOfBirth?: string, examDate?: string, ageAtExam?: number): number => {
-  console.log('🔍 calculateAge called with:', { dateOfBirth, examDate, ageAtExam });
-  
   // If ageAtExam is already provided and valid, use it
   if (ageAtExam && ageAtExam > 0 && ageAtExam < 100) {
-    console.log('✅ Using ageAtExam:', ageAtExam);
     return ageAtExam;
   }
   
   // Otherwise calculate from date of birth
   try {
-    const calculatedAge = calculateAccurateAge(dateOfBirth, examDate || new Date());
-    console.log('✅ Calculated age:', calculatedAge);
-    return calculatedAge;
+    return calculateAccurateAge(dateOfBirth, examDate || new Date());
   } catch (error) {
-    console.error('❌ Age calculation failed:', error);
     // As last resort, if we have a date of birth string, try simple year subtraction
     if (dateOfBirth) {
       const year = parseInt(dateOfBirth.substring(0, 4));
       if (year > 1900 && year < 2030) {
         const refYear = examDate ? new Date(examDate).getFullYear() : new Date().getFullYear();
         const simpleAge = refYear - year;
-        console.log('⚠️ Using simple age calculation:', simpleAge);
         return simpleAge > 0 ? simpleAge : 0;
       }
     }
@@ -186,6 +179,33 @@ const generateTeacherReports = (result: ExamResult, _examTitle: string, picker: 
   const classTeacherReport = picker.classTeacher(result.pupilInfo.name, result.totalAggregates);
   const headTeacherReport = picker.headTeacher(result.pupilInfo.name, result.totalAggregates);
   return { classTeacherReport, headTeacherReport };
+};
+
+export const globalQRCodeCache = new Map<string, string>();
+
+export const preGenerateQRCodesForBatch = async (
+  results: any[],
+  examDetails: any,
+  classSnap: any
+): Promise<void> => {
+  if (!results || !examDetails || !classSnap) return;
+  for (const result of results) {
+    if (!result?.pupilInfo?.pupilId) continue;
+    const cacheKey = `${examDetails.name}-${result.pupilInfo.pupilId}-${result.totalAggregates}`;
+    if (globalQRCodeCache.has(cacheKey)) continue;
+    try {
+      const age = calculateAge(result.pupilInfo.dateOfBirth, examDetails.startDate, result.pupilInfo.ageAtExam);
+      const qrData = `Name: ${result.pupilInfo.name}\nClass: ${classSnap.name}\nAge: ${age} years\nPIN: ${result.pupilInfo.admissionNumber || 'N/A'}\nYear: ${examDetails.academicYearName || new Date().getFullYear().toString()}\nTerm: ${examDetails.termName || 'TERM'}\nAggregates: ${result.totalAggregates || 'N/A'}\nDivision: ${result.division || 'N/A'}`;
+      const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+        errorCorrectionLevel: 'L',
+        margin: 1,
+        width: 100
+      });
+      globalQRCodeCache.set(cacheKey, qrCodeDataURL);
+    } catch {
+      // Ignore background generation errors
+    }
+  }
 };
 
 export const generateModernBatchReportPDF = async (props: ModernBatchReportProps) => {
@@ -276,8 +296,11 @@ export const generateModernBatchReportPDF = async (props: ModernBatchReportProps
       // Generate QR codes for this batch in parallel
       const batchQRCodes = await Promise.all(
         batch.map(async (result) => {
+          const cacheKey = `${examDetails.name}-${result.pupilInfo.pupilId}-${result.totalAggregates}`;
+          if (globalQRCodeCache.has(cacheKey)) {
+            return { pupilId: result.pupilInfo.pupilId, qrCodeDataURL: globalQRCodeCache.get(cacheKey)! };
+          }
           const age = calculateAge(result.pupilInfo.dateOfBirth, examDetails.startDate, result.pupilInfo.ageAtExam);
-          
           const qrData = `Name: ${result.pupilInfo.name}
 Class: ${classSnap.name}
 Age: ${age} years
@@ -288,8 +311,8 @@ Exam: ${examDetails.name}
 Total Aggregates: ${result.totalAggregates}
 Division: ${result.division}
 Date: ${new Date().toLocaleDateString()}`;
-          
           const qrCodeDataURL = await generateQRCodeDataURL(qrData);
+          globalQRCodeCache.set(cacheKey, qrCodeDataURL);
           return { pupilId: result.pupilInfo.pupilId, qrCodeDataURL };
         })
       );
@@ -406,17 +429,11 @@ Date: ${new Date().toLocaleDateString()}`;
           classTeacherName: classTeacherInfo?.name,
           promotionStatus: result.division === 'I' || result.division === 'II' ? 'PROMOTED' : 
                           result.division === 'III' ? 'PROMOTED ON PROBATION' : 'REPEAT',
-          promotionRanking: (() => {
-            console.log('🎓 Promotion Ranking Config:', promotionRankingConfig);
-            console.log('📊 Total Aggregates:', result.totalAggregates);
-            const ranking = promotionRankingConfig ? calculatePromotionStatus(
-              result.totalAggregates,
-              promotionRankingConfig,
-              classSnap.code
-            ) : null;
-            console.log('✅ Calculated Ranking:', ranking);
-            return ranking;
-          })(),
+          promotionRanking: promotionRankingConfig ? calculatePromotionStatus(
+            result.totalAggregates,
+            promotionRankingConfig,
+            classSnap.code
+          ) : null,
           examSnapshot: {
             academicYearId: examDetails.academicYearId || new Date().getFullYear().toString(),
             termId: examDetails.termId || 'TERM'
@@ -429,9 +446,6 @@ Date: ${new Date().toLocaleDateString()}`;
           emergencyContactPhone: 'N/A', // Not available in current data structure
           qrCodeDataURL: pupilQRCode?.qrCodeDataURL || '' // Pass the generated QR code
         };
-
-        // Debug logging
-        console.log(`PDF Debug - Pupil: ${result.pupilInfo.name}, Total Marks: ${result.totalMarks}, Total Aggregates: ${result.totalAggregates}, Division: ${result.division}`);
 
         return (
           <Page key={result.pupilInfo.pupilId} size="A4">
@@ -447,6 +461,9 @@ Date: ${new Date().toLocaleDateString()}`;
       onProgress(70, 'Rendering PDF pages...');
     }
     
+    // Yield to browser main thread so UI progress bar updates before heavy PDF serialization
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     // Generate PDF blob
     const blob = await pdf(BatchReportDocument()).toBlob();
     
@@ -555,8 +572,11 @@ export const generateTransBatchReportPDF = async (props: ModernBatchReportProps)
       // Generate QR codes for this batch in parallel
       const batchQRCodes = await Promise.all(
         batch.map(async (result) => {
+          const cacheKey = `${examDetails.name}-${result.pupilInfo.pupilId}-${result.totalAggregates}`;
+          if (globalQRCodeCache.has(cacheKey)) {
+            return { pupilId: result.pupilInfo.pupilId, qrCodeDataURL: globalQRCodeCache.get(cacheKey)! };
+          }
           const age = calculateAge(result.pupilInfo.dateOfBirth, examDetails.startDate, result.pupilInfo.ageAtExam);
-          
           const qrData = `Name: ${result.pupilInfo.name}
 Class: ${classSnap.name}
 Age: ${age} years
@@ -567,8 +587,8 @@ Exam: ${examDetails.name}
 Total Aggregates: ${result.totalAggregates}
 Division: ${result.division}
 Date: ${new Date().toLocaleDateString()}`;
-          
           const qrCodeDataURL = await generateQRCodeDataURL(qrData);
+          globalQRCodeCache.set(cacheKey, qrCodeDataURL);
           return { pupilId: result.pupilInfo.pupilId, qrCodeDataURL };
         })
       );
@@ -764,6 +784,9 @@ Date: ${new Date().toLocaleDateString()}`;
   );
 
   try {
+    // Yield to browser main thread so UI progress bar updates before heavy PDF serialization
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     // Generate PDF blob
     const blob = await pdf(TransBatchReportDocument()).toBlob();
     

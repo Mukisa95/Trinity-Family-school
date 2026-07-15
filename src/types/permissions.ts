@@ -119,6 +119,15 @@ export const MODULE_ACTIONS = {
           { id: 'change_view', name: 'Change view', description: 'Can switch between day, week, and month birthday views' },
           { id: 'navigate_periods', name: 'Navigate periods', description: 'Can move between previous and next birthday periods' }
         ]
+      },
+      {
+        page: 'historical_seeding',
+        path: '/pupils/historical-seeding',
+        name: 'Historical Pupil Seeding',
+        actions: [
+          { id: 'access_page', name: 'Open seeding workspace', description: 'Can open the historical pupil seeding workspace' },
+          { id: 'create_historical_pupil', name: 'Add historical pupils', description: 'Can add a pupil and their verified academic history' }
+        ]
       }
     ]
   },
@@ -658,7 +667,121 @@ export const MODULE_ACTIONS = {
         ]
       }
     ]
+  },
+  boarding: {
+    pages: [
+      {
+        page: 'overview',
+        path: '/boarding/list',
+        name: 'In-House Overview',
+        actions: [
+          { id: 'access_page', name: 'Open In-House overview', description: 'Can open the boarding and In-House overview' },
+          { id: 'view_boarders', name: 'View boarders', description: 'Can view boarding pupils and assignments' },
+          { id: 'assign_boarding', name: 'Assign boarding', description: 'Can assign pupils to boarding' },
+          { id: 'manage_boarding_status', name: 'Manage boarding status', description: 'Can update pupil boarding status' }
+        ]
+      },
+      {
+        page: 'dormitories',
+        path: '/boarding/dormitory',
+        name: 'Dormitories',
+        actions: [
+          { id: 'access_page', name: 'Open dormitories', description: 'Can open dormitory management' },
+          { id: 'view_dormitories', name: 'View dormitories', description: 'Can view dormitories and occupancy' },
+          { id: 'manage_dormitories', name: 'Manage dormitories', description: 'Can create and update dormitories' },
+          { id: 'assign_beds', name: 'Assign beds', description: 'Can assign pupils to dormitories and beds' }
+        ]
+      }
+    ]
+  },
+  inventory: {
+    pages: [
+      {
+        page: 'dashboard',
+        path: '/inventory',
+        name: 'Inventory',
+        actions: [
+          { id: 'access_page', name: 'Open inventory', description: 'Can open the inventory dashboard' },
+          { id: 'view_inventory', name: 'View inventory', description: 'Can view inventory levels and stock' },
+          { id: 'manage_inventory', name: 'Manage inventory', description: 'Can add and update inventory records' },
+          { id: 'view_inventory_reports', name: 'View inventory reports', description: 'Can view inventory summaries and reports' }
+        ]
+      }
+    ]
+  },
+  account: {
+    pages: [
+      {
+        page: 'profile',
+        path: '/profile',
+        name: 'My Profile',
+        actions: [
+          { id: 'access_page', name: 'Open profile', description: 'Can open the signed-in user profile' },
+          { id: 'edit_profile', name: 'Edit profile', description: 'Can update the signed-in user profile' },
+          { id: 'change_password', name: 'Change password', description: 'Can update the signed-in user password' }
+        ]
+      },
+      {
+        page: 'history_log',
+        path: '/history-log',
+        name: 'History Log',
+        actions: [
+          { id: 'access_page', name: 'Open history log', description: 'Can open the system history log' },
+          { id: 'view_history', name: 'View history', description: 'Can view history log entries' },
+          { id: 'export_history', name: 'Export history', description: 'Can export history log entries' }
+        ]
+      },
+      {
+        page: 'changelog',
+        path: '/changelog',
+        name: 'Change Log',
+        actions: [
+          { id: 'access_page', name: 'Open change log', description: 'Can open the application change log' },
+          { id: 'view_changes', name: 'View changes', description: 'Can view application changes' }
+        ]
+      }
+    ]
   }
 } as const;
 
 export type ModuleId = keyof typeof MODULE_ACTIONS; 
+
+export type RoutePagePermission = {
+  moduleId: ModuleId;
+  pageId: string;
+  pattern: RegExp;
+};
+
+const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
+  { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupil-detail$/ },
+  { moduleId: 'pupils', pageId: 'detail', pattern: /^\/pupils\/[^/]+$/ },
+  { moduleId: 'pupils', pageId: 'enrollment_trends', pattern: /^\/enrollment-trends\/class\/[^/]+$/ },
+  { moduleId: 'promotion', pageId: 'promote', pattern: /^\/pupils\/promotion-history\/[^/]+$/ },
+  { moduleId: 'attendance', pageId: 'record', pattern: /^\/attendance\/(record|view|excluded-days)$/ },
+  { moduleId: 'classes', pageId: 'detail', pattern: /^\/(class-detail|class\/edit|classes\/(graduates|history)\/[^/]+|classes\/pending)$/ },
+  { moduleId: 'requirements', pageId: 'tracking', pattern: /^\/(class-requirements|requirement-tracking)$/ },
+  { moduleId: 'boarding', pageId: 'overview', pattern: /^\/boarding(?:\/list)?$/ },
+  { moduleId: 'boarding', pageId: 'dormitories', pattern: /^\/boarding\/dormitory(?:\/[^/]+)?$/ },
+  { moduleId: 'staff', pageId: 'list', pattern: /^\/staff\/(form|mofus|[^/]+)$/ },
+  { moduleId: 'banking', pageId: 'list', pattern: /^\/banking\/(list|pupil-banking-details)$/ },
+  { moduleId: 'procurement', pageId: 'items', pattern: /^\/procurement$/ },
+  { moduleId: 'fees', pageId: 'collect', pattern: /^\/fees\/(collect(?:\/[^/]+)?|family\/.*)$/ },
+  { moduleId: 'fees', pageId: 'list', pattern: /^\/(assign(?:\/[^/]+)?|fee-assignments(?:\/[^/]+)?|discounts)$/ },
+  { moduleId: 'inventory', pageId: 'dashboard', pattern: /^\/inventory(?:\/uniforms)?$/ },
+  { moduleId: 'uniforms', pageId: 'tracking', pattern: /^\/uniform-tracking$/ },
+  { moduleId: 'exams', pageId: 'results', pattern: /^\/(remark-report|exams\/(?:[^/]+\/(?:edit-snapshot|pupil-results\/[^/]+|record-results|view-results)|ple-results(?:\/.*)?))$/ },
+  { moduleId: 'commentary', pageId: 'list', pattern: /^\/commentary-management(?:\/seed-subjects)?$/ },
+  { moduleId: 'bulk_sms', pageId: 'send', pattern: /^\/sms-templates$/ },
+  { moduleId: 'notifications', pageId: 'list', pattern: /^\/push-notifications$/ },
+  { moduleId: 'events', pageId: 'calendar', pattern: /^\/events\/[^/]+\/(attendance|view-attendance)$/ },
+  { moduleId: 'settings', pageId: 'school', pattern: /^\/(settings\/(account|general)|about-trinity|nameorder)$/ },
+];
+
+export function getRoutePagePermission(pathname: string): RoutePagePermission | undefined {
+  for (const [moduleId, module] of Object.entries(MODULE_ACTIONS) as [ModuleId, (typeof MODULE_ACTIONS)[ModuleId]][]) {
+    const page = module.pages.find((item) => item.path === pathname);
+    if (page) return { moduleId, pageId: page.page, pattern: new RegExp(`^${pathname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) };
+  }
+
+  return ROUTE_PAGE_ALIASES.find((route) => route.pattern.test(pathname));
+}

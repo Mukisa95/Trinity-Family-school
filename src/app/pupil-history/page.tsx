@@ -124,10 +124,13 @@ export default function PupilHistoryPage() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
-  // Get available classes from real data
+  // Get available classes from real data in ordinal order
   const availableClasses = useMemo(() => {
     if (!classes) return [];
-    return classes.map(cls => cls.name || cls.code).filter(Boolean).sort();
+    return [...classes]
+      .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity))
+      .map(cls => cls.name || cls.code)
+      .filter(Boolean);
   }, [classes]);
   
   // Process real pupil data into history format

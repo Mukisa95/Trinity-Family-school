@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { X, ArrowLeft, Settings, Loader2, ChevronDown, Save, BookOpen, ChevronRight, ChevronLeft, Search, ArrowUpDown } from 'lucide-react';
+import { X, ArrowLeft, Settings, Loader2, ChevronDown, Save, BookOpen, ChevronRight, ChevronLeft, Search, ArrowUpDown, AlertTriangle, Users, Grid3X3, Check, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,6 +82,47 @@ const calculateDivision = (aggregates: number): string => {
   if (aggregates >= 29 && aggregates <= 32) return 'IV';
   return 'U'; // Ungraded (33-36)
 };
+
+const DEFAULT_GRADING_SCALE_ITEMS: GradingScaleItem[] = [
+  { minMark: 90, maxMark: 100, grade: 'D1', aggregates: 1, comment: 'Distinction 1' },
+  { minMark: 75, maxMark: 89, grade: 'D2', aggregates: 2, comment: 'Distinction 2' },
+  { minMark: 65, maxMark: 74, grade: 'C3', aggregates: 3, comment: 'Credit 3' },
+  { minMark: 60, maxMark: 64, grade: 'C4', aggregates: 4, comment: 'Credit 4' },
+  { minMark: 50, maxMark: 59, grade: 'C5', aggregates: 5, comment: 'Credit 5' },
+  { minMark: 40, maxMark: 49, grade: 'C6', aggregates: 6, comment: 'Credit 6' },
+  { minMark: 35, maxMark: 39, grade: 'P7', aggregates: 7, comment: 'Pass 7' },
+  { minMark: 30, maxMark: 34, grade: 'P8', aggregates: 8, comment: 'Pass 8' },
+  { minMark: 0, maxMark: 29, grade: 'F9', aggregates: 9, comment: 'Fail 9' },
+];
+
+interface EditableExamDraft {
+  results: Record<string, Record<string, number>>;
+  missedSubjects: Record<string, Record<string, boolean>>;
+  gradingScale: GradingScaleItem[];
+  majorSubjects: string[];
+}
+
+type PendingNavigation =
+  | { kind: 'back' }
+  | { kind: 'view'; href: string }
+  | { kind: 'switch'; examId: string; classId: string; label: string };
+
+const normalizeNestedRecord = <T,>(record: Record<string, Record<string, T>>) =>
+  Object.fromEntries(
+    Object.entries(record)
+      .sort(([first], [second]) => first.localeCompare(second))
+      .map(([pupilId, values]) => [
+        pupilId,
+        Object.fromEntries(Object.entries(values).sort(([first], [second]) => first.localeCompare(second))),
+      ])
+  );
+
+const createDraftFingerprint = (draft: EditableExamDraft) => JSON.stringify({
+  results: normalizeNestedRecord(draft.results),
+  missedSubjects: normalizeNestedRecord(draft.missedSubjects),
+  gradingScale: draft.gradingScale,
+  majorSubjects: [...draft.majorSubjects].sort(),
+});
 
 // Compact Grading Scale Modal Component
 function GradingScaleModal({ 
@@ -350,26 +391,24 @@ export default function RecordResultsView() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  // Get exam ID directly from params (works perfectly on Vercel)
-  const examId = params?.examId as string;
+  const routeExamId = params?.examId as string;
+  const routeClassId = searchParams?.get('classId');
+  const [examId, setExamId] = useState(routeExamId);
+  const [classId, setClassId] = useState<string | null>(routeClassId);
+  const [isSwitchingExam, setIsSwitchingExam] = useState(false);
+  const switchStartedAtRef = useRef(0);
   const isEditMode = searchParams?.get('edit') === 'true' && searchParams?.get('mode') === 'edit';
 
   const [results, setResults] = useState<Record<string, Record<string, number>>>({});
   const [missedSubjects, setMissedSubjects] = useState<Record<string, Record<string, boolean>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null);
+  const [hydratedExamId, setHydratedExamId] = useState<string | null>(null);
   
-  const [gradingScaleItems, setGradingScaleItems] = useState<GradingScaleItem[]>([
-    { minMark: 90, maxMark:100, grade: 'D1', aggregates: 1, comment: 'Distinction 1' },
-    { minMark: 75, maxMark:89, grade: 'D2', aggregates: 2, comment: 'Distinction 2' },
-    { minMark: 65, maxMark:74, grade: 'C3', aggregates: 3, comment: 'Credit 3' },
-    { minMark: 60, maxMark:64, grade: 'C4', aggregates: 4, comment: 'Credit 4' },
-    { minMark: 50, maxMark:59, grade: 'C5', aggregates: 5, comment: 'Credit 5' },
-    { minMark: 40, maxMark:49, grade: 'C6', aggregates: 6, comment: 'Credit 6' },
-    { minMark: 35, maxMark:39, grade: 'P7', aggregates: 7, comment: 'Pass 7' },
-    { minMark: 30, maxMark:34, grade: 'P8', aggregates: 8, comment: 'Pass 8' },
-    { minMark: 0, maxMark:29, grade: 'F9', aggregates: 9, comment: 'Fail 9' },
-  ]);
+  const [gradingScaleItems, setGradingScaleItems] = useState<GradingScaleItem[]>(
+    DEFAULT_GRADING_SCALE_ITEMS.map((item) => ({ ...item }))
+  );
   const [selectedMajorSubjects, setSelectedMajorSubjects] = useState<string[]>([]);
   const [showMajorSubjectSelector, setShowMajorSubjectSelector] = useState(false);
   
@@ -381,6 +420,7 @@ export default function RecordResultsView() {
   const updateExamResultMutation = useUpdateExamResult();
 
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
+  const { data: allClasses = [] } = useClasses();
   const { data: allPupils = [] } = usePupils(); // Fetch all pupils to get dateOfBirth
   const { 
     data: examResultData, 
@@ -393,6 +433,58 @@ export default function RecordResultsView() {
     if (!examId || exams.length === 0) return undefined;
     return exams.find(exam => exam.id === examId);
   }, [exams, examId]);
+
+  const examSwitcher = useMemo(() => {
+    if (!examDetails) {
+      return { label: 'Classes', options: [] as Array<{ id: string; classId: string; label: string }> };
+    }
+
+    const isContinuousAssessment = examDetails.examTypeId === 'et_cat';
+    const classOrder = new Map(allClasses.map((schoolClass, index) => [schoolClass.id, index]));
+    const classLabel = (targetClassId: string) => {
+      const schoolClass = allClasses.find((item) => item.id === targetClassId);
+      return schoolClass?.code || schoolClass?.name || 'Unnamed class';
+    };
+
+    if (isContinuousAssessment) {
+      const assessmentName = examDetails.baseName || examDetails.name.split(' - ')[0];
+      const currentClassId = classId || examDetails.classId;
+      const setsByNumber = new Map<number, Exam>();
+
+      exams
+        .filter((exam) =>
+          exam.examTypeId === 'et_cat' &&
+          (exam.baseName || exam.name.split(' - ')[0]) === assessmentName &&
+          exam.academicYearId === examDetails.academicYearId &&
+          exam.termId === examDetails.termId &&
+          exam.classId === currentClassId
+        )
+        .forEach((exam) => {
+          const match = exam.name.match(/SET\s+(\d+)$/i);
+          const setNumber = match ? Number(match[1]) : 1;
+          if (!setsByNumber.has(setNumber)) setsByNumber.set(setNumber, exam);
+        });
+
+      return {
+        label: 'Sets',
+        options: [...setsByNumber.entries()]
+          .sort(([first], [second]) => first - second)
+          .map(([setNumber, exam]) => ({ id: exam.id, classId: exam.classId, label: `Set ${setNumber}` })),
+      };
+    }
+
+    if (!examDetails.batchId) {
+      return { label: 'Classes', options: [] as Array<{ id: string; classId: string; label: string }> };
+    }
+
+    return {
+      label: 'Classes',
+      options: exams
+        .filter((exam) => exam.batchId === examDetails.batchId)
+        .sort((first, second) => (classOrder.get(first.classId) ?? Number.MAX_SAFE_INTEGER) - (classOrder.get(second.classId) ?? Number.MAX_SAFE_INTEGER))
+        .map((exam) => ({ id: exam.id, classId: exam.classId, label: classLabel(exam.classId) })),
+    };
+  }, [allClasses, classId, examDetails, exams]);
   
   const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
   
@@ -420,12 +512,18 @@ export default function RecordResultsView() {
   }, [examResultData]);
 
   useEffect(() => {
+    if (examResultData?.examId !== examId) return;
+
     if (examResultData?.gradingScale && examResultData.gradingScale.length > 0) {
       console.log('📊 Loading grading scale from database:', examResultData.gradingScale);
       setGradingScaleItems(examResultData.gradingScale);
     } else {
       console.log('⚠️ No grading scale found in examResultData, using default');
     }
+    if (!examResultData?.gradingScale?.length) {
+      setGradingScaleItems(DEFAULT_GRADING_SCALE_ITEMS.map((item) => ({ ...item })));
+    }
+
     if (examResultData?.results && subjectSnaps.length > 0) {
       const initialMarks: Record<string, Record<string, number>> = {};
       const initialMissed: Record<string, Record<string, boolean>> = {};
@@ -451,7 +549,7 @@ export default function RecordResultsView() {
       setResults(initialMarks);
       setMissedSubjects(initialMissed);
     }
-  }, [examResultData, subjectSnaps]);
+  }, [examId, examResultData, subjectSnaps]);
 
   useEffect(() => {
     if (!isLoadingExams && !isLoadingExamResult) {
@@ -473,6 +571,82 @@ export default function RecordResultsView() {
     return subjectSnaps.map(s => ({ code: s.code, name: s.name, totalMarks: s.maxMarks, teacherId: s.teacherId }));
   }, [subjectSnaps]);
 
+  const persistedDraft = useMemo<EditableExamDraft | null>(() => {
+    if (!examResultData || examResultData.examId !== examId) return null;
+
+    const savedResults: Record<string, Record<string, number>> = {};
+    const savedMissedSubjects: Record<string, Record<string, boolean>> = {};
+
+    Object.entries(examResultData.results || {}).forEach(([pupilId, pupilResults]) => {
+      savedResults[pupilId] = {};
+      savedMissedSubjects[pupilId] = {};
+
+      Object.entries(pupilResults || {}).forEach(([subjectId, result]) => {
+        const subjectCode = subjectSnaps.find((subject) => subject.subjectId === subjectId)?.code;
+        if (!subjectCode) return;
+
+        savedResults[pupilId][subjectCode] = result?.status === 'missed' ? 0 : (result?.marks || 0);
+        savedMissedSubjects[pupilId][subjectCode] = result?.status === 'missed';
+      });
+    });
+
+    return {
+      results: savedResults,
+      missedSubjects: savedMissedSubjects,
+      gradingScale: examResultData.gradingScale?.length
+        ? examResultData.gradingScale.map((item) => ({ ...item }))
+        : DEFAULT_GRADING_SCALE_ITEMS.map((item) => ({ ...item })),
+      majorSubjects: subjectSnaps.length > 4
+        ? [...(examResultData.majorSubjects || [])]
+        : subjectSnaps.map((subject) => subject.code),
+    };
+  }, [examId, examResultData, subjectSnaps]);
+
+  const currentDraft = useMemo<EditableExamDraft>(() => ({
+    results,
+    missedSubjects,
+    gradingScale: gradingScaleItems,
+    majorSubjects: selectedMajorSubjects,
+  }), [gradingScaleItems, missedSubjects, results, selectedMajorSubjects]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!persistedDraft || hydratedExamId !== examId || isSwitchingExam) return false;
+    return createDraftFingerprint(currentDraft) !== createDraftFingerprint(persistedDraft);
+  }, [currentDraft, examId, hydratedExamId, isSwitchingExam, persistedDraft]);
+
+  const unsavedChangeSummary = useMemo(() => {
+    if (!persistedDraft) return [] as string[];
+
+    let markChanges = 0;
+    let missedStatusChanges = 0;
+    const pupilIds = new Set([...Object.keys(persistedDraft.results), ...Object.keys(currentDraft.results)]);
+
+    pupilIds.forEach((pupilId) => {
+      const subjectCodes = new Set([
+        ...Object.keys(persistedDraft.results[pupilId] || {}),
+        ...Object.keys(currentDraft.results[pupilId] || {}),
+      ]);
+
+      subjectCodes.forEach((subjectCode) => {
+        if (persistedDraft.results[pupilId]?.[subjectCode] !== currentDraft.results[pupilId]?.[subjectCode]) {
+          markChanges += 1;
+        }
+
+        if (Boolean(persistedDraft.missedSubjects[pupilId]?.[subjectCode]) !== Boolean(currentDraft.missedSubjects[pupilId]?.[subjectCode])) {
+          missedStatusChanges += 1;
+        }
+      });
+    });
+
+    const summary: string[] = [];
+    if (markChanges > 0) summary.push(`${markChanges} mark ${markChanges === 1 ? 'entry' : 'entries'} changed`);
+    if (missedStatusChanges > 0) summary.push(`${missedStatusChanges} missed-subject ${missedStatusChanges === 1 ? 'status' : 'statuses'} changed`);
+    if (JSON.stringify(persistedDraft.gradingScale) !== JSON.stringify(currentDraft.gradingScale)) summary.push('Grading scale changed');
+    if ([...persistedDraft.majorSubjects].sort().join('|') !== [...currentDraft.majorSubjects].sort().join('|')) summary.push('Major-subject selection changed');
+
+    return summary;
+  }, [currentDraft, persistedDraft]);
+
   const calculateGrade = useCallback((marks: number): { grade: string; aggregates: number } => {
     if (!Array.isArray(gradingScaleItems) || gradingScaleItems.length === 0) return { grade: 'N/A', aggregates: 0 };
     const sortedScale = [...gradingScaleItems].sort((a, b) => b.minMark - a.minMark);
@@ -481,6 +655,8 @@ export default function RecordResultsView() {
   }, [gradingScaleItems]);
 
   useEffect(() => {
+    if (examResultData?.examId !== examId) return;
+
     if (examSubjects.length > 4) {
       setShowMajorSubjectSelector(true);
       // Load existing major subjects if they exist, otherwise start with empty array
@@ -494,7 +670,8 @@ export default function RecordResultsView() {
       setShowMajorSubjectSelector(false);
       setSelectedMajorSubjects(examSubjects.map(s => s.code));
     }
-  }, [examSubjects, examResultData?.majorSubjects]);
+    setHydratedExamId(examId);
+  }, [examId, examSubjects, examResultData?.examId, examResultData?.majorSubjects]);
 
   const handleMajorSubjectSelection = useCallback((subjectCode: string) => {
     setSelectedMajorSubjects(prev => {
@@ -609,7 +786,7 @@ export default function RecordResultsView() {
   const handleSubmit = useCallback(async () => {
     if (isSubmitting || !examResultData || !examDetails || !classSnap) {
         toast({variant: "destructive", title: "Error", description: "Missing critical data to save results."})
-        return;
+        return false;
     }
     setIsSubmitting(true);
     try {
@@ -642,15 +819,134 @@ export default function RecordResultsView() {
         }
       });
       toast({ title: "Success", description: "Results saved successfully" });
-      refetchExamResult();
+      await refetchExamResult();
+      return true;
     } catch (error) {
       console.error('Error saving results:', error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({ variant: "destructive", title: "Error", description: `Failed to save results: ${errorMessage}` });
+      return false;
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, results, calculateGrade, updateExamResultMutation, toast, refetchExamResult, gradingScaleItems, selectedMajorSubjects]);
+  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, missedSubjects, calculateGrade, updateExamResultMutation, toast, refetchExamResult, gradingScaleItems, selectedMajorSubjects]);
+
+  const canSaveDraft = examSubjects.length <= 4 || selectedMajorSubjects.length === 4;
+
+  const viewResultsHref = useMemo(() => {
+    const targetClassId = classId || examDetails?.classId;
+    return examId && targetClassId
+      ? `/exams/${examId}/view-results?classId=${targetClassId}`
+      : null;
+  }, [classId, examDetails?.classId, examId]);
+
+  const performExamSwitch = useCallback((targetExamId: string, targetClassId: string) => {
+    if (targetExamId === examId) return;
+
+    switchStartedAtRef.current = performance.now();
+    setIsSwitchingExam(true);
+    setHydratedExamId(null);
+    setSearchTerm('');
+    setIsGradingModalOpen(false);
+    setExamId(targetExamId);
+    setClassId(targetClassId);
+
+    if (typeof window !== 'undefined') {
+      const editModeQuery = isEditMode ? '&edit=true&mode=edit' : '';
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `/exams/${targetExamId}/record-results?classId=${targetClassId}${editModeQuery}`
+      );
+    }
+  }, [examId, isEditMode]);
+
+  const continueNavigation = useCallback((target: PendingNavigation) => {
+    if (target.kind === 'back') {
+      router.push('/exams');
+      return;
+    }
+
+    if (target.kind === 'view') {
+      router.push(target.href);
+      return;
+    }
+
+    performExamSwitch(target.examId, target.classId);
+  }, [performExamSwitch, router]);
+
+  const requestBackNavigation = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation({ kind: 'back' });
+      return;
+    }
+
+    router.push('/exams');
+  }, [hasUnsavedChanges, router]);
+
+  const requestExamSwitch = useCallback((targetExamId: string, targetClassId: string, label: string) => {
+    if (targetExamId === examId) return;
+
+    if (hasUnsavedChanges) {
+      setPendingNavigation({ kind: 'switch', examId: targetExamId, classId: targetClassId, label });
+      return;
+    }
+
+    performExamSwitch(targetExamId, targetClassId);
+  }, [examId, hasUnsavedChanges, performExamSwitch]);
+
+  const requestViewResults = useCallback(() => {
+    if (!viewResultsHref) return;
+
+    if (hasUnsavedChanges) {
+      setPendingNavigation({ kind: 'view', href: viewResultsHref });
+      return;
+    }
+
+    router.push(viewResultsHref);
+  }, [hasUnsavedChanges, router, viewResultsHref]);
+
+  const handleSaveAndContinue = useCallback(async () => {
+    if (!pendingNavigation || !canSaveDraft) return;
+
+    const target = pendingNavigation;
+    const didSave = await handleSubmit();
+    if (!didSave) return;
+
+    setPendingNavigation(null);
+    continueNavigation(target);
+  }, [canSaveDraft, continueNavigation, handleSubmit, pendingNavigation]);
+
+  const handleDiscardAndContinue = useCallback(() => {
+    if (!pendingNavigation) return;
+
+    const target = pendingNavigation;
+    setPendingNavigation(null);
+    continueNavigation(target);
+  }, [continueNavigation, pendingNavigation]);
+
+  useEffect(() => {
+    if (!isSwitchingExam) return;
+
+    if (examDetails?.id === examId && examResultData?.examId === examId) {
+      const elapsed = performance.now() - switchStartedAtRef.current;
+      const remaining = Math.max(0, 140 - elapsed);
+      const timer = window.setTimeout(() => setIsSwitchingExam(false), remaining);
+      return () => window.clearTimeout(timer);
+    }
+  }, [examDetails?.id, examId, examResultData?.examId, isSwitchingExam]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const handleGradeScaleItemChange = useCallback((index: number, field: keyof GradingScaleItem, value: string | number) => {
     setGradingScaleItems((prevScale: GradingScaleItem[]) => {
@@ -700,7 +996,9 @@ export default function RecordResultsView() {
               const isMissed = existingResult.status === 'missed';
               
               // Recalculate grade and aggregates based on new scale
-              const gradeInfo = isMissed ? { grade: 'F9', aggregates: 9 } : recalculateGrade(marks);
+              const gradeInfo = isMissed || typeof marks !== 'number'
+                ? { grade: 'F9', aggregates: 9 }
+                : recalculateGrade(marks);
               
               recalculatedResults[pupilId][subjectId] = {
                 ...existingResult,
@@ -745,7 +1043,7 @@ export default function RecordResultsView() {
               const subjectCode = subjectSnaps.find(s => s.subjectId === subjectId)?.code;
               
               if (subjectCode) {
-                updatedLocalResults[pupilId][subjectCode] = result.marks;
+                updatedLocalResults[pupilId][subjectCode] = result.marks ?? 0;
                 updatedLocalMissed[pupilId][subjectCode] = result.status === 'missed';
               }
             }
@@ -1136,17 +1434,43 @@ export default function RecordResultsView() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div
+      className={`min-h-screen transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
+      style={{
+        transform: isSwitchingExam
+          ? 'perspective(1400px) rotateX(2deg)'
+          : 'perspective(1400px) rotateX(0deg)',
+        transformOrigin: 'center top',
+        backfaceVisibility: 'hidden',
+        willChange: isSwitchingExam ? 'transform, opacity' : 'auto',
+      }}
+      aria-busy={isSwitchingExam}
+    >
       <GlassPageTopBar
           title={examDetails?.name || getHeaderContent().title}
           subtitle={`${classSnap?.code || classSnap?.name || 'N/A'} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
-        backHref="/exams"
+        leading={
+          <button
+            type="button"
+            onClick={requestBackNavigation}
+            aria-label="Back to exams"
+            title="Back to exams"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        }
         className="mb-1.5"
         meta={
           <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
             {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
           </span>
         }
+        badges={hasUnsavedChanges ? (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+            Unsaved changes
+          </span>
+        ) : undefined}
         center={
           <GlassPageSearchInput
             placeholder="Search pupils..."
@@ -1164,6 +1488,55 @@ export default function RecordResultsView() {
         }
           actions={
             <GlassActionDock>
+              {examSwitcher.options.length > 1 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <GlassActionButton
+                      label={examSwitcher.label}
+                      icon={examSwitcher.label === 'Sets' ? <Grid3X3 className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                      tone="blue"
+                      aria-label={`Switch ${examSwitcher.label.toLowerCase()}`}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-blue-100 bg-white/95 p-2 shadow-xl backdrop-blur">
+                    <div className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Choose {examSwitcher.label === 'Classes' ? 'class' : 'set'}
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {examSwitcher.options.map((option) => {
+                        const isCurrentExam = option.id === examId;
+
+                        return (
+                          <DropdownMenuItem key={option.id} asChild>
+                            <button
+                              type="button"
+                              onClick={() => requestExamSwitch(option.id, option.classId, option.label)}
+                              className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                                isCurrentExam
+                                  ? 'cursor-default border-blue-600 bg-blue-600 text-white'
+                                  : 'border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-300 hover:bg-blue-100'
+                              }`}
+                              aria-current={isCurrentExam ? 'page' : undefined}
+                            >
+                              {examSwitcher.label === 'Sets' ? <Grid3X3 className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
+                              <span className="truncate">{option.label}</span>
+                              {isCurrentExam && <Check className="h-3.5 w-3.5" />}
+                            </button>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <GlassActionButton
+                label="View"
+                icon={<Eye className="h-4 w-4" />}
+                tone="emerald"
+                onClick={requestViewResults}
+                disabled={!viewResultsHref}
+                title="View results for this class or set"
+              />
               <GlassActionButton
                 label="Scale"
                 icon={<Settings className="h-4 w-4" />}
@@ -1198,7 +1571,7 @@ export default function RecordResultsView() {
         }
         right={
           <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
-            {gradingScaleItems
+            {[...gradingScaleItems]
               .sort((a, b) => a.minMark - b.minMark)
               .map((scale, index) => (
                 <div
@@ -1255,6 +1628,55 @@ export default function RecordResultsView() {
           </CardFooter>
         </Card>
       </div>
+
+      <Dialog open={pendingNavigation !== null} onOpenChange={(open) => !open && !isSubmitting && setPendingNavigation(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-800">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Unsaved result changes
+            </DialogTitle>
+            <DialogDescription>
+              {pendingNavigation?.kind === 'switch'
+                ? `You are about to switch to ${pendingNavigation.label}. The current class has changes that have not been saved.`
+                : pendingNavigation?.kind === 'view'
+                  ? 'You are about to open View Results with changes that have not been saved.'
+                : 'You are about to leave the Record Results page with changes that have not been saved.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-800">Current changes</p>
+            <ul className="space-y-1.5 text-sm text-slate-700">
+              {(unsavedChangeSummary.length > 0 ? unsavedChangeSummary : ['Result information changed']).map((change) => (
+                <li key={change} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                  <span>{change}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {!canSaveDraft && (
+            <p className="text-xs font-medium text-rose-600">
+              Select exactly four major subjects before these results can be saved. You can still discard the changes or cancel.
+            </p>
+          )}
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setPendingNavigation(null)} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDiscardAndContinue} disabled={isSubmitting}>
+              Discard
+            </Button>
+            <Button onClick={handleSaveAndContinue} disabled={isSubmitting || !canSaveDraft}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isSubmitting ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <GradingScaleModal
         isOpen={isGradingModalOpen}

@@ -110,10 +110,13 @@ export class PupilsService {
     }
   }
 
-  static async createPupil(pupilData: Omit<Pupil, 'id' | 'createdAt'>): Promise<string> {
+  static async createPupil(
+    pupilData: Omit<Pupil, 'id' | 'createdAt'>,
+    options: { autoAssignHouse?: boolean } = {}
+  ): Promise<string> {
     try {
       // Auto-assign house in round-robin order based on About School ordering (alphabetical by name)
-      if (!('houseId' in pupilData) || !pupilData.houseId) {
+      if (options.autoAssignHouse !== false && (!('houseId' in pupilData) || !pupilData.houseId)) {
         try {
           const houses = await HousesService.getAll();
           if (houses.length > 0) {

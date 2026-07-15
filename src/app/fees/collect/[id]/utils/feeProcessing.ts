@@ -9,6 +9,7 @@ import type {
 } from '@/types';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { FeesHolidayService } from '@/lib/services/fees-holiday.service';
+import { isFeeApplicableInYear } from '@/lib/utils/fee-applicability';
 import type {
   PupilFee,
   PreviousTermBalance
@@ -198,9 +199,16 @@ export function filterApplicableFees(
       return false;
     }
 
+    // Use the same scoped-disable and Year Applicability rules as Fees
+    // Management. An inapplicable fee must be skipped, not displayed disabled.
+    if (!isFeeApplicableInYear(fee, academicYear.id, allAcademicYears)) {
+      console.log(`❌ Fee "${fee.name}" rejected: not applicable in academic year ${academicYear.name}`);
+      return false;
+    }
+
     // Check if fee is for the correct academic year (strict matching for carry-forward accuracy)
-    // Include if no specific year set (universal fees) or exact academic year match
-    if (fee.academicYearId) {
+    // Include if no specific year set (universal fees) or exact term/year match
+    if (fee.effectiveYears === undefined && fee.academicYearId) {
       const effectiveYear = allAcademicYears.find(y => y.id === fee.academicYearId);
       const currentYearStart = new Date(academicYear.startDate);
 

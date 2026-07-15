@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePupils } from "@/lib/hooks/use-pupils";
+import { useClasses } from "@/lib/hooks/use-classes";
 import { useAuth } from "@/lib/contexts/auth-context";
 import type { Pupil } from "@/types";
 
@@ -146,6 +147,7 @@ function getNextValidBirthdayDate(birthDate: Date, anchor: Date) {
 
 export default function BirthdaysPage() {
   const { data: pupils = [], isLoading } = usePupils();
+  const { data: classes = [] } = useClasses();
   const { user, canAccessPage } = useAuth();
   const [viewMode, setViewMode] = useState<BirthdayViewMode>("day");
   const [anchorDate, setAnchorDate] = useState(() => format(new Date(), ISO_DATE_FORMAT));
@@ -155,10 +157,14 @@ export default function BirthdaysPage() {
 
   const normalizedPupils = useMemo(() => normalizeBirthdayPupils(pupils), [pupils]);
 
-  const classOptions = useMemo(
-    () => Array.from(new Set(normalizedPupils.map((pupil) => pupil.className))).sort((left, right) => left.localeCompare(right)),
-    [normalizedPupils]
-  );
+  const classOptions = useMemo(() => {
+    const classOrderMap = new Map(classes.map((c) => [c.name, typeof c.order === "number" ? c.order : Infinity]));
+    return Array.from(new Set(normalizedPupils.map((pupil) => pupil.className))).sort((left, right) => {
+      const orderA = classOrderMap.get(left) ?? Infinity;
+      const orderB = classOrderMap.get(right) ?? Infinity;
+      return orderA - orderB;
+    });
+  }, [normalizedPupils, classes]);
 
   const filteredPupils = useMemo(() => {
     if (selectedClass === ALL_CLASSES_VALUE) {

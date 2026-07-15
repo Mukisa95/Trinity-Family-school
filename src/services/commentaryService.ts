@@ -78,6 +78,30 @@ export const commentaryService = {
     }
   },
 
+  // Get all active comment templates (useful for bulk in-memory processing)
+  async getAllActiveTemplates(): Promise<CommentTemplate[]> {
+    try {
+      console.log('🔍 CommentaryService: Fetching all ACTIVE templates for bulk processing');
+      const q = query(
+        collection(db, COLLECTION_NAME),
+        where('isActive', '==', true)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      console.log('📊 CommentaryService: Found', querySnapshot.docs.length, 'active templates');
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+      })) as CommentTemplate[];
+    } catch (error) {
+      console.error('❌ CommentaryService Error fetching active templates:', error);
+      throw new Error('Failed to fetch active comment templates');
+    }
+  },
+
   // Get comment templates by performance status
   async getCommentTemplatesByStatus(performanceStatus: string): Promise<CommentTemplate[]> {
     try {

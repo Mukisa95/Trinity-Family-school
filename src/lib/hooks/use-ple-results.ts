@@ -22,6 +22,7 @@ export function usePLERecords() {
   return useQuery({
     queryKey: pleResultsKeys.records(),
     queryFn: () => PLEResultsService.getAllPLERecords(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -29,6 +30,7 @@ export function usePLERecord(id: string) {
   return useQuery({
     queryKey: pleResultsKeys.record(id),
     queryFn: () => PLEResultsService.getPLERecordById(id),
+    staleTime: 5 * 60 * 1000,
     enabled: !!id,
   });
 }
@@ -37,6 +39,7 @@ export function usePLEResults(recordId: string) {
   return useQuery({
     queryKey: pleResultsKeys.results(recordId),
     queryFn: () => PLEResultsService.getPLEResultsByRecordId(recordId),
+    staleTime: 5 * 60 * 1000,
     enabled: !!recordId,
   });
 }
@@ -45,6 +48,7 @@ export function usePLEResultsWithCurrentData(recordId: string) {
   return useQuery({
     queryKey: [...pleResultsKeys.results(recordId), 'withCurrentData'],
     queryFn: () => PLEResultsService.getPLEResultsWithCurrentPupilData(recordId),
+    staleTime: 5 * 60 * 1000,
     enabled: !!recordId,
   });
 }
@@ -53,6 +57,7 @@ export function useP7Pupils() {
   return useQuery({
     queryKey: pleResultsKeys.p7Pupils(),
     queryFn: () => PLEResultsService.getP7PupilsSnapshot(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -128,20 +133,28 @@ export function usePupilPLEResults(pupilId: string) {
           pupilResult: PLEPupilResult;
         }> = [];
         
-        for (const record of pleRecords) {
-          // Check if pupil was in this PLE record
-          const pupilInRecord = record.pupilsSnapshot.find(p => p.id === pupilId);
-          if (pupilInRecord) {
-            // Get the actual results for this pupil in this PLE record
-            const results = await PLEResultsService.getPLEResultsByRecordId(record.id);
-            const pupilResult = results.find((r: PLEPupilResult) => r.pupilId === pupilId);
-            
-            if (pupilResult) {
-              pupilPLEResults.push({
-                pleRecord: record,
-                pupilResult: pupilResult
-              });
-            }
+        const relevantRecords = pleRecords.filter(record => 
+          record.pupilsSnapshot.some(p => p.id === pupilId)
+        );
+
+        const recordResultsPromises = relevantRecords.map(async (record) => {
+          const results = await PLEResultsService.getPLEResultsByRecordId(record.id);
+          const pupilResult = results.find((r: PLEPupilResult) => r.pupilId === pupilId);
+          
+          if (pupilResult) {
+            return {
+              pleRecord: record,
+              pupilResult: pupilResult
+            };
+          }
+          return null;
+        });
+
+        const resolvedResults = await Promise.all(recordResultsPromises);
+        
+        for (const res of resolvedResults) {
+          if (res) {
+            pupilPLEResults.push(res);
           }
         }
         
@@ -152,6 +165,7 @@ export function usePupilPLEResults(pupilId: string) {
         throw error;
       }
     },
+    staleTime: 5 * 60 * 1000,
     enabled: !!pupilId,
   });
 }
@@ -177,13 +191,17 @@ export function useClassPLEHistory(classId: string) {
             divisionIII: number;
             divisionIV: number;
             divisionU: number;
+            divisionX: number;
             averageAggregate: number;
           };
           pupilsFromClass: number;
         }> = [];
         
-        for (const record of pleRecords) {
-          // Check if any pupils in this record were from the specified class
+        const relevantRecords = pleRecords.filter(record => 
+          record.pupilsSnapshot.some(p => p.classId === classId)
+        );
+
+        const recordPromises = relevantRecords.map(async (record) => {
           const pupilsFromClass = record.pupilsSnapshot.filter(p => p.classId === classId);
           
           if (pupilsFromClass.length > 0) {
@@ -200,12 +218,19 @@ export function useClassPLEHistory(classId: string) {
             const divisionIII = classResults.filter((r: PLEPupilResult) => r.division === 'III').length;
             const divisionIV = classResults.filter((r: PLEPupilResult) => r.division === 'IV').length;
             const divisionU = classResults.filter((r: PLEPupilResult) => r.division === 'U').length;
+            const divisionX = classResults.filter((r: PLEPupilResult) => r.division === 'X').length;
             
-            const averageAggregate = classResults.length > 0 
-              ? classResults.reduce((sum: number, r: PLEPupilResult) => sum + r.totalAggregate, 0) / classResults.length 
+            // Calculate average aggregate (only for those who participated)
+            const participatedResults = classResults.filter((r: PLEPupilResult) => 
+              r.participated && r.totalAggregate > 0
+            );
+            
+            const totalAggregateSum = participatedResults.reduce((sum: number, r: PLEPupilResult) => sum + r.totalAggregate, 0);
+            const averageAggregate = participatedResults.length > 0 
+              ? parseFloat((totalAggregateSum / participatedResults.length).toFixed(1)) 
               : 0;
-            
-            classPLEHistory.push({
+              
+            return {
               pleRecord: record,
               classStatistics: {
                 totalCandidates,
@@ -214,10 +239,20 @@ export function useClassPLEHistory(classId: string) {
                 divisionIII,
                 divisionIV,
                 divisionU,
-                averageAggregate: Math.round(averageAggregate * 10) / 10
+                divisionX,
+                averageAggregate
               },
               pupilsFromClass: pupilsFromClass.length
-            });
+            };
+          }
+          return null;
+        });
+
+        const resolvedRecords = await Promise.all(recordPromises);
+
+        for (const res of resolvedRecords) {
+          if (res) {
+            classPLEHistory.push(res as any);
           }
         }
         
@@ -228,6 +263,7 @@ export function useClassPLEHistory(classId: string) {
         throw error;
       }
     },
+    staleTime: 5 * 60 * 1000,
     enabled: !!classId,
   });
 }
@@ -262,5 +298,6 @@ export function usePLERecordsByYear() {
         throw error;
       }
     },
+    staleTime: 5 * 60 * 1000,
   });
 } 

@@ -15,7 +15,8 @@ import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { useCommentTemplates } from '@/hooks/useCommentTemplates';
-import { getDynamicComments, getSubjectComments } from '@/utils/commentUtils';
+import { getDynamicComments, getSubjectComments, BulkCommentGenerator } from '@/utils/commentUtils';
+import { commentaryService } from '@/services/commentaryService';
 import { pdf, Document } from '@react-pdf/renderer';
 import PupilPerformanceListPDF from '@/components/reports/PupilPerformanceListPDF';
 import NurseryAssessmentReport, { NurseryAssessmentReportPageContent } from '@/components/reports/NurseryAssessmentReport';
@@ -679,6 +680,10 @@ export default function RemarkReportPage() {
 
       const livePupilsMap = await fetchLivePupilsMap(filteredPupils.map((pupil) => pupil.id));
 
+      setBatchProgress(prev => ({ ...prev, currentStep: 'Fetching comment templates...' }));
+      const allTemplates = await commentaryService.getAllActiveTemplates();
+      const commentGenerator = new BulkCommentGenerator(allTemplates);
+
       // Prepare all pupil data with their comments
       const allPupilsData = [];
       for (let i = 0; i < filteredPupils.length; i++) {
@@ -700,16 +705,19 @@ export default function RemarkReportPage() {
           ...(updatedSubjectStatuses[pupil.id]?.[selectedTermId] || {})
         } as Record<SubjectCommentType, SubjectStatus>;
 
-        // Fetch dynamic comments for this pupil
-        const comments = await getDynamicComments(performanceStatus, pupil.gender);
+        // Fetch dynamic comments for this pupil synchronously
+        const comments = commentGenerator.getDynamicCommentsSync(performanceStatus, pupil.gender);
 
-        // Fetch subject comments based on subject statuses (with term ID)
-        const subjectCommentsMap = await getSubjectComments(
+        // Fetch subject comments based on subject statuses (with term ID) synchronously
+        const subjectCommentsMap = commentGenerator.getSubjectCommentsSync(
           allSubjectStatuses,
           pupil.classId,
           pupil.gender,
           selectedTermId
         );
+
+        // Yield to the UI thread so the browser doesn't freeze and progress updates smoothly
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         allPupilsData.push({
           pupil,
@@ -971,6 +979,10 @@ export default function RemarkReportPage() {
       const nextTermEndDate = formatDateForDisplay(nextTermDates.endDate);
       const livePupilsMap = await fetchLivePupilsMap(filteredPupils.map((pupil) => pupil.id));
 
+      setBatchProgress(prev => ({ ...prev, currentStep: 'Fetching comment templates...' }));
+      const allTemplates = await commentaryService.getAllActiveTemplates();
+      const commentGenerator = new BulkCommentGenerator(allTemplates);
+
       const allPupilsData = [];
       for (let i = 0; i < filteredPupils.length; i++) {
         const pupil = livePupilsMap[filteredPupils[i].id] || filteredPupils[i];
@@ -987,13 +999,16 @@ export default function RemarkReportPage() {
           ...(updatedSubjectStatuses[pupil.id]?.[selectedTermId] || {})
         } as Record<SubjectCommentType, SubjectStatus>;
 
-        const comments = await getDynamicComments(performanceStatus, pupil.gender);
-        const subjectCommentsMap = await getSubjectComments(
+        const comments = commentGenerator.getDynamicCommentsSync(performanceStatus, pupil.gender);
+        const subjectCommentsMap = commentGenerator.getSubjectCommentsSync(
           allSubjectStatuses,
           pupil.classId,
           pupil.gender,
           selectedTermId
         );
+
+        // Yield to the UI thread so the browser doesn't freeze and progress updates smoothly
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         allPupilsData.push({
           pupil,
@@ -1693,9 +1708,6 @@ export default function RemarkReportPage() {
                         </button>
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                        Subject Statuses
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -1711,7 +1723,6 @@ export default function RemarkReportPage() {
                       // Get subject statuses for the selected term
                       const pupilSubjectStatuses = updatedSubjectStatuses[pupil.id]?.[selectedTermId] || {};
                       const currentSubjectStatuses = (pupil.termSubjectStatuses?.[selectedTermId] || {}) as any;
-                      const hasSubjectStatusChanges = Object.keys(pupilSubjectStatuses).length > 0;
 
                       return (
                         <React.Fragment key={pupil.id}>
@@ -1799,38 +1810,22 @@ export default function RemarkReportPage() {
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {hasSubjectStatusChanges && (
-                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                                    {Object.keys(pupilSubjectStatuses).length} changed
-                                  </Badge>
-                                )}
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => togglePupilExpansion(pupil.id)}
-                                  className="text-xs"
-                                >
-                                  {isExpanded ? 'Hide Subjects' : 'Show Subjects'}
-                                </Button>
-                              </div>
-                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handlePrintPupil(pupil)}
-                                className="text-green-600 border-green-600 hover:bg-green-50"
+                                className="h-8 w-8 p-0 text-green-600 border-green-600 hover:bg-green-50"
+                                aria-label={`Print report for ${formatPupilDisplayName(pupil)}`}
+                                title="Print Report"
                               >
-                                <Printer className="h-4 w-4 mr-1" />
-                                Print Report
+                                <Printer className="h-4 w-4" />
                               </Button>
                             </td>
                           </tr>
                           {isExpanded && (
                             <tr>
-                              <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                              <td colSpan={6} className="px-6 py-4 bg-gray-50">
                                 <div className="space-y-4">
                                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Subject-Based Statuses</h4>
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

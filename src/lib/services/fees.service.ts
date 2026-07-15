@@ -18,14 +18,28 @@ const FEE_ADJUSTMENTS_COLLECTION = 'feeAdjustments';
 
 // Utility function to remove undefined values from objects
 function cleanUndefinedValues(obj: any): any {
+  if (obj === undefined || obj === null) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj
+      .filter(item => item !== undefined)
+      .map(item => cleanUndefinedValues(item));
+  }
+
+  if (obj instanceof Date) {
+    return obj;
+  }
+
+  if (typeof obj !== 'object') {
+    return obj;
+  }
+
   const cleaned: any = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
-      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-        cleaned[key] = cleanUndefinedValues(value);
-      } else {
-        cleaned[key] = value;
-      }
+      cleaned[key] = cleanUndefinedValues(value);
     }
   }
   return cleaned;
@@ -185,4 +199,4 @@ export class FeesService {
       throw error;
     }
   }
-} 
+}

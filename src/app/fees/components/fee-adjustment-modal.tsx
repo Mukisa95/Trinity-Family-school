@@ -29,7 +29,7 @@ interface FeeAdjustmentModalProps {
     startYearId: string;
     endYearId?: string;
     reason?: string;
-  }) => void;
+  }) => Promise<boolean>;
   feeToAdjust: FeeStructure | null;
   academicYears: AcademicYear[]; // Non-locked academic years
 }
@@ -48,6 +48,7 @@ const FeeAdjustmentModal: React.FC<FeeAdjustmentModalProps> = ({
   const [selectedStartYearId, setSelectedStartYearId] = React.useState<string | undefined>(undefined);
   const [selectedEndYearId, setSelectedEndYearId] = React.useState<string | undefined>(undefined);
   const [reason, setReason] = React.useState<string>("");
+  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (isOpen && feeToAdjust) {
@@ -66,7 +67,7 @@ const FeeAdjustmentModal: React.FC<FeeAdjustmentModalProps> = ({
       setSelectedEndYearId(undefined);
       setReason("");
     }
-  }, [isOpen, feeToAdjust, academicYears, effectivePeriodType]);
+  }, [isOpen, feeToAdjust, academicYears]);
   
   // Update default end year when start year changes for range
   React.useEffect(() => {
@@ -78,7 +79,7 @@ const FeeAdjustmentModal: React.FC<FeeAdjustmentModalProps> = ({
   }, [selectedStartYearId, effectivePeriodType, academicYears, selectedEndYearId]);
 
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!feeToAdjust) return;
 
     const numericAmount = parseFormattedMoney(amount);
@@ -103,7 +104,8 @@ const FeeAdjustmentModal: React.FC<FeeAdjustmentModalProps> = ({
         }
     }
 
-    onSubmit({
+    setIsSaving(true);
+    const didSave = await onSubmit({
       adjustmentType,
       amount: numericAmount,
       effectivePeriodType,
@@ -111,7 +113,8 @@ const FeeAdjustmentModal: React.FC<FeeAdjustmentModalProps> = ({
       endYearId: effectivePeriodType === 'year_range' ? selectedEndYearId : undefined,
       reason,
     });
-    onClose();
+    setIsSaving(false);
+    if (didSave) onClose();
   };
 
   if (!feeToAdjust) return null;
@@ -249,11 +252,11 @@ const FeeAdjustmentModal: React.FC<FeeAdjustmentModalProps> = ({
           </div>
         </div>
         <ModernDialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit}>
-            Save Adjustment
+          <Button type="button" onClick={handleSubmit} disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Adjustment'}
           </Button>
         </ModernDialogFooter>
       </ModernDialogContent>

@@ -3,6 +3,7 @@ import { ClassesService } from '../services/classes.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
 import type { Class } from '@/types';
+import { sortClassesByOrder } from '../utils/class-order';
 
 // Query keys
 export const classesKeys = {
@@ -54,6 +55,7 @@ export function useClasses() {
       }
       return classes;
     },
+    select: (data) => sortClassesByOrder(data || []),
     staleTime: Infinity, // Real-time listener handles ALL updates - queryFn only runs once for initial load
     gcTime: 60 * 60 * 1000, // 1 hour cache
     refetchOnMount: false, // Don't refetch when component mounts - use cache
@@ -139,6 +141,7 @@ export function useClassesByLevel(level: string) {
   return useQuery({
     queryKey: classesKeys.byLevel(level),
     queryFn: () => ClassesService.getByLevel(level),
+    select: (data) => sortClassesByOrder(data || []),
     enabled: !!level,
     staleTime: 30 * 60 * 1000, // 30 minutes - cache-first means instant loads
     gcTime: 60 * 60 * 1000, // 1 hour cache

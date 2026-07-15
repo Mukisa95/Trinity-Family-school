@@ -19,6 +19,10 @@ export class GranularPermissionService {
       }
     }
     
+    // Historical seeding is deliberately opt-in for non-admin users. Existing
+    // broad/legacy Pupil permissions must never expose it accidentally.
+    if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
+
     // Fallback to legacy permissions
     if (user.modulePermissions) {
       const modulePerms = user.modulePermissions.find(m => m.module === moduleId);
@@ -48,6 +52,10 @@ export class GranularPermissionService {
       }
     }
     
+    // Historical seeding is deliberately opt-in for non-admin users. Existing
+    // broad/legacy Pupil permissions must never expose it accidentally.
+    if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
+
     // Fallback to legacy permissions with mapping
     if (user.modulePermissions) {
       const modulePerms = user.modulePermissions.find(m => m.module === moduleId);
@@ -161,7 +169,9 @@ export class GranularPermissionService {
           if (moduleActions) {
             permissions[modulePerm.module] = {
               moduleId: modulePerm.module,
-              pages: moduleActions.pages.map(page => ({
+              pages: moduleActions.pages
+                .filter(page => !(modulePerm.module === 'pupils' && page.page === 'historical_seeding'))
+                .map(page => ({
                 pageId: page.page,
                 canAccess: true, // Legacy permissions grant access to all pages in module
                 actions: page.actions.map(action => ({
@@ -201,4 +211,4 @@ export class GranularPermissionService {
       }
     ];
   }
-} 
+}

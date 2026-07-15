@@ -47,6 +47,8 @@ import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
 import { logger } from '@/lib/utils/logger';
+import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
 
 const Sidebar연구 = Sidebar;
 
@@ -244,6 +246,24 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   // Check if this is a parent route (should use its own layout)
   const isParentRoute = pathname?.startsWith('/parent') || false;
+  const routePermission = pathname ? getRoutePagePermission(pathname) : undefined;
+  const isAdminOnlyRoute = pathname === '/settings/firebase-usage';
+  const shouldCheckRoutePermission = Boolean(routePermission) || isAdminOnlyRoute;
+  const canAccessCurrentRoute = (!isAdminOnlyRoute || user?.role === 'Admin') && (!routePermission || user?.role === 'Admin' ||
+    GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId));
+
+  const accessibleFallbackPath = React.useMemo(() => {
+    if (!user || user.role === 'Parent') return '/login';
+
+    for (const [moduleId, module] of Object.entries(MODULE_ACTIONS)) {
+      const accessiblePage = module.pages.find((page) =>
+        GranularPermissionService.canAccessPage(user, moduleId, page.page)
+      );
+      if (accessiblePage) return accessiblePage.path;
+    }
+
+    return '/login';
+  }, [user]);
 
   // Check if there's a stored user that might be loading
   const [hasStoredUser, setHasStoredUser] = React.useState(false);
@@ -394,6 +414,12 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     return () => clearTimeout(timer);
   }, [isPublicRoute, isAuthenticated, authLoading, router, user, pathname, hasStoredUser]);
 
+  React.useEffect(() => {
+    if (!isPublicRoute && !isParentRoute && !authLoading && user && shouldCheckRoutePermission && !canAccessCurrentRoute) {
+      router.replace(accessibleFallbackPath);
+    }
+  }, [accessibleFallbackPath, authLoading, canAccessCurrentRoute, isParentRoute, isPublicRoute, router, shouldCheckRoutePermission, user]);
+
   const handleLogout = () => {
     logout();
     router.replace('/login');
@@ -462,6 +488,10 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
         message={showLoadingInstead ? "Strive to Excel…" : "Redirecting to login…"}
       />
     );
+  }
+
+  if (!isParentRoute && shouldCheckRoutePermission && !canAccessCurrentRoute) {
+    return <BrandedAuthScreen message="Opening an authorised workspaceâ€¦" />;
   }
 
   // PARENT INTERFACE

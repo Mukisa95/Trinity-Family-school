@@ -45,10 +45,12 @@ export function GlobalDataPreloader() {
       const unsubscribe = onSnapshot(
         classesQuery,
         (snapshot) => {
-          const classes = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
+          const classes = snapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }))
+            .sort((a: any, b: any) => (a.order ?? Infinity) - (b.order ?? Infinity));
           if (classes.length > 0) {
             queryClient.setQueryData(['classes', 'list'], classes);
             console.log(`⚡ PRELOADER: Loaded ${classes.length} classes`);

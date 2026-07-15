@@ -1,5 +1,5 @@
 import { commentaryService } from '@/services/commentaryService';
-import { SubjectCommentType, SubjectStatus, Gender } from '@/types';
+import { SubjectCommentType, SubjectStatus, Gender, CommentTemplate } from '@/types';
 import { adjustCommentForGender } from '@/utils/commentGenderUtils';
 
 // Fallback comments if no templates are found in the database
@@ -217,3 +217,151 @@ export const getSubjectComments = async (
 
   return comments;
 };
+
+/**
+ * Bulk generator class that generates random comments synchronously in-memory
+ * based on an array of pre-fetched active templates.
+ * This completely eliminates N+1 Firestore roundtrips during bulk PDF generation.
+ */
+export class BulkCommentGenerator {
+  private templates: CommentTemplate[];
+
+  constructor(templates: CommentTemplate[]) {
+    this.templates = templates;
+  }
+
+  // Synchronous version of getDynamicComment
+  getDynamicCommentSync(
+    performanceStatus: string,
+    category: 'class_teacher' | 'head_teacher',
+    pupilGender?: Gender
+  ): string {
+    const matches = this.templates.filter(
+      (t) => t.status === performanceStatus && t.type === category
+    );
+
+    if (matches.length > 0) {
+      const randomIndex = Math.floor(Math.random() * matches.length);
+      const selected = matches[randomIndex];
+      if (pupilGender && selected.comment) {
+        return adjustCommentForGender(selected.comment, pupilGender);
+      }
+      return selected.comment;
+    }
+
+    // Fallback to predefined comments if none in db
+    const fallbackCategory = fallbackComments[performanceStatus as keyof typeof fallbackComments];
+    if (fallbackCategory) {
+      const comments = fallbackCategory[category];
+      if (comments && comments.length > 0) {
+        const randomIndex = Math.floor(Math.random() * comments.length);
+        return comments[randomIndex];
+      }
+    }
+
+    // Ultimate fallback
+    return category === 'class_teacher'
+      ? "Continue working hard and stay focused on your studies."
+      : "Keep up the good work and strive for excellence.";
+  }
+
+  // Synchronous version of getDynamicComments
+  getDynamicCommentsSync(performanceStatus: string, pupilGender?: Gender): {
+    classTeacherComment: string;
+    headTeacherComment: string;
+  } {
+    return {
+      classTeacherComment: this.getDynamicCommentSync(performanceStatus, 'class_teacher', pupilGender),
+      headTeacherComment: this.getDynamicCommentSync(performanceStatus, 'head_teacher', pupilGender)
+    };
+  }
+
+  // Helper for term aliases
+  private matchesApplicableTerms(applicableTerms: string[] | undefined, termId?: string): boolean {
+    if (!termId || !applicableTerms || applicableTerms.length === 0) {
+      return true;
+    }
+
+    const getTermAliases = (tId: string) => {
+      const aliases = new Set<string>([tId]);
+      const normalized = tId.toLowerCase();
+      if (normalized.includes('t1') || normalized.includes('term1') || normalized.includes('term_1')) {
+        aliases.add('term_1'); aliases.add('term1'); aliases.add('t1');
+      }
+      if (normalized.includes('t2') || normalized.includes('term2') || normalized.includes('term_2')) {
+        aliases.add('term_2'); aliases.add('term2'); aliases.add('t2');
+      }
+      if (normalized.includes('t3') || normalized.includes('term3') || normalized.includes('term_3')) {
+        aliases.add('term_3'); aliases.add('term3'); aliases.add('t3');
+      }
+      return Array.from(aliases);
+    };
+
+    const aliases = getTermAliases(termId);
+    return applicableTerms.includes('all') || aliases.some((alias) => applicableTerms.includes(alias));
+  }
+
+  // Synchronous version of getSubjectComment
+  getSubjectCommentSync(
+    subject: SubjectCommentType,
+    subjectStatus: SubjectStatus,
+    classId?: string,
+    pupilGender?: Gender,
+    termId?: string
+  ): string {
+    // 1. Find exact matches
+    const exactMatches = this.templates.filter((t) => 
+      t.type === 'subject' &&
+      t.subject === subject &&
+      t.subjectStatus === subjectStatus &&
+      (!classId || t.classId === classId || !t.classId) &&
+      this.matchesApplicableTerms(t.applicableTerms, termId)
+    );
+
+    // Filter class-specific first, fallback to general
+    let matches = exactMatches;
+    if (classId) {
+      const classSpecific = exactMatches.filter(t => t.classId === classId);
+      if (classSpecific.length > 0) {
+        matches = classSpecific;
+      } else {
+        matches = exactMatches.filter(t => !t.classId);
+      }
+    }
+
+    if (matches.length > 0) {
+      const randomIndex = Math.floor(Math.random() * matches.length);
+      const selected = matches[randomIndex];
+      if (pupilGender && selected.comment) {
+        return adjustCommentForGender(selected.comment, pupilGender);
+      }
+      return selected.comment;
+    }
+
+    return '';
+  }
+
+  // Synchronous version of getSubjectComments
+  getSubjectCommentsSync(
+    subjectStatuses: Record<SubjectCommentType, SubjectStatus>,
+    classId?: string,
+    pupilGender?: Gender,
+    termId?: string
+  ): Record<SubjectCommentType, string> {
+    const comments: Record<SubjectCommentType, string> = {} as Record<SubjectCommentType, string>;
+
+    for (const [subject, status] of Object.entries(subjectStatuses)) {
+      if (status) {
+        comments[subject as SubjectCommentType] = this.getSubjectCommentSync(
+          subject as SubjectCommentType,
+          status as SubjectStatus,
+          classId,
+          pupilGender,
+          termId
+        );
+      }
+    }
+
+    return comments;
+  }
+}

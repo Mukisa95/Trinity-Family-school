@@ -16,6 +16,7 @@ import { sampleSchoolSettings } from '@/lib/sample-data';
 import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { getRoutePagePermission } from '@/types/permissions';
 
 // Premium deeper color palettes matching desktop sidebar
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
@@ -66,7 +67,7 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
-  const { user, canAccessModule } = useAuth();
+  const { user } = useAuth();
   const { isNavigating, startNavigation } = useNavigation();
   const { data: schoolSettings, error: settingsError, isLoading: isLoadingSettings } = useSchoolSettings();
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
@@ -167,61 +168,14 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       return true;
     }
 
-    if (href === '/birthdays') {
-      return GranularPermissionService.canAccessPage(user as any, 'pupils', 'birthdays');
+    if (href === '/settings/firebase-usage') return user?.role === 'Admin';
+
+    const routePermission = getRoutePagePermission(href);
+    if (routePermission) {
+      return GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId);
     }
-    
-    const moduleMap: Record<string, string> = {
-      '/pupils': 'pupils',
-      '/birthdays': 'pupils',
-      '/pupil-history': 'pupil_history',
-      '/pupils/promote': 'promotion',
-      '/enrollment-trends': 'pupils',
-      '/classes': 'classes',
-      '/staff': 'staff',
-      '/subjects': 'subjects',
-      '/fees': 'fees',
-      '/fees/collection': 'fees',
-      '/fees/collect': 'fees',
-      '/fees/analytics': 'fees',
-      '/exams': 'exams',
-      '/events': 'events',
-      '/attendance': 'attendance',
-      '/academic-years': 'academic_years',
-      '/users': 'users',
-      '/access-levels': 'access_levels',
-      '/banking/list': 'banking',
-      '/banking': 'banking',
-      '/bulk-sms': 'bulk_sms',
-      '/push-notifications': 'bulk_sms',
-      '/notifications': 'bulk_sms',
-      '/procurement': 'procurement',
-      '/procurement/items': 'procurement',
-      '/procurement/purchases': 'procurement',
-      '/procurement/budget': 'procurement',
-      '/duty-service': 'duty_service',
-      '/inventory': 'inventory',
-      '/boarding': 'pupils',
-      '/boarding/list': 'pupils',
-      '/boarding/dormitory': 'pupils',
-      '/assign': 'fees',
-      '/requirements': 'requirements',
-      '/requirement-tracking': 'requirements',
-      '/uniforms': 'uniforms',
-      '/uniform-tracking': 'uniforms',
-      '/about-school': 'settings',
-      '/history-log': 'settings',
-      '/admin/commentary-box': 'commentary',
-      '/timetable': 'timetable',
-    };
-    
-    const module = moduleMap[href];
-    if (module) {
-      return canAccessModule(module);
-    }
-    
-    const allowedPaths = ['/', '/settings', '/history-log', '/admin'];
-    return allowedPaths.includes(href) || href === '/';
+
+    return false;
   }
 
   function toggleGroup(groupTitle: string) {

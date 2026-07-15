@@ -159,6 +159,20 @@ export type StatusChangeHistoryEntry = {
   processedBy?: string;
 };
 
+export type PupilAcademicYearHistoryEntry = {
+  id: string;
+  academicYearId: string;
+  academicYearName: string;
+  classId?: string;
+  className?: string;
+  classCode?: string;
+  startDate: string;
+  endDate: string;
+  status?: PupilStatus;
+  statusEffectiveDate?: string;
+  notes?: string;
+};
+
 export type FeeValidityType = 'indefinite' | 'current_term' | 'current_year' | 'specific_year' | 'year_range' | 'specific_terms';
 export type TermApplicabilityType = 'all_terms' | 'specific_terms';
 export type AssignmentStatus = 'active' | 'disabled';
@@ -266,6 +280,7 @@ export interface Pupil {
   additionalIdentifiers?: AdditionalIdentifier[]; // New field
   promotionHistory?: PromotionHistoryEntry[];
   statusChangeHistory?: StatusChangeHistoryEntry[];
+  academicYearHistory?: PupilAcademicYearHistoryEntry[];
   assignedFees?: PupilAssignedFee[];
 
   // Graduation-specific fields
@@ -693,6 +708,9 @@ export interface FeeStructure {
   // Effective years: array of academic year IDs this fee applies to
   // Includes the year of context and all future years
   effectiveYears?: string[];
+  // Set after Year Applicability is explicitly edited. Until then, legacy
+  // disableHistory rules are included when deriving visible applicability.
+  hasCustomYearApplicability?: boolean;
 
   classFeeType?: ClassFeeType;
   classIds?: string[];

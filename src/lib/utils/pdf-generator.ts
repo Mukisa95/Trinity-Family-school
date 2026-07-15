@@ -4,6 +4,17 @@ import { DutyRota, DutyTimeline, DutyPeriod, DutyAssignment } from '@/types/duty
 import { format } from 'date-fns';
 import { SchoolSettingsService } from '../services/school-settings.service';
 
+let _cachedSchoolSettings: any = null;
+const getCachedSchoolSettings = async () => {
+  if (_cachedSchoolSettings) return _cachedSchoolSettings;
+  try {
+    _cachedSchoolSettings = await SchoolSettingsService.getSchoolSettings();
+  } catch (error) {
+    console.warn('Could not fetch school settings, using default name:', error);
+  }
+  return _cachedSchoolSettings;
+};
+
 interface PDFGeneratorOptions {
   dutyRota: DutyRota;
   timeline: DutyTimeline;
@@ -35,13 +46,9 @@ export const generateDutyRotaPDF = async ({
 
   // Fetch school name from settings
   let schoolName = 'Trinity Family Schools'; // Default fallback
-  try {
-    const schoolSettings = await SchoolSettingsService.getSchoolSettings();
-    if (schoolSettings?.generalInfo?.name) {
-      schoolName = schoolSettings.generalInfo.name;
-    }
-  } catch (error) {
-    console.warn('Could not fetch school settings, using default name:', error);
+  const schoolSettings = await getCachedSchoolSettings();
+  if (schoolSettings?.generalInfo?.name) {
+    schoolName = schoolSettings.generalInfo.name;
   }
 
   const doc = new jsPDF();

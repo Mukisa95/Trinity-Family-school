@@ -380,15 +380,19 @@ export class PLEResultsService {
       // Fetch current pupil data in batches (Firestore 'in' query limit is 10)
       const currentPupilsData: Record<string, any> = {};
 
+      const batchPromises = [];
       for (let i = 0; i < pupilIds.length; i += 10) {
         const batch = pupilIds.slice(i, i + 10);
         const batchQuery = query(pupilsRef, where('__name__', 'in', batch));
-        const batchSnapshot = await getDocs(batchQuery);
+        batchPromises.push(getDocs(batchQuery));
+      }
 
+      const batchSnapshots = await Promise.all(batchPromises);
+      batchSnapshots.forEach(batchSnapshot => {
         batchSnapshot.docs.forEach(doc => {
           currentPupilsData[doc.id] = doc.data();
         });
-      }
+      });
 
       // Merge current pupil data with PLE results
       const enhancedResults = pleResults.map(result => {

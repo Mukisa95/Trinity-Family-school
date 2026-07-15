@@ -16,6 +16,8 @@ import { isTermEnded } from '@/lib/utils/academic-year-utils';
 
 // Optimized hooks
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useFeeAdjustments } from '@/lib/hooks/use-fees';
+import { calculateFeeAmountForAcademicYear } from '@/lib/utils/fee-adjustments';
 
 // Utilities
 import {
@@ -65,6 +67,7 @@ export function usePupilFees({
   // 🚀 OPTIMIZED: Use the optimized useAcademicYears hook (cache-first, real-time)
   // This is instant if cached, and uses the same data as the component
   const { data: allAcademicYears = [] } = useAcademicYears();
+  const { data: feeAdjustments = [] } = useFeeAdjustments();
 
   // 🔄 FUTURE YEARS FIXED: Fetch fees applicable to the selected year (including ongoing fees from previous years)
   // 🚀 OPTIMIZED: Don't wait for allAcademicYears - fees can load in parallel
@@ -337,9 +340,22 @@ export function usePupilFees({
       console.log('⚡ Filtered fees:', applicableFees.length);
     }
 
+    // Adjust a copy for the selected academic year. The stored fee structure
+    // remains unchanged, so earlier-year balances retain their original rate.
+    const adjustedApplicableFees = applicableFees.map(fee => ({
+      ...fee,
+      amount: calculateFeeAmountForAcademicYear(
+        fee.amount,
+        fee.id,
+        selectedAcademicYear.id,
+        allAcademicYears,
+        feeAdjustments
+      )
+    }));
+
     // Process fees with payment information and fees holidays
     const processedFees = processPupilFees(
-      applicableFees,
+      adjustedApplicableFees,
       pupilPayments,
       allFeeStructures,
       pupilForFees, // ✅ Use historical pupil if available, otherwise current pupil
@@ -396,6 +412,7 @@ export function usePupilFees({
     selectedTermId,
     historicalPupil,    // 🔥 CRITICAL: Use historical pupil for correct class-based fee filtering
     currentTermFees,    // 🔄 Updated: use current term fees for regular processing
+    feeAdjustments,
     allFeeStructures,   // 🔄 Keep all fees for carry forward calculations
     pupilPayments,
     previousBalance,

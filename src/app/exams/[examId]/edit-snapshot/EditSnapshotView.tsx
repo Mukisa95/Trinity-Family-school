@@ -34,6 +34,7 @@ import { useExam, useExamResultByExamId, useUpdateExamResult, useUpdateExam } fr
 import { useStaff } from '@/lib/hooks/use-staff';
 import { useActivePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
+import { useSubjects } from '@/lib/hooks/use-subjects';
 import type { Exam, ExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, ExamClassInfoSnapshot } from '@/types';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { format, parseISO } from 'date-fns';
@@ -62,6 +63,10 @@ export default function EditSnapshotView() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAddPupilDialog, setShowAddPupilDialog] = useState(false);
   const [selectedPupilId, setSelectedPupilId] = useState<string>('');
+  const [showAddSubjectDialog, setShowAddSubjectDialog] = useState(false);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
+  
+  const { data: allSubjects = [] } = useSubjects();
 
   // Initialize state from exam and exam result
   useEffect(() => {
@@ -121,11 +126,18 @@ export default function EditSnapshotView() {
     );
   }, [pupils, examClass, editedPupilSnapshots]);
 
+  // Get available subjects that are not already in the snapshot
+  const availableSubjects = useMemo(() => {
+    if (!allSubjects.length) return [];
+    const existingSubjectIds = new Set(editedSubjectSnapshots.map(s => s.subjectId));
+    return allSubjects.filter(s => !existingSubjectIds.has(s.id));
+  }, [allSubjects, editedSubjectSnapshots]);
+
   // Get staff members for teacher selection
   const teachingStaff = useMemo(() => {
     return staff.filter(s => 
       s.status === 'active' && 
-      (s.departments?.includes('Teaching') || s.role?.includes('TEACHER'))
+      (s.department?.includes('Teaching') || s.role?.includes('TEACHER'))
     );
   }, [staff]);
 
@@ -206,12 +218,44 @@ export default function EditSnapshotView() {
     });
   };
 
+  const handleAddSubject = () => {
+    if (!selectedSubjectId) return;
+
+    const subject = allSubjects.find(s => s.id === selectedSubjectId);
+    if (!subject) return;
+
+    const newSubjectSnapshot: ExamRecordSubjectInfo = {
+      subjectId: subject.id,
+      name: subject.name,
+      code: subject.code,
+      maxMarks: exam?.maxMarks || 100,
+      passingMarks: exam?.passingMarks || 0,
+      teacherId: null
+    };
+
+    setEditedSubjectSnapshots(prev => [...prev, newSubjectSnapshot]);
+    setSelectedSubjectId('');
+    setShowAddSubjectDialog(false);
+    toast({
+      title: "Subject Added",
+      description: `${subject.name} has been added to the snapshot.`,
+    });
+  };
+
+  const handleRemoveSubject = (subjectId: string) => {
+    setEditedSubjectSnapshots(prev => prev.filter(s => s.subjectId !== subjectId));
+    toast({
+      title: "Subject Removed",
+      description: "Subject has been removed from the snapshot.",
+    });
+  };
+
   const handleSave = async () => {
     if (!exam || !examResult) return;
 
     setIsSaving(true);
     try {
-      // Update exam dates if changed
+      // Update exam dates and subjectIds if changed
       const examUpdates: any = {};
       if (startDate && exam.startDate !== format(startDate, 'yyyy-MM-dd')) {
         examUpdates.startDate = format(startDate, 'yyyy-MM-dd');
@@ -220,11 +264,19 @@ export default function EditSnapshotView() {
         examUpdates.endDate = format(endDate, 'yyyy-MM-dd');
       }
 
+      if (exam.examNature === 'Subject based') {
+        const newSubjectIds = editedSubjectSnapshots.map(s => s.subjectId);
+        // Basic array comparison
+        if (JSON.stringify(newSubjectIds) !== JSON.stringify(exam.subjectIds || [])) {
+          examUpdates.subjectIds = newSubjectIds;
+        }
+      }
+
       if (Object.keys(examUpdates).length > 0) {
         await updateExamMutation.mutateAsync({ id: examId, data: examUpdates });
       }
 
-      // Initialize results for new pupils
+      // Initialize results for new pupils and new subjects
       const existingPupilIds = new Set(Object.keys(examResult.results || {}));
       const newPupilIds = editedPupilSnapshots
         .map(p => p.pupilId)
@@ -232,22 +284,31 @@ export default function EditSnapshotView() {
 
       const updatedResults = { ...examResult.results };
       
-      // Initialize empty results for new pupils
+      // Initialize empty result objects for new pupils
       newPupilIds.forEach(pupilId => {
         updatedResults[pupilId] = {};
+      });
+
+      // Ensure every pupil has a result object for every subject currently in the snapshot
+      const currentPupilIds = new Set(editedPupilSnapshots.map(p => p.pupilId));
+      currentPupilIds.forEach(pupilId => {
+        if (!updatedResults[pupilId]) {
+          updatedResults[pupilId] = {};
+        }
         editedSubjectSnapshots.forEach(subject => {
-          updatedResults[pupilId][subject.subjectId] = {
-            subjectId: subject.subjectId,
-            marks: undefined,
-            grade: '-',
-            aggregates: undefined,
-            comment: 'N/A'
-          };
+          if (!updatedResults[pupilId][subject.subjectId]) {
+            updatedResults[pupilId][subject.subjectId] = {
+              subjectId: subject.subjectId,
+              marks: undefined,
+              grade: '-',
+              aggregates: undefined,
+              comment: 'N/A'
+            };
+          }
         });
       });
 
       // Remove results for pupils that were removed from snapshot
-      const currentPupilIds = new Set(editedPupilSnapshots.map(p => p.pupilId));
       Object.keys(updatedResults).forEach(pupilId => {
         if (!currentPupilIds.has(pupilId)) {
           delete updatedResults[pupilId];
@@ -441,40 +502,69 @@ export default function EditSnapshotView() {
       {/* Subject Teachers Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Subject Teachers
-          </CardTitle>
-          <CardDescription>
-            Update the teacher assignments for each subject in the snapshot
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Subjects in Snapshot
+              </CardTitle>
+              <CardDescription>
+                Manage subjects and teacher assignments for this exam snapshot ({editedSubjectSnapshots.length} subjects)
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddSubjectDialog(true)}
+              disabled={availableSubjects.length === 0}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Subject
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {editedSubjectSnapshots.map((subject) => (
-            <div key={subject.subjectId} className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
+            <div key={subject.subjectId} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3 hover:bg-muted/50">
+              <div className="flex-1">
                 <p className="font-medium">{subject.name}</p>
                 <p className="text-sm text-muted-foreground">Code: {subject.code}</p>
               </div>
-              <Select
-                value={subject.teacherId || 'none'}
-                onValueChange={(value) => handleSubjectTeacherChange(subject.subjectId, value === 'none' ? null : value)}
-              >
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Select teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Teacher</SelectItem>
-                  {teachingStaff.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName}
-                      {teacher.employeeId && ` (${teacher.employeeId})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={subject.teacherId || 'none'}
+                  onValueChange={(value) => handleSubjectTeacherChange(subject.subjectId, value === 'none' ? null : value)}
+                >
+                  <SelectTrigger className="w-full sm:w-[250px]">
+                    <SelectValue placeholder="Select teacher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Teacher</SelectItem>
+                    {teachingStaff.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.firstName} {teacher.lastName}
+                        {teacher.employeeId && ` (${teacher.employeeId})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveSubject(subject.subjectId)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  title="Remove subject"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
+          {editedSubjectSnapshots.length === 0 && (
+            <p className="text-center text-muted-foreground py-8">
+              No subjects in snapshot. Click "Add Subject" to add subjects.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -507,21 +597,17 @@ export default function EditSnapshotView() {
             {editedPupilSnapshots.map((pupil) => (
               <div
                 key={pupil.pupilId}
-                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 bg-background shadow-sm"
               >
-                <div className="flex-1">
-                  <p className="font-medium">{pupil.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Admission: {pupil.admissionNumber} | Class: {pupil.classNameAtExam}
-                  </p>
-                </div>
+                <p className="font-medium text-sm truncate pr-2" title={pupil.name}>{pupil.name}</p>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => handleRemovePupil(pupil.pupilId)}
-                  className="text-destructive hover:text-destructive"
+                  className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                  title="Remove pupil"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             ))}
@@ -572,6 +658,48 @@ export default function EditSnapshotView() {
             </Button>
             <Button onClick={handleAddPupil} disabled={!selectedPupilId}>
               Add Pupil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Add Subject Dialog */}
+      <Dialog open={showAddSubjectDialog} onOpenChange={setShowAddSubjectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Subject to Snapshot</DialogTitle>
+            <DialogDescription>
+              Select a subject to add to this exam snapshot
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Subject</Label>
+              <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name} ({subject.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAddSubjectDialog(false);
+                setSelectedSubjectId('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddSubject} disabled={!selectedSubjectId}>
+              Add Subject
             </Button>
           </DialogFooter>
         </DialogContent>

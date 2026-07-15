@@ -16,6 +16,7 @@ import { useProgressiveFees } from '@/lib/hooks/use-progressive-fees';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useFeeStructures } from '@/lib/hooks/use-fee-structures';
+import { useClasses } from '@/lib/hooks/use-classes';
 import { getCurrentTerm } from '@/lib/utils/academic-year-utils';
 import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +35,7 @@ export default function CollectionAnalyticsPage() {
   const { data: allPupils = [], isLoading: pupilsLoading } = usePupils();
   const { data: allYears = [], isLoading: yearsLoading } = useAcademicYears();
   const { data: allFeeStructures = [], isLoading: feeStructuresLoading } = useFeeStructures();
+  const { data: allClasses = [] } = useClasses();
 
   // Debug fee structures
   useEffect(() => {
@@ -398,13 +400,19 @@ export default function CollectionAnalyticsPage() {
       else classData.unpaidPupils++;
     });
 
+    const classOrderLookup = new Map(allClasses.map(c => [c.id, typeof c.order === 'number' ? c.order : Infinity]));
+
     const byClass = Array.from(classSummary.values())
       .map(c => ({
         ...c,
         outstandingAmount: c.expectedAmount - c.collectedAmount,
         collectionRate: c.expectedAmount > 0 ? (c.collectedAmount / c.expectedAmount) * 100 : 0
       }))
-      .sort((a, b) => a.className.localeCompare(b.className));
+      .sort((a, b) => {
+        const orderA = classOrderLookup.get(a.classId) ?? Infinity;
+        const orderB = classOrderLookup.get(b.classId) ?? Infinity;
+        return orderA - orderB;
+      });
 
     const result = {
       totalExpected: totals.totalFees,
@@ -428,7 +436,7 @@ export default function CollectionAnalyticsPage() {
     });
 
     return result;
-  }, [totals, pupilFeesInfo, allPupils]);
+  }, [totals, pupilFeesInfo, allPupils, allClasses]);
 
   // Organize all term payments by pupil and fee for easy lookup
   const paymentsByPupilAndFee = useMemo(() => {

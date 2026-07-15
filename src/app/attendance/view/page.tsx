@@ -118,6 +118,7 @@ interface SchoolAttendanceData {
   classId: string;
   className: string;
   classCode: string;
+  order?: number;
   totalPupils: number;
   present: number;
   absent: number;
@@ -638,6 +639,7 @@ export default function ViewAttendanceReportsPage() {
           classId: cls.id,
           className: cls.name,
           classCode: cls.code,
+          order: cls.order,
           totalPupils: pupils.length,
           present: 0,
           absent: 0,
@@ -741,8 +743,8 @@ export default function ViewAttendanceReportsPage() {
         schoolData.push(classAttendanceData);
       });
 
-      // Sort by class name
-      schoolData.sort((a, b) => a.className.localeCompare(b.className));
+      // Sort by class ordinal order
+      schoolData.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
       // Sort pupils in each category by name
       schoolData.forEach(data => {

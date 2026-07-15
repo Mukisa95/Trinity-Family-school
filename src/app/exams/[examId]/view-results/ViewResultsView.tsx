@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { format } from 'date-fns';
 import { DatePicker } from '@/components/common/date-picker';
@@ -66,6 +66,7 @@ import {
 } from '@/components/ui/select';
 import { useExams } from '@/lib/hooks/use-exams';
 import { useExamResultByExamId } from '@/lib/hooks/use-exams';
+import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useStaff } from '@/lib/hooks/use-staff';
@@ -81,7 +82,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { generateExamPDF } from '@/components/exam/ExamResultsPDF';
 import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/components/exam/ComprehensiveReactPDF';
-import { generateModernBatchReportPDF, generateTransBatchReportPDF } from '@/components/exam/ModernBatchReportPDF';
+import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
 import { generateDetailedAssessmentPDF } from '@/components/exam/DetailedAssessmentPDF';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
@@ -234,11 +235,15 @@ const pickRealPupilPhoto = (pupilInfo: any, fetchedPupil?: any): string => {
   return candidates.find((photo) => typeof photo === 'string' && isRealPhoto(photo)) || '';
 };
 
-const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(results: T[]): Promise<T[]> => {
+const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(results: T[], cachedPupils?: any[]): Promise<T[]> => {
   const pupilIds = [...new Set(results.map((result) => result.pupilInfo?.pupilId).filter(Boolean))];
   let fetchedPupilsMap: Record<string, any> = {};
 
-  if (pupilIds.length > 0) {
+  if (cachedPupils && cachedPupils.length > 0) {
+    cachedPupils.forEach((p) => {
+      if (p?.id) fetchedPupilsMap[p.id] = p;
+    });
+  } else if (pupilIds.length > 0) {
     try {
       const batchResponse = await fetch('/api/pupils/batch', {
         method: 'POST',
@@ -257,7 +262,6 @@ const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(res
   return results.map((result) => {
     const pupilId = result.pupilInfo?.pupilId;
     const fetchedPupil = pupilId ? fetchedPupilsMap[pupilId] : undefined;
-
     return {
       ...result,
       pupilInfo: {
@@ -331,8 +335,8 @@ const IndividualPrintModal = ({
                   <FileTextIcon className="h-5 w-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">TRANS</h3>
-                  <p className="text-sm text-gray-600">Individual pupil reports (Enhanced design)</p>
+                  <h3 className="font-semibold text-gray-900">Full Report</h3>
+                  <p className="text-sm text-gray-600">Individual pupil report card (Comprehensive design)</p>
                 </div>
               </div>
             </button>
@@ -661,8 +665,8 @@ const PrintModal = ({
                   <FileTextIcon className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Breakdown</h3>
-                  <p className="text-sm text-gray-600">Detailed subject breakdown</p>
+                  <h3 className="font-semibold text-gray-900">Mini Report</h3>
+                  <p className="text-sm text-gray-600">Individual pupil report cards (Compact design)</p>
                 </div>
               </div>
             </button>
@@ -676,8 +680,8 @@ const PrintModal = ({
                   <FileTextIcon className="h-5 w-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">TRANS</h3>
-                  <p className="text-sm text-gray-600">Individual pupil reports (Enhanced design)</p>
+                  <h3 className="font-semibold text-gray-900">Full Report</h3>
+                  <p className="text-sm text-gray-600">Individual pupil report cards (Comprehensive design)</p>
                 </div>
               </div>
             </button>
@@ -774,12 +778,10 @@ const PrintAssessmentOptionsDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <Printer className="h-5 w-5 text-blue-600" />
-            {reportType === 'detailed' ? 'Detailed Assessment Options' : 'Print Assessment Options'}
+            Print Assessment Options
           </DialogTitle>
           <DialogDescription>
-            {reportType === 'detailed'
-              ? 'Configure detailed assessment report with aggregate and subject analysis'
-              : 'Configure which columns to display and which data to include in the assessment report'}
+            Configure which columns to display and which data to include in the assessment report
           </DialogDescription>
         </DialogHeader>
 
@@ -1080,9 +1082,13 @@ export default function ViewResultsView() {
   // PDF Viewer hook
   const pdfViewer = usePDFViewer();
 
-  // Get exam ID directly from params
-  const examId = params.examId as string;
-  const classId = searchParams.get('classId');
+  // Keep results switching in-place rather than remounting this page through navigation.
+  const routeExamId = params.examId as string;
+  const routeClassId = searchParams.get('classId');
+  const [examId, setExamId] = useState(routeExamId);
+  const [classId, setClassId] = useState<string | null>(routeClassId);
+  const [isSwitchingExam, setIsSwitchingExam] = useState(false);
+  const switchStartedAtRef = useRef(0);
   const shouldAutoOpenPrint = searchParams.get('openPrint') === '1';
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -1137,18 +1143,20 @@ export default function ViewResultsView() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [eta, setEta] = useState<string>('');
+  const [hasHandledAutoOpenPrint, setHasHandledAutoOpenPrint] = useState(false);
 
   useEffect(() => {
-    if (!shouldAutoOpenPrint) return;
+    if (!shouldAutoOpenPrint || hasHandledAutoOpenPrint) return;
 
     setShowPrintModal(true);
+    setHasHandledAutoOpenPrint(true);
 
     const nextUrl = classId
       ? `/exams/${examId}/view-results?classId=${classId}`
       : `/exams/${examId}/view-results`;
 
     router.replace(nextUrl);
-  }, [shouldAutoOpenPrint, classId, examId, router]);
+  }, [shouldAutoOpenPrint, hasHandledAutoOpenPrint, classId, examId, router]);
 
   // TRANS report type selection state
   const [showTransTypeModal, setShowTransTypeModal] = useState(false);
@@ -1208,6 +1216,7 @@ export default function ViewResultsView() {
   });
 
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
+  const { data: allClasses = [] } = useClasses();
   const { data: academicYears = [] } = useAcademicYears();
   const { data: allPupils = [] } = usePupils(); // Fetch all pupils to get dateOfBirth
   const { data: allStaff = [] } = useStaff(); // Fetch staff to get class teacher info
@@ -1242,16 +1251,98 @@ export default function ViewResultsView() {
 
   const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
 
+  const examSwitcher = useMemo(() => {
+    if (!examDetails) {
+      return { label: 'Classes', options: [] as Array<{ id: string; classId: string; label: string }> };
+    }
+
+    const isContinuousAssessment = examDetails.examTypeId === 'et_cat';
+    const classOrder = new Map(allClasses.map((schoolClass, index) => [schoolClass.id, index]));
+    const classLabel = (targetClassId: string) => {
+      const schoolClass = allClasses.find((item) => item.id === targetClassId);
+      return schoolClass?.code || schoolClass?.name || 'Unnamed class';
+    };
+
+    if (isContinuousAssessment) {
+      const assessmentName = examDetails.baseName || examDetails.name.split(' - ')[0];
+      const currentClassId = classId || examDetails.classId;
+      const setsByNumber = new Map<number, typeof examDetails>();
+
+      exams
+        .filter((exam) =>
+          exam.examTypeId === 'et_cat' &&
+          (exam.baseName || exam.name.split(' - ')[0]) === assessmentName &&
+          exam.academicYearId === examDetails.academicYearId &&
+          exam.termId === examDetails.termId &&
+          exam.classId === currentClassId
+        )
+        .forEach((exam) => {
+          const match = exam.name.match(/SET\s+(\d+)$/i);
+          const setNumber = match ? Number(match[1]) : 1;
+          if (!setsByNumber.has(setNumber)) setsByNumber.set(setNumber, exam);
+        });
+
+      return {
+        label: 'Sets',
+        options: [...setsByNumber.entries()]
+          .sort(([first], [second]) => first - second)
+          .map(([setNumber, exam]) => ({ id: exam.id, classId: exam.classId, label: `Set ${setNumber}` })),
+      };
+    }
+
+    if (!examDetails.batchId) {
+      return { label: 'Classes', options: [] as Array<{ id: string; classId: string; label: string }> };
+    }
+
+    return {
+      label: 'Classes',
+      options: exams
+        .filter((exam) => exam.batchId === examDetails.batchId)
+        .sort((first, second) => (classOrder.get(first.classId) ?? Number.MAX_SAFE_INTEGER) - (classOrder.get(second.classId) ?? Number.MAX_SAFE_INTEGER))
+        .map((exam) => ({ id: exam.id, classId: exam.classId, label: classLabel(exam.classId) })),
+    };
+  }, [allClasses, classId, examDetails, exams]);
+
+  const handleExamSwitch = useCallback((targetExamId: string, targetClassId: string) => {
+    if (targetExamId === examId) return;
+
+    switchStartedAtRef.current = performance.now();
+    setIsSwitchingExam(true);
+    setSearchTerm('');
+    setSelectedPupils([]);
+    setSelectedPupilForPrint(null);
+    setExamId(targetExamId);
+    setClassId(targetClassId);
+
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `/exams/${targetExamId}/view-results?classId=${targetClassId}`
+      );
+    }
+  }, [examId]);
+
+  useEffect(() => {
+    if (!isSwitchingExam) return;
+
+    if (examDetails?.id === examId && examResultData?.examId === examId) {
+      const elapsed = performance.now() - switchStartedAtRef.current;
+      const remaining = Math.max(0, 140 - elapsed);
+      const timer = window.setTimeout(() => setIsSwitchingExam(false), remaining);
+      return () => window.clearTimeout(timer);
+    }
+  }, [examDetails?.id, examId, examResultData?.examId, isSwitchingExam]);
+
   // Enhance pupil snapshots with dateOfBirth from actual pupils data
   const pupilSnaps = useMemo(() => {
     const snaps = examResultData?.pupilSnapshots || [];
     return snaps.map(snap => {
-      // Find the actual pupil to get their dateOfBirth if not in snapshot
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
       return {
         ...snap,
-        dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth, // Use snapshot first, fallback to actual pupil
-        ageAtExam: snap.ageAtExam, // Keep the ageAtExam from snapshot
+        dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth,
+        ageAtExam: snap.ageAtExam,
         schoolPayCode: getSchoolPayCode(actualPupil)
       };
     });
@@ -1271,21 +1362,10 @@ export default function ViewResultsView() {
     if (!classSnap?.classTeacherId || !allStaff.length) {
       return { name: 'Class Teacher', gender: undefined };
     }
-
     const teacher = allStaff.find(s => s.id === classSnap.classTeacherId);
-    if (!teacher) {
-      return { name: classSnap.classTeacherName || 'Class Teacher', gender: undefined };
-    }
-
-    const formattedName = formatTeacherNameWithTitle(
-      `${teacher.firstName} ${teacher.lastName}`,
-      teacher.gender
-    );
-
-    return {
-      name: formattedName,
-      gender: teacher.gender
-    };
+    if (!teacher) return { name: classSnap.classTeacherName || 'Class Teacher', gender: undefined };
+    const formattedName = formatTeacherNameWithTitle(`${teacher.firstName} ${teacher.lastName}`, teacher.gender);
+    return { name: formattedName, gender: teacher.gender };
   }, [classSnap, allStaff]);
 
   // Function to get academic year and term names
@@ -1581,6 +1661,26 @@ export default function ViewResultsView() {
     return unregister;
   }, [registerPrintHandler, selectedPupilForPrint]);
 
+  // 🚀 OPTIMIZED: Pre-generate QR codes in background while user views results
+  useEffect(() => {
+    if (isSwitchingExam || !examDetails || !classSnap || !processedResults.length) return;
+    const idleHandle = (window as any).requestIdleCallback
+      ? (window as any).requestIdleCallback(() => {
+          preGenerateQRCodesForBatch(processedResults, examDetails, classSnap).catch(() => {});
+        })
+      : setTimeout(() => {
+          preGenerateQRCodesForBatch(processedResults, examDetails, classSnap).catch(() => {});
+        }, 1000);
+
+    return () => {
+      if ((window as any).cancelIdleCallback && idleHandle) {
+        (window as any).cancelIdleCallback(idleHandle);
+      } else {
+        clearTimeout(idleHandle);
+      }
+    };
+  }, [isSwitchingExam, examDetails, classSnap, processedResults]);
+
   // Results release handlers
   const handlePupilSelection = (pupilId: string, isChecked: boolean) => {
     if (isChecked) {
@@ -1697,7 +1797,7 @@ export default function ViewResultsView() {
         subjectResults: (selectedPupilResult as any).subjectResults || {}
       };
 
-      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult]);
+      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult], allPupils);
 
       updateProgressForIndividual(10, 'Preparing all data in parallel...');
 
@@ -1879,7 +1979,7 @@ export default function ViewResultsView() {
         subjectResults: (selectedPupilResult as any).subjectResults || {}
       };
 
-      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult]);
+      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult], allPupils);
 
       updateProgressForIndividual(10, 'Preparing all data in parallel...');
 
@@ -2152,7 +2252,7 @@ export default function ViewResultsView() {
         }))
       };
 
-      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult]);
+      const processedResultsForReport = await prepareResultsWithLivePupilData([singlePupilResult], allPupils);
 
       // Get all unique subjects from all comparison exams
       const allSubjectCodes = new Set<string>();
@@ -2555,21 +2655,32 @@ export default function ViewResultsView() {
 
         console.log(`📊 OPTIMIZED: ${pupilsWithPhotos.size} pupils have photos in snapshot, ${pupilsNeedingPhotos.length} need fetching`);
 
-        // Batch fetch all missing photos in ONE request
+        // Batch fetch all missing photos - check allPupils cache first
         let fetchedPupilsMap: Record<string, any> = {};
-        if (pupilsNeedingPhotos.length > 0) {
+        const missingFromCache: string[] = [];
+        pupilsNeedingPhotos.forEach((id) => {
+          const cached = allPupils.find((p) => p.id === id);
+          if (cached) {
+            fetchedPupilsMap[id] = cached;
+          } else {
+            missingFromCache.push(id);
+          }
+        });
+
+        if (missingFromCache.length > 0) {
           try {
             const batchResponse = await fetch('/api/pupils/batch', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
+              body: JSON.stringify({ pupilIds: [...new Set(missingFromCache)] }),
             });
 
             if (batchResponse.ok) {
-              fetchedPupilsMap = await batchResponse.json();
-              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(fetchedPupilsMap).length} pupils in one request`);
+              const apiFetched = await batchResponse.json();
+              fetchedPupilsMap = { ...fetchedPupilsMap, ...apiFetched };
+              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(apiFetched).length} pupils in one request`);
             } else {
               console.warn('⚠️ OPTIMIZED: Batch fetch failed, continuing without photos');
             }
@@ -2616,19 +2727,28 @@ export default function ViewResultsView() {
 
       updateProgress(50, 'Fetching teacher information...');
 
-      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      // 🚀 OPTIMIZED: Look up teachers from allStaff cache first
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
       const teachersMap = new Map<string, string>();
+      const missingTeacherIds: string[] = [];
 
-      if (uniqueTeacherIds.length > 0) {
+      uniqueTeacherIds.forEach((teacherId) => {
+        const staffDoc = allStaff.find((s) => s.id === teacherId);
+        if (staffDoc) {
+          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
+        } else {
+          missingTeacherIds.push(teacherId);
+        }
+      });
+
+      if (missingTeacherIds.length > 0) {
         try {
-          // Batch fetch all teachers at once
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
             try {
               const teacherResponse = await fetch(`/api/staff/${teacherId}`);
               if (teacherResponse.ok) {
                 const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
                 return { teacherId, teacherName };
               }
             } catch (error) {
@@ -2642,7 +2762,7 @@ export default function ViewResultsView() {
             teachersMap.set(teacherId, teacherName);
           });
         } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
+          console.warn('Error fetching missing teachers:', error);
         }
       }
 
@@ -2915,21 +3035,32 @@ export default function ViewResultsView() {
 
         console.log(`📊 OPTIMIZED: ${pupilsWithPhotos.size} pupils have photos in snapshot, ${pupilsNeedingPhotos.length} need fetching`);
 
-        // Batch fetch all missing photos in ONE request
+        // Batch fetch all missing photos - check allPupils cache first
         let fetchedPupilsMap: Record<string, any> = {};
-        if (pupilsNeedingPhotos.length > 0) {
+        const missingFromCache: string[] = [];
+        pupilsNeedingPhotos.forEach((id) => {
+          const cached = allPupils.find((p) => p.id === id);
+          if (cached) {
+            fetchedPupilsMap[id] = cached;
+          } else {
+            missingFromCache.push(id);
+          }
+        });
+
+        if (missingFromCache.length > 0) {
           try {
             const batchResponse = await fetch('/api/pupils/batch', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ pupilIds: [...new Set(pupilsNeedingPhotos)] }),
+              body: JSON.stringify({ pupilIds: [...new Set(missingFromCache)] }),
             });
 
             if (batchResponse.ok) {
-              fetchedPupilsMap = await batchResponse.json();
-              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(fetchedPupilsMap).length} pupils in one request`);
+              const apiFetched = await batchResponse.json();
+              fetchedPupilsMap = { ...fetchedPupilsMap, ...apiFetched };
+              console.log(`✅ OPTIMIZED: Batch fetched ${Object.keys(apiFetched).length} pupils in one request`);
             } else {
               console.warn('⚠️ OPTIMIZED: Batch fetch failed, continuing without photos');
             }
@@ -2976,19 +3107,28 @@ export default function ViewResultsView() {
 
       updateProgress(50, 'Fetching teacher information...');
 
-      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      // 🚀 OPTIMIZED: Look up teachers from allStaff cache first
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
       const teachersMap = new Map<string, string>();
+      const missingTeacherIds: string[] = [];
 
-      if (uniqueTeacherIds.length > 0) {
+      uniqueTeacherIds.forEach((teacherId) => {
+        const staffDoc = allStaff.find((s) => s.id === teacherId);
+        if (staffDoc) {
+          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
+        } else {
+          missingTeacherIds.push(teacherId);
+        }
+      });
+
+      if (missingTeacherIds.length > 0) {
         try {
-          // Batch fetch all teachers at once
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
             try {
               const teacherResponse = await fetch(`/api/staff/${teacherId}`);
               if (teacherResponse.ok) {
                 const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
                 return { teacherId, teacherName };
               }
             } catch (error) {
@@ -3002,7 +3142,7 @@ export default function ViewResultsView() {
             teachersMap.set(teacherId, teacherName);
           });
         } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
+          console.warn('Error fetching missing teachers:', error);
         }
       }
 
@@ -3329,15 +3469,25 @@ export default function ViewResultsView() {
         )
       ].filter(Boolean))];
       const teachersMap = new Map<string, string>();
+      const missingTeacherIds: string[] = [];
 
-      if (uniqueTeacherIds.length > 0) {
+      uniqueTeacherIds.forEach((teacherId) => {
+        const staffDoc = allStaff.find((s) => s.id === teacherId);
+        if (staffDoc) {
+          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
+        } else {
+          missingTeacherIds.push(teacherId);
+        }
+      });
+
+      if (missingTeacherIds.length > 0) {
         try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
             try {
               const teacherResponse = await fetch(`/api/staff/${teacherId}`);
               if (teacherResponse.ok) {
                 const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
                 return { teacherId, teacherName };
               }
             } catch (error) {
@@ -3351,7 +3501,7 @@ export default function ViewResultsView() {
             teachersMap.set(teacherId, teacherName);
           });
         } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
+          console.warn('Error fetching missing teachers:', error);
         }
       }
 
@@ -3491,16 +3641,6 @@ export default function ViewResultsView() {
     }
   }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
 
-  const handleNurseryReport = useCallback(() => {
-    console.log('📊 Breakdown (Detailed Assessment) clicked - Opening options dialog');
-    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
-      toast({ title: "Error", description: "Missing required data for detailed assessment generation" });
-      return;
-    }
-    setAssessmentReportType('detailed');
-    setShowPrintAssessmentOptionsDialog(true);
-  }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
-
   const generateDetailedAssessmentReport = useCallback(async () => {
     setIsGenerating(true);
     setGenerationProgress(0);
@@ -3590,19 +3730,28 @@ export default function ViewResultsView() {
 
       updateProgress(50, 'Processing pupil information...');
 
-      // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
+      // 🚀 OPTIMIZED: Look up teachers from allStaff cache first
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
       const teachersMap = new Map<string, string>();
+      const missingTeacherIds: string[] = [];
 
-      if (uniqueTeacherIds.length > 0) {
+      uniqueTeacherIds.forEach((teacherId) => {
+        const staffDoc = allStaff.find((s) => s.id === teacherId);
+        if (staffDoc) {
+          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
+        } else {
+          missingTeacherIds.push(teacherId);
+        }
+      });
+
+      if (missingTeacherIds.length > 0) {
         try {
-          // Batch fetch all teachers at once
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
+          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
             try {
               const teacherResponse = await fetch(`/api/staff/${teacherId}`);
               if (teacherResponse.ok) {
                 const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
+                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
                 return { teacherId, teacherName };
               }
             } catch (error) {
@@ -3616,7 +3765,7 @@ export default function ViewResultsView() {
             teachersMap.set(teacherId, teacherName);
           });
         } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
+          console.warn('Error fetching missing teachers:', error);
         }
       }
 
@@ -3686,6 +3835,15 @@ export default function ViewResultsView() {
       }, 1000);
     }
   }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, updateProgress, pdfViewer]);
+
+  const handleNurseryReport = useCallback(() => {
+    console.log('📊 Mini Report clicked - Generating directly without options dialog');
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: "Error", description: "Missing required data for report generation" });
+      return;
+    }
+    generateDetailedAssessmentReport();
+  }, [examDetails, classSnap, subjectSnaps, processedResults, toast, generateDetailedAssessmentReport]);
 
   // Effect to update ETA in real-time
   useEffect(() => {
@@ -3827,7 +3985,18 @@ export default function ViewResultsView() {
   const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
 
   return (
-    <div className="min-h-screen">
+    <div
+      className={`min-h-screen transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
+      style={{
+        transform: isSwitchingExam
+          ? 'perspective(1400px) rotateX(2deg)'
+          : 'perspective(1400px) rotateX(0deg)',
+        transformOrigin: 'center top',
+        backfaceVisibility: 'hidden',
+        willChange: isSwitchingExam ? 'transform, opacity' : 'auto',
+      }}
+      aria-busy={isSwitchingExam}
+    >
         <GlassPageTopBar
           title={examDetails?.name || 'Loading...'}
           subtitle={`${classSnap?.code || classSnap?.name || 'Loading...'} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
@@ -3855,6 +4024,47 @@ export default function ViewResultsView() {
           }
           actions={
             <GlassActionDock>
+              {examSwitcher.options.length > 1 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <GlassActionButton
+                      label={examSwitcher.label}
+                      icon={examSwitcher.label === 'Sets' ? <Grid3X3 className="h-4 w-4" /> : <UsersIcon className="h-4 w-4" />}
+                      tone="blue"
+                      aria-label={`Switch ${examSwitcher.label.toLowerCase()}`}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64 rounded-xl border border-blue-100 bg-white/95 p-2 shadow-xl backdrop-blur">
+                    <div className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Choose {examSwitcher.label === 'Classes' ? 'class' : 'set'}
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {examSwitcher.options.map((option) => {
+                        const isCurrentExam = option.id === examId;
+
+                        return (
+                          <DropdownMenuItem key={option.id} asChild>
+                            <button
+                              type="button"
+                              onClick={() => handleExamSwitch(option.id, option.classId)}
+                              className={`flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                                isCurrentExam
+                                  ? 'cursor-default border-blue-600 bg-blue-600 text-white'
+                                  : 'border-blue-100 bg-blue-50/70 text-blue-700 hover:border-blue-300 hover:bg-blue-100'
+                              }`}
+                              aria-current={isCurrentExam ? 'page' : undefined}
+                            >
+                              {examSwitcher.label === 'Sets' ? <Grid3X3 className="h-3.5 w-3.5" /> : <UsersIcon className="h-3.5 w-3.5" />}
+                              <span className="truncate">{option.label}</span>
+                              {isCurrentExam && <Check className="h-3.5 w-3.5" />}
+                            </button>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <GlassActionButton
                 label="Edit"
                 icon={<Edit3 className="h-4 w-4" />}

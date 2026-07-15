@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, UserCheck, Users, Shield, Eye, EyeOff, Key, Search, X, Filter } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, UserCheck, Users, Shield, Eye, EyeOff, Key, Search, X, Filter, Save, Copy } from "lucide-react";
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { cn } from "@/lib/utils";
@@ -70,11 +70,29 @@ import { format } from "date-fns";
 import { MODULE_ACTIONS } from "@/types/permissions";
 import { useAuth } from "@/lib/contexts/auth-context";
 
-const PERMISSION_LABELS = {
-  view_only: 'View Only',
-  edit: 'View & Edit',
-  full_access: 'Full Access'
-} as const;
+type PermissionSummaryItem = {
+  title: string;
+  description: string;
+  actionNames?: string;
+};
+
+function formatLastLogin(lastLogin: unknown): string {
+  if (!lastLogin) return 'Never';
+
+  const value = lastLogin as {
+    toDate?: () => Date;
+    seconds?: number;
+  };
+  const date = lastLogin instanceof Date
+    ? lastLogin
+    : typeof value.toDate === 'function'
+      ? value.toDate()
+      : typeof value.seconds === 'number'
+        ? new Date(value.seconds * 1000)
+        : new Date(String(lastLogin));
+
+  return Number.isNaN(date.getTime()) ? 'Never' : format(date, 'd MMM yyyy');
+}
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -95,7 +113,12 @@ export default function UsersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
+  const [permissionsUser, setPermissionsUser] = useState<SystemUser | null>(null);
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
+  const [permissionsDraft, setPermissionsDraft] = useState<ModulePermissions[]>([]);
   const [activeTab, setActiveTab] = useState("staff");
+  const [isMorphOpen, setIsMorphOpen] = useState(false);
+  const [morphUserId, setMorphUserId] = useState("");
 
   // Form states for staff creation
   const [staffFormData, setStaffFormData] = useState({
@@ -172,6 +195,8 @@ export default function UsersPage() {
       modulePermissions: [],
       granularPermissions: []
     });
+    setMorphUserId("");
+    setIsMorphOpen(false);
   };
 
   const resetParentForm = () => {
@@ -214,6 +239,7 @@ export default function UsersPage() {
   };
 
   const handleAccessLevelChange = (accessLevelId: string) => {
+    setMorphUserId("");
     // Handle "none" value - means no access level (manual permissions)
     if (accessLevelId === "none") {
       setStaffFormData(prev => ({
@@ -441,7 +467,9 @@ export default function UsersPage() {
       if (moduleActions) {
         const modulePermission: ModulePermissions = {
           moduleId: legacyPerm.module,
-          pages: moduleActions.pages.map(page => ({
+          pages: moduleActions.pages
+            .filter(page => !(legacyPerm.module === 'pupils' && page.page === 'historical_seeding'))
+            .map(page => ({
             pageId: page.page,
             canAccess: true, // Legacy permissions grant access to all pages
             actions: page.actions.map(action => ({
@@ -499,53 +527,123 @@ export default function UsersPage() {
     return false;
   };
 
-  const getUserPermissionSummary = (user: SystemUser): string[] => {
-    if (user.role === 'Admin') return ['Admin - Full Access'];
-    if (user.role === 'Parent') return ['Parent Account'];
-    
-    const permissions: string[] = [];
-    
-    // Check granular permissions first
-    if (user.granularPermissions && user.granularPermissions.length > 0) {
-      user.granularPermissions.forEach((modulePerm) => {
-        const hasAccess = modulePerm.pages.some(p => p.canAccess);
-        if (hasAccess) {
-          // Determine permission level based on actions
-          let hasEdit = false;
-          let hasDelete = false;
-          
-          modulePerm.pages.forEach(page => {
-            if (page.canAccess) {
-              page.actions.forEach(action => {
-                if (action.allowed) {
-                  if (action.actionId.includes('edit') || action.actionId.includes('create') || action.actionId.includes('update')) {
-                    hasEdit = true;
-                  }
-                  if (action.actionId.includes('delete') || action.actionId.includes('remove')) {
-                    hasDelete = true;
-                  }
-                }
-              });
-            }
-          });
-          
-          let level = 'View Only';
-          if (hasDelete) level = 'Full Access';
-          else if (hasEdit) level = 'View & Edit';
-          
-          permissions.push(`${modulePerm.moduleId}: ${level}`);
-        }
+  const openPermissionsWorkspace = (user: SystemUser) => {
+    setPermissionsUser(user);
+    setPermissionsDraft(getEditablePermissions(user));
+    setIsPermissionsDialogOpen(true);
+  };
+
+  const getEditablePermissions = (user: SystemUser): ModulePermissions[] => {
+    const granularPermissions = user.granularPermissions || [];
+    const granularModuleIds = new Set(granularPermissions.map((permission) => permission.moduleId));
+    const legacyOnlyPermissions = convertLegacyToGranularPermissions(user.modulePermissions || [])
+      .filter((permission) => !granularModuleIds.has(permission.moduleId));
+
+    return [...legacyOnlyPermissions, ...granularPermissions];
+  };
+
+  const cloneGranularPermissions = (permissions: ModulePermissions[]): ModulePermissions[] =>
+    permissions.map((module) => ({
+      ...module,
+      pages: module.pages.map((page) => ({
+        ...page,
+        actions: page.actions.map((action) => ({ ...action })),
+      })),
+    }));
+
+  const handleMorphPermissions = (sourceUserId: string) => {
+    setMorphUserId(sourceUserId);
+
+    if (sourceUserId === 'none') {
+      setStaffFormData((current) => ({
+        ...current,
+        accessLevelId: '',
+        modulePermissions: [],
+        granularPermissions: [],
+      }));
+      return;
+    }
+
+    const sourceUser = staffUsers.find((user) => user.id === sourceUserId);
+    if (!sourceUser) return;
+
+    setStaffFormData((current) => ({
+      ...current,
+      accessLevelId: '',
+      modulePermissions: (sourceUser.modulePermissions || []).map((permission) => ({ ...permission })),
+      granularPermissions: cloneGranularPermissions(getEditablePermissions(sourceUser)),
+    }));
+
+    toast({
+      title: 'Permissions copied',
+      description: `Copied ${getUserDisplayName(sourceUser)}'s permission setup. You can still adjust it below.`,
+    });
+  };
+
+  const permissionSummary = (user: SystemUser, permissions: ModulePermissions[]): PermissionSummaryItem[] => {
+    if (user.role === 'Admin') {
+      return [{ title: 'Full system access', description: 'Administrators can open every workspace and perform every available action.' }];
+    }
+
+    if (user.role === 'Parent') {
+      return [{ title: 'Parent portal access', description: 'Parent accounts can access only their linked family and pupil information.' }];
+    }
+
+    return permissions.flatMap((modulePermission) => {
+      const module = MODULE_ACTIONS[modulePermission.moduleId as keyof typeof MODULE_ACTIONS];
+      if (!module) return [];
+
+      return modulePermission.pages.flatMap((pagePermission) => {
+        if (!pagePermission.canAccess) return [];
+        const page = module.pages.find((item) => item.page === pagePermission.pageId);
+        if (!page) return [];
+
+        const allowedActions = page.actions.filter((action) =>
+          pagePermission.actions.some((permission) => permission.actionId === action.id && permission.allowed)
+        );
+        const actionNames = allowedActions.map((action) => action.name).join(', ');
+
+        return [{
+          title: page.name,
+          description: allowedActions.length
+            ? `Can ${allowedActions.map((action) => action.description.charAt(0).toLowerCase() + action.description.slice(1)).join('; ')}.`
+            : 'Can open this workspace, but no additional actions are enabled.',
+          actionNames,
+        }];
+      });
+    });
+  };
+
+  const handleSavePermissions = async () => {
+    if (!permissionsUser || permissionsUser.role !== 'Staff') return;
+
+    try {
+      await updateUserMutation.mutateAsync({
+        userId: permissionsUser.id,
+        updates: {
+          modulePermissions: permissionsUser.modulePermissions || [],
+          granularPermissions: permissionsDraft,
+        },
+      });
+
+      if (currentUser?.id === permissionsUser.id) {
+        await refreshUser();
+      }
+
+      toast({
+        title: 'Permissions updated',
+        description: `Access for ${getUserDisplayName(permissionsUser)} has been saved.`,
+      });
+      setIsPermissionsDialogOpen(false);
+      setPermissionsUser(null);
+      setPermissionsDraft([]);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not update permissions',
+        description: error.message || 'Please try again.',
       });
     }
-    
-    // Fallback to legacy permissions if no granular permissions
-    if (permissions.length === 0 && user.modulePermissions && user.modulePermissions.length > 0) {
-      user.modulePermissions.forEach((mp) => {
-        permissions.push(`${mp.module}: ${PERMISSION_LABELS[mp.permission]}`);
-      });
-    }
-    
-    return permissions;
   };
 
   // Filter users based on search and filter criteria
@@ -768,7 +866,6 @@ export default function UsersPage() {
                         <TableHead>Staff Member</TableHead>
                         <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
-                        <TableHead>Permissions</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Last Login</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -790,31 +887,12 @@ export default function UsersPage() {
                           <TableCell>{user.username}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {getUserPermissionSummary(user).slice(0, 3).map((perm, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {perm}
-                                </Badge>
-                              ))}
-                              {getUserPermissionSummary(user).length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{getUserPermissionSummary(user).length - 3} more
-                                </Badge>
-                              )}
-                              {getUserPermissionSummary(user).length === 0 && (
-                                <Badge variant="outline" className="text-xs text-muted-foreground">
-                                  No permissions
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
                             <Badge variant={user.isActive ? 'default' : 'secondary'}>
                               {user.isActive ? 'Active' : 'Inactive'}
                             </Badge>
                           </TableCell>
                 <TableCell>
-                            {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                            {formatLastLogin(user.lastLogin)}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -825,6 +903,9 @@ export default function UsersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => openPermissionsWorkspace(user)}>
+                        <Shield className="mr-2 h-4 w-4" /> Permissions
+                      </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
                                   setEditingUser(user);
                                   setIsEditDialogOpen(true);
@@ -904,7 +985,7 @@ export default function UsersPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                              {formatLastLogin(user.lastLogin)}
                             </TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
@@ -992,7 +1073,7 @@ export default function UsersPage() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                              {formatLastLogin(user.lastLogin)}
                             </TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
@@ -1216,6 +1297,45 @@ export default function UsersPage() {
                     </p>
                   )}
                 </div>
+
+                <section className="rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <Label className="text-base font-semibold text-slate-900">Morph permissions</Label>
+                      <p className="mt-1 text-sm text-slate-600">Copy another staff user&apos;s effective page and action permissions, then adjust them if needed.</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant={isMorphOpen ? "secondary" : "outline"}
+                      className="gap-2 border-violet-200 bg-white text-violet-700 hover:bg-violet-100"
+                      onClick={() => setIsMorphOpen((open) => !open)}
+                    >
+                      <Copy className="h-4 w-4" /> {isMorphOpen ? 'Hide morph' : 'Morph'}
+                    </Button>
+                  </div>
+
+                  {isMorphOpen && (
+                    <div className="mt-4 space-y-2 border-t border-violet-200 pt-4">
+                      <Label htmlFor="morph-permissions">Copy permissions from</Label>
+                      <Select value={morphUserId || 'none'} onValueChange={handleMorphPermissions}>
+                        <SelectTrigger id="morph-permissions" className="bg-white">
+                          <SelectValue placeholder="Select an existing staff user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Clear copied permissions</SelectItem>
+                          {staffUsers.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {getUserDisplayName(user)} · {user.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {morphUserId && morphUserId !== 'none' && (
+                        <p className="text-sm text-violet-800">Permissions copied. Continue below to review or make changes before creating the account.</p>
+                      )}
+                    </div>
+                  )}
+                </section>
 
                 <Separator />
 
@@ -1477,6 +1597,82 @@ export default function UsersPage() {
               ) : (
                 "Update User"
               )}
+            </Button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
+
+      <ModernDialog
+        open={isPermissionsDialogOpen}
+        onOpenChange={(open) => {
+          setIsPermissionsDialogOpen(open);
+          if (!open) {
+            setPermissionsUser(null);
+            setPermissionsDraft([]);
+          }
+        }}
+      >
+        <ModernDialogContent size="responsive">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-indigo-600" /> Permissions
+            </ModernDialogTitle>
+            <ModernDialogDescription>
+              Review what this user can do, then change or revoke access here without opening their account editor.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+
+          {permissionsUser && (
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-1">
+              <section className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+                <p className="font-semibold text-slate-900">{getUserDisplayName(permissionsUser)}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{permissionsUser.username} · {permissionsUser.role}</p>
+              </section>
+
+              <section className="space-y-3">
+                <div>
+                  <h3 className="font-semibold text-slate-900">Current access</h3>
+                  <p className="text-sm text-muted-foreground">A plain-language summary of each workspace this account can use.</p>
+                </div>
+                {permissionSummary(permissionsUser, permissionsDraft).length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">This user has no active system permissions.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {permissionSummary(permissionsUser, permissionsDraft).map((permission) => (
+                      <div key={permission.title} className="rounded-lg border bg-card p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-slate-900">{permission.title}</p>
+                          {permission.actionNames && <Badge variant="secondary" className="font-normal">{permission.actionNames}</Badge>}
+                        </div>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">{permission.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <Separator />
+
+              <section className="space-y-3 pb-2">
+                <div>
+                  <h3 className="font-semibold text-slate-900">Change access</h3>
+                  <p className="text-sm text-muted-foreground">Use a section, menu, page, or individual action checkbox to grant or revoke access.</p>
+                </div>
+                <GranularPermissionsEditor
+                  permissions={permissionsDraft}
+                  onChange={setPermissionsDraft}
+                />
+              </section>
+            </div>
+          )}
+
+          <ModernDialogFooter>
+            <Button variant="outline" onClick={() => setIsPermissionsDialogOpen(false)} disabled={updateUserMutation.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleSavePermissions} disabled={updateUserMutation.isPending || !permissionsUser}>
+              {updateUserMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save permissions
             </Button>
           </ModernDialogFooter>
         </ModernDialogContent>

@@ -45,14 +45,17 @@ import { formatCurrency } from "@/lib/utils";
 import { useFeeStructures, useCreateFeeStructure, useUpdateFeeStructure, useDeleteFeeStructure, useFeeAdjustments, useCreateFeeAdjustment } from "@/lib/hooks/use-fees";
 import { FeeStructuresService } from "@/lib/services/fee-structures.service";
 import { useProgressiveDashboard } from "@/lib/hooks/use-progressive-dashboard";
-import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
+import { useAcademicYears } from "@/lib/hooks/use-academic-years";
 import { detectCurrentAcademicYear, detectCurrentTerm } from "@/lib/utils/academic-year-utils";
 import { useTermStatus } from "@/lib/hooks/use-term-status";
+import { isFeeApplicableInYear, getApplicableYearIdsAfterDisable } from "@/lib/utils/fee-applicability";
+import { calculateFeeAmountForAcademicYear } from "@/lib/utils/fee-adjustments";
 import { RecessStatusBanner } from "@/components/common/recess-status-banner";
 import FeeStructureModal from "./components/fee-structure-modal";
 import DiscountModal from "./components/discount-modal";
 import FeeDisableModal from "./components/fee-disable-modal";
 import FeeAdjustmentModal from "./components/fee-adjustment-modal";
+import FeeYearApplicabilityModal from "./components/fee-year-applicability-modal";
 import { format } from "date-fns";
 
 type ActiveFilter = 'general' | 'assignment' | 'discounts';
@@ -94,17 +97,21 @@ export function FeesManagementPageContent() {
 
   // Academic years hooks for real academic year data
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
-  const { data: activeAcademicYear } = useActiveAcademicYear();
 
   // Use the new term status system
   const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
+  // The Academic Years page derives the current context from term dates.
+  // Use that same source so a stale stored isActive flag cannot select 2025.
+  const activeAcademicYear = effectiveTerm.academicYear;
 
   const [isFeeStructureModalOpen, setIsFeeStructureModalOpen] = React.useState(false);
   const [isDiscountModalOpen, setIsDiscountModalOpen] = React.useState(false);
   const [isDisableModalOpen, setIsDisableModalOpen] = React.useState(false);
+  const [isYearApplicabilityModalOpen, setIsYearApplicabilityModalOpen] = React.useState(false);
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = React.useState(false);
   const [editingFeeStructure, setEditingFeeStructure] = React.useState<FeeStructure | null>(null);
   const [selectedFeeForDisable, setSelectedFeeForDisable] = React.useState<FeeStructure | null>(null);
+  const [selectedFeeForApplicability, setSelectedFeeForApplicability] = React.useState<FeeStructure | null>(null);
   const [selectedFeeForAdjustment, setSelectedFeeForAdjustment] = React.useState<FeeStructure | null>(null);
 
   // Tab and routing state
@@ -141,6 +148,7 @@ export function FeesManagementPageContent() {
   const [modalMode, setModalMode] = React.useState<'add' | 'edit'>('add');
   const [activeFilter, setActiveFilter] = React.useState<ActiveFilter>('general');
   const [selectedAcademicYearId, setSelectedAcademicYearId] = React.useState<string | null>(null);
+  const [hasUserSelectedAcademicYear, setHasUserSelectedAcademicYear] = React.useState(false);
   const [collapsedTerms, setCollapsedTerms] = React.useState<Record<string, boolean>>({});
 
   // Use real academic years, fallback to sample data if none available
@@ -163,9 +171,7 @@ export function FeesManagementPageContent() {
 
     // Fallback to finding active year from the list (real data first)
     if (academicYears && academicYears.length > 0) {
-      const activeFromList = detectCurrentAcademicYear(academicYears.filter(ay => !ay.isLocked)) ||
-        academicYears.find(ay => !ay.isLocked) ||
-        academicYears[0];
+      const activeFromList = detectCurrentAcademicYear(academicYears) || academicYears[0];
       if (activeFromList) {
         console.log('🎯 Using active academic year from list:', activeFromList.name);
         return activeFromList;
@@ -193,16 +199,16 @@ export function FeesManagementPageContent() {
         ? allAcademicYears.some(ay => ay.id === selectedAcademicYearId)
         : false;
 
-      if (!selectedAcademicYearId || !selectedYearExists) {
+      if ((!hasUserSelectedAcademicYear && selectedAcademicYearId !== currentAcademicYear.id) || !selectedYearExists) {
         if (process.env.NODE_ENV === 'development') {
           console.log('🎯 Initializing selected academic year to current:', currentAcademicYear.name, {
-            reason: !selectedAcademicYearId ? 'no selection' : 'invalid selection'
+            reason: !selectedYearExists ? 'invalid selection' : 'current academic context resolved'
           });
         }
         setSelectedAcademicYearId(currentAcademicYear.id);
       }
     }
-  }, [currentAcademicYear, selectedAcademicYearId, allAcademicYears]);
+  }, [currentAcademicYear, selectedAcademicYearId, allAcademicYears, hasUserSelectedAcademicYear]);
 
   // Log when selected academic year changes
   React.useEffect(() => {
@@ -235,6 +241,10 @@ export function FeesManagementPageContent() {
   const currentTerm = React.useMemo(() => {
     if (!currentAcademicYear || !currentAcademicYear.terms || currentAcademicYear.terms.length === 0) return undefined;
 
+    if (effectiveTerm.academicYear?.id === currentAcademicYear.id && effectiveTerm.term) {
+      return effectiveTerm.term;
+    }
+
     // Determine current term based on actual dates
     const now = new Date();
     const currentTermByDate = currentAcademicYear.terms.find(term => {
@@ -258,7 +268,7 @@ export function FeesManagementPageContent() {
     const fallbackTerm = detectCurrentTerm(currentAcademicYear) || currentAcademicYear.terms[0];
     console.log('📅 Current term determined by fallback:', fallbackTerm?.name);
     return fallbackTerm;
-  }, [currentAcademicYear]);
+  }, [currentAcademicYear, effectiveTerm]);
 
   // Helper function to get term name for a fee item
   const getTermName = (feeItem: FeeStructure): string => {
@@ -328,6 +338,9 @@ export function FeesManagementPageContent() {
       }
 
       // If fee has no academic context, show it for all years
+      if (!fee.academicYearId && !isFeeApplicableInYear(fee, selectedAcademicYearId, allAcademicYears)) {
+        return false;
+      }
       if (!fee.academicYearId) {
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ Fee included (no academic context):', fee.name);
@@ -335,8 +348,9 @@ export function FeesManagementPageContent() {
         return true;
       }
 
-      // Check if selected year is in effectiveYears array (if it exists)
-      if (fee.effectiveYears && fee.effectiveYears.length > 0) {
+      // An explicit effectiveYears array, including an empty one, is the
+      // source of truth for which academic years this fee applies to.
+      if (fee.effectiveYears !== undefined) {
         const isIncluded = fee.effectiveYears.includes(selectedAcademicYearId);
         if (process.env.NODE_ENV === 'development') {
           console.log(`${isIncluded ? '✅' : '❌'} Fee ${isIncluded ? 'included' : 'excluded'} (effectiveYears check):`, {
@@ -347,7 +361,7 @@ export function FeesManagementPageContent() {
             isIncluded
           });
         }
-        return isIncluded;
+        return isFeeApplicableInYear(fee, selectedAcademicYearId, allAcademicYears);
       }
 
       // If effectiveYears doesn't exist, calculate it on the fly:
@@ -379,7 +393,7 @@ export function FeesManagementPageContent() {
         });
       }
 
-      return isApplicable;
+      return isFeeApplicableInYear(fee, selectedAcademicYearId, allAcademicYears);
     });
 
     if (process.env.NODE_ENV === 'development') {
@@ -597,45 +611,13 @@ export function FeesManagementPageContent() {
   }, [filteredFeeStructures, selectedAcademicYear, currentAcademicYear, activeFilter]);
 
   const calculateCurrentFeeAmount = React.useCallback((baseAmount: number, feeId: string, targetAcademicYearId: string | undefined, allAdjustments: FeeAdjustmentEntry[]): number => {
-    if (!targetAcademicYearId) return baseAmount;
-
-    const targetYearObj = allAcademicYears.find(ay => ay.id === targetAcademicYearId);
-    if (!targetYearObj) return baseAmount;
-    const targetYearNum = parseInt(targetYearObj.name);
-
-    const relevantAdjustments = allAdjustments.filter(adj => {
-      if (adj.feeStructureId !== feeId) return false;
-
-      const startYearObj = allAcademicYears.find(ay => ay.id === adj.startYearId);
-      if (!startYearObj) return false;
-      const startYearNum = parseInt(startYearObj.name);
-
-      if (adj.effectivePeriodType === 'specific_year') {
-        return targetAcademicYearId === adj.startYearId;
-      }
-      if (adj.effectivePeriodType === 'from_year_onwards') {
-        return targetYearNum >= startYearNum;
-      }
-      if (adj.effectivePeriodType === 'year_range' && adj.endYearId) {
-        const endYearObj = allAcademicYears.find(ay => ay.id === adj.endYearId);
-        if (!endYearObj) return false;
-        const endYearNum = parseInt(endYearObj.name);
-        return targetYearNum >= startYearNum && targetYearNum <= endYearNum;
-      }
-      return false;
-    });
-
-    let currentAmount = baseAmount;
-    relevantAdjustments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-    for (const adj of relevantAdjustments) {
-      if (adj.adjustmentType === 'increase') {
-        currentAmount += adj.amount;
-      } else if (adj.adjustmentType === 'decrease') {
-        currentAmount -= adj.amount;
-      }
-    }
-    return currentAmount;
+    return calculateFeeAmountForAcademicYear(
+      baseAmount,
+      feeId,
+      targetAcademicYearId,
+      allAcademicYears,
+      allAdjustments
+    );
   }, [allAcademicYears]);
 
   React.useEffect(() => {
@@ -746,6 +728,31 @@ export function FeesManagementPageContent() {
     setIsDisableModalOpen(true);
   };
 
+  const handleOpenYearApplicabilityModal = (fee: FeeStructure) => {
+    setSelectedFeeForApplicability(fee);
+    setIsYearApplicabilityModalOpen(true);
+  };
+
+  const handleSaveYearApplicability = async (feeId: string, effectiveYears: string[]): Promise<boolean> => {
+    try {
+      await updateFeeStructureMutation.mutateAsync({
+        id: feeId,
+        data: { effectiveYears, hasCustomYearApplicability: true }
+      });
+      await queryClient.invalidateQueries({ queryKey: ['fee-structures-management'] });
+      toast({ title: "Year Applicability Updated", description: "The fee's applicable academic years have been saved." });
+      return true;
+    } catch (error) {
+      console.error('Error updating fee year applicability:', error);
+      toast({
+        variant: "destructive",
+        title: "Unable to Save Applicability",
+        description: "The fee's applicable years could not be updated. Please try again."
+      });
+      return false;
+    }
+  };
+
   const handleEnableFee = async (feeId: string) => {
     const feeToEnable = feeStructures.find(f => f.id === feeId);
     if (!feeToEnable) return;
@@ -796,8 +803,20 @@ export function FeesManagementPageContent() {
       endYearId,
     };
 
+    const effectiveYears = getApplicableYearIdsAfterDisable(
+      feeToDisable,
+      allAcademicYears,
+      disableType,
+      startYearId,
+      endYearId
+    );
+
     const updatedData = {
-      status: 'disabled' as FeeStatus,
+      // A scoped disable only removes the fee from those years. It remains an
+      // active fee structure so it can still be fetched in unaffected years.
+      status: (disableType === 'immediate_indefinite' ? 'disabled' : 'active') as FeeStatus,
+      effectiveYears,
+      hasCustomYearApplicability: true,
       disableHistory: [
         ...(feeToDisable.disableHistory || []),
         newHistoryEntry,
@@ -977,8 +996,8 @@ export function FeesManagementPageContent() {
     startYearId: string;
     endYearId?: string;
     reason?: string;
-  }) => {
-    if (!selectedFeeForAdjustment) return;
+  }): Promise<boolean> => {
+    if (!selectedFeeForAdjustment) return false;
 
     const newAdjustmentData = {
       feeStructureId: selectedFeeForAdjustment.id,
@@ -994,8 +1013,7 @@ export function FeesManagementPageContent() {
     try {
       await createFeeAdjustmentMutation.mutateAsync(newAdjustmentData);
       toast({ title: "Fee Adjustment Saved", description: `Adjustment for "${selectedFeeForAdjustment.name}" has been recorded.` });
-      setIsAdjustmentModalOpen(false);
-      setSelectedFeeForAdjustment(null);
+      return true;
     } catch (error) {
       console.error('Error creating fee adjustment:', error);
       toast({
@@ -1003,6 +1021,7 @@ export function FeesManagementPageContent() {
         title: "Error",
         description: "Failed to create fee adjustment. Please try again."
       });
+      return false;
     }
   };
 
@@ -1319,7 +1338,12 @@ export function FeesManagementPageContent() {
                           {renderAdjustmentHistory(fee.id)}
                         </TableCell>
                         <TableCell>
-                          {formatCurrency(calculateCurrentFeeAmount(fee.amount, fee.id, fee.academicYearId, feeAdjustments))}
+                          {formatCurrency(calculateCurrentFeeAmount(
+                            fee.amount,
+                            fee.id,
+                            selectedAcademicYearId || currentAcademicYear?.id,
+                            feeAdjustments
+                          ))}
                         </TableCell>
                         <TableCell><Badge variant="secondary">{fee.category}</Badge></TableCell>
                         <TableCell>{getTargetClassesDisplay(fee)}</TableCell>
@@ -1345,6 +1369,9 @@ export function FeesManagementPageContent() {
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleOpenAdjustmentModal(fee)}>
                                 <ArrowDownUp className="mr-2 h-4 w-4" /> Adjust Fee
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenYearApplicabilityModal(fee)}>
+                                <Calendar className="mr-2 h-4 w-4" /> Year Applicability
                               </DropdownMenuItem>
                               {fee.status === 'active' ? (
                                 <DropdownMenuItem onClick={() => handleOpenDisableModal(fee)}>
@@ -1419,7 +1446,10 @@ export function FeesManagementPageContent() {
                 {availableAcademicYears.length > 0 && (
                   <select
                     value={selectedAcademicYearId || ''}
-                    onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                    onChange={(e) => {
+                      setHasUserSelectedAcademicYear(true);
+                      setSelectedAcademicYearId(e.target.value);
+                    }}
                     className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8"
                   >
                     {availableAcademicYears.map((year) => {
@@ -1643,7 +1673,9 @@ export function FeesManagementPageContent() {
             onSubmit={handleSubmitFeeStructure}
             initialData={editingFeeStructure}
             mode={modalMode}
-            academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
+            // Historical academic years remain selectable when creating or editing
+            // a fee item, including locked years such as 2019–2025.
+            academicYears={allAcademicYears}
             allClasses={classes || []}
             currentAcademicYearId={selectedAcademicYearId || currentAcademicYear?.id}
             currentTermId={currentTerm?.id}
@@ -1666,7 +1698,19 @@ export function FeesManagementPageContent() {
             onClose={() => { setIsDisableModalOpen(false); setSelectedFeeForDisable(null); }}
             onSubmit={handleDisableSubmit}
             feeToDisable={selectedFeeForDisable}
-            academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
+            academicYears={allAcademicYears}
+          />
+        )}
+        {isYearApplicabilityModalOpen && selectedFeeForApplicability && (
+          <FeeYearApplicabilityModal
+            isOpen={isYearApplicabilityModalOpen}
+            onClose={() => {
+              setIsYearApplicabilityModalOpen(false);
+              setSelectedFeeForApplicability(null);
+            }}
+            fee={selectedFeeForApplicability}
+            academicYears={allAcademicYears}
+            onSave={handleSaveYearApplicability}
           />
         )}
         {isAdjustmentModalOpen && selectedFeeForAdjustment && (
@@ -1675,7 +1719,7 @@ export function FeesManagementPageContent() {
             onClose={() => { setIsAdjustmentModalOpen(false); setSelectedFeeForAdjustment(null); }}
             onSubmit={handleAdjustmentSubmit}
             feeToAdjust={selectedFeeForAdjustment}
-            academicYears={allAcademicYears.filter(ay => !ay.isLocked)}
+            academicYears={availableAcademicYears}
           />
         )}
     </div>

@@ -223,6 +223,7 @@ export default function ExamsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [examToDelete, setExamToDelete] = React.useState<Exam | null>(null);
   const [examStackToDelete, setExamStackToDelete] = React.useState<{ examIds: string[]; label: string } | null>(null);
+  const [subjectsPopupExam, setSubjectsPopupExam] = React.useState<Exam | null>(null);
   const [adminPassword, setAdminPassword] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
 
@@ -1109,13 +1110,14 @@ export default function ExamsPage() {
                 const subj = subjects.find(s => s.id === subId);
                 if (!subj) return null;
                 const assignment = targetClass?.subjectAssignments?.find(sa => sa.subjectId === subId);
+                const teacherId = assignment ? (assignment.teacherIds?.[0] || (assignment as any).teacherId || null) : null;
                 return {
                   subjectId: subId,
                   name: subj.name,
                   code: subj.code,
                   maxMarks: examData.maxMarks,
                   passingMarks: examData.passingMarks,
-                  teacherId: assignment ? (assignment.teacherIds?.[0] || (assignment as any).teacherId || null) : null,
+                  teacherId,
                 };
               })
               .filter(Boolean) as ExamRecordSubjectInfo[];
@@ -2764,7 +2766,7 @@ export default function ExamsPage() {
                           </div>
                         </div>
                       )}
-                      {showBatchHeader && (
+                      {showBatchHeader && !isExpanded && (
                       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start md:gap-x-4 xl:grid-cols-[minmax(420px,1fr)_auto] xl:items-center">
                         <div className="flex flex-col gap-2">
                           {isCATExam ? (
@@ -2993,21 +2995,7 @@ export default function ExamsPage() {
                           return exams.length > 1;
                         }
                       })() && (
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                              {isCATExam ? (
-                                <>
-                                  <BookOpen className="h-4 w-4 text-purple-600" />
-                                  Set Actions
-                                </>
-                              ) : (
-                                <>
-                                  <Users className="h-4 w-4 text-blue-600" />
-                                  Class Actions
-                                </>
-                              )}
-                            </h4>
-
+                          <div className="mt-2">
                             <div className="grid grid-cols-1 gap-3">
                               {isCATExam ? (
                                 // CAT Exam - Show sets
@@ -3036,42 +3024,36 @@ export default function ExamsPage() {
                                     return (
                                       <div
                                         key={setName}
-                                        className="bg-gradient-to-r from-purple-50 to-indigo-50/50 rounded-xl p-3 border border-purple-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200"
+                                        className="bg-gradient-to-r from-purple-50 to-indigo-50/50 rounded-xl p-2 border border-purple-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200"
                                       >
                                         <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                                              <span className="text-white font-bold text-sm">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-md flex items-center justify-center shadow-sm">
+                                              <span className="text-white font-bold text-xs">
                                                 {setName.split(' ')[1]}
                                               </span>
                                             </div>
 
                                             <div>
-                                              <p className="font-semibold text-gray-900 text-sm">
+                                              <p className="font-semibold text-gray-900 text-sm leading-tight">
                                                 {setName} - {firstSetExam.name.replace(new RegExp(`^${(firstSetExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')}
                                               </p>
-                                              <p className="text-xs text-gray-500">
+                                              <p className="text-[11px] text-gray-500 mt-0.5">
                                                 {setExams.length} exam{setExams.length !== 1 ? 's' : ''} • {safeParseDateString(firstSetExam.startDate) ? format(safeParseDateString(firstSetExam.startDate)!, "MMM dd") : 'No date'}
                                               </p>
-                                              {/* Digital Signature Display */}
-                                              <ExamSignatureDisplay
-                                                exam={firstSetExam}
-                                                variant="inline"
-                                                className="mt-1"
-                                              />
                                             </div>
                                           </div>
 
-                                          <div className="flex gap-2">
+                                          <div className="flex gap-1">
                                             <Button
                                               variant="outline"
                                               size="sm"
                                               asChild
-                                              className="h-8 w-8 p-0 rounded-full border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                               title="Record Results"
                                             >
                                               <Link href={`/exams/${firstSetExam.id}/record-results?classId=${firstSetExam.classId}`}>
-                                                <FilePenLine className="h-4 w-4" />
+                                                <FilePenLine className="h-3.5 w-3.5" />
                                               </Link>
                                             </Button>
 
@@ -3079,39 +3061,24 @@ export default function ExamsPage() {
                                               variant="outline"
                                               size="sm"
                                               onClick={() => openExamPrintOptions(firstSetExam)}
-                                              className="h-8 w-8 p-0 rounded-full border-2 border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                               title="Print Reports"
                                             >
-                                              <Printer className="h-4 w-4" />
+                                              <Printer className="h-3.5 w-3.5" />
                                             </Button>
 
                                             <Button
                                               variant="outline"
                                               size="sm"
                                               asChild
-                                              className="h-8 w-8 p-0 rounded-full border-2 border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-green-300 text-green-700 hover:bg-green-50 hover:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                               title="View Results"
                                             >
                                               <Link href={`/exams/${firstSetExam.id}/view-results?classId=${firstSetExam.classId}`}>
-                                                <Eye className="h-4 w-4" />
+                                                <Eye className="h-3.5 w-3.5" />
                                               </Link>
                                             </Button>
 
-
-                                            {/* Edit Snapshot button */}
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              asChild
-                                              className="h-8 w-8 p-0 rounded-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                                              title="Edit Snapshot Data"
-                                            >
-                                              <Link href={`/exams/${firstSetExam.id}/edit-snapshot`}>
-                                                <Camera className="h-4 w-4" />
-                                              </Link>
-                                            </Button>
-
-                                            {/* Delete Set button */}
                                             <Button
                                               variant="outline"
                                               size="sm"
@@ -3120,10 +3087,10 @@ export default function ExamsPage() {
                                                 const examIds = setExams.map(exam => exam.id);
                                                 handleDeleteExamStack(examIds, `${firstSetExam.baseName || firstSetExam.name} ${setName}`);
                                               }}
-                                              className="h-8 w-8 p-0 rounded-full border-2 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                              className="h-7 w-7 p-0 rounded-full border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
                                               title="Delete Set"
                                             >
-                                              <Trash2 className="h-4 w-4" />
+                                              <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
                                           </div>
                                         </div>
@@ -3140,30 +3107,29 @@ export default function ExamsPage() {
                                   return (
                                     <div
                                       key={exam.id}
-                                      className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-3 border border-gray-200 hover:border-blue-200 hover:shadow-sm transition-all duration-200"
+                                      className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl p-2 border border-gray-200 hover:border-blue-200 hover:shadow-sm transition-all duration-200"
                                     >
                                       <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                                            <span className="text-white font-bold text-sm">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-md flex items-center justify-center shadow-sm">
+                                            <span className="text-white font-bold text-xs">
                                               {classCode}
                                             </span>
                                           </div>
 
-                                          <div>
-                                            <p className="font-semibold text-gray-900 text-sm">{className}</p>
-                                            <p className="text-xs text-gray-500">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <p className="font-semibold text-gray-900 text-sm leading-tight">{className}</p>
+                                            <span className="text-gray-300 text-xs">•</span>
+                                            <button 
+                                              type="button" 
+                                              onClick={(e) => { e.stopPropagation(); setSubjectsPopupExam(exam); }}
+                                              className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-medium cursor-pointer transition-colors"
+                                            >
                                               {exam.examNature === 'Subject based' && exam.subjectIds
                                                 ? `${exam.subjectIds.length} subject${exam.subjectIds.length !== 1 ? 's' : ''}`
                                                 : 'All subjects'
                                               }
-                                            </p>
-                                            {/* Digital Signature Display */}
-                                            <ExamSignatureDisplay
-                                              exam={exam}
-                                              variant="inline"
-                                              className="mt-1"
-                                            />
+                                            </button>
                                           </div>
                                         </div>
 
@@ -3580,6 +3546,49 @@ export default function ExamsPage() {
           </div>
           , document.body)}
 
+        {/* Subjects Popup Dialog */}
+        <ModernDialog open={!!subjectsPopupExam} onOpenChange={(open) => !open && setSubjectsPopupExam(null)}>
+          <ModernDialogContent className="max-w-md">
+            <ModernDialogHeader>
+              <ModernDialogTitle>
+                Subjects for {subjectsPopupExam?.baseName || subjectsPopupExam?.name}
+              </ModernDialogTitle>
+              <ModernDialogDescription>
+                {subjectsPopupExam ? (allClasses.find(c => c.id === subjectsPopupExam.classId)?.name || 'Unknown Class') : ''}
+              </ModernDialogDescription>
+            </ModernDialogHeader>
+
+            <div className="py-4">
+              {(() => {
+                const popupSubjects = subjectsPopupExam?.examNature === 'Subject based' && subjectsPopupExam.subjectIds && subjectsPopupExam.subjectIds.length > 0
+                  ? subjectsPopupExam.subjectIds.map(id => subjects.find(s => s.id === id)).filter(Boolean) as Subject[]
+                  : subjectsPopupExam ? getSubjectsForClass(subjectsPopupExam.classId) : [];
+
+                return popupSubjects.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {popupSubjects.map(subject => (
+                      <Badge key={subject.id} variant="secondary" className="px-3 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                        {subject.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-slate-500">
+                    <BookOpen className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                    <p>No subjects found for this class.</p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <ModernDialogFooter>
+              <Button onClick={() => setSubjectsPopupExam(null)}>
+                Close
+              </Button>
+            </ModernDialogFooter>
+          </ModernDialogContent>
+        </ModernDialog>
+
         <ModernDialog open={stackGradingScaleDialogOpen} onOpenChange={(open) => {
           setStackGradingScaleDialogOpen(open);
           if (!open) {
@@ -3711,9 +3720,18 @@ export default function ExamsPage() {
               <Label htmlFor="admin-password" className="text-sm font-medium">
                 Administrator Password
               </Label>
+              {/* Invisible credential absorbers to catch aggressive password managers before they hit the search bar */}
+              <div className="absolute w-0 h-0 opacity-0 overflow-hidden" aria-hidden="true">
+                <input type="text" name="dummy_username" autoComplete="username" tabIndex={-1} data-1p-ignore="false" data-lpignore="false" />
+                <input type="password" name="dummy_password" autoComplete="current-password" tabIndex={-1} data-1p-ignore="false" data-lpignore="false" />
+              </div>
               <Input
                 id="admin-password"
+                name="admin-password"
                 type="password"
+                autoComplete="new-password"
+                data-1p-ignore="true"
+                data-lpignore="true"
                 value={adminPassword}
                 onChange={(e) => {
                   setAdminPassword(e.target.value);

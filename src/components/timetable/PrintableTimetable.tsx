@@ -101,9 +101,9 @@ export function PrintableTimetable({
                 import("jspdf"),
             ]);
 
-            // Capture the off-screen div at 2× for retina-quality PDF
+            // Capture the off-screen div at 1.5× for high-quality, faster PDF rendering
             const canvas = await html2canvas(captureRef.current, {
-                scale: 2,
+                scale: 1.5,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: "#ffffff",

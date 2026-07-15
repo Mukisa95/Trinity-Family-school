@@ -157,44 +157,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     position: 'relative',
   },
-  // Modern Beautiful Border Styles - positioned EXACTLY 1cm from ALL page edges
-  borderContainer: {
-    position: 'absolute',
-    top: 28,     // EXACTLY 1cm from top page edge
-    left: 28,    // EXACTLY 1cm from left page edge  
-    right: 28,   // EXACTLY 1cm from right page edge
-    bottom: 28,  // EXACTLY 1cm from bottom page edge
-    borderWidth: 3,
-    borderColor: '#1e40af',
-    borderRadius: 12,
-    backgroundColor: 'transparent',
-    // Prevent border from extending beyond page
-    maxWidth: 595 - (28 * 2), // A4 width minus margins
-    maxHeight: 842 - (28 * 2), // A4 height minus margins
-    // Modern shadow effect
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  innerBorder: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    right: 6,
-    bottom: 6,
-    borderWidth: 1,
-    borderColor: '#60a5fa',
-    borderRadius: 8,
-    backgroundColor: 'transparent',
-  },
   contentContainer: {
     position: 'relative',
     zIndex: 10,
-    margin: 42, // 1.5cm margin on ALL sides (1cm to border + 0.5cm inside border)
-    // Strict bounds to prevent page overflow  
-    maxWidth: 595 - (42 * 2),
-    maxHeight: 842 - (42 * 2),
+    margin: 28, // Keep each cut-ready report 1cm from the page edge.
+    height: 842 - (28 * 2),
+    maxWidth: 595 - (28 * 2),
+    maxHeight: 842 - (28 * 2),
+    justifyContent: 'space-between',
     overflow: 'hidden',
   },
   header: {
@@ -250,12 +220,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   pupilSection: {
-    marginBottom: 15, // More margin after first report
-    height: '48%', // Take up more of the page
-    borderWidth: 2,
+    position: 'relative',
+    marginBottom: 0,
+    height: '48%',
+    borderWidth: 3,
     borderColor: '#1e40af',
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     backgroundColor: '#ffffff',
     // Modern shadow effect
     shadowColor: '#000000',
@@ -264,18 +235,33 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   pupilSectionSecond: {
-    marginBottom: 5, // Less margin after second report
-    height: '48%', // Take up more of the page
-    borderWidth: 2,
+    position: 'relative',
+    marginBottom: 0,
+    height: '48%',
+    borderWidth: 3,
     borderColor: '#1e40af',
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     backgroundColor: '#ffffff',
     // Modern shadow effect
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
+  },
+  pupilInnerBorder: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    right: 6,
+    bottom: 6,
+    borderWidth: 1,
+    borderColor: '#60a5fa',
+    borderRadius: 7,
+  },
+  pupilContent: {
+    position: 'relative',
+    zIndex: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -838,15 +824,11 @@ export const generateDetailedAssessmentPDF = async (props: DetailedAssessmentPro
           
           pages.push(
             <Page key={pageIndex} size="A4" style={styles.page}>
-              {/* Beautiful Official Border */}
-              <View style={styles.borderContainer}>
-                <View style={styles.innerBorder} />
-              </View>
-              
-                                        {/* Content Container */}
-                          <View style={styles.contentContainer}>
-                                                        {/* First Pupil Section (Top Half) */}
-                            <View style={styles.pupilSection}>
+              <View style={styles.contentContainer}>
+                {/* Each mini report has its own complete, cut-ready double border. */}
+                <View style={styles.pupilSection}>
+                  <View style={styles.pupilInnerBorder} />
+                  <View style={styles.pupilContent}>
                               <PupilAssessmentCard
                                 pupil={result}
                                 subjects={processedSubjects}
@@ -858,11 +840,13 @@ export const generateDetailedAssessmentPDF = async (props: DetailedAssessmentPro
                                 examDetails={examDetails}
                                 commentPicker={commentPicker}
                               />
-                            </View>
+                  </View>
+                </View>
 
-                            {/* Second Pupil Section (Bottom Half) */}
-                            {nextResult && (
-                              <View style={styles.pupilSectionSecond}>
+                {nextResult && (
+                  <View style={styles.pupilSectionSecond}>
+                    <View style={styles.pupilInnerBorder} />
+                    <View style={styles.pupilContent}>
                                 <PupilAssessmentCard
                                   pupil={nextResult}
                                   subjects={nextProcessedSubjects}
@@ -874,9 +858,10 @@ export const generateDetailedAssessmentPDF = async (props: DetailedAssessmentPro
                                   examDetails={examDetails}
                                   commentPicker={commentPicker}
                                 />
-                              </View>
-                            )}
-                          </View>
+                    </View>
+                  </View>
+                )}
+              </View>
             </Page>
           );
         }

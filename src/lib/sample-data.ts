@@ -424,15 +424,15 @@ const createYear = (year: number, isLocked: boolean, isActiveSuggestion: boolean
   } else {
     // General pattern for other years
     term1Start = getFirstMondayOfFebruary(year);
-    term1End = addSchoolDays(term1Start, 90 - 1); // 90 M-F days (18 weeks)
+    term1End = addSchoolDays(term1Start, 65 - 1); // 65 M-F days (13 weeks)
 
     const recess1End = addDays(term1End, 23);
     term2Start = getNextMonday(recess1End); // Ensure it starts on Monday after 23 full days of recess
-    term2End = addSchoolDays(term2Start, 90 - 1); // 90 M-F days (18 weeks)
+    term2End = addSchoolDays(term2Start, 65 - 1); // 65 M-F days (13 weeks)
 
     const recess2End = addDays(term2End, 23);
     term3Start = getNextMonday(recess2End); // Ensure it starts on Monday
-    term3End = addSchoolDays(term3Start, 75 - 1); // 75 M-F days (15 weeks)
+    term3End = addSchoolDays(term3Start, 55 - 1); // 55 M-F days (11 weeks)
   }
 
   // Academic year spans from Term I start to Term III end
@@ -470,8 +470,11 @@ const createYear = (year: number, isLocked: boolean, isActiveSuggestion: boolean
 };
 
 const currentSystemYear = new Date().getFullYear();
-// Only generate 5 years total: current year ± 2 years
-const startYearGen = currentSystemYear - 2; 
+// Include historical years alongside the current and planning years.
+// Keep a complete historical range from 2019 onward, plus the next two years
+// for planning. Past years are locked below so new records stay in current years.
+const firstHistoricalYear = 2019;
+const startYearGen = Math.min(firstHistoricalYear, currentSystemYear - 2);
 const endYearGen = currentSystemYear + 2; 
 
 const generatedYears: AcademicYear[] = [];

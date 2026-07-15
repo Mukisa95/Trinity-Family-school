@@ -1,134 +1,201 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, getCountFromServer, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getFirebaseAdminApp, getFirebaseAdminProjectId } from '@/lib/firebase-admin';
 
-interface CollectionStats {
-  name: string;
-  count: number;
-  estimatedSize: number;
-  lastUpdated: string;
-}
+export const runtime = 'nodejs';
 
-interface FirebaseStats {
-  totalCollections: number;
-  totalDocuments: number;
-  estimatedTotalSize: number;
-  collections: CollectionStats[];
-  lastChecked: string;
-  servedFromCache?: boolean;
-}
+type MetricPoint = {
+  interval?: { endTime?: string };
+  value?: { int64Value?: string; doubleValue?: number };
+};
 
-// ─── In-memory cache ──────────────────────────────────────────────────────────
-// Shared across all requests to this serverless function instance.
-// TTL: 60 seconds — stats are informational and don't need second-by-second accuracy.
-let cachedStats: FirebaseStats | null = null;
+type MonitoringResponse = {
+  timeSeries?: Array<{ points?: MetricPoint[] }>;
+  nextPageToken?: string;
+};
+
+type UsageStats = {
+  checkedAt: string;
+  windowHours: number;
+  firestore: {
+    collections: Array<{ name: string; documents: number }>;
+    totalDocuments: number;
+    dataAndIndexBytes: number | null;
+    dataAndIndexMeasuredAt: string | null;
+  };
+  storage: {
+    bytes: number | null;
+    objects: number | null;
+    measuredAt: string | null;
+  };
+  operations: {
+    reads: number | null;
+    writes: number | null;
+    deletes: number | null;
+    measuredAt: string | null;
+  };
+  monitoring: { available: boolean; message?: string };
+  servedFromCache: boolean;
+};
+
+let cachedStats: Omit<UsageStats, 'servedFromCache'> | null = null;
 let cacheExpiresAt = 0;
-const CACHE_TTL_MS = 60_000; // 1 minute
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
-// ─── Collections to measure ───────────────────────────────────────────────────
-const COLLECTIONS = [
-  'pupils',
-  'staff',
-  'classes',
-  'academicYears',
-  'feeStructures',
-  'payments',
-  'families',
-  'users',
-  'schoolSettings',
-  'smsTemplates',
-  'notifications',
-  'exams',
-  'subjects',
-  'requirements',
-  'uniforms',
-  'events',
-  'attendance',
-  'banking',
-  'pupilSnapshots',
-  'discounts',
-  'accessLevels',
-  'dutyService',
-  'procurement',
-  'commentary',
-  'pleResults'
-];
+function numericValue(point: MetricPoint): number | null {
+  const value = point.value?.int64Value ?? point.value?.doubleValue;
+  const numberValue = typeof value === 'string' ? Number(value) : value;
+  return typeof numberValue === 'number' && Number.isFinite(numberValue) ? numberValue : null;
+}
+
+async function assertAdmin(request: NextRequest) {
+  const authorization = request.headers.get('authorization');
+  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : null;
+  if (!token) throw new Error('Sign in as an administrator to view resource usage.');
+
+  const app = getFirebaseAdminApp();
+  const decoded = await getAuth(app).verifyIdToken(token);
+  const user = await getFirestore(app).collection('users').doc(decoded.uid).get();
+
+  if (user.data()?.role !== 'Admin') throw new Error('Only administrators can view resource usage.');
+}
+
+async function getAccessToken(): Promise<string> {
+  const credential = getFirebaseAdminApp().options.credential;
+  if (!credential) throw new Error('No server credential is configured.');
+  const token = await credential.getAccessToken();
+  if (!token.access_token) throw new Error('Could not obtain a Google Cloud access token.');
+  return token.access_token;
+}
+
+async function queryMetric(metricType: string, startTime: Date, resourceFilter?: string): Promise<MetricPoint[]> {
+  const projectId = getFirebaseAdminProjectId();
+  if (!projectId) throw new Error('FIREBASE_ADMIN_PROJECT_ID is not configured.');
+
+  const accessToken = await getAccessToken();
+  const filter = [`metric.type = \"${metricType}\"`, resourceFilter].filter(Boolean).join(' AND ');
+  const points: MetricPoint[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const search = new URLSearchParams({
+      filter,
+      'interval.startTime': startTime.toISOString(),
+      'interval.endTime': new Date().toISOString(),
+      view: 'FULL',
+      pageSize: '1000',
+    });
+    if (pageToken) search.set('pageToken', pageToken);
+
+    const response = await fetch(`https://monitoring.googleapis.com/v3/projects/${projectId}/timeSeries?${search}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error(`Cloud Monitoring returned ${response.status}.`);
+
+    const payload = await response.json() as MonitoringResponse;
+    for (const series of payload.timeSeries || []) points.push(...(series.points || []));
+    pageToken = payload.nextPageToken;
+  } while (pageToken);
+
+  return points;
+}
+
+function latestMetric(points: MetricPoint[]) {
+  const values = points
+    .map(point => ({ value: numericValue(point), measuredAt: point.interval?.endTime || null }))
+    .filter((point): point is { value: number; measuredAt: string | null } => point.value !== null);
+  if (!values.length) return { value: null, measuredAt: null };
+
+  const latestTimestamp = Math.max(...values.map(point => Date.parse(point.measuredAt || '') || 0));
+  const latest = values.filter(point => (Date.parse(point.measuredAt || '') || 0) === latestTimestamp);
+  return { value: latest.reduce((sum, point) => sum + point.value, 0), measuredAt: latest[0]?.measuredAt || null };
+}
+
+async function buildUsageStats(): Promise<Omit<UsageStats, 'servedFromCache'>> {
+  const app = getFirebaseAdminApp();
+  const firestore = getFirestore(app);
+  const collections = await firestore.listCollections();
+  const collectionCounts = await Promise.all(collections.map(async collection => ({
+    name: collection.id,
+    documents: (await collection.count().get()).data().count,
+  })));
+  collectionCounts.sort((a, b) => b.documents - a.documents);
+
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const bucket = process.env.FIREBASE_ADMIN_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+
+  let dataAndIndexBytes: number | null = null;
+  let dataAndIndexMeasuredAt: string | null = null;
+  let storageBytes: number | null = null;
+  let storageObjects: number | null = null;
+  let storageMeasuredAt: string | null = null;
+  let reads: number | null = null;
+  let writes: number | null = null;
+  let deletes: number | null = null;
+  let operationsMeasuredAt: string | null = null;
+  let monitoringMessage: string | undefined;
+
+  try {
+    const [firestoreStorage, storageBytesMetric, storageObjectsMetric, readPoints, writePoints, deletePoints] = await Promise.all([
+      queryMetric('firestore.googleapis.com/storage/data_and_index_storage_bytes', windowStart),
+      bucket ? queryMetric('storage.googleapis.com/storage/v2/total_bytes', new Date(now.getTime() - 48 * 60 * 60 * 1000), `resource.labels.bucket_name = \"${bucket}\"`) : Promise.resolve([]),
+      bucket ? queryMetric('storage.googleapis.com/storage/v2/total_count', new Date(now.getTime() - 48 * 60 * 60 * 1000), `resource.labels.bucket_name = \"${bucket}\"`) : Promise.resolve([]),
+      queryMetric('firestore.googleapis.com/document/read_count', windowStart),
+      queryMetric('firestore.googleapis.com/document/write_count', windowStart),
+      queryMetric('firestore.googleapis.com/document/delete_count', windowStart),
+    ]);
+
+    const firestoreStorageResult = latestMetric(firestoreStorage);
+    const storageBytesResult = latestMetric(storageBytesMetric);
+    const storageObjectsResult = latestMetric(storageObjectsMetric);
+    dataAndIndexBytes = firestoreStorageResult.value;
+    dataAndIndexMeasuredAt = firestoreStorageResult.measuredAt;
+    storageBytes = storageBytesResult.value;
+    storageObjects = storageObjectsResult.value;
+    storageMeasuredAt = storageBytesResult.measuredAt || storageObjectsResult.measuredAt;
+
+    const operationPoints = [readPoints, writePoints, deletePoints];
+    const operationTotals = operationPoints.map(points => points.reduce((sum, point) => sum + (numericValue(point) || 0), 0));
+    reads = operationTotals[0];
+    writes = operationTotals[1];
+    deletes = operationTotals[2];
+    operationsMeasuredAt = now.toISOString();
+  } catch (error) {
+    monitoringMessage = error instanceof Error ? error.message : 'Cloud Monitoring is unavailable.';
+  }
+
+  return {
+    checkedAt: now.toISOString(),
+    windowHours: 24,
+    firestore: {
+      collections: collectionCounts,
+      totalDocuments: collectionCounts.reduce((sum, collection) => sum + collection.documents, 0),
+      dataAndIndexBytes,
+      dataAndIndexMeasuredAt,
+    },
+    storage: { bytes: storageBytes, objects: storageObjects, measuredAt: storageMeasuredAt },
+    operations: { reads, writes, deletes, measuredAt: operationsMeasuredAt },
+    monitoring: { available: !monitoringMessage, message: monitoringMessage },
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // ── Serve from cache if still fresh ──────────────────────────────────────
+    await assertAdmin(request);
+
     if (cachedStats && Date.now() < cacheExpiresAt) {
-      console.log('📦 Stats served from cache (no Firestore reads)');
       return NextResponse.json({ ...cachedStats, servedFromCache: true });
     }
 
-    console.log('🔍 Fetching Firebase database statistics with getCountFromServer...');
-
-    const collectionStats: CollectionStats[] = [];
-    let totalDocuments = 0;
-    let estimatedTotalSize = 0;
-
-    // Run all count queries in parallel — much faster and still only 1 read each
-    await Promise.all(
-      COLLECTIONS.map(async (collectionName) => {
-        try {
-          const colRef = collection(db, collectionName);
-
-          // ✅ getCountFromServer = 1 read regardless of collection size
-          const countSnapshot = await getCountFromServer(colRef);
-          const count = countSnapshot.data().count;
-
-          if (count > 0) {
-            // Only fetch the last-updated doc for non-empty collections (1 read each)
-            let lastUpdated = 'Unknown';
-            try {
-              const lastDocSnap = await getDocs(
-                query(colRef, orderBy('updatedAt', 'desc'), limit(1))
-              );
-              if (!lastDocSnap.empty) {
-                const raw = lastDocSnap.docs[0].data().updatedAt;
-                lastUpdated = raw?.toDate?.()?.toLocaleDateString() ?? 'Unknown';
-              }
-            } catch {
-              // updatedAt field may not exist in every collection — silently skip
-            }
-
-            const estimatedSize = count * 1024; // ~1 KB per document estimate
-
-            collectionStats.push({ name: collectionName, count, estimatedSize, lastUpdated });
-            totalDocuments += count;
-            estimatedTotalSize += estimatedSize;
-          }
-        } catch (error) {
-          console.warn(`⚠️ Could not analyze collection ${collectionName}:`, error);
-        }
-      })
-    );
-
-    // Sort largest first
-    collectionStats.sort((a, b) => b.count - a.count);
-
-    const stats: FirebaseStats = {
-      totalCollections: collectionStats.length,
-      totalDocuments,
-      estimatedTotalSize,
-      collections: collectionStats,
-      lastChecked: new Date().toISOString(),
-      servedFromCache: false,
-    };
-
-    // ── Populate cache ────────────────────────────────────────────────────────
-    cachedStats = stats;
+    cachedStats = await buildUsageStats();
     cacheExpiresAt = Date.now() + CACHE_TTL_MS;
-
-    console.log(`✅ Stats fetched: ${totalDocuments} docs across ${collectionStats.length} collections`);
-    return NextResponse.json(stats);
-
+    return NextResponse.json({ ...cachedStats, servedFromCache: false });
   } catch (error) {
-    console.error('❌ Error fetching Firebase stats:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch Firebase statistics' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Unable to load Firebase usage.';
+    const status = message.includes('administrator') || message.includes('Sign in') ? 403 : 503;
+    return NextResponse.json({ error: message }, { status });
   }
 }

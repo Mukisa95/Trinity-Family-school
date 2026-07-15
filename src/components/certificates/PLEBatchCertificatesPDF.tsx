@@ -2,6 +2,7 @@ import React from 'react';
 import { Document, Page, View, Text, Image, Font, StyleSheet } from '@react-pdf/renderer';
 import type { PLEPupilResult } from '@/lib/services/ple-results.service';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { numberToWords } from '@/lib/utils/numberToWords';
 
 // Register fonts
 Font.register({
@@ -28,81 +29,6 @@ Font.register({
   family: 'Courier-Bold',
   src: 'Courier-Bold'
 });
-
-// Helper function to convert numbers/grades to words - matches individual certificate
-const numberToWords = (grade: string | number): string => {
-  // Convert grade to string if it's a number
-  const gradeStr = String(grade);
-  
-  const gradeMap: { [key: string]: string } = {
-    '1': 'ONE',
-    '2': 'TWO',
-    '3': 'THREE',
-    '4': 'FOUR',
-    '5': 'FIVE',
-    '6': 'SIX',
-    '7': 'SEVEN',
-    '8': 'EIGHT',
-    '9': 'NINE',
-    '10': 'TEN',
-    '11': 'ELEVEN',
-    '12': 'TWELVE',
-    '13': 'THIRTEEN',
-    '14': 'FOURTEEN',
-    '15': 'FIFTEEN',
-    '16': 'SIXTEEN',
-    '17': 'SEVENTEEN',
-    '18': 'EIGHTEEN',
-    '19': 'NINETEEN',
-    '20': 'TWENTY',
-    '21': 'TWENTY ONE',
-    '22': 'TWENTY TWO',
-    '23': 'TWENTY THREE',
-    '24': 'TWENTY FOUR',
-    '25': 'TWENTY FIVE',
-    '26': 'TWENTY SIX',
-    '27': 'TWENTY SEVEN',
-    '28': 'TWENTY EIGHT',
-    '29': 'TWENTY NINE',
-    '30': 'THIRTY',
-    '31': 'THIRTY ONE',
-    '32': 'THIRTY TWO',
-    '33': 'THIRTY THREE',
-    '34': 'THIRTY FOUR',
-    '35': 'THIRTY FIVE',
-    '36': 'THIRTY SIX',
-    'D1': 'ONE',
-    'D2': 'TWO',
-    'C3': 'THREE',
-    'C4': 'FOUR',
-    'C5': 'FIVE',
-    'C6': 'SIX',
-    'P7': 'SEVEN',
-    'P8': 'EIGHT',
-    'F9': 'NINE'
-  };
-  
-  // For total marks, directly return the word
-  if (gradeMap[gradeStr]) {
-    return gradeMap[gradeStr];
-  }
-  
-  // If it's a numeric string, try to parse it
-  const num = typeof grade === 'string' ? parseInt(grade) : grade;
-  if (!isNaN(num) && num > 0) {
-    // Fallback for numbers not in the map
-    const ones = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'];
-    const teens = ['TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
-    const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
-
-    if (num === 0) return 'ZERO';
-    if (num < 10) return ones[num];
-    if (num < 20) return teens[num - 10];
-    if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
-  }
-  
-  return '';
-};
 
 // Helper function to process image URLs - exact copy from individual certificate
 const processImageUrl = (url?: string) => {
@@ -549,6 +475,7 @@ interface BatchCertificateProps {
     city?: string;
   };
   qrCodes: Record<string, string>; // pupilId -> qrCodeDataUrl mapping
+  photosBase64?: Record<string, string>; // pupilId -> base64 string mapping
 }
 
 const PLE_SUBJECTS = [
@@ -567,7 +494,8 @@ const PLEBatchCertificatesPDF: React.FC<BatchCertificateProps> = ({
   year,
   examName,
   schoolContact,
-  qrCodes
+  qrCodes,
+  photosBase64
 }) => {
   const logoUrl = processImageUrl(schoolLogo);
 
@@ -581,7 +509,7 @@ const PLEBatchCertificatesPDF: React.FC<BatchCertificateProps> = ({
   return (
     <Document>
       {validPupils.map((pupil, index) => {
-        const pupilPhotoUrl = processImageUrl(pupil.photo);
+        const pupilPhotoUrl = (photosBase64 && photosBase64[pupil.pupilId]) || processImageUrl(pupil.photo);
         const hasPhoto = !!pupilPhotoUrl;
         const qrCodeDataUrl = qrCodes[pupil.pupilId];
         

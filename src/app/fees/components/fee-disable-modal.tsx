@@ -31,7 +31,7 @@ interface FeeDisableModalProps {
     endYearId?: string
   ) => void;
   feeToDisable: FeeStructure | null;
-  academicYears: AcademicYear[]; // To populate year dropdowns, non-locked ones
+  academicYears: AcademicYear[]; // To populate year dropdowns, including historical years
 }
 
 const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
@@ -47,9 +47,11 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
   const [selectedStartYearId, setSelectedStartYearId] = React.useState<string | undefined>(undefined);
   const [selectedEndYearId, setSelectedEndYearId] = React.useState<string | undefined>(undefined);
 
-  // Filter for non-locked academic years
+  // Historical years must remain available for backdated fee disable records.
   const availableYearsForSelection = React.useMemo(() => {
-    return academicYears.filter(ay => !ay.isLocked);
+    return [...academicYears].sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
   }, [academicYears]);
 
   React.useEffect(() => {
@@ -151,7 +153,7 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
                     {availableYearsForSelection.map(ay => (
                       <SelectItem key={ay.id} value={ay.id}>{ay.name}</SelectItem>
                     ))}
-                     {availableYearsForSelection.length === 0 && <SelectItem value="no-years" disabled>No non-locked years</SelectItem>}
+                     {availableYearsForSelection.length === 0 && <SelectItem value="no-years" disabled>No academic years available</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -171,7 +173,7 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
                     {availableYearsForSelection.map(ay => (
                       <SelectItem key={ay.id} value={ay.id}>{ay.name}</SelectItem>
                     ))}
-                     {availableYearsForSelection.length === 0 && <SelectItem value="no-years" disabled>No non-locked years</SelectItem>}
+                     {availableYearsForSelection.length === 0 && <SelectItem value="no-years" disabled>No academic years available</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

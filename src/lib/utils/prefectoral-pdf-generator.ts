@@ -4,6 +4,17 @@ import { PrefectoralPost, PostAssignment } from '@/types/duty-service';
 import { format } from 'date-fns';
 import { SchoolSettingsService } from '../services/school-settings.service';
 
+let _cachedSchoolSettings: any = null;
+const getCachedSchoolSettings = async () => {
+  if (_cachedSchoolSettings) return _cachedSchoolSettings;
+  try {
+    _cachedSchoolSettings = await SchoolSettingsService.getSchoolSettings();
+  } catch (error) {
+    console.warn('Could not fetch school settings, using default name:', error);
+  }
+  return _cachedSchoolSettings;
+};
+
 interface PrefectoralPDFGeneratorOptions {
   posts: PrefectoralPost[];
   assignments: PostAssignment[];
@@ -31,7 +42,7 @@ export const generatePrefectoralPDF = async ({
   });
 
   // Fetch school settings for school name
-  const schoolSettings = await SchoolSettingsService.getSchoolSettings();
+  const schoolSettings = await getCachedSchoolSettings();
   const schoolName = schoolSettings?.generalInfo?.name || 'Trinity Family Schools';
 
   // Add header

@@ -160,6 +160,10 @@ export function GlassPageSearchInput({
       </div>
       <input
         type="text"
+        autoComplete="off"
+        data-1p-ignore="true"
+        data-lpignore="true"
+        data-form-type="other"
         placeholder={placeholder}
         style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
         className={cn(
