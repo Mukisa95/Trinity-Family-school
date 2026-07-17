@@ -28,6 +28,8 @@ Font.register({
 const PAGE_MARGIN = 28.3; // 1cm from page edge to border
 const CONTENT_PADDING = 14.2; // 0.5cm from border to content  
 const TOTAL_CONTENT_MARGIN = PAGE_MARGIN + CONTENT_PADDING; // Total space from edge to content = 1.5cm
+const A4_CONTENT_HEIGHT = 841; // Keep clear of React-PDF's actual A4 height (841.89pt).
+const HEADER_EDGE_OFFSET = 6; // Bring the header images close to the inner border.
 
 // Dynamic sizing calculation helper
 const calculateDynamicSizes = (subjectCount: number) => {
@@ -36,7 +38,7 @@ const calculateDynamicSizes = (subjectCount: number) => {
     // - Page padding: 1cm top + 1cm bottom = 2cm (56.6 points)
     // - Content padding: 0.5cm top + 0.5cm bottom = 1cm (28.4 points)  
     // - Total: 3cm (85 points) removed from 842 = 757 points available
-    const availableHeight = 842 - ((PAGE_MARGIN + CONTENT_PADDING) * 2);
+    const availableHeight = A4_CONTENT_HEIGHT - ((PAGE_MARGIN + CONTENT_PADDING) * 2);
 
     // Fixed elements heights (approximate)
     const headerHeight = 200; // Header with school info, photo, student info
@@ -113,7 +115,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         // Prevent border from extending beyond page
         maxWidth: 595 - (PAGE_MARGIN * 2), // A4 width minus margins
-        maxHeight: 842 - (PAGE_MARGIN * 2), // A4 height minus margins
+        maxHeight: A4_CONTENT_HEIGHT - (PAGE_MARGIN * 2), // A4 height minus margins
     },
     innerBorder: {
         position: 'absolute',
@@ -173,7 +175,9 @@ const styles = StyleSheet.create({
         zIndex: 10,
     margin: TOTAL_CONTENT_MARGIN,
         maxWidth: 595 - (TOTAL_CONTENT_MARGIN * 2),
-        maxHeight: 842 - (TOTAL_CONTENT_MARGIN * 2),
+        // The old 842pt calculation exceeded the actual A4 page by 0.11pt and
+        // made React-PDF append a blank page after each long report.
+        maxHeight: A4_CONTENT_HEIGHT - (TOTAL_CONTENT_MARGIN * 2),
         overflow: 'hidden',
     },
     header: {
@@ -186,23 +190,26 @@ const styles = StyleSheet.create({
     },
     headerRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
         marginBottom: 10,
         minHeight: 80,
     },
     logoSection: {
-        width: '20%', // Reduced width to move logo outward
-        alignItems: 'center',
-        marginLeft: -21, // Move 0.75cm (21px) outward to the left
+        width: 80,
+        flexShrink: 0,
+        alignItems: 'flex-start',
+        marginLeft: -HEADER_EDGE_OFFSET,
     },
     schoolSection: {
-        width: '55%', // Increased width to use the extra space
+        flex: 1,
         alignItems: 'center',
+        marginHorizontal: 6,
     },
     photoSection: {
-        width: '25%',
-        alignItems: 'center',
+        width: 75,
+        flexShrink: 0,
+        alignItems: 'flex-end',
         position: 'relative',
     },
   logo: {
@@ -242,22 +249,33 @@ const styles = StyleSheet.create({
     borderColor: '#f1f5f9',
   },
     headerTitle: {
-    backgroundColor: '#1e3a8a',
-        padding: 8,
-        paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
+        padding: 3,
+        borderWidth: 3,
+        borderColor: '#1e3a8a',
         borderRadius: 6,
         marginBottom: 12,
         alignSelf: 'center',
     },
+    headerTitleInner: {
+        borderWidth: 1,
+        borderColor: '#60a5fa',
+        borderRadius: 3,
+        height: 28,
+        paddingHorizontal: 17,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
   reportTitle: {
-        color: 'white',
+        color: '#1e3a8a',
         fontSize: 14,
         fontFamily: 'Helvetica-Bold',
         textAlign: 'center',
+        lineHeight: 1,
         textTransform: 'uppercase',
     },
     studentInfo: {
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#ffffff',
         padding: 12,
         borderRadius: 8,
         marginBottom: 0, // Reduced to make room for promotion ranking
@@ -426,7 +444,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-evenly', // Better distribution
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#ffffff',
         padding: 8,
         borderRadius: 6,
         borderWidth: 1,
@@ -462,15 +480,20 @@ const styles = StyleSheet.create({
     // Improved teacher reports
     teacherReports: {
         marginVertical: 6,
-        gap: 0,
-    },
-    reportSection: {
-        backgroundColor: '#f8fafc',
+        backgroundColor: '#ffffff',
         padding: 8,
         borderRadius: 6,
-        marginBottom: 3,
         borderWidth: 1,
         borderColor: '#e2e8f0',
+    },
+    reportSection: {
+        backgroundColor: 'transparent',
+    },
+    reportSectionFirst: {
+        paddingBottom: 6,
+        marginBottom: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e2e8f0',
     },
     reportRow: {
         flexDirection: 'row',
@@ -478,7 +501,7 @@ const styles = StyleSheet.create({
     },
     reportTitleSection: {
         flexDirection: 'row',
-        width: '35%',
+        flexShrink: 0,
         whiteSpace: 'nowrap',
     },
     teacherReportTitle: {
@@ -490,9 +513,9 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#334155',
         lineHeight: 1.3,
-        width: '65%',
+        flex: 1,
         flexWrap: 'wrap',
-        marginLeft: 4,
+        marginLeft: 6,
     },
     classTeacherReport: {
         color: '#15803d',
@@ -558,7 +581,7 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontFamily: 'Helvetica-Oblique',
         textAlign: 'center',
-    color: '#1e3a8a',
+    color: '#ff5a00',
         marginTop: 8,
     },
 });
@@ -954,9 +977,11 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
 
                     {/* Report Title */}
                     <View style={styles.headerTitle}>
-                        <Text style={styles.reportTitle}>{examTypeName?.toUpperCase() || 'TERMINAL'} REPORT</Text>
-          </View>
+                        <View style={styles.headerTitleInner}>
+                            <Text style={styles.reportTitle}>{examTypeName?.toUpperCase() || 'TERMINAL'} REPORT</Text>
+                        </View>
                     </View>
+                </View>
 
         {/* Student Info */}
                     <View style={styles.studentInfo}>
@@ -1394,7 +1419,7 @@ export const TransPupilReportCardPDF: React.FC<TransPupilReportCardProps> = (pro
 
                 {/* Teacher Reports */}
                 <View style={[styles.teacherReports, dynamicStyles.sectionSpacing]}>
-                    <View style={styles.reportSection}>
+                    <View style={[styles.reportSection, styles.reportSectionFirst]}>
                         <View style={styles.reportRow}>
                             <View style={styles.reportTitleSection}>
                                 <Text style={styles.teacherReportTitle}>CLASS TEACHER'S REPORT:</Text>

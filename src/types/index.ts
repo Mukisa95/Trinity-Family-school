@@ -506,6 +506,7 @@ export interface ExamType {
 
 export type ExamStatus = 'Scheduled' | 'Ongoing' | 'Completed' | 'Graded' | 'Cancelled';
 export type ExamNature = 'Set based' | 'Subject based' | '';
+export type ExamAssessmentMode = 'marks' | 'nursery_commentary';
 
 export interface Exam {
   id: string;
@@ -516,6 +517,7 @@ export interface Exam {
   examTypeName?: string;
   customExamTypeName?: string;
   examNature?: ExamNature;
+  assessmentMode?: ExamAssessmentMode;
 
   classId: string;
   subjectIds?: string[];
@@ -623,6 +625,7 @@ export interface ResultReleaseInfo {
 export interface ExamResult {
   id: string;
   examId: string;
+  assessmentMode?: ExamAssessmentMode;
   classId: string;
   classSnapshot?: ExamClassInfoSnapshot;
   pupilSnapshots: ExamRecordPupilInfo[];

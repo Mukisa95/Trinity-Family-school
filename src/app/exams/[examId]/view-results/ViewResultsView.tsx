@@ -83,7 +83,9 @@ import {
 import { generateExamPDF } from '@/components/exam/ExamResultsPDF';
 import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/components/exam/ComprehensiveReactPDF';
 import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
-import { generateDetailedAssessmentPDF } from '@/components/exam/DetailedAssessmentPDF';
+import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
+import { generateNurseryAssessmentPDF } from '@/components/exam/NurseryAssessmentPDF';
+import { generateNurseryMiniReportPDF } from '@/components/exam/NurseryMiniReportPDF';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
@@ -124,6 +126,11 @@ import {
   GlassPageTopBar,
 } from '@/components/common/glass-page-top-bar';
 import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
+import {
+  isNurseryAssessment,
+  isNurseryCommentary,
+  NURSERY_COMMENTARY_OPTIONS,
+} from '@/lib/exam-assessment';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -154,7 +161,7 @@ const calculateDivision = (aggregates: number): string => {
 
 interface PupilResultData {
   pupilInfo: ExamRecordPupilInfo;
-  results: Record<string, { marks: number; grade: string; aggregates: number }>;
+  results: Record<string, { marks: number; grade: string; aggregates: number; comment?: string }>;
   totalMarks: number;
   totalAggregates: number;
   division: string;
@@ -528,7 +535,10 @@ const PrintModal = ({
   isGenerating,
   generationStatus,
   generationProgress,
-  eta
+  eta,
+  isNursery,
+  omitNurseryTeacherComment,
+  onOmitNurseryTeacherCommentChange,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -539,6 +549,9 @@ const PrintModal = ({
   generationStatus: string;
   generationProgress: number;
   eta: string;
+  isNursery?: boolean;
+  omitNurseryTeacherComment: boolean;
+  onOmitNurseryTeacherCommentChange: (omit: boolean) => void;
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -666,12 +679,33 @@ const PrintModal = ({
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Mini Report</h3>
-                  <p className="text-sm text-gray-600">Individual pupil report cards (Compact design)</p>
+                  <p className="text-sm text-gray-600">
+                    {isNursery ? 'Playful nursery report cards (2 per page)' : 'Professional primary report cards (2 per page)'}
+                  </p>
                 </div>
               </div>
             </button>
 
-            <button
+            {isNursery && (
+              <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
+                <Checkbox
+                  id="omit-nursery-teacher-comment"
+                  checked={omitNurseryTeacherComment}
+                  onCheckedChange={(checked) => onOmitNurseryTeacherCommentChange(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="omit-nursery-teacher-comment" className="cursor-pointer text-sm font-medium text-gray-900">
+                    Leave class teacher&apos;s comment blank
+                  </Label>
+                  <p className="text-xs text-gray-600">
+                    Show two writing lines and place the signature on the second line.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!isNursery && <button
               onClick={onPrintTrans}
               className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
             >
@@ -684,7 +718,7 @@ const PrintModal = ({
                   <p className="text-sm text-gray-600">Individual pupil report cards (Comprehensive design)</p>
                 </div>
               </div>
-            </button>
+            </button>}
           </div>
         )}
 
@@ -706,7 +740,8 @@ const PrintAssessmentOptionsDialog = ({
   onClose,
   onConfirm,
   gradingScale,
-  reportType
+  reportType,
+  isNursery,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -730,6 +765,7 @@ const PrintAssessmentOptionsDialog = ({
   }) => void;
   gradingScale?: Array<{ minMark: number; maxMark: number; grade: string; aggregates: number }>;
   reportType?: 'table' | 'detailed';
+  isNursery?: boolean;
 }) => {
   const [showPin, setShowPin] = useState(true);
   const [showIndexNumber, setShowIndexNumber] = useState(true);
@@ -754,18 +790,18 @@ const PrintAssessmentOptionsDialog = ({
       showIndexNumber,
       showLinNumber,
       showMarks,
-      showAgg,
-      showTotal,
-      showDiv,
+      showAgg: isNursery ? false : showAgg,
+      showTotal: isNursery ? false : showTotal,
+      showDiv: isNursery ? false : showDiv,
       orientation,
       fillMarks,
-      fillAgg,
-      fillTotal,
-      fillDiv,
-      showMajorSubjects,
-      showBestPupil,
-      showNeedsImprovement,
-      showAggregateAnalysis,
+      fillAgg: isNursery ? false : fillAgg,
+      fillTotal: isNursery ? false : fillTotal,
+      fillDiv: isNursery ? false : fillDiv,
+      showMajorSubjects: isNursery ? false : showMajorSubjects,
+      showBestPupil: isNursery ? false : showBestPupil,
+      showNeedsImprovement: isNursery ? false : showNeedsImprovement,
+      showAggregateAnalysis: isNursery ? false : showAggregateAnalysis,
     };
     console.log('📋 Print Assessment Options - Generate PDF clicked with options:', options);
     console.log('✅ showAggregateAnalysis =', showAggregateAnalysis);
@@ -781,7 +817,9 @@ const PrintAssessmentOptionsDialog = ({
             Print Assessment Options
           </DialogTitle>
           <DialogDescription>
-            Configure which columns to display and which data to include in the assessment report
+            {isNursery
+              ? 'Choose the pupil identifiers and nursery assessment columns to include.'
+              : 'Configure which columns to display and which data to include in the assessment report'}
           </DialogDescription>
         </DialogHeader>
 
@@ -837,12 +875,12 @@ const PrintAssessmentOptionsDialog = ({
                     onCheckedChange={(checked) => setShowMarks(checked === true)}
                   />
                   <Label htmlFor="showMarks" className="font-medium cursor-pointer">
-                    Marks
+                    {isNursery ? 'Subject Assessments' : 'Marks'}
                   </Label>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Checkbox
                     id="showAgg"
@@ -853,9 +891,9 @@ const PrintAssessmentOptionsDialog = ({
                     AGG (Aggregates)
                   </Label>
                 </div>
-              </div>
+              </div>}
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Checkbox
                     id="showTotal"
@@ -866,9 +904,9 @@ const PrintAssessmentOptionsDialog = ({
                     Total
                   </Label>
                 </div>
-              </div>
+              </div>}
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <Checkbox
                     id="showDiv"
@@ -879,7 +917,7 @@ const PrintAssessmentOptionsDialog = ({
                     DIV (Division)
                   </Label>
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -912,7 +950,7 @@ const PrintAssessmentOptionsDialog = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 border rounded-lg">
                 <Label htmlFor="fillMarks" className="font-medium cursor-pointer">
-                  Fill Marks Column
+                  {isNursery ? 'Fill Assessment Columns' : 'Fill Marks Column'}
                 </Label>
                 <Checkbox
                   id="fillMarks"
@@ -922,7 +960,7 @@ const PrintAssessmentOptionsDialog = ({
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
                 <Label htmlFor="fillAgg" className="font-medium cursor-pointer">
                   Fill AGG Column
                 </Label>
@@ -932,9 +970,9 @@ const PrintAssessmentOptionsDialog = ({
                   onCheckedChange={(checked) => setFillAgg(checked === true)}
                   disabled={!showAgg}
                 />
-              </div>
+              </div>}
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
                 <Label htmlFor="fillTotal" className="font-medium cursor-pointer">
                   Fill Total Column
                 </Label>
@@ -944,9 +982,9 @@ const PrintAssessmentOptionsDialog = ({
                   onCheckedChange={(checked) => setFillTotal(checked === true)}
                   disabled={!showTotal}
                 />
-              </div>
+              </div>}
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
                 <Label htmlFor="fillDiv" className="font-medium cursor-pointer">
                   Fill DIV Column
                 </Label>
@@ -956,12 +994,12 @@ const PrintAssessmentOptionsDialog = ({
                   onCheckedChange={(checked) => setFillDiv(checked === true)}
                   disabled={!showDiv}
                 />
-              </div>
+              </div>}
             </div>
           </div>
 
           {/* Additional Display Options */}
-          <div>
+          {!isNursery && <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Additional Display Options</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -1019,10 +1057,10 @@ const PrintAssessmentOptionsDialog = ({
                 </div>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Grading Scale Preview */}
-          {gradingScale && gradingScale.length > 0 && (
+          {!isNursery && gradingScale && gradingScale.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Grading Scale (Will be included in PDF: First row = Marks Range, Second row = Grade)</h3>
               <div className="border rounded-lg overflow-hidden">
@@ -1122,6 +1160,7 @@ export default function ViewResultsView() {
 
   // Print modal state
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [omitNurseryTeacherComment, setOmitNurseryTeacherComment] = useState(false);
   const [showPrintAssessmentOptionsDialog, setShowPrintAssessmentOptionsDialog] = useState(false);
   const [assessmentReportType, setAssessmentReportType] = useState<'table' | 'detailed'>('table'); // Track which assessment type
   const [printAssessmentOptions, setPrintAssessmentOptions] = useState<{
@@ -1250,6 +1289,10 @@ export default function ViewResultsView() {
   }, [exams, examId, academicYears]);
 
   const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
+  const isNurseryExam = useMemo(
+    () => isNurseryAssessment(examDetails, examResultData, classSnap),
+    [classSnap, examDetails, examResultData]
+  );
 
   const examSwitcher = useMemo(() => {
     if (!examDetails) {
@@ -1418,15 +1461,16 @@ export default function ViewResultsView() {
 
       let totalMarks = 0;
       let totalAggregates = 0;
-      const processedSubjectResults: Record<string, { marks: number; grade: string; aggregates: number }> = {};
+      const processedSubjectResults: Record<string, { marks: number; grade: string; aggregates: number; comment?: string }> = {};
 
       // Initialize all subjects first to ensure none are missed (especially Math)
       subjectSnaps.forEach(subject => {
         const isMajorSubject = majorSubjects.includes(subject.code);
         processedSubjectResults[subject.code] = {
           marks: 0,
-          grade: 'F9',
-          aggregates: isMajorSubject ? 9 : 0 // Only major subjects get aggregates > 0
+          grade: isNurseryExam ? '' : 'F9',
+          comment: '',
+          aggregates: isNurseryExam ? 0 : (isMajorSubject ? 9 : 0) // Nursery assessments do not use aggregates
         };
       });
 
@@ -1443,9 +1487,16 @@ export default function ViewResultsView() {
             `Major subject: ${isMajorSubject}`
           );
 
-          processedSubjectResults[subject.code] = {
+          const savedCommentary = result.comment || result.grade;
+          processedSubjectResults[subject.code] = isNurseryExam ? {
+            marks: 0,
+            grade: result.status === 'missed' ? 'MISSED' : (isNurseryCommentary(savedCommentary) ? savedCommentary : ''),
+            comment: result.status === 'missed' ? 'MISSED' : (isNurseryCommentary(savedCommentary) ? savedCommentary : ''),
+            aggregates: 0,
+          } : {
             marks: result.status === 'missed' ? 0 : (result.marks || 0),
             grade: result.status === 'missed' ? 'MISSED' : (result.grade || 'F9'),
+            comment: result.comment,
             aggregates: isMajorSubject ? (result.status === 'missed' ? 9 : (result.aggregates || 9)) : 0 // Only major subjects get aggregates
           };
         } else {
@@ -1512,7 +1563,7 @@ export default function ViewResultsView() {
     // Only sort and assign positions if they weren't already in the database
     const needToAssignPositions = results.some(r => r.position === 0);
 
-    if (needToAssignPositions) {
+    if (needToAssignPositions && !isNurseryExam) {
       console.log('Recalculating positions based on total marks');
       // Sort by total marks (descending) and assign positions
       results.sort((a, b) => b.totalMarks - a.totalMarks);
@@ -1522,11 +1573,11 @@ export default function ViewResultsView() {
     }
 
     return results;
-  }, [examResultData, pupilSnaps, subjectSnaps]);
+  }, [examResultData, isNurseryExam, pupilSnaps, subjectSnaps]);
 
   // Calculate analytics
   const analytics = useMemo<Analytics | null>(() => {
-    if (!processedResults.length || !subjectSnaps.length) return null;
+    if (isNurseryExam || !processedResults.length || !subjectSnaps.length) return null;
 
     // Find best and worst pupils
     const sortedByTotal = [...processedResults].sort((a, b) => b.totalMarks - a.totalMarks);
@@ -1575,7 +1626,7 @@ export default function ViewResultsView() {
       classAverage,
       passRate
     };
-  }, [processedResults, subjectSnaps, examDetails]);
+  }, [processedResults, subjectSnaps, examDetails, isNurseryExam]);
 
   const selectedPupilData = useMemo(() => {
     if (!selectedPupilIdForPopup) return null;
@@ -1593,12 +1644,12 @@ export default function ViewResultsView() {
       const matchesSearch = pupilName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesMarks = (!filters.minMarks || result.totalMarks >= Number(filters.minMarks)) &&
-        (!filters.maxMarks || result.totalMarks <= Number(filters.maxMarks));
+      const matchesMarks = isNurseryExam || ((!filters.minMarks || result.totalMarks >= Number(filters.minMarks)) &&
+        (!filters.maxMarks || result.totalMarks <= Number(filters.maxMarks)));
 
-      const matchesGrade = filters.grade === 'all' || !filters.grade || Object.values(result.results).some(subject => subject?.grade === filters.grade);
+      const matchesGrade = filters.grade === 'all' || !filters.grade || Object.values(result.results).some(subject => (subject?.comment || subject?.grade) === filters.grade);
 
-      const matchesDivision = filters.division === 'all' || !filters.division || result.division === filters.division;
+      const matchesDivision = isNurseryExam || filters.division === 'all' || !filters.division || result.division === filters.division;
 
       return matchesSearch && matchesMarks && matchesGrade && matchesDivision;
     });
@@ -1633,7 +1684,7 @@ export default function ViewResultsView() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [processedResults, searchTerm, filters, sortField, sortDirection]);
+  }, [processedResults, searchTerm, filters, sortField, sortDirection, isNurseryExam]);
 
   // No pagination - show all results
   const displayedResults = filteredAndSortedResults;
@@ -2551,20 +2602,22 @@ export default function ViewResultsView() {
         ? savedMajorSubjects
         : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(s => s.code) : subjectSnaps.map(s => s.code));
 
-      // Get grading scale
-      const gradingScale = examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
-        ? examResultData.gradingScale.map(item => ({
-          minMark: item.minMark,
-          maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
-          grade: item.grade,
-          aggregates: item.aggregates || 9
-        }))
-        : DEFAULT_GRADING_SCALE.map(item => ({
-          minMark: item.minMark,
-          maxMark: item.maxMark,
-          grade: item.grade,
-          aggregates: item.aggregates || 9
-        }));
+      // Nursery assessments use commentary instead of a marks-based grading scale.
+      const gradingScale = isNurseryExam
+        ? []
+        : examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+          ? examResultData.gradingScale.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+              grade: item.grade,
+              aggregates: item.aggregates || 9,
+            }))
+          : DEFAULT_GRADING_SCALE.map(item => ({
+              minMark: item.minMark,
+              maxMark: item.maxMark,
+              grade: item.grade,
+              aggregates: item.aggregates || 9,
+            }));
 
       updateProgress(35, 'Processing exam results...');
 
@@ -2572,17 +2625,26 @@ export default function ViewResultsView() {
 
       updateProgress(65, 'Generating PDF document...');
 
-      // Generate the PDF with school settings and print options
-      const blob = await generateExamPDF({
-        ...adaptedData,
-        schoolSettings,
-        printOptions: options,
-        gradingScale
-      });
+      // Generate a commentary table for nursery and keep the existing marks table for other classes.
+      const blob = isNurseryExam
+        ? generateNurseryAssessmentPDF({
+            examDetails,
+            classSnap,
+            subjectSnaps,
+            processedResults,
+            schoolSettings,
+            printOptions: options,
+          })
+        : await generateExamPDF({
+            ...adaptedData,
+            schoolSettings,
+            printOptions: options,
+            gradingScale,
+          });
 
       // Open in PDF viewer
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_results.pdf`;
-      const title = 'Exam Results';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${isNurseryExam ? 'nursery_assessment' : 'results'}.pdf`;
+      const title = isNurseryExam ? 'Nursery Assessment Report' : 'Exam Results';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -2604,7 +2666,7 @@ export default function ViewResultsView() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, toast, updateProgress, pdfViewer]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, toast, updateProgress, pdfViewer, isNurseryExam]);
 
   const handleReportOne = useCallback(async () => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
@@ -3782,9 +3844,7 @@ export default function ViewResultsView() {
         };
       });
 
-      updateProgress(75, 'Generating detailed assessment PDF...');
-
-      updateProgress(90, 'Finalizing detailed assessment...');
+      updateProgress(70, 'Designing professional primary mini reports...');
 
       // Get academic year and term names like Modern Report does
       const { academicYearName, termName } = getAcademicYearAndTerm(
@@ -3792,8 +3852,7 @@ export default function ViewResultsView() {
         examDetails?.termId || ''
       );
 
-      // Generate the Detailed Assessment PDF with same data as Modern Report
-      const blob = await generateDetailedAssessmentPDF({
+      const blob = await generatePrimaryMiniReportPDF({
         examDetails: {
           name: examDetails.name,
           examTypeName: examDetails.examTypeName || 'Exam',
@@ -3808,22 +3867,27 @@ export default function ViewResultsView() {
         subjectSnaps: enhancedSubjectSnaps,
         processedResults: enhancedProcessedResults,
         schoolSettings,
-        majorSubjects: examResultData?.majorSubjects, // Send major subjects for grade display
-        gradingScale: DEFAULT_GRADING_SCALE
+        majorSubjects: examResultData?.majorSubjects,
+        backgroundImage: '/images/Primary%20Mini%20BG.png',
+        onProgress: (completed, total) => {
+          const reportProgress = 70 + Math.round((completed / Math.max(total, 1)) * 23);
+          updateProgress(reportProgress, `Generating primary mini reports (${completed}/${total})...`);
+        },
       });
 
       // Open in PDF viewer
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_detailed_assessment.pdf`;
-      const title = 'Detailed Assessment';
+      updateProgress(95, 'Finalizing primary mini reports...');
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_primary_mini_reports.pdf`;
+      const title = 'Primary Mini Reports';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       setGenerationProgress(100);
       setEta('Complete!');
 
-      toast({ title: "Success", description: "Detailed Assessment PDF is ready for viewing!" });
+      toast({ title: "Success", description: "Primary Mini Reports are ready for viewing!" });
     } catch (error) {
-      console.error("Error generating detailed assessment:", error);
-      toast({ title: "Error", description: "Failed to generate detailed assessment. Please try again." });
+      console.error("Error generating primary mini reports:", error);
+      toast({ title: "Error", description: "Failed to generate primary mini reports. Please try again." });
     } finally {
       setTimeout(() => {
         setIsGenerating(false);
@@ -3834,7 +3898,89 @@ export default function ViewResultsView() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, updateProgress, pdfViewer]);
+  }, [allStaff, examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, updateProgress, pdfViewer]);
+
+  const generateNurseryMiniReport = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: 'Error', description: 'Missing required nursery report data.' });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgress(20, 'Preparing nursery pupil information...');
+      const enhancedResults = await prepareResultsWithLivePupilData(processedResults, allPupils);
+
+      const teacherInitials = (teacherName: string): string => teacherName
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(part => part[0]?.toUpperCase() || '')
+        .slice(0, 3)
+        .join('');
+
+      const enhancedSubjects = subjectSnaps.map(subject => {
+        const assignedTeacher = subject.teacherId
+          ? allStaff.find(staff => staff.id === subject.teacherId)
+          : undefined;
+        const teacherName = assignedTeacher
+          ? `${assignedTeacher.firstName || ''} ${assignedTeacher.lastName || ''}`.trim()
+          : subject.teacherName || '';
+
+        return {
+          ...subject,
+          teacherInitials: teacherInitials(teacherName),
+        };
+      });
+
+      const { academicYearName, termName } = getAcademicYearAndTerm(
+        examDetails.academicYearId || '',
+        examDetails.termId || ''
+      );
+
+      updateProgress(65, 'Designing playful nursery mini reports...');
+      const blob = await generateNurseryMiniReportPDF({
+        examDetails: {
+          name: examDetails.name,
+          startDate: examDetails.startDate,
+          academicYearName,
+          termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjects,
+        processedResults: enhancedResults,
+        schoolSettings,
+        backgroundImage: '/images/Nursery%20Background.png',
+        includeTeacherComment: !omitNurseryTeacherComment,
+        onProgress: (completed, total) => {
+          const reportProgress = 65 + Math.round((completed / Math.max(total, 1)) * 28);
+          updateProgress(reportProgress, `Generating nursery reports (${completed}/${total})...`);
+        },
+      });
+
+      updateProgress(95, 'Finalizing nursery mini reports...');
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_nursery_mini_reports.pdf`;
+      pdfViewer.openPDFFromBlob(blob, fileName, 'Nursery Mini Reports');
+      setGenerationProgress(100);
+      setEta('Complete!');
+      toast({ title: 'Success', description: 'Nursery mini reports are ready for viewing.' });
+    } catch (error) {
+      console.error('Error generating nursery mini reports:', error);
+      toast({ title: 'Error', description: 'Failed to generate nursery mini reports. Please try again.' });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+      }, 1000);
+    }
+  }, [allPupils, allStaff, classSnap, examDetails, getAcademicYearAndTerm, omitNurseryTeacherComment, pdfViewer, processedResults, schoolSettings, subjectSnaps, toast, updateProgress]);
 
   const handleNurseryReport = useCallback(() => {
     console.log('📊 Mini Report clicked - Generating directly without options dialog');
@@ -3842,8 +3988,12 @@ export default function ViewResultsView() {
       toast({ title: "Error", description: "Missing required data for report generation" });
       return;
     }
+    if (isNurseryExam) {
+      generateNurseryMiniReport();
+      return;
+    }
     generateDetailedAssessmentReport();
-  }, [examDetails, classSnap, subjectSnaps, processedResults, toast, generateDetailedAssessmentReport]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, toast, isNurseryExam, generateNurseryMiniReport, generateDetailedAssessmentReport]);
 
   // Effect to update ETA in real-time
   useEffect(() => {
@@ -4096,26 +4246,36 @@ export default function ViewResultsView() {
                   }
                 }}
               />
-              <GlassActionButton
-                label="Analysis"
-                icon={<TrendingUp className="h-4 w-4" />}
-                tone="purple"
-                onClick={() => setShowAnalysis(true)}
-              />
+              {!isNurseryExam && (
+                <GlassActionButton
+                  label="Analysis"
+                  icon={<TrendingUp className="h-4 w-4" />}
+                  tone="purple"
+                  onClick={() => setShowAnalysis(true)}
+                />
+              )}
             </GlassActionDock>
           }
         />
       <GlassSummaryBar
         left={
           <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-amber-500" />
+            {isNurseryExam ? <BookOpen className="h-4 w-4 text-emerald-600" /> : <Trophy className="h-4 w-4 text-amber-500" />}
             <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 dark:text-indigo-200 uppercase">
-              Exam Analytics
+              {isNurseryExam ? 'Nursery Assessment Scale' : 'Exam Analytics'}
             </span>
           </div>
         }
         right={
-          analytics ? (
+          isNurseryExam ? (
+            <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
+              {NURSERY_COMMENTARY_OPTIONS.map(option => (
+                <span key={option} className="whitespace-nowrap rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 sm:text-xs">
+                  {option}
+                </span>
+              ))}
+            </div>
+          ) : analytics ? (
             <>
               <div 
                 className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-900/30 hover:border-green-300 dark:hover:border-green-800 transition-all duration-200"
@@ -4166,7 +4326,7 @@ export default function ViewResultsView() {
           {showFilters && (
             <div className="p-4 sm:p-6 bg-white rounded-lg shadow-sm border border-gray-100 mb-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                <div>
+                {!isNurseryExam && <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Min Marks</label>
                   <Input
                     type="number"
@@ -4175,8 +4335,8 @@ export default function ViewResultsView() {
                     className="h-8 text-xs"
                     placeholder="Min..."
                   />
-                </div>
-                <div>
+                </div>}
+                {!isNurseryExam && <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Max Marks</label>
                   <Input
                     type="number"
@@ -4185,22 +4345,22 @@ export default function ViewResultsView() {
                     className="h-8 text-xs"
                     placeholder="Max..."
                   />
-                </div>
+                </div>}
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Grade</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{isNurseryExam ? 'Assessment' : 'Grade'}</label>
                   <Select value={filters.grade} onValueChange={(value) => setFilters(prev => ({ ...prev, grade: value === "all" ? "" : value }))}>
                     <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="All Grades" />
+                      <SelectValue placeholder={isNurseryExam ? 'All Assessments' : 'All Grades'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Grades</SelectItem>
-                      {['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'].map(grade => (
+                      <SelectItem value="all">{isNurseryExam ? 'All Assessments' : 'All Grades'}</SelectItem>
+                      {(isNurseryExam ? NURSERY_COMMENTARY_OPTIONS : ['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9']).map(grade => (
                         <SelectItem key={grade} value={grade}>{grade}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                {!isNurseryExam && <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Division</label>
                   <Select value={filters.division} onValueChange={(value) => setFilters(prev => ({ ...prev, division: value === "all" ? "" : value }))}>
                     <SelectTrigger className="h-8 text-xs">
@@ -4213,11 +4373,11 @@ export default function ViewResultsView() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div>}
               </div>
 
               {/* Major Subjects Legend */}
-              {subjectSnaps && subjectSnaps.length > 4 && (examResultData?.majorSubjects && examResultData.majorSubjects.length > 0) && (
+              {!isNurseryExam && subjectSnaps && subjectSnaps.length > 4 && (examResultData?.majorSubjects && examResultData.majorSubjects.length > 0) && (
                 <div className="mt-3 pt-3 border-t border-gray-300">
                   <div className="flex items-center gap-2 text-xs text-blue-700">
                     <span className="font-semibold">★</span>
@@ -4246,8 +4406,8 @@ export default function ViewResultsView() {
                     <SelectContent>
                       <SelectItem value="position">Position</SelectItem>
                       <SelectItem value="name">Name</SelectItem>
-                      <SelectItem value="marks">Marks</SelectItem>
-                      <SelectItem value="aggregates">Agg</SelectItem>
+                      {!isNurseryExam && <SelectItem value="marks">Marks</SelectItem>}
+                      {!isNurseryExam && <SelectItem value="aggregates">Agg</SelectItem>}
                       {subjectSnaps?.map(subject => (
                         <SelectItem key={`subject_${subject.code}`} value={`subject_${subject.code}`}>
                           {subject.code}
@@ -4287,7 +4447,7 @@ export default function ViewResultsView() {
                       className="bg-white border border-gray-200 rounded-md p-2 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 hover:-translate-y-0.5 cursor-pointer"
                     >
                       {/* Ultra Compact Header */}
-                      <div className="flex items-center justify-between mb-2">
+                      {!isNurseryExam && <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1">
                           <span className="text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-blue-700 px-1.5 py-0.5 rounded text-xs">
                             #{result.position}
@@ -4299,7 +4459,7 @@ export default function ViewResultsView() {
                             {division}
                           </Badge>
                         </div>
-                      </div>
+                      </div>}
 
                       {/* Compact Pupil Info */}
                       <div className="mb-2">
@@ -4312,7 +4472,7 @@ export default function ViewResultsView() {
                       </div>
 
                       {/* Ultra Compact Performance Summary */}
-                      <div className="grid grid-cols-2 gap-1 mb-2">
+                      {!isNurseryExam && <div className="grid grid-cols-2 gap-1 mb-2">
                         <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded p-1 text-center">
                           <div className="text-sm font-bold text-blue-900">
                             {result.totalMarks}
@@ -4329,7 +4489,7 @@ export default function ViewResultsView() {
                             Agg
                           </div>
                         </div>
-                      </div>
+                      </div>}
 
                       {/* Ultra Compact Subject Results */}
                       <div className="space-y-1">
@@ -4356,13 +4516,13 @@ export default function ViewResultsView() {
                                     <span className="text-xs font-medium text-gray-700 truncate">
                                       {subject.code}
                                     </span>
-                                    {isMajorSubject && (
+                                    {!isNurseryExam && isMajorSubject && (
                                       <span className="text-xs text-blue-600 font-semibold" title="Major Subject">
                                         ★
                                       </span>
                                     )}
                                   </div>
-                                  {isMajorSubject && subjectResult?.grade && (
+                                  {!isNurseryExam && isMajorSubject && subjectResult?.grade && (
                                     <Badge
                                       variant="outline"
                                       className={`${getGradeColor(subjectResult.grade)} text-xs px-1 py-0 border-0 font-semibold ml-1`}
@@ -4373,7 +4533,9 @@ export default function ViewResultsView() {
                                 </div>
                                 <div className="flex items-center justify-between">
                                   <div className="text-xs font-bold text-gray-900">
-                                    {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
+                                    {isNurseryExam
+                                      ? (subjectResult?.comment || subjectResult?.grade || '-')
+                                      : (subjectResult?.marks !== undefined ? subjectResult.marks : '-')}
                                   </div>
                                 </div>
                               </div>
@@ -4467,7 +4629,7 @@ export default function ViewResultsView() {
                           </div>
                         </TableHead>
                       ))}
-                      <TableHead
+                      {!isNurseryExam && <TableHead
                         className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2"
                         onClick={() => handleSort('marks')}
                       >
@@ -4475,8 +4637,8 @@ export default function ViewResultsView() {
                           Total
                           {getSortIcon('marks')}
                         </div>
-                      </TableHead>
-                      <TableHead
+                      </TableHead>}
+                      {!isNurseryExam && <TableHead
                         className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2"
                         onClick={() => handleSort('aggregates')}
                       >
@@ -4484,10 +4646,10 @@ export default function ViewResultsView() {
                           Agg
                           {getSortIcon('aggregates')}
                         </div>
-                      </TableHead>
-                      <TableHead className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center py-2 px-2">
+                      </TableHead>}
+                      {!isNurseryExam && <TableHead className="text-xs font-medium text-gray-600 uppercase tracking-wider text-center py-2 px-2">
                         Div
-                      </TableHead>
+                      </TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -4566,9 +4728,11 @@ export default function ViewResultsView() {
                               <TableCell key={subject.code} className="text-center py-2 px-1">
                                 <div className="flex flex-col items-center space-y-0.5">
                                   <div className="text-xs font-medium text-gray-900">
-                                    {subjectResult?.marks !== undefined ? subjectResult.marks : '-'}
+                                    {isNurseryExam
+                                      ? (subjectResult?.comment || subjectResult?.grade || '-')
+                                      : (subjectResult?.marks !== undefined ? subjectResult.marks : '-')}
                                   </div>
-                                  {isMajorSubject && (
+                                  {!isNurseryExam && isMajorSubject && (
                                     <div className="flex items-center gap-1">
                                       {subjectResult?.grade && (
                                         <Badge
@@ -4587,24 +4751,24 @@ export default function ViewResultsView() {
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-center py-2 px-2">
+                          {!isNurseryExam && <TableCell className="text-center py-2 px-2">
                             <span className="text-xs font-medium text-gray-900 bg-blue-50 px-1.5 py-0.5 rounded">
                               {result.totalMarks}
                             </span>
-                          </TableCell>
-                          <TableCell className="text-center py-2 px-2">
+                          </TableCell>}
+                          {!isNurseryExam && <TableCell className="text-center py-2 px-2">
                             <span className="text-xs font-medium text-gray-900 bg-purple-50 px-1.5 py-0.5 rounded">
                               {result.totalAggregates}
                             </span>
-                          </TableCell>
-                          <TableCell className="text-center py-2 px-2">
+                          </TableCell>}
+                          {!isNurseryExam && <TableCell className="text-center py-2 px-2">
                             <Badge
                               variant="outline"
                               className={`${getDivisionColor(division)} text-xs px-1 py-0`}
                             >
                               {division}
                             </Badge>
-                          </TableCell>
+                          </TableCell>}
                         </TableRow>
                       );
                     })}
@@ -4807,6 +4971,9 @@ export default function ViewResultsView() {
         generationStatus={generationStatus}
         generationProgress={generationProgress}
         eta={eta}
+        isNursery={isNurseryExam}
+        omitNurseryTeacherComment={omitNurseryTeacherComment}
+        onOmitNurseryTeacherCommentChange={setOmitNurseryTeacherComment}
       />
 
       {/* Print Assessment Options Dialog */}
@@ -4814,6 +4981,7 @@ export default function ViewResultsView() {
         isOpen={showPrintAssessmentOptionsDialog}
         onClose={() => setShowPrintAssessmentOptionsDialog(false)}
         reportType={assessmentReportType}
+        isNursery={isNurseryExam}
         onConfirm={(options) => {
           console.log('📋 Options confirmed, report type:', assessmentReportType, 'options:', options);
           if (assessmentReportType === 'detailed') {
@@ -4825,19 +4993,21 @@ export default function ViewResultsView() {
           }
         }}
         gradingScale={
-          examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
-            ? examResultData.gradingScale.map(item => ({
-              minMark: item.minMark,
-              maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
-              grade: item.grade,
-              aggregates: item.aggregates || 9
-            }))
-            : DEFAULT_GRADING_SCALE.map(item => ({
-              minMark: item.minMark,
-              maxMark: item.maxMark,
-              grade: item.grade,
-              aggregates: item.aggregates || 9
-            }))
+          isNurseryExam
+            ? []
+            : examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+              ? examResultData.gradingScale.map(item => ({
+                  minMark: item.minMark,
+                  maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+                  grade: item.grade,
+                  aggregates: item.aggregates || 9,
+                }))
+              : DEFAULT_GRADING_SCALE.map(item => ({
+                  minMark: item.minMark,
+                  maxMark: item.maxMark,
+                  grade: item.grade,
+                  aggregates: item.aggregates || 9,
+                }))
         }
       />
 
@@ -5465,7 +5635,7 @@ export default function ViewResultsView() {
 
               <div className="mt-4 space-y-4">
                 {/* Summary Badges */}
-                <div className="grid grid-cols-2 gap-2">
+                {!isNurseryExam && <div className="grid grid-cols-2 gap-2">
                   <div className="p-2 border rounded-xl bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 border-indigo-100 text-center">
                     <div className="text-xs text-indigo-700/80 font-medium">Total Marks</div>
                     <div className="text-lg font-black text-indigo-900 dark:text-indigo-200">{selectedPupilData.totalMarks}</div>
@@ -5476,7 +5646,7 @@ export default function ViewResultsView() {
                       {selectedPupilData.totalAggregates} (Div {selectedPupilData.division})
                     </div>
                   </div>
-                </div>
+                </div>}
 
                 {/* Subject-wise Marks Table */}
                 <div className="border border-border/50 rounded-xl overflow-hidden shadow-sm">
@@ -5485,8 +5655,14 @@ export default function ViewResultsView() {
                       <thead className="bg-muted/50 border-b">
                         <tr>
                           <th className="px-3 py-2 text-left font-semibold text-muted-foreground uppercase">Subject</th>
-                          <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Marks</th>
-                          <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Grade</th>
+                          {isNurseryExam ? (
+                            <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Assessment</th>
+                          ) : (
+                            <>
+                              <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Marks</th>
+                              <th className="px-3 py-2 text-center font-semibold text-muted-foreground uppercase">Grade</th>
+                            </>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -5495,6 +5671,11 @@ export default function ViewResultsView() {
                           return (
                             <tr key={subject.code} className="hover:bg-muted/10">
                               <td className="px-3 py-2 text-left font-medium text-foreground">{subject.name}</td>
+                              {isNurseryExam ? (
+                                <td className="px-3 py-2 text-center font-bold text-emerald-800">
+                                  {res?.comment || res?.grade || '-'}
+                                </td>
+                              ) : <>
                               <td className="px-3 py-2 text-center font-bold text-indigo-950 dark:text-white">{res ? `${res.marks}%` : '-'}</td>
                               <td className="px-3 py-2 text-center">
                                 {res ? (
@@ -5504,7 +5685,7 @@ export default function ViewResultsView() {
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
                                 )}
-                              </td>
+                              </td></>}
                             </tr>
                           );
                         })}

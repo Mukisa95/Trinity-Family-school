@@ -62,6 +62,7 @@ import { DigitalSignatureDisplay } from "@/components/common/digital-signature-d
 import { ExamSignatureDisplay } from "@/components/exam/ExamSignatureDisplay";
 import { formatPupilDisplayName } from "@/lib/utils/name-formatter";
 import { ExamsService } from "@/lib/services/exams.service";
+import { getAssessmentModeForClass, isNurseryClass } from "@/lib/exam-assessment";
 
 import { DEFAULT_GRADING_SCALE, EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
 import { format, parseISO, isValid, startOfDay, getYear as getYearFromDateFns, isWithinInterval } from "date-fns";
@@ -923,7 +924,12 @@ export default function ExamsPage() {
       return;
     }
 
-    if (!examTypeId || !startDate || !endDate || selectedClassIdsForm.length === 0 || !maxMarks || !passingMarks || !academicYearId || !termId || !examNature || (isCATExam && (!assessmentName || !examName)) || (!isCATExam && !examName)) {
+    const selectedClasses = selectedClassIdsForm
+      .map(classId => allClasses.find(schoolClass => schoolClass.id === classId))
+      .filter((schoolClass): schoolClass is Class => Boolean(schoolClass));
+    const includesMarksBasedClass = selectedClasses.some(schoolClass => !isNurseryClass(schoolClass));
+
+    if (!examTypeId || !startDate || !endDate || selectedClassIdsForm.length === 0 || (includesMarksBasedClass && (!maxMarks || passingMarks === '')) || !academicYearId || !termId || !examNature || (isCATExam && (!assessmentName || !examName)) || (!isCATExam && !examName)) {
       toast({ variant: "destructive", title: "Missing Fields", description: "Please fill all required fields (*)." });
       return;
     }
@@ -946,9 +952,9 @@ export default function ExamsPage() {
       return;
     }
 
-    const marks = Number(maxMarks);
-    const pMarks = Number(passingMarks);
-    if (isNaN(marks) || marks <= 0 || isNaN(pMarks) || pMarks < 0 || pMarks > marks) {
+    const marks = includesMarksBasedClass ? Number(maxMarks) : 100;
+    const pMarks = includesMarksBasedClass ? Number(passingMarks) : 0;
+    if (includesMarksBasedClass && (isNaN(marks) || marks <= 0 || isNaN(pMarks) || pMarks < 0 || pMarks > marks)) {
       toast({ variant: "destructive", title: "Invalid Marks", description: "Max marks must be positive. Passing marks must be between 0 and max marks." });
       return;
     }
@@ -976,6 +982,7 @@ export default function ExamsPage() {
         const finalExamName = isCATExam ? `${assessmentName} - ${examName} - ${setNumber}` : examName;
         const finalBaseName = isCATExam ? assessmentName : examName;
 
+        const editingClass = allClasses.find(schoolClass => schoolClass.id === editingExam.classId);
         await updateExamMutation.mutateAsync({
           id: editingExam.id, data: {
             name: finalExamName,
@@ -984,6 +991,7 @@ export default function ExamsPage() {
             examTypeName: sampleExamTypes.find(et => et.id === examTypeId)?.name,
             customExamTypeName: examTypeId === OTHER_EXAM_TYPE_ID ? customExamTypeName : undefined,
             examNature: examNature,
+            assessmentMode: getAssessmentModeForClass(editingClass),
             subjectIds: examNature === 'Subject based' ? perClassSelectedSubjects[editingExam.classId] : undefined,
             startDate: format(startDate, "yyyy-MM-dd"),
             startTime: "",
@@ -1002,6 +1010,7 @@ export default function ExamsPage() {
 
         const newExamsData = selectedClassIdsForm.map((classId) => {
           const classExamNature = perClassNatures[classId];
+          const targetClass = allClasses.find(schoolClass => schoolClass.id === classId);
           // Generate unique examResultId for each exam
           const examResultId = `er-${currentBatchId}-${classId}`;
 
@@ -1016,6 +1025,7 @@ export default function ExamsPage() {
             examTypeName: sampleExamTypes.find(et => et.id === examTypeId)?.name,
             customExamTypeName: examTypeId === OTHER_EXAM_TYPE_ID ? customExamTypeName : undefined,
             examNature: classExamNature,
+            assessmentMode: getAssessmentModeForClass(targetClass),
             classId: classId,
             subjectIds: classExamNature === 'Subject based' ? perClassSelectedSubjects[classId] : undefined,
             academicYearId,
@@ -1139,6 +1149,7 @@ export default function ExamsPage() {
 
           const examResultShell: Omit<ExamResult, 'id'> = {
             examId: createdExamIds[index],
+            assessmentMode: examData.assessmentMode,
             classId: examData.classId,
             classSnapshot: classSnapshotData,
             pupilSnapshots,
@@ -3397,6 +3408,11 @@ export default function ExamsPage() {
                               className="w-full"
                             />
                             {allClasses.length === 0 && <p className="text-xs text-slate-500 mt-2">No classes available.</p>}
+                            {selectedClassIdsForm.some(classId => isNurseryClass(allClasses.find(schoolClass => schoolClass.id === classId))) && (
+                              <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                Nursery exams use commentary assessments: Excellent, Very Good, Good, Fair Good, and Needs Improvement.
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
