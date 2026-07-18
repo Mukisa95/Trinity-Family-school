@@ -158,52 +158,19 @@ export class SMSService {
    * Get active SMS provider from settings
    */
   private static async getActiveSMSProvider(): Promise<string> {
-    try {
-      // Get providers from localStorage (client-side) or from settings
-      const savedProviders = typeof window !== 'undefined' ? localStorage.getItem('smsProviders') : null;
-      if (savedProviders) {
-        const providers = JSON.parse(savedProviders);
-
-        // First, try to find the default active provider
-        let activeProvider = providers.find((p: any) => p.isActive && p.isDefault);
-
-        // If no default active provider found, look for any active provider
-        if (!activeProvider) {
-          activeProvider = providers.find((p: any) => p.isActive);
-        }
-
-        // If still no active provider found, look for any default provider
-        if (!activeProvider) {
-          activeProvider = providers.find((p: any) => p.isDefault);
-        }
-
-        console.log('Active SMS Provider Detection:', {
-          totalProviders: providers.length,
-          activeProviders: providers.filter((p: any) => p.isActive).map((p: any) => p.name),
-          defaultProviders: providers.filter((p: any) => p.isDefault).map((p: any) => p.name),
-          selectedProvider: activeProvider ? activeProvider.name : 'Africa\'s Talking'
-        });
-
-        return activeProvider ? activeProvider.name : 'Africa\'s Talking';
-      }
-      return 'Africa\'s Talking'; // Default fallback
-    } catch (error) {
-      console.error('Error getting active SMS provider:', error);
-      return 'Africa\'s Talking'; // Default fallback
-    }
+    return 'Wiza SMS';
   }
 
   /**
    * Send SMS using the appropriate provider
    */
   private static async sendSMSViaProvider(request: SMSRequest, activeProvider: string): Promise<SMSResponse> {
-    // For now, we'll use the Firebase Functions endpoint which handles provider selection
-    // In the future, this could be extended to use different endpoints based on provider
+    // Wiza SMS is the application's only supported SMS provider.
     return this.sendSMSViaFirebaseFunctions(request, activeProvider);
   }
 
   /**
-   * Send SMS using Firebase Functions (handles provider selection)
+   * Send SMS through the internal Wiza SMS proxy.
    */
   private static async sendSMSViaFirebaseFunctions(request: SMSRequest, activeProvider: string): Promise<SMSResponse> {
     try {
@@ -216,7 +183,7 @@ export class SMSService {
       // Use the local Next.js API route (server-side proxy, no CORS issues)
       const apiEndpoint = '/api/sms/bulk';
 
-      // Call our internal API route instead of Africa's Talking directly
+      // Call the internal server-side Wiza SMS route so credentials stay private.
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {

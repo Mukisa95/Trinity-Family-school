@@ -1,7 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../firebase';
 import { StaffService } from '../services/staff.service';
 import type { Staff } from '@/types';
 
@@ -20,142 +17,6 @@ export function useStaff() {
   // 🚀 CRITICAL: Get cached data immediately to avoid loading state
   const cachedData = queryClient.getQueryData<Staff[]>(['staff']);
 
-  // 🚀 BULLETPROOF REAL-TIME LISTENER with automatic reconnection
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎧 REALTIME: Setting up bulletproof staff listener...');
-    }
-
-    let unsubscribe: (() => void) | null = null;
-    let isActive = true;
-    let retryCount = 0;
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let fallbackFetchTimeout: NodeJS.Timeout | null = null;
-    let listenerFired = false;
-
-    const setupListener = () => {
-      if (!isActive) return;
-
-      // 🔧 CRITICAL FIX: Unsubscribe old listener before creating a new one
-      if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-      }
-
-      try {
-        const staffQuery = query(collection(db, 'staff'));
-
-        unsubscribe = onSnapshot(
-          staffQuery,
-          // Removed includeMetadataChanges for faster real-time sync
-          (snapshot) => {
-            if (!isActive) return;
-
-            listenerFired = true;
-            retryCount = 0;
-
-            const staffList = snapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate?.() || new Date(),
-                updatedAt: data.updatedAt?.toDate?.() || new Date(),
-                dateOfBirth: data.dateOfBirth?.toDate?.() || null,
-                dateOfJoining: data.dateOfJoining?.toDate?.() || null,
-              } as Staff;
-            });
-
-            const fromCache = snapshot.metadata.fromCache;
-
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`⚡ REALTIME: Loaded ${staffList.length} staff members`, {
-                fromCache,
-                source: fromCache ? '📦 cache' : '☁️ server'
-              });
-            }
-
-            // 🚀 INSTANT SYNC: Always update cache with real-time data
-            queryClient.setQueryData(['staff'], staffList);
-
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`✅ REALTIME: Updated cache with ${staffList.length} staff (instant sync)`);
-            }
-          },
-          (error) => {
-            if (!isActive) return;
-
-            // 🔧 FIX: Suppress 'already-exists' errors - non-fatal
-            if (error?.code === 'already-exists' || error?.message?.includes('Target ID already exists')) {
-              console.warn('⚠️ REALTIME: Suppressed duplicate target error (non-fatal)');
-              return;
-            }
-
-            listenerFired = true;
-            console.error('❌ REALTIME STAFF ERROR:', error.message);
-
-            // Automatic reconnection with exponential backoff
-            if (retryCount < 3) {
-              retryCount++;
-              const backoffDelay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
-
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`🔄 REALTIME: Reconnecting staff in ${backoffDelay}ms...`);
-              }
-
-              retryTimeout = setTimeout(() => {
-                if (isActive) setupListener();
-              }, backoffDelay);
-            }
-          }
-        );
-
-        // Fallback: trigger manual fetch if listener doesn't fire
-        fallbackFetchTimeout = setTimeout(async () => {
-          if (!listenerFired && isActive) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('⚠️ REALTIME: Staff listener did not fire, fetching manually...');
-            }
-
-            const cachedData = queryClient.getQueryData<Staff[]>(['staff']);
-            if (!cachedData || cachedData.length === 0) {
-              try {
-                const staff = await StaffService.getAllStaff();
-                if (staff && staff.length > 0) {
-                  queryClient.setQueryData(['staff'], staff);
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log(`✅ FALLBACK: Loaded ${staff.length} staff members`);
-                  }
-                }
-              } catch (fetchError) {
-                console.error('❌ FALLBACK: Staff fetch failed:', fetchError);
-              }
-            }
-          }
-        }, 5000);
-
-      } catch (setupError) {
-        console.error('❌ REALTIME: Failed to setup staff listener:', setupError);
-      }
-    };
-
-    setupListener();
-
-    // 🔧 FIX: Removed handleOnline - Firestore SDK handles reconnection internally
-
-    // Cleanup
-    return () => {
-      isActive = false;
-      if (retryTimeout) clearTimeout(retryTimeout);
-      if (fallbackFetchTimeout) clearTimeout(fallbackFetchTimeout);
-      if (unsubscribe) unsubscribe();
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔌 REALTIME: Cleaned up staff listener');
-      }
-    };
-  }, [queryClient]);
-
   return useQuery({
     queryKey: ['staff'],
     queryFn: async () => {
@@ -168,12 +29,19 @@ export function useStaff() {
         return currentCachedData;
       }
 
+      // Give the layout-level listener a short head start. It owns the live
+      // subscription for the whole session and normally hydrates the offline
+      // cache immediately, avoiding a duplicate cold-start read here.
+      await new Promise(resolve => setTimeout(resolve, 120));
+      const preloadedData = queryClient.getQueryData<Staff[]>(['staff']);
+      if (preloadedData && preloadedData.length > 0) return preloadedData;
+
       if (process.env.NODE_ENV === 'development') {
         console.log('📥 useStaff: No cache, fetching from server...');
       }
       return StaffService.getAllStaff();
     },
-    staleTime: 0, // Real-time listener handles updates - no stale time needed
+    staleTime: Infinity, // GlobalDataPreloader owns the real-time listener
     gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnMount: false, // Don't refetch when component mounts - use cache
     refetchOnWindowFocus: false, // Don't refetch on window focus
@@ -289,4 +157,4 @@ export function useDeleteStaff() {
       queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.all });
     },
   });
-} 
+}

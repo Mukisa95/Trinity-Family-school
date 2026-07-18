@@ -187,7 +187,7 @@ const SMSResultDialog: React.FC<SMSResultDialogProps> = ({
                   <div className="space-y-2">
                     <p className="font-medium">MTN Numbers Blocked</p>
                     <p>{result.details.mtnBlocked} MTN numbers were blocked to prevent charges for undelivered messages.</p>
-                    <p className="text-sm">MTN delivery through Africa's Talking is unreliable. Consider switching to Wiza SMS provider for MTN delivery.</p>
+                    <p className="text-sm">Review the failed recipient details and retry through Wiza SMS after confirming the phone numbers and account balance.</p>
                   </div>
                 </AlertDescription>
               </Alert>

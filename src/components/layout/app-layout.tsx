@@ -50,6 +50,15 @@ import { logger } from '@/lib/utils/logger';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
 
+const APP_READY_EVENT = 'trinity:app-ready';
+
+function signalAppReady() {
+  if (typeof window === 'undefined') return;
+  document.documentElement.dataset.trinityAppReady = 'true';
+  performance.mark?.('trinity:app-ready');
+  window.dispatchEvent(new Event(APP_READY_EVENT));
+}
+
 const Sidebar연구 = Sidebar;
 
 // Wrapper component that uses navigation context
@@ -247,7 +256,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // Check if this is a parent route (should use its own layout)
   const isParentRoute = pathname?.startsWith('/parent') || false;
   const routePermission = pathname ? getRoutePagePermission(pathname) : undefined;
-  const isAdminOnlyRoute = pathname === '/settings/firebase-usage';
+  const isAdminOnlyRoute = pathname === '/settings/firebase-usage' || pathname === '/settings/deployment';
   const shouldCheckRoutePermission = Boolean(routePermission) || isAdminOnlyRoute;
   const canAccessCurrentRoute = (!isAdminOnlyRoute || user?.role === 'Admin') && (!routePermission || user?.role === 'Admin' ||
     GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId));
@@ -388,31 +397,20 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   }, [schoolSettings, settingsError, isLoadingSettings]);
 
   React.useEffect(() => {
-    const delay = hasStoredUser ? 2500 : 1000;
+    if (isPublicRoute || !authLoading) signalAppReady();
+  }, [authLoading, isPublicRoute]);
 
-    const timer = setTimeout(() => {
-      if (!isPublicRoute && !authLoading && !isAuthenticated && !user) {
-        if (hasStoredUser) {
-          logger.debug('Stored user found, not redirecting to login');
-          return;
-        }
+  React.useEffect(() => {
+    if (authLoading) return;
 
-        const currentStoredUser = localStorage.getItem('trinity_user');
-        if (currentStoredUser) {
-          logger.debug('Found stored user in localStorage, not redirecting to login');
-          return;
-        }
-
-        logger.debug('Redirecting to login due to no authentication');
-        router.replace('/login');
-      } else if (!authLoading && isAuthenticated && user && pathname === '/login') {
-        logger.debug('Authenticated user on login page, redirecting home', { role: user.role });
-        router.replace('/');
-      }
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [isPublicRoute, isAuthenticated, authLoading, router, user, pathname, hasStoredUser]);
+    if (!isPublicRoute && !isAuthenticated && !user) {
+      logger.debug('Redirecting to login due to no authentication');
+      router.replace('/login');
+    } else if (isAuthenticated && user && pathname === '/login') {
+      logger.debug('Authenticated user on login page, redirecting home', { role: user.role });
+      router.replace('/');
+    }
+  }, [isPublicRoute, isAuthenticated, authLoading, router, user, pathname]);
 
   React.useEffect(() => {
     if (!isPublicRoute && !isParentRoute && !authLoading && user && shouldCheckRoutePermission && !canAccessCurrentRoute) {

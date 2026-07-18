@@ -183,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setSessionStatus('fresh');  // Trust the cache until DB says otherwise
               setSessionMessage(null);
               setIsLoading(false);
+              performance.mark?.('trinity:auth-cache-ready');
 
               // Background check: only invalidate if something actually changed
               UsersService.getUserById(storedCache.user.id)
@@ -242,10 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setHasStoredUser(false);
         }
 
-        // Wait a bit for Firebase to initialize before setting up the listener
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Then set up Firebase auth listener
+        // Firebase's listener waits for its own initialization. Adding an extra
+        // timer here only delays cold starts and does not make auth safer.
         unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
           logger.debug('Firebase auth state changed', { email: firebaseUser?.email || 'No user', initialized: firebaseInitialized });
           
@@ -333,6 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!isInitialized) {
             setIsLoading(false);
             setIsInitialized(true);
+            performance.mark?.('trinity:auth-resolved');
           }
         });
 

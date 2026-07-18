@@ -11,10 +11,9 @@ interface AccountData {
   message?: string;
 }
 
-// Minimum time (ms) between activity-triggered refreshes to prevent hammering
-const MIN_REFRESH_INTERVAL = 2 * 60 * 1000; // 2 minutes
+const MIN_REFRESH_INTERVAL = 2 * 60 * 1000;
 
-export const useAfricasTalkingAccount = () => {
+export const useWizaSMSAccount = () => {
   const queryClient = useQueryClient();
   const lastRefreshRef = useRef<number>(0);
 
@@ -26,23 +25,21 @@ export const useAfricasTalkingAccount = () => {
   } = useQuery<AccountData>({
     queryKey: ['wiza-sms-account'],
     queryFn: WizaSMSAccountService.getAccountData,
-    staleTime: 5 * 60 * 1000,       // 5 minutes
-    gcTime: 15 * 60 * 1000,         // 15 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     retry: 1,
-    refetchOnWindowFocus: false,     // Disable automatic window-focus refetch (we control this)
+    refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: false,
-    refetchInterval: 10 * 60 * 1000, // Passive auto-refresh every 10 minutes
+    refetchInterval: 10 * 60 * 1000,
     refetchIntervalInBackground: false,
   });
 
-  // Helper functions
   const formatCurrency = (amount: string, currency?: string) => {
     return WizaSMSAccountService.formatCurrency(amount, currency || 'UGX');
   };
 
   const refreshAccountData = () => {
-    console.log('Manual account balance refresh...');
     lastRefreshRef.current = Date.now();
     return refetchAccount();
   };
@@ -57,20 +54,13 @@ export const useAfricasTalkingAccount = () => {
     return refetchAccount();
   };
 
-  /**
-   * Throttled activity refresh — only triggers a real refetch if the last refresh
-   * was more than MIN_REFRESH_INTERVAL ago. Prevents request storms on user activity.
-   */
   const triggerActivityRefresh = (activity: string) => {
     const now = Date.now();
-    const timeSinceLastRefresh = now - lastRefreshRef.current;
-
-    if (timeSinceLastRefresh > MIN_REFRESH_INTERVAL) {
-      console.log(`Activity-based refresh triggered: ${activity}`);
+    if (now - lastRefreshRef.current > MIN_REFRESH_INTERVAL) {
+      console.log(`Wiza SMS activity refresh triggered: ${activity}`);
       lastRefreshRef.current = now;
       queryClient.invalidateQueries({ queryKey: ['wiza-sms-account'] });
     }
-    // else: silently skip — don't hammer the API
   };
 
   return {

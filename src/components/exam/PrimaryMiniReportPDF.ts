@@ -319,7 +319,7 @@ export const generatePrimaryMiniReportPDF = async ({
     const tableWidth = cardWidth - 20;
     const headerHeight = 5.5;
     const totalHeight = 5.5;
-    const maxTableHeight = 50;
+    const maxTableHeight = 45;
     const rowsHeight = Math.max(0, maxTableHeight - headerHeight - totalHeight);
     const rowHeight = Math.min(6, Math.max(2.45, rowsHeight / Math.max(subjectSnaps.length, 1)));
     const tableHeight = headerHeight + (rowHeight * subjectSnaps.length) + totalHeight;
@@ -339,7 +339,7 @@ export const generatePrimaryMiniReportPDF = async ({
     doc.setFont('helvetica', 'bold');
     const headerY = tableY;
     let cursorX = tableX;
-    doc.setFontSize(7.1);
+    doc.setFontSize(8.2);
     labels.forEach((label, labelIndex) => {
       doc.setDrawColor(185, 199, 219);
       doc.line(cursorX, headerY, cursorX, tableY + tableHeight);
@@ -366,7 +366,7 @@ export const generatePrimaryMiniReportPDF = async ({
       doc.setDrawColor(213, 222, 235);
       doc.rect(tableX + 0.25, rowY, tableWidth - 0.5, rowHeight, 'FD');
       cursorX = tableX;
-      doc.setFontSize(rowHeight < 3.2 ? 4.5 : rowHeight < 4.2 ? 5.8 : 7.1);
+      doc.setFontSize(rowHeight < 3.2 ? 5.2 : rowHeight < 4.2 ? 6.6 : 8.1);
       rowValues.forEach((value, valueIndex) => {
         const cellWidth = widths[valueIndex];
         doc.setFont('helvetica', valueIndex === 0 ? 'bold' : 'normal');
@@ -386,7 +386,7 @@ export const generatePrimaryMiniReportPDF = async ({
     doc.rect(tableX + 0.25, totalY, tableWidth - 0.5, totalHeight, 'FD');
     cursorX = tableX;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.4);
+    doc.setFontSize(8.2);
     totalValues.forEach((value, valueIndex) => {
       const cellWidth = widths[valueIndex];
       if (valueIndex === 0) {
@@ -420,13 +420,13 @@ export const generatePrimaryMiniReportPDF = async ({
     const commentY = divisionY + 5.5;
     doc.setTextColor(...navy);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.2);
+    doc.setFontSize(8.2);
     const commentLabel = "CLASS TEACHER'S COMMENT:";
     doc.text(commentLabel, commentX, commentY);
     const commentTextX = commentX + doc.getTextWidth(commentLabel) + 2;
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(6.8);
+    doc.setTextColor(...green);
+    doc.setFontSize(9.5);
     const teacherComment = commentPicker.classTeacher(result.pupilInfo.name, result.totalAggregates || 0);
     const commentLines = doc.splitTextToSize(
       teacherComment,
@@ -434,14 +434,16 @@ export const generatePrimaryMiniReportPDF = async ({
     ) as string[];
     doc.text(commentLines, commentTextX, commentY, { lineHeightFactor: 1.15 });
 
-    const commentLineHeight = 3;
+    const commentLineHeight = 3.9;
     const signatureY = commentY + (Math.max(commentLines.length, 1) * commentLineHeight) + 4;
     doc.setTextColor(71, 85, 105);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.8);
-    doc.text('Class Teacher - Sign:', cardX + 12, signatureY);
+    const signatureX = cardX + 12;
+    const signatureLabel = 'Signature:';
+    doc.text(signatureLabel, signatureX, signatureY);
     doc.setDrawColor(...navy);
-    doc.line(cardX + 47, signatureY, cardX + 93, signatureY);
+    doc.line(signatureX + doc.getTextWidth(signatureLabel) + 1, signatureY, cardX + 93, signatureY);
 
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');

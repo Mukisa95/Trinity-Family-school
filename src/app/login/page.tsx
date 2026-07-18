@@ -109,6 +109,13 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [showLoginModal, setShowLoginModal] = useState(false);
 
+  // Load the dashboard route while the user is reading or entering credentials.
+  // This changes no auth state; it only removes route-bundle loading after login.
+  useEffect(() => {
+    const timer = window.setTimeout(() => router.prefetch('/'), 100);
+    return () => window.clearTimeout(timer);
+  }, [router]);
+
   // Gallery slideshow states
   const [currentActivitySlide, setCurrentActivitySlide] = useState(0);
   const [currentFacilitySlide, setCurrentFacilitySlide] = useState(0);
@@ -222,7 +229,7 @@ export default function LoginPage() {
       if (ok) {
         toast({ title: "Login Successful", description: `Welcome to ${settings.generalInfo.name}` });
         setShowLoginModal(false);
-        router.push("/");
+        router.replace("/");
       } else {
         setError("Invalid username or password. Please try again.");
       }

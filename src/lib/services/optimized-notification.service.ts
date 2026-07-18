@@ -546,7 +546,7 @@ class OptimizedNotificationService {
       // VAPID configuration
       const vapidKeys = {
         publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4',
-        privateKey: process.env.VAPID_PRIVATE_KEY || 'z1e32rBFuHHzkh78Cz5Ed5VCmqoNQNC0xn1ISq5kE6Y',
+        privateKey: process.env.VAPID_PRIVATE_KEY || '',
         email: process.env.VAPID_EMAIL || 'admin@trinity-family-schools.com'
       };
 

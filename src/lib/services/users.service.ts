@@ -176,99 +176,78 @@ export class UsersService {
     }
   }
 
+  // Resolve legacy username alternatives with one Firestore read instead of
+  // issuing a sequence of individual reads during login.
+  static async getUsersByUsernames(usernames: string[]): Promise<SystemUser[]> {
+    const uniqueUsernames = Array.from(new Set(usernames.filter(Boolean)));
+    if (uniqueUsernames.length === 0) return [];
+
+    try {
+      const q = query(
+        collection(db, USERS_COLLECTION),
+        where('username', 'in', uniqueUsernames)
+      );
+      return await getDocsWithTimeout<SystemUser>(q, 15000);
+    } catch (error: any) {
+      if (isFirestoreOfflineError(error)) {
+        console.warn('[UsersService] Firestore offline during legacy username lookup');
+        return [];
+      }
+      throw error;
+    }
+  }
+
   // Authenticate user
   static async authenticateUser(username: string, password: string): Promise<SystemUser | null> {
     try {
       // Try direct username lookup first
       let user = await this.getUserByUsername(username);
       
-      // If not found and this might be a parent login attempt, try alternative lookup methods
+      // If not found and this might be a parent login attempt, resolve all
+      // supported legacy formats from one pupil read and one batched user read.
       if (!user) {
-        
-        // Method 1: Try new simple format generation (MUK12 style)
         const PupilsService = (await import('./pupils.service')).PupilsService;
         try {
-          // 🚀 OPTIMIZED: Use database-level filtering instead of fetching all pupils
           const pupil = await PupilsService.getPupilByAdmissionNumber(password);
-          
+
           if (pupil) {
-            console.log('Found pupil by admission number:', pupil.admissionNumber);
-            
-            // Generate the simple username format for this pupil
             const surnamePrefix = pupil.lastName.substring(0, 3).toUpperCase();
-            let birthYearSuffix = '';
-            if (pupil.dateOfBirth) {
-              const birthYear = new Date(pupil.dateOfBirth).getFullYear();
-              birthYearSuffix = birthYear.toString().slice(-2);
-            } else {
-              birthYearSuffix = new Date().getFullYear().toString().slice(-2);
-            }
+            const birthYearSuffix = pupil.dateOfBirth
+              ? new Date(pupil.dateOfBirth).getFullYear().toString().slice(-2)
+              : new Date().getFullYear().toString().slice(-2);
             const simpleUsername = `${surnamePrefix}${birthYearSuffix}`;
-            
-            // Try the simple format and its variations
             const simpleVariations = [
               simpleUsername,
               `${simpleUsername}1`,
               `${simpleUsername}2`,
               `${simpleUsername}3`,
             ];
-            
-            console.log('Trying simple format variations:', simpleVariations);
-            
-            for (const variation of simpleVariations) {
-              user = await this.getUserByUsername(variation);
-              if (user && user.pupilId === pupil.id) {
-                console.log('Found user with simple format:', variation);
-                break;
-              }
-            }
+            const admissionBasedUsername = `parent_${password.toLowerCase()}`;
+            const nameVariations = [
+              `${pupil.firstName}${pupil.lastName}${pupil.otherNames || ''}`.replace(/\s+/g, '').toLowerCase(),
+              `${pupil.firstName}.${pupil.lastName}`.replace(/\s+/g, '').toLowerCase(),
+              `${pupil.firstName}${pupil.lastName}`.replace(/\s+/g, '').toLowerCase(),
+            ];
+
+            const candidates = await this.getUsersByUsernames([
+              ...simpleVariations,
+              admissionBasedUsername,
+              ...nameVariations,
+            ]);
+            const usersByUsername = new Map(
+              candidates.map(candidate => [candidate.username, candidate])
+            );
+
+            user = simpleVariations
+              .map(variation => usersByUsername.get(variation))
+              .find(candidate => candidate?.pupilId === pupil.id) ?? null;
+            user ??= usersByUsername.get(admissionBasedUsername) ?? null;
+            user ??= nameVariations
+              .map(variation => usersByUsername.get(variation))
+              .find(Boolean) ?? null;
           }
         } catch (error) {
-          console.error('Error in simple format lookup:', error);
-        }
-        
-        // Method 2: Try admission number-based lookup (old format)
-        if (!user) {
-          const admissionBasedUsername = `parent_${password.toLowerCase()}`;
-          user = await this.getUserByUsername(admissionBasedUsername);
-          console.log('Admission-based lookup result:', user ? 'Found' : 'Not found');
-        }
-        
-        // Method 3: Try pupil name variations (legacy compatibility)
-        if (!user) {
-          console.log('Trying pupil name-based lookup...');
-          
-          try {
-            // 🚀 OPTIMIZED: Use database-level filtering instead of fetching all pupils
-            const pupil = await PupilsService.getPupilByAdmissionNumber(password);
-            
-            if (pupil) {
-              console.log('Found pupil for name-based lookup:', pupil.admissionNumber);
-              
-              // Try multiple username variations for backward compatibility
-              const nameVariations = [
-                // Original format: firstnamelastname (no spaces, lowercase)
-                `${pupil.firstName}${pupil.lastName}${pupil.otherNames || ''}`.replace(/\s+/g, '').toLowerCase(),
-                // Alternative format: firstname.lastname
-                `${pupil.firstName}.${pupil.lastName}`.replace(/\s+/g, '').toLowerCase(),
-                // Alternative format: just firstname and lastname
-                `${pupil.firstName}${pupil.lastName}`.replace(/\s+/g, '').toLowerCase(),
-              ];
-              
-              console.log('Trying name variations:', nameVariations);
-              
-              for (const nameVariation of nameVariations) {
-                user = await this.getUserByUsername(nameVariation);
-                if (user) {
-                  console.log('Found user with name variation:', nameVariation);
-                  break;
-                }
-              }
-            }
-          } catch (error) {
-            console.error('Error in pupil-based lookup:', error);
-            // Continue with authentication process
-          }
+          console.error('Error in parent compatibility lookup:', error);
         }
       }
       
@@ -283,7 +262,7 @@ export class UsersService {
       if (user.passwordHash) {
         // Try new salted hash first
         if (verifyPassword(password, user.passwordHash)) {
-          await this.updateLastLogin(user.id);
+          void this.updateLastLogin(user.id).catch(() => undefined);
           return user;
         }
         
@@ -294,7 +273,7 @@ export class UsersService {
             // IMPORTANT: Re-hash and save password with the new method
             const newSaltedHash = hashPassword(password);
             await this.updateUser(user.id, { passwordHash: newSaltedHash });
-            await this.updateLastLogin(user.id);
+            void this.updateLastLogin(user.id).catch(() => undefined);
             return user;
           }
         }

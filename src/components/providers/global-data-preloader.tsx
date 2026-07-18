@@ -22,18 +22,21 @@ import { patchPupilQueryCaches, removePupilFromQueryCaches } from '@/lib/hooks/u
 export function GlobalDataPreloader() {
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
+  const userId = user?.id;
+  const userRole = user?.role;
+  const userFamilyId = user?.familyId;
 
   useEffect(() => {
     // Don't start preloading until user is authenticated
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !userId || !userRole) {
       console.log('⏸️ PRELOADER: Waiting for authentication...');
       return;
     }
 
-    const userFamilyId = user.familyId;
-    console.log(`🚀 GLOBAL PRELOADER: Starting role-aware listeners for ${user.role}...`);
+    console.log(`🚀 GLOBAL PRELOADER: Starting role-aware listeners for ${userRole}...`);
 
     const unsubscribers: Array<() => void> = [];
+    let deferredTimer: ReturnType<typeof setTimeout> | undefined;
 
     // ═══════════════════════════════════════════════════════════
     // REAL-TIME LISTENERS (onSnapshot) — Data that needs live sync
@@ -246,11 +249,11 @@ export function GlobalDataPreloader() {
       };
 
       // Build the base query (scoped to family for parents)
-      const baseQuery = (user.role === 'Parent' && userFamilyId)
+      const baseQuery = (userRole === 'Parent' && userFamilyId)
         ? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))
         : firestoreQuery(collection(db, 'pupils'));
 
-      if (user.role === 'Parent' && userFamilyId) {
+      if (userRole === 'Parent' && userFamilyId) {
         console.log(`🎯 PARENT MODE: Loading only pupils for family ${userFamilyId}`);
       }
 
@@ -543,77 +546,70 @@ export function GlobalDataPreloader() {
       }
     };
 
-    // 12. 📊 ATTENDANCE RECORDS - Parent-specific (only their children's attendance)
-    const setupParentAttendanceListener = () => {
+    // 12–13. Parent records share one family listener. Child listeners are
+    // added or removed only when family membership changes, preventing
+    // duplicate attendance/payment subscriptions after snapshot updates.
+    const setupParentRecordsListeners = () => {
       if (!userFamilyId) return;
 
       const pupilsQuery = firestoreQuery(
         collection(db, 'pupils'),
         where('familyId', '==', userFamilyId)
       );
+      const childUnsubscribers = new Map<string, Array<() => void>>();
 
-      onSnapshot(pupilsQuery, (pupilsSnapshot) => {
-        const pupilIds = pupilsSnapshot.docs.map(doc => doc.id);
+      const familyUnsubscribe = onSnapshot(
+        pupilsQuery,
+        (pupilsSnapshot) => {
+          const pupilIds = new Set(pupilsSnapshot.docs.map(doc => doc.id));
 
-        if (pupilIds.length > 0) {
+          childUnsubscribers.forEach((listeners, pupilId) => {
+            if (!pupilIds.has(pupilId)) {
+              listeners.forEach(unsubscribe => unsubscribe());
+              childUnsubscribers.delete(pupilId);
+            }
+          });
+
           pupilIds.forEach(pupilId => {
+            if (childUnsubscribers.has(pupilId)) return;
+
             const attendanceQuery = firestoreQuery(
               collection(db, 'attendanceRecords'),
               where('pupilId', '==', pupilId)
             );
-
-            const unsubscribe = onSnapshot(
-              attendanceQuery,
-              (snapshot) => {
-                const records = snapshot.docs.map(doc => ({
-                  id: doc.id,
-                  ...doc.data()
-                }));
-                queryClient.setQueryData(['attendance', 'pupil', pupilId], records);
-                console.log(`⚡ PRELOADER: Loaded ${records.length} attendance records for pupil ${pupilId}`);
-              },
-              (error) => console.error('❌ PRELOADER: Attendance error:', error.message)
-            );
-            unsubscribers.push(unsubscribe);
-          });
-        }
-      });
-    };
-
-    // 13. 💰 PAYMENT RECORDS - Parent-specific (only their children's payments)
-    const setupParentPaymentsListener = () => {
-      if (!userFamilyId) return;
-
-      const pupilsQuery = firestoreQuery(
-        collection(db, 'pupils'),
-        where('familyId', '==', userFamilyId)
-      );
-
-      onSnapshot(pupilsQuery, (pupilsSnapshot) => {
-        const pupilIds = pupilsSnapshot.docs.map(doc => doc.id);
-
-        if (pupilIds.length > 0) {
-          pupilIds.forEach(pupilId => {
             const paymentsQuery = firestoreQuery(
               collection(db, 'payments'),
               where('pupilId', '==', pupilId)
             );
 
-            const unsubscribe = onSnapshot(
+            const attendanceUnsubscribe = onSnapshot(
+              attendanceQuery,
+              (snapshot) => {
+                const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                queryClient.setQueryData(['attendance', 'pupil', pupilId], records);
+                console.log(`⚡ PRELOADER: Loaded ${records.length} attendance records for pupil ${pupilId}`);
+              },
+              (error) => console.error('❌ PRELOADER: Attendance error:', error.message)
+            );
+            const paymentsUnsubscribe = onSnapshot(
               paymentsQuery,
               (snapshot) => {
-                const payments = snapshot.docs.map(doc => ({
-                  id: doc.id,
-                  ...doc.data()
-                }));
+                const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 queryClient.setQueryData(['payments', 'pupil', pupilId], payments);
                 console.log(`⚡ PRELOADER: Loaded ${payments.length} payment records for pupil ${pupilId}`);
               },
               (error) => console.error('❌ PRELOADER: Payments error:', error.message)
             );
-            unsubscribers.push(unsubscribe);
+            childUnsubscribers.set(pupilId, [attendanceUnsubscribe, paymentsUnsubscribe]);
           });
-        }
+        },
+        (error) => console.error('❌ PRELOADER: Parent pupil lookup error:', error.message)
+      );
+
+      unsubscribers.push(() => {
+        familyUnsubscribe();
+        childUnsubscribers.forEach(listeners => listeners.forEach(unsubscribe => unsubscribe()));
+        childUnsubscribers.clear();
       });
     };
 
@@ -626,36 +622,38 @@ export function GlobalDataPreloader() {
     // but must NOT block the other fetches or the dashboard takes 30+ seconds.
     (async () => {
       try {
-        // 🌐 SHARED DATA: Load for all roles in parallel
+        // Dashboard-critical data starts first. Secondary module data begins
+        // just afterward so it remains warm for navigation without competing
+        // with the first visible dashboard request burst.
         setupAcademicYearsListener().catch(e => console.error('❌ PRELOADER: Academic years load error:', e));
-        fetchPhotos();
 
-        if (user.role === 'Parent') {
+        if (userRole === 'Parent') {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
           setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           setupClassesListener();
           fetchFees();
-          setupParentAttendanceListener();
-          setupParentPaymentsListener();
+          setupParentRecordsListeners();
+          deferredTimer = setTimeout(() => void fetchPhotos(), 120);
           console.log('✅ PARENT PRELOADER: Essential data + pupil records listeners active');
         } else {
-          console.log('👥 ADMIN/STAFF MODE: Loading all data in parallel...');
-          // All listeners and one-time reads fire concurrently
+          console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
           setupClassesListener();
-          setupSubjectsListener();
           setupStaffListener();
           setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
 
-          // One-time reads — all fire in parallel too
-          fetchFees();
-          fetchRequirements();
-          fetchUniforms();
-          fetchUsers();
-          fetchAccessLevels();
-          fetchEvents();
+          deferredTimer = setTimeout(() => {
+            setupSubjectsListener();
+            void fetchPhotos();
+            void fetchFees();
+            void fetchRequirements();
+            void fetchUniforms();
+            void fetchUsers();
+            void fetchAccessLevels();
+            void fetchEvents();
+          }, 120);
 
-          console.log('✅ GLOBAL PRELOADER: All critical data listeners active');
+          console.log('✅ GLOBAL PRELOADER: Dashboard listeners active; remaining data queued');
         }
       } catch (error) {
         console.error('❌ GLOBAL PRELOADER: Setup failed:', error);
@@ -665,12 +663,13 @@ export function GlobalDataPreloader() {
     // Cleanup all listeners on unmount or when user changes
     return () => {
       console.log('🔌 GLOBAL PRELOADER: Cleaning up all listeners');
+      if (deferredTimer) clearTimeout(deferredTimer);
       unsubscribers.forEach(unsub => unsub());
     };
   // Re-run when auth state changes so listeners are always tied to the current
   // user. The cleanup (unsubscribers.forEach) tears down old listeners before
   // new ones are created, preventing duplicate subscriptions.
-  }, [queryClient, isAuthenticated, user]);
+  }, [queryClient, isAuthenticated, userId, userRole, userFamilyId]);
 
 
   return null; // This component doesn't render anything

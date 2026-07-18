@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,12 +44,13 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useSMSTemplates } from '@/lib/hooks/use-sms-templates';
-import { useAfricasTalkingAccount } from '@/lib/hooks/use-africas-talking-account';
+import { useWizaSMSAccount } from '@/lib/hooks/use-wiza-sms-account';
 import { SMSService } from '@/lib/services/sms.service';
 import { useUnifiedAccountBalance } from '@/lib/hooks/use-unified-account-balance';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Pupil, Class } from '@/types';
+import type { SMSRecipientReviewItem } from '@/lib/utils/sms-recipient-deduplication';
 
 interface Recipient {
   name: string;
@@ -134,7 +135,7 @@ const BulkSMS: React.FC = () => {
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [pendingSmsData, setPendingSmsData] = useState<{
     message: string;
-    recipients: string[];
+    recipients: SMSRecipientReviewItem[];
   } | null>(null);
   const [smsResult, setSmsResult] = useState<SMSResponse | null>(null);
   const [showResults, setShowResults] = useState<boolean>(false);
@@ -159,7 +160,7 @@ const BulkSMS: React.FC = () => {
     invalidateAccountData,
     forceRefreshAccountData,
     triggerActivityRefresh
-  } = useAfricasTalkingAccount();
+  } = useWizaSMSAccount();
 
   // Get the active provider to conditionally show/hide AccountBalance
   const { provider } = useUnifiedAccountBalance();
@@ -417,8 +418,29 @@ const BulkSMS: React.FC = () => {
     el.style.overflowY = 'hidden';
   }, [message, characterCount, textareaHeights]);
 
-  // Get all recipients including manual numbers
-  const allRecipients = [...recipients.map(r => r.phone), ...manualNumbers];
+  // Preserve pupil and guardian context so repeated family numbers can be
+  // reviewed before sending instead of becoming an anonymous phone array.
+  const recipientReviewItems = useMemo<SMSRecipientReviewItem[]>(() => [
+    ...recipients.map((recipient, index) => ({
+      id: `selected-${index}`,
+      name: recipient.name,
+      phone: recipient.phone,
+      className: recipient.class,
+      guardianLabel: recipient.guardianType
+        .replace('_', ' additional ')
+        .replace(/^./, (character) => character.toUpperCase()),
+    })),
+    ...manualNumbers.map((phone, index) => ({
+      id: `manual-${index}`,
+      name: 'Manual number',
+      phone,
+      guardianLabel: 'Manually added',
+    })),
+  ], [recipients, manualNumbers]);
+
+  // Raw numbers remain available to scheduling; immediate sending is filtered
+  // from recipientReviewItems in the confirmation dialog.
+  const allRecipients = recipientReviewItems.map((recipient) => recipient.phone);
   const characterCountColor = getCharacterCountColor(characterCount);
 
   // Filter pupils for individual selection
@@ -545,13 +567,22 @@ const BulkSMS: React.FC = () => {
 
     setPendingSmsData({
       message: message.trim(),
-      recipients: allRecipients
+      recipients: recipientReviewItems
     });
     setShowConfirmation(true);
   };
 
-  const handleConfirmSend = async () => {
+  const handleConfirmSend = async (confirmedRecipients: string[]) => {
     if (!pendingSmsData || !user?.id) return;
+
+    if (confirmedRecipients.length === 0) {
+      toast({
+        title: 'No Recipients Selected',
+        description: 'Select at least one recipient before sending.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     // Close the confirmation dialog immediately
     setShowConfirmation(false);
@@ -560,7 +591,7 @@ const BulkSMS: React.FC = () => {
     // Show immediate feedback that sending has started
     toast({
       title: 'Sending SMS...',
-      description: `Sending message to ${pendingSmsData.recipients.length} recipients`,
+      description: `Sending message to ${confirmedRecipients.length} recipients`,
     });
 
     try {
@@ -569,7 +600,7 @@ const BulkSMS: React.FC = () => {
 
       const response = await SMSService.sendBulkSMS({
         message: pendingSmsData.message,
-        recipients: pendingSmsData.recipients,
+        recipients: confirmedRecipients,
         sentBy: user.id
       });
 
@@ -583,45 +614,11 @@ const BulkSMS: React.FC = () => {
           description: response.message,
         });
       } else {
-        // Show warning for blocked MTN numbers (only when using Africa's Talking)
-        if (response.details?.mtnBlocked && response.details.mtnBlocked > 0) {
-          toast({
-            title: 'MTN Numbers Blocked',
-            description: `${response.details.mtnBlocked} MTN numbers were blocked to prevent charges for undelivered messages (Africa's Talking has delivery issues with MTN).`,
-            variant: 'destructive',
-          });
-        } else if (response.success) {
-          // Check if any MTN numbers were included in successful send
-          const mtnNumbers = pendingSmsData.recipients.filter(phone => {
-            const cleanNumber = phone.replace(/[\s\-\(\)\+]/g, '');
-            let localNumber = cleanNumber;
-            if (cleanNumber.startsWith('256')) {
-              localNumber = cleanNumber.substring(3);
-            }
-            if (localNumber.startsWith('0')) {
-              localNumber = localNumber.substring(1);
-            }
-            return localNumber.match(/^(77|78|76|39)/);
-          });
-
-          if (mtnNumbers.length > 0) {
-            toast({
-              title: 'SMS Sent Successfully (Including MTN)',
-              description: `Messages sent to ${response.recipientCount} recipients, including ${mtnNumbers.length} MTN numbers via Wiza SMS.`,
-            });
-          } else {
-            toast({
-              title: 'SMS Sent Successfully',
-              description: response.message,
-            });
-          }
-        } else {
-          toast({
-            title: 'SMS Sending Failed',
-            description: response.message,
-            variant: 'destructive',
-          });
-        }
+        toast({
+          title: 'SMS Sending Failed',
+          description: response.message,
+          variant: 'destructive',
+        });
       }
 
       // Reset form
@@ -1165,7 +1162,7 @@ const BulkSMS: React.FC = () => {
         open={showConfirmation}
         onClose={handleCancelSend}
         message={pendingSmsData?.message || ''}
-        recipientCount={pendingSmsData?.recipients.length || 0}
+        recipients={pendingSmsData?.recipients || []}
         onConfirm={handleConfirmSend}
       />
 
@@ -1188,4 +1185,4 @@ const BulkSMS: React.FC = () => {
   );
 };
 
-export default BulkSMS; 
+export default BulkSMS;

@@ -167,8 +167,8 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
       }
     };
 
-    // ── Initial fetch on mount ─────────────────────────────────────────────
-    fetchAndProcess();
+    // ── Periodic refresh setup ──────────────────────────────────────────────
+    // React Query owns the cold initial fetch; this effect handles later refreshes.
 
     // ── Poll every 2 minutes ───────────────────────────────────────────────
     const interval = setInterval(fetchAndProcess, 2 * 60 * 1000);

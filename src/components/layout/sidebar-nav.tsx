@@ -84,7 +84,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
   function checkItemPermission(href: string): boolean {
     if (href.startsWith('http://') || href.startsWith('https://')) return true;
 
-    if (href === '/settings/firebase-usage') return user?.role === 'Admin';
+    if (href === '/settings/firebase-usage' || href === '/settings/deployment') return user?.role === 'Admin';
     const routePermission = getRoutePagePermission(href);
     if (routePermission) {
       return GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId);

@@ -168,7 +168,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       return true;
     }
 
-    if (href === '/settings/firebase-usage') return user?.role === 'Admin';
+    if (href === '/settings/firebase-usage' || href === '/settings/deployment') return user?.role === 'Admin';
 
     const routePermission = getRoutePagePermission(href);
     if (routePermission) {

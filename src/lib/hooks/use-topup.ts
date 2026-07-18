@@ -65,7 +65,7 @@ export const useTopUp = (userId?: string) => {
       console.log('Top-up processed successfully:', data);
       
       // Invalidate account data to refresh balance
-      queryClient.invalidateQueries({ queryKey: ['africas-talking-account'] });
+      queryClient.invalidateQueries({ queryKey: ['wiza-sms-account'] });
       
       // If this was an auto top-up, refresh the config
       if (variables.metadata?.description?.includes('Auto top-up')) {
@@ -116,7 +116,7 @@ export const useTopUp = (userId?: string) => {
       
       if (data.triggered) {
         // Invalidate account data to refresh balance
-        queryClient.invalidateQueries({ queryKey: ['africas-talking-account'] });
+        queryClient.invalidateQueries({ queryKey: ['wiza-sms-account'] });
         // Refresh auto top-up config to update counters
         queryClient.invalidateQueries({ queryKey: ['auto-topup-config', userId] });
       }
@@ -165,7 +165,7 @@ export const useTopUp = (userId?: string) => {
   // Invalidate all top-up related data
   const invalidateTopUpData = () => {
     queryClient.invalidateQueries({ queryKey: ['auto-topup-config'] });
-    queryClient.invalidateQueries({ queryKey: ['africas-talking-account'] });
+    queryClient.invalidateQueries({ queryKey: ['wiza-sms-account'] });
   };
 
   return {

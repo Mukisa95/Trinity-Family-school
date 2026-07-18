@@ -33,6 +33,7 @@ export interface SMSProvider {
 }
 
 const SMS_PROVIDERS_COLLECTION = 'smsProviders';
+const ACTIVE_SMS_PROVIDER_NAME = 'Wiza SMS';
 
 export class SMSProvidersService {
   /**
@@ -55,7 +56,7 @@ export class SMSProvidersService {
         } as SMSProvider);
       });
       
-      return providers;
+      return providers.filter(provider => provider.name === ACTIVE_SMS_PROVIDER_NAME);
     } catch (error) {
       console.error('Error fetching SMS providers:', error);
       throw new Error('Failed to fetch SMS providers');
@@ -67,23 +68,8 @@ export class SMSProvidersService {
    */
   static async getActiveProvider(): Promise<SMSProvider | null> {
     try {
-      const q = query(
-        collection(db, SMS_PROVIDERS_COLLECTION),
-        where('isActive', '==', true),
-        where('isDefault', '==', true)
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        return null;
-      }
-      
-      const doc = querySnapshot.docs[0];
-      return {
-        id: doc.id,
-        ...doc.data()
-      } as SMSProvider;
+      const providers = await this.getProviders();
+      return providers.find(provider => provider.name === ACTIVE_SMS_PROVIDER_NAME) || null;
     } catch (error) {
       console.error('Error fetching active SMS provider:', error);
       throw new Error('Failed to fetch active SMS provider');
@@ -227,53 +213,8 @@ export class SMSProvidersService {
     try {
       const existingProviders = await this.getProviders();
       
-      if (existingProviders.length === 0) {
+      if (!existingProviders.some(provider => provider.name === ACTIVE_SMS_PROVIDER_NAME)) {
         const defaultProviders = [
-          {
-            name: 'Africa\'s Talking',
-            description: 'Leading African SMS gateway with excellent delivery rates and competitive pricing',
-            apiKey: 'atsk_f6441bd8aa6d905da4199c5d824c45b46b81185c8f4663fa3b5c315a3cceb204687b3617',
-            username: 'trinityfsch',
-            baseUrl: 'https://api.africastalking.com/version1',
-            isActive: true,
-            isDefault: true,
-            features: {
-              bulkSMS: true,
-              deliveryReports: true,
-              costTracking: true,
-              webhooks: true,
-            }
-          },
-          {
-            name: 'Twilio',
-            description: 'Global SMS platform with advanced features and worldwide coverage',
-            apiKey: '',
-            apiSecret: '',
-            baseUrl: 'https://api.twilio.com/2010-04-01',
-            isActive: false,
-            isDefault: false,
-            features: {
-              bulkSMS: true,
-              deliveryReports: true,
-              costTracking: true,
-              webhooks: true,
-            }
-          },
-                     {
-             name: 'Vonage (Nexmo)',
-             description: 'Enterprise-grade SMS platform with advanced analytics',
-             apiKey: 'your_vonage_api_key',
-             apiSecret: 'your_vonage_api_secret',
-             baseUrl: 'https://rest.nexmo.com',
-             isActive: false,
-             isDefault: false,
-             features: {
-               bulkSMS: true,
-               deliveryReports: true,
-               costTracking: true,
-               webhooks: true,
-             }
-           },
            {
              name: 'Wiza SMS',
              description: 'Ugandan SMS gateway with local expertise and competitive pricing',
@@ -282,8 +223,8 @@ export class SMSProvidersService {
              username: 'your_wiza_username',
              senderId: 'TRINITY',
              baseUrl: 'https://wizasms.ug/API/V1',
-             isActive: false,
-             isDefault: false,
+             isActive: true,
+             isDefault: true,
              features: {
                bulkSMS: true,
                deliveryReports: false,

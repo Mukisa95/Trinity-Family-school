@@ -11,8 +11,7 @@ interface AccountData {
 }
 
 /**
- * Unified Account Balance Service
- * Only Wiza SMS is supported. Africa's Talking has been removed.
+ * Wiza SMS account balance service.
  */
 export class UnifiedAccountBalanceService {
   static async getAccountData(): Promise<AccountData> {

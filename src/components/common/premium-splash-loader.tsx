@@ -5,8 +5,10 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const SPLASH_DURATION_MS = 3400;
-const EXIT_START_MS      = 2800;
+const MIN_SPLASH_MS      = 250;
+const MAX_SPLASH_MS      = 1200;
+const EXIT_ANIMATION_MS  = 220;
+const APP_READY_EVENT    = "trinity:app-ready";
 const SPLASH_SHOWN_KEY   = "trinity_splash_shown";
 
 // ─── Easing (plain arrays — work in every framer-motion version) ──────────────
@@ -143,11 +145,51 @@ export function PremiumSplashLoader() {
 
   const runSequence = useCallback(() => {
     setVisible(true);
-    // Small delay so CSS is flushed before animation starts
+    performance.mark?.("trinity:splash-visible");
+
+    let minimumElapsed = false;
+    let appReady = document.documentElement.dataset.trinityAppReady === "true";
+    let exitStarted = false;
+    let doneTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const beginExit = () => {
+      if (exitStarted) return;
+      exitStarted = true;
+      setExiting(true);
+      performance.mark?.("trinity:splash-exit");
+      doneTimer = setTimeout(() => {
+        setVisible(false);
+        performance.mark?.("trinity:splash-hidden");
+      }, EXIT_ANIMATION_MS);
+    };
+
+    const exitWhenReady = () => {
+      if (minimumElapsed && appReady) beginExit();
+    };
+
+    const handleAppReady = () => {
+      appReady = true;
+      exitWhenReady();
+    };
+
+    window.addEventListener(APP_READY_EVENT, handleAppReady);
+
+    // Small delay so CSS is flushed before animation starts.
     const readyTimer = setTimeout(() => setReady(true), 50);
-    const exitTimer  = setTimeout(() => setExiting(true),  EXIT_START_MS);
-    const doneTimer  = setTimeout(() => setVisible(false), SPLASH_DURATION_MS);
-    return () => { clearTimeout(readyTimer); clearTimeout(exitTimer); clearTimeout(doneTimer); };
+    const minimumTimer = setTimeout(() => {
+      minimumElapsed = true;
+      exitWhenReady();
+    }, MIN_SPLASH_MS);
+    // Safety ceiling: a failed readiness signal must never trap the user.
+    const maximumTimer = setTimeout(beginExit, MAX_SPLASH_MS);
+
+    return () => {
+      window.removeEventListener(APP_READY_EVENT, handleAppReady);
+      clearTimeout(readyTimer);
+      clearTimeout(minimumTimer);
+      clearTimeout(maximumTimer);
+      if (doneTimer) clearTimeout(doneTimer);
+    };
   }, []);
 
   useEffect(() => {

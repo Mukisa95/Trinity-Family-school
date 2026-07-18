@@ -35,6 +35,12 @@ export function useClasses() {
         return currentCachedData;
       }
 
+      // Let GlobalDataPreloader hydrate the shared listener cache before
+      // issuing a fallback read from this hook.
+      await new Promise(resolve => setTimeout(resolve, 120));
+      const preloadedData = queryClient.getQueryData<Class[]>(classesKeys.lists());
+      if (preloadedData && preloadedData.length > 0) return preloadedData;
+
       if (process.env.NODE_ENV === 'development') {
         console.log('📚 Loading classes from server...');
       }
@@ -227,4 +233,4 @@ export function useDeleteClass() {
       queryClient.invalidateQueries({ queryKey: classesKeys.all });
     },
   });
-} 
+}
