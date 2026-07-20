@@ -172,6 +172,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [mounted, setMounted] = useState(false);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
   const mobileSearchButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileSearchResultsRef = useRef<HTMLDivElement>(null);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const prevSearchTermRef = useRef('');
 
@@ -501,7 +502,13 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
         !!element && (eventPath.includes(element) || element.contains(event.target as Node))
       );
 
-      if (!isInside(mobileSearchRef.current) && !isInside(mobileSearchButtonRef.current)) {
+      // Keep mobile search open when touching the inline field, the toggle button,
+      // OR the fixed results/no-results dropdown (needed for scroll to work).
+      if (
+        !isInside(mobileSearchRef.current) &&
+        !isInside(mobileSearchButtonRef.current) &&
+        !isInside(mobileSearchResultsRef.current)
+      ) {
         setShowMobileSearch(false);
       }
       if (!isInside(desktopSearchRef.current)) {
@@ -676,6 +683,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     <AnimatePresence>
                       {showResults && searchResults.length > 0 && (
                         <motion.div
+                          ref={mobileSearchResultsRef}
                           initial={{ opacity: 0, y: 6, scale: 0.97 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.97 }}
