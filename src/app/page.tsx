@@ -276,30 +276,30 @@ const StatCard = ({
       <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
 
       {/* Icon - Positioned in top-right corner */}
-      <div className="absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
+      <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
         style={{
           backgroundColor: color.bg,
           border: '1px solid rgba(255, 255, 255, 0.4)'
         }}
       >
-        <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${color.text}`} />
+        <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${color.text}`} />
       </div>
 
-      <div className="relative p-2 sm:p-3 pr-9 sm:pr-11 h-full flex flex-col justify-center min-h-[68px] sm:min-h-[76px] z-10">
+      <div className="relative p-1.5 sm:p-3 pr-8 sm:pr-11 h-full flex flex-col justify-center min-h-[52px] sm:min-h-[76px] z-10">
         <div className="flex-1 min-w-0">
-          <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0.5 sm:mb-1 truncate`}>
+          <p className={`text-[9px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 truncate`}>
             {title}
           </p>
-          <div className="min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center">
+          <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
             {isLoading ? (
-              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+              <Loader2 className="h-3 w-3 sm:h-5 sm:w-5 animate-spin" />
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
               >
-                <h3 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
+                <h3 className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
                   <CountUp end={value} />
                 </h3>
               </motion.div>
@@ -726,13 +726,13 @@ const ExpandableStaffCard = ({
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Icon - Positioned in top-right corner */}
-        <div className="absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
+        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
           style={{
             backgroundColor: color.bg,
             border: '1px solid rgba(255, 255, 255, 0.4)'
           }}
         >
-          <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${color.text}`} />
+          <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${color.text}`} />
         </div>
 
         {/* Expand/Collapse Icon - Positioned at bottom right */}
@@ -746,16 +746,16 @@ const ExpandableStaffCard = ({
 
         <div className="relative z-10">
           <div
-            className="p-2 sm:p-3 pr-9 sm:pr-11 flex flex-col justify-center min-h-[68px] sm:min-h-[76px]"
+            className="p-1.5 sm:p-3 pr-8 sm:pr-11 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
-              <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0.5 sm:mb-1 truncate`}>
+              <p className={`text-[9px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 truncate`}>
                 {title}
               </p>
-              <div className="min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center">
+              <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                  <Loader2 className="h-3 w-3 sm:h-5 sm:w-5 animate-spin" />
                 ) : (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -763,7 +763,7 @@ const ExpandableStaffCard = ({
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex items-baseline space-x-1">
-                      <span className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
+                      <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
                         <CountUp end={value} />
                       </span>
                     </div>
@@ -1131,13 +1131,13 @@ const ExpandableAttendanceCard = ({
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Icon - Positioned in top-right corner */}
-        <div className="absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
+        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
           style={{
             backgroundColor: currentColor.bg,
             border: '1px solid rgba(255, 255, 255, 0.4)'
           }}
         >
-          <CurrentIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${currentColor.text}`} />
+          <CurrentIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${currentColor.text}`} />
         </div>
 
         {/* Expand/Collapse Icon - Positioned at bottom right */}
@@ -1152,7 +1152,7 @@ const ExpandableAttendanceCard = ({
         <div className="relative z-10">
           {/* Card Content - Always Visible */}
           <div
-            className="p-2 sm:p-3 pr-9 sm:pr-11 flex flex-col justify-center min-h-[68px] sm:min-h-[76px]"
+            className="p-1.5 sm:p-3 pr-8 sm:pr-11 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
@@ -1163,14 +1163,14 @@ const ExpandableAttendanceCard = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 5 }}
                   transition={{ duration: 0.2 }}
-                  className={`text-[10px] sm:text-xs font-bold uppercase tracking-tight ${currentColor.text} mb-0.5 sm:mb-1 truncate`}
+                  className={`text-[9px] sm:text-xs font-bold uppercase tracking-tight ${currentColor.text} mb-0 sm:mb-1 truncate`}
                 >
                   {currentTitle}
                 </motion.p>
               </AnimatePresence>
-              <div className="min-h-[1.5rem] sm:min-h-[1.75rem] flex items-center">
+              <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
+                  <Loader2 className="h-3 w-3 sm:h-5 sm:w-5 animate-spin" />
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, scale: 1.2 }}
@@ -1190,7 +1190,7 @@ const ExpandableAttendanceCard = ({
                         transition={{ duration: 0.25 }}
                         className="flex items-baseline space-x-1"
                       >
-                        <span className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
+                        <span className="text-sm sm:text-xl md:text-2xl font-black text-gray-900 leading-none tracking-tight">
                           <CountUp end={currentValue} />
                         </span>
                       </motion.div>
@@ -2591,7 +2591,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Statistics Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <motion.div variants={itemVariants} className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
           {canViewTotalPupils && (
             <StatCard
               title="Total Pupils"

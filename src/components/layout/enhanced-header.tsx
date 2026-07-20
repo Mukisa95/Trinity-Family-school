@@ -567,7 +567,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.88, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="flex-1 min-w-0 h-full flex items-center justify-center overflow-hidden px-1.5 sm:px-2 lg:px-4"
+                  className="flex-1 min-w-0 h-full flex items-center justify-center overflow-hidden px-1 sm:px-2 lg:px-4"
                 >
                   <motion.div
                     whileHover={{
@@ -576,7 +576,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                     }}
                     whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="w-full max-w-[680px] h-[34px] sm:h-[36px] px-2.5 sm:px-4 flex items-center justify-center gap-1.5 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-blue-50 via-white to-blue-50 cursor-pointer border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer"
+                    className="w-full max-w-[680px] h-[30px] sm:h-[36px] px-2 sm:px-4 flex items-center justify-center gap-1 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-blue-50 via-white to-blue-50 cursor-pointer border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer"
                     style={{
                       boxShadow: "0 2px 6px rgba(59, 130, 246, 0.05)",
                       willChange: "transform",
@@ -598,8 +598,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
                       >
                         <span
-                          className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide truncate"
-                          style={{ fontSize: "clamp(10px, 1.8vw, 13px)" }}
+                          className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block"
+                          style={{ fontSize: "10px" }}
                         >
                           {currentMessage}
                         </span>
@@ -680,8 +680,8 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.97 }}
                           transition={{ duration: 0.18 }}
-                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 overflow-hidden z-[9999] max-h-56 overflow-y-auto touch-pan-y"
-                          style={{ top: '48px', left: '10vw', width: '80vw' }}
+                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 z-[9999] overflow-y-auto touch-pan-y"
+                          style={{ top: '48px', left: '10vw', width: '80vw', maxHeight: '60vh' }}
                         >
                           {searchResults.map((pupil) => (
                             <div
@@ -705,7 +705,6 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                   <p className="text-sm font-medium text-gray-900 truncate">
                                     {formatPupilDisplayName(pupil)}
                                   </p>
-                                  <p className="text-xs text-gray-400">{pupil.admissionNumber}</p>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                                   <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap border border-blue-100">
