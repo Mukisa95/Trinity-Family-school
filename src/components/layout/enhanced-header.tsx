@@ -171,6 +171,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [windowWidth, setWindowWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchButtonRef = useRef<HTMLButtonElement>(null);
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const prevSearchTermRef = useRef('');
 
@@ -461,9 +462,17 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   };
 
   // Handle pupil selection
-  const handlePupilSelect = (pupilId: string) => {
+  const handlePupilSelect = (pupilId: string, navigateImmediately = false) => {
     setShowResults(false);
     setShowMobileSearch(false);
+
+    // On touch screens the focused search input can move the page while the
+    // on-screen keyboard closes. Navigate before that layout change has a
+    // chance to swallow the completed tap.
+    if (navigateImmediately) {
+      router.push(`/pupil-detail?id=${pupilId}`);
+      return;
+    }
 
     // Add zoom animation
     const element = document.getElementById('dashboard-content');
@@ -484,19 +493,24 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     setShowMobileSearch(false);
   }, [pathname]);
 
-  // Handle click outside for mobile and desktop search
+  // Handle interactions outside the mobile and desktop search surfaces.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)) {
+    const handlePointerDownOutside = (event: PointerEvent) => {
+      const eventPath = event.composedPath();
+      const isInside = (element: HTMLElement | null) => (
+        !!element && (eventPath.includes(element) || element.contains(event.target as Node))
+      );
+
+      if (!isInside(mobileSearchRef.current) && !isInside(mobileSearchButtonRef.current)) {
         setShowMobileSearch(false);
       }
-      if (desktopSearchRef.current && !desktopSearchRef.current.contains(event.target as Node)) {
+      if (!isInside(desktopSearchRef.current)) {
         setShowResults(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handlePointerDownOutside, { passive: true });
+    return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
   }, []);
 
 
@@ -544,48 +558,206 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
             </div>
 
             {/* Center: Dynamic School Info / Message Pill — fully fluid */}
-            <div className="flex-1 min-w-0 h-full flex items-center justify-center overflow-hidden px-1.5 sm:px-2 lg:px-4">
-              <motion.div
-                whileHover={{
-                  scale: 1.015,
-                  boxShadow: "0 4px 10px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.18)"
-                }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className="w-full max-w-[680px] h-[34px] sm:h-[36px] px-2.5 sm:px-4 flex items-center justify-center gap-1.5 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-blue-50 via-white to-blue-50 cursor-pointer border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer"
-                style={{
-                  boxShadow: "0 2px 6px rgba(59, 130, 246, 0.05)",
-                  willChange: "transform",
-                }}
-                onClick={handleMessageClick}
-              >
-                {/* Sparkle — only on sm+ */}
-                <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70" />
-
-                {/* Animated message text */}
-                <AnimatePresence mode="wait">
+            {/* On mobile, collapses when search is active to give room to the inline search bar */}
+            <AnimatePresence mode="wait">
+              {!showMobileSearch && (
+                <motion.div
+                  key="motto-pill"
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.88, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="flex-1 min-w-0 h-full flex items-center justify-center overflow-hidden px-1.5 sm:px-2 lg:px-4"
+                >
                   <motion.div
-                    key={currentMessage}
-                    variants={messageVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    style={{ willChange: "transform, opacity" }}
-                    className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
+                    whileHover={{
+                      scale: 1.015,
+                      boxShadow: "0 4px 10px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.18)"
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="w-full max-w-[680px] h-[34px] sm:h-[36px] px-2.5 sm:px-4 flex items-center justify-center gap-1.5 sm:gap-2 font-semibold rounded-full bg-gradient-to-r from-blue-50 via-white to-blue-50 cursor-pointer border border-blue-200/60 shadow-sm relative overflow-hidden header-shimmer"
+                    style={{
+                      boxShadow: "0 2px 6px rgba(59, 130, 246, 0.05)",
+                      willChange: "transform",
+                    }}
+                    onClick={handleMessageClick}
                   >
-                    <span
-                      className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide truncate"
-                      style={{ fontSize: "clamp(10px, 1.8vw, 13px)" }}
-                    >
-                      {currentMessage}
-                    </span>
-                  </motion.div>
-                </AnimatePresence>
+                    {/* Sparkle — only on sm+ */}
+                    <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70" />
 
-                {/* Sparkle — only on sm+ */}
-                <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70" />
-              </motion.div>
-            </div>
+                    {/* Animated message text */}
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentMessage}
+                        variants={messageVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        style={{ willChange: "transform, opacity" }}
+                        className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
+                      >
+                        <span
+                          className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide truncate"
+                          style={{ fontSize: "clamp(10px, 1.8vw, 13px)" }}
+                        >
+                          {currentMessage}
+                        </span>
+                      </motion.div>
+                    </AnimatePresence>
+
+                    {/* Sparkle — only on sm+ */}
+                    <Sparkle size={12} weight="fill" className="hidden sm:block flex-shrink-0 text-blue-500/70" />
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {/* Mobile Inline Search Field — slides into center of topbar when active */}
+              {showMobileSearch && (
+                <motion.div
+                  key="mobile-inline-search"
+                  ref={mobileSearchRef}
+                  initial={{ opacity: 0, scaleX: 0.7 }}
+                  animate={{ opacity: 1, scaleX: 1 }}
+                  exit={{ opacity: 0, scaleX: 0.7, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  style={{ originX: 0 }}
+                  className="flex-1 min-w-0 h-full flex items-center px-1 md:hidden relative"
+                >
+                  <div className="relative w-full">
+                    {/* Search icon inside the inline field */}
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                      <MagnifyingGlass size={15} className="text-blue-500" weight="duotone" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search pupils..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-16 h-[32px] text-xs bg-white rounded-full border border-blue-300 focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm"
+                      autoFocus
+                    />
+                    {/* Right-side controls */}
+                    <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1 z-10">
+                      {isSearching ? (
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 border border-blue-500 border-t-transparent" />
+                      ) : (
+                        <>
+                          {searchTerm && searchResults.length > 0 && (
+                            <button
+                              onClick={() => setShowResults(!showResults)}
+                              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-all ${
+                                showResults
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-emerald-100 text-emerald-700 shadow-sm'
+                              }`}
+                              type="button"
+                            >
+                              <span>{searchResults.length}</span>
+                              <CaretDown size={10} weight="bold" className={`transition-transform duration-200 ${showResults ? 'rotate-180' : ''}`} />
+                            </button>
+                          )}
+                          {searchTerm && (
+                            <button
+                              onClick={() => { setSearchTerm(''); setShowResults(false); }}
+                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                              type="button"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Inline search results dropdown — anchored to this bar */}
+                    <AnimatePresence>
+                      {showResults && searchResults.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                          transition={{ duration: 0.18 }}
+                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 overflow-hidden z-[9999] max-h-56 overflow-y-auto touch-pan-y"
+                          style={{ top: '48px', left: '10vw', width: '80vw' }}
+                        >
+                          {searchResults.map((pupil) => (
+                            <div
+                              key={pupil.id}
+                              onPointerUp={(event) => {
+                                if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                                  event.stopPropagation();
+                                  handlePupilSelect(pupil.id, true);
+                                }
+                              }}
+                              onClick={(event) => {
+                                const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                                if (pointerType !== 'touch' && pointerType !== 'pen') {
+                                  handlePupilSelect(pupil.id, true);
+                                }
+                              }}
+                              className="px-3 py-2.5 border-b last:border-b-0 hover:bg-blue-50 active:bg-blue-100 cursor-pointer select-none"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {formatPupilDisplayName(pupil)}
+                                  </p>
+                                  <p className="text-xs text-gray-400">{pupil.admissionNumber}</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                                  <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap border border-blue-100">
+                                    {(() => { const c = classes?.find((cl: any) => cl.id === pupil.classId); return c ? c.code : (pupil.classCode || pupil.className || pupil.classId); })()}
+                                  </span>
+                                  <button
+                                    onPointerUp={(event) => {
+                                      if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                                        event.stopPropagation();
+                                        setShowResults(false);
+                                        setShowMobileSearch(false);
+                                        router.push(`/fees/collect/${pupil.id}`);
+                                      }
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const pt = (e.nativeEvent as PointerEvent).pointerType;
+                                      if (pt !== 'touch' && pt !== 'pen') {
+                                        setShowResults(false);
+                                        setShowMobileSearch(false);
+                                        router.push(`/fees/collect/${pupil.id}`);
+                                      }
+                                    }}
+                                    className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all"
+                                    title="View Fees"
+                                    type="button"
+                                  >
+                                    <CurrencyDollar size={13} weight="duotone" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                      {showResults && searchTerm && searchResults.length === 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="fixed bg-white rounded-xl shadow-xl border border-blue-100 p-3 z-[9999]"
+                          style={{ top: '48px', left: '10vw', width: '80vw' }}
+                        >
+                          <p className="text-gray-400 text-center text-xs">No pupils found for "{searchTerm}"</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Right side: Search, DateTime */}
             <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-3 transition-all duration-300 flex-shrink-0">
@@ -962,17 +1134,52 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                 </div>
               )}
 
-              {/* Mobile Search Button — only on small screens */}
+              {/* Mobile Search Toggle Button — only on small screens */}
               {user?.role !== 'Parent' && (
                 <motion.button
-                  onClick={() => setShowMobileSearch(!showMobileSearch)}
+                  ref={mobileSearchButtonRef}
+                  onClick={() => {
+                    setShowMobileSearch(!showMobileSearch);
+                    if (showMobileSearch) {
+                      // closing — clear search state
+                      setSearchTerm('');
+                      setShowResults(false);
+                    }
+                  }}
                   whileHover={buttonHover}
                   whileTap={buttonTap}
                   transition={springConfig}
-                  className="md:hidden h-8 w-8 bg-white text-gray-600 border border-gray-200/60 hover:text-blue-600 hover:bg-blue-50/80 flex items-center justify-center rounded-full shadow-sm"
+                  className={`md:hidden h-8 w-8 flex items-center justify-center rounded-full shadow-sm border transition-all duration-200 ${
+                    showMobileSearch
+                      ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                      : 'bg-white text-gray-600 border-gray-200/60 hover:text-blue-600 hover:bg-blue-50/80'
+                  }`}
                   type="button"
+                  aria-label={showMobileSearch ? 'Close search' : 'Open search'}
                 >
-                  <MagnifyingGlass size={16} weight="duotone" />
+                  <AnimatePresence mode="wait" initial={false}>
+                    {showMobileSearch ? (
+                      <motion.span
+                        key="close"
+                        initial={{ opacity: 0, rotate: -90 }}
+                        animate={{ opacity: 1, rotate: 0 }}
+                        exit={{ opacity: 0, rotate: 90 }}
+                        transition={{ duration: 0.18 }}
+                      >
+                        <X size={16} weight="bold" />
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="search"
+                        initial={{ opacity: 0, rotate: 90 }}
+                        animate={{ opacity: 1, rotate: 0 }}
+                        exit={{ opacity: 0, rotate: -90 }}
+                        transition={{ duration: 0.18 }}
+                      >
+                        <MagnifyingGlass size={16} weight="duotone" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
               )}
 
@@ -1008,112 +1215,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
           </div>
         </div>
 
-        {/* Mobile Search Overlay - Hidden for Parent users */}
-        {user?.role !== 'Parent' && showMobileSearch && (
-          <motion.div
-            ref={mobileSearchRef}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-blue-100 p-3 z-50"
-          >
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlass size={18} className="text-blue-500" weight="duotone" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search pupils..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-8 py-2 text-sm bg-white rounded-full border border-blue-200 focus:ring-2 focus:ring-blue-400/50 focus:outline-none focus:border-blue-400"
-                autoFocus
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
-                {isSearching ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border border-blue-500 border-t-transparent" />
-                ) : (
-                  <>
-                    {searchTerm && searchResults.length > 0 && (
-                      <button
-                        onClick={() => setShowResults(!showResults)}
-                        className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold transition-all ${
-                          showResults
-                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                            : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-sm'
-                        }`}
-                        title={showResults ? "Collapse search results" : `Expand search results (${searchResults.length})`}
-                        type="button"
-                      >
-                        <span>{searchResults.length}</span>
-                        <CaretDown size={12} weight="bold" className={`transition-transform duration-200 ${showResults ? 'rotate-180' : ''}`} />
-                      </button>
-                    )}
-                    {searchTerm && (
-                      <button
-                        onClick={() => {
-                          setSearchTerm('');
-                          setShowResults(false);
-                        }}
-                        className="text-gray-400 hover:text-red-500 transition-colors duration-200"
-                        type="button"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile Search Results */}
-            {showResults && searchResults.length > 0 && (
-              <div className="mt-2 bg-white rounded-lg shadow-lg border border-slate-200 max-h-48 overflow-y-auto">
-                {searchResults.map((pupil) => (
-                  <div
-                    key={pupil.id}
-                    onClick={() => handlePupilSelect(pupil.id)}
-                    className="px-3 py-2 border-b last:border-b-0 hover:bg-blue-50 cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {formatPupilDisplayName(pupil)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                          {pupil.classCode || pupil.className || pupil.classId}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowResults(false);
-                            setShowMobileSearch(false);
-                            router.push(`/fees/collect/${pupil.id}`);
-                          }}
-                          className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
-                          title="View Fees"
-                          type="button"
-                        >
-                          <CurrencyDollar size={14} weight="duotone" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {showResults && searchTerm && searchResults.length === 0 && (
-              <div className="mt-2 bg-white rounded-lg shadow-lg border border-slate-200 p-3">
-                <p className="text-gray-500 text-center text-sm">No pupils found</p>
-              </div>
-            )}
-          </motion.div>
-        )}
+        {/* Mobile Search Overlay removed — search is now inline in the topbar */}
       </header>
     </>
   );
