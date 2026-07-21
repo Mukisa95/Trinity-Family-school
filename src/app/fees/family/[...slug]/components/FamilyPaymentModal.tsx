@@ -596,7 +596,7 @@ export function FamilyPaymentModal({
               </>
             ) : (
               <>
-                <CurrencyDollar className="w-4 h-4" />
+                <span className="font-bold text-xs">Shs.</span>
                 <span>Process Payment</span>
               </>
             )}

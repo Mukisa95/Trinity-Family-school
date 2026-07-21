@@ -747,12 +747,10 @@ export default function FeesCollectionPage() {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      maximumFractionDigits: 0,
-      minimumFractionDigits: 0
-    }).format(amount);
+    return `Shs. ${new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount)}`;
   };
 
   // Format date

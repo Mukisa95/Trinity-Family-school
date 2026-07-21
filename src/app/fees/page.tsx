@@ -1176,7 +1176,7 @@ export function FeesManagementPageContent() {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
-                        <DollarSign className="h-4 w-4" />
+                        <span className="font-bold text-xs">Shs.</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -1250,7 +1250,7 @@ export function FeesManagementPageContent() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                      <DollarSign className="h-4 w-4" />
+                      <span className="font-bold text-xs">Shs.</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -1359,7 +1359,7 @@ export function FeesManagementPageContent() {
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
                                 <span className="sr-only">Open menu</span>
-                                <DollarSign className="h-4 w-4" />
+                                <span className="font-bold text-xs">Shs.</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -1526,7 +1526,7 @@ export function FeesManagementPageContent() {
       <GlassSummaryBar
         left={
           <div className="flex flex-wrap items-center gap-2">
-            <DollarSign className="h-4 w-4 text-indigo-500" />
+            <span className="font-bold text-xs text-indigo-500">Shs.</span>
             <span className="text-xs sm:text-sm font-black tracking-wider text-indigo-900 uppercase mr-2">
               Accounts Overview
             </span>

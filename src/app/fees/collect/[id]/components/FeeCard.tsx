@@ -457,7 +457,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
             </>
           ) : (
             <>
-              <CurrencyCircleDollar className="w-4 h-4 mr-1.5" />
+              <span className="font-bold text-[11px] mr-1.5">Shs.</span>
               <span className="hidden sm:inline">{totalPaid > 0 ? 'Make Another Payment' : 'Make Payment'}</span>
               <span className="sm:hidden">{totalPaid > 0 ? 'Pay More' : 'Pay'}</span>
             </>

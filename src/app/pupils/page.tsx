@@ -3324,7 +3324,7 @@ function PupilsContent() {
                         <span>FAMILY</span>
                       </span>
                     </th>
-                    <th className="hidden px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider sm:table-cell">
+                    <th className="px-2 sm:px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                       <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
                         <span>FEES</span>
                       </span>
@@ -3680,7 +3680,7 @@ function PupilsContent() {
                               );
                             })()}
                           </td>
-                          <td className="hidden sm:table-cell px-4 py-3">
+                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center sm:text-left">
                             {(() => {
                               const siblings = getSiblings(pupil);
                               const hasSiblings = siblings.length > 0;
@@ -3693,7 +3693,7 @@ function PupilsContent() {
                                     title="View Family / Sibling Fees Options"
                                     aria-label="View Family / Sibling Fees Options"
                                   >
-                                    <DollarSign className="h-4 w-4 transition-transform duration-200 group-hover/fees:scale-110 text-teal-600" />
+                                    <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110 text-teal-600">Shs.</span>
                                   </button>
                                 );
                               }
@@ -3705,7 +3705,7 @@ function PupilsContent() {
                                   title="Collect Fees"
                                   aria-label="Collect Fees"
                                 >
-                                  <DollarSign className="h-4 w-4 transition-transform duration-200 group-hover/fees:scale-110" />
+                                  <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110">Shs.</span>
                                 </Link>
                               );
                             })()}
@@ -3732,7 +3732,7 @@ function PupilsContent() {
                                     window.location.href = `/fees/collect/${pupil.id}`;
                                   }
                                 }}>
-                                  <DollarSign className="mr-2 h-4 w-4 text-emerald-600" />
+                                  <span className="mr-2 text-[11px] font-bold text-emerald-600 pt-0.5">Shs.</span>
                                   Collect Fees
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEditName(pupil)}>
@@ -5170,7 +5170,7 @@ function PupilsContent() {
                         </p>
                       </div>
                     </div>
-                    <Receipt className="h-4 w-4 text-indigo-500 group-hover:text-indigo-700 transition-colors" />
+                    <span className="font-bold text-xs text-indigo-500 group-hover:text-indigo-700 transition-colors">Shs.</span>
                   </Link>
                 )}
 
@@ -5201,7 +5201,7 @@ function PupilsContent() {
                         </p>
                       </div>
                     </div>
-                    <Receipt className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 transition-colors" />
+                    <span className="font-bold text-xs text-muted-foreground group-hover:text-emerald-600 transition-colors">Shs.</span>
                   </Link>
                 ))}
               </div>

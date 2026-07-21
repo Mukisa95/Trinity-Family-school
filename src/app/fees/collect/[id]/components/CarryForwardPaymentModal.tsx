@@ -175,7 +175,7 @@ export function CarryForwardPaymentModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CurrencyCircleDollar className="w-5 h-5 text-indigo-600" />
+            <span className="font-bold text-sm text-indigo-600">Shs.</span>
             Record Carry Forward Payment
           </DialogTitle>
         </DialogHeader>

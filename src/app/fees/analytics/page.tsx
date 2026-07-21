@@ -459,10 +459,10 @@ export default function CollectionAnalyticsPage() {
     return map;
   }, [allTermPayments]);
 
-  const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
+  const formatCurrency = (amount: number) => `Shs. ${amount.toLocaleString()}`;
   const formatShort = (amount: number) => {
-    if (amount >= 1000000) return `UGX ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `UGX ${(amount / 1000).toFixed(1)}K`;
+    if (amount >= 1000000) return `Shs. ${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `Shs. ${(amount / 1000).toFixed(1)}K`;
     return formatCurrency(amount);
   };
 
@@ -1209,9 +1209,9 @@ export default function CollectionAnalyticsPage() {
                         <span className="text-red-600" title="Not Paid">✗{isDataReady ? stats.unpaidPupils : 0}</span>
                       </div>
                     </td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-gray-900">{isDataReady ? formatCurrency(stats.totalExpected) : 'UGX 0'}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-green-600">{isDataReady ? formatCurrency(stats.totalCollected) : 'UGX 0'}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-red-600">{isDataReady ? formatCurrency(stats.outstanding) : 'UGX 0'}</td>
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-gray-900">{isDataReady ? formatCurrency(stats.totalExpected) : 'Shs. 0'}</td>
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-green-600">{isDataReady ? formatCurrency(stats.totalCollected) : 'Shs. 0'}</td>
+                    <td className="px-2 md:px-6 py-3 md:py-4 text-right text-xs md:text-sm text-red-600">{isDataReady ? formatCurrency(stats.outstanding) : 'Shs. 0'}</td>
                   </tr>
                 </tfoot>
               </table>

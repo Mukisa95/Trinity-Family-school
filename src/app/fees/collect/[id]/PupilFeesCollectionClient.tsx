@@ -1766,7 +1766,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     if (pupilFees.length === 0 && schoolPayGeneralPayments.length === 0) {
       return (
         <div className="text-center py-8">
-          <CurrencyCircleDollar className="mx-auto h-10 w-10 text-gray-400" />
+          <div className="mx-auto h-10 w-10 text-gray-400 flex items-center justify-center font-bold text-2xl">Shs.</div>
           <h3 className="mt-2 text-sm font-medium text-gray-900">No fees found</h3>
           <p className="mt-1 text-sm text-gray-500">
             There are no applicable fees configured for this term and class.
@@ -2066,7 +2066,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             <GlassActionButton
               label="Pay"
               tone="emerald"
-              icon={<CurrencyCircleDollar className="w-4 h-4" weight="bold" />}
+              icon={<span className="font-bold text-[11px]">Shs.</span>}
               onClick={() => setIsMultiPaymentModalOpen(true)}
               title="Pay Multiple Fees"
             />

@@ -95,7 +95,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CurrencyCircleDollar className="w-5 h-5 text-indigo-600" />
+            <span className="font-bold text-sm text-indigo-600">Shs.</span>
             Record Payment
           </DialogTitle>
         </DialogHeader>

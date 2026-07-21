@@ -176,7 +176,7 @@ export function SummaryModal({
           {/* Payment Overview */}
           <div className="bg-white border rounded-lg p-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <CurrencyCircleDollar size={20} />
+              <span className="font-bold text-sm">Shs.</span>
               Payment Overview
             </h3>
             

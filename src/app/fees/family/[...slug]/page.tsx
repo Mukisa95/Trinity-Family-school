@@ -622,7 +622,7 @@ export default function FamilyFeesCollection() {
 
                 <GlassActionButton
                   label="Pay"
-                  icon={<CurrencyCircleDollar className="w-4 h-4" weight="bold" />}
+                  icon={<span className="font-bold text-[11px]">Shs.</span>}
                   tone="emerald"
                   disabled={familyPupils.length === 0 || isLoading}
                   onClick={() => setIsFamilyPaymentModalOpen(true)}

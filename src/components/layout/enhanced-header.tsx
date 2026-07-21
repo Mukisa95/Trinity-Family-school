@@ -745,7 +745,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                     title="View Fees"
                                     type="button"
                                   >
-                                    <CurrencyDollar size={13} weight="duotone" />
+                                    <span className="text-[10px] font-bold">Shs.</span>
                                   </button>
                                 </div>
                               </div>
@@ -1125,7 +1125,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                         title="View Fees"
                                         type="button"
                                       >
-                                        <CurrencyDollar size={14} weight="duotone" />
+                                        <span className="text-[11px] font-bold">Shs.</span>
                                       </button>
                                     </div>
                                   </div>

@@ -1274,7 +1274,7 @@ export default function RequirementTrackingPage() {
           <Card className="mb-4">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm">
-                <DollarSign className="w-4 h-4" />
+                <span className="font-bold text-[11px]">Shs.</span>
                 Payment Progress
               </CardTitle>
             </CardHeader>
@@ -1393,7 +1393,7 @@ export default function RequirementTrackingPage() {
                           {/* Payment Status (Office) */}
                           <div>
                             <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-                              <DollarSign className="w-3 h-3" />
+                              <span className="font-bold text-[9px]">Shs.</span>
                               Payment (Office)
                             </h4>
                             <div className="space-y-1">
@@ -1433,7 +1433,7 @@ export default function RequirementTrackingPage() {
                                       <div className="text-xs bg-blue-50 rounded p-2 border border-blue-100">
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-1">
-                                            <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                            <span className="font-bold text-[9px] text-green-600 flex-shrink-0 pt-0.5">Shs.</span>
                                             <div className="font-medium text-green-700">
                                               {formatCurrency(record.paidAmount)}
                                             </div>
@@ -1481,7 +1481,7 @@ export default function RequirementTrackingPage() {
                                       <div key={index} className="text-xs bg-blue-50 rounded p-2 border border-blue-100">
                                         <div className="flex items-center justify-between mb-1">
                                           <div className="flex items-center gap-1">
-                                            <DollarSign className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                            <span className="font-bold text-[9px] text-green-600 flex-shrink-0 pt-0.5">Shs.</span>
                                             <div className="font-medium text-green-700">
                                               {formatCurrency(entry.amount)}
                                             </div>
@@ -1532,7 +1532,7 @@ export default function RequirementTrackingPage() {
                                 size="sm"
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-xs py-1 mt-2"
                               >
-                                <DollarSign className="w-2 h-2 mr-1" />
+                                <span className="font-bold text-[8px] mr-1 pt-px">Shs.</span>
                                 Add Payment
                               </Button>
                             )}

@@ -277,7 +277,7 @@ const FeeStructureModal: React.FC<FeeStructureModalProps> = ({
         <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${mode === 'edit' ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
           <div className="flex flex-wrap gap-1 items-center">
             <div className="flex items-center gap-0.5">
-              <DollarSign className="h-2.5 w-2.5 text-muted-foreground" />
+              <span className="font-bold text-[9px] text-muted-foreground pt-0.5">Shs.</span>
               <span className="font-medium">Fee Management</span>
             </div>
             <div>

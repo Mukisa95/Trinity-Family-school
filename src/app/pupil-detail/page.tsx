@@ -3588,7 +3588,7 @@ function PupilDetailContent() {
                       className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-emerald-600 border border-emerald-400 shadow-sm hover:bg-gradient-to-br hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
                       aria-label="Fees"
                     >
-                      <Receipt className="w-4 h-4 mb-0.5" />
+                      <span className="font-bold text-xs mb-0.5">Shs.</span>
                       <span className="text-[8px] font-semibold leading-tight">Fees</span>
                     </button>
                   </Link>
@@ -4349,7 +4349,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                     className="h-6 rounded-full px-2 text-[10px] font-semibold border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0"
                                   >
                                     <Link href={`/fees/collect/${sibling.id}`}>
-                                      <Receipt className="h-2.5 w-2.5 mr-0.5" />
+                                      <span className="font-bold text-[10px] mr-0.5 pt-px">Shs.</span>
                                       Fees
                                     </Link>
                                   </Button>
@@ -4385,7 +4385,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                                       </DropdownMenuItem>
                                       <DropdownMenuItem asChild>
                                         <Link href={`/fees/collect/${sibling.id}`} className="flex items-center cursor-pointer">
-                                          <Receipt className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                                          <span className="mr-2 font-bold text-[10px] text-emerald-600">Shs.</span>
                                           Collect Fees
                                         </Link>
                                       </DropdownMenuItem>
@@ -4999,7 +4999,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                               </p>
                             </div>
                           </div>
-                          <Receipt className="h-4 w-4 text-muted-foreground group-hover:text-emerald-600 transition-colors" />
+                          <span className="font-bold text-xs text-muted-foreground group-hover:text-emerald-600 transition-colors">Shs.</span>
                         </Link>
                       ))}
                     </div>

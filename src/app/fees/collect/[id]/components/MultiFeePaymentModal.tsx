@@ -336,7 +336,7 @@ export function MultiFeePaymentModal({
         {/* Header */}
         <DialogHeader className="pl-4 pr-10 pt-3 pb-2 border-b">
           <DialogTitle className="flex items-center gap-2">
-            <CurrencyDollar className="w-5 h-5 text-green-600" />
+            <span className="font-bold text-lg text-green-600">Shs.</span>
             <span className="text-lg font-semibold text-gray-900">
               Multi-Fee Payment - {pupilName}
             </span>
@@ -589,7 +589,7 @@ export function MultiFeePaymentModal({
               </>
             ) : (
               <>
-                <CurrencyDollar className="w-4 h-4" />
+                <span className="font-bold text-xs">Shs.</span>
                 <span>Process Payment</span>
               </>
             )}

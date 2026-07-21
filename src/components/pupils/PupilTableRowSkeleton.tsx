@@ -83,7 +83,7 @@ export function PupilTableRowSkeleton({ count = 5 }: PupilTableRowSkeletonProps)
             </div>
           </td>
           {/* 5. FEES */}
-          <td className="hidden sm:table-cell px-4 py-3">
+          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center sm:text-left">
             <EnhancedSkeleton 
               variant="button" 
               width="2rem" 
