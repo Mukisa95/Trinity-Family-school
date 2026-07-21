@@ -195,23 +195,33 @@ function startServiceWorkerKeepAlive(registration: ServiceWorkerRegistration): v
   console.log('💓 Starting service worker keep-alive mechanism for mobile support');
 
   // Ping service worker every 20 seconds to keep it alive
-  setInterval(async () => {
+  setInterval(() => {
     try {
       if (registration.active) {
         const messageChannel = new MessageChannel();
 
-        // Send ping to service worker
-        registration.active.postMessage(
-          { type: 'PING' },
-          [messageChannel.port2]
-        );
+        // Set up the listener BEFORE postMessage to avoid race conditions.
+        // Also close the port after 5 s so Chrome never forcefully closes it,
+        // which would throw "message channel closed before response was received".
+        let settled = false;
+        const cleanup = () => {
+          if (!settled) {
+            settled = true;
+            messageChannel.port1.close();
+          }
+        };
 
-        // Wait for pong response
         messageChannel.port1.onmessage = (event) => {
           if (event.data && event.data.type === 'PONG') {
             console.log('💓 Service Worker is alive:', event.data.status);
           }
+          cleanup();
         };
+
+        // Auto-close if SW doesn't reply within 5 seconds
+        setTimeout(cleanup, 5000);
+
+        registration.active.postMessage({ type: 'PING' }, [messageChannel.port2]);
       }
     } catch (error) {
       console.warn('⚠️ Failed to ping service worker:', error);
@@ -224,10 +234,16 @@ function startServiceWorkerKeepAlive(registration: ServiceWorkerRegistration): v
       console.log('👀 App became visible - pinging service worker');
       try {
         const messageChannel = new MessageChannel();
-        registration.active.postMessage(
-          { type: 'PING' },
-          [messageChannel.port2]
-        );
+        let settled = false;
+        const cleanup = () => {
+          if (!settled) {
+            settled = true;
+            messageChannel.port1.close();
+          }
+        };
+        messageChannel.port1.onmessage = cleanup;
+        setTimeout(cleanup, 5000);
+        registration.active.postMessage({ type: 'PING' }, [messageChannel.port2]);
       } catch (error) {
         console.warn('⚠️ Failed to ping service worker on visibility change:', error);
       }
