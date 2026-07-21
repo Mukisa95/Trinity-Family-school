@@ -511,7 +511,12 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
       ) {
         setShowMobileSearch(false);
       }
-      if (!isInside(desktopSearchRef.current)) {
+      // showResults is shared. Close it only if we click outside both desktop and mobile search components.
+      if (
+        !isInside(desktopSearchRef.current) &&
+        !isInside(mobileSearchRef.current) &&
+        !isInside(mobileSearchResultsRef.current)
+      ) {
         setShowResults(false);
       }
     };
@@ -750,6 +755,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                       )}
                       {showResults && searchTerm && searchResults.length === 0 && (
                         <motion.div
+                          ref={mobileSearchResultsRef}
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
