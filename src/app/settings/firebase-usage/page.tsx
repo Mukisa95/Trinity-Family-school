@@ -51,7 +51,17 @@ export default function FirebaseUsagePage() {
     setLoading(true);
     setError(null);
     try {
-      const token = await auth.currentUser?.getIdToken();
+      // Wait for Firebase Auth to finish initialising before requesting the token.
+      // auth.currentUser can be null for a short window after page load even when
+      // the user is already signed in, which causes a false "session not ready" error.
+      const token = await new Promise<string | null>((resolve) => {
+        const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+          unsubscribe();
+          if (!firebaseUser) { resolve(null); return; }
+          try { resolve(await firebaseUser.getIdToken()); }
+          catch { resolve(null); }
+        });
+      });
       if (!token) throw new Error('Your Firebase session is not ready. Please refresh and try again.');
 
       const response = await fetch('/api/firebase/stats', {
