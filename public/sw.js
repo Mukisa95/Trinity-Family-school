@@ -1,17 +1,17 @@
 /**
  * Service Worker for Push Notifications and Offline Support
- * 
+ *
  * This service worker enables:
  * 1. Push notifications even when browser is closed
  * 2. Background sync for offline support
  * 3. Cache management for faster loading
- * 
+ *
  * IMPORTANT: Push notifications work as long as:
  * - User is signed into the application
  * - User has granted notification permission
  * - Service worker is registered and active
  * - Browser is running (even if app tab is closed)
- * 
+ *
  * CACHE STRATEGY:
  * - Uses NETWORK-FIRST for app files to always get latest version
  * - Version number changes with each deployment for cache busting
@@ -19,8 +19,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'v2.1.68';
-const BUILD_TIMESTAMP = '2026-07-11T16:43:37.955Z'; // Update this on each build
+const SW_VERSION = 'v2.1.69';
+const BUILD_TIMESTAMP = '2026-07-21T07:56:00.000Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
@@ -122,18 +122,51 @@ function startHeartbeat() {
   }, 25000); // Every 25 seconds
 }
 
-// Restart heartbeat if service worker wakes up
+/**
+ * Single unified message handler.
+ * Having multiple listeners caused "message channel closed before response
+ * was received" errors when two handlers both tried to respond on the
+ * same MessageChannel port.
+ */
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'PING') {
+  console.log('Message received in service worker:', event);
+
+  if (!event.data) return;
+
+  // PING — restart heartbeat and reply alive
+  if (event.data.type === 'PING') {
     console.log('📡 Received ping from client - restarting heartbeat');
     startHeartbeat();
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({
+        type: 'PONG',
+        status: 'alive',
+        timestamp: Date.now()
+      });
+    }
+    return;
+  }
 
-    // Respond to client
-    event.ports[0].postMessage({
-      type: 'PONG',
-      status: 'alive',
-      timestamp: Date.now()
-    });
+  // SKIP_WAITING — force activation of a waiting service worker
+  if (event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ success: true });
+    }
+    return;
+  }
+
+  // GET_VERSION — return current cache name
+  if (event.data.type === 'GET_VERSION') {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ version: CACHE_NAME });
+    }
+    return;
+  }
+
+  // Generic acknowledgement for any other message type
+  if (event.ports && event.ports[0]) {
+    event.ports[0].postMessage({ received: true });
   }
 });
 
@@ -148,6 +181,10 @@ self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'check-notifications') {
     event.waitUntil(checkForMissedNotifications());
   }
+
+  if (event.tag === 'content-sync') {
+    event.waitUntil(syncContent());
+  }
 });
 
 async function checkForMissedNotifications() {
@@ -157,9 +194,7 @@ async function checkForMissedNotifications() {
     // Fetch latest notifications from server
     const response = await fetch('/api/notifications/latest', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
 
     if (response.ok) {
@@ -187,15 +222,24 @@ async function checkForMissedNotifications() {
   }
 }
 
+async function syncContent() {
+  try {
+    console.log('Performing periodic content sync...');
+    // Add content sync logic here if needed
+  } catch (error) {
+    console.error('Periodic sync failed:', error);
+  }
+}
+
 /**
  * Push notification event handler
- * 
+ *
  * This event fires when a push notification is received from the server.
  * It works even when:
  * - The browser tab is closed
  * - The app is not open
  * - The device is locked (notification appears when unlocked)
- * 
+ *
  * Requirements:
  * - User must be signed in (subscription tied to user account)
  * - Browser must be running (even in background)
@@ -257,7 +301,6 @@ self.addEventListener('push', (event) => {
       actions: notificationData.actions,
       vibrate: [200, 100, 200],
       timestamp: Date.now(),
-      // Ensure notification persists
       silent: false,
       renotify: true
     }
@@ -285,28 +328,20 @@ self.addEventListener('push', (event) => {
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification clicked:', event);
-
   event.notification.close();
 
   if (event.action) {
-    // Handle custom actions
     console.log('Action clicked:', event.action);
-    // You can add custom logic here for different actions
   } else {
-    // Default click behavior - focus or open the app
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
-          // Check if there's already a window/tab open with the target URL
           for (const client of clientList) {
             if (client.url.includes(self.location.origin) && 'focus' in client) {
               return client.focus();
             }
           }
-
-          // If no window/tab is open, open a new one
           if (clients.openWindow) {
-            // Get the URL from notification data or default to root
             const url = event.notification.data?.url || '/';
             return clients.openWindow(url);
           }
@@ -321,66 +356,30 @@ self.addEventListener('notificationclick', (event) => {
 // Notification close event
 self.addEventListener('notificationclose', (event) => {
   console.log('Notification closed:', event);
-  // You can add analytics or other logic here
 });
 
 // Background sync event
 self.addEventListener('sync', (event) => {
   console.log('Background sync event:', event);
-
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
   }
 });
 
-// Background sync function
 async function doBackgroundSync() {
   try {
     console.log('Performing background sync...');
-
-    // Get all clients
     const clients = await self.clients.matchAll();
-
-    // Send message to all clients about sync
     clients.forEach((client) => {
       client.postMessage({
         type: 'BACKGROUND_SYNC',
         message: 'Background sync completed'
       });
     });
-
   } catch (error) {
     console.error('Background sync failed:', error);
   }
 }
-
-// Message event from main thread
-self.addEventListener('message', (event) => {
-  console.log('Message received in service worker:', event);
-
-  // Handle SKIP_WAITING command
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-    // Send acknowledgement if port exists
-    if (event.ports && event.ports[0]) {
-      event.ports[0].postMessage({ success: true });
-    }
-    return;
-  }
-
-  // Handle GET_VERSION command
-  if (event.data && event.data.type === 'GET_VERSION') {
-    if (event.ports && event.ports[0]) {
-      event.ports[0].postMessage({ version: CACHE_NAME });
-    }
-    return;
-  }
-
-  // For any other messages, send a generic acknowledgement
-  if (event.ports && event.ports[0]) {
-    event.ports[0].postMessage({ received: true });
-  }
-});
 
 // Fetch event - handle offline functionality
 // STRATEGY:
@@ -415,7 +414,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip ALL Next.js internal routes - these MUST always be fresh
-  // This includes: _next/static (JS/CSS bundles), _next/data (RSC/data), _next/image
   if (url.pathname.startsWith('/_next/')) {
     return;
   }
@@ -427,7 +425,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   // NEVER cache HTML pages or page navigation requests
-  // This is the KEY fix: stale HTML was the root cause of updates not being received
   const isNavigationRequest = event.request.mode === 'navigate';
   const isHTMLRequest = url.pathname.endsWith('.html') ||
     url.pathname === '/' ||
@@ -435,11 +432,9 @@ self.addEventListener('fetch', (event) => {
 
   if (isNavigationRequest || isHTMLRequest) {
     // NETWORK-ONLY for HTML: Always get fresh HTML from the server
-    // On failure, serve the offline page (never a stale cached page)
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
         .catch(() => {
-          // Network failed - serve offline page
           return caches.match('/offline').then((offlinePage) => {
             if (offlinePage) {
               return offlinePage;
@@ -456,7 +451,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip .js, .css, and .json files - let the browser handle them directly
-  // These are either versioned by Next.js build hashes or should be fresh
   if (url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.json')) {
@@ -464,7 +458,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   // CACHE-FIRST: Only for truly static assets (images, fonts, icons, etc.)
-  // These are safe to cache because they don't change between deployments
   const isStaticAsset =
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.jpg') ||
@@ -525,28 +518,4 @@ self.addEventListener('unhandledrejection', (event) => {
   console.error('Service Worker unhandled rejection:', event);
 });
 
-// Periodic background sync (if supported)
-if ('periodicSync' in self.registration) {
-  self.addEventListener('periodicsync', (event) => {
-    console.log('Periodic sync event:', event);
-
-    if (event.tag === 'content-sync') {
-      event.waitUntil(syncContent());
-    }
-  });
-}
-
-// Content sync function
-async function syncContent() {
-  try {
-    console.log('Performing periodic content sync...');
-
-    // You can add logic here to sync content periodically
-    // For example, sync notifications, updates, etc.
-
-  } catch (error) {
-    console.error('Periodic sync failed:', error);
-  }
-}
-
-console.log('✅ Service Worker script loaded successfully - Ready for registration'); 
+console.log('✅ Service Worker script loaded successfully - Ready for registration');
