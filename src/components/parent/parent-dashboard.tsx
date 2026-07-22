@@ -48,6 +48,10 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   // Check if pupil has released exam results (for conditional navigation)
   const { data: hasReleasedResults, isLoading: resultsLoading } = useHasReleasedResults(targetPupilId || '');
 
+  // Fetch school settings to get dynamic links (e.g., WhatsApp)
+  const { data: schoolSettings } = useSchoolSettings();
+  const whatsappLink = schoolSettings?.socialMedia?.whatsapp || sampleSchoolSettings.socialMedia?.whatsapp;
+
   // Convert error to string format
   const error = queryError ? 
     (queryError instanceof Error ? queryError.message : 'Failed to load pupil details') 
@@ -262,10 +266,6 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
         };
     }
   };
-
-  // Fetch school settings to get dynamic links (e.g., WhatsApp)
-  const { data: schoolSettings } = useSchoolSettings();
-  const whatsappLink = schoolSettings?.socialMedia?.whatsapp || sampleSchoolSettings.socialMedia?.whatsapp;
 
   const currentTheme = getCurrentTheme();
 
