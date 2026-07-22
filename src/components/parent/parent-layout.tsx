@@ -81,12 +81,6 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   }, []);
 
   const renderContent = () => {
-    // If children are provided (from Next.js layout), render them instead of hardcoded components
-    if (children) {
-      return children;
-    }
-    
-    // Fallback to original behavior for backwards compatibility
     switch (currentView) {
       case 'home':
         return <ParentAboutSchool />;
