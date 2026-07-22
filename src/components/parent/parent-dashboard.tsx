@@ -499,30 +499,39 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                   >
                     {fullName}
                   </h1>
-                  <div className="flex items-center gap-2 text-white/90 text-xs sm:text-sm font-medium flex-wrap">
-                    <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
+                  <div className="flex items-center gap-1.5 sm:gap-2 text-white/90 text-xs sm:text-sm font-medium flex-wrap mt-0.5 sm:mt-1">
+                    <span className="bg-white/20 px-2 sm:px-2.5 py-0.5 rounded-full font-semibold tracking-wide border border-white/10 shadow-sm">
                       {displayClassCode}
                     </span>
                     <span className="text-white/60">•</span>
-                    <span className="text-xs sm:text-sm text-white/90 font-medium tracking-wide">
+                    <span className="text-white/90 font-medium tracking-wide">
                       {pupil.admissionNumber}
                     </span>
+                    <span className="text-white/60">•</span>
+                    <span className="font-semibold tracking-wide text-white">
+                      {viewConfig.title}
+                    </span>
+                    
+                    {whatsappLink && (
+                      <a 
+                        href={whatsappLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        title="Join WhatsApp Group"
+                        className="ml-1 sm:ml-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500/90 hover:bg-green-400 text-white backdrop-blur-sm flex items-center justify-center shadow-md transition-all duration-300 hover:scale-110 active:scale-95 border border-green-300/40"
+                      >
+                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              {/* Dynamic View Title */}
-              <div>
-                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white transition-all duration-500">
-                  {viewConfig.title}
-                </h2>
-              </div>
             </div>
             
-            {/* Right Side - Absolute positioned on mobile to allow Name to take full width */}
-            <div className="absolute bottom-4 right-4 sm:relative sm:bottom-0 sm:right-0 flex flex-col items-end justify-end sm:justify-between h-auto sm:h-full py-0 sm:py-1 z-20 pointer-events-auto">
-              {/* Date - Smaller on mobile */}
-              <div className="text-right text-white/70 text-xs hidden sm:block mb-2">
+            {/* Right Side - Date Only (WhatsApp moved to main line) */}
+            <div className="absolute top-4 right-4 flex flex-col items-end justify-start h-auto z-20 pointer-events-none hidden md:flex">
+              {/* Date - Only visible on larger screens to save space */}
+              <div className="text-right text-white/70 text-xs mb-2">
                 <div>Trinity Family Schools</div>
                 <div className="text-white/80">
                   {new Date().toLocaleDateString('en-US', { 
@@ -532,19 +541,6 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                   })}
                 </div>
               </div>
-              
-              {/* Clickable WhatsApp Icon */}
-              {whatsappLink && (
-                <a 
-                  href={whatsappLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  title="Join WhatsApp Group"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600/90 hover:bg-green-500 text-white backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 border border-green-300/40"
-                >
-                  <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </a>
-              )}
             </div>
           </div>
           

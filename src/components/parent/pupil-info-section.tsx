@@ -3,7 +3,7 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Calendar, MapPin } from 'lucide-react';
+import { User, Calendar, MapPin, Users } from 'lucide-react';
 import { formatDateForDisplay } from "@/lib/utils/date-utils";
 import type { Pupil } from '@/types';
 
@@ -108,12 +108,51 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
 
         {/* Address */}
         {pupil.address && (
-          <div className="mt-6 pt-6 border-t">
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <MapPin className="w-5 h-5 mr-2" />
+              <MapPin className="w-5 h-5 mr-2 text-blue-500" />
               Address
             </h3>
             <p className="text-gray-600 dark:text-gray-400">{pupil.address}</p>
+          </div>
+        )}
+
+        {/* Guardians */}
+        {pupil.guardians && pupil.guardians.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <Users className="w-5 h-5 mr-2 text-indigo-500" />
+              Guardian Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {pupil.guardians.map((guardian, index) => (
+                <div key={guardian.id || index} className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+                  <div className="font-semibold text-base mb-1 text-gray-900 dark:text-gray-100">{guardian.firstName} {guardian.lastName}</div>
+                  <div className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-3">{guardian.relationship}</div>
+                  
+                  <div className="space-y-1.5 text-sm">
+                    {guardian.phone && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Phone:</span>
+                        <span className="font-medium text-gray-800 dark:text-gray-200">{guardian.phone}</span>
+                      </div>
+                    )}
+                    {guardian.email && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Email:</span>
+                        <span className="font-medium text-gray-800 dark:text-gray-200">{guardian.email}</span>
+                      </div>
+                    )}
+                    {guardian.occupation && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Occupation:</span>
+                        <span className="font-medium text-gray-800 dark:text-gray-200">{guardian.occupation}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
