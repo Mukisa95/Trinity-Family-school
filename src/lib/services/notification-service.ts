@@ -365,7 +365,15 @@ class NotificationService {
   // Get user's push subscription status
   async getUserPushSubscription(userId: string): Promise<PushSubscriptionType | null> {
     try {
-      return await pushNotificationService.getSubscription(userId);
+      if (pushNotificationService && typeof (pushNotificationService as any).getSubscription === 'function') {
+        return await (pushNotificationService as any).getSubscription(userId);
+      }
+      if (pushNotificationService && typeof (pushNotificationService as any).getUserPushSubscription === 'function') {
+        return await (pushNotificationService as any).getUserPushSubscription(userId);
+      }
+      const { getUserSubscription } = await import('./push-notifications.service');
+      const sub = await getUserSubscription(userId);
+      return sub as any;
     } catch (error) {
       console.error('Error getting user push subscription:', error);
       return null;

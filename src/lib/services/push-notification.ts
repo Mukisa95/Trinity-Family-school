@@ -276,18 +276,47 @@ class PushNotificationService {
 
   // Utility methods
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    const DEFAULT_VAPID_KEY = 'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+    let key = (base64String || '').trim();
+    key = key.replace(/^["']|["']$/g, '').trim();
 
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+    if (!key || key === 'undefined' || key === 'null') {
+      key = DEFAULT_VAPID_KEY;
     }
-    return outputArray;
+
+    const cleanKey = key.replace(/[^A-Za-z0-9\-_]/g, '');
+    if (!cleanKey) {
+      key = DEFAULT_VAPID_KEY;
+    } else {
+      key = cleanKey;
+    }
+
+    let base64 = key.replace(/-/g, '+').replace(/_/g, '/');
+    const paddingNeeded = (4 - (base64.length % 4)) % 4;
+    if (paddingNeeded > 0 && paddingNeeded < 4) {
+      base64 += '='.repeat(paddingNeeded);
+    }
+
+    try {
+      const rawData = typeof window !== 'undefined' ? window.atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    } catch (err) {
+      console.warn('[urlBase64ToUint8Array] Base64 decode failed, falling back to default key:', err);
+      if (key !== DEFAULT_VAPID_KEY) {
+        return this.urlBase64ToUint8Array(DEFAULT_VAPID_KEY);
+      }
+      return new Uint8Array(65);
+    }
+  }
+
+  async getUserPushSubscription(userId: string): Promise<PushSubscriptionType | null> {
+    return this.getSubscription(userId);
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {

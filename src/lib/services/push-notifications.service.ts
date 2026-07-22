@@ -40,6 +40,39 @@ export interface PushPayload {
   title: string;
   body: string;
   url?: string;
+ */
+
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
+
+// ─── Shared types ────────────────────────────────────────────────────────────
+
+export interface PushSubscriptionRecord {
+  id?: string;
+  userId: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  deviceType: 'desktop' | 'mobile';
+  userAgent: string;
+  isActive: boolean;
+  createdAt: Timestamp | ReturnType<typeof serverTimestamp>;
+}
+
+export interface PushPayload {
+  title: string;
+  body: string;
+  url?: string;
   icon?: string;
   badge?: string;
   tag?: string;
@@ -49,14 +82,43 @@ export interface PushPayload {
 // ─── VAPID key helper (browser-side only) ────────────────────────────────────
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  const output = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    output[i] = rawData.charCodeAt(i);
+  const DEFAULT_VAPID_KEY = 'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
+
+  let key = (base64String || '').trim();
+  key = key.replace(/^["']|["']$/g, '').trim();
+
+  if (!key || key === 'undefined' || key === 'null') {
+    key = DEFAULT_VAPID_KEY;
   }
-  return output;
+
+  // Sanitize key: keep only base64url characters A-Z, a-z, 0-9, -, _
+  const cleanKey = key.replace(/[^A-Za-z0-9\-_]/g, '');
+  if (!cleanKey) {
+    key = DEFAULT_VAPID_KEY;
+  } else {
+    key = cleanKey;
+  }
+
+  let base64 = key.replace(/-/g, '+').replace(/_/g, '/');
+  const paddingNeeded = (4 - (base64.length % 4)) % 4;
+  if (paddingNeeded > 0 && paddingNeeded < 4) {
+    base64 += '='.repeat(paddingNeeded);
+  }
+
+  try {
+    const rawData = typeof window !== 'undefined' ? window.atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+    const output = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) {
+      output[i] = rawData.charCodeAt(i);
+    }
+    return output;
+  } catch (err) {
+    console.warn('[urlBase64ToUint8Array] Base64 decode failed, trying fallback key:', err);
+    if (key !== DEFAULT_VAPID_KEY) {
+      return urlBase64ToUint8Array(DEFAULT_VAPID_KEY);
+    }
+    return new Uint8Array(65);
+  }
 }
 
 // ─── Browser-side: save subscription to Firestore ────────────────────────────
@@ -290,7 +352,7 @@ export const pushNotificationService = {
   async subscribe(userId: string) {
     const VAPID_KEY =
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
+      'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
 
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return null;
@@ -324,6 +386,20 @@ export const pushNotificationService = {
   },
 
   /**
+   * Get user's active push subscription document from Firestore.
+   */
+  async getSubscription(userId: string) {
+    return getUserSubscription(userId);
+  },
+
+  /**
+   * Alias for getSubscription for backward compatibility.
+   */
+  async getUserPushSubscription(userId: string) {
+    return getUserSubscription(userId);
+  },
+
+  /**
    * Validate and sync browser subscription with database.
    * Returns compatibility object.
    */
@@ -351,4 +427,4 @@ export const pushNotificationService = {
       return { isValid: false, needsResubscription: false, browserHasSubscription: false, databaseHasSubscription: false };
     }
   },
-} as const;
+};

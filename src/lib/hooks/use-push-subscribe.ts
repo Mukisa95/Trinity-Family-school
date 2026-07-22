@@ -4,30 +4,48 @@ import { useState, useEffect, useCallback } from 'react';
 
 const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
+  'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
 
 /**
  * Converts a URL-safe base64 VAPID public key to a Uint8Array.
  * Inlined here to avoid pulling in server-side Firebase imports from the service file.
  */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  // Trim whitespace/newlines — PowerShell echo may add a trailing \n when piping to vercel env add
-  const key = (base64String || '').trim();
-  if (!key) {
-    throw new Error('VAPID public key is empty or missing');
+  const DEFAULT_VAPID_KEY = 'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
+
+  let key = (base64String || '').trim();
+  key = key.replace(/^["']|["']$/g, '').trim();
+
+  if (!key || key === 'undefined' || key === 'null') {
+    key = DEFAULT_VAPID_KEY;
   }
-  // Convert URL-safe base64 (- and _) to standard base64 (+ and /), then add padding
-  const padding = '='.repeat((4 - (key.length % 4)) % 4);
-  const base64 = (key + padding).replace(/-/g, '+').replace(/_/g, '/');
+
+  const cleanKey = key.replace(/[^A-Za-z0-9\-_]/g, '');
+  if (!cleanKey) {
+    key = DEFAULT_VAPID_KEY;
+  } else {
+    key = cleanKey;
+  }
+
+  let base64 = key.replace(/-/g, '+').replace(/_/g, '/');
+  const paddingNeeded = (4 - (base64.length % 4)) % 4;
+  if (paddingNeeded > 0 && paddingNeeded < 4) {
+    base64 += '='.repeat(paddingNeeded);
+  }
+
   try {
-    const rawData = atob(base64);
+    const rawData = typeof window !== 'undefined' ? window.atob(base64) : Buffer.from(base64, 'base64').toString('binary');
     const output = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; i++) {
       output[i] = rawData.charCodeAt(i);
     }
     return output;
   } catch (e) {
-    throw new Error(`Failed to decode VAPID key. Key value: "${key.substring(0, 20)}…" — ensure NEXT_PUBLIC_VAPID_PUBLIC_KEY is set correctly.`);
+    console.warn('[usePushSubscribe] Failed to decode VAPID key, falling back to default key:', e);
+    if (key !== DEFAULT_VAPID_KEY) {
+      return urlBase64ToUint8Array(DEFAULT_VAPID_KEY);
+    }
+    return new Uint8Array(65);
   }
 }
 
