@@ -5,9 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
-import { getCurrentTerm } from '@/lib/utils/academic-year-utils';
 import { Calendar, Clock, GraduationCap, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,16 +15,17 @@ interface AcademicProgressTileProps {
 }
 
 export function AcademicProgressTile({ className = '' }: AcademicProgressTileProps) {
-  const { data: activeYear, isLoading } = useActiveAcademicYear();
-  const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
+  const { data: academicYears = [], isLoading } = useAcademicYears();
+  const { effectiveTerm, isRecessMode } = useTermStatus();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Use the globally-correct effective term (two-pass search across ALL years)
+  const activeYear = effectiveTerm.academicYear;
+  const currentTerm = effectiveTerm.term;
 
   // Calculate term progress
   const getTermProgress = () => {
-    if (!activeYear) return null;
-
-    const currentTerm = getCurrentTerm(activeYear);
-    if (!currentTerm) return null;
+    if (!activeYear || !currentTerm) return null;
 
     const now = new Date();
     const termStart = new Date(currentTerm.startDate);
