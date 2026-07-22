@@ -448,7 +448,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
         }}
       >
         {/* Enhanced Dynamic Header with Shimmer Animation */}
-        <div className={`h-40 sm:h-44 md:h-52 rounded-xl bg-gradient-to-br ${viewConfig.gradient} relative mb-6 sm:mb-8 overflow-hidden shadow-2xl transition-all duration-700 ease-in-out`}>
+        <div className={`h-auto min-h-[5.5rem] sm:min-h-[6.5rem] rounded-xl bg-gradient-to-br ${viewConfig.gradient} relative mb-4 sm:mb-6 overflow-hidden shadow-xl transition-all duration-700 ease-in-out`}>
           {/* Shimmer Animation Overlay */}
           {isTransitioning && (
             <div className="absolute inset-0 z-30">
@@ -473,10 +473,10 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           </div>
           
           {/* Content */}
-          <div className="relative z-10 flex items-start sm:items-center h-full px-4 sm:px-6 md:px-8 py-4 sm:py-0">
+          <div className="relative z-10 flex items-center h-full px-4 sm:px-6 md:px-8 py-4 sm:py-5">
             {/* Left Side - Student Info (Gets 100% width on mobile) */}
             <div className="w-full sm:flex-1 min-w-0 pr-2 sm:pr-4">
-              <div className="flex items-center mb-2 sm:mb-3">
+              <div className="flex items-center">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mr-3 sm:mr-4 shadow-lg transition-all duration-500 flex-shrink-0 overflow-hidden">
                   {pupil.photo && pupil.photo.trim() !== '' ? (
                     <img 
