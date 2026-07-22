@@ -67,9 +67,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
 
   // Dynamic font sizing inline style to guarantee name fits on 1 line without wrapping
   const nameLen = Math.max(fullName.length, 5); // Avoid division by zero
-  // 110 represents safe viewport width percentage allocated to the text
-  const fontSizeVw = (110 / nameLen).toFixed(2);
-  const nameStyle = { fontSize: `clamp(0.75rem, ${fontSizeVw}vw, 1.75rem)` };
+  // 90 represents safe viewport width percentage allocated to the text
+  const fontSizeVw = (90 / nameLen).toFixed(2);
+  const nameStyle = { fontSize: `clamp(0.55rem, ${fontSizeVw}vw, 1.75rem)` };
 
   // Convert error to string format
   const error = queryError ? 
@@ -494,7 +494,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <h1 
-                    className="font-bold text-white mb-1 tracking-tight transition-all duration-300 whitespace-nowrap overflow-hidden text-ellipsis"
+                    className="font-bold text-white mb-1 tracking-tight transition-all duration-300 whitespace-nowrap"
                     style={nameStyle}
                   >
                     {fullName}
