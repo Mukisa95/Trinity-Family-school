@@ -473,9 +473,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           </div>
           
           {/* Content */}
-          <div className="relative z-10 flex items-center justify-between h-full px-4 sm:px-6 md:px-8">
-            {/* Left Side - Student Info */}
-            <div className="flex-1 min-w-0 pr-3">
+          <div className="relative z-10 flex items-start sm:items-center h-full px-4 sm:px-6 md:px-8 py-4 sm:py-0">
+            {/* Left Side - Student Info (Gets 100% width on mobile) */}
+            <div className="w-full sm:flex-1 min-w-0 pr-2 sm:pr-4">
               <div className="flex items-center mb-2 sm:mb-3">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mr-3 sm:mr-4 shadow-lg transition-all duration-500 flex-shrink-0 overflow-hidden">
                   {pupil.photo && pupil.photo.trim() !== '' ? (
@@ -492,7 +492,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                     <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white transition-all duration-500" />
                   )}
                 </div>
-                <div className="min-w-0 flex-1 overflow-hidden">
+                <div className="min-w-0 flex-1 overflow-visible">
                   <h1 
                     className="font-bold text-white mb-1 tracking-tight transition-all duration-300 whitespace-nowrap"
                     style={nameStyle}
@@ -519,11 +519,11 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
               </div>
             </div>
             
-            {/* Right Side - Date & Clickable WhatsApp Icon Only */}
-            <div className="flex flex-col items-end justify-between h-full py-1">
+            {/* Right Side - Absolute positioned on mobile to allow Name to take full width */}
+            <div className="absolute bottom-4 right-4 sm:relative sm:bottom-0 sm:right-0 flex flex-col items-end justify-end sm:justify-between h-auto sm:h-full py-0 sm:py-1 z-20 pointer-events-auto">
               {/* Date - Smaller on mobile */}
-              <div className="text-right text-white/70 text-xs">
-                <div className="hidden sm:block">Trinity Family Schools</div>
+              <div className="text-right text-white/70 text-xs hidden sm:block mb-2">
+                <div>Trinity Family Schools</div>
                 <div className="text-white/80">
                   {new Date().toLocaleDateString('en-US', { 
                     weekday: 'short', 
@@ -540,7 +540,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                   target="_blank" 
                   rel="noopener noreferrer"
                   title="Join WhatsApp Group"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600/90 hover:bg-green-500 text-white backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 border border-green-300/40 mt-2"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600/90 hover:bg-green-500 text-white backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 border border-green-300/40"
                 >
                   <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </a>
