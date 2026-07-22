@@ -10,7 +10,7 @@ import { sampleSchoolSettings } from '@/lib/sample-data';
 import type { Pupil } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Loader2, User, CreditCard, ClipboardList, Wallet, CalendarCheck, RefreshCw, Trophy, MessageCircle, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { AlertTriangle, Loader2, User, CreditCard, ClipboardList, Wallet, CalendarCheck, RefreshCw, Trophy, MessageCircle } from 'lucide-react';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { AcademicProgressTile } from './academic-progress-tile';
 import { PupilInfoSection } from './pupil-info-section';
@@ -29,7 +29,6 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState<'info' | 'fees' | 'requirements' | 'banking' | 'attendance' | 'results'>('info');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   // Use the provided pupilId or fall back to user's default pupilId
   const targetPupilId = pupilId || user?.pupilId;
@@ -434,52 +433,6 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                 )}
               </button>
             )}
-            {/* Separator */}
-            <div className="h-5 w-px bg-slate-200 mx-0.5 sm:mx-1 flex-shrink-0" />
-
-            {/* Settings Button with Dropdown */}
-            <div className="relative flex-shrink-0">
-              <button
-                onClick={() => setShowSettingsMenu(prev => !prev)}
-                className="group relative px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 rounded-full font-medium text-xs transition-all duration-300 transform hover:scale-105 active:scale-95 bg-white/20 backdrop-blur-sm text-slate-600 border-2 border-slate-400/60 hover:bg-slate-50/30 hover:border-slate-500/80 shadow-md shadow-slate-200/30 flex items-center"
-              >
-                <Settings className="w-3 h-3 mr-0.5 sm:mr-1 text-slate-600 transition-all duration-300 group-hover:rotate-90" />
-                <span className="whitespace-nowrap text-slate-600 hidden sm:inline">Settings</span>
-                <ChevronDown className={`w-2.5 h-2.5 ml-0.5 sm:ml-1 text-slate-500 transition-transform duration-200 ${showSettingsMenu ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Dropdown Menu */}
-              {showSettingsMenu && (
-                <>
-                  {/* Backdrop to close on outside click */}
-                  <div className="fixed inset-0 z-40" onClick={() => setShowSettingsMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Account</p>
-                    </div>
-                    <a
-                      href="/parent/settings"
-                      onClick={() => setShowSettingsMenu(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 dark:hover:text-blue-400 transition-colors duration-150"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
-                        <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <span className="font-medium">User Settings</span>
-                    </a>
-                    <button
-                      onClick={() => { setShowSettingsMenu(false); logout(); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
-                        <LogOut className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                      </div>
-                      <span className="font-medium">Logout</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
       </div>

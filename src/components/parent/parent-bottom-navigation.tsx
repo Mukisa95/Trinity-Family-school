@@ -2,27 +2,20 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
 import type { Pupil } from '@/types';
 import { cn } from '@/lib/utils';
-import { FloatingNotificationsModal } from './floating-notifications-modal';
 
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Icons
 import { 
   Home,
   GraduationCap,
-  Bell,
-  MessageCircle,
-  Users,
-  Menu,
-  ChevronDown,
+  Settings,
+  LogOut,
+  User,
   X
 } from 'lucide-react';
 
@@ -45,9 +38,8 @@ export function ParentBottomNavigation({
   familyId,
   familyMembers = []
 }: ParentBottomNavigationProps) {
-  const { user } = useAuth();
-  const { unreadCount, isLoading: badgeLoading } = useNotificationBadge();
-  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPupilSelectorOpen, setIsPupilSelectorOpen] = useState(false);
 
   // Determine if parent has single or multiple children
@@ -82,10 +74,10 @@ export function ParentBottomNavigation({
       description: hasSingleChild ? 'Student Info' : hasMultipleChildren ? 'Select Student' : 'Student Info'
     },
     {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: Bell,
-      description: 'Updates & Alerts'
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      description: 'Account & Logout'
     }
   ];
 
@@ -104,9 +96,9 @@ export function ParentBottomNavigation({
         // No children, just go to dashboard
         onViewChange('dashboard');
       }
-    } else if (view === 'notifications') {
-      // Special handling for notifications - open the modal instead of changing view
-      setIsNotificationsModalOpen(true);
+    } else if (view === 'settings') {
+      // Special handling for settings - open the dropdown instead of changing view
+      setIsSettingsOpen(prev => !prev);
     } else {
       onViewChange(view);
     }
@@ -128,6 +120,7 @@ export function ParentBottomNavigation({
           <div className="flex items-center gap-0.5">
             {navigationItems.map((item) => {
               const isActive = item.id === currentView;
+              const isSettings = item.id === 'settings';
               
               return (
                 <Button
@@ -139,20 +132,13 @@ export function ParentBottomNavigation({
                       ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105" 
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-105"
                   )}
-                  onClick={() => handleViewChange(item.id as 'dashboard' | 'home' | 'notifications')}
+                  onClick={() => handleViewChange(item.id as 'dashboard' | 'home' | 'settings')}
                 >
                   <div className="relative">
                     <item.icon className={cn(
                       "h-4 w-4 transition-all duration-200",
-                      isActive ? "text-white" : "text-gray-600 dark:text-gray-400"
+                      isActive ? "text-white" : isSettings ? "text-gray-600 dark:text-gray-400" : "text-gray-600 dark:text-gray-400"
                     )} />
-                    {item.id === 'notifications' && unreadCount > 0 && !badgeLoading && (
-                      <Badge 
-                        className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full p-0 flex items-center justify-center text-[9px] bg-red-500 text-white border-2 border-white dark:border-gray-800"
-                      >
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </Badge>
-                    )}
                   </div>
                   <span className={cn(
                     "text-[9px] font-semibold transition-all duration-200 leading-none mt-0.5",
@@ -166,6 +152,46 @@ export function ParentBottomNavigation({
           </div>
         </div>
       </div>
+
+      {/* Settings Dropdown */}
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden"
+            >
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Account</p>
+                {user?.email && <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 truncate">{user.email}</p>}
+              </div>
+              <a
+                href="/parent/settings"
+                onClick={() => setIsSettingsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-700 transition-colors duration-150"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className="font-medium">User Settings</span>
+              </a>
+              <button
+                onClick={() => { setIsSettingsOpen(false); logout(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150"
+              >
+                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                  <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </div>
+                <span className="font-medium">Logout</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Beautiful Children Selector Bubble - Only show when multiple children and dashboard button is clicked */}
       <AnimatePresence>
@@ -245,11 +271,6 @@ export function ParentBottomNavigation({
         )}
       </AnimatePresence>
 
-      {/* Notifications Modal */}
-      <FloatingNotificationsModal
-        isOpen={isNotificationsModalOpen}
-        onClose={() => setIsNotificationsModalOpen(false)}
-      />
     </>
   );
 }
