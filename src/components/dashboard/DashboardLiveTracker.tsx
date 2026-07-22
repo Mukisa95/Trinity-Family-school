@@ -231,12 +231,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 </div>
                 
                 <div className="flex items-center flex-wrap gap-1 text-xs font-bold text-gray-900 tracking-tight">
-                    {profileName && (
-                        <span className="text-gray-500 uppercase tracking-wider text-[10px] sm:text-[11px] truncate max-w-[80px] sm:max-w-none">
-                            {profileName}
-                        </span>
-                    )}
-                    {profileName && <span className="text-gray-300 select-none">|</span>}
+
                     
                     <span className="text-gray-800">{periodLabel}</span>
                     

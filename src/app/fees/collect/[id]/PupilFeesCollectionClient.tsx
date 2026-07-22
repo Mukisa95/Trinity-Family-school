@@ -2196,7 +2196,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       <Tabs value={selectedTermId} onValueChange={setSelectedTermId} className="w-full">
         <GlassSummaryBar
           left={
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className="flex flex-nowrap items-center gap-1.5 sm:gap-2.5 shrink-0 overflow-x-auto">
               {/* Academic Year Selection - Round and compact */}
               <div className="flex shrink-0 items-center">
                 <select
@@ -2215,7 +2215,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       )[0];
                     setSelectedTermId(defaultTerm?.id || '');
                   }}
-                  className="bg-white rounded-full px-3 py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[140px]"
+                  className="bg-white rounded-full px-2 py-1 sm:px-3 sm:py-1.5 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-colors text-[10px] shadow-sm min-w-[90px] sm:min-w-[140px] max-w-[110px] sm:max-w-none"
                   disabled={isLoadingAcademicYears}
                 >
                   <option value="">Select Year</option>
@@ -2250,12 +2250,12 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
               {/* Term switcher tabs next to year selection */}
               {selectedAcademicYear && validTerms.length > 0 && (
-                <TabsList className="inline-flex h-auto w-auto max-w-full items-center gap-1.5 rounded-none border-0 bg-transparent p-0 shadow-none">
+                              <TabsList className="inline-flex h-auto w-auto items-center gap-1 rounded-none border-0 bg-transparent p-0 shadow-none flex-nowrap">
                   {validTerms.map((term, index) => (
                     <TabsTrigger
                       key={term.id}
                       value={term.id}
-                      className={`h-7 shrink-0 rounded-full border-2 bg-white/90 px-3 py-0 text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 ${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
+                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap ${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
                     >
                       {term.name}
                     </TabsTrigger>
@@ -2267,19 +2267,28 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           right={
             <>
               <div className="flex items-center gap-1 bg-indigo-50/80 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-indigo-700/85 dark:text-indigo-350 font-medium">Total Fees:</span>
+                <span className="text-indigo-700/85 dark:text-indigo-350 font-medium">
+                  <span className="sm:hidden">Total</span>
+                  <span className="hidden sm:inline">Total Fees:</span>
+                </span>
                 <span className="font-bold text-indigo-600 dark:text-indigo-400">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-green-700/85 dark:text-green-350 font-medium">Total Paid:</span>
+                <span className="text-green-700/85 dark:text-green-350 font-medium">
+                  <span className="sm:hidden">Paid</span>
+                  <span className="hidden sm:inline">Total Paid:</span>
+                </span>
                 <span className="font-bold text-green-600 dark:text-green-400">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
-                <span className="text-red-700/85 dark:text-red-350 font-medium">Balance:</span>
+                <span className="text-red-700/85 dark:text-red-350 font-medium">
+                  <span className="sm:hidden">Bal</span>
+                  <span className="hidden sm:inline">Balance:</span>
+                </span>
                 <span className="font-bold text-red-650 dark:text-red-400">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
                 </span>

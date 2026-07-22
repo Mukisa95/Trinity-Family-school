@@ -94,7 +94,7 @@ function CountUpNumber({ target }: { target: number }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const { toast } = useToast();
 
   const { data: schoolSettings } = useSchoolSettings();
@@ -229,7 +229,9 @@ export default function LoginPage() {
       if (ok) {
         toast({ title: "Login Successful", description: `Welcome to ${settings.generalInfo.name}` });
         setShowLoginModal(false);
-        router.replace("/");
+        // Route Parent accounts to their own portal; everyone else to the admin dashboard
+        const destination = user?.role === 'Parent' ? '/parent' : '/';
+        router.replace(destination);
       } else {
         setError("Invalid username or password. Please try again.");
       }

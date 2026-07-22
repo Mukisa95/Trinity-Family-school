@@ -262,7 +262,8 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
     GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId));
 
   const accessibleFallbackPath = React.useMemo(() => {
-    if (!user || user.role === 'Parent') return '/login';
+    if (!user) return '/login';
+    if (user.role === 'Parent') return '/parent';
 
     for (const [moduleId, module] of Object.entries(MODULE_ACTIONS)) {
       const accessiblePage = module.pages.find((page) =>
@@ -408,7 +409,8 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
       router.replace('/login');
     } else if (isAuthenticated && user && pathname === '/login') {
       logger.debug('Authenticated user on login page, redirecting home', { role: user.role });
-      router.replace('/');
+      // Parent users have their own portal — send them there instead of the admin dashboard
+      router.replace(user.role === 'Parent' ? '/parent' : '/');
     }
   }, [isPublicRoute, isAuthenticated, authLoading, router, user, pathname]);
 

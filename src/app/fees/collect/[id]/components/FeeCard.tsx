@@ -62,6 +62,9 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(amount || 0);
 
+  const formatCurrencyCompact = (amount: number) =>
+    'Sh. ' + new Intl.NumberFormat('en-UG', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
+
   // Get uniform tracking ID if this is a uniform fee
   const uniformTrackingId = UniformFeesIntegrationService.isUniformFee(fee)
     ? (fee as any).uniformTrackingId
@@ -875,28 +878,32 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
           )}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 sm:px-3">
-          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">Total</p>
-          <p className="mt-1 text-xs sm:text-sm lg:text-base font-bold leading-tight text-slate-900 break-words">
-            {formatCurrency(fee.amount)}
+      <div className="mt-2 grid grid-cols-3 gap-1.5 sm:gap-2">
+        <div className="rounded-md sm:rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 sm:px-3 sm:py-2">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500">Total</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-slate-900 break-all">
+            <span className="sm:hidden">{formatCurrencyCompact(fee.amount)}</span>
+            <span className="hidden sm:inline">{formatCurrency(fee.amount)}</span>
           </p>
         </div>
 
-        <div className="rounded-lg border border-green-200 bg-green-50 px-2 py-2 sm:px-3">
-          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-green-700">Paid</p>
-          <p className="mt-1 text-xs sm:text-sm lg:text-base font-bold leading-tight text-green-700 break-words">
-            {formatCurrency(totalPaid)}
+        <div className="rounded-md sm:rounded-lg border border-green-200 bg-green-50 px-1.5 py-1 sm:px-3 sm:py-2">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-green-700">Paid</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-green-700 break-all">
+            <span className="sm:hidden">{formatCurrencyCompact(totalPaid)}</span>
+            <span className="hidden sm:inline">{formatCurrency(totalPaid)}</span>
           </p>
         </div>
 
-        <div className="rounded-lg border border-red-200 bg-red-50 px-2 py-2 sm:px-3">
-          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-red-700">Balance</p>
-          <p className="mt-1 text-xs sm:text-sm lg:text-base font-bold leading-tight text-red-700 break-words">
-            {formatCurrency(balance)}
+        <div className="rounded-md sm:rounded-lg border border-red-200 bg-red-50 px-1.5 py-1 sm:px-3 sm:py-2">
+          <p className="text-[9px] sm:text-xs font-semibold uppercase tracking-wide text-red-700">Balance</p>
+          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-sm lg:text-base font-bold leading-tight text-red-700 break-all">
+            <span className="sm:hidden">{formatCurrencyCompact(balance)}</span>
+            <span className="hidden sm:inline">{formatCurrency(balance)}</span>
           </p>
         </div>
       </div>
+
 
       {/* Payment History - Ultra Compact with collapsible/expandable */}
       {sortedPayments.length > 0 ? (

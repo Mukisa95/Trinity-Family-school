@@ -275,19 +275,11 @@ const StatCard = ({
       {/* 3D Depth Effect - Bottom shadow */}
       <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
 
-      {/* Icon - Positioned in top-right corner */}
-      <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
-        style={{
-          backgroundColor: color.bg,
-          border: '1px solid rgba(255, 255, 255, 0.4)'
-        }}
-      >
-        <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${color.text}`} />
-      </div>
 
-      <div className="relative p-1.5 sm:p-3 pr-8 sm:pr-11 h-full flex flex-col justify-center min-h-[52px] sm:min-h-[76px] z-10">
+
+      <div className="relative p-1.5 sm:p-3 h-full flex flex-col justify-center min-h-[52px] sm:min-h-[76px] z-10">
         <div className="flex-1 min-w-0">
-          <p className={`text-[9px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 truncate`}>
+          <p className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
             {title}
           </p>
           <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
@@ -725,15 +717,7 @@ const ExpandableStaffCard = ({
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
-        {/* Icon - Positioned in top-right corner */}
-        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
-          style={{
-            backgroundColor: color.bg,
-            border: '1px solid rgba(255, 255, 255, 0.4)'
-          }}
-        >
-          <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${color.text}`} />
-        </div>
+
 
         {/* Expand/Collapse Icon - Positioned at bottom right */}
         <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-10 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-300">
@@ -746,11 +730,11 @@ const ExpandableStaffCard = ({
 
         <div className="relative z-10">
           <div
-            className="p-1.5 sm:p-3 pr-8 sm:pr-11 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
+            className="p-1.5 sm:p-3 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
-              <p className={`text-[9px] sm:text-xs font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 truncate`}>
+              <p className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
                 {title}
               </p>
               <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
@@ -1130,15 +1114,7 @@ const ExpandableAttendanceCard = ({
         {/* 3D Depth Effect - Bottom shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
-        {/* Icon - Positioned in top-right corner */}
-        <div className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-transform duration-300 z-20"
-          style={{
-            backgroundColor: currentColor.bg,
-            border: '1px solid rgba(255, 255, 255, 0.4)'
-          }}
-        >
-          <CurrentIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${currentColor.text}`} />
-        </div>
+
 
         {/* Expand/Collapse Icon - Positioned at bottom right */}
         <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-10 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-300">
@@ -1152,7 +1128,7 @@ const ExpandableAttendanceCard = ({
         <div className="relative z-10">
           {/* Card Content - Always Visible */}
           <div
-            className="p-1.5 sm:p-3 pr-8 sm:pr-11 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
+            className="p-1.5 sm:p-3 flex flex-col justify-center min-h-[52px] sm:min-h-[76px]"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
@@ -1163,7 +1139,7 @@ const ExpandableAttendanceCard = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 5 }}
                   transition={{ duration: 0.2 }}
-                  className={`text-[9px] sm:text-xs font-bold uppercase tracking-tight ${currentColor.text} mb-0 sm:mb-1 truncate`}
+                  className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${currentColor.text} mb-0 sm:mb-1 leading-tight`}
                 >
                   {currentTitle}
                 </motion.p>
@@ -1533,9 +1509,8 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-                <BarChart3 className="w-6 h-6 text-indigo-600" />
-                Class Enrollment
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center whitespace-nowrap">
+                <span className="whitespace-nowrap">By Class</span>
               </CardTitle>
             </div>
             <Button
@@ -1905,12 +1880,11 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
         <CardHeader className="pb-2 pt-3 relative z-20">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-            <div className="flex-1 min-w-0 pr-2">
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent flex items-center gap-2 leading-tight">
-                <UserCheck className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                <span className="truncate">
-                  {isRecessMode ? 'Recess Period' : 'Today\'s Attendance'}
+          <div className="flex flex-row items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap">
+                <span className="whitespace-nowrap">
+                  {isRecessMode ? 'Recess Period' : 'Present Today'}
                 </span>
               </CardTitle>
             </div>
@@ -2436,7 +2410,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
                   <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 tracking-tight drop-shadow-sm">
                     {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
                   </h1>
-                  <p className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wide uppercase mt-0.5">
+                  <p className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wide uppercase mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
                     {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
                   </p>
                 </motion.div>

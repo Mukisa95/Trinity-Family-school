@@ -143,19 +143,17 @@ export function TermScheduleCard() {
                 <CardHeader className="pb-2 pt-3 relative z-20 shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-                                <BookOpen className="w-6 h-6 text-indigo-600" />
-                                Term Schedule
+                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
+                                This Term
                             </CardTitle>
                         </div>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => router.push('/events')}
-                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 p-1 h-auto"
                         >
-                            Calendar
-                            <ChevronRight className="w-4 h-4 ml-1" />
+                            <ChevronRight className="w-4 h-4" />
                         </Button>
                     </div>
                 </CardHeader>
