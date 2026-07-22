@@ -65,14 +65,11 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
 
   const fullName = `${pupil?.firstName || ''} ${pupil?.lastName || ''} ${pupil?.otherNames || ''}`.trim();
 
-  // Dynamic font sizing to ensure name stays strictly on 1 single line without wrapping or premature truncation
-  const getNameFontSizeClass = (len: number) => {
-    if (len > 30) return 'text-xs min-[400px]:text-sm sm:text-base md:text-lg lg:text-xl';
-    if (len > 22) return 'text-sm min-[400px]:text-base sm:text-lg md:text-xl lg:text-2xl';
-    if (len > 15) return 'text-base min-[400px]:text-lg sm:text-xl md:text-2xl lg:text-3xl';
-    return 'text-lg min-[400px]:text-xl sm:text-2xl md:text-3xl';
-  };
-  const nameFontSizeClass = getNameFontSizeClass(fullName.length);
+  // Dynamic font sizing inline style to guarantee name fits on 1 line without wrapping
+  const nameLen = Math.max(fullName.length, 5); // Avoid division by zero
+  // 110 represents safe viewport width percentage allocated to the text
+  const fontSizeVw = (110 / nameLen).toFixed(2);
+  const nameStyle = { fontSize: `clamp(0.75rem, ${fontSizeVw}vw, 1.75rem)` };
 
   // Convert error to string format
   const error = queryError ? 
@@ -496,7 +493,10 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden">
-                  <h1 className={`${nameFontSizeClass} font-bold text-white mb-1 tracking-tight transition-all duration-300 whitespace-nowrap overflow-hidden text-ellipsis`}>
+                  <h1 
+                    className="font-bold text-white mb-1 tracking-tight transition-all duration-300 whitespace-nowrap overflow-hidden text-ellipsis"
+                    style={nameStyle}
+                  >
                     {fullName}
                   </h1>
                   <div className="flex items-center gap-2 text-white/90 text-xs sm:text-sm font-medium flex-wrap">
