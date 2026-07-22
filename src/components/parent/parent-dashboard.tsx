@@ -467,8 +467,8 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           {/* Content */}
           <div className="relative z-10 flex items-center justify-between h-full px-4 sm:px-6 md:px-8">
             {/* Left Side - Student Info */}
-            <div className="flex-1 min-w-0 pr-2">
-              <div className="flex items-center mb-3">
+            <div className="flex-1 min-w-0 pr-3">
+              <div className="flex items-center mb-2 sm:mb-3">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mr-3 sm:mr-4 shadow-lg transition-all duration-500 flex-shrink-0 overflow-hidden">
                   {pupil.photo && pupil.photo.trim() !== '' ? (
                     <img 
@@ -484,17 +484,17 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                     <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white transition-all duration-500" />
                   )}
                 </div>
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <h1 className="text-[clamp(0.95rem,3.2vw,1.75rem)] font-bold text-white mb-1 tracking-tight transition-all duration-500 whitespace-nowrap overflow-hidden text-ellipsis">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base sm:text-xl md:text-2xl font-bold text-white mb-1 tracking-tight transition-all duration-500 break-words">
                     {`${pupil.firstName || ''} ${pupil.lastName || ''} ${pupil.otherNames || ''}`.trim()}
                   </h1>
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-white/80 text-sm">
-                    <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-500 w-fit">
+                  <div className="flex items-center gap-2 text-white/90 text-xs sm:text-sm font-medium flex-wrap">
+                    <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
                       {displayClassCode}
                     </span>
-                    <span className="hidden sm:inline text-white/60">•</span>
-                    <span className="text-xs text-white/70 font-medium">
-                      ID: {pupil.admissionNumber}
+                    <span className="text-white/60">•</span>
+                    <span className="text-xs sm:text-sm text-white/90 font-medium tracking-wide">
+                      {pupil.admissionNumber}
                     </span>
                   </div>
                 </div>
@@ -508,15 +508,8 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
               </div>
             </div>
             
-            {/* Right Side - Decorative Elements & WhatsApp */}
-            <div className="flex flex-col items-end space-y-3">
-              {/* Decorative Dots - Hidden on mobile to save space */}
-              <div className="hidden sm:flex space-x-2">
-                <div className="w-3 h-3 bg-white/30 rounded-full animate-pulse"></div>
-                <div className="w-3 h-3 bg-white/50 rounded-full animate-pulse animation-delay-200"></div>
-                <div className="w-3 h-3 bg-white/70 rounded-full animate-pulse animation-delay-400"></div>
-              </div>
-              
+            {/* Right Side - Date & Clickable WhatsApp Icon Only */}
+            <div className="flex flex-col items-end justify-between h-full py-1">
               {/* Date - Smaller on mobile */}
               <div className="text-right text-white/70 text-xs">
                 <div className="hidden sm:block">Trinity Family Schools</div>
@@ -529,22 +522,17 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                 </div>
               </div>
               
-              {/* WhatsApp Group Message - Optimized for mobile */}
+              {/* Clickable WhatsApp Icon */}
               {whatsappLink && (
-                <div className="text-right text-white/90">
-                  <div className="flex items-center justify-end space-x-1 sm:space-x-1.5 mb-1.5 sm:mb-2">
-                    <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-300" />
-                    <span className="text-green-200 font-medium text-xs sm:text-sm">WhatsApp Group</span>
-                  </div>
-                  <a 
-                    href={whatsappLink} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-block bg-green-600 hover:bg-green-500 text-white text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg transition-all duration-300 hover:scale-105 shadow-sm"
-                  >
-                    Join Now
-                  </a>
-                </div>
+                <a 
+                  href={whatsappLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  title="Join WhatsApp Group"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-600/90 hover:bg-green-500 text-white backdrop-blur-sm flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 border border-green-300/40 mt-2"
+                >
+                  <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </a>
               )}
             </div>
           </div>
