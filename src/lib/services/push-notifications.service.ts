@@ -40,39 +40,6 @@ export interface PushPayload {
   title: string;
   body: string;
   url?: string;
- */
-
-import { db } from '@/lib/firebase';
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  query,
-  where,
-  getDocs,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-
-// ─── Shared types ────────────────────────────────────────────────────────────
-
-export interface PushSubscriptionRecord {
-  id?: string;
-  userId: string;
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-  deviceType: 'desktop' | 'mobile';
-  userAgent: string;
-  isActive: boolean;
-  createdAt: Timestamp | ReturnType<typeof serverTimestamp>;
-}
-
-export interface PushPayload {
-  title: string;
-  body: string;
-  url?: string;
   icon?: string;
   badge?: string;
   tag?: string;
