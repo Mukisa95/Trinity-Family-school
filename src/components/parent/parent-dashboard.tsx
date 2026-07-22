@@ -63,6 +63,17 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
     pupil?.className || 
     '';
 
+  const fullName = `${pupil?.firstName || ''} ${pupil?.lastName || ''} ${pupil?.otherNames || ''}`.trim();
+
+  // Dynamic font sizing to ensure name stays strictly on 1 single line without wrapping or premature truncation
+  const getNameFontSizeClass = (len: number) => {
+    if (len > 30) return 'text-xs min-[400px]:text-sm sm:text-base md:text-lg lg:text-xl';
+    if (len > 22) return 'text-sm min-[400px]:text-base sm:text-lg md:text-xl lg:text-2xl';
+    if (len > 15) return 'text-base min-[400px]:text-lg sm:text-xl md:text-2xl lg:text-3xl';
+    return 'text-lg min-[400px]:text-xl sm:text-2xl md:text-3xl';
+  };
+  const nameFontSizeClass = getNameFontSizeClass(fullName.length);
+
   // Convert error to string format
   const error = queryError ? 
     (queryError instanceof Error ? queryError.message : 'Failed to load pupil details') 
@@ -484,9 +495,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                     <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white transition-all duration-500" />
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-base sm:text-xl md:text-2xl font-bold text-white mb-1 tracking-tight transition-all duration-500 break-words">
-                    {`${pupil.firstName || ''} ${pupil.lastName || ''} ${pupil.otherNames || ''}`.trim()}
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <h1 className={`${nameFontSizeClass} font-bold text-white mb-1 tracking-tight transition-all duration-300 whitespace-nowrap overflow-hidden text-ellipsis`}>
+                    {fullName}
                   </h1>
                   <div className="flex items-center gap-2 text-white/90 text-xs sm:text-sm font-medium flex-wrap">
                     <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide">
