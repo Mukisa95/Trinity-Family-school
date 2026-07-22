@@ -11,6 +11,7 @@ import type { Pupil } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Loader2, User, CreditCard, ClipboardList, Wallet, CalendarCheck, RefreshCw, Trophy, MessageCircle } from 'lucide-react';
+import { useClasses } from '@/lib/hooks/use-classes';
 import { AcademicProgressTile } from './academic-progress-tile';
 import { FloatingNotificationsModal } from './floating-notifications-modal';
 import { SimpleFloatingNotification } from './simple-floating-notification';
@@ -31,8 +32,8 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   const [currentView, setCurrentView] = useState<'info' | 'fees' | 'requirements' | 'banking' | 'attendance' | 'results'>('info');
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-    // Use the provided pupilId or fall back to user's default pupilId
-    const targetPupilId = pupilId || user?.pupilId;
+  // Use the provided pupilId or fall back to user's default pupilId
+  const targetPupilId = pupilId || user?.pupilId;
     
   // Use React Query hook for pupil data - this provides automatic cache invalidation and refresh
   const { 
@@ -41,6 +42,9 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
     error: queryError, 
     refetch 
   } = usePupil(targetPupilId || '');
+
+  // Fetch classes to map class name/id to short class code (e.g. P.1)
+  const { data: classes = [] } = useClasses();
 
   // Check if pupil has banking account (for conditional navigation)
   const { data: bankingAccount, isLoading: bankingLoading } = useAccountByPupilId(targetPupilId || '');
@@ -51,6 +55,13 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   // Fetch school settings to get dynamic links (e.g., WhatsApp)
   const { data: schoolSettings } = useSchoolSettings();
   const whatsappLink = schoolSettings?.socialMedia?.whatsapp || sampleSchoolSettings.socialMedia?.whatsapp;
+
+  // Resolve short class code (e.g. P.1) instead of long name (PRIMARY ONE)
+  const displayClassCode = 
+    pupil?.classCode || 
+    classes.find(c => c.id === pupil?.classId || (pupil?.className && c.name?.toUpperCase() === pupil.className.toUpperCase()))?.code || 
+    pupil?.className || 
+    '';
 
   // Convert error to string format
   const error = queryError ? 
@@ -456,8 +467,8 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
           {/* Content */}
           <div className="relative z-10 flex items-center justify-between h-full px-4 sm:px-6 md:px-8">
             {/* Left Side - Student Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center mb-4">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="flex items-center mb-3">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mr-3 sm:mr-4 shadow-lg transition-all duration-500 flex-shrink-0 overflow-hidden">
                   {pupil.photo && pupil.photo.trim() !== '' ? (
                     <img 
@@ -473,16 +484,16 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                     <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white transition-all duration-500" />
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-1 tracking-tight transition-all duration-500 truncate">
-                    {pupil.firstName} {pupil.lastName} {pupil.otherNames}
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <h1 className="text-[clamp(0.95rem,3.2vw,1.75rem)] font-bold text-white mb-1 tracking-tight transition-all duration-500 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {`${pupil.firstName || ''} ${pupil.lastName || ''} ${pupil.otherNames || ''}`.trim()}
                   </h1>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-white/80 text-sm">
-                    <span className="bg-white/20 px-2 py-1 rounded-full text-xs font-medium transition-all duration-500 w-fit">
-                      {pupil.className}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-white/80 text-sm">
+                    <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-500 w-fit">
+                      {displayClassCode}
                     </span>
                     <span className="hidden sm:inline text-white/60">•</span>
-                    <span className="text-xs text-white/70">
+                    <span className="text-xs text-white/70 font-medium">
                       ID: {pupil.admissionNumber}
                     </span>
                   </div>
@@ -490,13 +501,10 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
               </div>
               
               {/* Dynamic View Title */}
-              <div className="space-y-1.5">
+              <div>
                 <h2 className="text-base sm:text-lg md:text-xl font-semibold text-white transition-all duration-500">
                   {viewConfig.title}
                 </h2>
-                <p className={`text-xs sm:text-sm ${viewConfig.accentColor} max-w-md transition-all duration-500`}>
-                  {viewConfig.subtitle}
-                </p>
               </div>
             </div>
             
