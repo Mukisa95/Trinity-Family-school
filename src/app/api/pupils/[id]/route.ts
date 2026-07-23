@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PupilsService } from '@/lib/services/pupils.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureServerFirestoreAuth();
     const { id: pupilId } = await params;
     console.log('🔍 API: Fetching pupil with ID:', pupilId);
 
@@ -43,9 +45,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureServerFirestoreAuth();
     const { id: pupilId } = await params;
     const body = await request.json();
 
@@ -66,4 +69,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-} 
+}

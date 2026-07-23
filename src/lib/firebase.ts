@@ -34,15 +34,17 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 let db: ReturnType<typeof getFirestore>;
 
 try {
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager(),
-    }),
-    experimentalForceLongPolling: shouldForceLongPolling,
-    experimentalAutoDetectLongPolling: !shouldForceLongPolling,
-    // Embedded browsers can be unreliable with fetch streams for Firestore listeners.
-    ...(shouldForceLongPolling ? ({ useFetchStreams: false } as any) : {}),
-  });
+  db = initializeFirestore(app, isBrowser
+    ? {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+        experimentalForceLongPolling: shouldForceLongPolling,
+        experimentalAutoDetectLongPolling: !shouldForceLongPolling,
+        // Embedded browsers can be unreliable with fetch streams for Firestore listeners.
+        ...(shouldForceLongPolling ? ({ useFetchStreams: false } as any) : {}),
+      }
+    : {});
 } catch {
   // initializeFirestore throws "Firestore has already been started" on re-import / HMR.
   // In that case, retrieve the existing properly-configured instance.

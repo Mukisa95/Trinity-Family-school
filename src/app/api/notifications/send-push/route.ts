@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -71,6 +72,7 @@ async function sendToOne(
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const { target, userIds: explicitUserIds, payload, urgency = 'normal', logSentBy } = body;
 

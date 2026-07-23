@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 /**
  * Daily Snapshot Maintenance API Endpoint
@@ -13,6 +14,7 @@ import { AcademicYearsService } from '@/lib/services/academic-years.service';
  */
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     console.log(`📅 Daily snapshot maintenance triggered at ${new Date().toISOString()}`);
     
     // Optional: Add authentication/authorization here
@@ -73,4 +75,4 @@ export async function GET(request: NextRequest) {
     usage: 'Send POST request to this endpoint daily',
     recommendation: 'Set up a cron job to call this endpoint every day at midnight'
   });
-} 
+}

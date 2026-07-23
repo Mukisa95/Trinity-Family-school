@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerFirestoreRestHeaders } from '@/lib/server/firestore-rest-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +15,14 @@ function firestoreUrl(path: string) {
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
+    const firestoreHeaders = await getServerFirestoreRestHeaders();
 
     // Read the doc first to get the lockedAmount (purely informational for the response)
-    const getRes = await fetch(firestoreUrl(`scheduledSMS/${id}`));
+    const getRes = await fetch(firestoreUrl(`scheduledSMS/${id}`), { headers: firestoreHeaders });
     let lockedAmount = 0;
     if (getRes.ok) {
       const doc = await getRes.json();
@@ -35,7 +37,7 @@ export async function DELETE(
 
     const patchRes = await fetch(patchUrl.toString(), {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: firestoreHeaders,
       body: JSON.stringify({
         fields: {
           status: { stringValue: 'cancelled' },

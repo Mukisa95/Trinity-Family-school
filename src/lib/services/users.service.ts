@@ -3,75 +3,46 @@ import {
   doc, 
   getDoc,
   getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc,
   query, 
   where,
   orderBy,
-  Timestamp
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import type { SystemUser, UserRole, ModulePermission, ModulePermissions } from '@/types';
 import { getDocsWithTimeout, isFirestoreOfflineError } from '@/lib/utils/firestore-helpers';
-import { HistoryLogService } from './history-log.service';
+import { SecureAuthService } from './secure-auth.service';
 
 const USERS_COLLECTION = 'system_users';
 
-// Simple password hashing for development (use proper auth in production)
-const hashPassword = (password: string): string => {
-  // In production, use bcrypt or Firebase Auth
-  // For now, using a salted hash approach
-  const salt = 'trinity_school_2024'; // Fixed salt for development
-  return btoa(salt + password); // Simple salted base64 encoding for demo
-};
-
-const verifyPassword = (password: string, hash: string): boolean => {
-  const salt = 'trinity_school_2024';
-  return btoa(salt + password) === hash;
-};
-
-// Utility function to remove undefined values
-function cleanUndefinedValues(obj: any): any {
-  const cleaned: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-        cleaned[key] = cleanUndefinedValues(value);
-      } else {
-        cleaned[key] = value;
-      }
-    }
+async function authorizedJson(path: string, init: RequestInit) {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser || firebaseUser.isAnonymous) {
+    throw new Error('Please sign in again to establish a secure session.');
   }
-  return cleaned;
+  const token = await firebaseUser.getIdToken();
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(init.headers || {}),
+    },
+    cache: 'no-store',
+  });
+  const payload = await response.json().catch(() => ({})) as Record<string, any>;
+  if (!response.ok) throw new Error(payload.error || 'The user operation could not be completed.');
+  return payload;
 }
 
 export class UsersService {
   // Create a new user
   static async createUser(userData: Omit<SystemUser, 'id' | 'createdAt'> & { password?: string }): Promise<string> {
     try {
-      const { password, ...userDataWithoutPassword } = userData;
-      
-      const newUser = {
-        ...userDataWithoutPassword,
-        passwordHash: password ? hashPassword(password) : undefined,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      };
-      
-      const cleanedData = cleanUndefinedValues(newUser);
-      const docRef = await addDoc(collection(db, USERS_COLLECTION), cleanedData);
-      await HistoryLogService.log({
-        action: 'create',
-        entity: 'user',
-        recordId: docRef.id,
-        label: userData.username,
-        meta: {
-          role: userData.role,
-          active: userData.isActive,
-        },
+      const payload = await authorizedJson('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(userData),
       });
-      return docRef.id;
+      return payload.id as string;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -124,14 +95,9 @@ export class UsersService {
   static async getUserById(userId: string): Promise<SystemUser | null> {
     try {
       const userDoc = doc(db, USERS_COLLECTION, userId);
-      const snapshot = await getDocsWithTimeout<SystemUser>(
-        query(collection(db, USERS_COLLECTION), where('__name__', '==', userId)),
-        15000
-      );
-      
-      if (snapshot.length === 0) return null;
-      
-      const userData = snapshot[0];
+      const snapshot = await getDoc(userDoc);
+      if (!snapshot.exists()) return null;
+      const userData = { id: snapshot.id, ...snapshot.data() } as SystemUser;
       return {
         ...userData,
         createdAt: userData.createdAt,
@@ -199,127 +165,15 @@ export class UsersService {
 
   // Authenticate user
   static async authenticateUser(username: string, password: string): Promise<SystemUser | null> {
-    try {
-      // Try direct username lookup first
-      let user = await this.getUserByUsername(username);
-      
-      // If not found and this might be a parent login attempt, resolve all
-      // supported legacy formats from one pupil read and one batched user read.
-      if (!user) {
-        const PupilsService = (await import('./pupils.service')).PupilsService;
-        try {
-          const pupil = await PupilsService.getPupilByAdmissionNumber(password);
-
-          if (pupil) {
-            const surnamePrefix = pupil.lastName.substring(0, 3).toUpperCase();
-            const birthYearSuffix = pupil.dateOfBirth
-              ? new Date(pupil.dateOfBirth).getFullYear().toString().slice(-2)
-              : new Date().getFullYear().toString().slice(-2);
-            const simpleUsername = `${surnamePrefix}${birthYearSuffix}`;
-            const simpleVariations = [
-              simpleUsername,
-              `${simpleUsername}1`,
-              `${simpleUsername}2`,
-              `${simpleUsername}3`,
-            ];
-            const admissionBasedUsername = `parent_${password.toLowerCase()}`;
-            const nameVariations = [
-              `${pupil.firstName}${pupil.lastName}${pupil.otherNames || ''}`.replace(/\s+/g, '').toLowerCase(),
-              `${pupil.firstName}.${pupil.lastName}`.replace(/\s+/g, '').toLowerCase(),
-              `${pupil.firstName}${pupil.lastName}`.replace(/\s+/g, '').toLowerCase(),
-            ];
-
-            const candidates = await this.getUsersByUsernames([
-              ...simpleVariations,
-              admissionBasedUsername,
-              ...nameVariations,
-            ]);
-            const usersByUsername = new Map(
-              candidates.map(candidate => [candidate.username, candidate])
-            );
-
-            user = simpleVariations
-              .map(variation => usersByUsername.get(variation))
-              .find(candidate => candidate?.pupilId === pupil.id) ?? null;
-            user ??= usersByUsername.get(admissionBasedUsername) ?? null;
-            user ??= nameVariations
-              .map(variation => usersByUsername.get(variation))
-              .find(Boolean) ?? null;
-          }
-        } catch (error) {
-          console.error('Error in parent compatibility lookup:', error);
-        }
-      }
-      
-      if (!user) {
-        return null;
-      }
-      
-      if (!user.isActive) {
-        return null;
-      }
-      
-      if (user.passwordHash) {
-        // Try new salted hash first
-        if (verifyPassword(password, user.passwordHash)) {
-          void this.updateLastLogin(user.id).catch(() => undefined);
-          return user;
-        }
-        
-        // If new method fails, and user is 'admin', try old unsalted method as a fallback
-        if (user.username.toLowerCase() === 'admin') {
-          const oldUnsaltedHash = btoa(password); // Simple base64
-          if (oldUnsaltedHash === user.passwordHash) {
-            // IMPORTANT: Re-hash and save password with the new method
-            const newSaltedHash = hashPassword(password);
-            await this.updateUser(user.id, { passwordHash: newSaltedHash });
-            void this.updateLastLogin(user.id).catch(() => undefined);
-            return user;
-          }
-        }
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error authenticating user:', error);
-      throw error;
-    }
+    return SecureAuthService.signIn(username, password);
   }
 
   // Update user
   static async updateUser(userId: string, updates: Partial<SystemUser> & { password?: string }): Promise<void> {
     try {
-      const { password, ...updatesWithoutPassword } = updates;
-      
-      const updateData = {
-        ...updatesWithoutPassword,
-        ...(password && { passwordHash: hashPassword(password) }),
-        updatedAt: Timestamp.now()
-      };
-      
-      const cleanedData = cleanUndefinedValues(updateData);
-      const docRef = doc(db, USERS_COLLECTION, userId);
-      await updateDoc(docRef, cleanedData);
-      const changedFields = Object.keys(cleanedData).filter(key => key !== 'updatedAt' && key !== 'passwordHash');
-      const permissionChanged = changedFields.some(field =>
-        ['role', 'isActive', 'modulePermissions', 'granularPermissions', 'accessLevelId'].includes(field)
-      );
-
-      await HistoryLogService.audit({
-        action: 'update',
-        entity: 'user',
-        recordId: userId,
-        label: updates.username,
-        changedFields,
-        module: 'security',
-        sensitive: permissionChanged || !!password,
-        reason: permissionChanged ? 'User role or permissions changed' : '',
-        meta: {
-          role: updates.role || '',
-          active: updates.isActive ?? '',
-          permissionChange: permissionChanged,
-          passwordChanged: !!password,
-        },
+      await authorizedJson(`/api/users/${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
       });
     } catch (error) {
       console.error('Error updating user:', error);
@@ -329,34 +183,16 @@ export class UsersService {
 
   // Update last login
   static async updateLastLogin(userId: string): Promise<void> {
-    try {
-      const docRef = doc(db, USERS_COLLECTION, userId);
-      await updateDoc(docRef, {
-        lastLogin: Timestamp.now()
-      });
-    } catch (error) {
-      console.error('Error updating last login:', error);
-      throw error;
-    }
+    // The secure login endpoint records lastLogin with Admin SDK privileges.
+    // Kept for API compatibility with older callers.
+    return Promise.resolve();
   }
 
   // Delete user
   static async deleteUser(userId: string): Promise<void> {
     try {
-      const user = await this.getUserById(userId);
-      const docRef = doc(db, USERS_COLLECTION, userId);
-      await deleteDoc(docRef);
-      await HistoryLogService.audit({
-        action: 'delete',
-        entity: 'user',
-        recordId: userId,
-        label: user?.username || userId,
-        module: 'security',
-        sensitive: true,
-        reason: 'User account deleted',
-        meta: {
-          role: user?.role || '',
-        },
+      await authorizedJson(`/api/users/${encodeURIComponent(userId)}`, {
+        method: 'DELETE',
       });
     } catch (error) {
       console.error('Error deleting user:', error);

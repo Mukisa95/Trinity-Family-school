@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 /**
  * GET /api/notifications/[id]
@@ -11,6 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureServerFirestoreAuth();
     const { id: notificationId } = await params;
 
     if (!notificationId) {
@@ -50,7 +52,6 @@ export async function GET(
     );
   }
 }
-
 
 
 

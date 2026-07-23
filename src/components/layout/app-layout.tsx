@@ -97,6 +97,7 @@ function SessionStaleBanner({
   onRefresh: () => Promise<void>;
 }) {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const requiresSignIn = message?.toLowerCase().includes('sign in') ?? false;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -116,17 +117,23 @@ function SessionStaleBanner({
             {message || 'Your current role and permissions could not be confirmed from the database.'}
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100"
-        >
-          {isRefreshing && <Loader2 className="h-4 w-4 animate-spin" />}
-          Refresh Session
-        </Button>
+        {requiresSignIn ? (
+          <Button asChild size="sm" variant="outline" className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100">
+            <Link href="/login?reauth=1">Sign In Securely</Link>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="border-amber-400 bg-white text-amber-950 hover:bg-amber-100"
+          >
+            {isRefreshing && <Loader2 className="h-4 w-4 animate-spin" />}
+            Refresh Session
+          </Button>
+        )}
       </div>
     </div>
   );

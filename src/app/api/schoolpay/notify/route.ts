@@ -4,6 +4,7 @@ import {
   type SchoolPayPaymentPayload,
   type SchoolPayWebhookPayload,
 } from '@/lib/services/schoolpay-integration.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -184,6 +185,7 @@ async function parseIncomingPayload(request: NextRequest): Promise<ParsedWebhook
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const { payload, raw, contentType } = await parseIncomingPayload(request);
 
     await SchoolPayIntegrationService.logWebhookReceipt({

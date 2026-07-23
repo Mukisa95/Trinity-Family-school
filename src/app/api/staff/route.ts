@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { StaffService } from '@/lib/services/staff.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function GET() {
   try {
+    await ensureServerFirestoreAuth();
     const staff = await StaffService.getAllStaff();
     return NextResponse.json(staff);
   } catch (error) {
@@ -15,6 +17,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const staff = await StaffService.createStaff(body);
     return NextResponse.json(staff, { status: 201 });
@@ -24,4 +27,4 @@ export async function POST(request: Request) {
       status: 500,
     });
   }
-} 
+}

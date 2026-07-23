@@ -1,10 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { SchoolSettingsService } from '../services/school-settings.service';
 import type { SchoolSettings } from '@/types';
-import { logFirebaseError } from '@/lib/utils/firebase-error-handler';
-import { doc, onSnapshot, getDocFromCache } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 export const schoolSettingsKeys = {
   all: ['schoolSettings'] as const,
@@ -14,70 +13,84 @@ export const schoolSettingsKeys = {
 const SETTINGS_DOC_ID = 'school-settings';
 const COLLECTION_NAME = 'settings';
 
-export function useSchoolSettings(options?: { enabled?: boolean }) {
-  const queryClient = useQueryClient();
-  const listenerSetupRef = useRef(false);
+interface SettingsListenerRegistry {
+  unsubscribe: () => void;
+  refCount: number;
+  clients: Set<QueryClient>;
+}
 
-  useEffect(() => {
-    if (options?.enabled === false || listenerSetupRef.current) return;
-    listenerSetupRef.current = true;
+let settingsListenerRegistry: SettingsListenerRegistry | null = null;
 
+function subscribeToSchoolSettings(queryClient: QueryClient) {
+  if (!settingsListenerRegistry) {
+    const clients = new Set<QueryClient>([queryClient]);
     const docRef = doc(db, COLLECTION_NAME, SETTINGS_DOC_ID);
-
-    getDocFromCache(docRef)
-      .then((cachedSnap) => {
-        if (cachedSnap.exists()) {
-          const cachedSettings = { id: cachedSnap.id, ...cachedSnap.data() } as SchoolSettings;
-          queryClient.setQueryData(schoolSettingsKeys.settings(), cachedSettings);
-        }
-      })
-      .catch(() => {
-        // Cache miss is fine, listener will get data from server.
-      });
 
     const unsubscribe = onSnapshot(
       docRef,
+      { includeMetadataChanges: true },
       (snapshot) => {
-        if (snapshot.exists()) {
-          const settings = { id: snapshot.id, ...snapshot.data() } as SchoolSettings;
-          queryClient.setQueryData(schoolSettingsKeys.settings(), settings);
-        } else {
-          queryClient.setQueryData(schoolSettingsKeys.settings(), null);
-        }
+        const settings = snapshot.exists()
+          ? ({ id: snapshot.id, ...snapshot.data() } as unknown as SchoolSettings)
+          : null;
+
+        clients.forEach(client => {
+          const current = client.getQueryData<SchoolSettings | null>(schoolSettingsKeys.settings());
+          // A server metadata confirmation with identical data must not cause a
+          // new object and a layout-wide rerender.
+          if (!snapshot.metadata.fromCache && current && settings &&
+              JSON.stringify(current) === JSON.stringify(settings)) {
+            return;
+          }
+          client.setQueryData(schoolSettingsKeys.settings(), settings);
+        });
+
+        performance.mark?.(
+          snapshot.metadata.fromCache
+            ? 'trinity:settings-cache-ready'
+            : 'trinity:settings-server-synced',
+        );
       },
       (error) => {
         console.error('Real-time listener error for school settings:', error);
-      }
+      },
     );
 
-    return () => {
-      unsubscribe();
-      listenerSetupRef.current = false;
+    settingsListenerRegistry = {
+      unsubscribe,
+      refCount: 0,
+      clients,
     };
+  } else {
+    settingsListenerRegistry.clients.add(queryClient);
+  }
+
+  settingsListenerRegistry.refCount += 1;
+
+  return () => {
+    if (!settingsListenerRegistry) return;
+    settingsListenerRegistry.refCount -= 1;
+    if (settingsListenerRegistry.refCount > 0) return;
+    settingsListenerRegistry.unsubscribe();
+    settingsListenerRegistry = null;
+  };
+}
+
+export function useSchoolSettings(options?: { enabled?: boolean }) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (options?.enabled === false) return;
+    return subscribeToSchoolSettings(queryClient);
   }, [queryClient, options?.enabled]);
 
-  return useQuery({
+  const query = useQuery({
     queryKey: schoolSettingsKeys.settings(),
-    queryFn: async () => {
-      try {
-        const settings = await SchoolSettingsService.getSchoolSettings();
-
-        if (settings) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('School settings loaded');
-          }
-        } else if (process.env.NODE_ENV === 'development') {
-          console.warn('School settings returned null - document may not exist or timed out');
-        }
-
-        return settings;
-      } catch (error) {
-        logFirebaseError(error, 'Fetching school settings');
-        throw error;
-      }
-    },
-    enabled: options?.enabled !== undefined ? options.enabled : true,
-    staleTime: 60 * 60 * 1000,
+    // Manual refetch remains available for recovery, but ordinary hydration is
+    // owned by the singleton listener and therefore issues no duplicate get().
+    queryFn: () => SchoolSettingsService.getSchoolSettings(),
+    enabled: false,
+    staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
     retry: (failureCount, error) => {
       if (error && typeof error === 'object' && 'status' in error) {
@@ -99,6 +112,11 @@ export function useSchoolSettings(options?: { enabled?: boolean }) {
       return cached || undefined;
     },
   });
+
+  return {
+    ...query,
+    isLoading: options?.enabled !== false && query.data === undefined,
+  };
 }
 
 export function useUpdateSchoolSettings() {

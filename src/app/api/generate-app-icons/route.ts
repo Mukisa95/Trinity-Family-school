@@ -4,6 +4,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import fs from 'fs';
 import { pushNotificationIconService } from '@/lib/services/push-notification-icon.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds timeout
@@ -35,6 +36,7 @@ const iconConfigs: IconConfig[] = [
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const formData = await request.formData();
     const file = formData.get('icon') as File;
 
@@ -213,4 +215,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

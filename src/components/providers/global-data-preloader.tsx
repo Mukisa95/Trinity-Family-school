@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDocsFromCache, getCountFromServer, Timestamp } from 'firebase/firestore';
+import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDocsFromCache, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
-import { patchPupilQueryCaches, removePupilFromQueryCaches } from '@/lib/hooks/use-pupils';
+import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
@@ -225,16 +225,11 @@ export function GlobalDataPreloader() {
       unsubscribers.push(unsubscribe);
     };
 
-    // 5. 👨‍👩‍👧‍👦 PUPILS - Validated cache load + full real-time listener
+    // 5. PUPILS - One cache-first, server-backed real-time listener.
     //
-    // STRATEGY (3 phases):
-    //   Phase 1a: Skip entirely if React Query in-memory cache is already warm.
-    //   Phase 1b: Try Firestore IndexedDB cache, but VALIDATE count against server
-    //             to catch stale/partial caches (the root cause of "only 63/700 pupils").
-    //   Phase 1c: Full network fetch if cache is missing or stale.
-    //   Phase 2:  Full onSnapshot listener (includeMetadataChanges: false) for
-    //             authoritative cross-device sync — eliminates the sessionStart
-    //             race condition of the old narrow syncUpdatedAt query.
+    // Firestore emits the listener's local IndexedDB snapshot first and then
+    // reconciles it with the server. Cached data must never wait behind a count
+    // request or a duplicate getDocs() call.
     const setupPupilsListener = async () => {
       const normalizePupilDoc = (doc: any) => {
         const data = doc.data();
@@ -257,95 +252,63 @@ export function GlobalDataPreloader() {
         console.log(`🎯 PARENT MODE: Loading only pupils for family ${userFamilyId}`);
       }
 
-      // ── Phase 1a: Skip initial load if React Query cache is already warm ──────
-      const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
-      if (existingPupils && existingPupils.length > 0) {
-        console.log(`⚡ PRELOADER: ${existingPupils.length} pupils already in memory — skipping initial fetch`);
-      } else {
-        try {
-          let pupils: any[] | null = null;
-
-          // ── Phase 1b: Try IndexedDB cache, validate count against server ──────
-          // The IndexedDB cache only contains docs the SDK has previously seen on
-          // this device. On a device that hasn't connected recently it may hold
-          // only a fraction of the total pupils. We run a cheap getCountFromServer
-          // (1 read unit, ~100ms) to detect stale/partial caches before trusting them.
-          try {
-            const cacheSnapshot = await getDocsFromCache(baseQuery);
-            if (cacheSnapshot.docs.length > 0) {
-              // Validate: compare cached count with authoritative server count
-              const countResult = await getCountFromServer(baseQuery);
-              const serverCount = countResult.data().count;
-              const cachedCount = cacheSnapshot.docs.length;
-              const countDiff = Math.abs(serverCount - cachedCount);
-              const cacheIsValid = countDiff <= 5; // tolerate ±5 for in-flight writes
-
-              if (cacheIsValid) {
-                console.log(`⚡ PRELOADER: Cache valid (${cachedCount} cached ≈ ${serverCount} server) — using IndexedDB cache`);
-                pupils = cacheSnapshot.docs.map(normalizePupilDoc);
-              } else {
-                console.warn(`⚠️ PRELOADER: Cache stale (${cachedCount} cached vs ${serverCount} server) — fetching fresh from network`);
-                // Fall through to Phase 1c
-              }
-            } else {
-              console.log('📥 PRELOADER: IndexedDB cache empty — falling back to network fetch');
-            }
-          } catch {
-            // IndexedDB unavailable or cache miss — normal on very first load
-            console.log('📥 PRELOADER: IndexedDB cache miss — falling back to network fetch');
-          }
-
-          // ── Phase 1c: Network fetch (cache was empty or stale) ───────────────
-          if (!pupils) {
-            console.log(`👥 PRELOADER: Fetching all pupils from network...`);
-            const snapshot = await getDocs(baseQuery);
-            pupils = snapshot.docs.map(normalizePupilDoc);
-            console.log(`✅ PRELOADER: Loaded ${pupils.length} pupils (full getDocs, one-time)`);
-          }
-
-          queryClient.setQueryData(['pupils', 'list'], pupils);
-        } catch (error: any) {
-          console.error('❌ PRELOADER: Pupils initial load error:', error.message);
-        }
-      }
-
-      // ── Phase 2: Full real-time listener for cross-device sync ────────────
-      // Uses a complete onSnapshot (not a narrow syncUpdatedAt filter) so:
-      //  - The first fire delivers an authoritative full list from the server,
-      //    overwriting any stale cache that slipped through Phase 1b.
-      //  - Subsequent fires deliver surgical docChanges() patches.
-      //  - includeMetadataChanges: false skips local-write echoes, so the
-      //    registering device is not double-updated (it already got the optimistic
-      //    patch from useCreatePupil's onSuccess).
-      //  - Self-heals on reconnect: Firestore replays all missed changes.
-      let initialSnapshotReceived = false;
+      let initialSnapshotPublished = false;
+      let serverSnapshotSeen = false;
 
       const unsubscribe = onSnapshot(
         baseQuery,
-        { includeMetadataChanges: false },
+        { includeMetadataChanges: true },
         (snapshot) => {
-          if (!initialSnapshotReceived) {
-            // First fire: authoritative server state — replace the entire cache.
-            // This is the safety net that corrects any stale data from Phase 1b.
-            initialSnapshotReceived = true;
+          const source = snapshot.metadata.fromCache ? 'cache' : 'server';
+
+          if (!initialSnapshotPublished) {
+            initialSnapshotPublished = true;
+            serverSnapshotSeen = !snapshot.metadata.fromCache;
             const allPupils = snapshot.docs.map(normalizePupilDoc);
-            queryClient.setQueryData(['pupils', 'list'], allPupils);
-            console.log(`✅ PRELOADER: onSnapshot confirmed ${allPupils.length} pupils (authoritative)`);
+            const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
+            // An empty local snapshot must not blank a populated in-memory cache.
+            // The following server snapshot will authoritatively add/remove docs.
+            if (!(snapshot.metadata.fromCache && allPupils.length === 0 && existingPupils?.length)) {
+              queryClient.setQueryData(['pupils', 'list'], allPupils);
+            }
+            performance.mark?.(`trinity:pupils-${source}-ready`);
+            console.log(`PRELOADER: Loaded ${allPupils.length} pupils from ${source}`);
             return;
           }
 
-          // Subsequent fires: surgical patch per changed document
-          const changes = snapshot.docChanges();
+          // Metadata-only confirmation must not rebuild a large cached array.
+          const changes = snapshot.docChanges({ includeMetadataChanges: false });
+          if (!snapshot.metadata.fromCache && !serverSnapshotSeen) {
+            serverSnapshotSeen = true;
+            performance.mark?.('trinity:pupils-server-synced');
+            if (changes.length > 0) {
+              // Reconcile against the complete authoritative result once. This
+              // removes records that may exist only in an older React Query cache.
+              queryClient.setQueryData(
+                ['pupils', 'list'],
+                snapshot.docs.map(normalizePupilDoc),
+              );
+            }
+            return;
+          }
           if (changes.length === 0) return;
 
-          changes.forEach(change => {
-            if (change.type === 'removed') {
-              removePupilFromQueryCaches(queryClient, change.doc.id);
-            } else {
-              patchPupilQueryCaches(queryClient, normalizePupilDoc(change.doc) as any);
-            }
-          });
-          console.log(`PRELOADER: Patched ${changes.length} pupil(s) into cache (cross-device sync)`);
+          applyPupilChangesToQueryCaches(
+            queryClient,
+            changes.map(change =>
+              change.type === 'removed'
+                ? { type: 'removed' as const, id: change.doc.id }
+                : {
+                    type: change.type,
+                    pupil: normalizePupilDoc(change.doc) as any,
+                  },
+            ),
+          );
+
+          if (!snapshot.metadata.fromCache) {
+            performance.mark?.('trinity:pupils-server-synced');
+          }
+          console.log(`PRELOADER: Applied ${changes.length} live pupil change(s) from ${source}`);
         },
         (error) => console.error('❌ PRELOADER: Pupils listener error:', error.message)
       );
@@ -618,8 +581,8 @@ export function GlobalDataPreloader() {
     // ═══════════════════════════════════════════════════════════
 
     // Fire all data setup calls in PARALLEL — do not await any single one
-    // before starting the others. setupPupilsListener is async (getDocs phase)
-    // but must NOT block the other fetches or the dashboard takes 30+ seconds.
+    // before starting the others. setupPupilsListener is async only so setup
+    // failures can be reported consistently; the listener itself starts at once.
     (async () => {
       try {
         // Dashboard-critical data starts first. Secondary module data begins

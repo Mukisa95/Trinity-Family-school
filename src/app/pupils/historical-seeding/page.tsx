@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { UsersService } from '@/lib/services/users.service';
+import { SecureAuthService } from '@/lib/services/secure-auth.service';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +45,7 @@ function HistoricalPupilSeedingPage() {
     setError('');
 
     try {
-      const authenticatedUser = await UsersService.authenticateUser(user.username, password);
+      const authenticatedUser = await SecureAuthService.verifyCredentials(user.username, password);
       const isMatchingAdmin = authenticatedUser?.id === user.id && authenticatedUser.role === 'Admin';
 
       if (!isMatchingAdmin) {

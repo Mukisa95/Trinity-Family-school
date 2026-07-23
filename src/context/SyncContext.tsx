@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { SyncStatus } from '@/types';
+import { enableNetwork, waitForPendingWrites } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface SyncContextType extends SyncStatus {
   syncNow: () => Promise<void>;
@@ -58,9 +60,12 @@ export const SyncProvider: React.FC<SyncProviderProps> = ({ children }) => {
     setSyncStatus(prev => ({ ...prev, isSyncing: true }));
 
     try {
-      // Simulate sync operation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Confirm real Firestore delivery instead of simulating synchronization.
+      // Active snapshot listeners reconcile server data independently; this
+      // waits until every write queued before this call has reached Firestore.
+      await enableNetwork(db);
+      await waitForPendingWrites(db);
+
       setSyncStatus(prev => ({
         ...prev,
         isSyncing: false,
@@ -106,4 +111,4 @@ export const useSyncContext = (): SyncContextType => {
     throw new Error('useSyncContext must be used within a SyncProvider');
   }
   return context;
-}; 
+};

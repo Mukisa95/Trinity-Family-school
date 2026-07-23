@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PLEResultsService } from '@/lib/services/ple-results.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { recordId: string } }
+    { params }: { params: Promise<{ recordId: string }> }
 ) {
     try {
-        const { recordId } = params;
+        await ensureServerFirestoreAuth();
+        const { recordId } = await params;
         const body = await request.json();
         const { pupilIds } = body;
 

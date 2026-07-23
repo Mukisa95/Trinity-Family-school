@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Stage 0 only: protect the new credential vault before copying any hashes.
+    // Every pre-existing collection keeps its current behavior during the auth
+    // bridge deployment, so this rule cannot interrupt active users.
+    match /authCredentials/{credentialPath=**} {
+      allow read, write: if false;
+    }
+
+    match /{collection}/{documentPath=**} {
+      allow read, write: if collection != 'authCredentials';
+    }
+  }
+}

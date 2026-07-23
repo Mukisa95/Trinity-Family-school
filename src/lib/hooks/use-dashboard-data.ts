@@ -1,8 +1,8 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSchoolSettings } from './use-school-settings';
 import { usePhotos } from './use-photos';
-import { collection, query, where, getDocs, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { format } from 'date-fns';
 import type { Pupil, Staff, Class } from '@/types';
@@ -78,12 +78,14 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
   // the listener setup until classes have loaded).
   const classesRef = useRef(classes);
   useEffect(() => { classesRef.current = classes; }, [classes]);
+  const [attendanceListenerError, setAttendanceListenerError] = useState<Error | null>(null);
+  const [attendanceListenerGeneration, setAttendanceListenerGeneration] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('⏱️ POLL: Setting up 2-min attendance poll for', today);
+      console.log('ATTENDANCE: Starting cache-first live listener for', today);
     }
 
     const startOfDay = Timestamp.fromDate(new Date(today + 'T00:00:00'));
@@ -96,46 +98,48 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
       limit(700) // Safety cap: never exceed school capacity
     );
 
-    // ── Shared fetch & process function ───────────────────────────────────
-    const fetchAndProcess = async () => {
-      try {
-        const snapshot = await getDocs(attendanceQuery);
-        const rawRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let initialSnapshotPublished = false;
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⏱️ POLL: Fetched ${rawRecords.length} attendance records`);
+    const unsubscribe = onSnapshot(
+      attendanceQuery,
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        const dataChanges = snapshot.docChanges({ includeMetadataChanges: false });
+        if (initialSnapshotPublished && dataChanges.length === 0) {
+          if (!snapshot.metadata.fromCache) {
+            performance.mark?.('trinity:attendance-server-confirmed');
+          }
+          return;
         }
 
-        // CRITICAL FIX: Deduplicate records by pupilId
-        // If a pupil has multiple records for the same day (from re-recording),
-        // keep only the latest one (by recordedAt timestamp)
+        initialSnapshotPublished = true;
+        setAttendanceListenerError(null);
+
+        const rawRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // If a pupil has multiple records for the day, keep the newest entry.
         const dedupMap = new Map<string, any>();
         rawRecords.forEach((record: any) => {
           const key = `${record.pupilId}_${record.classId}`;
           const existing = dedupMap.get(key);
           if (!existing) {
             dedupMap.set(key, record);
-          } else {
-            const existingTime = existing.recordedAt?.seconds || 0;
-            const newTime = record.recordedAt?.seconds || 0;
-            if (newTime > existingTime) dedupMap.set(key, record);
+            return;
           }
+          const existingTime = existing.recordedAt?.seconds || 0;
+          const newTime = record.recordedAt?.seconds || 0;
+          if (newTime > existingTime) dedupMap.set(key, record);
         });
         const records = Array.from(dedupMap.values());
 
-        if (process.env.NODE_ENV === 'development' && records.length !== rawRecords.length) {
-          console.log(`🔧 DEDUP: Reduced ${rawRecords.length} records to ${records.length} unique pupil records`);
-        }
-
-        // Build classId -> className lookup
         const classLookup: Record<string, string> = {};
         classesRef.current.forEach((cls: any) => {
           classLookup[cls.id] = cls.code || cls.name || 'Unknown';
         });
 
         const present = records.filter((r: any) => r.status === 'Present').length;
-        const absent  = records.filter((r: any) => r.status === 'Absent').length;
-        const late    = records.filter((r: any) => r.status === 'Late').length;
+        const absent = records.filter((r: any) => r.status === 'Absent').length;
+        const late = records.filter((r: any) => r.status === 'Late').length;
         const delayed = records.filter((r: any) => r.status === 'Delayed').length;
 
         const byClass = records.reduce((acc: any, record: any) => {
@@ -145,7 +149,11 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
             acc[classId] = {
               classId,
               className: classLookup[classId] || record.classCode || record.className || classId,
-              present: 0, absent: 0, late: 0, delayed: 0, total: 0
+              present: 0,
+              absent: 0,
+              late: 0,
+              delayed: 0,
+              total: 0,
             };
           }
           acc[classId].total++;
@@ -157,38 +165,34 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
         }, {});
 
         queryClient.setQueryData(dashboardKeys.attendance(today), {
-          present, absent, late, delayed,
+          present,
+          absent,
+          late,
+          delayed,
           total: records.length,
           records,
-          byClass: Object.values(byClass)
+          byClass: Object.values(byClass),
         });
-      } catch (error: any) {
-        console.error('❌ POLL ATTENDANCE ERROR:', error.message);
-      }
-    };
 
-    // ── Periodic refresh setup ──────────────────────────────────────────────
-    // React Query owns the cold initial fetch; this effect handles later refreshes.
-
-    // ── Poll every 2 minutes ───────────────────────────────────────────────
-    const interval = setInterval(fetchAndProcess, 2 * 60 * 1000);
-
-    // ── Instant refresh when user returns to the tab ──────────────────────
-    const onFocus = () => {
-      if (process.env.NODE_ENV === 'development') console.log('👁️ POLL: Tab focused — refreshing attendance');
-      fetchAndProcess();
-    };
-    window.addEventListener('focus', onFocus);
+        const source = snapshot.metadata.fromCache ? 'cache' : 'server';
+        performance.mark?.(`trinity:attendance-${source}-ready`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`ATTENDANCE: Applied ${records.length} records from ${source}`);
+        }
+      },
+      (error) => {
+        setAttendanceListenerError(error);
+        console.error('ATTENDANCE LISTENER ERROR:', error.message);
+      },
+    );
 
     return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', onFocus);
+      unsubscribe();
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔌 POLL: Cleaned up attendance poll');
+        console.log('ATTENDANCE: Live listener stopped');
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [today, enabled, queryClient]);
+  }, [today, enabled, queryClient, attendanceListenerGeneration]);
 
 
   // 🔧 FIX: Re-hydrate class names in cached attendanceData once classes load.
@@ -226,123 +230,16 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
     }
   }, [classes, queryClient, today]);
 
-  // Query with initial data from cache
-  const {
-    data: attendanceData,
-    isLoading: attendanceLoading,
-    error: attendanceError,
-    refetch: refetchAttendance
-  } = useQuery({
+  // React Query is the UI subscription only. The single Firestore listener
+  // above owns both cache hydration and live server reconciliation.
+  const { data: attendanceData } = useQuery<any>({
     queryKey: dashboardKeys.attendance(today),
-    queryFn: async () => {
-      // Check cache first
-      const cachedData = queryClient.getQueryData(dashboardKeys.attendance(today));
-      if (cachedData) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚡ Using cached attendance data');
-        }
-        return cachedData;
-      }
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📊 DASHBOARD: Fetching today\'s attendance from server...');
-      }
-
-      try {
-        const startOfDay = Timestamp.fromDate(new Date(today + 'T00:00:00'));
-        const endOfDay = Timestamp.fromDate(new Date(today + 'T23:59:59.999'));
-
-        const attendanceQuery = query(
-          collection(db, 'attendanceRecords'),
-          where('date', '>=', startOfDay),
-          where('date', '<=', endOfDay)
-        );
-
-        const snapshot = await getDocs(attendanceQuery);
-        const rawRecords = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-
-        // CRITICAL FIX: Deduplicate records by pupilId
-        const dedupMap = new Map<string, any>();
-        rawRecords.forEach((record: any) => {
-          const key = `${record.pupilId}_${record.classId}`;
-          const existing = dedupMap.get(key);
-          if (!existing) {
-            dedupMap.set(key, record);
-          } else {
-            const existingTime = existing.recordedAt?.seconds || 0;
-            const newTime = record.recordedAt?.seconds || 0;
-            if (newTime > existingTime) {
-              dedupMap.set(key, record);
-            }
-          }
-        });
-        const records = Array.from(dedupMap.values());
-
-        const classLookup: Record<string, string> = {};
-        classes.forEach((cls: any) => {
-          classLookup[cls.id] = cls.code || cls.name || 'Unknown';
-        });
-
-        const present = records.filter((r: any) => r.status === 'Present').length;
-        const absent = records.filter((r: any) => r.status === 'Absent').length;
-        const late = records.filter((r: any) => r.status === 'Late').length;
-        const delayed = records.filter((r: any) => r.status === 'Delayed').length;
-
-        const byClass = records.reduce((acc: any, record: any) => {
-          const classId = record.classId;
-          if (!classId) return acc;
-
-          if (!acc[classId]) {
-            acc[classId] = {
-              classId,
-              className: classLookup[classId] || record.classCode || record.className || classId,
-              present: 0,
-              absent: 0,
-              late: 0,
-              delayed: 0,
-              total: 0
-            };
-          }
-
-          acc[classId].total++;
-          if (record.status === 'Present') acc[classId].present++;
-          else if (record.status === 'Absent') acc[classId].absent++;
-          else if (record.status === 'Late') acc[classId].late++;
-          else if (record.status === 'Delayed') acc[classId].delayed++;
-
-          return acc;
-        }, {});
-
-        return {
-          present,
-          absent,
-          late,
-          delayed,
-          total: records.length,
-          records,
-          byClass: Object.values(byClass)
-        };
-      } catch (error) {
-        console.error('❌ Error fetching attendance:', error);
-        return {
-          present: 0,
-          absent: 0,
-          late: 0,
-          delayed: 0,
-          total: 0,
-          records: [],
-          byClass: []
-        };
-      }
-    },
-    enabled,
-    staleTime: 30 * 60 * 1000, // 30 minutes - attendance doesn't change frequently
-    gcTime: 60 * 60 * 1000, // 60 minutes cache
+    queryFn: async () => queryClient.getQueryData(dashboardKeys.attendance(today)),
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: 60 * 60 * 1000,
     refetchOnMount: false,
-    refetchOnWindowFocus: false, // Real-time listener handles updates
+    refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     placeholderData: (previousData) => previousData,
     initialData: () => {
@@ -350,6 +247,11 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
       return cached || undefined;
     },
   });
+  const attendanceLoading = enabled && !attendanceData && !attendanceListenerError;
+  const attendanceError = attendanceListenerError;
+  const refetchAttendance = async () => {
+    setAttendanceListenerGeneration(generation => generation + 1);
+  };
 
   // School settings and photos (already properly cached)
   const { data: schoolSettings, isLoading: settingsLoading } = useSchoolSettings();

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanupLocalPhotoRecords } from '@/scripts/cleanup-local-photo-records';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     console.log('🧹 Starting photo database cleanup...');
     
     const result = await cleanupLocalPhotoRecords();
@@ -24,4 +26,4 @@ export async function POST(request: NextRequest) {
       details: error?.stack || error
     }, { status: 500 });
   }
-} 
+}

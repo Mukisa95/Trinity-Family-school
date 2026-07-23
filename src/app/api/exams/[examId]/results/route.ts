@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ExamsService } from '@/lib/services/exams.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ examId: string }> }
 ) {
   try {
+    await ensureServerFirestoreAuth();
     const { examId } = await params;
     console.log('🔍 API: Fetching exam results for exam ID:', examId);
     
@@ -38,4 +40,3 @@ export async function GET(
     );
   }
 }
-

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerFirestoreRestHeaders } from '@/lib/server/firestore-rest-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +66,7 @@ async function patchField(docId: string, fields: Record<string, unknown>) {
 
   await fetch(url.toString(), {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getServerFirestoreRestHeaders(),
     body: JSON.stringify({ fields: fsFields }),
   });
 }
@@ -219,7 +220,7 @@ export async function GET(request: NextRequest) {
 
   const listRes = await fetch(queryUrl.toString(), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getServerFirestoreRestHeaders(),
     body: JSON.stringify(queryBody)
   });
 

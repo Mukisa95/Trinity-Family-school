@@ -13,7 +13,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:firestore-rules": "firebase emulators:exec --only firestore --project demo-trinity-firestore-rules \"node --test tests/firestore.rules.test.mjs\"",
     "migrate": "tsx src/scripts/migrate-data.ts",
+    "migrate-auth-credentials": "tsx src/scripts/migrate-auth-credentials.ts",
     "deploy": "npm run clean && npm run build && firebase deploy --only hosting",
     "deploy:full": "npm run clean && npm run build && firebase deploy",
     "clean": "rimraf .next out",
@@ -128,6 +130,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18",
@@ -136,6 +139,7 @@
     "cross-env": "^7.0.3",
     "eslint": "9.27.0",
     "eslint-config-next": "^15.5.7",
+    "firebase-tools": "^15.24.0",
     "genkit-cli": "^1.8.0",
     "png-to-ico": "^3.0.1",
     "postcss": "^8",

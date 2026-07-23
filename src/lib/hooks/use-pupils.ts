@@ -126,6 +126,101 @@ export const removePupilFromQueryCaches = (queryClient: QueryClient, pupilId: st
   });
 };
 
+export type PupilCacheChange =
+  | { type: 'added' | 'modified'; pupil: Pupil }
+  | { type: 'removed'; id: string };
+
+/**
+ * Apply one Firestore listener snapshot with at most one write per cached
+ * query. This avoids copying and sorting the same arrays once per changed
+ * document while preserving every list, detail, and photo cache.
+ */
+export const applyPupilChangesToQueryCaches = (
+  queryClient: QueryClient,
+  changes: PupilCacheChange[],
+) => {
+  if (changes.length === 0) return;
+
+  const removedIds = new Set(
+    changes
+      .filter((change): change is Extract<PupilCacheChange, { type: 'removed' }> => change.type === 'removed')
+      .map(change => change.id),
+  );
+  const upserts = new Map<string, Pupil>();
+
+  changes.forEach(change => {
+    if (change.type === 'removed') {
+      upserts.delete(change.id);
+      return;
+    }
+    removedIds.delete(change.pupil.id);
+    upserts.set(change.pupil.id, change.pupil);
+  });
+
+  removedIds.forEach(id => {
+    queryClient.removeQueries({ queryKey: pupilsKeys.detail(id), exact: true });
+  });
+  upserts.forEach(pupil => {
+    queryClient.setQueryData(pupilsKeys.detail(pupil.id), (current: Pupil | undefined | null) => ({
+      ...(current || {}),
+      ...pupil,
+    }));
+  });
+
+  const updateArray = (items: Pupil[], queryKey: QueryKey) => {
+    const byId = new Map<string, Pupil>();
+
+    items.forEach(item => {
+      if (!removedIds.has(item.id)) byId.set(item.id, item);
+    });
+
+    upserts.forEach(pupil => {
+      const belongs =
+        shouldIncludePupilInQuery(queryKey, pupil) ||
+        shouldIncludePupilInLegacyClassQuery(queryKey, pupil);
+
+      if (!belongs) {
+        byId.delete(pupil.id);
+        return;
+      }
+
+      byId.set(pupil.id, {
+        ...(byId.get(pupil.id) || {}),
+        ...pupil,
+      } as Pupil);
+    });
+
+    return Array.from(byId.values()).sort(comparePupilsByName);
+  };
+
+  const updateMatchingQueries = (queryKey: QueryKey) => {
+    queryClient.getQueryCache().findAll({ queryKey }).forEach(query => {
+      const data = query.state.data;
+
+      if (isPupilArray(data)) {
+        queryClient.setQueryData(query.queryKey, updateArray(data, query.queryKey));
+        return;
+      }
+
+      if (data instanceof Map) {
+        queryClient.setQueryData(query.queryKey, (current: Map<string, string> | undefined) => {
+          if (!(current instanceof Map)) return current;
+          const next = new Map(current);
+          removedIds.forEach(id => next.delete(id));
+          upserts.forEach(pupil => {
+            if (pupil.photo) next.set(pupil.id, pupil.photo);
+            else next.delete(pupil.id);
+          });
+          return next;
+        });
+      }
+    });
+  };
+
+  updateMatchingQueries(pupilsKeys.all);
+  updateMatchingQueries(['pupils-by-class']);
+};
+
 // Hooks
 export function usePupils() {
   const queryClient = useQueryClient();

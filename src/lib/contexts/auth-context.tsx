@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { SystemUser, UserRole, User, ModulePermission, Permission } from '@/types';
+import { SystemUser, UserRole, ModulePermission, Permission } from '@/types';
 import { UsersService } from '@/lib/services/users.service';
+import { SecureAuthService } from '@/lib/services/secure-auth.service';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -128,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     let unsubscribe: (() => void) | undefined;
     let firebaseInitialized = false;
+    let restoredCachedUser: SystemUser | null = null;
 
     const initializeAuth = async () => {
       try {
@@ -179,56 +181,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 legacyCache: storedCache.isLegacy,
               });
               setUser(storedCache.user);
+              restoredCachedUser = storedCache.user;
               setHasStoredUser(true);
               setSessionStatus('fresh');  // Trust the cache until DB says otherwise
               setSessionMessage(null);
               setIsLoading(false);
               performance.mark?.('trinity:auth-cache-ready');
 
-              // Background check: only invalidate if something actually changed
-              UsersService.getUserById(storedCache.user.id)
-                .then((freshUser) => {
-                  if (!freshUser || freshUser.isActive === false) {
-                    // Account deactivated or deleted — this specific user must sign in again
-                    logger.info('Account deactivated or removed — clearing session', { id: storedCache.user.id });
-                    setUser(null);
-                    setHasStoredUser(false);
-                    clearUserCache();
-                    setSessionStatus('stale');
-                    setSessionMessage('Your account has been deactivated. Please contact the administrator.');
-                    return;
-                  }
-
-                  // Check whether role or permissions changed
-                  const cachedUser = storedCache.user;
-                  const roleChanged = freshUser.role !== cachedUser.role;
-                  const cachedPerms = JSON.stringify(cachedUser.modulePermissions ?? []);
-                  const freshPerms = JSON.stringify(freshUser.modulePermissions ?? []);
-                  const permsChanged = cachedPerms !== freshPerms;
-
-                  if (roleChanged || permsChanged) {
-                    logger.info('Permissions/role changed — updating session silently', {
-                      id: freshUser.id,
-                      roleChanged,
-                      permsChanged,
-                    });
-                  }
-
-                  // Always update with the freshest data (name, avatar, etc.) but never log out
-                  setUser(freshUser);
-                  setHasStoredUser(true);
-                  saveUserCache(freshUser);
-                  setLastPermissionRefreshAt(Date.now());
-                  setSessionStatus('fresh');
-                  setSessionMessage(null);
-                })
-                .catch((error) => {
-                  // Network error — keep the cached session alive, just mark it as potentially stale
-                  logger.warn('Could not verify session from DB during startup — using cache', error);
-                  setLastPermissionRefreshAt(Date.now());
-                  setSessionStatus('fresh');  // Don't show a scary warning; the user is still logged in
-                  setSessionMessage(null);
-                });
             } else {
               logger.info('Stored user cache is invalid, removing it');
               clearUserCache();
@@ -246,86 +205,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Firebase's listener waits for its own initialization. Adding an extra
         // timer here only delays cold starts and does not make auth safer.
         unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          logger.debug('Firebase auth state changed', { email: firebaseUser?.email || 'No user', initialized: firebaseInitialized });
-          
-          if (firebaseUser) {
+          logger.debug('Firebase auth state changed', {
+            userId: firebaseUser?.uid || 'No user',
+            anonymous: firebaseUser?.isAnonymous || false,
+            initialized: firebaseInitialized,
+          });
+
+          if (firebaseUser && !firebaseUser.isAnonymous) {
             firebaseInitialized = true;
             try {
               const tokenResult = await firebaseUser.getIdTokenResult();
-              const userRole = (tokenResult.claims.role || 'User') as UserRole;
-              
-              let dbUser: User | null = null;
-              let staffData: any = null;
-              
-              if (firebaseUser.uid) {
-                const userDocRef = doc(db, 'users', firebaseUser.uid);
-                const userDocSnap = await getDoc(userDocRef);
-                if (userDocSnap.exists()) {
-                  dbUser = { id: userDocSnap.id, ...userDocSnap.data() } as User;
-                  
-                  // If user has staffId, try to get staff data for better name resolution
-                  const userData = userDocSnap.data() as any;
-                  if (userData.staffId) {
-                    try {
-                      const staffDocRef = doc(db, 'staff', userData.staffId);
-                      const staffDocSnap = await getDoc(staffDocRef);
-                      if (staffDocSnap.exists()) {
-                        staffData = { id: staffDocSnap.id, ...staffDocSnap.data() };
-                      }
-                    } catch (error) {
-                      logger.debug('Could not fetch staff data', error);
-                    }
-                  }
-                }
+              if (tokenResult.claims.appUser !== true) {
+                throw new Error('Firebase identity is not an application user.');
               }
 
+              const userDocRef = doc(db, 'system_users', firebaseUser.uid);
+              const userDocSnap = await getDoc(userDocRef);
+              if (!userDocSnap.exists()) throw new Error('Application user record was not found.');
+              const userData = userDocSnap.data() as Omit<SystemUser, 'id'>;
+              if (userData.isActive === false) throw new Error('Application user is inactive.');
+
               const systemUserData: SystemUser = {
-                id: firebaseUser.uid,
-                username: dbUser?.name || firebaseUser.displayName || firebaseUser.email || firebaseUser.uid,
-                email: firebaseUser.email ?? undefined,
-                role: userRole,
-                isActive: (dbUser as any)?.isActive ?? true,
-                createdAt: dbUser?.createdAt || new Date().toISOString(),
-                
-                staffId: (dbUser as any)?.staffId,
-                firstName: (dbUser as any)?.firstName || staffData?.firstName || firebaseUser.displayName?.split(' ')[0],
-                lastName: (dbUser as any)?.lastName || staffData?.lastName || firebaseUser.displayName?.split(' ').slice(1).join(' '),
-                modulePermissions: (dbUser as any)?.modulePermissions as ModulePermission[] | undefined,
-                pupilId: (dbUser as any)?.pupilId,
-                guardianId: (dbUser as any)?.guardianId,
-                
-                updatedAt: (dbUser as any)?.updatedAt || new Date().toISOString(),
+                id: userDocSnap.id,
+                ...userData,
+                role: (userData.role || tokenResult.claims.role) as UserRole,
               };
-              
-              logger.debug('Setting user from Firebase', { username: systemUserData.username });
+
+              logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
               setUser(systemUserData);
+              restoredCachedUser = systemUserData;
               setHasStoredUser(true);
               saveUserCache(systemUserData);
               setLastPermissionRefreshAt(Date.now());
               setSessionStatus('fresh');
               setSessionMessage(null);
-
+              performance.mark?.('trinity:firebase-auth-ready');
             } catch (error) {
-              logger.error('AuthContext: Error processing auth state', error);
-              // Only clear user if we don't have a stored user to fall back to AND Firebase has actually initialized
-              if (!hasStoredUser && firebaseInitialized) {
-                setUser(null);
-                clearUserCache();
-              }
+              logger.error('AuthContext: Error processing Firebase identity', error);
+              setSessionStatus('stale');
+              setSessionMessage('Your secure session could not be verified. Please sign in again.');
             }
           } else {
-            // Firebase user is null
-            // Only clear the user if:
-            // 1. Firebase has actually initialized (not just the initial null state)
-            // 2. AND we don't have a valid stored user
-            if (firebaseInitialized && !hasStoredUser) {
-              logger.debug('No Firebase user and no stored user - logging out');
-              setUser(null);
-              clearUserCache();
-            } else if (!firebaseInitialized) {
-              logger.debug('Firebase not yet initialized, keeping stored user if any');
+            firebaseInitialized = true;
+            if (restoredCachedUser) {
+              // Keep the cached dashboard instant. The rules rollout will deny
+              // live server access until this device completes one secure sign-in.
+              setUser(restoredCachedUser);
+              setHasStoredUser(true);
+              setSessionStatus('stale');
+              setSessionMessage('Security update: please sign in once to connect this cached session to Firebase Authentication.');
             } else {
-              logger.debug('No Firebase user but have stored user, keeping stored user');
+              logger.debug('No Firebase application user and no stored user - logging out');
+              setUser(null);
+              setHasStoredUser(false);
+              clearUserCache();
             }
           }
           
@@ -396,7 +329,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const authenticatedUser = await UsersService.authenticateUser(username, password);
+      const authenticatedUser = await SecureAuthService.signIn(username, password);
       
       if (authenticatedUser) {
         setUser(authenticatedUser);
@@ -406,7 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setIsLocked(false);
         
-        logger.info('Successfully authenticated with custom auth system', { username: authenticatedUser.username });
+        logger.info('Successfully authenticated with Firebase custom token', { username: authenticatedUser.username });
         setHasStoredUser(true);
         setLastPermissionRefreshAt(Date.now());
         setSessionStatus('fresh');
@@ -471,7 +404,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       // Authenticate with the provided password
-      const authenticatedUser = await UsersService.authenticateUser(user.username, password);
+      const authenticatedUser = await SecureAuthService.verifyCredentials(user.username, password);
       
       if (authenticatedUser) {
         setIsLocked(false);

@@ -19,8 +19,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'v2.1.69';
-const BUILD_TIMESTAMP = '2026-07-21T07:56:00.000Z'; // Update this on each build
+const SW_VERSION = 'v2.1.70';
+const BUILD_TIMESTAMP = '2026-07-23T22:34:34.664Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;

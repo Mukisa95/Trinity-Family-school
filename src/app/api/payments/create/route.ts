@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PaymentHistoryContext, PaymentsService } from '@/lib/services/payments.service';
 import type { PaymentRecord } from '@/types';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 /**
  * API Route: POST /api/payments/create
@@ -14,6 +15,7 @@ import type { PaymentRecord } from '@/types';
  */
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const {
       historyContext,

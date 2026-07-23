@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { StaffService } from '@/lib/services/staff.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function GET(
   request: Request,
@@ -8,6 +9,7 @@ export async function GET(
   const { id } = await params;
   
   try {
+    await ensureServerFirestoreAuth();
     const staff = await StaffService.getStaffById(id);
 
     if (!staff) {
@@ -32,6 +34,7 @@ export async function PATCH(
   const { id } = await params;
   
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const staff = await StaffService.updateStaff(id, body);
     return NextResponse.json(staff);
@@ -50,6 +53,7 @@ export async function DELETE(
   const { id } = await params;
   
   try {
+    await ensureServerFirestoreAuth();
     await StaffService.deleteStaff(id);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
@@ -58,4 +62,4 @@ export async function DELETE(
       status: 500,
     });
   }
-} 
+}

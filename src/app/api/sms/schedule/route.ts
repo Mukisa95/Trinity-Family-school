@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerFirestoreRestHeaders } from '@/lib/server/firestore-rest-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,7 @@ function parseValue(val: Record<string, unknown>): unknown {
 export async function GET() {
   try {
     const url = firestoreUrl('scheduledSMS', { orderBy: 'createdAt desc', pageSize: '100' });
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: await getServerFirestoreRestHeaders() });
     if (!res.ok) {
       const txt = await res.text();
       return NextResponse.json({ success: false, error: txt }, { status: 502 });

@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 import type { PhotoCategory, PhotoUsage } from '@/types';
 
 const STORAGE_PATH = 'school-photos';
@@ -22,6 +23,7 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     console.log('🚀 Photo upload started with Cloudinary + Local fallback');
     
     const formData = await request.formData();
@@ -207,4 +209,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

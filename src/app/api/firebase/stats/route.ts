@@ -56,7 +56,10 @@ async function assertAdmin(request: NextRequest) {
 
   const app = getFirebaseAdminApp();
   const decoded = await getAuth(app).verifyIdToken(token);
-  const user = await getFirestore(app).collection('users').doc(decoded.uid).get();
+  if (decoded.appUser !== true || decoded.isActive !== true) {
+    throw new Error('Only active application administrators can view resource usage.');
+  }
+  const user = await getFirestore(app).collection('system_users').doc(decoded.uid).get();
 
   if (user.data()?.role !== 'Admin') throw new Error('Only administrators can view resource usage.');
 }

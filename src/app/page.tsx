@@ -2432,6 +2432,15 @@ export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const { user } = useAuth();
+  const [trackerViewport, setTrackerViewport] = useState<'pending' | 'mobile' | 'desktop'>('pending');
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1024px)');
+    const updateViewport = () => setTrackerViewport(media.matches ? 'desktop' : 'mobile');
+    updateViewport();
+    media.addEventListener('change', updateViewport);
+    return () => media.removeEventListener('change', updateViewport);
+  }, []);
 
   const groupVariants = prefersReducedMotion ? {} : dashboardGroupVariants;
   const itemVariants = prefersReducedMotion ? {} : dashboardItemVariants;
@@ -2692,9 +2701,7 @@ export default function DashboardPage() {
         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="flex flex-col gap-6">
             {canViewClassEnrollment && <ClassEnrollmentChart classes={classes} pupils={pupils} />}
-            <div className="block lg:hidden">
-              <DashboardLiveTracker />
-            </div>
+            {trackerViewport === 'mobile' && <DashboardLiveTracker />}
             <PhotoSlideshow photos={photos || []} />
           </div>
           <div className="flex flex-col gap-6">
@@ -2702,9 +2709,7 @@ export default function DashboardPage() {
             {canViewCalendarSchedule && <MonthCalendarCard />}
           </div>
           <div className="flex flex-col gap-6">
-            <div className="hidden lg:block w-full">
-              <DashboardLiveTracker />
-            </div>
+            {trackerViewport === 'desktop' && <DashboardLiveTracker />}
             {canViewCalendarSchedule && <TermScheduleCard />}
           </div>
         </motion.div>

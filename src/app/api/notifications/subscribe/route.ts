@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const { userId, subscription } = body;
 
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const { userId } = body;
 

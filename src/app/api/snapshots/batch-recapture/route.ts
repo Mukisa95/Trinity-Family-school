@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function POST(request: NextRequest) {
     try {
+        await ensureServerFirestoreAuth();
         const body = await request.json();
         const { pupilIds, termId, academicYearId } = body;
 

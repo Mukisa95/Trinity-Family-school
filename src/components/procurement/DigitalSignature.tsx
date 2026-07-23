@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { UsersService } from '@/lib/services/users.service';
+import { SecureAuthService } from '@/lib/services/secure-auth.service';
 import type { SystemUser } from '@/types';
 
 interface DigitalSignatureProps {
@@ -32,7 +32,7 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
     setError('');
 
     try {
-      const user = await UsersService.authenticateUser(username.trim(), password);
+      const user = await SecureAuthService.verifyCredentials(username.trim(), password);
       
       if (!user) {
         setError('Invalid username or password');
@@ -52,7 +52,7 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
       // Check if user has procurement module permission
       const hasPermission = user.role === 'Admin' || 
         (user.modulePermissions && user.modulePermissions.some(
-          mp => mp.module === 'Procurement' && ['edit', 'full_access'].includes(mp.permission)
+          mp => mp.module === 'procurement' && ['edit', 'full_access'].includes(mp.permission)
         ));
 
       if (!hasPermission) {
@@ -202,4 +202,4 @@ export function DigitalSignature({ onSignatureComplete, onCancel, disabled }: Di
       </Alert>
     </div>
   );
-} 
+}

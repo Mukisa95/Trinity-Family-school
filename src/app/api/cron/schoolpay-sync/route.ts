@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SchoolPayIntegrationService } from '@/lib/services/schoolpay-integration.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 function formatDateInKampala(date: Date): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    await ensureServerFirestoreAuth();
     const date = request.nextUrl.searchParams.get('date');
     const dateFrom = request.nextUrl.searchParams.get('dateFrom');
     const dateTo = request.nextUrl.searchParams.get('dateTo');

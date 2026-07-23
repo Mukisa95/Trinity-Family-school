@@ -2,10 +2,37 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY: Allow all reads and writes for initial setup
-    // TODO: Replace with proper security rules after admin user is created
-    match /{document=**} {
-      allow read, write: if true;
+    // Application users sign in through the server-verified custom-token flow.
+    // These claims are carried in the Firebase ID token, so normal reads do not
+    // require an extra Firestore lookup and the cache/live-sync path stays fast.
+    function isActiveApplicationUser() {
+      return request.auth != null
+        && request.auth.token.appUser == true
+        && request.auth.token.isActive == true;
+    }
+
+    // Password verifiers are server-only. Admin SDK operations bypass Firestore
+    // Rules and are authorized separately by the Vercel service account.
+    match /authCredentials/{credentialPath=**} {
+      allow read, write: if false;
+    }
+
+    // Profiles remain readable to signed-in application users because recipient
+    // pickers, notifications, and permission refreshes use this collection.
+    // All mutations go through protected server API routes.
+    match /system_users/{userPath=**} {
+      allow read: if isActiveApplicationUser();
+      allow write: if false;
+    }
+
+    // Transitional production boundary: preserve every existing authenticated
+    // application flow while denying anonymous users and arbitrary Firebase
+    // anonymous accounts. Collection-level role restrictions are introduced
+    // only after this canary proves all current workflows.
+    match /{collection}/{documentPath=**} {
+      allow read, write: if collection != 'authCredentials'
+        && collection != 'system_users'
+        && isActiveApplicationUser();
     }
   }
 }

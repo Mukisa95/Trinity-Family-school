@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const { collection, limit, orderBy, query, getDocs } = await import('firebase/firestore');
     const { db } = await import('@/lib/firebase');
 

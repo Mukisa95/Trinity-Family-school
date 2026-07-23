@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PupilsService } from '@/lib/services/pupils.service';
+import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureServerFirestoreAuth();
     const body = await request.json();
     const { pupilIds } = body;
     
@@ -40,4 +42,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

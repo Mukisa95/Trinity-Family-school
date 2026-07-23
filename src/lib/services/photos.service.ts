@@ -21,9 +21,7 @@ import {
   uploadBytesResumable
 } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
-import { FirebaseAuthService } from '@/lib/firebase-auth';
 import type { Photo, PhotoCategory, PhotoUsage } from '@/types';
-import { signInAnonymously } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 const COLLECTION_NAME = 'photos';
@@ -48,9 +46,13 @@ export class PhotosService {
     try {
       console.log('🔍 Starting photo upload process...');
 
-      // Authenticate with Firebase
-      await signInAnonymously(auth);
-      console.log('🔍 Firebase authentication successful:', auth.currentUser?.uid);
+      // Never replace the signed-in application identity with an anonymous
+      // Firebase account. Firestore and Storage rules now rely on the custom
+      // application token established during login.
+      if (!auth.currentUser || auth.currentUser.isAnonymous) {
+        throw new Error('Please sign in again before uploading photos.');
+      }
+      console.log('🔍 Firebase authentication confirmed:', auth.currentUser.uid);
 
       // Generate unique filename
       const timestamp = Date.now();
@@ -525,4 +527,4 @@ export class PhotosService {
       throw new Error('Failed to fetch photo');
     }
   }
-} 
+}
