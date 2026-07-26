@@ -235,8 +235,12 @@ export default function LoginPage() {
       } else {
         setError("Invalid username or password. Please try again.");
       }
-    } catch {
-      setError("An error occurred during login. Please try again.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "An error occurred during login. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }

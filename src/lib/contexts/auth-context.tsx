@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { SystemUser, UserRole, ModulePermission, Permission } from '@/types';
 import { UsersService } from '@/lib/services/users.service';
-import { SecureAuthService } from '@/lib/services/secure-auth.service';
+import { SecureAuthError, SecureAuthService } from '@/lib/services/secure-auth.service';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -351,11 +351,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (error) {
       logger.error('Login error', error);
-      setUser(null);
-      if (typeof window !== 'undefined') {
-        clearUserCache();
+      // A failed re-authentication must not destroy the fast cached dashboard
+      // session. Only a confirmed server-side credential mismatch returns
+      // false; connection, rate-limit, and Firebase handoff failures are
+      // surfaced to the login screen with an accurate retry message.
+      if (error instanceof SecureAuthError && error.code === 'invalid-credentials') {
+        return false;
       }
-      return false;
+      if (error instanceof SecureAuthError) throw error;
+      throw new SecureAuthError(
+        'service-unavailable',
+        'Sign-in could not be completed. Check your connection and try again.',
+      );
     } finally {
       setIsLoading(false);
     }
