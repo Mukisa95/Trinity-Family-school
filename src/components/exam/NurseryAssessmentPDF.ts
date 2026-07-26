@@ -144,7 +144,7 @@ export const generateNurseryAssessmentPDF = ({
     body,
     startY: currentY,
     theme: 'grid',
-    margin: { left: margin, right: margin, bottom: 14 },
+    margin: { top: 12, left: margin, right: margin, bottom: 14 },
     rowPageBreak: 'avoid',
     horizontalPageBreak: true,
     horizontalPageBreakRepeat: [0, 1],

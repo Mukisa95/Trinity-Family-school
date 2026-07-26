@@ -820,29 +820,38 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
           }
         }
       },
+      // Slim continuation header height — used as margin.top for ALL pages.
+      // Page 1's full header is already drawn above startY so it doesn't consume margin space.
+      const continuationHeaderH = 14;
       margin: { 
-        top: currentY,
+        top: continuationHeaderH,
         left: margin, 
         right: margin 
       },
       pageBreak: 'auto',
       rowPageBreak: 'avoid',
-      // Use willDrawPage to adjust margin BEFORE drawing continuation pages (fixes page 2 spacing)
       willDrawPage: function(data: any) {
-        if (data.pageNumber > 1) {
-          // Adjust margin for continuation pages BEFORE drawing
-          if (data.settings && data.settings.margin) {
-            data.settings.margin.top = 15;
-          }
+        if (data.pageNumber === 1) {
+          // Page 1: the full header is already drawn above startY — just draw a minimal
+          // top bar so the table header row doesn't sit flush against the page edge.
+          // (The table startY already positions it correctly below the real header.)
+          return;
         }
+        // Pages 2+: draw only the slim branded bar at the very top
+        doc.setFillColor(...colors.headerBg);
+        doc.rect(0, 0, pageWidth, continuationHeaderH, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        const schoolNameShort = (schoolSettings?.generalInfo?.name || 'School').toUpperCase();
+        doc.text(
+          `${schoolNameShort}  ·  ${examDetails.name}  ·  ${classSnap.name}`,
+          pageWidth / 2,
+          continuationHeaderH / 2 + 2,
+          { align: 'center' }
+        );
       },
       didDrawPage: function(data: any) {
-        // Modern header on continuation pages (no text, just the bar)
-        if (data.pageNumber > 1) {
-          doc.setFillColor(...colors.headerBg);
-          doc.rect(0, 0, pageWidth, 12, 'F');
-        }
-        
         // Get total number of pages
         const totalPages = doc.getNumberOfPages();
         

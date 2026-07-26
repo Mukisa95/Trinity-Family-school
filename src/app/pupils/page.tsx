@@ -293,7 +293,7 @@ function PupilsContent() {
   });
   const [printLayoutOptions, setPrintLayoutOptions] = useState<PrintLayoutOptions>({
     orientation: 'auto',
-    grayscale: false,
+    grayscale: true,
   });
 
   const [selectedPupilPhotoForDetails, setSelectedPupilPhotoForDetails] = useState<Pupil | null>(null);
@@ -1523,7 +1523,7 @@ function PupilsContent() {
   // Customizable Export to Excel function using config from the modal
   const handleCustomExport = (config: ExportConfig) => {
     try {
-      if (!filteredAndSortedPupils || filteredAndSortedPupils.length === 0) {
+      if (!allFilteredPupils || allFilteredPupils.length === 0) {
         toast({ title: "Export Failed", description: "No pupils to export.", variant: "destructive" });
         return;
       }
@@ -1625,7 +1625,7 @@ function PupilsContent() {
 
       toast({
         title: "Export Successful",
-        description: `Exported ${filteredAndSortedPupils.length} pupils with custom formatting.`,
+        description: `Exported ${allFilteredPupils.length} pupils with custom formatting.`,
       });
     } catch (error) {
        console.error("Export error", error);
@@ -1956,7 +1956,11 @@ function PupilsContent() {
                 {settings.generalInfo.motto && (
                   <Text style={styles.motto}>"{settings.generalInfo.motto}"</Text>
                 )}
-                <Text style={styles.title}>Pupils List</Text>
+                <Text style={styles.title}>
+                  {selectedClassId && selectedClassId !== 'all' && selectedClassId !== ''
+                    ? `${(classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '').toUpperCase()} PUPILS LIST`
+                    : 'PUPILS LIST'}
+                </Text>
               </View>
 
               {/* Modern Table with Combined Columns */}
@@ -2205,8 +2209,14 @@ function PupilsContent() {
       });
 
       // Generate PDF and open in viewer
-      const fileName = `pupils-list-${new Date().toISOString().split('T')[0]}.pdf`;
-      const title = 'Pupils List';
+      const selectedClassName = (selectedClassId && selectedClassId !== 'all' && selectedClassId !== '')
+        ? (classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '')
+        : '';
+      const listHeading = selectedClassName ? `${selectedClassName} Pupils List` : 'Pupils List';
+      const fileName = selectedClassName
+        ? `${selectedClassName.replace(/\s+/g, '_')}_pupils-list-${new Date().toISOString().split('T')[0]}.pdf`
+        : `pupils-list-${new Date().toISOString().split('T')[0]}.pdf`;
+      const title = listHeading;
 
       await pdfViewer.openPDF(pdfDoc, fileName, title);
 
@@ -2630,9 +2640,13 @@ function PupilsContent() {
           <Page size="A4" orientation={orientation} style={styles.page} wrap>
             <View style={styles.header}>
               <Text style={styles.schoolName}>{settings.generalInfo.name}</Text>
-              <Text style={styles.title}>Pupils List</Text>
+              <Text style={styles.title}>
+                {selectedClassId && selectedClassId !== 'all' && selectedClassId !== ''
+                  ? `${(classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '').toUpperCase()} PUPILS LIST`
+                  : 'PUPILS LIST'}
+              </Text>
               {settings.generalInfo.motto && <Text style={styles.subText}>{settings.generalInfo.motto}</Text>}
-              <Text style={styles.metaValue}>{filteredAndSortedPupils.length} pupils</Text>
+              <Text style={styles.metaValue}>{allFilteredPupils.length} pupils</Text>
             </View>
 
             <View style={styles.table}>
@@ -2652,7 +2666,7 @@ function PupilsContent() {
                 ))}
               </View>
 
-              {filteredAndSortedPupils.map((pupil, index) => (
+              {allFilteredPupils.map((pupil, index) => (
                 <View
                   key={pupil.id}
                   style={{
@@ -2689,8 +2703,14 @@ function PupilsContent() {
         </Document>
       );
 
-      const fileName = `pupils-list-${new Date().toISOString().split('T')[0]}.pdf`;
-      await pdfViewer.openPDF(pdfDoc, fileName, 'Pupils List');
+      const selectedClassNameC = (selectedClassId && selectedClassId !== 'all' && selectedClassId !== '')
+        ? (classes.find(c => c.id === selectedClassId)?.name || classes.find(c => c.id === selectedClassId)?.code || '')
+        : '';
+      const listHeadingC = selectedClassNameC ? `${selectedClassNameC} Pupils List` : 'Pupils List';
+      const fileName = selectedClassNameC
+        ? `${selectedClassNameC.replace(/\s+/g, '_')}_pupils-list-${new Date().toISOString().split('T')[0]}.pdf`
+        : `pupils-list-${new Date().toISOString().split('T')[0]}.pdf`;
+      await pdfViewer.openPDF(pdfDoc, fileName, listHeadingC);
       setIsColumnSelectionModalOpen(false);
 
       toast({
@@ -2709,7 +2729,7 @@ function PupilsContent() {
 
   const handleGenerateBatchPaymentSlipsPDF = async () => {
     try {
-      const pupilsWithPayCodes = filteredAndSortedPupils.filter((pupil) => !!getSchoolPayCode(pupil));
+      const pupilsWithPayCodes = allFilteredPupils.filter((pupil) => !!getSchoolPayCode(pupil));
 
       if (pupilsWithPayCodes.length === 0) {
         toast({
@@ -4490,50 +4510,45 @@ function PupilsContent() {
             </ModernDialogDescription>
           </ModernDialogHeader>
 
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-                <h4 className="font-medium text-sm text-gray-700">Orientation</h4>
-                <div className="grid grid-cols-3 gap-2">
+            {/* Print Layout — single compact row */}
+            <div className="space-y-4">
+            <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
+              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">Orientation</span>
+              <div className="flex items-center gap-1">
+                {(['auto', 'portrait', 'landscape'] as const).map((opt) => (
                   <button
-                    onClick={() => setPrintLayoutOptions(prev => ({ ...prev, orientation: 'auto' }))}
-                    className={`px-3 py-2 text-xs rounded-md border transition-colors ${printLayoutOptions.orientation === 'auto' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                    key={opt}
+                    type="button"
+                    onClick={() => setPrintLayoutOptions(prev => ({ ...prev, orientation: opt }))}
+                    className={`px-2.5 py-1 text-xs rounded-md border font-medium transition-colors ${
+                      printLayoutOptions.orientation === opt
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+                    }`}
                   >
-                    Auto
+                    {opt.charAt(0).toUpperCase() + opt.slice(1)}
                   </button>
-                  <button
-                    onClick={() => setPrintLayoutOptions(prev => ({ ...prev, orientation: 'portrait' }))}
-                    className={`px-3 py-2 text-xs rounded-md border transition-colors ${printLayoutOptions.orientation === 'portrait' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                  >
-                    Portrait
-                  </button>
-                  <button
-                    onClick={() => setPrintLayoutOptions(prev => ({ ...prev, orientation: 'landscape' }))}
-                    className={`px-3 py-2 text-xs rounded-md border transition-colors ${printLayoutOptions.orientation === 'landscape' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                  >
-                    Landscape
-                  </button>
-                </div>
+                ))}
               </div>
-
-              <div className="rounded-lg border border-gray-200 p-4 space-y-3">
-                <h4 className="font-medium text-sm text-gray-700">Appearance</h4>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={printLayoutOptions.grayscale}
-                    onChange={(e) => setPrintLayoutOptions(prev => ({ ...prev, grayscale: e.target.checked }))}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-600 whitespace-nowrap">Grayscale</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={printLayoutOptions.grayscale}
+                  onClick={() => setPrintLayoutOptions(prev => ({ ...prev, grayscale: !prev.grayscale }))}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                    printLayoutOptions.grayscale ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                      printLayoutOptions.grayscale ? 'translate-x-4' : 'translate-x-0'
+                    }`}
                   />
-                  <span className="text-sm">Gray scale</span>
-                </label>
-                <p className="text-xs text-gray-500">
-                  The generated PDF uses a smaller, tighter table layout for easier printing.
-                </p>
+                </button>
               </div>
             </div>
-
-            {/* Column Selection Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-3">
                 <h4 className="font-medium text-sm text-gray-700 border-b border-gray-200 pb-1">Basic Info</h4>
