@@ -2185,7 +2185,7 @@ function PupilsContent() {
           dateOfBirth: pupil.dateOfBirth || '',
           pupilIdentificationNumber: pupil.learnerIdentificationNumber || pupil.admissionNumber,
           classId: pupil.classId,
-          photo: pupil.photo,
+          photo: pupilPhotosMap.get(pupil.id) ?? null,
           status: pupil.status as 'ACTIVE' | 'INACTIVE',
           section: pupil.section as 'boarding' | 'day',
           guardians: pupil.guardians || [],
@@ -2443,7 +2443,7 @@ function PupilsContent() {
           weight: 8,
           align: 'center' as const,
           render: (pupil: Pupil) => (
-            pupil.photo ? <Image style={styles.photo} src={pupil.photo} /> : <View style={styles.photoPlaceholder}><Text style={styles.compactText}>N/A</Text></View>
+            pupilPhotosMap.get(pupil.id) ? <Image style={styles.photo} src={pupilPhotosMap.get(pupil.id)!} /> : <View style={styles.photoPlaceholder}><Text style={styles.compactText}>N/A</Text></View>
           ),
         },
         {
