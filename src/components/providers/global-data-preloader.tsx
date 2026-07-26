@@ -6,6 +6,11 @@ import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDoc
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
+import {
+  persistentCollectionCacheKey,
+  readPersistentCollection,
+  writePersistentCollection,
+} from '@/lib/cache/persistent-collection-cache';
 import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 
 /**
@@ -37,6 +42,9 @@ export function GlobalDataPreloader() {
 
     const unsubscribers: Array<() => void> = [];
     let deferredTimer: ReturnType<typeof setTimeout> | undefined;
+    let pupilCacheWriteTimer: ReturnType<typeof setTimeout> | undefined;
+    let pupilCacheIdleHandle: number | undefined;
+    let disposed = false;
 
     // ═══════════════════════════════════════════════════════════
     // REAL-TIME LISTENERS (onSnapshot) — Data that needs live sync
@@ -247,13 +255,76 @@ export function GlobalDataPreloader() {
       const baseQuery = (userRole === 'Parent' && userFamilyId)
         ? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))
         : firestoreQuery(collection(db, 'pupils'));
+      const projectId =
+        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
+      const cacheScope =
+        userRole === 'Parent'
+          ? `parent:${userId}:family:${userFamilyId || 'unassigned'}`
+          : `user:${userId}`;
+      const persistentCacheKey = persistentCollectionCacheKey(
+        projectId,
+        'pupils',
+        cacheScope,
+      );
 
       if (userRole === 'Parent' && userFamilyId) {
         console.log(`🎯 PARENT MODE: Loading only pupils for family ${userFamilyId}`);
       }
 
+      const schedulePersistentPupilCacheWrite = () => {
+        if (disposed) return;
+        if (pupilCacheWriteTimer) clearTimeout(pupilCacheWriteTimer);
+        if (
+          pupilCacheIdleHandle !== undefined &&
+          typeof window.cancelIdleCallback === 'function'
+        ) {
+          window.cancelIdleCallback(pupilCacheIdleHandle);
+          pupilCacheIdleHandle = undefined;
+        }
+
+        pupilCacheWriteTimer = setTimeout(() => {
+          const persist = () => {
+            pupilCacheIdleHandle = undefined;
+            if (disposed) return;
+            const pupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
+            if (!pupils) return;
+            void writePersistentCollection(persistentCacheKey, pupils);
+          };
+
+          if (typeof window.requestIdleCallback === 'function') {
+            pupilCacheIdleHandle = window.requestIdleCallback(persist, { timeout: 1500 });
+          } else {
+            persist();
+          }
+        }, 500);
+      };
+
       let initialSnapshotPublished = false;
       let serverSnapshotSeen = false;
+
+      // Restore the complete normalized list from one asynchronous IndexedDB
+      // value while the Firestore listener starts below. Neither source blocks
+      // the other, and a server result always wins if it arrives first.
+      const fastCacheStartedAt = performance.now();
+      void readPersistentCollection<any[]>(persistentCacheKey).then(persistedPupils => {
+        const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
+        if (
+          disposed ||
+          serverSnapshotSeen ||
+          existingPupils?.length ||
+          !persistedPupils ||
+          !Array.isArray(persistedPupils) ||
+          persistedPupils.length === 0
+        ) {
+          return;
+        }
+
+        queryClient.setQueryData(['pupils', 'list'], persistedPupils);
+        performance.mark?.('trinity:pupils-fast-cache-ready');
+        console.log(
+          `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
+        );
+      });
 
       const unsubscribe = onSnapshot(
         baseQuery,
@@ -271,6 +342,7 @@ export function GlobalDataPreloader() {
             if (!(snapshot.metadata.fromCache && allPupils.length === 0 && existingPupils?.length)) {
               queryClient.setQueryData(['pupils', 'list'], allPupils);
             }
+            schedulePersistentPupilCacheWrite();
             performance.mark?.(`trinity:pupils-${source}-ready`);
             console.log(`PRELOADER: Loaded ${allPupils.length} pupils from ${source}`);
             return;
@@ -288,6 +360,7 @@ export function GlobalDataPreloader() {
                 ['pupils', 'list'],
                 snapshot.docs.map(normalizePupilDoc),
               );
+              schedulePersistentPupilCacheWrite();
             }
             return;
           }
@@ -304,6 +377,7 @@ export function GlobalDataPreloader() {
                   },
             ),
           );
+          schedulePersistentPupilCacheWrite();
 
           if (!snapshot.metadata.fromCache) {
             performance.mark?.('trinity:pupils-server-synced');
@@ -626,7 +700,15 @@ export function GlobalDataPreloader() {
     // Cleanup all listeners on unmount or when user changes
     return () => {
       console.log('🔌 GLOBAL PRELOADER: Cleaning up all listeners');
+      disposed = true;
       if (deferredTimer) clearTimeout(deferredTimer);
+      if (pupilCacheWriteTimer) clearTimeout(pupilCacheWriteTimer);
+      if (
+        pupilCacheIdleHandle !== undefined &&
+        typeof window.cancelIdleCallback === 'function'
+      ) {
+        window.cancelIdleCallback(pupilCacheIdleHandle);
+      }
       unsubscribers.forEach(unsub => unsub());
     };
   // Re-run when auth state changes so listeners are always tied to the current
