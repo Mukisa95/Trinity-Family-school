@@ -351,7 +351,7 @@ function PupilsContent() {
 
   // 🚀 PAGINATION: Prevent browser freeze with large datasets
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>('all'); // Default: 'all' shows all pupils, or 25/50/100/200 per page
+  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(50); // Keep first render responsive; users can still explicitly choose "All pupils"
 
   // 🚀 OPTIMIZED: Get all pupils from cache immediately for search functionality
   // This allows search to work instantly even when no class is selected
