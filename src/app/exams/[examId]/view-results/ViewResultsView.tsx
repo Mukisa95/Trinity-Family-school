@@ -1184,6 +1184,10 @@ export default function ViewResultsView() {
   const [eta, setEta] = useState<string>('');
   const [hasHandledAutoOpenPrint, setHasHandledAutoOpenPrint] = useState(false);
 
+  // PDF pupil selection state — "Select Pupils" filter mode
+  const [isPupilSelectMode, setIsPupilSelectMode] = useState(false);
+  const [selectedPdfPupilIds, setSelectedPdfPupilIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!shouldAutoOpenPrint || hasHandledAutoOpenPrint) return;
 
@@ -1688,6 +1692,13 @@ export default function ViewResultsView() {
 
   // No pagination - show all results
   const displayedResults = filteredAndSortedResults;
+
+  // The list of pupils that batch PDF exports will operate on:
+  // • If the user has manually selected pupils → only those
+  // • Otherwise → the current filtered + sorted page view
+  const pdfTargetResults = selectedPdfPupilIds.size > 0
+    ? processedResults.filter(r => selectedPdfPupilIds.has(r.pupilInfo.pupilId))
+    : filteredAndSortedResults;
 
   const handleViewDetails = useCallback((pupilId: string) => {
     router.push(`/exams/${examId}/pupil-results/${pupilId}`);
@@ -2555,13 +2566,13 @@ export default function ViewResultsView() {
   // Show print options dialog first
   const handleExportAssessment = useCallback(() => {
     console.log('🎯 Assessment Report (Table) clicked - Opening options dialog');
-    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
-      toast({ title: "Error", description: "Missing required data for PDF generation" });
+    if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
+      toast({ title: "Error", description: pdfTargetResults.length === 0 ? 'No pupils match the current filter / selection — adjust filters before printing.' : 'Missing required data for PDF generation' });
       return;
     }
     setAssessmentReportType('table');
     setShowPrintAssessmentOptionsDialog(true);
-  }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
+  }, [examDetails, classSnap, subjectSnaps, pdfTargetResults, toast]);
 
   // Actually generate the PDF with the selected options
   const generateAssessmentPDF = useCallback(async (options: {
@@ -2582,8 +2593,8 @@ export default function ViewResultsView() {
     showNeedsImprovement: boolean;
     showAggregateAnalysis: boolean;
   }) => {
-    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
-      toast({ title: "Error", description: "Missing required data for PDF generation" });
+    if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
+      toast({ title: "Error", description: pdfTargetResults.length === 0 ? 'No pupils match the current filter / selection — adjust filters before printing.' : 'Missing required data for PDF generation' });
       return;
     }
 
@@ -2621,7 +2632,7 @@ export default function ViewResultsView() {
 
       updateProgress(35, 'Processing exam results...');
 
-      const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, processedResults, majorSubjects);
+      const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, pdfTargetResults, majorSubjects);
 
       updateProgress(65, 'Generating PDF document...');
 
@@ -2631,7 +2642,7 @@ export default function ViewResultsView() {
             examDetails,
             classSnap,
             subjectSnaps,
-            processedResults,
+            processedResults: pdfTargetResults,
             schoolSettings,
             printOptions: options,
           })
@@ -2669,8 +2680,8 @@ export default function ViewResultsView() {
   }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, toast, updateProgress, pdfViewer, isNurseryExam]);
 
   const handleReportOne = useCallback(async () => {
-    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
-      toast({ title: "Error", description: "Missing required data for modern batch reports generation" });
+    if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
+      toast({ title: "Error", description: pdfTargetResults.length === 0 ? 'No pupils match the current filter / selection — please adjust filters before printing.' : 'Missing required data for batch reports generation' });
       return;
     }
 
@@ -2699,15 +2710,16 @@ export default function ViewResultsView() {
       updateProgress(10, 'Fetching pupil photos and data...');
 
       // 🚀 OPTIMIZED: Batch fetch all pupils in one request instead of individual calls
+      const resultsToProcess = pdfTargetResults; // respects page filters and manual selection
       const prepareProcessedResults = async () => {
-        console.log(`🚀 OPTIMIZED: Processing ${processedResults.length} pupils with batch fetching`);
+        console.log(`🚀 OPTIMIZED: Processing ${resultsToProcess.length} pupils with batch fetching`);
         const startTime = performance.now();
 
         // First, identify which pupils need photos fetched (don't have real photos in snapshot)
-        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsNeedingPhotos: string[] = resultsToProcess.map((result) => result.pupilInfo.pupilId);
         const pupilsWithPhotos = new Map<string, string>();
 
-        processedResults.forEach((result) => {
+        resultsToProcess.forEach((result) => {
           const pupilPhoto = (result.pupilInfo as any).photo;
           if (isRealPhoto(pupilPhoto)) {
             // Photo already in snapshot, use it
@@ -2755,7 +2767,7 @@ export default function ViewResultsView() {
         console.log(`⚡ OPTIMIZED: Photo processing completed in ${duration.toFixed(2)}ms`);
 
         // Map the fetched photos back to results
-        return processedResults.map((result) => {
+        return resultsToProcess.map((result) => {
           const pupilId = result.pupilInfo.pupilId;
           let pupilPhoto: string | null = null;
 
@@ -3079,15 +3091,16 @@ export default function ViewResultsView() {
       updateProgress(10, 'Fetching pupil photos and data...');
 
       // 🚀 OPTIMIZED: Batch fetch all pupils in one request instead of individual calls
+      const resultsToProcess = pdfTargetResults; // respects page filters and manual selection
       const prepareProcessedResults = async () => {
-        console.log(`🚀 OPTIMIZED: Processing ${processedResults.length} pupils with batch fetching`);
+        console.log(`🚀 OPTIMIZED: Processing ${resultsToProcess.length} pupils with batch fetching`);
         const startTime = performance.now();
 
         // First, identify which pupils need photos fetched (don't have real photos in snapshot)
-        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsNeedingPhotos: string[] = resultsToProcess.map((result) => result.pupilInfo.pupilId);
         const pupilsWithPhotos = new Map<string, string>();
 
-        processedResults.forEach((result) => {
+        resultsToProcess.forEach((result) => {
           const pupilPhoto = (result.pupilInfo as any).photo;
           if (isRealPhoto(pupilPhoto)) {
             // Photo already in snapshot, use it
@@ -3135,7 +3148,7 @@ export default function ViewResultsView() {
         console.log(`⚡ OPTIMIZED: Photo processing completed in ${duration.toFixed(2)}ms`);
 
         // Map the fetched photos back to results
-        return processedResults.map((result) => {
+        return resultsToProcess.map((result) => {
           const pupilId = result.pupilInfo.pupilId;
           let pupilPhoto: string | null = null;
 
@@ -3439,11 +3452,12 @@ export default function ViewResultsView() {
       updateProgress(30, 'Fetching pupil photos and data...');
 
       // Prepare processed results with comparison data from all selected exams
+      const resultsToProcess = pdfTargetResults; // respects page filters and manual selection
       const prepareProcessedResultsWithProgress = async () => {
-        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsNeedingPhotos: string[] = resultsToProcess.map((result) => result.pupilInfo.pupilId);
         const pupilsWithPhotos = new Map<string, string>();
 
-        processedResults.forEach((result) => {
+        resultsToProcess.forEach((result) => {
           const pupilPhoto = (result.pupilInfo as any).photo;
           if (isRealPhoto(pupilPhoto)) {
             pupilsWithPhotos.set(result.pupilInfo.pupilId, pupilPhoto);
@@ -3467,7 +3481,7 @@ export default function ViewResultsView() {
           }
         }
 
-        return processedResults.map((result) => {
+        return resultsToProcess.map((result) => {
           const pupilId = result.pupilInfo.pupilId;
           let pupilPhoto: string | null = null;
 
@@ -3713,15 +3727,16 @@ export default function ViewResultsView() {
       updateProgress(20, 'Preparing detailed assessment data...');
 
       // 🚀 OPTIMIZED: Batch fetch all pupils in one request instead of individual calls
+      const resultsToProcess = pdfTargetResults; // respects page filters and manual selection
       const prepareProcessedResults = async () => {
-        console.log(`🚀 OPTIMIZED: Processing ${processedResults.length} pupils with batch fetching`);
+        console.log(`🚀 OPTIMIZED: Processing ${resultsToProcess.length} pupils with batch fetching`);
         const startTime = performance.now();
 
         // First, identify which pupils need photos fetched (don't have real photos in snapshot)
-        const pupilsNeedingPhotos: string[] = processedResults.map((result) => result.pupilInfo.pupilId);
+        const pupilsNeedingPhotos: string[] = resultsToProcess.map((result) => result.pupilInfo.pupilId);
         const pupilsWithPhotos = new Map<string, string>();
 
-        processedResults.forEach((result) => {
+        resultsToProcess.forEach((result) => {
           const pupilPhoto = (result.pupilInfo as any).photo;
           if (isRealPhoto(pupilPhoto)) {
             // Photo already in snapshot, use it
@@ -3758,7 +3773,7 @@ export default function ViewResultsView() {
         console.log(`⚡ OPTIMIZED: Photo processing completed in ${duration.toFixed(2)}ms`);
 
         // Map the fetched photos back to results
-        return processedResults.map((result) => {
+        return resultsToProcess.map((result) => {
           const pupilId = result.pupilInfo.pupilId;
           let pupilPhoto: string | null = null;
 
@@ -3901,8 +3916,8 @@ export default function ViewResultsView() {
   }, [allStaff, examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, updateProgress, pdfViewer]);
 
   const generateNurseryMiniReport = useCallback(async () => {
-    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
-      toast({ title: 'Error', description: 'Missing required nursery report data.' });
+    if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
+      toast({ title: 'Error', description: pdfTargetResults.length === 0 ? 'No pupils match the current filter — adjust filters before printing.' : 'Missing required nursery report data.' });
       return;
     }
 
@@ -3913,7 +3928,7 @@ export default function ViewResultsView() {
 
     try {
       updateProgress(20, 'Preparing nursery pupil information...');
-      const enhancedResults = await prepareResultsWithLivePupilData(processedResults, allPupils);
+      const enhancedResults = await prepareResultsWithLivePupilData(pdfTargetResults, allPupils);
 
       const teacherInitials = (teacherName: string): string => teacherName
         .split(/\s+/)
@@ -4228,9 +4243,9 @@ export default function ViewResultsView() {
                 onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
               />
               <GlassActionButton
-                label={showFilters ? 'Hide' : 'Filter'}
+                label={showFilters ? 'Hide Filters' : selectedPdfPupilIds.size > 0 ? `Filter (${selectedPdfPupilIds.size} selected)` : pdfTargetResults.length < processedResults.length ? `Filter (${pdfTargetResults.length}/${processedResults.length})` : 'Filter'}
                 icon={<Filter className="h-4 w-4" />}
-                tone="slate"
+                tone={selectedPdfPupilIds.size > 0 || pdfTargetResults.length < processedResults.length ? 'blue' : 'slate'}
                 onClick={() => setShowFilters(!showFilters)}
               />
               <GlassActionButton
@@ -4390,6 +4405,110 @@ export default function ViewResultsView() {
                   </div>
                 </div>
               )}
+
+              {/* ===== Select Pupils for PDF ===== */}
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPupilSelectMode(prev => !prev);
+                        if (isPupilSelectMode) setSelectedPdfPupilIds(new Set());
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                        isPupilSelectMode
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      <UsersIcon className="h-3.5 w-3.5" />
+                      {isPupilSelectMode ? 'Selecting Pupils' : 'Select Pupils'}
+                    </button>
+                    {isPupilSelectMode && (
+                      <span className="text-xs text-gray-500">
+                        {selectedPdfPupilIds.size === 0
+                          ? `All ${filteredAndSortedResults.length} visible pupils will be printed`
+                          : `${selectedPdfPupilIds.size} of ${filteredAndSortedResults.length} selected for print`}
+                      </span>
+                    )}
+                  </div>
+                  {isPupilSelectMode && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPdfPupilIds(new Set(filteredAndSortedResults.map(r => r.pupilInfo.pupilId)))}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
+                      >
+                        Select all
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPdfPupilIds(new Set())}
+                        className="text-xs text-gray-500 hover:text-gray-700 font-semibold"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {isPupilSelectMode && (
+                  <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 divide-y divide-gray-100 bg-white shadow-inner">
+                    {filteredAndSortedResults.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic text-center py-4">No pupils to display — adjust other filters first.</p>
+                    ) : (
+                      filteredAndSortedResults.map((result) => {
+                        const pid = result.pupilInfo.pupilId;
+                        const isChecked = selectedPdfPupilIds.size === 0 || selectedPdfPupilIds.has(pid);
+                        return (
+                          <label
+                            key={pid}
+                            className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${
+                              selectedPdfPupilIds.size === 0
+                                ? 'hover:bg-gray-50'
+                                : isChecked
+                                  ? 'bg-indigo-50 hover:bg-indigo-100'
+                                  : 'opacity-50 hover:bg-gray-50'
+                            }`}
+                          >
+                            <Checkbox
+                              checked={selectedPdfPupilIds.size === 0 ? true : selectedPdfPupilIds.has(pid)}
+                              onCheckedChange={(checked) => {
+                                setSelectedPdfPupilIds(prev => {
+                                  // If currently "all selected" (empty set means all), initialise the set with ALL then toggle
+                                  const base: Set<string> = prev.size === 0
+                                    ? new Set(filteredAndSortedResults.map(r => r.pupilInfo.pupilId))
+                                    : new Set(prev);
+                                  if (checked) {
+                                    base.add(pid);
+                                  } else {
+                                    base.delete(pid);
+                                  }
+                                  // If everything is selected again, collapse back to "all" (empty set)
+                                  if (base.size === filteredAndSortedResults.length) return new Set();
+                                  return base;
+                                });
+                              }}
+                              className="h-4 w-4 rounded"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-medium text-gray-800 truncate block">{result.pupilInfo.name}</span>
+                              {result.pupilInfo.admissionNumber && (
+                                <span className="text-[10px] text-gray-400">{result.pupilInfo.admissionNumber}</span>
+                              )}
+                            </div>
+                            {!isNurseryExam && (
+                              <span className="text-[10px] text-gray-500 flex-shrink-0">#{result.position}</span>
+                            )}
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

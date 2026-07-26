@@ -50,6 +50,7 @@ import {
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useActivePupils } from "@/lib/hooks/use-pupils";
 import { useSubjects } from "@/lib/hooks/use-subjects";
+import { useStaff } from "@/lib/hooks/use-staff";
 import { useExams, useExamsOptimized, useCreateExam, useCreateMultipleExams, useUpdateExam, useDeleteExam, useCreateExamResult, useUpdateExamResult } from "@/lib/hooks/use-exams";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { useCreateExamFromEvent } from "@/lib/hooks/use-events-fixed";
@@ -191,6 +192,7 @@ export default function ExamsPage() {
   const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   const { data: activeAcademicYear } = useActiveAcademicYear();
+  const { data: allStaff = [] } = useStaff();
 
   // 🚀 CRITICAL: Get term status early, before initializing filters
   const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
@@ -368,6 +370,14 @@ export default function ExamsPage() {
   const [selectedClassIdsForm, setSelectedClassIdsForm] = React.useState<string[]>([]);
   const [perClassExamNatures, setPerClassExamNatures] = React.useState<Record<string, ExamNature>>({});
   const [perClassSelectedSubjects, setPerClassSelectedSubjects] = React.useState<Record<string, string[]>>({});
+
+  // Snapshot preview state
+  const [snapshotPreviewClassId, setSnapshotPreviewClassId] = React.useState<string | null>(null);
+  const [snapshotPreviewTab, setSnapshotPreviewTab] = React.useState<'pupils' | 'teachers'>('pupils');
+  // Per-class pupil exclusions: classId -> array of excluded pupilIds
+  const [excludedPupilIds, setExcludedPupilIds] = React.useState<Record<string, string[]>>({});
+  // Per-class teacher overrides: classId -> (subjectId -> teacherId)
+  const [snapshotTeacherOverrides, setSnapshotTeacherOverrides] = React.useState<Record<string, Record<string, string>>>({});
 
 
   const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
@@ -602,6 +612,11 @@ export default function ExamsPage() {
     setEditingExam(null);
     setIsAddingSet(false);
     setBaseExamForSet(null);
+    // Reset snapshot preview state
+    setSnapshotPreviewClassId(null);
+    setSnapshotPreviewTab('pupils');
+    setExcludedPupilIds({});
+    setSnapshotTeacherOverrides({});
 
     // Academic year and term are auto-detected and not reset by user action
     // They remain as detected by the system
@@ -1048,7 +1063,15 @@ export default function ExamsPage() {
         // Create exam result shells for each exam
         const examResultShellsPromises = newExamsData.map(async (examData, index) => {
           const targetClass = allClasses.find(c => c.id === examData.classId);
-          const pupilsInClass = pupils.filter(p => p.classId === examData.classId);
+          // Only capture ACTIVE pupils — belt-and-suspenders guard since the hook
+          // already fetches active-only pupils from the database.
+          // Also respect any pupils the creator manually excluded via the Snapshot Preview.
+          const excludedForThisClass = excludedPupilIds[examData.classId] || [];
+          const pupilsInClass = pupils.filter(
+            p => p.classId === examData.classId &&
+                 p.status === 'Active' &&
+                 !excludedForThisClass.includes(p.id)
+          );
 
           // Create Class Snapshot
           let classSnapshotData: ExamClassInfoSnapshot | undefined = undefined;
@@ -1103,7 +1126,9 @@ export default function ExamsPage() {
               if (!subj) return null;
 
               // Handle both new array format and legacy string format for teacher ID
-              const teacherId = (sa as any).teacherIds?.[0] || (sa as any).teacherId || null;
+              const defaultTeacherId = (sa as any).teacherIds?.[0] || (sa as any).teacherId || null;
+              // Apply any teacher override set via the Snapshot Preview modal
+              const teacherId = snapshotTeacherOverrides[examData.classId]?.[subj.id] ?? defaultTeacherId;
 
               return {
                 subjectId: subj.id,
@@ -1120,7 +1145,9 @@ export default function ExamsPage() {
                 const subj = subjects.find(s => s.id === subId);
                 if (!subj) return null;
                 const assignment = targetClass?.subjectAssignments?.find(sa => sa.subjectId === subId);
-                const teacherId = assignment ? (assignment.teacherIds?.[0] || (assignment as any).teacherId || null) : null;
+                const defaultTeacherId = assignment ? (assignment.teacherIds?.[0] || (assignment as any).teacherId || null) : null;
+                // Apply any teacher override set via the Snapshot Preview modal
+                const teacherId = snapshotTeacherOverrides[examData.classId]?.[subId] ?? defaultTeacherId;
                 return {
                   subjectId: subId,
                   name: subj.name,
@@ -3437,8 +3464,26 @@ export default function ExamsPage() {
 
                             return (
                               <div key={`class-setup-${classId}`} className="border border-slate-200 rounded-lg overflow-hidden">
-                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
+                                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200 flex items-center justify-between">
                                   <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
+                                  {!pupilsLoading && (() => {
+                                    const activePupilsInClass = pupils.filter(p => p.classId === classId && p.status === 'Active');
+                                    const excludedCount = (excludedPupilIds[classId] || []).length;
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => { setSnapshotPreviewClassId(classId); setSnapshotPreviewTab('pupils'); }}
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm hover:from-violet-600 hover:to-purple-700 transition-all duration-200 hover:shadow-md"
+                                        title="Preview and edit the pupil & teacher snapshot for this class"
+                                      >
+                                        <Camera className="h-3 w-3" />
+                                        <span>Snapshot</span>
+                                        {excludedCount > 0 && (
+                                          <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excludedCount}/{activePupilsInClass.length}</span>
+                                        )}
+                                      </button>
+                                    );
+                                  })()}
                                 </div>
                                 <div className="p-3 space-y-3">
                                   <div>
@@ -3485,8 +3530,31 @@ export default function ExamsPage() {
 
                     {!isAddingSet && selectedClassIdsForm.length > 0 && selectedClassIdsForm.some(classId => getExamNatureForClass(classId) === 'Subject based') && selectedClassIdsForm.length <= 1 && (
                       <div className="pt-3 border-t border-slate-100">
-                        <Label className="text-sm font-medium text-slate-700">Target Subjects per Class <span className="text-rose-500">*</span></Label>
-                        <p className="text-xs text-slate-500 mt-0.5 mb-3">Select subjects for each selected class.</p>
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <Label className="text-sm font-medium text-slate-700">Target Subjects per Class <span className="text-rose-500">*</span></Label>
+                            <p className="text-xs text-slate-500 mt-0.5">Select subjects for each selected class.</p>
+                          </div>
+                          {!pupilsLoading && selectedClassIdsForm.length === 1 && (() => {
+                            const cId = selectedClassIdsForm[0];
+                            const activePupilsInClass = pupils.filter(p => p.classId === cId && p.status === 'Active');
+                            const excludedCount = (excludedPupilIds[cId] || []).length;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => { setSnapshotPreviewClassId(cId); setSnapshotPreviewTab('pupils'); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm hover:from-violet-600 hover:to-purple-700 transition-all duration-200 hover:shadow-md"
+                                title="Preview and edit the pupil & teacher snapshot"
+                              >
+                                <Camera className="h-3.5 w-3.5" />
+                                <span>View Snapshot</span>
+                                {excludedCount > 0 && (
+                                  <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excludedCount}/{activePupilsInClass.length}</span>
+                                )}
+                              </button>
+                            );
+                          })()}
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {selectedClassIdsForm.map(classId => {
                             const subjectsInThisClass = getSubjectsForClass(classId);
@@ -3517,6 +3585,28 @@ export default function ExamsPage() {
                             );
                           })}
                         </div>
+                      </div>
+                    )}
+
+                    {/* View Snapshot button for Set-based / single class */}
+                    {!isAddingSet && !editingExam && selectedClassIdsForm.length === 1 &&
+                     getExamNatureForClass(selectedClassIdsForm[0]) === 'Set based' &&
+                     !pupilsLoading && (
+                      <div className="pt-3 border-t border-slate-100 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => { setSnapshotPreviewClassId(selectedClassIdsForm[0]); setSnapshotPreviewTab('pupils'); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm hover:from-violet-600 hover:to-purple-700 transition-all duration-200 hover:shadow-md"
+                          title="Preview and edit the pupil & teacher snapshot"
+                        >
+                          <Camera className="h-3.5 w-3.5" />
+                          <span>View Snapshot</span>
+                          {(excludedPupilIds[selectedClassIdsForm[0]] || []).length > 0 && (() => {
+                            const activePupilsInClass = pupils.filter(p => p.classId === selectedClassIdsForm[0] && p.status === 'Active');
+                            const excl = (excludedPupilIds[selectedClassIdsForm[0]] || []).length;
+                            return <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excl}/{activePupilsInClass.length}</span>;
+                          })()}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -3556,6 +3646,306 @@ export default function ExamsPage() {
                     editingExam ? "Save Changes" : isAddingSet ? "Add Set" : "Create Exam"
                   )}
                 </Button>
+              </div>
+
+            </div>
+          </div>
+          , document.body)}
+
+        {/* ===== SNAPSHOT PREVIEW MODAL ===== */}
+        {snapshotPreviewClassId && typeof document !== 'undefined' && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[199999] flex items-end sm:items-center justify-center p-0 sm:p-4">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setSnapshotPreviewClassId(null)}
+            />
+
+            {/* Modal Panel */}
+            <div className="relative z-10 w-full sm:max-w-2xl h-[92vh] sm:h-[88vh] flex flex-col bg-white sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200 overflow-hidden">
+
+              {/* Header */}
+              <div className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white leading-tight">Exam Snapshot Preview</h2>
+                    <p className="text-xs text-violet-200 leading-tight">
+                      {allClasses.find(c => c.id === snapshotPreviewClassId)?.name || 'Class'} &mdash; edit before creating
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSnapshotPreviewClassId(null)}
+                  className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Tab Bar */}
+              <div className="flex-shrink-0 flex border-b border-slate-200 bg-slate-50">
+                <button
+                  type="button"
+                  onClick={() => setSnapshotPreviewTab('pupils')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all ${
+                    snapshotPreviewTab === 'pupils'
+                      ? 'text-violet-700 border-b-2 border-violet-600 bg-white'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  Pupils
+                  {(() => {
+                    const activePupils = pupils.filter(p => p.classId === snapshotPreviewClassId && p.status === 'Active');
+                    const excluded = excludedPupilIds[snapshotPreviewClassId] || [];
+                    return (
+                      <span className={`ml-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                        excluded.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-700'
+                      }`}>
+                        {activePupils.length - excluded.length}/{activePupils.length}
+                      </span>
+                    );
+                  })()}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSnapshotPreviewTab('teachers')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all ${
+                    snapshotPreviewTab === 'teachers'
+                      ? 'text-violet-700 border-b-2 border-violet-600 bg-white'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  Subject Teachers
+                  {(() => {
+                    const overrides = snapshotTeacherOverrides[snapshotPreviewClassId] || {};
+                    const count = Object.keys(overrides).length;
+                    return count > 0 ? (
+                      <span className="ml-1 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                        {count} override{count !== 1 ? 's' : ''}
+                      </span>
+                    ) : null;
+                  })()}
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 min-h-0 overflow-y-auto">
+
+                {/* ---- PUPILS TAB ---- */}
+                {snapshotPreviewTab === 'pupils' && (() => {
+                  const activePupilsInClass = pupils
+                    .filter(p => p.classId === snapshotPreviewClassId && p.status === 'Active')
+                    .sort((a, b) => formatPupilDisplayName(a).localeCompare(formatPupilDisplayName(b)));
+                  const excluded = excludedPupilIds[snapshotPreviewClassId] || [];
+                  const includedCount = activePupilsInClass.length - excluded.length;
+
+                  return (
+                    <div className="p-4 space-y-3">
+                      {/* Summary bar */}
+                      <div className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-violet-100 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-violet-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">{includedCount} of {activePupilsInClass.length} pupils</p>
+                            <p className="text-xs text-slate-500">will sit this exam</p>
+                          </div>
+                        </div>
+                        {excluded.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setExcludedPupilIds(prev => ({ ...prev, [snapshotPreviewClassId!]: [] }))}
+                            className="text-xs text-violet-600 hover:text-violet-800 font-semibold px-3 py-1.5 rounded-full bg-violet-50 hover:bg-violet-100 transition-colors"
+                          >
+                            Restore all
+                          </button>
+                        )}
+                      </div>
+
+                      {activePupilsInClass.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                          <Users className="h-12 w-12 mb-3 text-slate-200" />
+                          <p className="text-sm font-medium">No active pupils in this class</p>
+                          <p className="text-xs mt-1">Make sure pupils are enrolled and active.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {activePupilsInClass.map((pupil, index) => {
+                            const isExcluded = excluded.includes(pupil.id);
+                            return (
+                              <div
+                                key={pupil.id}
+                                onClick={() => {
+                                  setExcludedPupilIds(prev => {
+                                    const cur = prev[snapshotPreviewClassId!] || [];
+                                    return {
+                                      ...prev,
+                                      [snapshotPreviewClassId!]: isExcluded
+                                        ? cur.filter(id => id !== pupil.id)
+                                        : [...cur, pupil.id]
+                                    };
+                                  });
+                                }}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-200 ${
+                                  isExcluded
+                                    ? 'bg-red-50 border-red-200 opacity-60 hover:opacity-80'
+                                    : 'bg-white border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 hover:shadow-sm'
+                                }`}
+                              >
+                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                  isExcluded ? 'bg-red-100 text-red-500' : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white'
+                                }`}>
+                                  {isExcluded ? <X className="h-4 w-4" /> : String(index + 1).padStart(2, '0')}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className={`text-sm font-semibold truncate ${
+                                    isExcluded ? 'text-red-400 line-through' : 'text-slate-800'
+                                  }`}>
+                                    {formatPupilDisplayName(pupil)}
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    Adm: {pupil.admissionNumber || 'N/A'}{pupil.gender ? ` • ${pupil.gender}` : ''}
+                                  </p>
+                                </div>
+                                <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                  isExcluded
+                                    ? 'border-red-300 bg-red-100'
+                                    : 'border-violet-400 bg-violet-50'
+                                }`}>
+                                  {!isExcluded && <div className="w-2.5 h-2.5 rounded-sm bg-violet-500" />}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* ---- TEACHERS TAB ---- */}
+                {snapshotPreviewTab === 'teachers' && (() => {
+                  const currentClass = allClasses.find(c => c.id === snapshotPreviewClassId);
+                  const classNature = getExamNatureForClass(snapshotPreviewClassId!);
+                  const subjectList: (typeof subjects[0])[] = classNature === 'Subject based'
+                    ? (perClassSelectedSubjects[snapshotPreviewClassId!] || []).map(id => subjects.find(s => s.id === id)).filter(Boolean) as typeof subjects
+                    : getSubjectsForClass(snapshotPreviewClassId!);
+
+                  return (
+                    <div className="p-4 space-y-3">
+                      {/* Summary bar */}
+                      <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <GraduationCap className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{subjectList.length} subject{subjectList.length !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-slate-500">
+                            {classNature === 'Subject based' ? 'Selected subjects only' : 'All subjects in class'}
+                            {' — click a row to change teacher'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {subjectList.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                          <BookOpen className="h-12 w-12 mb-3 text-slate-200" />
+                          <p className="text-sm font-medium">No subjects to display</p>
+                          <p className="text-xs mt-1">{classNature === 'Subject based' ? 'Select subjects first.' : 'No subjects assigned to this class.'}</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {subjectList.map(sub => {
+                            if (!sub) return null;
+                            const assignment = currentClass?.subjectAssignments?.find(sa => sa.subjectId === sub.id);
+                            const defaultTeacherId = assignment?.teacherIds?.[0] || (assignment as any)?.teacherId || null;
+                            const override = snapshotTeacherOverrides[snapshotPreviewClassId!]?.[sub.id];
+                            const effectiveTeacherId = override ?? defaultTeacherId;
+                            const effectiveTeacher = allStaff.find(s => s.id === effectiveTeacherId);
+
+                            return (
+                              <div key={sub.id} className="bg-white border border-slate-200 rounded-xl p-3 hover:border-violet-200 hover:shadow-sm transition-all">
+                                <div className="flex items-start gap-3">
+                                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <BookOpen className="h-4 w-4 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <p className="text-sm font-semibold text-slate-800">{sub.name}</p>
+                                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{sub.code}</span>
+                                      {override && (
+                                        <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Overridden</span>
+                                      )}
+                                    </div>
+                                    <div className="mt-2">
+                                      <Select
+                                        value={effectiveTeacherId || '__none__'}
+                                        onValueChange={(val) => {
+                                          const teacherId = val === '__none__' ? null : val;
+                                          setSnapshotTeacherOverrides(prev => {
+                                            const classOverrides = { ...(prev[snapshotPreviewClassId!] || {}) };
+                                            if (!teacherId || teacherId === defaultTeacherId) {
+                                              delete classOverrides[sub.id];
+                                            } else {
+                                              classOverrides[sub.id] = teacherId;
+                                            }
+                                            return { ...prev, [snapshotPreviewClassId!]: classOverrides };
+                                          });
+                                        }}
+                                      >
+                                        <SelectTrigger className={`h-8 text-xs ${
+                                          override ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-200'
+                                        }`}>
+                                          <SelectValue placeholder="No teacher assigned" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper" className="max-h-[200px] overflow-y-auto">
+                                          <SelectItem value="__none__">&mdash; No teacher assigned &mdash;</SelectItem>
+                                          {allStaff.map(staff => (
+                                            <SelectItem key={staff.id} value={staff.id}>
+                                              {(staff as any).name || `${(staff as any).firstName || ''} ${(staff as any).lastName || ''}`.trim() || staff.id}
+                                              {staff.id === defaultTeacherId ? ' (default)' : ''}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                    {effectiveTeacher && (
+                                      <p className="text-xs text-slate-400 mt-1">
+                                        {(effectiveTeacher as any).name || `${(effectiveTeacher as any).firstName || ''} ${(effectiveTeacher as any).lastName || ''}`.trim()}
+                                        {override ? ' (overridden)' : ' (default)'}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="flex-shrink-0 bg-white border-t border-slate-200 px-5 py-3.5 flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400">
+                  Changes apply when you <span className="font-semibold text-slate-600">Create Exam</span>. Nothing is saved yet.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSnapshotPreviewClassId(null)}
+                  className="h-9 px-5 rounded-full text-sm font-semibold bg-gradient-to-r from-violet-600 to-purple-700 text-white shadow-md hover:from-violet-700 hover:to-purple-800 transition-all duration-200 hover:shadow-lg"
+                >
+                  Done
+                </button>
               </div>
 
             </div>

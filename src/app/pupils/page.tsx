@@ -349,9 +349,10 @@ function PupilsContent() {
   const [editLastName, setEditLastName] = useState('');
   const [editOtherNames, setEditOtherNames] = useState('');
 
-  // 🚀 PAGINATION: Prevent browser freeze with large datasets
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(50); // Keep first render responsive; users can still explicitly choose "All pupils"
+  // 🚀 INFINITE SCROLL: Reveal rows in batches of 50 as the user scrolls
+  const BATCH_SIZE = 50;
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const sentinelRef = useRef<HTMLTableRowElement>(null);
 
   // 🚀 OPTIMIZED: Get all pupils from cache immediately for search functionality
   // This allows search to work instantly even when no class is selected
@@ -537,9 +538,9 @@ function PupilsContent() {
     // Otherwise, leave it empty (no class selected)
   }, [searchParams, handleClassChange]);
 
-  // Reset to page 1 when filters/search/class changes
+  // Reset visible rows when filters / class / search changes
   useEffect(() => {
-    setCurrentPage(1);
+    setVisibleCount(BATCH_SIZE);
   }, [selectedClassId, searchQuery, pupilFilters.status, pupilFilters.section, pupilFilters.gender]);
 
   // Optimized: Cached hooks with longer stale times
@@ -730,8 +731,8 @@ function PupilsContent() {
   }, [allCachedPupils]);
 
   // Filter pupils for display
-  // 🚀 OPTIMIZATION: First filter and sort ALL pupils, then paginate
-  const { filteredAndSortedPupils, totalFilteredCount } = useMemo(() => {
+  // 🚀 INFINITE SCROLL: Filter and sort ALL pupils first, then reveal in batches
+  const { allFilteredPupils, filteredAndSortedPupils, totalFilteredCount } = useMemo(() => {
     const filtered = pupilsWithPhotos.filter(pupil => {
       // Status filter
       if (filters.status && pupil.status !== filters.status) return false;
@@ -791,30 +792,17 @@ function PupilsContent() {
       }
     });
 
-    // 🚀 PAGINATION: Apply pagination to sorted results to prevent browser freeze
     const totalCount = filtered.length;
-
-    // If itemsPerPage is 'all', show all pupils without pagination
-    if (itemsPerPage === 'all') {
-      console.log(`📄 PAGINATION: Showing all ${totalCount} pupils (no pagination)`);
-      return {
-        filteredAndSortedPupils: filtered,
-        totalFilteredCount: totalCount
-      };
-    }
-
-    // Otherwise, apply pagination
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginated = filtered.slice(startIndex, endIndex);
-
-    console.log(`📄 PAGINATION: Showing pupils ${startIndex + 1}-${Math.min(endIndex, totalCount)} of ${totalCount} total (page ${currentPage})`);
+    // Slice only what we need to render right now — more rows revealed as user scrolls
+    const visible = filtered.slice(0, visibleCount);
 
     return {
-      filteredAndSortedPupils: paginated,
-      totalFilteredCount: totalCount
+      allFilteredPupils: filtered,       // full list — used for exports, counts, etc.
+      filteredAndSortedPupils: visible,  // displayed rows only
+      totalFilteredCount: totalCount,
     };
-  }, [pupilsWithPhotos, filters, sortField, sortOrder, classes, currentPage, itemsPerPage]);
+  }, [pupilsWithPhotos, filters, sortField, sortOrder, classes, visibleCount]);
+
 
   // Update ref when class changes (for tracking, but skeleton is shown immediately in handler)
   useEffect(() => {
@@ -844,8 +832,47 @@ function PupilsContent() {
     }
   }, [isLoadingPupils, filteredAndSortedPupils.length, selectedClassId, showSkeleton]);
 
-  // Calculate total pages (only if pagination is enabled)
-  const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalFilteredCount / itemsPerPage);
+
+  // 🚀 CASCADE AUTO-LOADER: As soon as data is ready and there are still hidden rows,
+  // queue the next batch automatically — no scrolling required.
+  // Uses requestIdleCallback so the browser renders each batch before loading the next.
+  useEffect(() => {
+    if (showSkeleton || isLoadingPupils || isPending) return; // wait until data is mounted
+    if (visibleCount >= totalFilteredCount) return; // already showing everything
+
+    const rIC = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 16));
+    const id = rIC(() => {
+      setVisibleCount(prev => Math.min(prev + BATCH_SIZE, totalFilteredCount));
+    });
+
+    return () => {
+      const cIC = (window as any).cancelIdleCallback ?? clearTimeout;
+      cIC(id);
+    };
+  }, [visibleCount, totalFilteredCount, showSkeleton, isLoadingPupils, isPending, BATCH_SIZE]);
+
+  // 🚀 SCROLL SENTINEL: Also load next batch when user scrolls near the bottom
+  // (handles cases where the auto-cascade is paused)
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount(prev => {
+            if (prev >= totalFilteredCount) return prev;
+            return Math.min(prev + BATCH_SIZE, totalFilteredCount);
+          });
+        }
+      },
+      { rootMargin: '300px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [totalFilteredCount, BATCH_SIZE]);
+
 
   const handleDelete = async (pupilId: string, pupilName: string) => {
     if (window.confirm(`Are you sure you want to delete ${pupilName}?`)) {
@@ -1526,7 +1553,7 @@ function PupilsContent() {
         finalHeaders.splice(nameIndex, 1, 'Surname', 'First Name', 'Other Names');
       }
 
-      const csvData = filteredAndSortedPupils.map(pupil => {
+      const csvData = allFilteredPupils.map(pupil => {
         const rowData: string[] = [];
 
         config.columns.forEach(colId => {
@@ -2145,7 +2172,7 @@ function PupilsContent() {
       };
 
       const pdfDoc = createPDFComponent({
-        pupils: filteredAndSortedPupils.map(pupil => ({
+        pupils: allFilteredPupils.map(pupil => ({
           id: pupil.id,
           firstName: pupil.firstName,
           lastName: pupil.lastName,
@@ -3778,120 +3805,35 @@ function PupilsContent() {
                       );
                     })
                   )}
+
+                  {/* Infinite scroll sentinel — triggers next batch when it enters the viewport */}
+                  {!showSkeleton && !isLoadingPupils && !isPending && (
+                    <tr ref={sentinelRef} aria-hidden="true" className="h-px" />
+                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* 🚀 PAGINATION CONTROLS */}
+            {/* 🚀 INFINITE SCROLL STATUS BAR */}
             {totalFilteredCount > 0 && (
-              <div className="px-4 py-3 border-t border-indigo-100 bg-gradient-to-r from-indigo-50/50 to-white">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                  {/* Page Info */}
-                  <div className="text-sm text-gray-600">
-                    {itemsPerPage === 'all' ? (
-                      <>Showing all <span className="font-medium text-indigo-600">{totalFilteredCount}</span> pupils</>
-                    ) : (
-                      <>
-                        Showing <span className="font-medium text-indigo-600">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
-                        <span className="font-medium text-indigo-600">{Math.min(currentPage * itemsPerPage, totalFilteredCount)}</span> of{' '}
-                        <span className="font-medium text-indigo-600">{totalFilteredCount}</span> pupils
-                      </>
-                    )}
-                  </div>
-
-                  {/* Page Controls */}
-                  <div className="flex items-center gap-2">
-                    {/* Items per page */}
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setItemsPerPage(value === 'all' ? 'all' : Number(value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-3 py-1.5 text-sm border border-indigo-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-400/50 focus:outline-none"
-                    >
-                      <option value={25}>25 per page</option>
-                      <option value={50}>50 per page</option>
-                      <option value={100}>100 per page</option>
-                      <option value={200}>200 per page</option>
-                      <option value="all">All pupils</option>
-                    </select>
-
-                    {/* Pagination buttons - only show if pagination is enabled */}
-                    {itemsPerPage !== 'all' && totalPages > 1 && (
-                      <div className="flex items-center gap-1">
-                        {/* First page */}
-                        <button
-                          onClick={() => setCurrentPage(1)}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="First page"
-                        >
-                          ««
-                        </button>
-
-                        {/* Previous page */}
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Previous page"
-                        >
-                          «
-                        </button>
-
-                        {/* Page numbers */}
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                            let pageNum;
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (currentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (currentPage >= totalPages - 2) {
-                              pageNum = totalPages - 4 + i;
-                            } else {
-                              pageNum = currentPage - 2 + i;
-                            }
-
-                            return (
-                              <button
-                                key={pageNum}
-                                onClick={() => setCurrentPage(pageNum)}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
-                                  ? 'bg-indigo-600 text-white'
-                                  : 'text-indigo-600 hover:bg-indigo-50'
-                                  }`}
-                              >
-                                {pageNum}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Next page */}
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Next page"
-                        >
-                          »
-                        </button>
-
-                        {/* Last page */}
-                        <button
-                          onClick={() => setCurrentPage(totalPages)}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Last page"
-                        >
-                          »»
-                        </button>
-                      </div>
-                    )}
-                  </div>
+              <div className="px-4 py-2.5 border-t border-indigo-100 bg-gradient-to-r from-indigo-50/40 to-white">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-gray-500">
+                    Showing{' '}
+                    <span className="font-semibold text-indigo-600">{filteredAndSortedPupils.length}</span>
+                    {' '}of{' '}
+                    <span className="font-semibold text-indigo-600">{totalFilteredCount}</span>
+                    {' '}pupils
+                  </p>
+                  {filteredAndSortedPupils.length < totalFilteredCount && (
+                    <div className="flex items-center gap-2 text-xs text-indigo-500 font-medium">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Loading more&hellip;
+                    </div>
+                  )}
+                  {filteredAndSortedPupils.length >= totalFilteredCount && totalFilteredCount > 0 && (
+                    <span className="text-xs text-gray-400">All pupils loaded</span>
+                  )}
                 </div>
               </div>
             )}
