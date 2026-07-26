@@ -704,6 +704,10 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       return row;
     });
 
+    // Slim continuation header height — used as margin.top for ALL pages.
+    // Page 1's full header is already drawn above startY so it doesn't consume margin space.
+    const continuationHeaderH = 14;
+
     // Generate table using jspdf-autotable with original design
     autoTable(doc, {
       head: [headers],
@@ -820,9 +824,6 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
           }
         }
       },
-      // Slim continuation header height — used as margin.top for ALL pages.
-      // Page 1's full header is already drawn above startY so it doesn't consume margin space.
-      const continuationHeaderH = 14;
       margin: { 
         top: continuationHeaderH,
         left: margin, 
