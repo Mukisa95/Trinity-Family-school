@@ -144,7 +144,7 @@ export const generateNurseryAssessmentPDF = ({
     body,
     startY: currentY,
     theme: 'grid',
-    margin: { top: 12, left: margin, right: margin, bottom: 14 },
+    margin: { top: 5, left: margin, right: margin, bottom: 14 },
     rowPageBreak: 'avoid',
     horizontalPageBreak: true,
     horizontalPageBreakRepeat: [0, 1],
@@ -183,16 +183,7 @@ export const generateNurseryAssessmentPDF = ({
         data.cell.styles.textColor = [6, 95, 70];
       }
     },
-    willDrawPage: (data) => {
-      if (data.pageNumber <= 1) return;
 
-      doc.setFillColor(15, 63, 133);
-      doc.rect(0, 0, pageWidth, 10, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text(`${schoolName} - NURSERY ASSESSMENT REPORT`, margin, 6.5);
-    },
     didDrawPage: (data) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);

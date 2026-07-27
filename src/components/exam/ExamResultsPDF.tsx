@@ -704,9 +704,6 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       return row;
     });
 
-    // Slim continuation header height — used as margin.top for ALL pages.
-    // Page 1's full header is already drawn above startY so it doesn't consume margin space.
-    const continuationHeaderH = 14;
 
     // Generate table using jspdf-autotable with original design
     autoTable(doc, {
@@ -825,33 +822,12 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
         }
       },
       margin: { 
-        top: continuationHeaderH,
+        top: 5,
         left: margin, 
         right: margin 
       },
       pageBreak: 'auto',
       rowPageBreak: 'avoid',
-      willDrawPage: function(data: any) {
-        if (data.pageNumber === 1) {
-          // Page 1: the full header is already drawn above startY — just draw a minimal
-          // top bar so the table header row doesn't sit flush against the page edge.
-          // (The table startY already positions it correctly below the real header.)
-          return;
-        }
-        // Pages 2+: draw only the slim branded bar at the very top
-        doc.setFillColor(...colors.headerBg);
-        doc.rect(0, 0, pageWidth, continuationHeaderH, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        const schoolNameShort = (schoolSettings?.generalInfo?.name || 'School').toUpperCase();
-        doc.text(
-          `${schoolNameShort}  ·  ${examDetails.name}  ·  ${classSnap.name}`,
-          pageWidth / 2,
-          continuationHeaderH / 2 + 2,
-          { align: 'center' }
-        );
-      },
       didDrawPage: function(data: any) {
         // Get total number of pages
         const totalPages = doc.getNumberOfPages();
