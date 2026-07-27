@@ -1156,11 +1156,11 @@ export default function FeesCollectionPage() {
                         const neverPaid = displayPaid === 0 && displayFees > 0;
                         const cleared = displayBalance <= 0 && displayFees > 0;
                         const withBalance = displayBalance > 0;
-                        const mark = neverPaid ? '–' : cleared ? '✓' : withBalance ? '✗' : '–';
+                        const mark = neverPaid ? '-' : cleared ? 'OK' : withBalance ? 'X' : '-';
                         const markColor = neverPaid ? '#718096' : cleared ? '#38a169' : '#e53e3e';
                         return (
                           <View style={[styles.tableCol, { width: columnWidths.statusMark, alignItems: 'center', justifyContent: 'center' }]}>
-                            <Text style={[styles.tableCell, { color: markColor, fontWeight: 'bold', fontSize: 14, textAlign: 'center' }]}>
+                            <Text style={[styles.tableCell, { color: markColor, fontWeight: 'bold', fontSize: 9, textAlign: 'center' }]}>
                               {mark}
                             </Text>
                           </View>
