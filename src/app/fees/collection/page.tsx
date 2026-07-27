@@ -2167,7 +2167,10 @@ export default function FeesCollectionPage() {
                     totalPaid: true,
                     balance: true,
                     feeBreakdown: false,
-                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
+                    showFilters: columnSelection.showFilters,
+                    showSummary: columnSelection.showSummary,
+                    showStatusMark: columnSelection.showStatusMark
+                  })}
                   className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
                 >
                   Standard Report
@@ -2183,7 +2186,10 @@ export default function FeesCollectionPage() {
                     totalPaid: true,
                     balance: true,
                     feeBreakdown: false,
-                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
+                    showFilters: columnSelection.showFilters,
+                    showSummary: columnSelection.showSummary,
+                    showStatusMark: columnSelection.showStatusMark
+                  })}
                   className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
                 >
                   Detailed Report
@@ -2199,7 +2205,10 @@ export default function FeesCollectionPage() {
                     totalPaid: true,
                     balance: true,
                     feeBreakdown: true,
-                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
+                    showFilters: columnSelection.showFilters,
+                    showSummary: columnSelection.showSummary,
+                    showStatusMark: columnSelection.showStatusMark
+                  })}
                   className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
                 >
                   Complete Report
@@ -2215,7 +2224,10 @@ export default function FeesCollectionPage() {
                     totalPaid: false,
                     balance: false,
                     feeBreakdown: false,
-                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
+                    showFilters: columnSelection.showFilters,
+                    showSummary: columnSelection.showSummary,
+                    showStatusMark: columnSelection.showStatusMark
+                  })}
                   className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
                 >
                   Clear All
