@@ -174,6 +174,8 @@ interface ColumnSelection {
   balance: boolean;
   feeBreakdown: boolean;
   showFilters: boolean;
+  showSummary: boolean;
+  showStatusMark: boolean;
 }
 
 export default function FeesCollectionPage() {
@@ -220,7 +222,9 @@ export default function FeesCollectionPage() {
     totalPaid: true,
     balance: true,
     feeBreakdown: false,
-    showFilters: true
+    showFilters: true,
+    showSummary: true,
+    showStatusMark: false
   });
 
   // Add state for column selection modal
@@ -914,7 +918,12 @@ export default function FeesCollectionPage() {
         });
 
         const getOptimalColumnWidths = () => {
-          const selectedColumns = Object.entries(columnSelection).filter(([_, selected]) => selected);
+          const dataColumns = ['pupilInfo','admissionNumber','class','section','totalFees','totalPaid','balance','feeBreakdown','statusMark'] as const;
+          const selectedColumns = Object.entries(columnSelection).filter(([k, v]) => {
+            if (!['pupilInfo','admissionNumber','class','section','totalFees','totalPaid','balance','feeBreakdown'].includes(k)) return false;
+            return v;
+          });
+          if (columnSelection.showStatusMark) selectedColumns.push(['statusMark', true]);
           const columnWidths: Record<string, number> = {
             pupilInfo: 25,
             admissionNumber: 12,
@@ -925,12 +934,13 @@ export default function FeesCollectionPage() {
             totalPaid: 15,
             balance: 15,
             feeBreakdown: 20,
+            statusMark: 6,
           };
-          const totalDesiredWidth = selectedColumns.reduce((sum, [column]) => sum + columnWidths[column], 0);
+          const totalDesiredWidth = selectedColumns.reduce((sum, [column]) => sum + (columnWidths[column] || 8), 0);
           const scaleFactor = 100 / totalDesiredWidth;
           const optimizedWidths: Record<string, string> = {};
           selectedColumns.forEach(([column]) => {
-            optimizedWidths[column] = `${(columnWidths[column] * scaleFactor).toFixed(1)}%`;
+            optimizedWidths[column] = `${((columnWidths[column] || 8) * scaleFactor).toFixed(1)}%`;
           });
           return optimizedWidths;
         };
@@ -1052,7 +1062,12 @@ export default function FeesCollectionPage() {
                       </Text>
                     </View>
                   )}
-                  {/* Removed Last Payment column for speed optimization */}
+                  {/* Status Mark column header */}
+                  {columnSelection.showStatusMark && (
+                    <View style={[styles.tableColHeader, { width: columnWidths.statusMark }]}>
+                      <Text style={styles.tableCellHeader}>St.</Text>
+                    </View>
+                  )}
                   {columnSelection.feeBreakdown && (
                     <View style={[styles.tableColHeader, { width: columnWidths.feeBreakdown }]}>
                       <Text style={styles.tableCellHeader}>Fee Breakdown</Text>
@@ -1136,7 +1151,21 @@ export default function FeesCollectionPage() {
                           </Text>
                         </View>
                       )}
-                      {/* Removed Last Payment data for speed optimization */}
+                      {/* Status Mark */}
+                      {columnSelection.showStatusMark && (() => {
+                        const neverPaid = displayPaid === 0 && displayFees > 0;
+                        const cleared = displayBalance <= 0 && displayFees > 0;
+                        const withBalance = displayBalance > 0;
+                        const mark = neverPaid ? '–' : cleared ? '✓' : withBalance ? '✗' : '–';
+                        const markColor = neverPaid ? '#718096' : cleared ? '#38a169' : '#e53e3e';
+                        return (
+                          <View style={[styles.tableCol, { width: columnWidths.statusMark, alignItems: 'center', justifyContent: 'center' }]}>
+                            <Text style={[styles.tableCell, { color: markColor, fontWeight: 'bold', fontSize: 14, textAlign: 'center' }]}>
+                              {mark}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                       {columnSelection.feeBreakdown && (
                         <View style={[styles.tableCol, { width: columnWidths.feeBreakdown }]}>
                           {feesInfo.applicableFees?.slice(0, 3).map((fee: any, idx: number) => (
@@ -1158,57 +1187,63 @@ export default function FeesCollectionPage() {
                 })}
 
                 {/* Summary Row */}
-                <View style={[styles.tableRow, styles.summaryRow]}>
-                  {columnSelection.pupilInfo && (
-                    <View style={[styles.tableCol, { width: columnWidths.pupilInfo }]}>
-                      <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>
-                        SUMMARY ({pupils.length} students)
-                      </Text>
-                    </View>
-                  )}
-                  {columnSelection.admissionNumber && (
-                    <View style={[styles.tableCol, { width: columnWidths.admissionNumber }]}>
-                      <Text style={styles.tableCell}>-</Text>
-                    </View>
-                  )}
-                  {columnSelection.class && (
-                    <View style={[styles.tableCol, { width: columnWidths.class }]}>
-                      <Text style={styles.tableCell}>-</Text>
-                    </View>
-                  )}
-                  {columnSelection.section && (
-                    <View style={[styles.tableCol, { width: columnWidths.section }]}>
-                      <Text style={styles.tableCell}>-</Text>
-                    </View>
-                  )}
-                  {columnSelection.totalFees && (
-                    <View style={[styles.tableCol, { width: columnWidths.totalFees }]}>
-                      <Text style={[styles.tableCell, styles.currencyText, { fontWeight: 'bold' }]}>
-                        {formatCurrency(totals.totalFees)}
-                      </Text>
-                    </View>
-                  )}
-                  {columnSelection.totalPaid && (
-                    <View style={[styles.tableCol, { width: columnWidths.totalPaid }]}>
-                      <Text style={[styles.tableCell, styles.currencyText, { fontWeight: 'bold', color: '#38a169' }]}>
-                        {formatCurrency(totals.totalPaid)}
-                      </Text>
-                    </View>
-                  )}
-                  {columnSelection.balance && (
-                    <View style={[styles.tableCol, { width: columnWidths.balance }]}>
-                      <Text style={[styles.tableCell, styles.currencyText, { fontWeight: 'bold', color: '#e53e3e' }]}>
-                        {formatCurrency(totals.balance)}
-                      </Text>
-                    </View>
-                  )}
-                  {/* Removed Last Payment summary for speed optimization */}
-                  {columnSelection.feeBreakdown && (
-                    <View style={[styles.tableCol, { width: columnWidths.feeBreakdown }]}>
-                      <Text style={styles.tableCellSmall}>Various fees</Text>
-                    </View>
-                  )}
-                </View>
+                {columnSelection.showSummary && (
+                  <View style={[styles.tableRow, styles.summaryRow]}>
+                    {columnSelection.pupilInfo && (
+                      <View style={[styles.tableCol, { width: columnWidths.pupilInfo }]}>
+                        <Text style={[styles.tableCell, { fontWeight: 'bold' }]}>
+                          SUMMARY ({pupils.length} students)
+                        </Text>
+                      </View>
+                    )}
+                    {columnSelection.admissionNumber && (
+                      <View style={[styles.tableCol, { width: columnWidths.admissionNumber }]}>
+                        <Text style={styles.tableCell}>-</Text>
+                      </View>
+                    )}
+                    {columnSelection.class && (
+                      <View style={[styles.tableCol, { width: columnWidths.class }]}>
+                        <Text style={styles.tableCell}>-</Text>
+                      </View>
+                    )}
+                    {columnSelection.section && (
+                      <View style={[styles.tableCol, { width: columnWidths.section }]}>
+                        <Text style={styles.tableCell}>-</Text>
+                      </View>
+                    )}
+                    {columnSelection.totalFees && (
+                      <View style={[styles.tableCol, { width: columnWidths.totalFees }]}>
+                        <Text style={[styles.tableCell, styles.currencyText, { fontWeight: 'bold' }]}>
+                          {formatCurrency(totals.totalFees)}
+                        </Text>
+                      </View>
+                    )}
+                    {columnSelection.totalPaid && (
+                      <View style={[styles.tableCol, { width: columnWidths.totalPaid }]}>
+                        <Text style={[styles.tableCell, styles.currencyText, { fontWeight: 'bold', color: '#38a169' }]}>
+                          {formatCurrency(totals.totalPaid)}
+                        </Text>
+                      </View>
+                    )}
+                    {columnSelection.balance && (
+                      <View style={[styles.tableCol, { width: columnWidths.balance }]}>
+                        <Text style={[styles.tableCell, styles.currencyText, { fontWeight: 'bold', color: '#e53e3e' }]}>
+                          {formatCurrency(totals.balance)}
+                        </Text>
+                      </View>
+                    )}
+                    {columnSelection.showStatusMark && (
+                      <View style={[styles.tableCol, { width: columnWidths.statusMark }]}>
+                        <Text style={styles.tableCellSmall}> </Text>
+                      </View>
+                    )}
+                    {columnSelection.feeBreakdown && (
+                      <View style={[styles.tableCol, { width: columnWidths.feeBreakdown }]}>
+                        <Text style={styles.tableCellSmall}>Various fees</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
 
               {/* Footer */}
@@ -2093,6 +2128,29 @@ export default function FeesCollectionPage() {
                   />
                   <span className="text-sm">Show Applied Filters</span>
                 </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={columnSelection.showSummary}
+                    onChange={(e) => setColumnSelection(prev => ({ ...prev, showSummary: e.target.checked }))}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm">Show Totals Summary Row</span>
+                </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={columnSelection.showStatusMark}
+                    onChange={(e) => setColumnSelection(prev => ({ ...prev, showStatusMark: e.target.checked }))}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm">
+                    Show Status Mark&nbsp;
+                    <span className="text-gray-400 text-xs font-mono">✓ – ✗</span>
+                  </span>
+                </label>
               </div>
             </div>
 
@@ -2109,8 +2167,7 @@ export default function FeesCollectionPage() {
                     totalPaid: true,
                     balance: true,
                     feeBreakdown: false,
-                    showFilters: columnSelection.showFilters
-                  })}
+                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
                   className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
                 >
                   Standard Report
@@ -2126,8 +2183,7 @@ export default function FeesCollectionPage() {
                     totalPaid: true,
                     balance: true,
                     feeBreakdown: false,
-                    showFilters: columnSelection.showFilters
-                  })}
+                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
                   className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
                 >
                   Detailed Report
@@ -2143,8 +2199,7 @@ export default function FeesCollectionPage() {
                     totalPaid: true,
                     balance: true,
                     feeBreakdown: true,
-                    showFilters: columnSelection.showFilters
-                  })}
+                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
                   className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
                 >
                   Complete Report
@@ -2160,8 +2215,7 @@ export default function FeesCollectionPage() {
                     totalPaid: false,
                     balance: false,
                     feeBreakdown: false,
-                    showFilters: columnSelection.showFilters
-                  })}
+                    showFilters: columnSelection.showFilters,\n                    showSummary: columnSelection.showSummary,\n                    showStatusMark: columnSelection.showStatusMark\n                  })}
                   className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
                 >
                   Clear All
