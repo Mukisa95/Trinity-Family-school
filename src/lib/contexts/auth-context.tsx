@@ -9,6 +9,11 @@ import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
+import {
+  canUseEmergencyContinuity,
+  getEmergencyContinuityExpiry,
+  isFirestoreQuotaExceeded,
+} from '@/lib/auth/emergency-continuity';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often to silently re-check permissions from the DB (not a logout timer).
@@ -18,7 +23,7 @@ const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min background sync
 // maximally old so a background refresh is triggered, but still restore the session.
 const AUTH_CACHE_MAX_AGE_MS = AUTH_REFRESH_INTERVAL_MS * 2;
 
-type SessionStatus = 'checking' | 'fresh' | 'stale';
+type SessionStatus = 'checking' | 'fresh' | 'stale' | 'degraded';
 
 type StoredAuthCache = {
   user: SystemUser;
@@ -34,6 +39,7 @@ interface AuthContextType {
   isSessionStale: boolean;
   sessionStatus: SessionStatus;
   sessionMessage: string | null;
+  isEmergencyContinuityMode: boolean;
   isAuthenticated: boolean;
   canAccessModule: (module: string) => boolean;
   canEdit: (module: string) => boolean;
@@ -213,9 +219,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (firebaseUser && !firebaseUser.isAnonymous) {
             firebaseInitialized = true;
+            let hasApplicationClaim = false;
             try {
               const tokenResult = await firebaseUser.getIdTokenResult();
-              if (tokenResult.claims.appUser !== true) {
+              hasApplicationClaim = tokenResult.claims.appUser === true;
+              if (!hasApplicationClaim) {
                 throw new Error('Firebase identity is not an application user.');
               }
 
@@ -242,8 +250,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               performance.mark?.('trinity:firebase-auth-ready');
             } catch (error) {
               logger.error('AuthContext: Error processing Firebase identity', error);
-              setSessionStatus('stale');
-              setSessionMessage('Your secure session could not be verified. Please sign in again.');
+              if (canUseEmergencyContinuity({
+                firebaseUid: firebaseUser.uid,
+                cachedUser: restoredCachedUser,
+                hasApplicationClaim,
+              }) && isFirestoreQuotaExceeded(error)) {
+                const expiry = getEmergencyContinuityExpiry();
+                setUser(restoredCachedUser);
+                setHasStoredUser(true);
+                setSessionStatus('degraded');
+                setSessionMessage(
+                  `Temporary continuity mode is active${expiry ? ` until ${expiry.toLocaleString()}` : ''}. ` +
+                  'Your signed Firebase identity was confirmed, but live permissions could not be refreshed because Firebase quota is temporarily unavailable.',
+                );
+                logger.warn('Using time-limited continuity mode after a Firestore quota error', {
+                  userId: firebaseUser.uid,
+                  expiresAt: expiry?.toISOString(),
+                });
+              } else {
+                setSessionStatus('stale');
+                setSessionMessage('Your secure session could not be verified. Please sign in again.');
+              }
             }
           } else {
             firebaseInitialized = true;
@@ -562,6 +589,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isSessionStale: sessionStatus === 'stale',
     sessionStatus,
     sessionMessage,
+    isEmergencyContinuityMode: sessionStatus === 'degraded',
     isAuthenticated: !!user,
     canAccessModule,
     canEdit,
