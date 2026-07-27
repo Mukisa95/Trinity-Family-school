@@ -173,6 +173,7 @@ interface ColumnSelection {
   totalPaid: boolean;
   balance: boolean;
   feeBreakdown: boolean;
+  showFilters: boolean;
 }
 
 export default function FeesCollectionPage() {
@@ -218,7 +219,8 @@ export default function FeesCollectionPage() {
     totalFees: true,
     totalPaid: true,
     balance: true,
-    feeBreakdown: false
+    feeBreakdown: false,
+    showFilters: true
   });
 
   // Add state for column selection modal
@@ -974,21 +976,36 @@ export default function FeesCollectionPage() {
               {/* School Header */}
               <View style={styles.header}>
                 <Text style={styles.schoolName}>Trinity Family School</Text>
-                <Text style={styles.title}>Fees Collection Report</Text>
+                <Text style={styles.title}>
+                  {(() => {
+                    const selClassId = filters.selectedClassId;
+                    const selClass = selClassId && selClassId !== 'all' && selClassId !== ''
+                      ? classes.find((c: any) => c.id === selClassId)
+                      : null;
+                    const classLabel = selClass
+                      ? (selClass.code || selClass.name || '')
+                      : (filters.class && filters.class !== 'all' ? filters.class : '');
+                    return classLabel
+                      ? `${classLabel} Fees Collection Report`
+                      : 'Fees Collection Report';
+                  })()}
+                </Text>
               </View>
 
-              {/* Filter Information */}
-              <View style={styles.filterInfo}>
-                <Text>{getFilterDescription()}</Text>
-                <Text>Total students: {pupils.length} | Sorted by: {sortConfig.key} ({sortConfig.direction}) | Orientation: {isLandscape ? 'Landscape' : 'Portrait'}</Text>
-                <Text>Generated on: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</Text>
-                <Text>Summary: Total Fees: {formatCurrency(totals.totalFees)}, Paid: {formatCurrency(totals.totalPaid)}, Balance: {formatCurrency(totals.balance)}</Text>
-                {filters.feeItem && (
-                  <Text style={{ fontSize: 9, color: '#4a5568', marginTop: 5 }}>
-                    Note: Values shown are for the selected fee item only
-                  </Text>
-                )}
-              </View>
+              {/* Filter Information - only shown when showFilters is enabled */}
+              {columnSelection.showFilters && (
+                <View style={styles.filterInfo}>
+                  <Text>{getFilterDescription()}</Text>
+                  <Text>Total students: {pupils.length} | Sorted by: {sortConfig.key} ({sortConfig.direction}) | Orientation: {isLandscape ? 'Landscape' : 'Portrait'}</Text>
+                  <Text>Generated on: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</Text>
+                  <Text>Summary: Total Fees: {formatCurrency(totals.totalFees)}, Paid: {formatCurrency(totals.totalPaid)}, Balance: {formatCurrency(totals.balance)}</Text>
+                  {filters.feeItem && (
+                    <Text style={{ fontSize: 9, color: '#4a5568', marginTop: 5 }}>
+                      Note: Values shown are for the selected fee item only
+                    </Text>
+                  )}
+                </View>
+              )}
 
               {/* Table */}
               <View style={styles.table}>
@@ -1219,8 +1236,15 @@ export default function FeesCollectionPage() {
       });
 
       // Generate PDF and open in viewer
-      const fileName = `fees-collection-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      const title = 'Fees Collection Report';
+      const selClass = filters.selectedClassId && filters.selectedClassId !== 'all' && filters.selectedClassId !== ''
+        ? classes.find((c: any) => c.id === filters.selectedClassId)
+        : (filters.class && filters.class !== 'all' ? { code: filters.class, name: filters.class } : null);
+      const classLabel = selClass ? (selClass.code || selClass.name || '') : '';
+      const reportTitle = classLabel ? `${classLabel} Fees Collection Report` : 'Fees Collection Report';
+      const fileName = classLabel
+        ? `${classLabel.replace(/\s+/g, '_')}_fees-collection-${new Date().toISOString().split('T')[0]}.pdf`
+        : `fees-collection-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      const title = reportTitle;
 
       await pdfViewer.openPDF(pdfDoc, fileName, title);
 
@@ -2059,6 +2083,16 @@ export default function FeesCollectionPage() {
                   />
                   <span className="text-sm">Fee Breakdown</span>
                 </label>
+
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={columnSelection.showFilters}
+                    onChange={(e) => setColumnSelection(prev => ({ ...prev, showFilters: e.target.checked }))}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm">Show Applied Filters</span>
+                </label>
               </div>
             </div>
 
@@ -2074,7 +2108,8 @@ export default function FeesCollectionPage() {
                     totalFees: true,
                     totalPaid: true,
                     balance: true,
-                    feeBreakdown: false
+                    feeBreakdown: false,
+                    showFilters: columnSelection.showFilters
                   })}
                   className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
                 >
@@ -2090,7 +2125,8 @@ export default function FeesCollectionPage() {
                     totalFees: true,
                     totalPaid: true,
                     balance: true,
-                    feeBreakdown: false
+                    feeBreakdown: false,
+                    showFilters: columnSelection.showFilters
                   })}
                   className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
                 >
@@ -2106,7 +2142,8 @@ export default function FeesCollectionPage() {
                     totalFees: true,
                     totalPaid: true,
                     balance: true,
-                    feeBreakdown: true
+                    feeBreakdown: true,
+                    showFilters: columnSelection.showFilters
                   })}
                   className="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
                 >
@@ -2122,7 +2159,8 @@ export default function FeesCollectionPage() {
                     totalFees: false,
                     totalPaid: false,
                     balance: false,
-                    feeBreakdown: false
+                    feeBreakdown: false,
+                    showFilters: columnSelection.showFilters
                   })}
                   className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
                 >
@@ -2140,14 +2178,14 @@ export default function FeesCollectionPage() {
                 <div className="text-sm">
                   <p className="font-medium text-blue-900">PDF Preview</p>
                   <p className="text-blue-800 mt-1">
-                    Selected columns: {Object.values(columnSelection).filter(Boolean).length} |
+                    Selected columns: {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length} |
                     Students to include: {sortedPupils.length} |
-                    Orientation: {Object.entries(columnSelection).filter(([_, selected]) => selected).length > 6 ? 'Landscape' : 'Portrait'}
+                    Orientation: {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length > 6 ? 'Landscape' : 'Portrait'}
                   </p>
                   <p className="text-blue-700 mt-1 text-xs">
                     Total Fees: {formatCurrency(totals.totalFees)} | Paid: {formatCurrency(totals.totalPaid)} | Balance: {formatCurrency(totals.balance)}
                   </p>
-                  {Object.values(columnSelection).filter(Boolean).length === 0 && (
+                  {Object.entries(columnSelection).filter(([k, v]) => k !== 'showFilters' && v).length === 0 && (
                     <p className="text-red-700 mt-2 text-xs">
                       Please select at least one column to generate the PDF.
                     </p>
