@@ -62,6 +62,12 @@ pupil ID or browser cache.
    rule-checkable ownership field without fetching another document in rules.
    `npm run analyze:parent-ownership-coverage` is aggregate-counts-only and
    reports `familyId` coverage without downloading or modifying documents.
+   The first project audit found no usable `familyId` on the audited records.
+   `npm run analyze:parent-ownership-backfill` is the next, explicit dry run:
+   it reads the trusted `pupils` ownership map once, then reports exact eligible,
+   unresolved, and conflicting records. It cannot write unless both `--apply`
+   and `--confirm-parent-ownership-backfill` are supplied. It deliberately
+   excludes shared `examResults` documents and unconfirmed banking collections.
 3. **Stop write-on-read:** audit `getOrCreateSnapshot()` in fees and requirements.
    Creation belongs in an explicit staff action or protected server workflow, not
    a parent/dashboard data fetch. The read-only resolver is now used by fee,
