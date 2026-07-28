@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/contexts/auth-context';
-import { notificationService } from '@/lib/services/notification-service';
 import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
 import type { Notification } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -50,57 +48,19 @@ interface FloatingNotificationBubbleProps {
 }
 
 export function FloatingNotificationBubble({ className = '' }: FloatingNotificationBubbleProps) {
-  const { user } = useAuth();
-  const { unreadCount, markAsRead } = useNotificationBadge();
+  const { unreadCount, markAsRead, notifications } = useNotificationBadge();
   const [recentNotification, setRecentNotification] = useState<Notification | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (user?.id && !isDismissed) {
-      loadRecentNotification();
-    }
-  }, [user?.id, unreadCount, isDismissed]);
-
-  const loadRecentNotification = async () => {
-    try {
-      if (!user?.id) return;
-      
-      // Get all notifications
-      const allNotifications = await notificationService.getAllNotifications();
-      
-      // Filter notifications for parents (recipients include 'all_parents', 'all_users', or specific parent user ID)
-      const parentNotifications = allNotifications.filter(notification => 
-        notification.recipients.some(recipient => 
-          recipient.id === 'all_parents' || 
-          recipient.id === 'all_users' || 
-          recipient.id === user.id
-        )
-      );
-
-      // Get unread notifications only
-      const unreadNotifications = parentNotifications.filter(notification => 
-        !(notification as any).readBy?.includes(user.id)
-      );
-
-      if (unreadNotifications.length > 0) {
-        // Sort by creation date (newest first) and get the most recent
-        const sortedNotifications = unreadNotifications.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
-        const mostRecent = sortedNotifications[0];
-        setRecentNotification(mostRecent);
-        setIsVisible(true);
-      } else {
-        setRecentNotification(null);
-        setIsVisible(false);
-      }
-    } catch (error) {
-      console.error('Error loading recent notification:', error);
-    }
-  };
+    if (isDismissed) return;
+    const unreadNotifications = notifications.filter(notification => !notification.readBy?.length);
+    const mostRecent = unreadNotifications[0] || null;
+    setRecentNotification(mostRecent);
+    setIsVisible(Boolean(mostRecent));
+  }, [notifications, isDismissed]);
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -109,7 +69,7 @@ export function FloatingNotificationBubble({ className = '' }: FloatingNotificat
 
   const handleBubbleClick = () => {
     // Mark as read when clicked
-    if (recentNotification && user?.id) {
+    if (recentNotification) {
       markAsRead(recentNotification.id);
     }
     

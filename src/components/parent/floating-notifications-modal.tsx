@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { notificationService } from '@/lib/services/notification-service';
+import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
 import { pushNotificationService } from '@/lib/services/push-notifications.service';
-import type { Notification } from '@/types';
 
 // UI Components
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,9 +43,8 @@ interface FloatingNotificationsModalProps {
 
 export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotificationsModalProps) {
   const { user } = useAuth();
+  const { notifications, isLoading, markAsRead } = useNotificationBadge();
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
   
   // Push notification states
@@ -57,7 +56,6 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
 
   useEffect(() => {
     if (isOpen && user?.id) {
-      loadNotifications();
       checkPushNotificationStatus();
     }
   }, [isOpen, user?.id]);
@@ -87,29 +85,6 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
     }
   };
 
-  const loadNotifications = async () => {
-    try {
-      setIsLoading(true);
-      if (!user?.id) return;
-
-      const allNotifications = await notificationService.getAllNotifications();
-      const parentNotifications = allNotifications.filter(notification =>
-        notification.recipients.some(recipient =>
-          recipient.id === 'all_parents' ||
-          recipient.id === 'all_users' ||
-          recipient.id === user.id
-        )
-      );
-
-      parentNotifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setNotifications(parentNotifications);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const toggleNotificationExpansion = async (notificationId: string) => {
     const newExpanded = new Set(expandedNotifications);
     
@@ -121,16 +96,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
       // Mark as read when expanding
       const notification = notifications.find(n => n.id === notificationId);
       if (notification && user?.id && !notification.readBy?.includes(user.id)) {
-        try {
-          await notificationService.markAsRead(notificationId, user.id);
-          setNotifications(prev => prev.map(n =>
-            n.id === notificationId
-              ? { ...n, readBy: [...(n.readBy || []), user.id] }
-              : n
-          ));
-        } catch (error) {
-          console.error('Error marking notification as read:', error);
-        }
+        await markAsRead(notificationId, user.id);
       }
     }
     

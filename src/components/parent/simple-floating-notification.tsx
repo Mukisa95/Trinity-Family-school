@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/contexts/auth-context';
 import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
-import { notificationService } from '@/lib/services/notification-service';
 import type { Notification } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingNotificationsModal } from './floating-notifications-modal';
@@ -32,8 +30,7 @@ interface SimpleFloatingNotificationProps {
 }
 
 export function SimpleFloatingNotification({ className = '' }: SimpleFloatingNotificationProps) {
-  const { user } = useAuth();
-  const { unreadCount } = useNotificationBadge();
+  const { unreadCount, notifications } = useNotificationBadge();
   const [recentNotification, setRecentNotification] = useState<Notification | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -41,23 +38,10 @@ export function SimpleFloatingNotification({ className = '' }: SimpleFloatingNot
   const [lastUnreadCount, setLastUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (user?.id && !isDismissed && unreadCount > 0) {
-      loadRecentNotification();
-    }
-  }, [user?.id, unreadCount, isDismissed]);
-
-  // Auto-refresh to catch new notifications
-  useEffect(() => {
-    if (user?.id && !isDismissed) {
-      const interval = setInterval(() => {
-        if (unreadCount > 0) {
-          loadRecentNotification();
-        }
-      }, 10000); // Check every 10 seconds for new notifications
-      
-      return () => clearInterval(interval);
-    }
-  }, [user?.id, unreadCount, isDismissed]);
+    if (isDismissed) return;
+    const unreadNotifications = notifications.filter(notification => !notification.readBy?.length);
+    setRecentNotification(unreadNotifications[0] || null);
+  }, [notifications, isDismissed]);
 
   // Show notification immediately when unread count changes
   useEffect(() => {
@@ -79,45 +63,6 @@ export function SimpleFloatingNotification({ className = '' }: SimpleFloatingNot
     }
     setLastUnreadCount(unreadCount);
   }, [unreadCount, lastUnreadCount, isDismissed]);
-
-  const loadRecentNotification = async () => {
-    try {
-      if (!user?.id) return;
-      
-      // Get all notifications
-      const allNotifications = await notificationService.getAllNotifications();
-      
-      // Filter notifications for parents
-      const parentNotifications = allNotifications.filter(notification => 
-        notification.recipients.some(recipient => 
-          recipient.id === 'all_parents' || 
-          recipient.id === 'all_users' || 
-          recipient.id === user.id
-        )
-      );
-
-      // Get unread notifications only
-      const unreadNotifications = parentNotifications.filter(notification => 
-        !(notification as any).readBy?.includes(user.id)
-      );
-
-      if (unreadNotifications.length > 0) {
-        // Sort by creation date (newest first) and get the most recent
-        const sortedNotifications = unreadNotifications.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
-        const mostRecent = sortedNotifications[0];
-        setRecentNotification(mostRecent);
-        setIsVisible(true);
-      } else {
-        setRecentNotification(null);
-        setIsVisible(false);
-      }
-    } catch (error) {
-      console.error('Error loading recent notification:', error);
-    }
-  };
 
   const handleDismiss = () => {
     setIsDismissed(true);

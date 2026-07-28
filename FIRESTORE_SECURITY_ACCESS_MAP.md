@@ -55,7 +55,9 @@ pupil ID or browser cache.
 1. **Notification inbox:** replace `getAllNotifications()` in parent surfaces
    with a query that only returns that user's delivery/inbox records. Existing
    notifications must remain visible during the transition; backfill is required
-   before changing the rule.
+   before changing the rule. This is now implemented as one shared per-user
+   delivery listener in place of the previous 10- and 30-second broad polling;
+   all parent notification surfaces reuse the same cached live state.
 2. **Parent record ownership:** inventory every child-owned document and add a
    rule-checkable ownership field without fetching another document in rules.
 3. **Stop write-on-read:** audit `getOrCreateSnapshot()` in fees and requirements.
@@ -81,7 +83,9 @@ first. Only then run the double-confirmed apply command:
 The apply mode derives IDs from existing delivery records, writes only an absent
 `recipientIds` field on a notification, never changes recipients, message content,
 credentials, user profiles, or delivery records, and leaves notifications without
-delivery records untouched for manual review.
+delivery records untouched for manual review. The sole safe exception is a legacy
+notification whose recipient list consists only of explicit individual user IDs;
+those existing IDs can be copied without guessing a group membership.
 
 ## Safe rollout order
 

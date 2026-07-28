@@ -9,10 +9,19 @@ const WRITE_BATCH_SIZE = 400;
 
 type NotificationRecord = {
   recipientIds?: unknown;
+  recipients?: Array<{ id?: unknown; type?: unknown }>;
 };
 
 function hasFlag(flag: string) {
   return process.argv.includes(flag);
+}
+
+function getExplicitUserRecipientIds(data: NotificationRecord): string[] {
+  if (!Array.isArray(data.recipients) || data.recipients.length === 0) return [];
+  if (!data.recipients.every(recipient => recipient?.type === 'user' && typeof recipient.id === 'string' && recipient.id)) {
+    return [];
+  }
+  return [...new Set(data.recipients.map(recipient => recipient.id as string))];
 }
 
 async function main() {
@@ -30,6 +39,7 @@ async function main() {
   let alreadyScoped = 0;
   let legacyNotifications = 0;
   let scoped = 0;
+  let scopedFromExplicitRecipients = 0;
   let unresolvedWithoutDeliveries = 0;
   let lastDocument: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
@@ -79,14 +89,21 @@ async function main() {
       });
 
       for (const notification of legacy.slice(index, index + 10)) {
-        const recipientIds = [...(recipientIdsByNotification.get(notification.id) ?? new Set<string>())];
-        if (recipientIds.length === 0) {
+        const recipientIds = [
+          ...(recipientIdsByNotification.get(notification.id) ?? new Set<string>()),
+        ];
+        const explicitRecipientIds = recipientIds.length === 0
+          ? getExplicitUserRecipientIds(notification.data() as NotificationRecord)
+          : [];
+        const resolvedRecipientIds = recipientIds.length > 0 ? recipientIds : explicitRecipientIds;
+        if (resolvedRecipientIds.length === 0) {
           unresolvedWithoutDeliveries += 1;
           continue;
         }
-        batch.update(notification.ref, { recipientIds });
+        batch.update(notification.ref, { recipientIds: resolvedRecipientIds });
         writes += 1;
         scoped += 1;
+        if (explicitRecipientIds.length > 0) scopedFromExplicitRecipients += 1;
 
         if (writes >= WRITE_BATCH_SIZE) {
           await batch.commit();
@@ -106,6 +123,7 @@ async function main() {
     alreadyScoped,
     legacyNotifications,
     scoped,
+    scopedFromExplicitRecipients,
     unresolvedWithoutDeliveries,
     writesPerformed: scoped,
   }, null, 2));
