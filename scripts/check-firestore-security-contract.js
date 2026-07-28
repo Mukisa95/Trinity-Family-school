@@ -11,8 +11,17 @@ for (const operation of ['get', 'exists', 'getAfter']) {
   }
 }
 
-if (/allow\s+(?:read|write|read\s*,\s*write)\s*:\s*if\s+true\s*;/m.test(rules)) {
-  failures.push('Firestore Rules must not contain an unconditional allow statement.');
+if (/allow\s+(?:write|read\s*,\s*write)\s*:\s*if\s+true\s*;/m.test(rules)) {
+  failures.push('Firestore Rules must not contain an unconditional write statement.');
+}
+
+const permittedPublicReads = [
+  /match\s+\/settings\/school-settings\s*\{[\s\S]*?allow\s+read\s*:\s*if\s+true\s*;/m,
+  /match\s+\/photos\/\{photoId\}\s*\{[\s\S]*?allow\s+read\s*:\s*if\s+true\s*;/m,
+];
+const allPublicReadRules = rules.match(/allow\s+read\s*:\s*if\s+true\s*;/g) || [];
+if (allPublicReadRules.length !== permittedPublicReads.length || permittedPublicReads.some(pattern => !pattern.test(rules))) {
+  failures.push('Only the public school settings document and gallery photos may allow anonymous reads.');
 }
 
 if (!/match\s+\/authCredentials\/\{credentialPath=\*\*\}[\s\S]*?allow\s+read\s*,\s*write\s*:\s*if\s+false\s*;/m.test(rules)) {

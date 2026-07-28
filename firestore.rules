@@ -24,6 +24,19 @@ service cloud.firestore {
         && request.auth.token.familyId == familyId;
     }
 
+    // These are the only documents intentionally displayed before sign-in on
+    // the school's public login/landing page. Keep this whitelist narrow: no
+    // other collection inherits anonymous access from these rules.
+    match /settings/school-settings {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /photos/{photoId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
     // Password verifiers are server-only. Admin SDK operations bypass Firestore
     // Rules and are authorized separately by the Vercel service account.
     match /authCredentials/{credentialPath=**} {
