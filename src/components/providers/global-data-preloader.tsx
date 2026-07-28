@@ -671,7 +671,6 @@ export function GlobalDataPreloader() {
           setupClassesListener();
           fetchFees();
           setupParentRecordsListeners();
-          deferredTimer = setTimeout(() => void fetchPhotos(), 120);
           console.log('✅ PARENT PRELOADER: Essential data + pupil records listeners active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
