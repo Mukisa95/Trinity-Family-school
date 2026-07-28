@@ -238,7 +238,9 @@ export function GlobalDataPreloader() {
     // Firestore emits the listener's local IndexedDB snapshot first and then
     // reconciles it with the server. Cached data must never wait behind a count
     // request or a duplicate getDocs() call.
-    const setupPupilsListener = async () => {
+    const setupPupilsListener = async (
+      onParentPupilIds?: (pupilIds: string[]) => void,
+    ) => {
       const normalizePupilDoc = (doc: any) => {
         const data = doc.data();
         return {
@@ -320,6 +322,7 @@ export function GlobalDataPreloader() {
         }
 
         queryClient.setQueryData(['pupils', 'list'], persistedPupils);
+        onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
         performance.mark?.('trinity:pupils-fast-cache-ready');
         console.log(
           `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
@@ -341,6 +344,7 @@ export function GlobalDataPreloader() {
             // The following server snapshot will authoritatively add/remove docs.
             if (!(snapshot.metadata.fromCache && allPupils.length === 0 && existingPupils?.length)) {
               queryClient.setQueryData(['pupils', 'list'], allPupils);
+              onParentPupilIds?.(allPupils.map(pupil => pupil.id));
             }
             schedulePersistentPupilCacheWrite();
             performance.mark?.(`trinity:pupils-${source}-ready`);
@@ -349,6 +353,10 @@ export function GlobalDataPreloader() {
           }
 
           // Metadata-only confirmation must not rebuild a large cached array.
+          // The parent record subscriptions only react to membership changes, so
+          // reuse this existing family-scoped listener instead of opening a
+          // second identical pupils listener.
+          onParentPupilIds?.(snapshot.docs.map(doc => doc.id));
           const changes = snapshot.docChanges({ includeMetadataChanges: false });
           if (!snapshot.metadata.fromCache && !serverSnapshotSeen) {
             serverSnapshotSeen = true;
@@ -583,22 +591,15 @@ export function GlobalDataPreloader() {
       }
     };
 
-    // 12–13. Parent records share one family listener. Child listeners are
-    // added or removed only when family membership changes, preventing
-    // duplicate attendance/payment subscriptions after snapshot updates.
+    // 12–13. Parent child-record listeners are driven by the existing
+    // family-scoped pupils listener. Child listeners are added or removed only
+    // when membership changes, avoiding a second identical pupils subscription.
     const setupParentRecordsListeners = () => {
       if (!userFamilyId) return;
-
-      const pupilsQuery = firestoreQuery(
-        collection(db, 'pupils'),
-        where('familyId', '==', userFamilyId)
-      );
       const childUnsubscribers = new Map<string, Array<() => void>>();
 
-      const familyUnsubscribe = onSnapshot(
-        pupilsQuery,
-        (pupilsSnapshot) => {
-          const pupilIds = new Set(pupilsSnapshot.docs.map(doc => doc.id));
+      const syncParentPupilRecords = (parentPupilIds: string[]) => {
+          const pupilIds = new Set(parentPupilIds);
 
           childUnsubscribers.forEach((listeners, pupilId) => {
             if (!pupilIds.has(pupilId)) {
@@ -639,15 +640,14 @@ export function GlobalDataPreloader() {
             );
             childUnsubscribers.set(pupilId, [attendanceUnsubscribe, paymentsUnsubscribe]);
           });
-        },
-        (error) => console.error('❌ PRELOADER: Parent pupil lookup error:', error.message)
-      );
+      };
 
       unsubscribers.push(() => {
-        familyUnsubscribe();
         childUnsubscribers.forEach(listeners => listeners.forEach(unsubscribe => unsubscribe()));
         childUnsubscribers.clear();
       });
+
+      return syncParentPupilRecords;
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -667,10 +667,10 @@ export function GlobalDataPreloader() {
         if (userRole === 'Parent') {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
-          setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          const syncParentPupilRecords = setupParentRecordsListeners();
+          setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           setupClassesListener();
           fetchFees();
-          setupParentRecordsListeners();
           console.log('✅ PARENT PRELOADER: Essential data + pupil records listeners active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');

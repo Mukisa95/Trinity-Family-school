@@ -16,6 +16,7 @@
     "test:firestore-rules": "firebase emulators:exec --only firestore --project demo-trinity-firestore-rules \"node --test tests/firestore.rules.test.mjs\"",
     "test:firestore-security-contract": "node scripts/check-firestore-security-contract.js",
     "test:parent-notification-inbox": "node scripts/check-parent-notification-inbox.js",
+    "test:parent-preload-contract": "node scripts/check-parent-preload-contract.js",
     "test:read-only-snapshot-flows": "node scripts/check-read-only-snapshot-flows.js",
     "test:auth-session-flow": "node scripts/check-auth-session-flow.js",
     "migrate": "tsx src/scripts/migrate-data.ts",
