@@ -33,6 +33,8 @@ type VerifyResponse = {
   error?: string;
 };
 
+const AUTH_CACHE_KEY = 'trinity_user';
+
 async function parseResponse<T extends { error?: string }>(response: Response) {
   const payload = await response.json().catch(() => ({})) as Partial<T>;
   if (!response.ok) {
@@ -63,13 +65,34 @@ export class SecureAuthService {
     });
     const payload = await parseResponse<LoginResponse>(response);
 
+    const previousCache = typeof window !== 'undefined'
+      ? window.localStorage.getItem(AUTH_CACHE_KEY)
+      : null;
+
     try {
+      // Stage the server-sanitized profile before Firebase emits its auth-state
+      // event. This lets AuthContext bind the signed identity to the matching
+      // cached profile without making another Firestore read after sign-in.
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({
+          user: payload.user,
+          cachedAt: Date.now(),
+        }));
+      }
+
       // Make the Firebase identity survive page reloads. If this embedded
       // browser cannot use local persistence, Firebase keeps its current
       // fallback and the sign-in can still complete for this tab.
       await setPersistence(auth, browserLocalPersistence).catch(() => undefined);
       await signInWithCustomToken(auth, payload.customToken);
     } catch {
+      if (typeof window !== 'undefined') {
+        if (previousCache === null) {
+          window.localStorage.removeItem(AUTH_CACHE_KEY);
+        } else {
+          window.localStorage.setItem(AUTH_CACHE_KEY, previousCache);
+        }
+      }
       throw new SecureAuthError(
         'secure-session-failed',
         'Your username and password were accepted, but this device could not establish a secure session. Check your connection and try again.',

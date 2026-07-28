@@ -81,22 +81,31 @@ export async function PATCH(
     });
     await batch.commit();
 
-    if (['role', 'isActive', 'familyId', 'staffId', 'pupilId'].some(field => field in cleanUpdates)) {
-      const merged = { ...existing.data(), ...cleanUpdates };
-      const adminAuth = getAuth(getFirebaseAdminApp());
-      try {
-        await adminAuth.setCustomUserClaims(id, {
-          appUser: true,
-          role: merged.role || 'Staff',
-          isActive: merged.isActive !== false,
-          ...(merged.familyId ? { familyId: merged.familyId } : {}),
-          ...(merged.staffId ? { staffId: merged.staffId } : {}),
-          ...(merged.pupilId ? { pupilId: merged.pupilId } : {}),
-        });
-        if (merged.isActive === false) await adminAuth.revokeRefreshTokens(id);
-      } catch (error: any) {
-        if (error?.code !== 'auth/user-not-found') throw error;
+    // Every user edit invalidates that user's existing refresh session. This is
+    // the control point for password, permission, role, profile, and active
+    // status changes. It uses Firebase Authentication only; no client needs to
+    // poll system_users to discover the change.
+    const merged = { ...existing.data(), ...cleanUpdates };
+    const adminAuth = getAuth(getFirebaseAdminApp());
+    try {
+      const firebaseUser = await adminAuth.getUser(id);
+      const shouldDisable = merged.isActive === false;
+      if (firebaseUser.disabled !== shouldDisable) {
+        await adminAuth.updateUser(id, { disabled: shouldDisable });
       }
+      await adminAuth.setCustomUserClaims(id, {
+        appUser: true,
+        role: merged.role || 'Staff',
+        isActive: !shouldDisable,
+        ...(merged.familyId ? { familyId: merged.familyId } : {}),
+        ...(merged.staffId ? { staffId: merged.staffId } : {}),
+        ...(merged.pupilId ? { pupilId: merged.pupilId } : {}),
+      });
+      await adminAuth.revokeRefreshTokens(id);
+    } catch (error: any) {
+      // Users receive a Firebase Auth record on their first secure sign-in. An
+      // account that has never signed in has no live session to revoke.
+      if (error?.code !== 'auth/user-not-found') throw error;
     }
 
     return json({ success: true });

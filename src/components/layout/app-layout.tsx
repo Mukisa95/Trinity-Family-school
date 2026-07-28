@@ -139,18 +139,18 @@ function SessionStaleBanner({
   );
 }
 
-function EmergencyContinuityBanner({ message }: { message?: string | null }) {
+function SessionVerificationBanner({ message }: { message?: string | null }) {
   return (
     <div
       role="status"
       className="mx-3 my-3 rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-950 shadow-sm sm:mx-4"
     >
-      <p className="text-sm font-semibold">Temporary continuity mode</p>
+      <p className="text-sm font-semibold">Live session check delayed</p>
       <p className="mt-1 text-sm">
-        {message || 'Live permission verification is temporarily unavailable. Access is limited to this browser\'s existing signed Firebase session.'}
+        {message || 'Firebase Authentication could not refresh the signed session yet. The current signed session remains available.'}
       </p>
       <p className="mt-1 text-xs text-orange-900">
-        New sign-ins, users who cleared browser data, and permission changes still require Firestore to be available.
+        This check does not read Firestore and will retry after the connection recovers.
       </p>
     </div>
   );
@@ -260,7 +260,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   logout,
   refreshUser,
   isSessionStale,
-  isEmergencyContinuityMode,
+  isSessionVerificationDelayed,
   sessionMessage,
   router
 }: any) {
@@ -532,7 +532,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           {isSessionStale && (
             <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
           )}
-          {isEmergencyContinuityMode && <EmergencyContinuityBanner message={sessionMessage} />}
+          {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
           <AuthGuard>
             <ParentLayout />
           </AuthGuard>
@@ -565,7 +565,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             {isSessionStale && (
               <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
             )}
-            {isEmergencyContinuityMode && <EmergencyContinuityBanner message={sessionMessage} />}
+            {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
             <AuthGuard>
               {children}
             </AuthGuard>
@@ -616,7 +616,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
                 {isSessionStale && (
                   <SessionStaleBanner message={sessionMessage} onRefresh={refreshUser} />
                 )}
-                {isEmergencyContinuityMode && <EmergencyContinuityBanner message={sessionMessage} />}
+                {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
                 <AuthGuard>
                 {children}
               </AuthGuard>
@@ -638,7 +638,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     isAuthenticated,
     refreshUser,
     isSessionStale,
-    isEmergencyContinuityMode,
+    isSessionVerificationDelayed,
     sessionMessage,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
@@ -656,7 +656,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         logout={logout}
         refreshUser={refreshUser}
         isSessionStale={isSessionStale}
-        isEmergencyContinuityMode={isEmergencyContinuityMode}
+        isSessionVerificationDelayed={isSessionVerificationDelayed}
         sessionMessage={sessionMessage}
         router={router}
       >

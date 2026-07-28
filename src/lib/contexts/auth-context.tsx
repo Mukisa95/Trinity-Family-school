@@ -5,23 +5,18 @@ import { SystemUser, UserRole, ModulePermission, Permission } from '@/types';
 import { UsersService } from '@/lib/services/users.service';
 import { SecureAuthError, SecureAuthService } from '@/lib/services/secure-auth.service';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { onIdTokenChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
-import {
-  canUseEmergencyContinuity,
-  getEmergencyContinuityExpiry,
-  isFirestoreQuotaExceeded,
-} from '@/lib/auth/emergency-continuity';
+import { validateCurrentAppSession } from '@/lib/auth/firebase-session';
 
 const AUTH_CACHE_KEY = 'trinity_user';
-// How often to silently re-check permissions from the DB (not a logout timer).
-// The session itself never expires due to time — only permission/role changes invalidate it.
-const AUTH_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min background sync
+// How often a long-lived tab asks Firebase Authentication for a fresh signed
+// token. This is not a password login and does not read Firestore.
+const SESSION_VALIDATION_INTERVAL_MS = 15 * 60 * 1000;
 // For legacy (un-timestamped) cache entries, report the age as if they are
-// maximally old so a background refresh is triggered, but still restore the session.
-const AUTH_CACHE_MAX_AGE_MS = AUTH_REFRESH_INTERVAL_MS * 2;
+// old for diagnostics, but still restore the session immediately.
+const AUTH_CACHE_MAX_AGE_MS = SESSION_VALIDATION_INTERVAL_MS * 2;
 
 type SessionStatus = 'checking' | 'fresh' | 'stale' | 'degraded';
 
@@ -39,7 +34,7 @@ interface AuthContextType {
   isSessionStale: boolean;
   sessionStatus: SessionStatus;
   sessionMessage: string | null;
-  isEmergencyContinuityMode: boolean;
+  isSessionVerificationDelayed: boolean;
   isAuthenticated: boolean;
   canAccessModule: (module: string) => boolean;
   canEdit: (module: string) => boolean;
@@ -49,7 +44,7 @@ interface AuthContextType {
   canPerformAction: (module: string, page: string, action: string) => boolean;
   isLocked: boolean;
   lockAccount: () => void;
-  unlockAccount: (password: string) => Promise<boolean>;
+  resumeSession: () => Promise<boolean>;
   autoLockEnabled: boolean;
   setAutoLockEnabled: (enabled: boolean) => void;
   autoLockAction: 'lock-on-close' | 'lock-on-leave' | 'signout' | null;
@@ -68,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [autoLockAction, setAutoLockActionState] = useState<'lock-on-close' | 'lock-on-leave' | 'signout' | null>(null);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('checking');
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
-  const [lastPermissionRefreshAt, setLastPermissionRefreshAt] = useState<number>(0);
+  const [lastSessionValidationAt, setLastSessionValidationAt] = useState<number>(0);
 
   const saveUserCache = (userData: SystemUser) => {
     if (typeof window === 'undefined') return;
@@ -210,8 +205,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Firebase's listener waits for its own initialization. Adding an extra
         // timer here only delays cold starts and does not make auth safer.
-        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          logger.debug('Firebase auth state changed', {
+        unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+          logger.debug('Firebase signed-token state changed', {
             userId: firebaseUser?.uid || 'No user',
             anonymous: firebaseUser?.isAnonymous || false,
             initialized: firebaseInitialized,
@@ -219,24 +214,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (firebaseUser && !firebaseUser.isAnonymous) {
             firebaseInitialized = true;
-            let hasApplicationClaim = false;
             try {
               const tokenResult = await firebaseUser.getIdTokenResult();
-              hasApplicationClaim = tokenResult.claims.appUser === true;
-              if (!hasApplicationClaim) {
-                throw new Error('Firebase identity is not an application user.');
+              if (
+                tokenResult.claims.appUser !== true ||
+                tokenResult.claims.isActive !== true
+              ) {
+                throw new Error('Firebase identity is not an active application user.');
               }
 
-              const userDocRef = doc(db, 'system_users', firebaseUser.uid);
-              const userDocSnap = await getDoc(userDocRef);
-              if (!userDocSnap.exists()) throw new Error('Application user record was not found.');
-              const userData = userDocSnap.data() as Omit<SystemUser, 'id'>;
-              if (userData.isActive === false) throw new Error('Application user is inactive.');
+              // Bind the signed Firebase uid to the profile returned by the
+              // successful login. No system_users read is needed on reload.
+              const latestCache = readUserCache();
+              const cachedUser = latestCache?.user || restoredCachedUser;
+              if (!cachedUser || cachedUser.id !== firebaseUser.uid || !validateStoredUser(cachedUser)) {
+                throw new Error('The signed identity does not match the cached application profile.');
+              }
 
               const systemUserData: SystemUser = {
-                id: userDocSnap.id,
-                ...userData,
-                role: (userData.role || tokenResult.claims.role) as UserRole,
+                ...cachedUser,
+                role: (tokenResult.claims.role || cachedUser.role) as UserRole,
+                isActive: true,
               };
 
               logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
@@ -244,49 +242,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               restoredCachedUser = systemUserData;
               setHasStoredUser(true);
               saveUserCache(systemUserData);
-              setLastPermissionRefreshAt(Date.now());
+              setLastSessionValidationAt(Date.now());
               setSessionStatus('fresh');
               setSessionMessage(null);
               performance.mark?.('trinity:firebase-auth-ready');
             } catch (error) {
               logger.error('AuthContext: Error processing Firebase identity', error);
-              if (canUseEmergencyContinuity({
-                firebaseUid: firebaseUser.uid,
-                cachedUser: restoredCachedUser,
-                hasApplicationClaim,
-              }) && isFirestoreQuotaExceeded(error)) {
-                const expiry = getEmergencyContinuityExpiry();
-                setUser(restoredCachedUser);
-                setHasStoredUser(true);
-                setSessionStatus('degraded');
-                setSessionMessage(
-                  `Temporary continuity mode is active${expiry ? ` until ${expiry.toLocaleString()}` : ''}. ` +
-                  'Your signed Firebase identity was confirmed, but live permissions could not be refreshed because Firebase quota is temporarily unavailable.',
-                );
-                logger.warn('Using time-limited continuity mode after a Firestore quota error', {
-                  userId: firebaseUser.uid,
-                  expiresAt: expiry?.toISOString(),
-                });
-              } else {
-                setSessionStatus('stale');
-                setSessionMessage('Your secure session could not be verified. Please sign in again.');
-              }
+              setUser(null);
+              restoredCachedUser = null;
+              setHasStoredUser(false);
+              clearUserCache();
+              setSessionStatus('stale');
+              setSessionMessage('Your secure session could not be verified. Please sign in again.');
+              await firebaseSignOut(auth).catch(() => undefined);
             }
           } else {
             firebaseInitialized = true;
-            if (restoredCachedUser) {
-              // Keep the cached dashboard instant. The rules rollout will deny
-              // live server access until this device completes one secure sign-in.
-              setUser(restoredCachedUser);
-              setHasStoredUser(true);
-              setSessionStatus('stale');
-              setSessionMessage('Security update: please sign in once to connect this cached session to Firebase Authentication.');
-            } else {
-              logger.debug('No Firebase application user and no stored user - logging out');
-              setUser(null);
-              setHasStoredUser(false);
-              clearUserCache();
-            }
+            logger.debug('No signed Firebase application user - clearing the private user session');
+            setUser(null);
+            restoredCachedUser = null;
+            setHasStoredUser(false);
+            clearUserCache();
           }
           
           if (!isInitialized) {
@@ -368,7 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         logger.info('Successfully authenticated with Firebase custom token', { username: authenticatedUser.username });
         setHasStoredUser(true);
-        setLastPermissionRefreshAt(Date.now());
+        setLastSessionValidationAt(Date.now());
         setSessionStatus('fresh');
         setSessionMessage(null);
         
@@ -433,27 +409,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logger.info('Account locked');
   };
 
-  const unlockAccount = async (password: string): Promise<boolean> => {
+  const revalidateSignedSession = async (forceRefresh: boolean): Promise<boolean> => {
     if (!user) return false;
-    
-    try {
-      // Authenticate with the provided password
-      const authenticatedUser = await SecureAuthService.verifyCredentials(user.username, password);
-      
-      if (authenticatedUser) {
-        setIsLocked(false);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('trinity_account_locked');
-        }
-        logger.info('Account unlocked successfully');
-        return true;
+
+    const validation = await validateCurrentAppSession(user.id, forceRefresh);
+    setLastSessionValidationAt(Date.now());
+
+    if (validation.status === 'valid') {
+      if (validation.role && validation.role !== user.role) {
+        const updatedUser = { ...user, role: validation.role as UserRole };
+        setUser(updatedUser);
+        saveUserCache(updatedUser);
       }
-      
-      return false;
-    } catch (error) {
-      logger.error('Error unlocking account', error);
-      return false;
+      setSessionStatus('fresh');
+      setSessionMessage(null);
+      return true;
     }
+
+    if (validation.status === 'unavailable') {
+      // A network interruption must not turn a privacy lock into a lockout.
+      // Live Firestore operations remain governed by the signed token/rules.
+      setSessionStatus('degraded');
+      setSessionMessage(validation.message);
+      return true;
+    }
+
+    logger.info('Signed session is no longer valid', { userId: user.id });
+    setUser(null);
+    setHasStoredUser(false);
+    setIsLocked(false);
+    clearUserCache();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('trinity_account_locked');
+    }
+    setSessionStatus('stale');
+    setSessionMessage(validation.message);
+    await firebaseSignOut(auth).catch(() => undefined);
+    return false;
+  };
+
+  const resumeSession = async (): Promise<boolean> => {
+    if (!user) return false;
+
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser || firebaseUser.isAnonymous || firebaseUser.uid !== user.id) {
+      return revalidateSignedSession(false);
+    }
+
+    // Auto-lock is a local privacy screen, not a second sign-in. Resume
+    // immediately and verify revocation in the background so slow internet
+    // never delays access to the already-mounted dashboard and cache.
+    setIsLocked(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('trinity_account_locked');
+    }
+    logger.info('Local privacy lock resumed');
+    // This uses the already-issued token locally. Forced refreshes happen on
+    // the bounded background schedule, not on every privacy-lock resume.
+    void revalidateSignedSession(false);
+    return true;
   };
 
   const handleSetAutoLockEnabled = (enabled: boolean) => {
@@ -480,7 +494,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.debug('User data refreshed successfully', { username: updatedUser.username });
         setUser(updatedUser);
         saveUserCache(updatedUser);
-        setLastPermissionRefreshAt(Date.now());
+        setLastSessionValidationAt(Date.now());
         setSessionStatus('fresh');
         setSessionMessage(null);
       } else {
@@ -494,61 +508,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // Network error — keep the user logged in; don't show a scary warning
       logger.warn('Error refreshing user data — keeping current session', error);
-      setLastPermissionRefreshAt(Date.now());
+      setLastSessionValidationAt(Date.now());
     }
   };
 
-  // Silently re-check permissions in the background when the user returns to the tab.
-  // This NEVER forces a logout — it only updates the session if permissions/role changed
-  // or deactivates the session if the account was removed.
+  // Revalidate the signed Firebase session without reading system_users.
+  // Firebase also refreshes its ID token automatically; this focus check is a
+  // low-frequency fallback for tabs that remain open for a long time.
   useEffect(() => {
     if (typeof window === 'undefined' || !user) return;
 
-    const silentPermissionCheck = async () => {
-      const age = Date.now() - lastPermissionRefreshAt;
-      if (age < AUTH_REFRESH_INTERVAL_MS) return; // Not time for a re-check yet
-
-      try {
-        const freshUser = await UsersService.getUserById(user.id);
-
-        if (!freshUser || freshUser.isActive === false) {
-          // Account was deactivated/deleted — only this user is logged out
-          logger.info('Background check: account deactivated or removed', { id: user.id });
-          setUser(null);
-          setHasStoredUser(false);
-          clearUserCache();
-          setSessionStatus('stale');
-          setSessionMessage('Your account has been deactivated. Please contact the administrator.');
-          return;
-        }
-
-        // Silently apply any permission/role changes without logging the user out
-        setUser(freshUser);
-        saveUserCache(freshUser);
-        setLastPermissionRefreshAt(Date.now());
-        setSessionStatus('fresh');
-        setSessionMessage(null);
-      } catch (error) {
-        // Network issue — do nothing; keep the user logged in
-        logger.debug('Background permission check failed (network?) — keeping session', error);
-        setLastPermissionRefreshAt(Date.now()); // Reset timer so we don't hammer the DB
-      }
+    const validateIfDue = () => {
+      const age = Date.now() - lastSessionValidationAt;
+      if (age < SESSION_VALIDATION_INTERVAL_MS) return;
+      void revalidateSignedSession(true);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        silentPermissionCheck();
+        validateIfDue();
       }
     };
 
-    window.addEventListener('focus', silentPermissionCheck);
+    window.addEventListener('focus', validateIfDue);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    const validationTimer = window.setInterval(
+      validateIfDue,
+      SESSION_VALIDATION_INTERVAL_MS,
+    );
 
     return () => {
-      window.removeEventListener('focus', silentPermissionCheck);
+      window.removeEventListener('focus', validateIfDue);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(validationTimer);
     };
-  }, [user, lastPermissionRefreshAt]);
+  }, [user, lastSessionValidationAt]);
 
   const canAccessModule = (module: string): boolean => {
     if (!user) return false;
@@ -589,7 +583,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isSessionStale: sessionStatus === 'stale',
     sessionStatus,
     sessionMessage,
-    isEmergencyContinuityMode: sessionStatus === 'degraded',
+    isSessionVerificationDelayed: sessionStatus === 'degraded',
     isAuthenticated: !!user,
     canAccessModule,
     canEdit,
@@ -599,7 +593,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     canPerformAction,
     isLocked,
     lockAccount,
-    unlockAccount,
+    resumeSession,
     autoLockEnabled,
     setAutoLockEnabled: handleSetAutoLockEnabled,
     autoLockAction,

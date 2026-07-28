@@ -183,7 +183,10 @@ export async function authenticateLegacyUser(username: string, password: string)
   };
   const adminAuth = getAuth(getFirebaseAdminApp());
   try {
-    await adminAuth.getUser(match.id);
+    const firebaseUser = await adminAuth.getUser(match.id);
+    if (firebaseUser.disabled) {
+      await adminAuth.updateUser(match.id, { disabled: false });
+    }
   } catch (error: any) {
     if (error?.code !== 'auth/user-not-found') throw error;
     await adminAuth.createUser({ uid: match.id, disabled: false });

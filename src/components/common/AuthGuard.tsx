@@ -3,14 +3,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import PasswordUnlockModal from './PasswordUnlockModal';
+import SessionResumeModal from './SessionResumeModal';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { user, isLocked, unlockAccount, login, logout } = useAuth();
+  const { user, isLocked, resumeSession, login, logout } = useAuth();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const router = useRouter();
 
@@ -22,13 +22,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [user, isLocked]);
 
-  const handleUnlock = async (password: string): Promise<boolean> => {
-    return await unlockAccount(password);
-  };
-
-  const handleCloseModal = () => {
-    // Don't allow closing the modal if account is locked
-    // User must enter password to unlock
+  const handleResume = async (): Promise<boolean> => {
+    return await resumeSession();
   };
 
   const handleSignOut = async () => {
@@ -74,21 +69,20 @@ export default function AuthGuard({ children }: AuthGuardProps) {
               Account Locked
             </h2>
             <p className="text-gray-600 mb-4">
-              Your account is locked for security. Enter your password to continue.
+              Your signed session is still active. Resume it without signing in again.
             </p>
             <button
               onClick={() => setShowUnlockModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Unlock Account
+              Resume Session
             </button>
           </div>
         </div>
         
-        <PasswordUnlockModal
+        <SessionResumeModal
           isOpen={showUnlockModal}
-          onClose={handleCloseModal}
-          onUnlock={handleUnlock}
+          onResume={handleResume}
           onSwitchUser={handleSwitchUser}
           onSignOut={handleSignOut}
           username={user.username}
