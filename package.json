@@ -14,6 +14,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:firestore-rules": "firebase emulators:exec --only firestore --project demo-trinity-firestore-rules \"node --test tests/firestore.rules.test.mjs\"",
+    "test:firestore-security-contract": "node scripts/check-firestore-security-contract.js",
     "test:auth-session-flow": "node scripts/check-auth-session-flow.js",
     "migrate": "tsx src/scripts/migrate-data.ts",
     "migrate-auth-credentials": "tsx src/scripts/migrate-auth-credentials.ts",
