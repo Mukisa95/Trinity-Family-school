@@ -123,6 +123,16 @@ those existing IDs can be copied without guessing a group membership.
 8. After an agreed observation period, repeat for the second project using its own
    data audit and baseline.
 
+### First rules canary prepared in source
+
+The first rule change is intentionally limited to `pupils`: an active parent can
+read only a document whose `familyId` matches the signed Firebase claim, while
+active staff and administrators keep their existing access. The broad transition
+rule explicitly excludes `pupils`, so it cannot accidentally override this
+boundary. This does not add Firestore reads or writes; rules inspect only the
+already-present ID-token claims and document being requested. Pupil writes remain
+under the transitional active-user rule until privileged write paths are mapped.
+
 ## Completion evidence required
 
 - `npm run test:firestore-security-contract` passes.

@@ -11,6 +11,19 @@ service cloud.firestore {
         && request.auth.token.isActive == true;
     }
 
+    // These role and family checks use signed Firebase ID-token claims only.
+    // They do not perform rule-level document lookups or inspect browser cache.
+    function isStaffOrAdmin() {
+      return isActiveApplicationUser()
+        && (request.auth.token.role == 'Admin' || request.auth.token.role == 'Staff');
+    }
+
+    function isParentForFamily(familyId) {
+      return isActiveApplicationUser()
+        && request.auth.token.role == 'Parent'
+        && request.auth.token.familyId == familyId;
+    }
+
     // Password verifiers are server-only. Admin SDK operations bypass Firestore
     // Rules and are authorized separately by the Vercel service account.
     match /authCredentials/{credentialPath=**} {
@@ -25,6 +38,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // First collection-specific canary boundary. Parent dashboard queries are
+    // already constrained by `where('familyId', '==', userFamilyId)`, so this
+    // preserves cache-first behaviour while denying a manually requested pupil
+    // from another family. Writes remain transitional until the privileged
+    // write-path map is complete.
+    match /pupils/{pupilId} {
+      allow read: if isStaffOrAdmin() || isParentForFamily(resource.data.familyId);
+      allow write: if isActiveApplicationUser();
+    }
+
     // Transitional production boundary: preserve every existing authenticated
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
@@ -32,6 +55,7 @@ service cloud.firestore {
     match /{collection}/{documentPath=**} {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
+        && collection != 'pupils'
         && isActiveApplicationUser();
     }
   }
