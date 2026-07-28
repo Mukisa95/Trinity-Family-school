@@ -214,7 +214,7 @@ class OptimizedNotificationService {
           pushFailed: 0,
           inAppSent: 0,
           errors: ['No users found for recipients']
-        }, 0);
+        }, 0, []);
         return;
       }
 
@@ -230,7 +230,12 @@ class OptimizedNotificationService {
 
       // 3. Update notification status
       console.log(`💾 Step 3: Updating notification status...`);
-      await this.updateNotificationStatus(notification.id, results, users.length);
+      await this.updateNotificationStatus(
+        notification.id,
+        results,
+        users.length,
+        [...new Set(users.map(user => user.id).filter(Boolean))],
+      );
 
       const totalTime = Date.now() - startTime;
       console.log(`✅ Background processing completed in ${totalTime}ms for ${users.length} users`);
@@ -798,7 +803,8 @@ class OptimizedNotificationService {
   private async updateNotificationStatus(
     notificationId: string,
     results: any,
-    totalRecipients: number
+    totalRecipients: number,
+    recipientIds?: string[],
   ): Promise<void> {
     try {
       const stats = {
@@ -814,7 +820,8 @@ class OptimizedNotificationService {
         deliveryStats: stats,
         sentAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        processingErrors: results.errors || []
+        processingErrors: results.errors || [],
+        ...(recipientIds ? { recipientIds } : {})
       });
 
       console.log(`📊 Updated notification ${notificationId} stats:`, stats);

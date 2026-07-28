@@ -33,11 +33,16 @@ class NotificationService {
     };
   }> {
     try {
-      // Create the notification document
-      const notification = await this.createNotification(notificationData);
-
-      // Get all target users
+      // Resolve recipients before writing the notification. The resolved IDs
+      // become part of the document, allowing a recipient-only query later
+      // without a Firestore Rules get()/exists() lookup or a broad download.
+      // This performs the same recipient lookup this flow already performed;
+      // it does not add a recurring read or an extra document write.
       const targetUsers = await userGroupService.getUsersByRecipients(notificationData.recipients);
+      const recipientIds = [...new Set(targetUsers.map(user => user.id).filter(Boolean))];
+
+      // Create the notification document once, including its recipient scope.
+      const notification = await this.createNotification(notificationData, recipientIds);
 
       const deliveries: NotificationDelivery[] = [];
       let pushSent = 0;
@@ -59,7 +64,7 @@ class NotificationService {
       inAppSent = inAppDeliveries.length;
 
       // Update notification with delivery stats
-      const updatedNotification = await this.updateNotificationStats(notification.id, {
+      const updatedNotification = await this.updateNotificationStats(notification, {
         total: targetUsers.length,
         sent: pushSent + inAppSent,
         delivered: pushSent, // Push notifications are considered delivered when sent
@@ -87,7 +92,10 @@ class NotificationService {
   }
 
   // Create notification document
-  private async createNotification(data: CreateNotificationData): Promise<Notification> {
+  private async createNotification(
+    data: CreateNotificationData,
+    recipientIds?: string[],
+  ): Promise<Notification> {
     // Filter out undefined values to avoid Firebase errors
     const cleanData = Object.fromEntries(
       Object.entries(data).filter(([_, value]) => value !== undefined)
@@ -95,6 +103,7 @@ class NotificationService {
 
     const notificationData = {
       ...cleanData,
+      ...(recipientIds ? { recipientIds } : {}),
       createdAt: serverTimestamp(),
       status: data.status || 'pending',
       enablePush: data.enablePush || false,
@@ -115,6 +124,7 @@ class NotificationService {
     return {
       id: docRef.id,
       ...data,
+      ...(recipientIds ? { recipientIds } : {}),
       createdAt: new Date().toISOString(),
       status: data.status || 'pending',
       enablePush: data.enablePush || false,
@@ -282,25 +292,23 @@ class NotificationService {
 
   // Update notification delivery statistics
   private async updateNotificationStats(
-    notificationId: string,
+    notification: Notification,
     stats: Notification['deliveryStats']
   ): Promise<Notification> {
-    await updateDoc(doc(db, 'notifications', notificationId), {
+    await updateDoc(doc(db, 'notifications', notification.id), {
       deliveryStats: stats,
       sentAt: serverTimestamp(),
       status: 'completed',
       updatedAt: serverTimestamp()
     });
 
-    // Return updated notification (simplified)
-    const q = query(collection(db, 'notifications'), where('__name__', '==', notificationId));
-    const querySnapshot = await getDocs(q);
-    const notificationDoc = querySnapshot.docs[0];
-
     return {
-      id: notificationDoc.id,
-      ...notificationDoc.data()
-    } as Notification;
+      ...notification,
+      deliveryStats: stats,
+      status: 'completed',
+      sentAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   // Save delivery records to Firestore
@@ -572,4 +580,4 @@ class NotificationService {
   }
 }
 
-export const notificationService = new NotificationService(); 
+export const notificationService = new NotificationService();

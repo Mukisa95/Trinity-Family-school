@@ -1232,6 +1232,10 @@ export interface Notification {
   priority: NotificationPriority;
   status: NotificationStatus;
   recipients: NotificationRecipient[];
+  // Resolved application-user IDs. This is written when a notification is
+  // sent so recipients can query only their own inbox without a rule lookup.
+  // Older notifications may not have this until the controlled backfill runs.
+  recipientIds?: string[];
   targetGroups: string[]; // Group IDs
   createdBy: string;
   createdAt: string;
