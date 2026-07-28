@@ -466,7 +466,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       try {
         // Get historical snapshot for the selected term - NO FALLBACK
         // This is critical for financial accuracy - must always use correct historical data
-        const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+        const snapshot = await PupilSnapshotsService.getSnapshotForRead(
           pupil,
           selectedTermId,
           selectedAcademicYear
@@ -1375,7 +1375,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       await refetch();
 
       // Reload historical pupil info
-      const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+      const snapshot = await PupilSnapshotsService.getSnapshotForRead(
         pupil,
         selectedTermId,
         selectedAcademicYear

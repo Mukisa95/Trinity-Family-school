@@ -302,7 +302,60 @@ export class PupilSnapshotsService {
   }
 
   /**
-   * Get or create a snapshot for a pupil in a specific term
+   * Resolve historical data for a read-only screen without mutating Firestore.
+   *
+   * Dashboard, parent, and reporting reads must never create a missing snapshot:
+   * a read can otherwise consume a write quota and accidentally turn a fallback
+   * into permanent financial history. Snapshot creation remains available through
+   * explicit administrative lifecycle actions only.
+   */
+  static async getSnapshotForRead(
+    pupil: Pupil,
+    termId: string,
+    academicYear: AcademicYear,
+  ): Promise<PupilTermSnapshot> {
+    const term = academicYear.terms.find(candidate => candidate.id === termId);
+    if (!term) throw new Error(`Term ${termId} not found in academic year ${academicYear.name}`);
+
+    const makeVirtualSnapshot = (
+      idPrefix: string,
+      data: { classId: string; section: string; admissionNumber?: string; dateOfBirth?: string },
+    ): PupilTermSnapshot => ({
+      id: `${idPrefix}-${pupil.id}-${termId}`,
+      pupilId: pupil.id,
+      termId,
+      academicYearId: academicYear.id,
+      classId: data.classId,
+      section: data.section,
+      admissionNumber: data.admissionNumber || pupil.admissionNumber || `PUPIL-${pupil.id.slice(-6)}`,
+      dateOfBirth: data.dateOfBirth || pupil.dateOfBirth || '1900-01-01',
+      isActive: true,
+      snapshotDate: new Date().toISOString(),
+      termStartDate: term.startDate,
+      termEndDate: term.endDate,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const termStatus = getTermStatus(term);
+    if (termStatus === 'current' || termStatus === 'future') {
+      return makeVirtualSnapshot('virtual-live', pupil);
+    }
+
+    const existingSnapshot = await this.getSnapshot(pupil.id, termId);
+    if (existingSnapshot) return existingSnapshot;
+
+    const historicalData = await this.getHistoricalPupilData(pupil, termId, academicYear);
+    if (historicalData) return makeVirtualSnapshot('virtual-recovered', historicalData);
+
+    // Retain the prior screen behaviour when legacy history is incomplete, but
+    // make the fallback visibly non-persistent so it cannot silently become a
+    // new snapshot through a read-only request.
+    return makeVirtualSnapshot('virtual-missing-history', pupil);
+  }
+
+  /**
+   * Get or create a snapshot for an explicit administrative snapshot action.
    * FIXED: Never creates snapshots with current data for past terms
    */
   static async getOrCreateSnapshot(
@@ -1540,4 +1593,4 @@ export class PupilSnapshotsService {
       missingDetails
     };
   }
-} 
+}

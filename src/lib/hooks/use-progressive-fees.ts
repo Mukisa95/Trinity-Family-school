@@ -143,7 +143,7 @@ export function useProgressiveFees({
           // CRITICAL: If snapshot is missing, we MUST fetch it - no fallback to current data
           console.warn(`⚠️ Snapshot missing for pupil ${pupil.id}, fetching now...`);
           try {
-            const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+            const snapshot = await PupilSnapshotsService.getSnapshotForRead(
               pupil,
               selectedTermId,
               selectedYear
@@ -720,7 +720,7 @@ export function useProgressiveFees({
           const batch = snapshotBatches[batchIdx];
           const snapshotPromises = batch.map(async (pupil) => {
             try {
-              const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+              const snapshot = await PupilSnapshotsService.getSnapshotForRead(
                 pupil,
                 selectedTermId,
                 selectedYear

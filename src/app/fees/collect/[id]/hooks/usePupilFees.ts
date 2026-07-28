@@ -263,7 +263,7 @@ export function usePupilFees({
       }
 
       // Get or create snapshot for this term
-      const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+      const snapshot = await PupilSnapshotsService.getSnapshotForRead(
         pupil,
         selectedTermId,
         selectedAcademicYear

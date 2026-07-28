@@ -62,7 +62,9 @@ pupil ID or browser cache.
    rule-checkable ownership field without fetching another document in rules.
 3. **Stop write-on-read:** audit `getOrCreateSnapshot()` in fees and requirements.
    Creation belongs in an explicit staff action or protected server workflow, not
-   a parent/dashboard data fetch.
+   a parent/dashboard data fetch. The read-only resolver is now used by fee,
+   requirement, and historical-selector screens; the checked creation method is
+   confined to the snapshot lifecycle service.
 4. **Reference-data preloading:** remove parent-unneeded reference collections
    from the global preloader rather than filtering them after download.
 5. **Cache isolation:** cache keys must include Firebase UID and the parent/family

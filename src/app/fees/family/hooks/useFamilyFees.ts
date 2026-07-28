@@ -198,7 +198,7 @@ export function useFamilyFees({
       await Promise.all(
         familyPupils.map(async (pupil) => {
           try {
-            const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+            const snapshot = await PupilSnapshotsService.getSnapshotForRead(
               pupil,
               selectedTermId,
               selectedAcademicYear

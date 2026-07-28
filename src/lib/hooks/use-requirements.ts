@@ -274,8 +274,8 @@ export function useEnhancedRequirementsByFilter(
           });
         }
         
-        // Get or create snapshot for this term
-        const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+        // Resolve a snapshot without creating data during a read-only screen.
+        const snapshot = await PupilSnapshotsService.getSnapshotForRead(
           pupil,
           termId,
           academicYear
@@ -316,4 +316,4 @@ export function useEnhancedRequirementsByFilter(
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
   });
-} 
+}

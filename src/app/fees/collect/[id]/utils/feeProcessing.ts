@@ -845,7 +845,7 @@ export async function calculatePreviousTermBalances(
       // This ensures we use the pupil's class/section as it was during that term,
       // not their current class/section
       // NO FALLBACK - this must always work for financial accuracy
-      const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+      const snapshot = await PupilSnapshotsService.getSnapshotForRead(
         pupil,
         period.termId,
         period.academicYear

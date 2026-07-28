@@ -84,7 +84,7 @@ export function PupilHistoricalSelector({
 
         for (const pupil of pupils) {
           // Get snapshot for this pupil and term
-          const snapshot = await PupilSnapshotsService.getOrCreateSnapshot(
+          const snapshot = await PupilSnapshotsService.getSnapshotForRead(
             pupil,
             selectedTerm.id,
             selectedAcademicYear
@@ -308,4 +308,4 @@ export function PupilHistoricalSelector({
       </CardContent>
     </Card>
   );
-} 
+}
