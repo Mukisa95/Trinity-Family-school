@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { collection, query as firestoreQuery, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { acquireSharedFirestoreSubscription } from '../firebase/firestore-subscription-registry';
 import { UsersService } from '@/lib/services/users.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
@@ -12,6 +13,63 @@ const USERS_QUERY_KEY = 'users';
 
 // Get all users
 export function useUsers() {
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    return acquireSharedFirestoreSubscription<SystemUser[]>({
+      key: `system-users:${currentUser.id}`,
+      queryClient,
+      queryKey: [USERS_QUERY_KEY],
+      subscribe: ({ next, error }) => {
+        const usersQuery = firestoreQuery(collection(db, 'system_users'));
+        return onSnapshot(
+          usersQuery,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            const users = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            })) as SystemUser[];
+            next(users);
+          },
+          error,
+        );
+      },
+      // This is one recovery request for all consumers, not one request per
+      // mounted notification component or users screen.
+      fallback: UsersService.getAllUsers,
+      fallbackDelayMs: 3000,
+      onError: (error) => console.error('Real-time users listener error:', error),
+    });
+  }, [currentUser?.id, queryClient]);
+
+  const usersQuery = useQuery({
+    queryKey: [USERS_QUERY_KEY],
+    // Live hydration belongs to the registry. Calling `refetch` remains an
+    // explicit recovery action and still reads from the service.
+    queryFn: UsersService.getAllUsers,
+    enabled: false,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    initialData: () => queryClient.getQueryData<SystemUser[]>([USERS_QUERY_KEY]) || undefined,
+    select: (allUsers: SystemUser[]) => allUsers,
+  });
+
+  return {
+    ...usersQuery,
+    isLoading: Boolean(currentUser?.id) && usersQuery.data === undefined,
+  };
+}
+
+// Kept temporarily as a reference while the shared-listener implementation
+// is verified in preview. It is intentionally not exported or called.
+function useUsersWithDedicatedListener() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
 
@@ -390,4 +448,4 @@ export function useCreateBulkParentAccounts() {
       queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
     },
   });
-} 
+}

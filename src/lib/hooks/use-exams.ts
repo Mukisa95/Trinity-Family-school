@@ -234,6 +234,7 @@ export function useCreateExam() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: examKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
     },
   });
 }
@@ -275,6 +276,7 @@ export function useCreateMultipleExams() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: examKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
     },
   });
 }
@@ -336,6 +338,7 @@ export function useUpdateExam() {
       queryClient.invalidateQueries({ queryKey: examKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: examKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['events'] }); // Also invalidate events
+      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
       toast({
         title: "Success",
         description: "Exam and associated event updated successfully",
@@ -452,6 +455,7 @@ export function useDeleteExam() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: examKeys.all });
       queryClient.invalidateQueries({ queryKey: ['events'] }); // Also invalidate events
+      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
       toast({
         title: "Success",
         description: "Exam and associated event updated successfully",
@@ -626,4 +630,4 @@ export function usePupilExamHistory(pupilId: string, options?: { enabled?: boole
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
-} 
+}

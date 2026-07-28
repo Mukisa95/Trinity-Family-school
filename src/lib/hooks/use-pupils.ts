@@ -260,7 +260,25 @@ export function usePupils() {
 }
 
 // 🚀 DATABASE-LEVEL FILTERING: Only fetch active pupils from database
+export const selectActivePupils = (pupils: Pupil[] | undefined) =>
+  (pupils || []).filter(pupil => pupil.status === 'Active');
+
+// The global preloader already owns a live, role-scoped pupil list. Filtering
+// that canonical cache is instant and avoids a second `status == Active`
+// Firestore query whenever a report, exam, or boarding view is opened.
 export function useActivePupils() {
+  const pupilsQuery = usePupils();
+  const activePupils = useMemo(() => selectActivePupils(pupilsQuery.data), [pupilsQuery.data]);
+
+  return {
+    ...pupilsQuery,
+    data: activePupils,
+  };
+}
+
+// Retained temporarily as a source-level fallback while the cache selector is
+// verified in preview. It is intentionally not exported or called.
+function useActivePupilsWithDedicatedQuery() {
   return useQuery({
     queryKey: [...pupilsKeys.lists(), 'active'],
     queryFn: () => PupilsService.getActivePupils(), // Database-level filter
@@ -269,6 +287,23 @@ export function useActivePupils() {
 
 // 🚀 OPTIMIZED: Only load active pupils when explicitly needed (database-level filter)
 export function useActivePupilsOptimized(options?: { enabled?: boolean }) {
+  const pupilsQuery = usePupils();
+  const enabled = options?.enabled !== false;
+  const activePupils = useMemo(
+    () => (enabled ? selectActivePupils(pupilsQuery.data) : undefined),
+    [enabled, pupilsQuery.data],
+  );
+
+  return {
+    ...pupilsQuery,
+    data: activePupils,
+    isLoading: enabled && pupilsQuery.isLoading,
+  };
+}
+
+// Retained temporarily as a source-level fallback while the cache selector is
+// verified in preview. It is intentionally not exported or called.
+function useActivePupilsOptimizedWithDedicatedQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...pupilsKeys.lists(), 'active', 'optimized'],
     queryFn: () => PupilsService.getActivePupils(), // Database-level filter

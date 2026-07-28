@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { PhotosService } from '@/lib/services/photos.service';
-import { liteRead, liteInvalidate, LITE_KEYS } from '@/lib/cache/lite-cache';
+import { liteRead, liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
 import type { Photo, PhotoCategory, PhotoUsage } from '@/types';
 
 // Query keys
@@ -13,6 +14,27 @@ const QUERY_KEYS = {
   searchPhotos: (searchTerm: string) => ['photos', 'search', searchTerm] as const,
   photo: (id: string) => ['photos', id] as const,
 };
+
+type PhotoList = Awaited<ReturnType<typeof PhotosService.getAllPhotos>>;
+
+function writePhotosCache(queryClient: ReturnType<typeof useQueryClient>, photos: PhotoList) {
+  queryClient.setQueryData(QUERY_KEYS.photos, photos);
+  liteWrite(LITE_KEYS.photos, photos, LITE_TTL.photos);
+}
+
+function usePhotoSelector<T>(
+  selector: (photos: PhotoList) => T,
+  enabled = true,
+) {
+  const photosQuery = usePhotos({ enabled });
+  const data = useMemo(() => selector(photosQuery.data || []), [photosQuery.data, selector]);
+
+  return {
+    ...photosQuery,
+    data,
+    isLoading: enabled && photosQuery.isLoading,
+  };
+}
 
 // Hook for getting all photos
 export function usePhotos(options?: { enabled?: boolean }) {
@@ -50,6 +72,15 @@ export function usePhotos(options?: { enabled?: boolean }) {
 
 // Hook for getting photos by category
 export function usePhotosByCategory(category: PhotoCategory) {
+  return usePhotoSelector(
+    photos => photos.filter(photo => photo.category === category),
+    Boolean(category),
+  );
+}
+
+// Retained temporarily as a source-level fallback during preview verification.
+// It is not exported or called, so it cannot issue an additional query.
+function usePhotosByCategoryWithDedicatedQuery(category: PhotoCategory) {
   return useQuery({
     queryKey: QUERY_KEYS.photosByCategory(category),
     queryFn: () => PhotosService.getPhotosByCategory(category),
@@ -59,6 +90,13 @@ export function usePhotosByCategory(category: PhotoCategory) {
 
 // Hook for getting photos by usage
 export function usePhotosByUsage(usage: PhotoUsage) {
+  return usePhotoSelector(
+    photos => photos.filter(photo => photo.usage?.includes(usage)),
+    Boolean(usage),
+  );
+}
+
+function usePhotosByUsageWithDedicatedQuery(usage: PhotoUsage) {
   return useQuery({
     queryKey: QUERY_KEYS.photosByUsage(usage),
     queryFn: () => PhotosService.getPhotosByUsage(usage),
@@ -69,6 +107,13 @@ export function usePhotosByUsage(usage: PhotoUsage) {
 
 // Hook for getting primary photo for a category
 export function usePrimaryPhoto(category: PhotoCategory) {
+  return usePhotoSelector(
+    photos => photos.find(photo => photo.category === category && photo.isPrimary) || null,
+    Boolean(category),
+  );
+}
+
+function usePrimaryPhotoWithDedicatedQuery(category: PhotoCategory) {
   return useQuery({
     queryKey: QUERY_KEYS.primaryPhoto(category),
     queryFn: () => PhotosService.getPrimaryPhoto(category),
@@ -79,6 +124,17 @@ export function usePrimaryPhoto(category: PhotoCategory) {
 
 // Hook for getting random photos
 export function useRandomPhotos(usage: PhotoUsage, count: number = 5) {
+  return usePhotoSelector(
+    photos => {
+      const candidates = photos.filter(photo => photo.usage?.includes(usage));
+      const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, Math.max(0, count));
+    },
+    Boolean(usage),
+  );
+}
+
+function useRandomPhotosWithDedicatedQuery(usage: PhotoUsage, count: number = 5) {
   return useQuery({
     queryKey: QUERY_KEYS.randomPhotos(usage, count),
     queryFn: () => PhotosService.getRandomPhotos(usage, count),
@@ -89,6 +145,18 @@ export function useRandomPhotos(usage: PhotoUsage, count: number = 5) {
 
 // Hook for searching photos
 export function useSearchPhotos(searchTerm: string, enabled: boolean = true) {
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  return usePhotoSelector(
+    photos => photos.filter(photo =>
+      [photo.title, photo.description, ...(photo.tags || [])]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(normalizedSearch)),
+    ),
+    enabled && normalizedSearch.length > 0,
+  );
+}
+
+function useSearchPhotosWithDedicatedQuery(searchTerm: string, enabled: boolean = true) {
   return useQuery({
     queryKey: QUERY_KEYS.searchPhotos(searchTerm),
     queryFn: () => PhotosService.searchPhotos(searchTerm),
@@ -99,6 +167,13 @@ export function useSearchPhotos(searchTerm: string, enabled: boolean = true) {
 
 // Hook for getting a single photo
 export function usePhoto(id: string) {
+  return usePhotoSelector(
+    photos => photos.find(photo => photo.id === id) || null,
+    Boolean(id),
+  );
+}
+
+function usePhotoWithDedicatedQuery(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.photo(id),
     queryFn: () => PhotosService.getPhotoById(id),
@@ -124,6 +199,8 @@ export function useUploadPhoto() {
       };
     }) => PhotosService.uploadPhoto(data.file, data.metadata),
     onSuccess: (newPhoto) => {
+      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
+      writePhotosCache(queryClient, [newPhoto, ...existing.filter(photo => photo.id !== newPhoto.id)]);
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByCategory(newPhoto.category) });
@@ -160,6 +237,8 @@ export function useUploadPhotoHybrid() {
       };
     }) => PhotosService.uploadPhotoHybrid(data.file, data.metadata),
     onSuccess: (newPhoto) => {
+      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
+      writePhotosCache(queryClient, [newPhoto, ...existing.filter(photo => photo.id !== newPhoto.id)]);
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByCategory(newPhoto.category) });
@@ -186,6 +265,11 @@ export function useUpdatePhoto() {
     mutationFn: (data: { id: string; updates: Partial<Omit<Photo, 'id' | 'uploadedAt' | 'url' | 'fileName'>> }) =>
       PhotosService.updatePhoto(data.id, data.updates),
     onSuccess: (_, variables) => {
+      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
+      writePhotosCache(
+        queryClient,
+        existing.map(photo => photo.id === variables.id ? { ...photo, ...variables.updates } : photo),
+      );
       // Invalidate all photo queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photo(variables.id) });
@@ -213,6 +297,13 @@ export function useSetPrimaryPhoto() {
     mutationFn: (data: { id: string; category: PhotoCategory }) =>
       PhotosService.setPrimaryPhoto(data.id, data.category),
     onSuccess: (_, variables) => {
+      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
+      writePhotosCache(
+        queryClient,
+        existing.map(photo => photo.category === variables.category
+          ? { ...photo, isPrimary: photo.id === variables.id }
+          : photo),
+      );
       // Invalidate primary photo queries for this category
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.primaryPhoto(variables.category) });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByCategory(variables.category) });
@@ -227,7 +318,9 @@ export function useDeletePhoto() {
 
   return useMutation({
     mutationFn: (id: string) => PhotosService.deletePhoto(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
+      writePhotosCache(queryClient, existing.filter(photo => photo.id !== id));
       // Invalidate all photo queries
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
       queryClient.invalidateQueries({ queryKey: ['photos', 'category'] });
@@ -244,10 +337,12 @@ export function usePermanentlyDeletePhoto() {
 
   return useMutation({
     mutationFn: (id: string) => PhotosService.permanentlyDeletePhoto(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
+      writePhotosCache(queryClient, existing.filter(photo => photo.id !== id));
       // Invalidate all photo queries
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
       queryClient.invalidateQueries({ queryKey: ['photos'] });
     },
   });
-} 
+}

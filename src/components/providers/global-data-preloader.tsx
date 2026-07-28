@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDocsFromCache, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
+import { liteRead, liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
 import {
   persistentCollectionCacheKey,
   readPersistentCollection,
@@ -20,7 +20,8 @@ import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
  * - Real-time listeners (onSnapshot) ONLY for data that changes frequently
  *   and needs instant cross-device sync: classes, pupils, academic years, staff, subjects
  * - One-time reads (getDocs) for data that rarely changes: fees, requirements,
- *   uniforms, photos, users, access levels
+ *   uniforms, photos, and events. User-directory and access-level data are
+ *   loaded only when their feature is opened, through shared live listeners.
  * 
  * This dramatically reduces Firestore reads to prevent quota exhaustion.
  */
@@ -527,6 +528,14 @@ export function GlobalDataPreloader() {
           console.log('⚡ PRELOADER: Events already cached, skipping fetch');
           return;
         }
+        // Events intentionally have no live listener. On a warm load, restore
+        // their small persisted cache instead of reading the full collection.
+        const persisted = liteRead<any[]>(LITE_KEYS.events);
+        if (persisted && persisted.length > 0) {
+          queryClient.setQueryData(['events', undefined], persisted);
+          return;
+        }
+
         const { orderBy } = await import('firebase/firestore');
         const q = firestoreQuery(collection(db, 'events'), orderBy('startDate', 'desc'));
         const snapshot = await getDocs(q);
@@ -684,10 +693,8 @@ export function GlobalDataPreloader() {
             void fetchFees();
             void fetchRequirements();
             void fetchUniforms();
-            void fetchUsers();
-            void fetchAccessLevels();
             void fetchEvents();
-          }, 120);
+          }, 1200);
 
           console.log('✅ GLOBAL PRELOADER: Dashboard listeners active; remaining data queued');
         }

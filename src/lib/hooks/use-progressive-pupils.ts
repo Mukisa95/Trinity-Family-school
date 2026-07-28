@@ -45,7 +45,9 @@ export function useProgressivePupils({
     queryFn: () => PupilsService.getAllPupils(),
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 10 * 60 * 1000, // 10 minutes
+    // This hook currently has no call sites. Keep its API available for a
+    // future explicit use, but never create background pupil reads.
+    refetchInterval: false,
   });
 
   // Calculate progress percentage
@@ -225,4 +227,4 @@ export function useProgressivePupils({
     isLoading: isLoadingPupils,
     restart: startProcessing
   };
-} 
+}

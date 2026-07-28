@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { collection, query as firestoreQuery, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { acquireSharedFirestoreSubscription } from '../firebase/firestore-subscription-registry';
 import { AccessLevelsService } from '@/lib/services/access-levels.service';
 import { CreateAccessLevelData, UpdateAccessLevelData } from '@/types/access-levels';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -10,6 +11,55 @@ const ACCESS_LEVELS_QUERY_KEY = 'accessLevels';
 
 // Get all access levels
 export function useAccessLevels() {
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
+  type AccessLevels = Awaited<ReturnType<typeof AccessLevelsService.getAllAccessLevels>>;
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    return acquireSharedFirestoreSubscription<AccessLevels>({
+      key: `access-levels:${currentUser.id}`,
+      queryClient,
+      queryKey: [ACCESS_LEVELS_QUERY_KEY, 'all'],
+      subscribe: ({ next, error }) => {
+        const accessLevelsQuery = firestoreQuery(collection(db, 'accessLevels'));
+        return onSnapshot(
+          accessLevelsQuery,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            next(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AccessLevels);
+          },
+          error,
+        );
+      },
+      fallback: AccessLevelsService.getAllAccessLevels,
+      fallbackDelayMs: 3000,
+      onError: (error) => console.error('Real-time access levels listener error:', error),
+    });
+  }, [currentUser?.id, queryClient]);
+
+  const accessLevelsQuery = useQuery({
+    queryKey: [ACCESS_LEVELS_QUERY_KEY, 'all'],
+    queryFn: AccessLevelsService.getAllAccessLevels,
+    enabled: false,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    initialData: () => queryClient.getQueryData<AccessLevels>([ACCESS_LEVELS_QUERY_KEY, 'all']) || undefined,
+  });
+
+  return {
+    ...accessLevelsQuery,
+    isLoading: Boolean(currentUser?.id) && accessLevelsQuery.data === undefined,
+  };
+}
+
+// Kept temporarily as a reference while the shared-listener implementation
+// is verified in preview. It is intentionally not exported or called.
+function useAccessLevelsWithDedicatedListener() {
   const queryClient = useQueryClient();
 
   // 🚀 BULLETPROOF REAL-TIME LISTENER for access levels

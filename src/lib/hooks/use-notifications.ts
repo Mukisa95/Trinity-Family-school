@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   collection,
   doc,
@@ -28,6 +28,10 @@ import type {
   NotificationStatus
 } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import {
+  subscribeToUserNotificationInbox,
+  type NotificationInboxSnapshot,
+} from '@/lib/notification-inbox-store';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { getFirebaseQueryConfig, logFirebaseError } from '@/lib/utils/firebase-error-handler';
 
@@ -471,7 +475,9 @@ export const usePendingNotifications = () => {
   return useQuery({
     queryKey: ['notifications', 'pending'],
     queryFn: fetchPendingNotifications,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes instead of 30 seconds
+    // There are no current consumers of this hook. Scheduled-notification
+    // processing must be an explicit operation, not a browser polling loop.
+    refetchInterval: false,
     ...getFirebaseQueryConfig({
       staleTime: 2 * 60 * 1000, // 2 minutes
       gcTime: 5 * 60 * 1000, // 5 minutes
@@ -610,6 +616,47 @@ export const useSentNotifications = () => {
 
 export const useReceivedNotifications = () => {
   const { user } = useAuth();
+  const [inbox, setInbox] = useState<NotificationInboxSnapshot>({
+    notifications: [],
+    isLoading: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    if (!user?.id) {
+      setInbox({ notifications: [], isLoading: false, error: null });
+      return;
+    }
+
+    // The badge and inbox page now consume the same user-scoped source. This
+    // removes the former second notificationDeliveries listener and prevents
+    // refetching notification documents already cached by the inbox store.
+    return subscribeToUserNotificationInbox(user.id, setInbox);
+  }, [user?.id]);
+
+  const receivedQuery = useQuery({
+    queryKey: ['notifications', 'received', user?.id],
+    queryFn: async () => inbox.notifications,
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: 30 * 60 * 1000,
+    initialData: inbox.notifications,
+  });
+
+  return {
+    ...receivedQuery,
+    data: inbox.notifications,
+    isLoading: Boolean(user?.id) && inbox.isLoading,
+    isError: Boolean(inbox.error),
+    error: inbox.error ? new Error(inbox.error) : null,
+  };
+};
+
+// Retained temporarily as a source-level fallback while the shared inbox
+// implementation is verified in preview. It is intentionally not exported or
+// called, so it cannot create a second listener.
+const useReceivedNotificationsWithDedicatedListener = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Set up real-time listener for instant notification delivery
@@ -742,4 +789,4 @@ export const useReceivedNotifications = () => {
   });
 };
 
-export default useNotifications; 
+export default useNotifications;

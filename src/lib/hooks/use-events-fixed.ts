@@ -32,6 +32,7 @@ import type {
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { liteRead, liteWrite, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -219,19 +220,33 @@ const convertToFirestoreData = (eventData: CreateEventData | UpdateEventData) =>
 // The raw/unfiltered events cache key used by GlobalDataPreloader
 const EVENTS_CACHE_KEY = ['events', undefined] as const;
 
+function getCachedEvents(queryClient: ReturnType<typeof useQueryClient>): Event[] | undefined {
+  const inMemory = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY);
+  if (inMemory && inMemory.length > 0) return inMemory;
+
+  const persisted = liteRead<Event[]>(LITE_KEYS.events);
+  return persisted && persisted.length > 0 ? persisted : undefined;
+}
+
+function writeCachedEvents(queryClient: ReturnType<typeof useQueryClient>, events: Event[]) {
+  queryClient.setQueryData(EVENTS_CACHE_KEY, events);
+  liteWrite(LITE_KEYS.events, events, LITE_TTL.events);
+}
+
 // Get all events with proper error handling
 export function useEvents(filters?: EventFilters) {
   const queryClient = useQueryClient();
 
   // 🚀 CRITICAL: Read from GlobalDataPreloader's pre-populated cache immediately
-  const cachedData = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY);
+  const cachedData = getCachedEvents(queryClient);
 
   return useQuery({
     queryKey: ['events', filters],
     queryFn: async () => {
       // Check if GlobalDataPreloader already populated the cache
-      const currentCache = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY);
+      const currentCache = getCachedEvents(queryClient);
       if (currentCache && currentCache.length > 0) {
+        queryClient.setQueryData(EVENTS_CACHE_KEY, currentCache);
         if (process.env.NODE_ENV === 'development') {
           console.log(`⚡ useEvents: Using ${currentCache.length} events from preloader cache`);
         }
@@ -250,9 +265,7 @@ export function useEvents(filters?: EventFilters) {
         const events = snapshot.docs.map(convertFirestoreEvent);
 
         // Populate the base cache for future calls
-        if (events.length > 0) {
-          queryClient.setQueryData(EVENTS_CACHE_KEY, events);
-        }
+        writeCachedEvents(queryClient, events);
 
         console.log('Events loaded successfully:', events.length);
         return applyEventFilters(events, filters);
@@ -378,8 +391,8 @@ export function useCreateEvent() {
     onSuccess: (newEvent) => {
       // 🚀 Directly push the new event into the master cache for instant UI update
       // This eliminates the need for a Firestore re-fetch
-      const existing = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY) || [];
-      queryClient.setQueryData(EVENTS_CACHE_KEY, [newEvent, ...existing]);
+      const existing = getCachedEvents(queryClient) || [];
+      writeCachedEvents(queryClient, [newEvent, ...existing]);
       // Notify all filtered-query observers to re-render from the updated master cache
       queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
@@ -450,9 +463,9 @@ export function useUpdateEvent() {
     },
     onSuccess: (event) => {
       // 🚀 Directly replace the updated event in the master cache for instant UI update
-      const existing = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY) || [];
+      const existing = getCachedEvents(queryClient) || [];
       const updated = existing.map(e => e.id === event.id ? event : e);
-      queryClient.setQueryData(EVENTS_CACHE_KEY, updated);
+      writeCachedEvents(queryClient, updated);
       // Notify all filtered-query observers to re-render from the updated master cache
       queryClient.invalidateQueries({ queryKey: ['events'] });
 
@@ -571,11 +584,11 @@ export function useDeleteEvent() {
     },
     onSuccess: (deletedId) => {
       // 🚀 Directly remove the deleted event from the master cache for instant UI update
-      const existing = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY) || [];
+      const existing = getCachedEvents(queryClient) || [];
       // deletedId may have 'exam-' prefix - strip it for comparison
       const cleanId = typeof deletedId === 'string' ? deletedId.replace('exam-', '') : deletedId;
       const filtered = existing.filter(e => e.id !== deletedId && e.id !== cleanId);
-      queryClient.setQueryData(EVENTS_CACHE_KEY, filtered);
+      writeCachedEvents(queryClient, filtered);
       // Notify all filtered-query observers to re-render from the updated master cache
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['exams'] });
@@ -642,14 +655,18 @@ export function useExamEvents() {
 
 // Get all exams and convert them to events (for testing)
 export function useExamsAsEvents() {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['exams-as-events'],
     queryFn: async () => {
       try {
-        // First, check if there are any regular exam events
-        const eventsSnapshot = await getDocs(collection(db, EVENTS_COLLECTION));
-        const regularExamEvents = eventsSnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
+        // Classes, subjects, academic years and regular events are already
+        // owned by the preloader/cache. Reuse them first; only a genuine cold
+        // cache falls back to the same Firestore collection read as before.
+        const cachedEvents = getCachedEvents(queryClient);
+        const regularExamEvents = (cachedEvents || (await getDocs(collection(db, EVENTS_COLLECTION))).docs
+          .map(doc => ({ id: doc.id, ...doc.data() })) as any[])
           .filter((event: any) => event.isExamEvent && event.examIntegration?.examIds);
 
         // Get exam IDs that are already represented as regular events
@@ -660,12 +677,22 @@ export function useExamsAsEvents() {
         console.log('Regular exam events found:', regularExamEvents.length);
         console.log('Exam IDs already in regular events:', Array.from(regularEventExamIds));
 
-        // Fetch from exams collection
-        const examsSnapshot = await getDocs(collection(db, 'exams'));
-        const allExams = examsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as any[];
+        const cachedExams = queryClient.getQueryData<any[]>(['exams', 'list']);
+        const allExams = cachedExams || (await getDocs(collection(db, 'exams'))).docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || data.createdAt,
+            updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+            startDate: data.startDate?.toDate?.() || data.startDate,
+            endDate: data.endDate?.toDate?.() || data.endDate,
+          };
+        }) as any[];
+
+        if (!cachedExams) {
+          queryClient.setQueryData(['exams', 'list'], allExams);
+        }
 
         // Filter out exams that are already represented as regular events
         const filteredExams = allExams.filter(exam => !regularEventExamIds.has(exam.id));
@@ -675,22 +702,27 @@ export function useExamsAsEvents() {
 
         const exams = filteredExams;
 
-        // Fetch related data for enhanced exam details
-        const classesSnapshot = await getDocs(collection(db, 'classes'));
-        const classes = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        console.log('Fetched classes for exam details:', classes.length);
+        const cachedClasses = queryClient.getQueryData<any[]>(['classes', 'list']);
+        const classes = cachedClasses || (await getDocs(collection(db, 'classes'))).docs
+          .map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        if (!cachedClasses) queryClient.setQueryData(['classes', 'list'], classes);
+        console.log('Loaded classes for exam details:', classes.length);
 
-        const subjectsSnapshot = await getDocs(collection(db, 'subjects'));
-        const subjects = subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        console.log('Fetched subjects for exam details:', subjects.length);
+        const cachedSubjects = queryClient.getQueryData<any[]>(['subjects']);
+        const subjects = cachedSubjects || (await getDocs(collection(db, 'subjects'))).docs
+          .map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        if (!cachedSubjects) queryClient.setQueryData(['subjects'], subjects);
+        console.log('Loaded subjects for exam details:', subjects.length);
         if (subjects.length > 0) {
           console.log('Sample subject data:', subjects[0]);
           console.log('All subject IDs:', subjects.map(s => s.id));
         }
 
-        const academicYearsSnapshot = await getDocs(collection(db, 'academicYears'));
-        const academicYears = academicYearsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        console.log('Fetched academic years for exam details:', academicYears.length);
+        const cachedAcademicYears = queryClient.getQueryData<any[]>(['academicYears']);
+        const academicYears = cachedAcademicYears || (await getDocs(collection(db, 'academicYears'))).docs
+          .map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+        if (!cachedAcademicYears) queryClient.setQueryData(['academicYears'], academicYears);
+        console.log('Loaded academic years for exam details:', academicYears.length);
 
         // Convert exams to event format with enhanced details
         const examEvents = exams.map((exam: any) => {
@@ -1375,4 +1407,4 @@ export function useCurrentTerm(academicYears: any[]) {
   }
 
   return null;
-} 
+}

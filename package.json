@@ -22,6 +22,7 @@
     "test:pupil-rule-canary-contract": "node scripts/check-pupil-rule-canary-contract.js",
     "test:read-only-snapshot-flows": "node scripts/check-read-only-snapshot-flows.js",
     "test:auth-session-flow": "node scripts/check-auth-session-flow.js",
+    "test:firestore-subscriptions": "node --import tsx --test tests/firestore-subscription-registry.test.ts",
     "migrate": "tsx src/scripts/migrate-data.ts",
     "migrate-auth-credentials": "tsx src/scripts/migrate-auth-credentials.ts",
     "analyze:notification-recipient-backfill": "tsx src/scripts/backfill-notification-recipient-ids.ts",
