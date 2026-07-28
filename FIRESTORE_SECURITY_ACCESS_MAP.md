@@ -43,7 +43,7 @@ pupil ID or browser cache.
 | `pupils` | Global staff listener; parent listener uses `where(familyId == claim)` | Parent: documents whose trusted ownership matches their claim. Staff/admin: retained during the first canary, then permission-scoped. | Existing parent query is already narrow and cache-first. Add verified parent ownership coverage before enforcement. |
 | `attendanceRecords`, `payments`, `bankAccounts`, `bankLoans`, `bankTransactions`, `examResults`, `pupilSnapshots`, `requirement-tracking`, `uniformTracking` | Per-pupil parent views; broad staff services | Parent: only records for an authorised child. Staff/admin: feature permission boundary. | Do not use a rule `get()` to look up a pupil. First add and backfill a trusted `familyId`/owner field or bounded `pupilIds` claim, then make every parent query include it. |
 | `feeStructures`, `requirements`, `uniforms`, `academicYears`, `classes`, `subjects`, `events` | Dashboard preloader and feature pages | Parent: read-only public-to-parents subset; no create/update/delete. Staff/admin: retain current feature access during canary. | Parent preloader currently fetches several whole collections. Keep only the reference data that the parent dashboard actually displays; load the rest on demand. This reduces reads. |
-| `notifications`, `notificationDeliveries` | Parent components call `getAllNotifications()` and filter locally; an existing delivery collection is available | Parent: only their own inbox/delivery documents. Notification authoring stays staff/admin only. | New notifications now store resolved `recipientIds` in their existing document write. Backfill historical documents in a controlled batch before switching parent reads; do not use rules to look up a delivery record. |
+| `notifications`, `notificationDeliveries` | Parent surfaces share one `notificationDeliveries where userId == currentUser` listener and then fetch only the referenced notification documents | Parent: only their own inbox/delivery documents. Notification authoring stays staff/admin only. | New notifications store resolved `recipientIds` in their existing document write. Historical backfill is controlled and idempotent; rules must never look up a delivery record. |
 | `staff`, `accessLevels`, `settings` | Admin/staff dashboard preloads | Parent: deny. Admin/staff: feature-specific boundary. | Parent preloader must not request these collections. No new listener is required. |
 | `photos`, `pushSubscriptions`, `nativePushTokens`, `fcmTokens` | Photo and device/push flows | Owner-only for a user/device, or server-only where the client does not require it | Treat device tokens as sensitive. Confirm document fields before rule implementation. |
 | Finance and operations: `feeAdjustments`, `feesHolidays`, `dynamicDiscounts`, `inventoryItems`, `inventoryTransactions`, `issuedItems`, `procurementItems`, `procurementPurchases`, `procurementBudgets`, `digital_signatures`, `audit_trail`, `historyLogs`, `smsLogs`, `smsTemplates`, `smsProviders`, `scheduledSMS`, `schoolPaySyncLogs`, `pushNotificationLog` | Staff/admin feature pages and API routes | Parent: deny. Staff/admin: phase in module-based protection after the privileged query map is tested. | These are not loaded by a parent dashboard. Deny parents first without changing staff queries; then move privileged writes behind API routes where needed. |
@@ -60,13 +60,18 @@ pupil ID or browser cache.
    all parent notification surfaces reuse the same cached live state.
 2. **Parent record ownership:** inventory every child-owned document and add a
    rule-checkable ownership field without fetching another document in rules.
+   `npm run analyze:parent-ownership-coverage` is aggregate-counts-only and
+   reports `familyId` coverage without downloading or modifying documents.
 3. **Stop write-on-read:** audit `getOrCreateSnapshot()` in fees and requirements.
    Creation belongs in an explicit staff action or protected server workflow, not
    a parent/dashboard data fetch. The read-only resolver is now used by fee,
    requirement, and historical-selector screens; the checked creation method is
    confined to the snapshot lifecycle service.
 4. **Reference-data preloading:** remove parent-unneeded reference collections
-   from the global preloader rather than filtering them after download.
+   from the global preloader rather than filtering them after download. The
+   parent dashboard no longer preloads `photos`; the About School screen loads
+   them only when it is opened. The parent pupil listener also drives child
+   attendance/payment subscriptions, removing a duplicate family-pupil listener.
 5. **Cache isolation:** cache keys must include Firebase UID and the parent/family
    scope; cached records must be cleared on account switch and sign-out.
 
