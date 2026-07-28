@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#111827",
+  "theme_color": "#111827",
   "orientation": "portrait-primary",
   "categories": ["education", "productivity", "business"],
   "lang": "en",
@@ -46,4 +46,4 @@
       "form_factor": "narrow"
     }
   ]
-} 
+}

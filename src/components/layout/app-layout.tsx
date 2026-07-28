@@ -50,15 +50,6 @@ import { logger } from '@/lib/utils/logger';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
 
-const APP_READY_EVENT = 'trinity:app-ready';
-
-function signalAppReady() {
-  if (typeof window === 'undefined') return;
-  document.documentElement.dataset.trinityAppReady = 'true';
-  performance.mark?.('trinity:app-ready');
-  window.dispatchEvent(new Event(APP_READY_EVENT));
-}
-
 const Sidebar연구 = Sidebar;
 
 // Wrapper component that uses navigation context
@@ -423,10 +414,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   }, [schoolSettings, settingsError, isLoadingSettings]);
 
   React.useEffect(() => {
-    if (isPublicRoute || !authLoading) signalAppReady();
-  }, [authLoading, isPublicRoute]);
-
-  React.useEffect(() => {
     if (authLoading) return;
 
     if (!isPublicRoute && !isAuthenticated && !user) {
@@ -490,6 +477,13 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
       bgWrapper.style.setProperty('--scroll-blur', '0px');
     };
   }, [isDashboard]);
+
+  // Do not briefly mount the heavy login landing page for a signed-in user.
+  // The redirect runs after this render, so keep the same boot surface visible
+  // until the route has settled.
+  if (pathname === '/login' && (authLoading || isAuthenticated)) {
+    return <BrandedAuthScreen message="Opening your workspace…" />;
+  }
 
   // If it's a public route, render without any authentication checks
   if (isPublicRoute) {

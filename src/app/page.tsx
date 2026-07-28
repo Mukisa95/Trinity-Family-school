@@ -76,89 +76,25 @@ import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
 
 const dashboardEase = [0.16, 1, 0.3, 1] as const;
-const softHover = { scale: 1.012, y: -2 };
-const panelMotion = {
-  type: "spring",
-  stiffness: 110,
-  damping: 18,
-  mass: 0.8
-};
 
 const dashboardGroupVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-      delayChildren: 0.1,
-    },
+    transition: { duration: 0.18, ease: dashboardEase },
   },
 };
 
+// Keep the workspace stable while it is being populated. Individual panels do
+// not animate on first paint, so a slow device has one compositor task only.
 const dashboardItemVariants = {
-  hidden: { opacity: 0, scale: 1.06, y: -15, filter: "blur(4px)" },
-  show: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: panelMotion,
-  },
-};
-
-const useDocumentVisible = () => {
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    const updateVisibility = () => setIsVisible(!document.hidden);
-    updateVisibility();
-    document.addEventListener('visibilitychange', updateVisibility);
-    return () => document.removeEventListener('visibilitychange', updateVisibility);
-  }, []);
-
-  return isVisible;
+  hidden: { opacity: 1 },
+  show: { opacity: 1 },
 };
 
 // CountUp component for animated numbers
-const CountUp = ({ end, duration = 0.45 }: { end: number; duration?: number }) => {
-  const prefersReducedMotion = useReducedMotion();
-  const [count, setCount] = useState(end);
-
-  React.useEffect(() => {
-    if (prefersReducedMotion) {
-      setCount(end);
-      return;
-    }
-
-    const start = count;
-    const delta = end - start;
-    if (delta === 0) return;
-
-    let startTime: number;
-    let animationFrame: number;
-    let lastValue = start;
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
-      // Simple linear easing — cheaper than easeOutQuart
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const nextValue = Math.round(start + delta * eased);
-
-      if (nextValue !== lastValue || progress === 1) {
-        lastValue = nextValue;
-        setCount(nextValue);
-      }
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [end, duration, prefersReducedMotion]);
-
-  return <span>{count.toLocaleString()}</span>;
+const CountUp = ({ end }: { end: number }) => {
+  return <span>{end.toLocaleString()}</span>;
 };
 
 // Reusable Animated Doughnut Component for Stat Cards
@@ -193,7 +129,7 @@ const AnimatedDoughnut = ({
         const dashoffset = 100 - previousTotal;
 
         return (
-          <motion.path
+          <path
             key={index}
             className={`${segment.color}`}
             d="M18 3 a 15 15 0 0 1 0 30 a 15 15 0 0 1 0 -30"
@@ -201,13 +137,7 @@ const AnimatedDoughnut = ({
             stroke="currentColor"
             strokeWidth="4"
             strokeLinecap="round"
-            initial={{ strokeDasharray: "0, 100" }}
-            animate={{ strokeDasharray: `${segment.percentage}, 100` }}
-            transition={{
-              duration: 0.4,
-              ease: "easeOut",
-              delay: 0
-            }}
+            strokeDasharray={`${segment.percentage}, 100`}
             style={{
               strokeDashoffset: -previousTotal,
               filter: 'drop-shadow(0px 1px 2px rgba(0,0,0,0.15))'
@@ -269,7 +199,7 @@ const StatCard = ({
       }}
       onClick={handleClick}
     >
-      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-white/90" />
       {/* 3D Depth Effect - Top highlight */}
       <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
       {/* 3D Depth Effect - Bottom shadow */}
@@ -2522,13 +2452,10 @@ export default function DashboardPage() {
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
       </Head>
 
-      {/* Enhanced Header */}
-      <EnhancedHeader schoolSettings={schoolSettings} />
-
       <motion.div
         variants={groupVariants}
-        initial="hidden"
-        animate="show"
+        initial={prefersReducedMotion ? false : "hidden"}
+        animate={prefersReducedMotion ? undefined : "show"}
         className="container mx-auto px-3 sm:px-6 lg:px-8 pb-6 relative z-20"
       >
         {/* Loading Indicator - Removed as per user request */}
