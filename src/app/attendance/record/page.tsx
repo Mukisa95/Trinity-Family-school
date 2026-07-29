@@ -101,6 +101,25 @@ function buildSessionRecords(
   return Array.from(byPupil.values());
 }
 
+function getConfirmedSessionRecords(
+  date: string,
+  classId: string,
+  existing: AttendanceRecord[],
+  classInfo?: Class,
+): AttendanceRecord[] {
+  const records = existing
+    .filter(record =>
+      record.classId === classId &&
+      format(new Date(record.date), 'yyyy-MM-dd') === date
+    )
+    .map(record => ({
+      ...record,
+      className: classInfo?.name || record.className || '',
+      classCode: classInfo?.code || record.classCode || '',
+    }));
+  return Array.from(new Map(records.map(record => [record.pupilId, record])).values());
+}
+
 // ─── Memoized pupil row (desktop) ────────────────────────────────────────────
 // React.memo means only THIS row re-renders when its own entry changes.
 // The other 99 rows stay frozen, so selecting a status is always instant.
@@ -286,13 +305,21 @@ export default function RecordAttendancePage() {
   const autoSavePendingCount = React.useRef(0);
   const autoSaveIndicatorRef = React.useRef<HTMLSpanElement>(null);
   const autoSaveQueue = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const autoSaveFailedPupilsRef = React.useRef<Set<string>>(new Set());
+  const autoSaveGenerationRef = React.useRef(0);
+  const manualSaveInProgressRef = React.useRef(false);
+  const summaryPublishPendingRef = React.useRef(false);
 
   // Helper: update the auto-save indicator using direct DOM mutation — zero React re-renders
   const updateAutoSaveIndicator = React.useCallback(() => {
     const el = autoSaveIndicatorRef.current;
     if (!el) return;
-    if (autoSavePendingCount.current > 0) {
-      el.textContent = '⟳ Saving…';
+    if (
+      autoSavePendingCount.current > 0 ||
+      autoSaveQueue.current.size > 0 ||
+      summaryPublishPendingRef.current
+    ) {
+      el.textContent = summaryPublishPendingRef.current ? '⟳ Syncing…' : '⟳ Saving…';
       el.className = 'attendance-autosave-indicator saving';
       el.style.display = 'inline-flex';
     } else {
@@ -307,6 +334,7 @@ export default function RecordAttendancePage() {
   const existingAttendanceRecordsRef = React.useRef<AttendanceRecord[]>([]);
   const selectedClassIdRef = React.useRef<string>('');
   const allClassesRef = React.useRef(allClasses);
+  const allPupilsRef = React.useRef(allPupils);
   const activeAcademicYearRef = React.useRef(activeAcademicYear);
   const currentTermRef = React.useRef(currentTerm);
 
@@ -355,6 +383,7 @@ export default function RecordAttendancePage() {
   attendanceDataRef.current = attendanceData;
   selectedClassIdRef.current = selectedClassId;
   allClassesRef.current = allClasses;
+  allPupilsRef.current = allPupils;
   activeAcademicYearRef.current = activeAcademicYear;
   currentTermRef.current = currentTerm;
 
@@ -370,6 +399,14 @@ export default function RecordAttendancePage() {
     existingAttendanceRecordsRef.current = Array.from(merged.values());
   }, [existingAttendanceRecords]);
 
+  React.useEffect(() => {
+    autoSaveFailedPupilsRef.current.clear();
+    return () => {
+      autoSaveQueue.current.forEach(timer => clearTimeout(timer));
+      autoSaveQueue.current.clear();
+    };
+  }, [formattedCurrentDate, selectedClassId]);
+
   // Update current time every second
   React.useEffect(() => {
     const updateTime = () => setCurrentTime(format(new Date(), "HH:mm:ss"));
@@ -378,8 +415,8 @@ export default function RecordAttendancePage() {
     return () => clearInterval(timer);
   }, []);
 
-  // A route change or class switch is the preferred flush boundary. The
-  // outbox remains persisted as a safety net if the browser is closed.
+  // Completed classes publish automatically. Visibility and route changes are
+  // additional best-effort safety boundaries for partial sessions.
   React.useEffect(() => {
     if (!selectedClassId) return;
     const flush = () => {
@@ -390,8 +427,13 @@ export default function RecordAttendancePage() {
       );
     };
     window.addEventListener('pagehide', flush);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       flush();
     };
   }, [attendanceCacheScope, formattedCurrentDate, selectedClassId]);
@@ -456,8 +498,12 @@ export default function RecordAttendancePage() {
       const existingTimer = autoSaveQueue.current.get(pupilId);
       if (existingTimer) clearTimeout(existingTimer);
 
+      const scheduledClassId = selectedClassIdRef.current;
+      const scheduledGeneration = autoSaveGenerationRef.current;
       const timer = setTimeout(async () => {
         autoSaveQueue.current.delete(pupilId);
+        const saveClassId = scheduledClassId;
+        const failureKey = `${saveClassId}::${pupilId}`;
         // Increment counter and update DOM directly — no setState, no re-render
         autoSavePendingCount.current += 1;
         updateAutoSaveIndicator();
@@ -465,7 +511,7 @@ export default function RecordAttendancePage() {
           // Get latest values via refs (always fresh, no stale closure)
           const currentAttendanceData = attendanceDataRef.current;
           const currentExistingRecords = existingAttendanceRecordsRef.current;
-          const currentSelectedClassId = selectedClassIdRef.current;
+          const currentSelectedClassId = saveClassId;
           const currentSelectedClass = allClassesRef.current.find(c => c.id === currentSelectedClassId);
           const currentActiveAcademicYear = activeAcademicYearRef.current;
           const currentCurrentTerm = currentTermRef.current;
@@ -517,6 +563,8 @@ export default function RecordAttendancePage() {
                 id: newId,
                 date: formattedCurrentDate,
                 classId: currentSelectedClassId,
+                className: currentSelectedClass?.name || '',
+                classCode: currentSelectedClass?.code || '',
                 pupilId,
                 status: pupilEntry.status as AttendanceStatus,
                 remarks: pupilEntry.remarks,
@@ -528,29 +576,70 @@ export default function RecordAttendancePage() {
             ];
           }
 
-          queueAttendanceSummaryPublication(
-            attendanceCacheScope,
-            formattedCurrentDate,
-            currentSelectedClassId,
-            buildSessionRecords(
+          autoSaveFailedPupilsRef.current.delete(failureKey);
+          if (scheduledGeneration === autoSaveGenerationRef.current) {
+            queueAttendanceSummaryPublication(
+              attendanceCacheScope,
               formattedCurrentDate,
               currentSelectedClassId,
-              currentAttendanceData,
-              existingAttendanceRecordsRef.current,
-              currentSelectedClass,
-            ),
-            true,
-          );
+              getConfirmedSessionRecords(
+                formattedCurrentDate,
+                currentSelectedClassId,
+                existingAttendanceRecordsRef.current,
+                currentSelectedClass,
+              ),
+              true,
+            );
+          }
         } catch (err) {
+          autoSaveFailedPupilsRef.current.add(failureKey);
           console.error('⚠️ AUTO-SAVE failed for pupil', pupilId, err);
         } finally {
           // Decrement counter and update DOM — no React re-render
           autoSavePendingCount.current = Math.max(0, autoSavePendingCount.current - 1);
           updateAutoSaveIndicator();
+
+          const currentClassId = selectedClassIdRef.current;
+          const sessionSettled =
+            autoSavePendingCount.current === 0 &&
+            autoSaveQueue.current.size === 0;
+          const classPupils = allPupilsRef.current.filter(pupil =>
+            pupil.classId === currentClassId &&
+            wasPupilActiveOnDate(pupil, formattedCurrentDate)
+          );
+          const classComplete =
+            classPupils.length > 0 &&
+            classPupils.every(pupil => !!attendanceDataRef.current[pupil.id]?.status);
+          const classHasFailures = Array.from(autoSaveFailedPupilsRef.current)
+            .some(key => key.startsWith(`${currentClassId}::`));
+
+          if (
+            sessionSettled &&
+            classComplete &&
+            !classHasFailures &&
+            !manualSaveInProgressRef.current
+          ) {
+            summaryPublishPendingRef.current = true;
+            updateAutoSaveIndicator();
+            try {
+              const published = await flushAttendanceSummarySession(
+                attendanceCacheScope,
+                formattedCurrentDate,
+                currentClassId,
+              );
+              if (!published) {
+                console.warn('Attendance was saved, but its dashboard refresh remains queued.');
+              }
+            } finally {
+              summaryPublishPendingRef.current = false;
+              updateAutoSaveIndicator();
+            }
+          }
         }
       }, 800); // 800ms debounce — fast enough to feel instant, eliminates rapid-click duplicates
 
       autoSaveQueue.current.set(pupilId, timer);
+      updateAutoSaveIndicator();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attendanceCacheScope, formattedCurrentDate]);
@@ -574,6 +663,13 @@ export default function RecordAttendancePage() {
       return;
     }
 
+    // The explicit save owns this session from here. Cancel delayed per-pupil
+    // callbacks so they cannot enqueue an older projection after publication.
+    manualSaveInProgressRef.current = true;
+    autoSaveGenerationRef.current += 1;
+    autoSaveQueue.current.forEach(timer => clearTimeout(timer));
+    autoSaveQueue.current.clear();
+    updateAutoSaveIndicator();
     setIsSaving(true);
 
     try {
@@ -633,6 +729,15 @@ export default function RecordAttendancePage() {
           : Promise.resolve({ recordIds: [], records: [] }),
       ]);
 
+      if (recordsToUpdate.length > 0) {
+        const updateMap = new Map(recordsToUpdate.map(update => [update.id, update.data]));
+        existingAttendanceRecordsRef.current = existingAttendanceRecordsRef.current.map(record =>
+          updateMap.has(record.id)
+            ? { ...record, ...updateMap.get(record.id) }
+            : record
+        );
+      }
+
       if (createResult.recordIds.length > 0) {
         const created = createResult.records.map((record, index) => ({
           ...record,
@@ -650,6 +755,7 @@ export default function RecordAttendancePage() {
         ];
       }
 
+      autoSaveFailedPupilsRef.current.clear();
       queueAttendanceSummaryPublication(
         attendanceCacheScope,
         formattedCurrentDate,
@@ -664,12 +770,27 @@ export default function RecordAttendancePage() {
         true,
       );
 
+      summaryPublishPendingRef.current = true;
+      updateAutoSaveIndicator();
+      const published = await flushAttendanceSummarySession(
+        attendanceCacheScope,
+        formattedCurrentDate,
+        selectedClassId,
+      );
+      summaryPublishPendingRef.current = false;
+      updateAutoSaveIndicator();
+
       toast({
-        title: "Attendance Saved",
-        description: `Attendance for ${selectedClass?.name} has been saved successfully.`,
+        title: published ? "Attendance Saved and Synced" : "Attendance Saved; Sync Pending",
+        description: published
+          ? `Attendance for ${selectedClass?.name} is now available on active devices.`
+          : "The pupil records were saved, but the dashboard refresh is queued for retry.",
+        variant: published ? "default" : "destructive",
       });
 
     } catch (error) {
+      summaryPublishPendingRef.current = false;
+      updateAutoSaveIndicator();
       console.error('Error saving attendance:', error);
       toast({
         title: "Error",
@@ -677,9 +798,22 @@ export default function RecordAttendancePage() {
         variant: "destructive",
       });
     } finally {
+      manualSaveInProgressRef.current = false;
       setIsSaving(false);
     }
-  }, [attendanceCacheScope, selectedClassId, pupilsInClass, attendanceData, formattedCurrentDate, selectedClass?.name, bulkCreateMutation, bulkUpdateMutation, toast]);
+  }, [
+    attendanceCacheScope,
+    activeAcademicYear?.id,
+    attendanceData,
+    bulkCreateMutation,
+    bulkUpdateMutation,
+    currentTerm?.id,
+    formattedCurrentDate,
+    pupilsInClass,
+    selectedClass,
+    selectedClassId,
+    toast,
+  ]);
 
   const getStatusBadgeColor = (status: AttendanceStatus | "") => {
     switch (status) {

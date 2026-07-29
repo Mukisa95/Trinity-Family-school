@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UniformTrackingService } from '../services/uniform-tracking.service';
+import {
+  UniformTrackingService,
+  type UniformStockReduction,
+} from '../services/uniform-tracking.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
 import type { UniformTracking, CreateUniformTrackingData, UpdateUniformTrackingData } from '@/types';
@@ -86,9 +89,33 @@ export function useUpdateUniformTracking() {
   const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateUniformTrackingData }) => {
-      await UniformTrackingService.updateTrackingRecord(id, data);
-      const updatedRecord = await UniformTrackingService.getTrackingRecordById(id);
+    mutationFn: async ({
+      id,
+      data,
+      stockReductions,
+    }: {
+      id: string;
+      data: UpdateUniformTrackingData;
+      stockReductions?: UniformStockReduction[];
+    }) => {
+      let updatedRecord: UniformTracking | null;
+
+      if (stockReductions?.length) {
+        updatedRecord = await UniformTrackingService.updateTrackingRecordWithStock(
+          id,
+          data,
+          stockReductions
+        );
+      } else {
+        await UniformTrackingService.updateTrackingRecord(id, data);
+        try {
+          updatedRecord = await UniformTrackingService.getTrackingRecordById(id);
+        } catch (error) {
+          // The update has already committed. Cache invalidation can recover this read later.
+          console.error('Uniform tracking updated, but its cache refresh failed:', error);
+          updatedRecord = null;
+        }
+      }
       
       // Create digital signature for uniform tracking update
       if (user) {
@@ -109,12 +136,17 @@ export function useUpdateUniformTracking() {
           metadata.receivedBy = data.receivedBy;
         }
 
-        await signAction(
-          'uniform_payment',
-          id,
-          'updated',
-          metadata
-        );
+        try {
+          await signAction(
+            'uniform_payment',
+            id,
+            'updated',
+            metadata
+          );
+        } catch (error) {
+          // Audit logging must not make a committed collection appear to have failed.
+          console.error('Uniform tracking updated, but its digital signature failed:', error);
+        }
       }
       
       return updatedRecord;
@@ -141,4 +173,4 @@ export function useDeleteUniformTracking() {
       queryClient.invalidateQueries({ queryKey: [UNIFORM_TRACKING_QUERY_KEY] });
     },
   });
-} 
+}

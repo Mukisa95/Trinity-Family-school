@@ -45,7 +45,6 @@ import {
 } from '@/lib/hooks/use-uniform-tracking';
 import {
   useUniformInventory,
-  useReduceStockBatch,
   useIncrementStockBatch
 } from '@/lib/hooks/use-uniform-inventory';
 import { useQueryClient } from '@tanstack/react-query';
@@ -109,7 +108,6 @@ function UniformTrackingContent() {
   const createTrackingMutation = useCreateUniformTracking();
   const updateTrackingMutation = useUpdateUniformTracking();
   const deleteTrackingMutation = useDeleteUniformTracking();
-  const reduceStockBatch = useReduceStockBatch();
   const incrementStockBatch = useIncrementStockBatch();
 
   // Uniform inventory for size/stock tracking
@@ -362,15 +360,6 @@ function UniformTrackingContent() {
           quantity: collectionQuantities?.[itemId] || 1
         }));
 
-      if (stockReductions.length > 0) {
-        try {
-          await reduceStockBatch.mutateAsync(stockReductions);
-        } catch (stockError) {
-          console.error('Error reducing stock:', stockError);
-          // Continue with collection even if stock reduction fails
-        }
-      }
-
       const historyEntry: UniformHistory = {
         date: new Date().toISOString(),
         paymentStatus: selectedCollectionRecord.paymentStatus,
@@ -423,7 +412,8 @@ function UniformTrackingContent() {
 
       await updateTrackingMutation.mutateAsync({
         id: selectedCollectionRecord.id,
-        data: updatedRecord
+        data: updatedRecord,
+        stockReductions,
       });
 
       // Invalidate queries to sync with fees collection page
@@ -434,6 +424,7 @@ function UniformTrackingContent() {
     } catch (error) {
       console.error('Error updating collection status:', error);
       alert('Failed to update collection status. Please try again.');
+      throw error;
     }
   };
 
@@ -894,4 +885,4 @@ export default function UniformTrackingPage() {
       <UniformTrackingContent />
     </Suspense>
   );
-} 
+}

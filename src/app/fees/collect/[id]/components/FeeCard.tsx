@@ -7,7 +7,7 @@ import { useStaffById } from '@/lib/hooks/use-staff';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { useUniformTrackingRecord, useUpdateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useUniforms } from '@/lib/hooks/use-uniforms';
-import { useUniformInventory, useReduceStockBatch, useIncrementStockBatch } from '@/lib/hooks/use-uniform-inventory';
+import { useUniformInventory, useIncrementStockBatch } from '@/lib/hooks/use-uniform-inventory';
 import { CollectionModal } from '@/components/common/collection-modal';
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,7 @@ interface PupilFee {
     id: string;
     name: string;
     amount: number;
-    type: 'fixed' | 'percentage';
+    type: 'fixed' | 'percentage' | 'fees-holiday';
   };
   originalAmount?: number;
   feeBreakdown?: Array<{
@@ -80,7 +80,6 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
 
   // Update uniform tracking mutation
   const updateUniformTracking = useUpdateUniformTracking();
-  const reduceStockBatch = useReduceStockBatch();
   const incrementStockBatch = useIncrementStockBatch();
   const queryClient = useQueryClient();
 
@@ -96,29 +95,18 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
   ) => {
     if (!uniformTrackingId || !uniformTrackingRecord) return;
 
+    const mergedSizes = {
+      ...(uniformTrackingRecord.selectedSizes || {}),
+      ...collectionSizes,
+    };
+    const stockReductions = collectedItems
+      .filter(itemId => collectionSizes[itemId])
+      .map(itemId => ({
+        uniformId: itemId,
+        size: collectionSizes[itemId],
+        quantity: collectionQuantities?.[itemId] || 1,
+      }));
     try {
-      // Reduce stock for collected items that have sizes specified
-      const stockReductions = collectedItems
-        .filter(itemId => collectionSizes[itemId])
-        .map(itemId => ({
-          uniformId: itemId,
-          size: collectionSizes[itemId],
-          quantity: collectionQuantities?.[itemId] || 1
-        }));
-
-      if (stockReductions.length > 0) {
-        try {
-          await reduceStockBatch.mutateAsync(stockReductions);
-        } catch (stockError) {
-          console.error('Error reducing stock:', stockError);
-        }
-      }
-
-      // Get previously collected items
-      const previouslyCollected = uniformTrackingRecord.history
-        ?.flatMap(h => h.collectedItems || [])
-        .filter(Boolean) || [];
-
       const mergedCollectedQuantities: Record<string, number> = {
         ...(uniformTrackingRecord.collectedQuantities || {})
       };
@@ -153,7 +141,8 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
               releasedBy: 'Current User'
             }
           ]
-        }
+        },
+        stockReductions,
       });
 
       // Invalidate uniform fees query to refresh the fee card
@@ -165,6 +154,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
     } catch (error) {
       console.error('Error recording collection:', error);
       alert('Failed to record collection. Please try again.');
+      throw error;
     }
   };
 

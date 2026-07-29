@@ -136,8 +136,11 @@ assert(
   attendanceRecordPage.includes('queueAttendanceSummaryPublication') &&
     attendanceRecordPage.includes('flushAttendanceSummarySession') &&
     attendanceRecordPage.includes('getAttendanceRecordId') &&
-    attendanceOutbox.includes('DEBOUNCE_MS') &&
+    attendanceRecordPage.includes('classComplete') &&
+    attendanceRecordPage.includes('Attendance Saved and Synced') &&
+    attendanceOutbox.includes('const DEBOUNCE_MS = 60 * 1000') &&
     attendanceOutbox.includes('inFlight') &&
+    attendanceOutbox.includes('for (let attempt = 0; attempt < 3; attempt += 1)') &&
     attendanceOutbox.includes("latest[entryKey]?.token === entry.token") &&
     attendanceSummaryService.includes('runTransaction'),
   'Attendance recording must coalesce status changes and flush on session exit.',

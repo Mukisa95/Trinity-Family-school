@@ -23,6 +23,7 @@
     "test:read-only-snapshot-flows": "node scripts/check-read-only-snapshot-flows.js",
     "test:auth-session-flow": "node scripts/check-auth-session-flow.js",
     "test:dashboard-cache-contract": "node scripts/check-dashboard-cache-contract.js",
+    "test:uniform-collection-contract": "node scripts/check-uniform-collection-contract.js",
     "test:firestore-subscriptions": "node --import tsx --test tests/firestore-subscription-registry.test.ts",
     "migrate": "tsx src/scripts/migrate-data.ts",
     "migrate-auth-credentials": "tsx src/scripts/migrate-auth-credentials.ts",

@@ -861,7 +861,7 @@ export interface UniformFormData {
 // Uniform Tracking Types
 export type SelectionMode = 'item' | 'partial' | 'full';
 export type PaymentStatus = 'paid' | 'pending' | 'partial';
-export type CollectionStatus = 'pending' | 'collected';
+export type CollectionStatus = 'pending' | 'partial' | 'collected';
 
 // Discount Types
 export type DiscountType = 'static' | 'dynamic';
@@ -897,13 +897,15 @@ export interface DynamicDiscount {
 
 export interface UniformHistory {
   date: string;
-  paymentStatus: PaymentStatus;
-  paidAmount: number;
-  collectionStatus: CollectionStatus;
+  type?: 'payment' | 'collection' | 'unmark';
+  paymentStatus?: PaymentStatus;
+  paidAmount?: number;
+  collectionStatus?: CollectionStatus;
   collectionDate?: string;
   receivedBy?: string;
   releasedBy?: string;
   collectedItems?: string[];
+  unmarkedItems?: string[];
 }
 
 export interface UniformTracking {

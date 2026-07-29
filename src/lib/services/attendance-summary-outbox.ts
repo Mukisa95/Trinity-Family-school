@@ -3,9 +3,9 @@ import { publishDailyAttendanceSummary } from './attendance-summary.service';
 
 const STORAGE_KEY = 'trinity_attendance_summary_outbox_v2';
 const LEGACY_STORAGE_KEY = 'trinity_attendance_summary_outbox_v1';
-const DEBOUNCE_MS = 10 * 60 * 1000;
+const DEBOUNCE_MS = 60 * 1000;
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
-const inFlight = new Map<string, Promise<void>>();
+const inFlight = new Map<string, Promise<boolean>>();
 
 type OutboxEntry = {
   scope: string;
@@ -42,14 +42,14 @@ function key(scope: string, date: string, classId: string) {
   return `${scope}::${date}::${classId}`;
 }
 
-async function flushKey(entryKey: string) {
+async function flushKey(entryKey: string): Promise<boolean> {
   const active = inFlight.get(entryKey);
   if (active) return active;
 
   const work = (async () => {
     const entries = read();
     const entry = entries[entryKey];
-    if (!entry?.scope) return;
+    if (!entry?.scope) return true;
     const timer = timers.get(entryKey);
     if (timer) clearTimeout(timer);
     timers.delete(entryKey);
@@ -71,6 +71,7 @@ async function flushKey(entryKey: string) {
       } else if (latest[entryKey]) {
         schedule(entryKey, latest[entryKey].dueAt - Date.now());
       }
+      return true;
     } catch (error) {
       console.error('Attendance summary publish failed; keeping it queued:', error);
       const latest = read();
@@ -79,6 +80,7 @@ async function flushKey(entryKey: string) {
         write(latest);
       }
       if (latest[entryKey]) schedule(entryKey, latest[entryKey].dueAt - Date.now());
+      return false;
     }
   })().finally(() => {
     inFlight.delete(entryKey);
@@ -124,10 +126,28 @@ export function queueAttendanceSummaryPublication(
   schedule(entryKey, DEBOUNCE_MS);
 }
 
-/** Flush immediately when the recorder leaves a class/session. */
-export async function flushAttendanceSummarySession(scope: string, date: string, classId: string) {
-  if (!scope) return;
-  await flushKey(key(scope, date, classId));
+/**
+ * Flush every version currently queued for a class. If an edit arrives while a
+ * publish is in flight, loop once more so an explicit Save cannot acknowledge
+ * an older summary while leaving the newest version behind.
+ */
+export async function flushAttendanceSummarySession(
+  scope: string,
+  date: string,
+  classId: string,
+): Promise<boolean> {
+  if (!scope) return false;
+  const entryKey = key(scope, date, classId);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const before = read()[entryKey];
+    if (!before) return true;
+    if (!await flushKey(entryKey)) return false;
+    const after = read()[entryKey];
+    if (!after) return true;
+  }
+
+  return !read()[entryKey];
 }
 
 /** Recover a session whose tab was closed before its async flush completed. */
@@ -135,7 +155,7 @@ export async function flushDueAttendanceSummaryOutbox(scope: string) {
   if (!scope) return;
   const now = Date.now();
   const entries = read();
-  const due: Promise<void>[] = [];
+  const due: Promise<boolean>[] = [];
   Object.entries(entries)
     .filter(([, entry]) => entry.scope === scope)
     .forEach(([entryKey, entry]) => {

@@ -26,7 +26,12 @@ import type { UniformItem, SelectionMode, UniformInventoryItem } from '@/types';
 interface CollectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (collectedItems: string[], isFullCollection: boolean, collectionSizes: Record<string, string>) => void;
+  onSubmit: (
+    collectedItems: string[],
+    isFullCollection: boolean,
+    collectionSizes: Record<string, string>,
+    collectionQuantities: Record<string, number>,
+  ) => void | Promise<void>;
   onUnmark?: (uniformId: string, size: string | undefined) => void;
   uniforms: UniformItem[];
   selectionMode: SelectionMode;
@@ -55,6 +60,7 @@ export function CollectionModal({
   // Track size selections for collection (may differ from tracking if out of stock)
   const [collectionSizes, setCollectionSizes] = useState<Record<string, string>>({});
   const [collectionQuantities, setCollectionQuantities] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // Track which previously-collected item the user is confirming an unmark for
   const [confirmingUnmark, setConfirmingUnmark] = useState<string | null>(null);
 
@@ -132,10 +138,14 @@ export function CollectionModal({
     setCollectionQuantities(prev => ({ ...prev, [uniformId]: qty }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSizeChange = (uniformId: string, size: string) => {
+    setCollectionSizes(prev => ({ ...prev, [uniformId]: size }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (selectedItems.length === 0) {
+    if (selectedItems.length === 0 || isSubmitting) {
       alert('Please select at least one item to collect');
       return;
     }
@@ -169,10 +179,17 @@ export function CollectionModal({
       return (prevQty + newQty) >= totalQty;
     });
 
-    onSubmit(selectedItems, isFullCollection, collectionSizes, collectionQuantities);
-    setSelectedItems([]);
-    setCollectionSizes({});
-    setCollectionQuantities({});
+    setIsSubmitting(true);
+    try {
+      await onSubmit(selectedItems, isFullCollection, collectionSizes, collectionQuantities);
+      setSelectedItems([]);
+      setCollectionSizes({});
+      setCollectionQuantities({});
+    } catch {
+      // The owner reports the contextual error; keep the selections for a safe retry.
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Helper to get total and collected qty for any uniform
@@ -540,15 +557,23 @@ export function CollectionModal({
           )}
 
           <ModernDialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="w-full sm:w-auto"
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               className="w-full sm:w-auto"
-              disabled={selectedItems.length === 0}
+              disabled={selectedItems.length === 0 || isSubmitting}
             >
-              Mark as Collected ({selectedItems.length} items)
+              {isSubmitting
+                ? 'Recording Collection...'
+                : `Mark as Collected (${selectedItems.length} items)`}
             </Button>
           </ModernDialogFooter>
         </form>
