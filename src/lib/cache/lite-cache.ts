@@ -24,8 +24,8 @@ const PREFIX = 'trinity_lite_';
 export const LITE_TTL = {
   // Academic years change maybe once a year — 7-day TTL is very safe
   academicYears: 7 * 24 * 60 * 60 * 1000,
-  // Events change occasionally — 24-hour TTL
-  events: 24 * 60 * 60 * 1000,
+  // Events/calendar receive a bounded safety refresh every 48 hours
+  events: 48 * 60 * 60 * 1000,
   // Photos rarely change — 24-hour TTL
   photos: 24 * 60 * 60 * 1000,
 } as const;
@@ -39,11 +39,18 @@ interface CacheEntry<T> {
   version: number; // bump this to force a global cache bust on schema changes
 }
 
+export interface LiteCacheMetadata {
+  writtenAt: number;
+  ttlMs: number;
+}
+
 // Increment this when the shape of cached data changes OR when detection
 // logic changes require a fresh array (e.g. after fixing year ordering bugs).
 // v3: Force-bust caches that stored raw Firestore Timestamps in term dates
 //     instead of ISO strings, causing term dates to silently not display.
-const CACHE_VERSION = 3;
+// v4: event caches are now identity/role scoped. Bust the former global event
+// payload so a private staff event can never be restored into another session.
+const CACHE_VERSION = 4;
 
 function isAvailable(): boolean {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -97,6 +104,23 @@ export function liteRead<T>(key: string): T | null {
     }
 
     return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+/** Read cache age without materialising the stored payload. */
+export function liteReadMetadata(key: string): LiteCacheMetadata | null {
+  if (!isAvailable()) return null;
+  try {
+    const raw = localStorage.getItem(PREFIX + key);
+    if (!raw) return null;
+    const entry: CacheEntry<unknown> = JSON.parse(raw);
+    if (entry.version !== CACHE_VERSION || Date.now() - entry.writtenAt > entry.ttlMs) {
+      localStorage.removeItem(PREFIX + key);
+      return null;
+    }
+    return { writtenAt: entry.writtenAt, ttlMs: entry.ttlMs };
   } catch {
     return null;
   }

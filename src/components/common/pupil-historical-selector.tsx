@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, Users, AlertCircle, Clock, Database } from 'lucide-react';
 import { PupilsService } from '@/lib/services/pupils.service';
-import { ClassesService } from '@/lib/services/classes.service';
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { useClasses } from '@/lib/hooks/use-classes';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { getTermStatus } from '@/lib/utils/academic-year-utils';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
@@ -52,15 +52,9 @@ export function PupilHistoricalSelector({
     queryFn: () => PupilsService.getAllPupils()
   });
 
-  const { data: classes = [] } = useQuery({
-    queryKey: ['classes'],
-    queryFn: () => ClassesService.getAll()
-  });
+  const { data: classes = [] } = useClasses();
 
-  const { data: academicYears = [] } = useQuery({
-    queryKey: ['academic-years'],
-    queryFn: () => AcademicYearsService.getAllAcademicYears()
-  });
+  const { data: academicYears = [] } = useAcademicYears();
 
   // Get current academic year and term info
   const selectedAcademicYear = academicYears.find(year => year.id === selectedAcademicYearId);

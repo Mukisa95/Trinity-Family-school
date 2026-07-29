@@ -383,6 +383,17 @@ export type Subject = {
 };
 
 export interface SchoolSettings {
+  /**
+   * Small, event-driven invalidation tokens for data that is safe to keep
+   * locally for a long time. They deliberately live beside the existing
+   * settings listener so they do not introduce another recurring read.
+   */
+  dataRevisions?: {
+    timetable?: Record<string, number>;
+    events?: number;
+    classes?: number;
+    academicYears?: number;
+  };
   generalInfo: {
     name: string;
     logo?: string;

@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, deleteDoc, doc, writeBatch, query } from 'firebase/firestore';
+import { publishAcademicYearsRevision } from './cache-revision-helper';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCMFVoGNdrBAuPoDjaNpsgionEnkq45JSA",
@@ -76,6 +77,7 @@ async function cleanupAcademicYears() {
       deletedCount += batchIds.length;
       console.log(`   ✅ Deleted batch ${Math.floor(i / batchSize) + 1}: ${deletedCount}/${yearsToDelete.length} years`);
     }
+    await publishAcademicYearsRevision(db);
     
     console.log(`\n✅ Cleanup complete!`);
     console.log(`   - Deleted: ${deletedCount} academic years`);
@@ -101,4 +103,3 @@ cleanupAcademicYears()
     console.error('\n❌ Cleanup script failed:', error);
     process.exit(1);
   });
-

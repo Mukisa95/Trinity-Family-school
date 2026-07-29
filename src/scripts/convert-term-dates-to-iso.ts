@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, updateDoc, query } from 'firebase/firestore';
+import { publishAcademicYearsRevision } from './cache-revision-helper';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCMFVoGNdrBAuPoDjaNpsgionEnkq45JSA",
@@ -109,6 +110,7 @@ async function convertTermDatesToISO() {
     console.log(`   - Errors: ${errorCount}`);
     
     if (convertedCount > 0) {
+      await publishAcademicYearsRevision(db);
       console.log(`\n✅ Successfully converted ${convertedCount} academic years to use ISO date strings!`);
       console.log(`\n📝 Next step:`);
       console.log(`   1. Refresh your parent dashboard to see the fix in action`);
@@ -133,4 +135,3 @@ convertTermDatesToISO()
     console.error('\n❌ Conversion failed:', error);
     process.exit(1);
   });
-

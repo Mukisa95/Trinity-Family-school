@@ -383,16 +383,16 @@ export function getEffectiveTermForDataDisplay(
 /**
  * Check if the system should display recess/holiday mode
  */
-export function shouldDisplayRecessMode(academicYears: AcademicYear[]): boolean {
-  const status = getTermStatusForDate(academicYears);
+export function shouldDisplayRecessMode(academicYears: AcademicYear[], targetDate: Date = new Date()): boolean {
+  const status = getTermStatusForDate(academicYears, targetDate);
   return status.isRecessPeriod || status.isHolidayPeriod;
 }
 
 /**
  * Get a user-friendly message about the current academic period
  */
-export function getCurrentPeriodMessage(academicYears: AcademicYear[]): string {
-  const status = getTermStatusForDate(academicYears);
+export function getCurrentPeriodMessage(academicYears: AcademicYear[], targetDate: Date = new Date()): string {
+  const status = getTermStatusForDate(academicYears, targetDate);
 
   if (status.isCurrentTerm && status.currentTerm) {
     return `Currently in ${status.currentTerm.name}`;
@@ -420,7 +420,7 @@ export function getCurrentPeriodMessage(academicYears: AcademicYear[]): string {
  * 🚀 Get detailed holiday/recess message with term information
  * Shows which term ended and when the next term starts
  */
-export function getDetailedPeriodMessage(academicYears: AcademicYear[]): {
+export function getDetailedPeriodMessage(academicYears: AcademicYear[], targetDate: Date = new Date()): {
   message: string;
   isHoliday: boolean;
   previousTermName: string | null;
@@ -428,7 +428,7 @@ export function getDetailedPeriodMessage(academicYears: AcademicYear[]): {
   nextTermName: string | null;
   nextTermStartDate: string | null;
 } {
-  const status = getTermStatusForDate(academicYears);
+  const status = getTermStatusForDate(academicYears, targetDate);
 
   if (status.isCurrentTerm && status.currentTerm) {
     return {
@@ -464,7 +464,7 @@ export function getDetailedPeriodMessage(academicYears: AcademicYear[]): {
   } else if (status.isHolidayPeriod) {
     if (previousTermEndDate) {
       const endDate = new Date(previousTermEndDate);
-      const today = new Date();
+      const today = targetDate;
       const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysSinceEnd === 0) {

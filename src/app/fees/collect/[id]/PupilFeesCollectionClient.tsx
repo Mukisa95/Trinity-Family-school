@@ -40,7 +40,6 @@ import { SchoolPayPaymentBanner, type GroupedSchoolPayTx } from './components/Sc
 import { SchoolPayRedistributeModal } from './components/SchoolPayRedistributeModal';
 
 // Services and Hooks
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { PaymentsService } from '@/lib/services/payments.service';

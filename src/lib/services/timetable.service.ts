@@ -4,8 +4,6 @@ import {
     getDocs,
     getDoc,
     addDoc,
-    updateDoc,
-    deleteDoc,
     query,
     orderBy,
     where,
@@ -14,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types';
+import { bumpTimetableRevisionInBatch } from './dashboard-cache-revisions.service';
 
 // Path constructor for academic term scoped timetables
 // academicYears/${yearId}/terms/${termId}/timetables
@@ -76,6 +75,9 @@ export class TimetableService {
         generatedPeriods: Omit<GeneratedPeriod, 'id'>[]
     ): Promise<string> {
         try {
+            if (generatedPeriods.length > 498) {
+                throw new Error('Too many periods were generated for one atomic timetable creation.');
+            }
             const batch = writeBatch(db);
 
             // 1. Create Profile
@@ -97,6 +99,8 @@ export class TimetableService {
                 batch.set(periodDocRef, this.cleanUndefinedValues(period));
             });
 
+            bumpTimetableRevisionInBatch(batch, profileData.academicYearId, profileData.termId);
+
             // Commit the batch
             await batch.commit();
 
@@ -116,26 +120,25 @@ export class TimetableService {
         generatedPeriods: Omit<GeneratedPeriod, 'id'>[]
     ): Promise<void> {
         try {
-            const batch = (await import('firebase/firestore')).writeBatch(db);
-
-            // 1. Update the profile document
+            // Read the old period references first, then publish the profile,
+            // replacement periods, and revision as one atomic change.
             const profileRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
-            batch.update(profileRef, { ...profileData, updatedAt: new Date().toISOString() });
-
-            // 2. Delete all existing periods for this profile
             const periodsCol = collection(db, getPeriodsCollectionPath(yearId, termId, timetableId));
             const existingPeriods = await getDocs(periodsCol);
-            existingPeriods.forEach(d => batch.delete(d.ref));
+            const writeCount = 2 + existingPeriods.size + generatedPeriods.length;
+            if (writeCount > 500) {
+                throw new Error('This timetable has too many periods for an atomic update.');
+            }
 
-            await batch.commit();
-
-            // 3. Re-create periods with a new batch
-            const periodsBatch = (await import('firebase/firestore')).writeBatch(db);
+            const batch = writeBatch(db);
+            batch.update(profileRef, { ...profileData, updatedAt: new Date().toISOString() });
+            existingPeriods.forEach(periodDoc => batch.delete(periodDoc.ref));
             for (const period of generatedPeriods) {
                 const newRef = doc(periodsCol);
-                periodsBatch.set(newRef, { ...period, id: newRef.id, createdAt: new Date().toISOString() });
+                batch.set(newRef, { ...period, id: newRef.id, createdAt: new Date().toISOString() });
             }
-            await periodsBatch.commit();
+            bumpTimetableRevisionInBatch(batch, yearId, termId);
+            await batch.commit();
         } catch (error) {
             console.error('Error updating timetable:', error);
             throw error;
@@ -145,7 +148,10 @@ export class TimetableService {
     static async deleteTimetable(yearId: string, termId: string, timetableId: string): Promise<void> {
         try {
             const docRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
-            await deleteDoc(docRef);
+            const batch = writeBatch(db);
+            batch.delete(docRef);
+            bumpTimetableRevisionInBatch(batch, yearId, termId);
+            await batch.commit();
         } catch (error) {
             console.error('Error deleting timetable:', error);
             throw error;
@@ -158,10 +164,13 @@ export class TimetableService {
     static async renameTimetable(yearId: string, termId: string, timetableId: string, newName: string): Promise<void> {
         try {
             const docRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
-            await updateDoc(docRef, {
+            const batch = writeBatch(db);
+            batch.update(docRef, {
                 name: newName,
                 updatedAt: Timestamp.now()
             });
+            bumpTimetableRevisionInBatch(batch, yearId, termId);
+            await batch.commit();
         } catch (error) {
             console.error('Error renaming timetable:', error);
             throw error;
@@ -186,7 +195,16 @@ export class TimetableService {
         // 2. Read source periods
         const srcPeriods = await TimetableService.getPeriods(srcYearId, srcTermId, srcTimetableId);
 
-        // 3. Create new profile doc
+        // Read every source document before creating the destination batch.
+        const srcEntries = includeEntries
+            ? await TimetableService.getEntries(srcYearId, srcTermId, srcTimetableId)
+            : [];
+        const cloneWriteCount = 2 + srcPeriods.length + srcEntries.length;
+        if (cloneWriteCount > 500) {
+            throw new Error('This timetable is too large to clone atomically.');
+        }
+
+        // 3. Build the new profile, periods, entries, and revision in one batch.
         const newProfileRef = doc(collection(db, getTimetablesCollectionPath(dstYearId, dstTermId)));
         const newProfileData: Omit<TimetableProfile, 'id' | 'createdAt' | 'updatedAt'> = {
             name: overrideName,
@@ -198,7 +216,8 @@ export class TimetableService {
             timeBlocks: srcProfile.timeBlocks,
             activeDays: srcProfile.activeDays || [1, 2, 3, 4, 5],
         };
-        await (await import('firebase/firestore')).setDoc(newProfileRef, {
+        const cloneBatch = writeBatch(db);
+        cloneBatch.set(newProfileRef, {
             ...newProfileData,
             id: newProfileRef.id,
             createdAt: new Date().toISOString(),
@@ -208,37 +227,34 @@ export class TimetableService {
         // 4. Clone periods, building old->new id map
         const periodsCol = collection(db, getPeriodsCollectionPath(dstYearId, dstTermId, newTimetableId));
         const periodIdMap: Record<string, string> = {};
-        const periodBatch = (await import('firebase/firestore')).writeBatch(db);
         for (const period of srcPeriods) {
             const newRef = doc(periodsCol);
             periodIdMap[period.id] = newRef.id;
-            periodBatch.set(newRef, {
+            cloneBatch.set(newRef, {
                 ...period,
                 id: newRef.id,
                 timetableId: newTimetableId,
                 createdAt: new Date().toISOString(),
             });
         }
-        await periodBatch.commit();
 
         // 5. Optionally clone entries, remapping periodIds
         if (includeEntries) {
-            const srcEntries = await TimetableService.getEntries(srcYearId, srcTermId, srcTimetableId);
             const entriesCol = collection(db, getEntriesCollectionPath(dstYearId, dstTermId, newTimetableId));
-            const entryBatch = (await import('firebase/firestore')).writeBatch(db);
             for (const entry of srcEntries) {
                 const newPeriodId = periodIdMap[entry.periodId];
                 if (!newPeriodId) continue; // skip if period not found
                 const newRef = doc(entriesCol);
-                entryBatch.set(newRef, {
+                cloneBatch.set(newRef, {
                     ...entry,
                     id: newRef.id,
                     periodId: newPeriodId,
                     createdAt: new Date().toISOString(),
                 });
             }
-            await entryBatch.commit();
         }
+        bumpTimetableRevisionInBatch(cloneBatch, dstYearId, dstTermId);
+        await cloneBatch.commit();
 
         return newTimetableId;
     }
@@ -272,6 +288,9 @@ export class TimetableService {
         periods: Partial<GeneratedPeriod>[]
     ): Promise<void> {
         try {
+            if (periods.length > 499) {
+                throw new Error('A maximum of 499 periods can be saved atomically.');
+            }
             const batch = writeBatch(db);
             const periodsRef = collection(db, getPeriodsCollectionPath(yearId, termId, timetableId));
 
@@ -284,6 +303,7 @@ export class TimetableService {
                 }
             });
 
+            bumpTimetableRevisionInBatch(batch, yearId, termId);
             await batch.commit();
         } catch (error) {
             console.error('Error saving timetable periods batch:', error);
@@ -370,6 +390,9 @@ export class TimetableService {
         entries: Partial<TimetableEntry>[]
     ): Promise<void> {
         try {
+            if (entries.length > 499) {
+                throw new Error('A maximum of 499 timetable entries can be saved atomically.');
+            }
             const batch = writeBatch(db);
             const entriesRef = collection(db, getEntriesCollectionPath(yearId, termId, timetableId));
 
@@ -396,6 +419,7 @@ export class TimetableService {
                 }
             });
 
+            bumpTimetableRevisionInBatch(batch, yearId, termId);
             await batch.commit();
         } catch (error) {
             console.error('Error saving timetable entries batch:', error);
@@ -406,7 +430,10 @@ export class TimetableService {
     static async deleteEntry(yearId: string, termId: string, timetableId: string, entryId: string): Promise<void> {
         try {
             const docRef = doc(db, getEntriesCollectionPath(yearId, termId, timetableId), entryId);
-            await deleteDoc(docRef);
+            const batch = writeBatch(db);
+            batch.delete(docRef);
+            bumpTimetableRevisionInBatch(batch, yearId, termId);
+            await batch.commit();
         } catch (error) {
             console.error('Error deleting timetable entry:', error);
             throw error;

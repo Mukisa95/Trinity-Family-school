@@ -2,23 +2,25 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { collection, query as firestoreQuery, onSnapshot, where, getDocs, getDocsFromCache, Timestamp } from 'firebase/firestore';
+import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { liteRead, liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
+import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
 import {
   persistentCollectionCacheKey,
   readPersistentCollection,
   writePersistentCollection,
 } from '@/lib/cache/persistent-collection-cache';
 import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
+import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
+import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
  * 
  * STRATEGY:
  * - Real-time listeners (onSnapshot) ONLY for data that changes frequently
- *   and needs instant cross-device sync: classes, pupils, academic years, staff, subjects
+ *   and needs instant cross-device sync: pupils, staff, subjects
  * - One-time reads (getDocs) for data that rarely changes: fees, requirements,
  *   uniforms, photos, and events. User-directory and access-level data are
  *   loaded only when their feature is opened, through shared live listeners.
@@ -28,6 +30,8 @@ import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 export function GlobalDataPreloader() {
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
+  useClassCacheBootstrap();
+  useAcademicYearCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
   const userFamilyId = user?.familyId;
@@ -51,33 +55,17 @@ export function GlobalDataPreloader() {
     // REAL-TIME LISTENERS (onSnapshot) — Data that needs live sync
     // ═══════════════════════════════════════════════════════════
 
-    // 1. 📚 CLASSES - Real-time (critical, cross-device sync)
-    const setupClassesListener = () => {
-      const classesQuery = firestoreQuery(collection(db, 'classes'));
-      const unsubscribe = onSnapshot(
-        classesQuery,
-        (snapshot) => {
-          const classes = snapshot.docs
-            .map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }))
-            .sort((a: any, b: any) => (a.order ?? Infinity) - (b.order ?? Infinity));
-          if (classes.length > 0) {
-            queryClient.setQueryData(['classes', 'list'], classes);
-            console.log(`⚡ PRELOADER: Loaded ${classes.length} classes`);
-          }
-        },
-        (error) => console.error('❌ PRELOADER: Classes error:', error.message)
-      );
-      unsubscribers.push(unsubscribe);
-    };
+    // Classes and academic years are mounted above through their revision-owned
+    // persistent cache bootstraps. The disabled block below is retained only as
+    // historical context while this provider is progressively simplified.
+    /*
+     * Historical implementation retained in Git history. Academic years are
+     * now exclusively owned by useAcademicYearCacheBootstrap.
+      // Retired: academic years are owned by useAcademicYearCacheBootstrap.
+      // Keep this no-op temporarily while the remaining preloader code is
+      // being simplified; it must never create a second collection reader.
+      return;
 
-    // 2. 📅 ACADEMIC YEARS — Same 3-phase strategy as pupils:
-    //    Phase 1: Firestore IndexedDB cache (instant, includes term dates)
-    //    Phase 2: Network fetch (cache miss fallback)
-    //    Phase 3: Narrow onSnapshot — only watches documents updated after session start
-    const setupAcademicYearsListener = async () => {
       const sessionStart = Timestamp.now();
 
       const toISO = (v: any): string => {
@@ -181,6 +169,7 @@ export function GlobalDataPreloader() {
 
 
     // 3. 👥 STAFF - Real-time (cross-device sync)
+    */
     const setupStaffListener = () => {
       const staffQuery = firestoreQuery(collection(db, 'staff'));
       const unsubscribe = onSnapshot(
@@ -491,7 +480,10 @@ export function GlobalDataPreloader() {
     };
 
     // 10. 👤 USERS - One-time read (rarely changes)
-    const fetchUsers = async () => {
+    /*
+     * Users, access levels, and events are feature-owned. Keeping their old
+     * eager fetchers disabled prevents accidental reintroduction of dashboard
+     * reads or the former unscoped event cache.
       try {
         const cached = queryClient.getQueryData(['users']);
         if (cached && (cached as any[]).length > 0) return;
@@ -603,6 +595,7 @@ export function GlobalDataPreloader() {
     // 12–13. Parent child-record listeners are driven by the existing
     // family-scoped pupils listener. Child listeners are added or removed only
     // when membership changes, avoiding a second identical pupils subscription.
+    */
     const setupParentRecordsListeners = () => {
       if (!userFamilyId) return;
       const childUnsubscribers = new Map<string, Array<() => void>>();
@@ -671,19 +664,15 @@ export function GlobalDataPreloader() {
         // Dashboard-critical data starts first. Secondary module data begins
         // just afterward so it remains warm for navigation without competing
         // with the first visible dashboard request burst.
-        setupAcademicYearsListener().catch(e => console.error('❌ PRELOADER: Academic years load error:', e));
-
         if (userRole === 'Parent') {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
           const syncParentPupilRecords = setupParentRecordsListeners();
           setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
-          setupClassesListener();
           fetchFees();
           console.log('✅ PARENT PRELOADER: Essential data + pupil records listeners active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
-          setupClassesListener();
           setupStaffListener();
           setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
 
@@ -693,7 +682,6 @@ export function GlobalDataPreloader() {
             void fetchFees();
             void fetchRequirements();
             void fetchUniforms();
-            void fetchEvents();
           }, 1200);
 
           console.log('✅ GLOBAL PRELOADER: Dashboard listeners active; remaining data queued');

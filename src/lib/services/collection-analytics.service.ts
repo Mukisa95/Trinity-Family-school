@@ -1,7 +1,6 @@
 import { PupilsService } from './pupils.service';
 import { PaymentsService } from './payments.service';
 import { FeeStructuresService } from './fee-structures.service';
-import { ClassesService } from './classes.service';
 import type { Pupil, PaymentRecord, FeeStructure, Class } from '@/types';
 
 // Types for analytics
@@ -76,7 +75,8 @@ export class CollectionAnalyticsService {
     academicYearId: string,
     termId: string,
     termStartDate: Date,
-    termEndDate: Date
+    termEndDate: Date,
+    classes: Class[]
   ): Promise<CollectionAnalytics> {
     console.log('🚀 ANALYTICS: Starting batch data load for collection analytics');
     console.log('📅 ANALYTICS: TERM-BASED CALCULATION for:', {
@@ -90,11 +90,10 @@ export class CollectionAnalyticsService {
     try {
       // 🚀 BATCH LOAD: Load all data in parallel for speed
       console.log('🔍 ANALYTICS: Loading TERM-SPECIFIC data (not entire year)...');
-      const [pupils, payments, feeStructures, classes] = await Promise.all([
+      const [pupils, payments, feeStructures] = await Promise.all([
         PupilsService.getActivePupils(),
         PaymentsService.getAllPaymentsByTerm(academicYearId, termId), // ← TERM-SPECIFIC payments
         FeeStructuresService.getByTermAndYear(termId, academicYearId), // ← TERM-SPECIFIC fees
-        ClassesService.getAll()
       ]);
 
       const dataLoadTime = performance.now();
@@ -511,4 +510,3 @@ export class CollectionAnalyticsService {
     return `${start} - ${end}`;
   }
 }
-

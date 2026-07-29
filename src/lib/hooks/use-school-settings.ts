@@ -5,9 +5,15 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useEffect } from 'react';
 
+export type DashboardDataRevisions = NonNullable<SchoolSettings['dataRevisions']>;
+
 export const schoolSettingsKeys = {
   all: ['schoolSettings'] as const,
   settings: () => [...schoolSettingsKeys.all, 'settings'] as const,
+};
+
+export const dashboardDataRevisionKeys = {
+  all: ['dashboardDataRevisions'] as const,
 };
 
 const SETTINGS_DOC_ID = 'school-settings';
@@ -17,50 +23,126 @@ interface SettingsListenerRegistry {
   unsubscribe: () => void;
   refCount: number;
   clients: Set<QueryClient>;
+  fallbackTimer?: ReturnType<typeof setTimeout>;
+  retryTimer?: ReturnType<typeof setTimeout>;
+  recoveryPromise?: Promise<void>;
+  hasSnapshot: boolean;
 }
 
 let settingsListenerRegistry: SettingsListenerRegistry | null = null;
 
+function publishSettings(
+  clients: Set<QueryClient>,
+  settings: SchoolSettings | null,
+  fromCache: boolean,
+) {
+  const revisions = settings?.dataRevisions ?? {};
+
+  clients.forEach(client => {
+    const currentRevisions = client.getQueryData<DashboardDataRevisions>(dashboardDataRevisionKeys.all);
+    if (JSON.stringify(currentRevisions ?? {}) !== JSON.stringify(revisions)) {
+      client.setQueryData(dashboardDataRevisionKeys.all, revisions);
+    }
+
+    const current = client.getQueryData<SchoolSettings | null>(schoolSettingsKeys.settings());
+    const comparableCurrent = current
+      ? { ...current, dataRevisions: undefined }
+      : current;
+    const comparableSettings = settings
+      ? { ...settings, dataRevisions: undefined }
+      : settings;
+    if (!fromCache && current && settings &&
+        JSON.stringify(comparableCurrent) === JSON.stringify(comparableSettings)) {
+      return;
+    }
+    client.setQueryData(schoolSettingsKeys.settings(), settings);
+  });
+}
+
+function recoverSchoolSettings(registry: SettingsListenerRegistry): Promise<void> {
+  if (registry.recoveryPromise) return registry.recoveryPromise;
+
+  registry.recoveryPromise = SchoolSettingsService.getSchoolSettings()
+    .then(settings => {
+      if (settingsListenerRegistry !== registry) return;
+      registry.hasSnapshot = true;
+      publishSettings(registry.clients, settings, false);
+      performance.mark?.('trinity:settings-recovery-ready');
+    })
+    .catch(error => {
+      console.error('School settings recovery read failed:', error);
+    })
+    .finally(() => {
+      registry.recoveryPromise = undefined;
+    });
+
+  return registry.recoveryPromise;
+}
+
+function startSettingsListener(registry: SettingsListenerRegistry) {
+  const docRef = doc(db, COLLECTION_NAME, SETTINGS_DOC_ID);
+  registry.unsubscribe = onSnapshot(
+    docRef,
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      if (settingsListenerRegistry !== registry) return;
+      // An empty cache-only snapshot means "not cached", not "the settings
+      // document does not exist". Keep waiting for the server/recovery read so
+      // cold data caches do not reconcile against a false revision zero.
+      if (!snapshot.exists() && snapshot.metadata.fromCache) return;
+
+      registry.hasSnapshot = true;
+      if (registry.fallbackTimer) clearTimeout(registry.fallbackTimer);
+      registry.fallbackTimer = undefined;
+
+      const settings = snapshot.exists()
+        ? ({ id: snapshot.id, ...snapshot.data() } as unknown as SchoolSettings)
+        : null;
+      publishSettings(registry.clients, settings, snapshot.metadata.fromCache);
+
+      performance.mark?.(
+        snapshot.metadata.fromCache
+          ? 'trinity:settings-cache-ready'
+          : 'trinity:settings-server-synced',
+      );
+    },
+    (error) => {
+      if (settingsListenerRegistry !== registry) return;
+      console.error('Real-time listener error for school settings:', error);
+      void recoverSchoolSettings(registry);
+
+      // Firestore closes a listener after a terminal error. Re-establish the
+      // same singleton listener with a bounded delay; never create a second one.
+      if (!registry.retryTimer) {
+        registry.retryTimer = setTimeout(() => {
+          registry.retryTimer = undefined;
+          if (settingsListenerRegistry === registry && registry.refCount > 0) {
+            startSettingsListener(registry);
+          }
+        }, 5000);
+      }
+    },
+  );
+
+  if (registry.fallbackTimer) clearTimeout(registry.fallbackTimer);
+  registry.fallbackTimer = setTimeout(() => {
+    registry.fallbackTimer = undefined;
+    if (!registry.hasSnapshot && settingsListenerRegistry === registry) {
+      void recoverSchoolSettings(registry);
+    }
+  }, 4000);
+}
+
 function subscribeToSchoolSettings(queryClient: QueryClient) {
   if (!settingsListenerRegistry) {
-    const clients = new Set<QueryClient>([queryClient]);
-    const docRef = doc(db, COLLECTION_NAME, SETTINGS_DOC_ID);
-
-    const unsubscribe = onSnapshot(
-      docRef,
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        const settings = snapshot.exists()
-          ? ({ id: snapshot.id, ...snapshot.data() } as unknown as SchoolSettings)
-          : null;
-
-        clients.forEach(client => {
-          const current = client.getQueryData<SchoolSettings | null>(schoolSettingsKeys.settings());
-          // A server metadata confirmation with identical data must not cause a
-          // new object and a layout-wide rerender.
-          if (!snapshot.metadata.fromCache && current && settings &&
-              JSON.stringify(current) === JSON.stringify(settings)) {
-            return;
-          }
-          client.setQueryData(schoolSettingsKeys.settings(), settings);
-        });
-
-        performance.mark?.(
-          snapshot.metadata.fromCache
-            ? 'trinity:settings-cache-ready'
-            : 'trinity:settings-server-synced',
-        );
-      },
-      (error) => {
-        console.error('Real-time listener error for school settings:', error);
-      },
-    );
-
-    settingsListenerRegistry = {
-      unsubscribe,
+    const registry: SettingsListenerRegistry = {
+      unsubscribe: () => undefined,
       refCount: 0,
-      clients,
+      clients: new Set<QueryClient>([queryClient]),
+      hasSnapshot: false,
     };
+    settingsListenerRegistry = registry;
+    startSettingsListener(registry);
   } else {
     settingsListenerRegistry.clients.add(queryClient);
   }
@@ -72,6 +154,8 @@ function subscribeToSchoolSettings(queryClient: QueryClient) {
     settingsListenerRegistry.refCount -= 1;
     if (settingsListenerRegistry.refCount > 0) return;
     settingsListenerRegistry.unsubscribe();
+    if (settingsListenerRegistry.fallbackTimer) clearTimeout(settingsListenerRegistry.fallbackTimer);
+    if (settingsListenerRegistry.retryTimer) clearTimeout(settingsListenerRegistry.retryTimer);
     settingsListenerRegistry = null;
   };
 }
@@ -117,6 +201,23 @@ export function useSchoolSettings(options?: { enabled?: boolean }) {
     ...query,
     isLoading: options?.enabled !== false && query.data === undefined,
   };
+}
+
+/**
+ * Reuses the singleton school-settings listener. This is an invalidation
+ * signal only; consumers keep their data cache until its token changes.
+ */
+export function useDashboardDataRevisions() {
+  const queryClient = useQueryClient();
+  useSchoolSettings();
+
+  return useQuery({
+    queryKey: dashboardDataRevisionKeys.all,
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    initialData: () => queryClient.getQueryData<DashboardDataRevisions>(dashboardDataRevisionKeys.all),
+  });
 }
 
 export function useUpdateSchoolSettings() {

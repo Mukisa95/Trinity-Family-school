@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
 import { DormitoriesService } from "@/lib/services/dormitories.service";
 import { PupilsService } from "@/lib/services/pupils.service";
-import { ClassesService } from "@/lib/services/classes.service";
+import { useClasses } from "@/lib/hooks/use-classes";
 import { useStaff } from "@/lib/hooks/use-staff";
 import type { Class, Dormitory, Pupil, Guardian } from "@/types";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -40,10 +40,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
     queryKey: ['pupils:all'],
     queryFn: () => PupilsService.getAllPupils(),
   });
-  const { data: classes = [] } = useQuery({
-    queryKey: ['classes:all'],
-    queryFn: () => ClassesService.getAll(),
-  });
+  const { data: classes = [] } = useClasses();
   const { data: staff = [] } = useStaff();
   const { data: allDormitories = [] } = useQuery({
     queryKey: ['dormitories:all'],
@@ -413,5 +410,4 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
     </div>
   );
 }
-
 

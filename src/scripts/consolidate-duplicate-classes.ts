@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, writeBatch, doc, deleteDoc } from 'firebase/firestore';
+import { publishClassesRevision } from './cache-revision-helper';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -219,6 +220,7 @@ async function main() {
     console.log('='.repeat(70));
     
     await consolidateDuplicateClasses();
+    await publishClassesRevision(db);
     
     console.log('\n🎉 CLASS CONSOLIDATION COMPLETED!');
     console.log('='.repeat(70));
@@ -238,4 +240,4 @@ async function main() {
 }
 
 // Run the consolidation
-main(); 
+main();

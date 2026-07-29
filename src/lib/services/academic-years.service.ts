@@ -3,9 +3,7 @@ import {
   doc, 
   getDocs, 
   getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+  writeBatch,
   query, 
   orderBy,
   where,
@@ -14,10 +12,67 @@ import {
 import { db } from '../firebase';
 import { getDocsWithTimeout } from '../utils/firestore-helpers';
 import type { AcademicYear } from '@/types';
+import { bumpAcademicYearsRevisionInBatch } from './dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'academicYears';
 
 export class AcademicYearsService {
+  private static sharedAcademicYears: AcademicYear[] | null = null;
+  private static pendingSharedRefresh: Promise<AcademicYear[]> | null = null;
+  private static sharedReadyPromise: Promise<AcademicYear[]> | null = null;
+  private static resolveSharedReady: ((years: AcademicYear[]) => void) | null = null;
+  private static rejectSharedReady: ((error: unknown) => void) | null = null;
+
+  private static waitForSharedAcademicYears(): Promise<AcademicYear[]> {
+    if (!this.sharedReadyPromise) {
+      this.sharedReadyPromise = new Promise<AcademicYear[]>((resolve, reject) => {
+        this.resolveSharedReady = resolve;
+        this.rejectSharedReady = reject;
+      });
+    }
+    return this.sharedReadyPromise;
+  }
+
+  /** Makes the cache-owner snapshot available to legacy browser consumers. */
+  static hydrateSharedAcademicYears(years: AcademicYear[]): void {
+    this.sharedAcademicYears = years;
+    this.resolveSharedReady?.(years);
+    this.resolveSharedReady = null;
+    this.rejectSharedReady = null;
+    this.sharedReadyPromise = Promise.resolve(years);
+  }
+
+  static clearSharedAcademicYears(): void {
+    this.resolveSharedReady?.([]);
+    this.sharedAcademicYears = null;
+    this.pendingSharedRefresh = null;
+    this.sharedReadyPromise = null;
+    this.resolveSharedReady = null;
+    this.rejectSharedReady = null;
+  }
+
+  /** The cache bootstrap is the only browser caller allowed to start a refresh. */
+  static refreshSharedAcademicYears(load: () => Promise<AcademicYear[]>): Promise<AcademicYear[]> {
+    if (this.pendingSharedRefresh) return this.pendingSharedRefresh;
+
+    const pending = load()
+      .catch(error => {
+        this.rejectSharedReady?.(error);
+        this.sharedReadyPromise = null;
+        this.resolveSharedReady = null;
+        this.rejectSharedReady = null;
+        throw error;
+      })
+      .finally(() => {
+        if (this.pendingSharedRefresh === pending) {
+          this.pendingSharedRefresh = null;
+        }
+      });
+
+    this.pendingSharedRefresh = pending;
+    return pending;
+  }
+
   // Helper method to convert various timestamp formats to ISO string
   private static convertTimestampToISO(timestamp: any): string {
     if (!timestamp) return '';
@@ -58,14 +113,10 @@ export class AcademicYearsService {
     
     return '';
   }
-  static async getAllAcademicYears(): Promise<AcademicYear[]> {
-    try {
-      const q = query(collection(db, COLLECTION_NAME), orderBy('name', 'desc'));
-      // Use cache-first optimized helper - instant if cached
-      // getDocsWithTimeout already includes id in each document
-      const docs = await getDocsWithTimeout<AcademicYear & { id: string }>(q);
-      
-      return docs.map(doc => ({
+  static async getAllForCache(): Promise<AcademicYear[]> {
+    const q = query(collection(db, COLLECTION_NAME), orderBy('name', 'desc'));
+    const docs = await getDocsWithTimeout<AcademicYear & { id: string }>(q);
+    return docs.map(doc => ({
         ...doc,
         startDate: AcademicYearsService.convertTimestampToISO(doc.startDate),
         endDate: AcademicYearsService.convertTimestampToISO(doc.endDate),
@@ -75,6 +126,17 @@ export class AcademicYearsService {
           endDate: AcademicYearsService.convertTimestampToISO(term.endDate),
         })) || []
       })) as AcademicYear[];
+  }
+
+  static async getAllAcademicYears(): Promise<AcademicYear[]> {
+    if (typeof window !== 'undefined') {
+      if (this.sharedAcademicYears) return this.sharedAcademicYears;
+      if (this.pendingSharedRefresh) return this.pendingSharedRefresh;
+      return this.waitForSharedAcademicYears();
+    }
+
+    try {
+      return await this.getAllForCache();
     } catch (error) {
       console.error('Error fetching academic years:', error);
       throw error;
@@ -82,6 +144,10 @@ export class AcademicYearsService {
   }
 
   static async getAcademicYearById(id: string): Promise<AcademicYear | null> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllAcademicYears()).find(year => year.id === id) ?? null;
+    }
+
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const docSnap = await getDoc(docRef);
@@ -108,6 +174,10 @@ export class AcademicYearsService {
   }
 
   static async getActiveAcademicYear(): Promise<AcademicYear | null> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllAcademicYears()).find(year => year.isActive) ?? null;
+    }
+
     try {
       const q = query(collection(db, COLLECTION_NAME), where('isActive', '==', true));
       const querySnapshot = await getDocs(q);
@@ -151,7 +221,11 @@ export class AcademicYearsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(newYear);
       
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedData);
+      const docRef = doc(collection(db, COLLECTION_NAME));
+      const batch = writeBatch(db);
+      batch.set(docRef, cleanedData);
+      bumpAcademicYearsRevisionInBatch(batch);
+      await batch.commit();
       return docRef.id;
     } catch (error) {
       console.error('Error creating academic year:', error);
@@ -184,7 +258,10 @@ export class AcademicYearsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
       
-      await updateDoc(docRef, cleanedData);
+      const batch = writeBatch(db);
+      batch.update(docRef, cleanedData);
+      bumpAcademicYearsRevisionInBatch(batch);
+      await batch.commit();
     } catch (error) {
       console.error('Error updating academic year:', error);
       throw error;
@@ -217,7 +294,10 @@ export class AcademicYearsService {
   static async deleteAcademicYear(id: string): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpAcademicYearsRevisionInBatch(batch);
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting academic year:', error);
       throw error;
@@ -226,18 +306,27 @@ export class AcademicYearsService {
 
   static async setActiveAcademicYear(id: string): Promise<void> {
     try {
-      // First, set all academic years to inactive
-      const allYears = await this.getAllAcademicYears();
-      const updatePromises = allYears.map(year => 
-        this.updateAcademicYear(year.id, { isActive: false })
+      // This read happens only when an administrator explicitly changes the
+      // active year. It avoids touching every historical year on each change.
+      const activeYears = await getDocs(
+        query(collection(db, COLLECTION_NAME), where('isActive', '==', true)),
       );
-      await Promise.all(updatePromises);
+      const isAlreadySoleActiveYear =
+        activeYears.size === 1 && activeYears.docs[0]?.id === id;
+      if (isAlreadySoleActiveYear) return;
 
-      // Then set the specified year as active
-      await this.updateAcademicYear(id, { isActive: true });
+      const batch = writeBatch(db);
+      activeYears.docs.forEach(activeYear => {
+        if (activeYear.id !== id) {
+          batch.update(activeYear.ref, { isActive: false, updatedAt: Timestamp.now() });
+        }
+      });
+      batch.update(doc(db, COLLECTION_NAME, id), { isActive: true, updatedAt: Timestamp.now() });
+      bumpAcademicYearsRevisionInBatch(batch);
+      await batch.commit();
     } catch (error) {
       console.error('Error setting active academic year:', error);
       throw error;
     }
   }
-} 
+}

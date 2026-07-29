@@ -9,15 +9,16 @@ import {
   doc,
   getDocs,
   getDoc,
-  deleteDoc,
-  updateDoc,
   query,
   where,
   serverTimestamp,
-  onSnapshot
+  onSnapshot,
+  writeBatch,
+  type DocumentReference,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { bumpEventsRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
 
 // Query Keys
 export const examKeys = {
@@ -289,11 +290,13 @@ export function useUpdateExam() {
     mutationFn: async ({ id, data }: { id: string; data: UpdateExamData }) => {
       try {
         // Update the exam
-        const examId = await ExamsService.updateExam(id, data);
-
-        // Check if this exam is part of a batch and update associated event
+        // Resolve the optional calendar mirror before committing so the exam,
+        // event, and invalidation revision can share one atomic batch.
         const examDocRef = doc(db, 'exams', id);
         const examDoc = await getDoc(examDocRef);
+        let linkedEvent:
+          | { ref: DocumentReference; data: Record<string, any> }
+          | undefined;
 
         if (examDoc.exists()) {
           const examData = examDoc.data();
@@ -322,13 +325,14 @@ export function useUpdateExam() {
 
               eventUpdateData.updatedAt = serverTimestamp();
 
-              await updateDoc(eventDoc.ref, eventUpdateData);
+              linkedEvent = { ref: eventDoc.ref, data: eventUpdateData };
               console.log(`Updated associated event ${eventDoc.id} with exam changes`);
             }
           }
         }
 
-        return examId;
+        await ExamsService.updateExam(id, data, { linkedEvent });
+        return id;
       } catch (error) {
         console.error('Error updating exam:', error);
         throw error;
@@ -362,7 +366,6 @@ export function useDeleteExam() {
   return useMutation({
     mutationFn: async (examId: string) => {
       try {
-        // First, get the exam to check if it's part of a batch
         const examDocRef = doc(db, 'exams', examId);
         const examDoc = await getDoc(examDocRef);
 
@@ -371,81 +374,33 @@ export function useDeleteExam() {
         }
 
         const examData = examDoc.data();
-        const batchId = examData?.batchId;
+        const batch = writeBatch(db);
+        batch.delete(examDocRef);
 
-        // Delete the exam
-        await deleteDoc(examDocRef);
-        console.log(`Deleted exam: ${examId}`);
-
-        // If this exam was part of a batch, check if there are other exams in the same batch
-        if (batchId) {
-          // Query for other exams in the same batch
-          const batchQuery = query(
-            collection(db, 'exams'),
-            where('batchId', '==', batchId)
-          );
-          const batchSnapshot = await getDocs(batchQuery);
-
-          if (batchSnapshot.empty) {
-            // No more exams in this batch, find and update/delete the associated event
-            console.log(`No more exams in batch ${batchId}, updating associated event`);
-
-            // Find the event that contains this batch
-            const eventsQuery = query(
-              collection(db, 'events'),
-              where('isExamEvent', '==', true),
-              where('examIntegration.examIds', 'array-contains', examId)
-            );
-            const eventsSnapshot = await getDocs(eventsQuery);
-
-            if (!eventsSnapshot.empty) {
-              const eventDoc = eventsSnapshot.docs[0];
-              const eventData = eventDoc.data();
-
-              // Remove the exam ID from the event's examIntegration.examIds
-              const updatedExamIds = eventData.examIntegration?.examIds?.filter((id: string) => id !== examId) || [];
-
-              if (updatedExamIds.length === 0) {
-                // No more exams, delete the event
-                await deleteDoc(eventDoc.ref);
-                console.log(`Deleted event ${eventDoc.id} - no more exams in batch`);
-              } else {
-                // Update the event with remaining exam IDs
-                await updateDoc(eventDoc.ref, {
-                  'examIntegration.examIds': updatedExamIds,
-                  updatedAt: serverTimestamp()
-                });
-                console.log(`Updated event ${eventDoc.id} with remaining exam IDs: ${updatedExamIds}`);
-              }
-            }
-          } else {
-            // There are still exams in the batch, update the associated event
-            console.log(`Batch ${batchId} still has ${batchSnapshot.size} exams, updating associated event`);
-
-            // Find the event that contains this batch
-            const eventsQuery = query(
-              collection(db, 'events'),
-              where('isExamEvent', '==', true),
-              where('examIntegration.examIds', 'array-contains', examId)
-            );
-            const eventsSnapshot = await getDocs(eventsQuery);
-
-            if (!eventsSnapshot.empty) {
-              const eventDoc = eventsSnapshot.docs[0];
-              const eventData = eventDoc.data();
-
-              // Remove the exam ID from the event's examIntegration.examIds
-              const updatedExamIds = eventData.examIntegration?.examIds?.filter((id: string) => id !== examId) || [];
-
-              await updateDoc(eventDoc.ref, {
+        if (examData?.batchId) {
+          const eventsSnapshot = await getDocs(query(
+            collection(db, 'events'),
+            where('isExamEvent', '==', true),
+            where('examIntegration.examIds', 'array-contains', examId),
+          ));
+          if (!eventsSnapshot.empty) {
+            const eventDoc = eventsSnapshot.docs[0];
+            const updatedExamIds =
+              eventDoc.data().examIntegration?.examIds?.filter((id: string) => id !== examId) || [];
+            if (updatedExamIds.length === 0) {
+              batch.delete(eventDoc.ref);
+            } else {
+              batch.update(eventDoc.ref, {
                 'examIntegration.examIds': updatedExamIds,
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
               });
-              console.log(`Updated event ${eventDoc.id} with remaining exam IDs: ${updatedExamIds}`);
             }
           }
         }
 
+        bumpEventsRevisionInBatch(batch);
+        await batch.commit();
+        console.log(`Deleted exam: ${examId}`);
         return examId;
       } catch (error) {
         console.error('Error deleting exam:', error);
@@ -511,7 +466,7 @@ export function useExamResultByExamId(examId: string) {
             ...data,
             createdAt: data.createdAt?.toDate?.() || new Date(),
             updatedAt: data.updatedAt?.toDate?.() || new Date(),
-          } as ExamResult;
+          } as unknown as ExamResult;
 
           // Update cache instantly
           queryClient.setQueryData(examResultKeys.byExam(examId), examResultData);

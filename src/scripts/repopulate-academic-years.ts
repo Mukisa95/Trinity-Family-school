@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, getDocs, query, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import { initialSampleAcademicYears } from '../lib/sample-data';
+import { publishAcademicYearsRevision } from './cache-revision-helper';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCMFVoGNdrBAuPoDjaNpsgionEnkq45JSA",
@@ -106,6 +107,7 @@ async function repopulateAcademicYears() {
       createdCount++;
       existingYearNames.add(yearData.name);
     }
+    if (createdCount + updatedCount > 0) await publishAcademicYearsRevision(db);
     
     console.log(`\n✅ Repopulation complete!`);
     console.log(`   - Created: ${createdCount} new academic years`);

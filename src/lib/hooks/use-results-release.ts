@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ResultsReleaseService } from '@/lib/services/results-release.service';
 import { ExamsService } from '@/lib/services/exams.service';
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import type { ResultReleaseInfo } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -218,6 +218,7 @@ export function useHasReleasedResults(pupilId: string) {
  * This provides complete exam result information including scores, subjects, etc.
  */
 export function useReleasedExamResultsForPupil(pupilId: string) {
+  const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   return useQuery({
     queryKey: ['releasedExamResults', 'pupil', pupilId],
     queryFn: async () => {
@@ -244,7 +245,7 @@ export function useReleasedExamResultsForPupil(pupilId: string) {
           
           if (examDetails?.academicYearId) {
             try {
-              const academicYear = await AcademicYearsService.getAcademicYearById(examDetails.academicYearId);
+              const academicYear = academicYears.find(year => year.id === examDetails.academicYearId);
               if (academicYear) {
                 academicYearName = academicYear.name;
                 
@@ -347,7 +348,7 @@ export function useReleasedExamResultsForPupil(pupilId: string) {
       const results = await Promise.all(examResultsPromises);
       return results.filter(result => result !== null);
     },
-    enabled: !!pupilId,
+    enabled: !!pupilId && !academicYearsLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

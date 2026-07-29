@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import PupilBatchReportFetcher from './PupilBatchReportFetcher';
+import { useClasses } from '@/lib/hooks/use-classes';
 
 // Define API constants directly since we're having import issues
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -30,14 +31,9 @@ const BatchReportGenerator = () => {
     }
   });
 
-  // Fetch classes
-  const { data: classes, isLoading: classesLoading } = useQuery({
-    queryKey: ['classes'],
-    queryFn: async () => {
-      const response = await api.get('/classes');
-      return response.data;
-    }
-  });
+  // Reuse the global class snapshot; report generation must not create a
+  // private class endpoint fetch.
+  const { data: classes = [], isLoading: classesLoading } = useClasses();
 
   const handleGenerateReports = () => {
     if (!selectedExam || !selectedClass) {
@@ -160,4 +156,4 @@ const BatchReportGenerator = () => {
   );
 };
 
-export default BatchReportGenerator; 
+export default BatchReportGenerator;

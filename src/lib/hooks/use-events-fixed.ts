@@ -1,19 +1,17 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import {
   collection,
   doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
   getDocs,
   getDoc,
   query,
   where,
   orderBy,
-  Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -31,8 +29,21 @@ import type {
 } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
-import { liteRead, liteWrite, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
+import { useAcademicNow, useAcademicYears } from './use-academic-years';
+import { useDashboardDataRevisions } from './use-school-settings';
+import { bumpEventsRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
+import { useClasses } from './use-classes';
+import { useSubjects } from './use-subjects';
+import {
+  getEventCacheScope,
+  readEventCache,
+  readEventCacheMetadata,
+  readLegacyExamEventCache,
+  readLegacyExamEventCacheMetadata,
+  writeEventCache,
+  writeLegacyExamEventCache,
+} from '@/lib/cache/event-cache';
+import { LITE_TTL } from '@/lib/cache/lite-cache';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -101,6 +112,8 @@ const convertFirestoreEvent = (doc: any): Event => {
     classIds: data.classIds || [],
     subjectIds: data.subjectIds || [],
     isExamEvent: data.isExamEvent || false,
+    linkedExamId: data.linkedExamId,
+    examIntegration: data.examIntegration,
     isRecurringInstance: data.isRecurringInstance || false,
     parentEventId: data.parentEventId,
     recurrence: data.recurrence || { frequency: 'None' },
@@ -110,62 +123,89 @@ const convertFirestoreEvent = (doc: any): Event => {
     colorCode: data.colorCode || '#3b82f6',
     requiresApproval: data.requiresApproval || false,
     approvedBy: data.approvedBy,
+    approvalStatus: data.approvalStatus,
+    approvedByName: data.approvedByName,
     approvedAt: data.approvedAt ? timestampToDateString(data.approvedAt) : undefined,
+    rejectionReason: data.rejectionReason,
     requiresAttendance: data.requiresAttendance || false,
+    expectedAttendees: data.expectedAttendees || [],
+    actualAttendees: data.actualAttendees || [],
+    attendanceNotes: data.attendanceNotes,
     isPublic: data.isPublic !== false,
     tags: data.tags || [],
     attachments: data.attachments || [],
+    relatedLinks: data.relatedLinks || [],
     customFields: data.customFields || {},
     createdBy: data.createdBy || '',
     createdByName: data.createdByName || '',
     createdAt: data.createdAt ? timestampToDateString(data.createdAt) : new Date().toISOString(),
     updatedAt: data.updatedAt ? timestampToDateString(data.updatedAt) : undefined,
+    updatedBy: data.updatedBy,
+    updatedByName: data.updatedByName,
   };
 };
 
+const convertLocalEvent = (id: string, data: Record<string, unknown>): Event =>
+  convertFirestoreEvent({
+    id,
+    data: () => ({
+      ...data,
+      createdAt: typeof data.createdAt === 'string' ? data.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
 // Convert Event data to Firestore format
-const convertToFirestoreData = (eventData: CreateEventData | UpdateEventData) => {
-  const data: any = {
-    title: eventData.title,
-    type: eventData.type,
-    priority: eventData.priority,
-    status: eventData.status,
-    isAllDay: eventData.isAllDay,
-    targetAudience: eventData.targetAudience || [],
-    isExamEvent: eventData.isExamEvent || false,
-    isRecurringInstance: eventData.isRecurringInstance || false,
-    recurrence: eventData.recurrence || { frequency: 'None' },
-    reminders: eventData.reminders || [],
-    sendReminders: eventData.sendReminders !== false,
-    colorCode: eventData.colorCode || '#3b82f6',
-    requiresApproval: eventData.requiresApproval || false,
-    requiresAttendance: eventData.requiresAttendance || false,
-    isPublic: eventData.isPublic !== false,
-    updatedAt: serverTimestamp(),
+const convertToFirestoreData = (
+  eventData: CreateEventData | UpdateEventData,
+): Record<string, any> => {
+  const isCreate = 'createdBy' in eventData;
+  const data: any = { updatedAt: serverTimestamp() };
+
+  const copyDefined = (field: keyof Event, fallback?: unknown) => {
+    const value = (eventData as any)[field];
+    if (value !== undefined) data[field] = value;
+    else if (isCreate && fallback !== undefined) data[field] = fallback;
   };
 
+  copyDefined('title');
+  copyDefined('type');
+  copyDefined('priority');
+  copyDefined('status');
+  copyDefined('isAllDay', false);
+  copyDefined('targetAudience', []);
+  copyDefined('isExamEvent', false);
+  copyDefined('isRecurringInstance', false);
+  copyDefined('recurrence', { frequency: 'None' });
+  copyDefined('reminders', []);
+  copyDefined('sendReminders', true);
+  copyDefined('colorCode', '#3b82f6');
+  copyDefined('requiresApproval', false);
+  copyDefined('requiresAttendance', false);
+  copyDefined('isPublic', true);
+
   // Only add fields that have actual values (not undefined, null, or empty strings)
-  if (eventData.description) {
+  if (eventData.description !== undefined) {
     data.description = eventData.description;
   }
 
-  if (eventData.location) {
+  if (eventData.location !== undefined) {
     data.location = eventData.location;
   }
 
-  if (eventData.academicYearId) {
+  if (eventData.academicYearId !== undefined) {
     data.academicYearId = eventData.academicYearId;
   }
 
-  if (eventData.termId) {
+  if (eventData.termId !== undefined) {
     data.termId = eventData.termId;
   }
 
-  if (eventData.classIds && eventData.classIds.length > 0) {
+  if (eventData.classIds !== undefined) {
     data.classIds = eventData.classIds;
   }
 
-  if (eventData.subjectIds && eventData.subjectIds.length > 0) {
+  if (eventData.subjectIds !== undefined) {
     data.subjectIds = eventData.subjectIds;
   }
 
@@ -173,15 +213,35 @@ const convertToFirestoreData = (eventData: CreateEventData | UpdateEventData) =>
     data.parentEventId = eventData.parentEventId;
   }
 
-  if (eventData.tags && eventData.tags.length > 0) {
+  if (eventData.linkedExamId) {
+    data.linkedExamId = eventData.linkedExamId;
+  }
+
+  if (eventData.examIntegration) {
+    data.examIntegration = eventData.examIntegration;
+  }
+
+  if (eventData.expectedAttendees !== undefined) {
+    data.expectedAttendees = eventData.expectedAttendees;
+  }
+
+  if ('actualAttendees' in eventData && eventData.actualAttendees !== undefined) {
+    data.actualAttendees = eventData.actualAttendees;
+  }
+
+  if (eventData.attendanceNotes !== undefined) {
+    data.attendanceNotes = eventData.attendanceNotes;
+  }
+
+  if (eventData.tags !== undefined) {
     data.tags = eventData.tags;
   }
 
-  if (eventData.attachments && eventData.attachments.length > 0) {
+  if (eventData.attachments !== undefined) {
     data.attachments = eventData.attachments;
   }
 
-  if (eventData.customFields && Object.keys(eventData.customFields).length > 0) {
+  if (eventData.customFields !== undefined) {
     data.customFields = eventData.customFields;
   }
 
@@ -193,7 +253,7 @@ const convertToFirestoreData = (eventData: CreateEventData | UpdateEventData) =>
     data.startDate = eventData.startDate;
 
     // Only add startTime if it has a value
-    if (eventData.startTime) {
+    if (eventData.startTime !== undefined) {
       data.startTime = eventData.startTime;
     }
   }
@@ -203,7 +263,7 @@ const convertToFirestoreData = (eventData: CreateEventData | UpdateEventData) =>
     data.endDate = eventData.endDate;
 
     // Only add endTime if it has a value
-    if (eventData.endTime) {
+    if (eventData.endTime !== undefined) {
       data.endTime = eventData.endTime;
     }
   }
@@ -214,44 +274,105 @@ const convertToFirestoreData = (eventData: CreateEventData | UpdateEventData) =>
     data.createdAt = serverTimestamp();
   }
 
-  return data;
+  // UpdateEventData is partial. Never send undefined values to Firestore,
+  // otherwise a small edit (for example an exam date) can fail because fields
+  // unrelated to that edit were included as undefined.
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  ) as Record<string, any>;
 };
 
-// The raw/unfiltered events cache key used by GlobalDataPreloader
-const EVENTS_CACHE_KEY = ['events', undefined] as const;
+const eventsBaseCacheKey = (scope: string) => ['events', 'base', scope] as const;
 
-function getCachedEvents(queryClient: ReturnType<typeof useQueryClient>): Event[] | undefined {
-  const inMemory = queryClient.getQueryData<Event[]>(EVENTS_CACHE_KEY);
-  if (inMemory && inMemory.length > 0) return inMemory;
+function getCachedEvents(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+): Event[] | undefined {
+  if (!scope) return undefined;
+  const inMemory = queryClient.getQueryData<Event[]>(eventsBaseCacheKey(scope));
+  if (inMemory) return inMemory;
 
-  const persisted = liteRead<Event[]>(LITE_KEYS.events);
-  return persisted && persisted.length > 0 ? persisted : undefined;
+  return readEventCache(scope)?.data;
 }
 
-function writeCachedEvents(queryClient: ReturnType<typeof useQueryClient>, events: Event[]) {
-  queryClient.setQueryData(EVENTS_CACHE_KEY, events);
-  liteWrite(LITE_KEYS.events, events, LITE_TTL.events);
+function writeCachedEvents(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  revision: number,
+  events: Event[],
+) {
+  if (!scope) return;
+  queryClient.setQueryData(eventsBaseCacheKey(scope), events);
+  writeEventCache(scope, revision, events);
+}
+
+function updateFilteredEventQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  events: Event[],
+  role?: string,
+) {
+  const filteredQueries = queryClient.getQueryCache().findAll({
+    predicate: candidate =>
+      candidate.queryKey[0] === 'events' &&
+      candidate.queryKey[1] === 'filtered' &&
+      candidate.queryKey[2] === scope,
+  });
+  filteredQueries.forEach(candidate => {
+    queryClient.setQueryData(
+      candidate.queryKey,
+      applyEventFilters(
+        events,
+        candidate.queryKey[3] as EventFilters | undefined,
+        role,
+      ),
+    );
+  });
 }
 
 // Get all events with proper error handling
 export function useEvents(filters?: EventFilters) {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions();
+  const [refreshEpoch, setRefreshEpoch] = useState(0);
+  const scope = isAuthenticated
+    ? getEventCacheScope(user?.id, user?.role, user?.familyId)
+    : '';
+  const currentRevision = revisionsQuery.data?.events ?? 0;
+  const revisionsReady = revisionsQuery.data !== undefined;
+  const persisted = readEventCache(scope);
+  const cacheMetadata = readEventCacheMetadata(scope);
+  const cacheIsFresh = !!cacheMetadata &&
+    Date.now() - cacheMetadata.writtenAt < LITE_TTL.events;
+  const revisionMatches = !revisionsReady || persisted?.revision === currentRevision;
+
+  useEffect(() => {
+    if (!cacheMetadata) return;
+    const refreshIn = Math.max(cacheMetadata.writtenAt + LITE_TTL.events - Date.now(), 0);
+    const timer = window.setTimeout(() => setRefreshEpoch(epoch => epoch + 1), refreshIn + 50);
+    return () => window.clearTimeout(timer);
+  }, [cacheMetadata?.writtenAt, refreshEpoch]);
 
   // 🚀 CRITICAL: Read from GlobalDataPreloader's pre-populated cache immediately
-  const cachedData = getCachedEvents(queryClient);
+  const cachedData = getCachedEvents(queryClient, scope);
+  const canUseCachedData = cacheIsFresh && revisionMatches;
 
   return useQuery({
-    queryKey: ['events', filters],
+    queryKey: ['events', 'filtered', scope, filters, 'revision', currentRevision, refreshEpoch],
+    // Wait for the already-mounted settings listener on a cold cache. This
+    // prevents a revision-0 fetch immediately followed by the real revision.
+    // Warm cached calendars still render from initialData before it arrives.
+    enabled: !!scope && revisionsReady,
     queryFn: async () => {
-      // Check if GlobalDataPreloader already populated the cache
-      const currentCache = getCachedEvents(queryClient);
-      if (currentCache && currentCache.length > 0) {
-        queryClient.setQueryData(EVENTS_CACHE_KEY, currentCache);
+      const currentCache = getCachedEvents(queryClient, scope);
+      if (canUseCachedData && currentCache) {
+        queryClient.setQueryData(eventsBaseCacheKey(scope), currentCache);
         if (process.env.NODE_ENV === 'development') {
           console.log(`⚡ useEvents: Using ${currentCache.length} events from preloader cache`);
         }
         // Apply client-side filters and return immediately
-        return applyEventFilters(currentCache, filters);
+        return applyEventFilters(currentCache, filters, user?.role);
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -259,22 +380,28 @@ export function useEvents(filters?: EventFilters) {
       }
 
       try {
-        let eventsQuery = collection(db, EVENTS_COLLECTION);
-        const q = query(eventsQuery, orderBy('startDate', 'desc'));
+        const eventsCollection = collection(db, EVENTS_COLLECTION);
+        // Parent caches must never materialise staff/private events. Avoid an
+        // orderBy here so this privacy boundary needs no composite index.
+        const q = user?.role === 'Parent'
+          ? query(eventsCollection, where('isPublic', '==', true))
+          : query(eventsCollection, orderBy('startDate', 'desc'));
         const snapshot = await getDocs(q);
-        const events = snapshot.docs.map(convertFirestoreEvent);
+        const events = snapshot.docs
+          .map(convertFirestoreEvent)
+          .filter(event => user?.role !== 'Parent' || event.isPublic)
+          .sort((a, b) => b.startDate.localeCompare(a.startDate));
 
-        // Populate the base cache for future calls
-        writeCachedEvents(queryClient, events);
+        writeCachedEvents(queryClient, scope, currentRevision, events);
 
         console.log('Events loaded successfully:', events.length);
-        return applyEventFilters(events, filters);
+        return applyEventFilters(events, filters, user?.role);
       } catch (error) {
         console.error('Error fetching events:', error);
-        return [];
+        throw error;
       }
     },
-    staleTime: Infinity, // GlobalDataPreloader handles ALL initial loads; mutations invalidate on demand
+    staleTime: Infinity,
     gcTime: 60 * 60 * 1000, // 1 hour cache
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -282,24 +409,25 @@ export function useEvents(filters?: EventFilters) {
     refetchInterval: false,
     // 🚀 Use pre-populated cache as initialData for zero-delay rendering
     initialData: () => {
-      if (cachedData && cachedData.length > 0) {
-        return applyEventFilters(cachedData, filters);
+      if (canUseCachedData && cachedData) {
+        return applyEventFilters(cachedData, filters, user?.role);
       }
       return undefined;
     },
     placeholderData: (previousData) => {
-      if (cachedData && cachedData.length > 0) {
-        return applyEventFilters(cachedData, filters);
+      if (canUseCachedData && cachedData) {
+        return applyEventFilters(cachedData, filters, user?.role);
       }
       return previousData;
     },
+    retry: 1,
   });
 }
 
 // Helper: apply all event filters client-side without round-tripping to Firestore
-function applyEventFilters(events: Event[], filters?: EventFilters): Event[] {
-  if (!filters) return events;
-  let result = events;
+function applyEventFilters(events: Event[], filters?: EventFilters, role?: string): Event[] {
+  let result = role === 'Parent' ? events.filter(event => event.isPublic) : events;
+  if (!filters) return result;
 
   if (filters.types?.length) {
     result = result.filter(e => filters.types!.includes(e.type));
@@ -345,31 +473,26 @@ function applyEventFilters(events: Event[], filters?: EventFilters): Event[] {
 
 // Get single event
 export function useEvent(eventId: string) {
-  return useQuery({
-    queryKey: ['events', eventId],
-    queryFn: async () => {
-      try {
-        const docRef = doc(db, EVENTS_COLLECTION, eventId);
-        const docSnap = await getDoc(docRef);
+  const eventsQuery = useEvents();
+  const data = useMemo(
+    () => eventsQuery.data?.find(event => event.id === eventId),
+    [eventId, eventsQuery.data],
+  );
 
-        if (!docSnap.exists()) {
-          throw new Error('Event not found');
-        }
-
-        return convertFirestoreEvent(docSnap);
-      } catch (error) {
-        console.error('Error fetching event:', error);
-        throw error;
-      }
-    },
-    enabled: !!eventId,
-  });
+  return {
+    ...eventsQuery,
+    data,
+    isLoading: !!eventId && eventsQuery.isLoading,
+  };
 }
 
 // Create event
 export function useCreateEvent() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions();
+  const currentRevision = revisionsQuery.data?.events ?? 0;
+  const scope = getEventCacheScope(user?.id, user?.role, user?.familyId);
   const { toast } = useToast();
 
   return useMutation({
@@ -380,9 +503,16 @@ export function useCreateEvent() {
           createdBy: eventData.createdBy || user?.id || '',
         });
 
-        const docRef = await addDoc(collection(db, EVENTS_COLLECTION), data);
-        const docSnap = await getDoc(docRef);
-        return convertFirestoreEvent(docSnap);
+        const docRef = doc(collection(db, EVENTS_COLLECTION));
+        const batch = writeBatch(db);
+        batch.set(docRef, data);
+        bumpEventsRevisionInBatch(batch);
+        await batch.commit();
+        return convertLocalEvent(docRef.id, {
+          ...eventData,
+          createdBy: eventData.createdBy || user?.id || '',
+          createdAt: new Date().toISOString(),
+        });
       } catch (error) {
         console.error('Error creating event:', error);
         throw error;
@@ -391,10 +521,13 @@ export function useCreateEvent() {
     onSuccess: (newEvent) => {
       // 🚀 Directly push the new event into the master cache for instant UI update
       // This eliminates the need for a Firestore re-fetch
-      const existing = getCachedEvents(queryClient) || [];
-      writeCachedEvents(queryClient, [newEvent, ...existing]);
-      // Notify all filtered-query observers to re-render from the updated master cache
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      const existing = getCachedEvents(queryClient, scope);
+      if (existing) {
+        const updated = [newEvent, ...existing.filter(event => event.id !== newEvent.id)];
+        writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
+        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
+      }
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       toast({
         title: "Success",
         description: "Event created successfully",
@@ -413,6 +546,10 @@ export function useCreateEvent() {
 // Update event
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions();
+  const currentRevision = revisionsQuery.data?.events ?? 0;
+  const scope = getEventCacheScope(user?.id, user?.role, user?.familyId);
   const { toast } = useToast();
 
   return useMutation({
@@ -420,41 +557,39 @@ export function useUpdateEvent() {
       try {
         const docRef = doc(db, EVENTS_COLLECTION, eventId);
         const firestoreData = convertToFirestoreData(data);
-        await updateDoc(docRef, firestoreData);
+        const cachedEvent = getCachedEvents(queryClient, scope)?.find(event => event.id === eventId);
+        const existingEvent = cachedEvent ?? convertFirestoreEvent(await getDoc(docRef));
+        const batch = writeBatch(db);
+        batch.update(docRef, firestoreData);
 
-        // Get the updated document
-        const docSnap = await getDoc(docRef);
-        const updatedEvent = convertFirestoreEvent(docSnap);
-
-        // If it's an exam event, update associated exams
-        if (updatedEvent.isExamEvent && updatedEvent.examIntegration?.examIds) {
-          const examIds = updatedEvent.examIntegration.examIds;
-          console.log('Updating associated exams:', examIds);
-
-          // Update all associated exams with new event data
-          const updateExamPromises = examIds.map(async (examId: string) => {
-            const examDocRef = doc(db, 'exams', examId);
-            const examUpdateData: any = {};
-
-            // Update exam fields that correspond to event fields
-            if (data.title) examUpdateData.name = data.title;
-            if (data.startDate) examUpdateData.startDate = data.startDate;
-            if (data.endDate) examUpdateData.endDate = data.endDate;
-            if (data.startTime) examUpdateData.startTime = data.startTime;
-            if (data.endTime) examUpdateData.endTime = data.endTime;
-            if (data.location) examUpdateData.location = data.location;
-            if (data.description) examUpdateData.instructions = data.description;
-
-            examUpdateData.updatedAt = serverTimestamp();
-
-            await updateDoc(examDocRef, examUpdateData);
-            console.log(`Updated exam: ${examId}`);
+        if (existingEvent.isExamEvent && existingEvent.examIntegration?.examIds) {
+          const examIds = existingEvent.examIntegration.examIds;
+          if (examIds.length > 498) {
+            throw new Error('This event has too many linked exams for an atomic update.');
+          }
+          const examUpdateData: Record<string, any> = {
+            updatedAt: serverTimestamp(),
+          };
+          if (data.title !== undefined) examUpdateData.name = data.title;
+          if (data.startDate !== undefined) examUpdateData.startDate = data.startDate;
+          if (data.endDate !== undefined) examUpdateData.endDate = data.endDate;
+          if (data.startTime !== undefined) examUpdateData.startTime = data.startTime;
+          if (data.endTime !== undefined) examUpdateData.endTime = data.endTime;
+          if (data.location !== undefined) examUpdateData.location = data.location;
+          if (data.description !== undefined) examUpdateData.instructions = data.description;
+          examIds.forEach(examId => {
+            batch.update(doc(db, 'exams', examId), examUpdateData);
           });
-
-          await Promise.all(updateExamPromises);
-          console.log('All associated exams updated successfully');
         }
 
+        bumpEventsRevisionInBatch(batch);
+        await batch.commit();
+        const updatedEvent = {
+          ...existingEvent,
+          ...data,
+          id: eventId,
+          updatedAt: new Date().toISOString(),
+        } as Event;
         return updatedEvent;
       } catch (error) {
         console.error('Error updating event:', error);
@@ -463,11 +598,17 @@ export function useUpdateEvent() {
     },
     onSuccess: (event) => {
       // 🚀 Directly replace the updated event in the master cache for instant UI update
-      const existing = getCachedEvents(queryClient) || [];
-      const updated = existing.map(e => e.id === event.id ? event : e);
-      writeCachedEvents(queryClient, updated);
+      const existing = getCachedEvents(queryClient, scope);
+      if (existing) {
+        const hasEvent = existing.some(cachedEvent => cachedEvent.id === event.id);
+        const updated = hasEvent
+          ? existing.map(cachedEvent => cachedEvent.id === event.id ? event : cachedEvent)
+          : [event, ...existing];
+        writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
+        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
+      }
       // Notify all filtered-query observers to re-render from the updated master cache
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
 
       // If it's an exam event, also invalidate exams queries
       if (event.isExamEvent) {
@@ -492,6 +633,10 @@ export function useUpdateEvent() {
 // Delete event
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions();
+  const currentRevision = revisionsQuery.data?.events ?? 0;
+  const scope = getEventCacheScope(user?.id, user?.role, user?.familyId);
   const { toast } = useToast();
 
   return useMutation({
@@ -515,12 +660,6 @@ export function useDeleteEvent() {
           const actualExamId = eventId.replace('exam-', '');
           console.log('Actual exam ID (without prefix):', actualExamId);
 
-          // First, let's see what exams actually exist in the database
-          const allExamsQuery = query(collection(db, 'exams'));
-          const allExamsSnapshot = await getDocs(allExamsQuery);
-          console.log('All exams in database:', allExamsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name || doc.data().title })));
-
-          // Try to find the exam by the actual ID (without prefix)
           const examDocRef = doc(db, 'exams', actualExamId);
           const examDoc = await getDoc(examDocRef);
 
@@ -529,7 +668,10 @@ export function useDeleteEvent() {
             throw new Error(`Exam not found: ${actualExamId}`);
           }
 
-          await deleteDoc(examDocRef);
+          const batch = writeBatch(db);
+          batch.delete(examDocRef);
+          bumpEventsRevisionInBatch(batch);
+          await batch.commit();
           console.log(`Deleted exam: ${actualExamId}`);
 
           return eventId; // Return the original eventId for consistency
@@ -546,34 +688,27 @@ export function useDeleteEvent() {
         if (!eventDoc.exists()) {
           console.error('Event not found in database:', eventId);
 
-          // Let's also try to list all events to see what's available
-          const allEventsQuery = query(collection(db, EVENTS_COLLECTION));
-          const allEventsSnapshot = await getDocs(allEventsQuery);
-          console.log('All events in database:', allEventsSnapshot.docs.map(doc => ({ id: doc.id, title: doc.data().title })));
-
           throw new Error(`Event not found: ${eventId}`);
         }
 
         const eventData = eventDoc.data();
+        const batch = writeBatch(db);
 
-        // If it's an exam event, delete associated exams
+        // If it's an exam event, delete associated exams in the same commit.
         if (eventData?.isExamEvent && eventData?.examIntegration?.examIds) {
-          const examIds = eventData.examIntegration.examIds;
+          const examIds = eventData.examIntegration.examIds as string[];
+          if (examIds.length > 498) {
+            throw new Error('This event has too many linked exams for an atomic delete.');
+          }
           console.log('Deleting associated exams:', examIds);
-
-          // Delete all associated exams
-          const deleteExamPromises = examIds.map(async (examId: string) => {
-            const examDocRef = doc(db, 'exams', examId);
-            await deleteDoc(examDocRef);
-            console.log(`Deleted exam: ${examId}`);
+          examIds.forEach((examId: string) => {
+            batch.delete(doc(db, 'exams', examId));
           });
-
-          await Promise.all(deleteExamPromises);
-          console.log('All associated exams deleted successfully');
         }
 
-        // Delete the event
-        await deleteDoc(eventDocRef);
+        batch.delete(eventDocRef);
+        bumpEventsRevisionInBatch(batch);
+        await batch.commit();
         console.log(`Deleted event: ${eventId}`);
 
         return eventId;
@@ -584,13 +719,16 @@ export function useDeleteEvent() {
     },
     onSuccess: (deletedId) => {
       // 🚀 Directly remove the deleted event from the master cache for instant UI update
-      const existing = getCachedEvents(queryClient) || [];
-      // deletedId may have 'exam-' prefix - strip it for comparison
-      const cleanId = typeof deletedId === 'string' ? deletedId.replace('exam-', '') : deletedId;
-      const filtered = existing.filter(e => e.id !== deletedId && e.id !== cleanId);
-      writeCachedEvents(queryClient, filtered);
+      const existing = getCachedEvents(queryClient, scope);
+      if (existing) {
+        // deletedId may have 'exam-' prefix - strip it for comparison
+        const cleanId = typeof deletedId === 'string' ? deletedId.replace('exam-', '') : deletedId;
+        const filtered = existing.filter(e => e.id !== deletedId && e.id !== cleanId);
+        writeCachedEvents(queryClient, scope, currentRevision + 1, filtered);
+        updateFilteredEventQueries(queryClient, scope, filtered, user?.role);
+      }
       // Notify all filtered-query observers to re-render from the updated master cache
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
       toast({
@@ -611,62 +749,59 @@ export function useDeleteEvent() {
 
 // Get events by type
 export function useEventsByType(type: EventType) {
-  return useQuery({
-    queryKey: ['events', 'type', type],
-    queryFn: async () => {
-      try {
-        const q = query(
-          collection(db, EVENTS_COLLECTION),
-          where('type', '==', type),
-          orderBy('startDate', 'desc')
-        );
-
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(convertFirestoreEvent);
-      } catch (error) {
-        console.error('Error fetching events by type:', error);
-        throw error;
-      }
-    },
-  });
+  return useEvents({ types: [type] });
 }
 
 // Get exam events (for integration with exams component)
 export function useExamEvents() {
-  return useQuery({
-    queryKey: ['events', 'exams'],
-    queryFn: async () => {
-      try {
-        const q = query(
-          collection(db, EVENTS_COLLECTION),
-          where('isExamEvent', '==', true),
-          orderBy('startDate', 'desc')
-        );
-
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(convertFirestoreEvent);
-      } catch (error) {
-        console.error('Error fetching exam events:', error);
-        throw error;
-      }
-    },
-  });
+  return useEvents({ isExamEvent: true });
 }
 
 // Get all exams and convert them to events (for testing)
-export function useExamsAsEvents() {
+export function useExamsAsEvents(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const { data: academicYears = [], isLoading: yearsLoading } = useAcademicYears();
+  const { data: classes = [], isLoading: classesLoading } = useClasses();
+  const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
+  const eventsQuery = useEvents();
+  const revisionsQuery = useDashboardDataRevisions();
+  const [refreshEpoch, setRefreshEpoch] = useState(0);
+  const revision = revisionsQuery.data?.events ?? 0;
+  const scope = isAuthenticated
+    ? getEventCacheScope(user?.id, user?.role, user?.familyId)
+    : '';
+  const persisted = readLegacyExamEventCache(scope);
+  const cacheMetadata = readLegacyExamEventCacheMetadata(scope);
+  const initialData = persisted?.revision === revision ? persisted.data : undefined;
+
+  useEffect(() => {
+    if (!cacheMetadata) return;
+    const refreshIn = Math.max(cacheMetadata.writtenAt + LITE_TTL.events - Date.now(), 0);
+    const timer = window.setTimeout(() => setRefreshEpoch(epoch => epoch + 1), refreshIn + 50);
+    return () => window.clearTimeout(timer);
+  }, [cacheMetadata?.writtenAt, refreshEpoch]);
 
   return useQuery({
-    queryKey: ['exams-as-events'],
+    queryKey: ['exams-as-events', scope, revision, refreshEpoch],
+    enabled:
+      (options?.enabled ?? true) &&
+      !!scope &&
+      !eventsQuery.isLoading &&
+      !yearsLoading &&
+      !classesLoading &&
+      !subjectsLoading,
     queryFn: async () => {
       try {
-        // Classes, subjects, academic years and regular events are already
-        // owned by the preloader/cache. Reuse them first; only a genuine cold
-        // cache falls back to the same Firestore collection read as before.
-        const cachedEvents = getCachedEvents(queryClient);
-        const regularExamEvents = (cachedEvents || (await getDocs(collection(db, EVENTS_COLLECTION))).docs
-          .map(doc => ({ id: doc.id, ...doc.data() })) as any[])
+        // Legacy exam documents have no audience field. Showing an unscoped
+        // projection to parents could reveal another class's exam. Parents use
+        // only canonical public event documents until legacy exams are migrated.
+        if (user?.role === 'Parent') {
+          writeLegacyExamEventCache(scope, revision, []);
+          return [];
+        }
+
+        const regularExamEvents = (eventsQuery.data ?? [])
           .filter((event: any) => event.isExamEvent && event.examIntegration?.examIds);
 
         // Get exam IDs that are already represented as regular events
@@ -702,30 +837,18 @@ export function useExamsAsEvents() {
 
         const exams = filteredExams;
 
-        const cachedClasses = queryClient.getQueryData<any[]>(['classes', 'list']);
-        const classes = cachedClasses || (await getDocs(collection(db, 'classes'))).docs
-          .map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if (!cachedClasses) queryClient.setQueryData(['classes', 'list'], classes);
         console.log('Loaded classes for exam details:', classes.length);
 
-        const cachedSubjects = queryClient.getQueryData<any[]>(['subjects']);
-        const subjects = cachedSubjects || (await getDocs(collection(db, 'subjects'))).docs
-          .map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if (!cachedSubjects) queryClient.setQueryData(['subjects'], subjects);
         console.log('Loaded subjects for exam details:', subjects.length);
         if (subjects.length > 0) {
           console.log('Sample subject data:', subjects[0]);
           console.log('All subject IDs:', subjects.map(s => s.id));
         }
 
-        const cachedAcademicYears = queryClient.getQueryData<any[]>(['academicYears']);
-        const academicYears = cachedAcademicYears || (await getDocs(collection(db, 'academicYears'))).docs
-          .map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if (!cachedAcademicYears) queryClient.setQueryData(['academicYears'], academicYears);
         console.log('Loaded academic years for exam details:', academicYears.length);
 
         // Convert exams to event format with enhanced details
-        const examEvents = exams.map((exam: any) => {
+        const examEvents: Event[] = exams.map((exam: any): Event => {
           // Helper function to format date to YYYY-MM-DD
           const formatDate = (date: any): string => {
             if (!date) return new Date().toISOString().split('T')[0];
@@ -775,7 +898,7 @@ export function useExamsAsEvents() {
                 const singleClass = classes.find(c => possibleClassIds.includes(c.id));
                 if (singleClass) {
                   console.log('Found single class:', singleClass);
-                  return { names: [singleClass.name || singleClass.className || 'Unknown Class'], details: [singleClass] };
+                  return { names: [singleClass.name || 'Unknown Class'], details: [singleClass] };
                 }
               }
 
@@ -808,7 +931,7 @@ export function useExamsAsEvents() {
             });
 
             return {
-              names: classDetails.map(c => c.name || c.className || 'Unknown Class'),
+              names: classDetails.map(c => c.name || 'Unknown Class'),
               details: classDetails
             };
           };
@@ -839,7 +962,7 @@ export function useExamsAsEvents() {
                   const singleSubject = subjects.find((s: any) => s.id === possibleId);
                   if (singleSubject) {
                     console.log('✅ Found single subject by ID:', possibleId, singleSubject);
-                    return { names: [singleSubject.name || singleSubject.subjectName || singleSubject.title || 'Unknown Subject'], details: [singleSubject] };
+                    return { names: [singleSubject.name || 'Unknown Subject'], details: [singleSubject] };
                   } else {
                     console.log('❌ Subject not found for ID:', possibleId);
                   }
@@ -868,7 +991,7 @@ export function useExamsAsEvents() {
 
                 if (matchingSubject) {
                   console.log('✅ Found subject by name match:', matchingSubject);
-                  return { names: [matchingSubject.name || matchingSubject.subjectName || matchingSubject.title], details: [matchingSubject] };
+                  return { names: [matchingSubject.name], details: [matchingSubject] };
                 } else {
                   console.log('📝 Using subject name fallback:', subjectName);
                   return { names: [subjectName], details: [] };
@@ -930,8 +1053,7 @@ export function useExamsAsEvents() {
                 console.log('❌ Subject not found for ID:', subjectId);
                 // Try to find by name if the ID might actually be a name
                 const subjectByName = subjects.find(s =>
-                  (s.name && s.name.toLowerCase() === subjectId.toLowerCase()) ||
-                  (s.subjectName && s.subjectName.toLowerCase() === subjectId.toLowerCase())
+                  s.name && s.name.toLowerCase() === subjectId.toLowerCase()
                 );
                 if (subjectByName) {
                   console.log('✅ Found subject by name instead of ID:', subjectByName);
@@ -942,7 +1064,7 @@ export function useExamsAsEvents() {
             });
 
             return {
-              names: subjectDetails.map(s => s.name || s.subjectName || s.title || s.id || 'Unknown Subject'),
+              names: subjectDetails.map(s => s.name || s.id || 'Unknown Subject'),
               details: subjectDetails
             };
           };
@@ -1069,13 +1191,21 @@ export function useExamsAsEvents() {
           };
         });
 
+        writeLegacyExamEventCache(scope, revision, examEvents);
         console.log('Converted exam events:', examEvents.length);
         return examEvents;
       } catch (error) {
         console.error('Error fetching exams as events:', error);
-        return [];
+        throw error;
       }
     },
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    initialData,
   });
 }
 
@@ -1083,6 +1213,9 @@ export function useExamsAsEvents() {
 export function useCreateEventFromExam() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions();
+  const currentRevision = revisionsQuery.data?.events ?? 0;
+  const scope = getEventCacheScope(user?.id, user?.role, user?.familyId);
   const { toast } = useToast();
 
   return useMutation({
@@ -1106,6 +1239,16 @@ export function useCreateEventFromExam() {
           classIds: [exam.classId].filter(Boolean),
           subjectIds: [exam.subjectId].filter(Boolean),
           isExamEvent: true,
+          linkedExamId: exam.id,
+          examIntegration: {
+            examIds: [exam.id],
+            examName: exam.name,
+            examType: exam.examTypeId || exam.examTypeName,
+            examNature: exam.examNature,
+            maxMarks: exam.maxMarks || 0,
+            passingMarks: exam.passingMarks || 0,
+            classIds: [exam.classId].filter(Boolean),
+          },
           isRecurringInstance: false,
           recurrence: { frequency: 'None' },
           reminders: [
@@ -1127,16 +1270,28 @@ export function useCreateEventFromExam() {
         };
 
         const data = convertToFirestoreData(eventData);
-        const docRef = await addDoc(collection(db, EVENTS_COLLECTION), data);
-        const docSnap = await getDoc(docRef);
-        return convertFirestoreEvent(docSnap);
+        const docRef = doc(collection(db, EVENTS_COLLECTION));
+        const batch = writeBatch(db);
+        batch.set(docRef, data);
+        bumpEventsRevisionInBatch(batch);
+        await batch.commit();
+        return convertLocalEvent(docRef.id, {
+          ...eventData,
+          createdAt: new Date().toISOString(),
+        });
       } catch (error) {
         console.error('Error creating event from exam:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+    onSuccess: (newEvent) => {
+      const existing = getCachedEvents(queryClient, scope);
+      if (existing) {
+        const updated = [newEvent, ...existing.filter(event => event.id !== newEvent.id)];
+        writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
+        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
+      }
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       toast({
         title: "Success",
         description: "Exam event created successfully",
@@ -1154,6 +1309,10 @@ export function useCreateEventFromExam() {
 
 export function useUpdateEventFromExam() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions();
+  const currentRevision = revisionsQuery.data?.events ?? 0;
+  const scope = getEventCacheScope(user?.id, user?.role, user?.familyId);
   const { toast } = useToast();
 
   return useMutation({
@@ -1181,17 +1340,36 @@ export function useUpdateEventFromExam() {
 
         const docRef = doc(db, EVENTS_COLLECTION, eventId);
         const firestoreData = convertToFirestoreData(eventData);
-        await updateDoc(docRef, firestoreData);
+        const batch = writeBatch(db);
+        batch.update(docRef, firestoreData);
+        bumpEventsRevisionInBatch(batch);
+        await batch.commit();
 
-        const docSnap = await getDoc(docRef);
-        return convertFirestoreEvent(docSnap);
+        const cachedEvent = getCachedEvents(queryClient, scope)?.find(event => event.id === eventId);
+        return cachedEvent
+          ? {
+              ...cachedEvent,
+              ...eventData,
+              id: eventId,
+              updatedAt: new Date().toISOString(),
+            } as Event
+          : convertFirestoreEvent(await getDoc(docRef));
       } catch (error) {
         console.error('Error updating event from exam:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+    onSuccess: (updatedEvent) => {
+      const existing = getCachedEvents(queryClient, scope);
+      if (existing) {
+        const hasEvent = existing.some(event => event.id === updatedEvent.id);
+        const updated = hasEvent
+          ? existing.map(event => event.id === updatedEvent.id ? updatedEvent : event)
+          : [updatedEvent, ...existing];
+        writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
+        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
+      }
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       toast({
         title: "Success",
         description: "Exam event updated successfully",
@@ -1209,24 +1387,18 @@ export function useUpdateEventFromExam() {
 
 // Academic Years Integration Hook
 export function useAcademicYearsForEvents() {
-  return useQuery({
-    queryKey: ['academic-years-for-events'],
-    queryFn: async () => {
-      try {
-        // Use the proper AcademicYearsService which handles date conversion correctly
-        return await AcademicYearsService.getAllAcademicYears();
-      } catch (error) {
-        console.error('Error fetching academic years for events:', error);
-        return [];
-      }
-    },
-  });
+  // Academic years are already held live by GlobalDataPreloader. Reusing that
+  // single source removes the calendar card's duplicate collection read.
+  return useAcademicYears();
 }
 
 // Create Exam from Event Hook
 export function useCreateExamFromEvent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { data: classes = [] } = useClasses();
+  const { data: subjects = [] } = useSubjects();
 
   return useMutation({
     mutationFn: async (eventData: {
@@ -1250,6 +1422,7 @@ export function useCreateExamFromEvent() {
     }) => {
       try {
         let createdExamIds: string[];
+        const firestoreBatch = writeBatch(db);
 
         // If existing exam IDs are provided, use them instead of creating new exams
         if (eventData.existingExamIds && eventData.existingExamIds.length > 0) {
@@ -1258,8 +1431,12 @@ export function useCreateExamFromEvent() {
           // Create a single batch ID for all exams
           const batchId = `batch-${Date.now()}`;
 
-          // Create exam instances for each selected class (all in the same batch)
-          const examPromises = eventData.selectedClassIds.map(async (classId) => {
+          if (eventData.selectedClassIds.length > 498) {
+            throw new Error('Too many classes were selected for one atomic exam creation.');
+          }
+
+          // Create exam instances for each selected class in the same atomic commit.
+          createdExamIds = eventData.selectedClassIds.map((classId) => {
             // Get exam type name from the ID
             const examTypeName = getExamTypeName(eventData.examTypeId);
 
@@ -1284,7 +1461,8 @@ export function useCreateExamFromEvent() {
               instructions: eventData.instructions,
             };
 
-            const examRef = await addDoc(collection(db, 'exams'), {
+            const examRef = doc(collection(db, 'exams'));
+            firestoreBatch.set(examRef, {
               ...examData,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
@@ -1292,54 +1470,65 @@ export function useCreateExamFromEvent() {
 
             return examRef.id;
           });
-
-          createdExamIds = await Promise.all(examPromises);
         }
 
-        // Fetch actual class names for the customFields
-        const classesSnapshot = await getDocs(collection(db, 'classes'));
-        const classes = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-
-        // Create class details with actual class names
+        // Resolve labels from the shared class and subject caches. This avoids
+        // private collection reads from the event form.
         const classDetails = eventData.selectedClassIds.map(classId => {
-          const classData = classes.find(c => c.id === classId);
+          const classData = classes.find(classItem => classItem.id === classId);
           return {
             id: classId,
-            name: classData?.name || classData?.className || `Class ${classId}`,
-            className: classData?.name || classData?.className || `Class ${classId}`
+            name: classData?.name || `Class ${classId}`,
+            className: classData?.name || `Class ${classId}`
           };
         });
 
         // Create subject details with actual subject names (if applicable)
         let subjectDetails: any[] = [];
         if (eventData.examNature === 'Subject based') {
-          const subjectsSnapshot = await getDocs(collection(db, 'subjects'));
-          const subjects = subjectsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-
-          const allSubjectIds = Object.values(eventData.perClassSelectedSubjects).flat();
+          const allSubjectIds = Array.from(
+            new Set(Object.values(eventData.perClassSelectedSubjects).flat()),
+          );
           subjectDetails = allSubjectIds.map(subjectId => {
-            const subjectData = subjects.find(s => s.id === subjectId);
+            const subjectData = subjects.find(subject => subject.id === subjectId);
             return {
               id: subjectId,
-              name: subjectData?.name || subjectData?.subjectName || `Subject ${subjectId}`,
-              subjectName: subjectData?.name || subjectData?.subjectName || `Subject ${subjectId}`
+              name: subjectData?.name || `Subject ${subjectId}`,
+              subjectName: subjectData?.name || `Subject ${subjectId}`
             };
           });
         }
 
-        // Also create the calendar event
-        const eventDoc = await addDoc(collection(db, EVENTS_COLLECTION), {
+        // Create the calendar event and revision marker in the same commit as
+        // the exams, so readers can never observe a partially published edit.
+        const eventDoc = doc(collection(db, EVENTS_COLLECTION));
+        firestoreBatch.set(eventDoc, {
           title: eventData.title,
           description: eventData.description,
-          startDate: Timestamp.fromDate(new Date(eventData.startDate)),
-          endDate: Timestamp.fromDate(new Date(eventData.endDate)),
+          startDate: eventData.startDate,
+          endDate: eventData.endDate,
           startTime: eventData.startTime,
           endTime: eventData.endTime,
+          isAllDay: !eventData.startTime && !eventData.endTime,
           location: eventData.location,
           type: 'Academic' as EventType,
           status: 'Scheduled' as EventStatus,
           priority: 'High' as EventPriority,
+          targetAudience: classDetails.map(classItem => classItem.name),
+          classIds: eventData.selectedClassIds,
+          subjectIds: Array.from(
+            new Set(Object.values(eventData.perClassSelectedSubjects).flat()),
+          ),
           isExamEvent: true,
+          isRecurringInstance: false,
+          recurrence: { frequency: 'None' },
+          reminders: [],
+          notificationsSent: [],
+          sendReminders: true,
+          colorCode: '#dc2626',
+          requiresApproval: false,
+          requiresAttendance: true,
+          isPublic: true,
           examIntegration: {
             examIds: createdExamIds,
             examName: eventData.title,
@@ -1361,10 +1550,13 @@ export function useCreateExamFromEvent() {
           },
           academicYearId: eventData.academicYearId,
           termId: eventData.termId,
+          createdBy: user?.id || '',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
+        bumpEventsRevisionInBatch(firestoreBatch);
+        await firestoreBatch.commit();
         return { eventId: eventDoc.id, examIds: createdExamIds };
       } catch (error) {
         console.error('Error creating exam from event:', error);
@@ -1372,7 +1564,7 @@ export function useCreateExamFromEvent() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       toast({
         title: "Exam Scheduled",
@@ -1392,7 +1584,7 @@ export function useCreateExamFromEvent() {
 
 // Get Current Term Helper
 export function useCurrentTerm(academicYears: any[]) {
-  const currentDate = new Date();
+  const currentDate = useAcademicNow();
 
   // First check all years by date (not just isActive)
   for (const year of academicYears) {

@@ -1392,10 +1392,20 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
   const chartData = useMemo(() => {
     if (!classes || !pupils) return [];
 
+    // Classes paint immediately from their persistent cache. Pupil hydration
+    // then updates these counters in one pass without any class read.
+    const countsByClass = new Map<string, { male: number; female: number }>();
+    pupils.forEach(pupil => {
+      if (pupil.status !== 'Active' || !pupil.classId) return;
+      const counts = countsByClass.get(pupil.classId) || { male: 0, female: 0 };
+      if (pupil.gender === 'Male') counts.male += 1;
+      if (pupil.gender === 'Female') counts.female += 1;
+      countsByClass.set(pupil.classId, counts);
+    });
+
     return classes.map(classItem => {
-      const classPupils = pupils.filter(p => p.classId === classItem.id && p.status === 'Active');
-      const male = classPupils.filter(p => p.gender === 'Male').length;
-      const female = classPupils.filter(p => p.gender === 'Female').length;
+      const counts = countsByClass.get(classItem.id) || { male: 0, female: 0 };
+      const { male, female } = counts;
 
       return {
         name: classItem.code || classItem.name,
@@ -2362,7 +2372,9 @@ export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const { user } = useAuth();
-  const [trackerViewport, setTrackerViewport] = useState<'pending' | 'mobile' | 'desktop'>('pending');
+  // Mount the tracker in the server/first client render. The effect may move
+  // it for mobile, but it must not delay its cache hydration or data checks.
+  const [trackerViewport, setTrackerViewport] = useState<'mobile' | 'desktop'>('desktop');
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 1024px)');

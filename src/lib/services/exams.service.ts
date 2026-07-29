@@ -10,10 +10,12 @@ import {
   where,
   orderBy,
   Timestamp,
-  writeBatch
+  writeBatch,
+  type DocumentReference,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Exam, ExamResult, CreateExamData, UpdateExamData } from '@/types';
+import { bumpEventsRevisionInBatch } from './dashboard-cache-revisions.service';
 
 export class ExamsService {
   private static readonly COLLECTION_NAME = 'exams';
@@ -176,7 +178,11 @@ export class ExamsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(newExam);
 
-      const docRef = await addDoc(examsRef, cleanedData);
+      const docRef = doc(examsRef);
+      const batch = writeBatch(db);
+      batch.set(docRef, cleanedData);
+      bumpEventsRevisionInBatch(batch);
+      await batch.commit();
 
       return docRef.id;
     } catch (error) {
@@ -187,6 +193,9 @@ export class ExamsService {
 
   static async createMultipleExams(examsData: CreateExamData[]): Promise<string[]> {
     try {
+      if (examsData.length > 499) {
+        throw new Error('A maximum of 499 exams can be created atomically.');
+      }
       const batch = writeBatch(db);
       const examIds: string[] = [];
 
@@ -204,6 +213,7 @@ export class ExamsService {
         examIds.push(examRef.id);
       }
 
+      bumpEventsRevisionInBatch(batch);
       await batch.commit();
       return examIds;
     } catch (error) {
@@ -212,7 +222,14 @@ export class ExamsService {
     }
   }
 
-  static async updateExam(id: string, examData: UpdateExamData): Promise<void> {
+  static async updateExam(
+    id: string,
+    examData: UpdateExamData,
+    options?: {
+      bumpEventRevision?: boolean;
+      linkedEvent?: { ref: DocumentReference; data: Record<string, any> };
+    },
+  ): Promise<void> {
     try {
       const examRef = doc(db, this.COLLECTION_NAME, id);
       const updateData = {
@@ -223,7 +240,15 @@ export class ExamsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
 
-      await updateDoc(examRef, cleanedData);
+      const batch = writeBatch(db);
+      batch.update(examRef, cleanedData);
+      if (options?.linkedEvent) {
+        batch.update(options.linkedEvent.ref, options.linkedEvent.data);
+      }
+      if (options?.bumpEventRevision !== false) {
+        bumpEventsRevisionInBatch(batch);
+      }
+      await batch.commit();
     } catch (error) {
       console.error('Error updating exam:', error);
       throw error;
@@ -233,7 +258,10 @@ export class ExamsService {
   static async deleteExam(id: string): Promise<void> {
     try {
       const examRef = doc(db, this.COLLECTION_NAME, id);
-      await deleteDoc(examRef);
+      const batch = writeBatch(db);
+      batch.delete(examRef);
+      bumpEventsRevisionInBatch(batch);
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting exam:', error);
       throw error;
@@ -501,4 +529,4 @@ export class ExamsService {
       throw error;
     }
   }
-} 
+}

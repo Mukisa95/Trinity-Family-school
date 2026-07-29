@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, writeBatch, doc, deleteDoc } from 'firebase/firestore';
+import { publishClassesRevision } from './cache-revision-helper';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -162,6 +163,7 @@ async function main() {
     
     // Step 2: Remove fabricated photos and class info from pupils
     await removeFabricatedPhotosAndClassInfo();
+    await publishClassesRevision(db);
     
     console.log('\n🎉 FABRICATED DATA CLEANUP COMPLETED!');
     console.log('='.repeat(60));
@@ -184,4 +186,4 @@ async function main() {
 }
 
 // Run the cleanup
-main(); 
+main();

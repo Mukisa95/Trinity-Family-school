@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useAcademicYears } from './use-academic-years';
+import { useAcademicNow, useAcademicYears } from './use-academic-years';
 import {
   getTermStatusForDate,
   getEffectiveTermForDataDisplay,
@@ -14,22 +14,23 @@ import {
  */
 export function useTermStatus(targetDate?: Date) {
   const { data: academicYears = [], isLoading } = useAcademicYears();
+  const academicNow = useAcademicNow(targetDate);
 
   const termStatus = useMemo(() => {
-    return getTermStatusForDate(academicYears, targetDate);
-  }, [academicYears, targetDate]);
+    return getTermStatusForDate(academicYears, academicNow);
+  }, [academicNow, academicYears]);
 
   const effectiveTerm = useMemo(() => {
-    return getEffectiveTermForDataDisplay(academicYears, targetDate);
-  }, [academicYears, targetDate]);
+    return getEffectiveTermForDataDisplay(academicYears, academicNow);
+  }, [academicNow, academicYears]);
 
   const isRecessMode = useMemo(() => {
-    return shouldDisplayRecessMode(academicYears);
-  }, [academicYears]);
+    return shouldDisplayRecessMode(academicYears, academicNow);
+  }, [academicNow, academicYears]);
 
   const periodMessage = useMemo(() => {
-    return getCurrentPeriodMessage(academicYears);
-  }, [academicYears]);
+    return getCurrentPeriodMessage(academicYears, academicNow);
+  }, [academicNow, academicYears]);
 
   return {
     termStatus,
@@ -67,10 +68,11 @@ export function useRecessMode(targetDate?: Date) {
 export function useCurrentAcademicPeriod(targetDate?: Date) {
   const { data: academicYears = [], isLoading } = useAcademicYears();
   const { termStatus, periodMessage } = useTermStatus(targetDate);
+  const academicNow = useAcademicNow(targetDate);
 
   const detailedMessage = useMemo(() => {
-    return getDetailedPeriodMessage(academicYears);
-  }, [academicYears]);
+    return getDetailedPeriodMessage(academicYears, academicNow);
+  }, [academicNow, academicYears]);
 
   return {
     currentTerm: termStatus.currentTerm,

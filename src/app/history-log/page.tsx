@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { HistoryLogRecord, HistoryLogService } from '@/lib/services/history-log.service';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
-import { ClassesService } from '@/lib/services/classes.service';
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { useClasses } from '@/lib/hooks/use-classes';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -146,6 +146,8 @@ function isSecurityLog(log: HistoryLogRecord) {
 }
 
 export default function HistoryLogPage() {
+  const { data: classes = [] } = useClasses();
+  const { data: academicYears = [] } = useAcademicYears();
   const [logs, setLogs] = useState<HistoryLogRecord[]>([]);
   const [search, setSearch] = useState('');
   const [entity, setEntity] = useState('all');
@@ -179,11 +181,9 @@ export default function HistoryLogPage() {
     // Fetch lookup data in parallel to build resolution maps
     const fetchLookupData = async () => {
       try {
-        const [allPupils, allFees, allClasses, allYears] = await Promise.all([
+        const [allPupils, allFees] = await Promise.all([
           PupilsService.getAllPupils().catch(() => []),
           FeeStructuresService.getAllFeeStructures().catch(() => []),
-          ClassesService.getAll().catch(() => []),
-          AcademicYearsService.getAllAcademicYears().catch(() => []),
         ]);
 
         const pMap: Record<string, string> = {};
@@ -196,27 +196,8 @@ export default function HistoryLogPage() {
           fMap[f.id] = f.name;
         });
 
-        const cMap: Record<string, string> = {};
-        allClasses.forEach((c) => {
-          cMap[c.id] = c.name;
-        });
-
-        const yMap: Record<string, string> = {};
-        const tMap: Record<string, string> = {};
-        allYears.forEach((y) => {
-          yMap[y.id] = y.name;
-          if (y.terms) {
-            y.terms.forEach((t: any) => {
-              tMap[t.id] = t.name;
-            });
-          }
-        });
-
         setPupilsMap(pMap);
         setFeesMap(fMap);
-        setClassesMap(cMap);
-        setYearsMap(yMap);
-        setTermsMap(tMap);
       } catch (error) {
         logger.error('Error fetching lookup data for history logs', error);
       }
@@ -228,6 +209,23 @@ export default function HistoryLogPage() {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    setClassesMap(Object.fromEntries(classes.map(classItem => [classItem.id, classItem.name])));
+  }, [classes]);
+
+  useEffect(() => {
+    const years: Record<string, string> = {};
+    const terms: Record<string, string> = {};
+    academicYears.forEach(year => {
+      years[year.id] = year.name;
+      year.terms?.forEach(term => {
+        terms[term.id] = term.name;
+      });
+    });
+    setYearsMap(years);
+    setTermsMap(terms);
+  }, [academicYears]);
 
   const entities = useMemo(() => {
     return Array.from(new Set(logs.map(log => log.e).filter(Boolean))).sort();

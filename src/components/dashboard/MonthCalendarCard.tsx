@@ -6,7 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, ChevronRight, Loader2, CalendarDays } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronRight, CalendarDays } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useEvents, useExamsAsEvents } from '@/lib/hooks/use-events-fixed';
@@ -37,7 +37,9 @@ export function MonthCalendarCard() {
         academicYearIds: activeAcademicYear ? [activeAcademicYear.id] : [],
     }), [activeAcademicYear?.id]);
 
-    const { data: events = [], isLoading: eventsLoading } = useEvents(filters);
+    const { data: events = [] } = useEvents(filters);
+    // Persisted legacy projection keeps older exams visible without repeating
+    // its supporting reads on every dashboard or calendar mount.
     const examsAsEvents = useExamsAsEvents();
     const ugandaHolidays = useUgandaHolidays(new Date());
 
@@ -131,12 +133,7 @@ export function MonthCalendarCard() {
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
                 <CardContent className="px-2 pb-2 pt-3 flex-1 relative z-20">
-                    {eventsLoading ? (
-                        <div className="h-[290px] flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                        </div>
-                    ) : (
-                        <div className="h-[290px] w-full mini-calendar-wrapper">
+                    <div className="h-[290px] w-full mini-calendar-wrapper">
                             <FullCalendar
                                 plugins={[dayGridPlugin, interactionPlugin]}
                                 initialView="dayGridMonth"
@@ -170,8 +167,7 @@ export function MonthCalendarCard() {
                                     return classes;
                                 }}
                             />
-                        </div>
-                    )}
+                    </div>
                 </CardContent>
             </Card>
 

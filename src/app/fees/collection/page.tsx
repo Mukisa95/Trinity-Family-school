@@ -58,8 +58,8 @@ import { usePrint } from '@/lib/contexts/print-context';
 
 // Services
 import { PupilsService } from '@/lib/services/pupils.service';
-import { ClassesService } from '@/lib/services/classes.service';
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
+import { useClasses } from '@/lib/hooks/use-classes';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { PaymentsService } from '@/lib/services/payments.service';
 
@@ -252,13 +252,7 @@ export default function FeesCollectionPage() {
   };
 
   // Fetch academic years
-  const { data: rawAcademicYears = [], isLoading: isLoadingAcademicYears } = useQuery({
-    queryKey: ['academic-years'],
-    queryFn: async () => {
-      const years = await AcademicYearsService.getAllAcademicYears();
-      return years;
-    }
-  });
+  const { data: rawAcademicYears = [], isLoading: isLoadingAcademicYears } = useAcademicYears();
 
   // Process academic years with current status
   const academicYears = useMemo(() => {
@@ -279,14 +273,8 @@ export default function FeesCollectionPage() {
   // Use the new term status system
   const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
 
-  // Fetch classes
-  const { data: classes = [], isLoading: isLoadingClasses } = useQuery({
-    queryKey: ['classes'],
-    queryFn: async () => {
-      const classesData = await ClassesService.getAll();
-      return classesData;
-    }
-  });
+  // Shared persistent definitions; the Fees page must not create its own class read.
+  const { data: classes = [], isLoading: isLoadingClasses } = useClasses();
 
   // Fetch pupils - now optimized with class-based loading
   const { data: pupils = [], isLoading: isLoadingPupils, isFetching: isFetchingPupils } = useQuery({

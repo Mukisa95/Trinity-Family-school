@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { CollectionAnalyticsService, type CollectionAnalytics } from '../services/collection-analytics.service';
-import { useActiveAcademicYear } from './use-academic-years';
+import { useActiveAcademicYear, useAcademicYears } from './use-academic-years';
+import { useClasses } from './use-classes';
 import { useMemo } from 'react';
+import { detectCurrentTerm } from '@/lib/utils/academic-year-utils';
 
 interface UseCollectionAnalyticsOptions {
   academicYearId?: string;
@@ -26,47 +28,52 @@ export function useCollectionAnalytics({
 
   // Get active academic year and term if not provided
   const { data: activeYear, isLoading: yearLoading } = useActiveAcademicYear();
+  const { data: academicYears = [] } = useAcademicYears();
+  const { data: classes = [], isLoading: classesLoading } = useClasses();
 
   console.log('🔍 ANALYTICS: Academic year data', {
     activeYear,
     yearLoading,
     hasYear: !!activeYear,
     yearId: activeYear?.id,
-    currentTermId: activeYear?.currentTermId,
+    currentTermId: detectCurrentTerm(activeYear)?.id,
     terms: activeYear?.terms?.map(t => ({ id: t.id, start: t.startDate, end: t.endDate }))
   });
 
   // Determine which year and term to use
-  const effectiveYearId = academicYearId || activeYear?.id;
-  const effectiveTermId = termId || activeYear?.currentTermId;
+  const effectiveYear = academicYearId
+    ? academicYears.find(year => year.id === academicYearId)
+    : activeYear;
+  const effectiveYearId = effectiveYear?.id;
+  const effectiveTermId = termId || detectCurrentTerm(effectiveYear)?.id;
 
   // Get term dates from active year
   const termDates = useMemo(() => {
-    if (!activeYear || !effectiveTermId) {
+    if (!effectiveYear || !effectiveTermId) {
       console.warn('⚠️ ANALYTICS: Cannot determine term dates', {
-        hasActiveYear: !!activeYear,
+        hasActiveYear: !!effectiveYear,
         effectiveTermId
       });
       return null;
     }
 
-    const term = activeYear.terms?.find(t => t.id === effectiveTermId);
+    const term = effectiveYear.terms?.find(t => t.id === effectiveTermId);
     if (!term) {
       console.warn('⚠️ ANALYTICS: Term not found in active year', {
         searchingFor: effectiveTermId,
-        availableTerms: activeYear.terms?.map(t => t.id)
+        availableTerms: effectiveYear.terms?.map(t => t.id)
       });
       return null;
     }
 
     const dates = {
-      startDate: term.startDate instanceof Date ? term.startDate : new Date(term.startDate),
-      endDate: term.endDate instanceof Date ? term.endDate : new Date(term.endDate)
+      startDate: new Date(term.startDate),
+      endDate: new Date(term.endDate)
     };
 
     console.log('✅ ANALYTICS: Term dates determined', dates);
     return dates;
-  }, [activeYear, effectiveTermId]);
+  }, [effectiveYear, effectiveTermId]);
 
   // Fetch analytics data
   const {
@@ -105,7 +112,8 @@ export function useCollectionAnalytics({
           effectiveYearId,
           effectiveTermId,
           termDates.startDate,
-          termDates.endDate
+          termDates.endDate,
+          classes
         );
         console.log('✅ ANALYTICS HOOK: Successfully fetched analytics data', result);
         return result;
@@ -114,7 +122,7 @@ export function useCollectionAnalytics({
         throw error;
       }
     },
-    enabled: enabled && !!effectiveYearId && !!effectiveTermId && !!termDates,
+    enabled: enabled && !classesLoading && !!effectiveYearId && !!effectiveTermId && !!termDates,
     staleTime: 0, // 🚀 INSTANT: Use cached data immediately
     gcTime: 10 * 60 * 1000, // 10 minutes cache
     refetchOnMount: false, // 🚀 INSTANT: Don't refetch - use cached data
@@ -122,10 +130,29 @@ export function useCollectionAnalytics({
     retry: 1, // Retry once on failure
   });
 
-  const isLoading = yearLoading || analyticsLoading;
+  const isLoading = yearLoading || classesLoading || analyticsLoading;
+  const resolvedAnalytics = useMemo<CollectionAnalytics | undefined>(() => {
+    if (!analytics) return undefined;
+    const classMap = new Map(classes.map(classItem => [classItem.id, classItem]));
+
+    return {
+      ...analytics,
+      byClass: analytics.byClass
+        .filter(classStats => classMap.has(classStats.classId))
+        .map(classStats => {
+          const currentClass = classMap.get(classStats.classId)!;
+          return {
+            ...classStats,
+            className: currentClass.name,
+            classCode: currentClass.code,
+          };
+        })
+        .sort((left, right) => left.className.localeCompare(right.className)),
+    };
+  }, [analytics, classes]);
 
   return {
-    analytics,
+    analytics: resolvedAnalytics,
     isLoading,
     isFetching,
     error,
@@ -138,8 +165,8 @@ export function useCollectionAnalytics({
     activeYear,
 
     // Helper flags
-    hasData: !!analytics,
-    isEmpty: analytics?.overview.totalPupils === 0
+    hasData: !!resolvedAnalytics,
+    isEmpty: resolvedAnalytics?.overview.totalPupils === 0
   };
 }
 
@@ -149,4 +176,3 @@ export function useCollectionAnalytics({
 export function getCollectionAnalyticsQueryKey(yearId?: string, termId?: string) {
   return ['collection-analytics', yearId, termId];
 }
-

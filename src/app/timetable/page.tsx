@@ -53,7 +53,7 @@ export default function TimetablePage() {
         return now >= new Date(selectedTerm.startDate) && now <= new Date(selectedTerm.endDate);
     }, [viewTerms, termId]);
 
-    const { data: profiles = [], isLoading: profilesLoading, refetch } = useTimetableProfiles(yearId, termId);
+    const { data: profiles = [] } = useTimetableProfiles(yearId, termId);
 
     // Default to first profile if available
     const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null);
@@ -75,7 +75,8 @@ export default function TimetablePage() {
             const { TimetableService } = await import("@/lib/services/timetable.service");
             await TimetableService.deleteTimetable(yearId, termId, activeProfile.id);
             setSelectedProfileId(null);
-            refetch();
+            // The mutation advances this term's revision. The shared timetable
+            // cache refreshes once from that signal; do not add a second read.
         } catch (e) {
             console.error(e);
         }
@@ -90,7 +91,8 @@ export default function TimetablePage() {
         try {
             const { TimetableService } = await import("@/lib/services/timetable.service");
             await TimetableService.renameTimetable(yearId, termId, activeProfile.id, newName.trim());
-            refetch();
+            // The revision listener updates the cached profile list after the
+            // confirmed write, without an eager page-level refetch.
         } catch (e) {
             console.error('Error renaming timetable:', e);
             alert("Failed to rename timetable.");

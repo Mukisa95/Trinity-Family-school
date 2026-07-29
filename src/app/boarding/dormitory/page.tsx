@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClassesService } from "@/lib/services/classes.service";
+import { useClasses } from "@/lib/hooks/use-classes";
 import { PupilsService } from "@/lib/services/pupils.service";
 import { DormitoriesService } from "@/lib/services/dormitories.service";
 import { useStaff } from "@/lib/hooks/use-staff";
@@ -25,10 +25,7 @@ export default function DormitoriesPage() {
     queryKey: ['dormitories'],
     queryFn: () => DormitoriesService.getAll(),
   });
-  const { data: classes = [] } = useQuery({
-    queryKey: ['classes:all'],
-    queryFn: () => ClassesService.getAll(),
-  });
+  const { data: classes = [] } = useClasses();
   const { data: pupils = [] } = useQuery({
     queryKey: ['pupils:all'],
     queryFn: () => PupilsService.getAllPupils(),
@@ -362,5 +359,4 @@ export default function DormitoriesPage() {
     </div>
   );
 }
-
 

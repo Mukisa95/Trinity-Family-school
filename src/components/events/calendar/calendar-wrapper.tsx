@@ -67,7 +67,6 @@ export function CalendarWrapper({
 
   // State management
   const [currentView, setCurrentView] = useState<CalendarViewType | 'term'>(defaultView);
-  const [isMounted, setIsMounted] = useState(false);
   const [selectedTermId, setSelectedTermId] = useState<string>('');
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<string>('');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -84,10 +83,12 @@ export function CalendarWrapper({
   const calendarRef = useRef<FullCalendar>(null);
 
   // Hooks
-  const { data: events = [], isLoading: eventsLoading, error: eventsError } = useEvents(filters);
+  const { data: events = [], error: eventsError } = useEvents(filters);
   const createEventMutation = useCreateEvent();
   const updateEventMutation = useUpdateEvent();
   const deleteEventMutation = useDeleteEvent();
+  // Older exams without canonical event documents come from the same
+  // revision-scoped persistent projection used by the dashboard.
   const examsAsEvents = useExamsAsEvents();
   const ugandaHolidays = useUgandaHolidays(currentDate);
   const { data: academicYears = [], isLoading: isLoadingAcademicYears } = useAcademicYearsForEvents();
@@ -109,10 +110,6 @@ export function CalendarWrapper({
       default: return 'dayGridMonth';
     }
   };
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Set default academic year and term
   useEffect(() => {
@@ -250,18 +247,6 @@ export function CalendarWrapper({
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Please log in to view the calendar.</p>
-      </div>
-    );
-  }
-
-  // Prevent hydration mismatch for calendar and dates
-  if (!isMounted) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
-          <p className="text-lg font-medium text-slate-700">Loading Calendar...</p>
-        </div>
       </div>
     );
   }
@@ -406,22 +391,6 @@ export function CalendarWrapper({
 
   return (
     <div className={`min-h-screen ${className}`}>
-      {/* Modern Loading State */}
-      {eventsLoading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin"></div>
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-slate-700">Loading your events</p>
-              <p className="text-sm text-slate-500">Please wait while we fetch your calendar data...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modern Error State */}
       {eventsError && (
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -446,7 +415,7 @@ export function CalendarWrapper({
       )}
 
       {/* Main Content */}
-      {!eventsLoading && !eventsError && (
+      {!eventsError && (
         <div className="animate-in fade-in duration-500">
           <GlassPageTopBar
             title="Events & Calendar"
@@ -1330,4 +1299,4 @@ export function CalendarWrapper({
       )}
     </div>
   );
-} 
+}

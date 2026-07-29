@@ -23,7 +23,6 @@ import {
 } from '@phosphor-icons/react';
 
 // Services
-import { AcademicYearsService } from '@/lib/services/academic-years.service';
 import { PupilsService } from '@/lib/services/pupils.service';
 
 // Optimized hooks for instant data loading
@@ -535,4 +534,4 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
       </div>
     </div>
   );
-} 
+}

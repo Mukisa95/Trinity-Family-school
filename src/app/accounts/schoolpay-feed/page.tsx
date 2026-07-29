@@ -12,6 +12,7 @@ import { GlassPageTopBar } from '@/components/common/glass-page-top-bar';
 import { useSchoolPayFeedState, type TxStatus } from '@/lib/hooks/use-schoolpay-feed-state';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -316,6 +317,7 @@ function AccessDenied() {
 function FeedContent() {
   const router = useRouter();
   const { markFeedViewed, markTxClicked, getTxStatus } = useSchoolPayFeedState();
+  const { data: academicYears = [] } = useAcademicYears();
 
   const [payments, setPayments] = useState<LivePayment[]>([]);
   const [pupils, setPupils] = useState<Map<string, PupilInfo>>(new Map());
@@ -332,23 +334,15 @@ function FeedContent() {
 
   // ── Load academic year / term labels ─────────────────────────────────────
   useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDocs(collection(db, 'academicYears'));
-        const labels = new Map<string, string>();
-        snap.docs.forEach(doc => {
-          const yr = doc.data();
-          (yr.terms ?? []).forEach((t: any) => {
-            labels.set(`${doc.id}::${t.id}`, `${t.name} ${yr.name}`);
-            labels.set(t.id, `${t.name} ${yr.name}`);
-          });
-        });
-        setAllTermLabels(labels);
-      } catch (e) {
-        console.error('Error loading academic year labels:', e);
-      }
-    })();
-  }, []);
+    const labels = new Map<string, string>();
+    academicYears.forEach(year => {
+      year.terms.forEach(term => {
+        labels.set(`${year.id}::${term.id}`, `${term.name} ${year.name}`);
+        labels.set(term.id, `${term.name} ${year.name}`);
+      });
+    });
+    setAllTermLabels(labels);
+  }, [academicYears]);
 
   // ── Load pupils once ─────────────────────────────────────────────────────
   useEffect(() => {

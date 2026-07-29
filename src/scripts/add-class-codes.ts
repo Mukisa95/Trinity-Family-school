@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { publishClassesRevision } from './cache-revision-helper';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCMFVoGNdrBAuPoDjaNpsgionEnkq45JSA",
@@ -99,6 +100,8 @@ async function addClassCodes() {
       console.log(`Updated class "${classData.name}" with code: ${code}`);
       updatedCount++;
     }
+
+    if (updatedCount > 0) await publishClassesRevision(db);
     
     console.log(`\n✅ Migration completed successfully!`);
     console.log(`📊 Updated ${updatedCount} classes with codes`);
@@ -116,4 +119,4 @@ addClassCodes().then(() => {
 }).catch((error) => {
   console.error('Migration script failed:', error);
   process.exit(1);
-}); 
+});
