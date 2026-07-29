@@ -23,6 +23,8 @@ const academicYearBootstrap = read('src/lib/hooks/use-academic-year-cache-bootst
 const classesService = read('src/lib/services/classes.service.ts');
 const academicYearsService = read('src/lib/services/academic-years.service.ts');
 const firestoreHelpers = read('src/lib/utils/firestore-helpers.ts');
+const classCache = read('src/lib/cache/class-cache.ts');
+const academicYearCache = read('src/lib/cache/academic-year-cache.ts');
 
 assert(
   classesHook.includes('enabled: false') &&
@@ -55,6 +57,13 @@ assert(
     academicYearsService.includes('getDocsFromServerWithTimeout') &&
     firestoreHelpers.includes('Authoritative collection read for revision reconciliation'),
   'Cold owners may paint local data, but only an authoritative server read may stamp a revision.',
+);
+assert(
+  classCache.includes('CLASS_CACHE_SCHEMA = 2') &&
+    academicYearCache.includes('ACADEMIC_YEAR_CACHE_SCHEMA = 2') &&
+    eventCache.includes('EVENT_CACHE_SCHEMA = 2') &&
+    timetableHook.includes('TIMETABLE_CACHE_SCHEMA = 2'),
+  'The corrected rollout must reject empty snapshots written by the initial deployment.',
 );
 assert(
   batchReports.includes('useClasses()') && !batchReports.includes("api.get('/classes')"),

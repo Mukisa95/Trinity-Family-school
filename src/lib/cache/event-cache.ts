@@ -1,7 +1,10 @@
 import type { Event, UserRole } from '@/types';
 import { liteRead, liteReadMetadata, liteWrite, LITE_TTL } from './lite-cache';
 
+const EVENT_CACHE_SCHEMA = 2;
+
 export type EventCacheSnapshot = {
+  schema: number;
   revision: number;
   data: Event[];
 };
@@ -28,7 +31,8 @@ export function getLegacyExamEventCacheKey(scope: string): string {
 
 export function readEventCache(scope: string): EventCacheSnapshot | null {
   if (!scope) return null;
-  return liteRead<EventCacheSnapshot>(getEventCacheKey(scope));
+  const snapshot = liteRead<EventCacheSnapshot>(getEventCacheKey(scope));
+  return snapshot?.schema === EVENT_CACHE_SCHEMA ? snapshot : null;
 }
 
 export function readEventCacheMetadata(scope: string) {
@@ -40,14 +44,15 @@ export function writeEventCache(scope: string, revision: number, events: Event[]
   if (!scope) return;
   liteWrite(
     getEventCacheKey(scope),
-    { revision, data: events } satisfies EventCacheSnapshot,
+    { schema: EVENT_CACHE_SCHEMA, revision, data: events } satisfies EventCacheSnapshot,
     LITE_TTL.events,
   );
 }
 
 export function readLegacyExamEventCache(scope: string): EventCacheSnapshot | null {
   if (!scope) return null;
-  return liteRead<EventCacheSnapshot>(getLegacyExamEventCacheKey(scope));
+  const snapshot = liteRead<EventCacheSnapshot>(getLegacyExamEventCacheKey(scope));
+  return snapshot?.schema === EVENT_CACHE_SCHEMA ? snapshot : null;
 }
 
 export function readLegacyExamEventCacheMetadata(scope: string) {
@@ -63,7 +68,7 @@ export function writeLegacyExamEventCache(
   if (!scope) return;
   liteWrite(
     getLegacyExamEventCacheKey(scope),
-    { revision, data: events } satisfies EventCacheSnapshot,
+    { schema: EVENT_CACHE_SCHEMA, revision, data: events } satisfies EventCacheSnapshot,
     LITE_TTL.events,
   );
 }

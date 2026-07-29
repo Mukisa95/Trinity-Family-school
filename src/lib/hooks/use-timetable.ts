@@ -25,8 +25,10 @@ export const timetableKeys = {
 const STALE_TIME = Infinity;
 const GC_TIME = 24 * 60 * 60 * 1000;
 const TIMETABLE_CACHE_TTL = Number.MAX_SAFE_INTEGER;
+const TIMETABLE_CACHE_SCHEMA = 2;
 
 type TimetableCacheEntry<T> = {
+    schema: number;
     revision: number;
     data: T;
 };
@@ -50,13 +52,17 @@ function timetableCacheKey(
 
 function readTimetableCache<T>(cacheKey: string, revision: number, revisionsReady: boolean): T | undefined {
     const entry = liteRead<TimetableCacheEntry<T>>(cacheKey);
-    if (!entry) return undefined;
+    if (!entry || entry.schema !== TIMETABLE_CACHE_SCHEMA) return undefined;
     if (revisionsReady && entry.revision !== revision) return undefined;
     return entry.data;
 }
 
 function writeTimetableCache<T>(cacheKey: string, revision: number, data: T) {
-    liteWrite(cacheKey, { revision, data } satisfies TimetableCacheEntry<T>, TIMETABLE_CACHE_TTL);
+    liteWrite(
+        cacheKey,
+        { schema: TIMETABLE_CACHE_SCHEMA, revision, data } satisfies TimetableCacheEntry<T>,
+        TIMETABLE_CACHE_TTL,
+    );
 }
 
 function useTimetableRevision(yearId: string, termId: string) {

@@ -2,7 +2,9 @@ import type { AcademicYear } from '@/types';
 import { liteRead, liteWrite } from './lite-cache';
 
 const ACADEMIC_YEAR_CACHE_TTL = Number.MAX_SAFE_INTEGER;
-const ACADEMIC_YEAR_CACHE_SCHEMA = 1;
+// v2 invalidates snapshots that the initial cache rollout may have persisted
+// as empty when a collection request timed out.
+const ACADEMIC_YEAR_CACHE_SCHEMA = 2;
 
 export type AcademicYearCacheSnapshot = {
   schema: number;

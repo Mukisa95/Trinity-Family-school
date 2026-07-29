@@ -2,7 +2,9 @@ import type { Class } from '@/types';
 import { liteRead, liteWrite } from './lite-cache';
 
 const CLASS_CACHE_TTL = Number.MAX_SAFE_INTEGER;
-const CLASS_CACHE_SCHEMA = 1;
+// v2 invalidates snapshots that the initial cache rollout may have persisted
+// as empty when a collection request timed out.
+const CLASS_CACHE_SCHEMA = 2;
 
 export type ClassCacheSnapshot = {
   schema: number;
