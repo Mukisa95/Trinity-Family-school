@@ -53,6 +53,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useExams, useExamResultByExamId, usePupilExamHistory } from '@/lib/hooks/use-exams';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useStaff } from '@/lib/hooks/use-staff';
 import type {
   Exam,
   ExamResult,
@@ -74,6 +75,7 @@ import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { getNextTermDates } from '@/lib/utils/academic-year-utils';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
 import { ExamsService } from '@/lib/services/exams.service';
+import { createStaffNameMap } from '@/lib/utils/staff-names';
 
 // Utility functions for results calculation
 const getGradeColor = (grade: string): string => {
@@ -225,6 +227,7 @@ export default function PupilResultsClient() {
   // Fetch data with the same hooks used in ViewResultsView
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
   const { data: academicYears = [] } = useAcademicYears();
+  const { data: allStaff = [] } = useStaff();
   const examDetails = useMemo(() => exams.find((exam: Exam) => exam.id === examId), [exams, examId]);
 
   const {
@@ -624,36 +627,11 @@ export default function PupilResultsClient() {
 
       // Fetch teachers
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -740,7 +718,7 @@ export default function PupilResultsClient() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer]);
+  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer]);
 
   // Handle TRANS report - show type selection modal first
   const handleTransReport = useCallback(() => {
@@ -862,36 +840,11 @@ export default function PupilResultsClient() {
 
       // Fetch teachers
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -993,7 +946,7 @@ export default function PupilResultsClient() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates]);
+  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates]);
 
   // Generate TRANS report with progress assessment - MUST be before handleReportConfigComplete
   const generateTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
@@ -1112,32 +1065,7 @@ export default function PupilResultsClient() {
           compSubjectSnaps.map((s: any) => s.teacherId)
         )
       ].filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Create single pupil processed result with comparison data
       const processedResultWithComparison = {
@@ -1150,7 +1078,7 @@ export default function PupilResultsClient() {
             const subjectCode = subject.code;
             // Get teacher name from the teachersMap we just built
             const teacherName = subject.teacherId
-              ? (teachersMap.get(subject.teacherId) || 'Not Assigned')
+              ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Not Assigned')
               : 'Not Assigned';
 
             return {
@@ -1184,7 +1112,7 @@ export default function PupilResultsClient() {
       subjectSnaps.forEach(subject => {
         allSubjectsMap.set(subject.code, {
           ...subject,
-          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
           fullMarks: 100
         });
       });
@@ -1193,7 +1121,7 @@ export default function PupilResultsClient() {
           if (!allSubjectsMap.has(subject.code)) {
             allSubjectsMap.set(subject.code, {
               ...subject,
-              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
               fullMarks: 100
             });
           }
@@ -1309,7 +1237,7 @@ export default function PupilResultsClient() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, pupilDetails, pupilId, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates]);
+  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, pupilId, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates]);
 
   // Handle report configuration completion
   const handleReportConfigComplete = useCallback(() => {

@@ -1,4 +1,4 @@
-import { doc, increment, type WriteBatch } from 'firebase/firestore';
+import { doc, increment, type Transaction, type WriteBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const SETTINGS_COLLECTION = 'settings';
@@ -63,6 +63,19 @@ export function bumpAcademicYearsRevisionInBatch(batch: WriteBatch) {
   );
 }
 
+/** Add a staff revision bump to the same batch as its source mutation. */
+export function bumpStaffRevisionInBatch(batch: WriteBatch) {
+  batch.set(
+    schoolSettingsRef(),
+    {
+      dataRevisions: {
+        staff: increment(1),
+      },
+    },
+    { merge: true },
+  );
+}
+
 /** Add an event revision bump to the same batch as its source mutation. */
 export function bumpEventsRevisionInBatch(batch: WriteBatch) {
   batch.set(
@@ -70,6 +83,39 @@ export function bumpEventsRevisionInBatch(batch: WriteBatch) {
     {
       dataRevisions: {
         events: increment(1),
+      },
+    },
+    { merge: true },
+  );
+}
+
+/** Add one attendance-summary revision bump to the same publish batch. */
+export function bumpAttendanceRevisionInBatch(batch: WriteBatch) {
+  batch.set(
+    schoolSettingsRef(),
+    {
+      dataRevisions: {
+        attendance: increment(1),
+      },
+    },
+    { merge: true },
+  );
+}
+
+export function getDashboardRevisionDocumentRef() {
+  return schoolSettingsRef();
+}
+
+/** Publish an exact attendance revision inside the summary transaction. */
+export function setAttendanceRevisionInTransaction(
+  transaction: Transaction,
+  revision: number,
+) {
+  transaction.set(
+    schoolSettingsRef(),
+    {
+      dataRevisions: {
+        attendance: revision,
       },
     },
     { merge: true },

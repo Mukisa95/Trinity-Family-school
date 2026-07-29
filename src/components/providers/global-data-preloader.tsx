@@ -14,6 +14,7 @@ import {
 import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
 import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
+import { useStaffCacheBootstrap } from '@/lib/hooks/use-staff-cache-bootstrap';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
@@ -32,6 +33,7 @@ export function GlobalDataPreloader() {
   const { user, isAuthenticated } = useAuth();
   useClassCacheBootstrap();
   useAcademicYearCacheBootstrap();
+  useStaffCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
   const userFamilyId = user?.familyId;
@@ -59,8 +61,8 @@ export function GlobalDataPreloader() {
     // persistent cache bootstraps. The disabled block below is retained only as
     // historical context while this provider is progressively simplified.
     /*
-     * Historical implementation retained in Git history. Academic years are
-     * now exclusively owned by useAcademicYearCacheBootstrap.
+     * Historical implementation retained in Git history. Academic years and
+     * staff are now exclusively owned by their revision cache bootstraps.
       // Retired: academic years are owned by useAcademicYearCacheBootstrap.
       // Keep this no-op temporarily while the remaining preloader code is
       // being simplified; it must never create a second collection reader.
@@ -168,35 +170,7 @@ export function GlobalDataPreloader() {
     };
 
 
-    // 3. 👥 STAFF - Real-time (cross-device sync)
     */
-    const setupStaffListener = () => {
-      const staffQuery = firestoreQuery(collection(db, 'staff'));
-      const unsubscribe = onSnapshot(
-        staffQuery,
-        (snapshot) => {
-          const staff = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              // ISO strings — not Date objects — for JSON-safe localStorage caching
-              createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
-              updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
-              dateOfBirth: data.dateOfBirth?.toDate?.()?.toISOString?.() ?? null,
-              dateOfJoining: data.dateOfJoining?.toDate?.()?.toISOString?.() ?? null,
-            };
-          });
-          if (staff.length > 0) {
-            queryClient.setQueryData(['staff'], staff);
-            console.log(`⚡ PRELOADER: Loaded ${staff.length} staff members`);
-          }
-        },
-        (error) => console.error('❌ PRELOADER: Staff error:', error.message)
-      );
-      unsubscribers.push(unsubscribe);
-    };
-
     // 4. 📖 SUBJECTS - Real-time (cross-device sync)
     const setupSubjectsListener = () => {
       const subjectsQuery = firestoreQuery(collection(db, 'subjects'));
@@ -613,24 +587,11 @@ export function GlobalDataPreloader() {
           pupilIds.forEach(pupilId => {
             if (childUnsubscribers.has(pupilId)) return;
 
-            const attendanceQuery = firestoreQuery(
-              collection(db, 'attendanceRecords'),
-              where('pupilId', '==', pupilId)
-            );
             const paymentsQuery = firestoreQuery(
               collection(db, 'payments'),
               where('pupilId', '==', pupilId)
             );
 
-            const attendanceUnsubscribe = onSnapshot(
-              attendanceQuery,
-              (snapshot) => {
-                const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                queryClient.setQueryData(['attendance', 'pupil', pupilId], records);
-                console.log(`⚡ PRELOADER: Loaded ${records.length} attendance records for pupil ${pupilId}`);
-              },
-              (error) => console.error('❌ PRELOADER: Attendance error:', error.message)
-            );
             const paymentsUnsubscribe = onSnapshot(
               paymentsQuery,
               (snapshot) => {
@@ -640,7 +601,7 @@ export function GlobalDataPreloader() {
               },
               (error) => console.error('❌ PRELOADER: Payments error:', error.message)
             );
-            childUnsubscribers.set(pupilId, [attendanceUnsubscribe, paymentsUnsubscribe]);
+            childUnsubscribers.set(pupilId, [paymentsUnsubscribe]);
           });
       };
 
@@ -670,10 +631,9 @@ export function GlobalDataPreloader() {
           const syncParentPupilRecords = setupParentRecordsListeners();
           setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           fetchFees();
-          console.log('✅ PARENT PRELOADER: Essential data + pupil records listeners active');
+          console.log('✅ PARENT PRELOADER: Essential data + payment listener active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
-          setupStaffListener();
           setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
 
           deferredTimer = setTimeout(() => {

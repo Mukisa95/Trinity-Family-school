@@ -11,6 +11,7 @@ import {
   where,
   Timestamp,
   serverTimestamp,
+  setDoc,
   writeBatch,
   limit
 } from 'firebase/firestore';
@@ -53,6 +54,10 @@ function parseDateToLocalMidnight(dateValue: string | Date): Date {
 }
 
 const COLLECTION_NAME = 'attendanceRecords';
+
+export function getAttendanceRecordId(date: string, classId: string, pupilId: string): string {
+  return [date.split('T')[0], classId, pupilId].map(encodeURIComponent).join('__');
+}
 
 export class AttendanceService {
   static async getAllAttendanceRecords(): Promise<AttendanceRecord[]> {
@@ -207,7 +212,12 @@ export class AttendanceService {
         recordedAt: Timestamp.now()
       };
 
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), docData);
+      const docRef = doc(
+        db,
+        COLLECTION_NAME,
+        getAttendanceRecordId(recordData.date, recordData.classId, recordData.pupilId),
+      );
+      await setDoc(docRef, docData, { merge: true });
       return docRef.id;
     } catch (error) {
       console.error('Error creating attendance record:', error);
@@ -277,64 +287,20 @@ export class AttendanceService {
         return [];
       }
 
-      // Group by date+classId so we can fetch existing records per session
-      const sessionKeys = [...new Set(records.map(r => `${r.classId}||${r.date}`))];
-      const existingByPupilDate = new Map<string, { id: string }>();
-
-      // For each unique class+date session, query existing records
-      await Promise.all(
-        sessionKeys.map(async (key) => {
-          const [classId, dateStr] = key.split('||');
-          const startTs = Timestamp.fromDate(parseDateToLocalMidnight(dateStr));
-          const endTs = Timestamp.fromDate(new Date(dateStr + 'T23:59:59.999'));
-
-          const q = query(
-            collection(db, COLLECTION_NAME),
-            where('classId', '==', classId),
-            where('date', '>=', startTs),
-            where('date', '<=', endTs)
-          );
-          const snap = await getDocs(q);
-          snap.docs.forEach(d => {
-            const data = d.data() as any;
-            const compositeKey = `${data.pupilId}||${classId}||${dateStr}`;
-            existingByPupilDate.set(compositeKey, { id: d.id });
-          });
-        })
-      );
-
-      // Build a single batch for all operations
+      // Deterministic IDs make this a no-read upsert.
       const batch = writeBatch(db);
       const results: string[] = [];
 
       for (const record of records) {
-        const compositeKey = `${record.pupilId}||${record.classId}||${record.date}`;
-        const existing = existingByPupilDate.get(compositeKey);
-
-        if (existing) {
-          // UPDATE existing document — no new doc created
-          const docRef = doc(db, COLLECTION_NAME, existing.id);
-          batch.update(docRef, {
-            status: record.status,
-            remarks: record.remarks ?? '',
-            recordedBy: record.recordedBy,
-            className: record.className,
-            classCode: record.classCode,
-            updatedAt: Timestamp.now(),
-            recordedAt: Timestamp.now(),
-          });
-          results.push(existing.id);
-        } else {
-          // CREATE new document only if no existing record found
-          const docRef = doc(collection(db, COLLECTION_NAME));
-          const dateTimestamp = Timestamp.fromDate(parseDateToLocalMidnight(record.date));
-          batch.set(docRef, {
-            ...record,
-            date: dateTimestamp,
-            recordedAt: Timestamp.now()
-          });
-          results.push(docRef.id);
-        }
+        const id = getAttendanceRecordId(record.date, record.classId, record.pupilId);
+        const docRef = doc(db, COLLECTION_NAME, id);
+        batch.set(docRef, {
+          ...record,
+          date: Timestamp.fromDate(parseDateToLocalMidnight(record.date)),
+          recordedAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        }, { merge: true });
+        results.push(id);
       }
 
       await batch.commit();

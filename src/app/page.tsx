@@ -61,6 +61,8 @@ import { QuickActionButton } from '@/components/ui/quick-action-button';
 import { useDashboardData } from '@/lib/hooks/use-dashboard-data';
 import { usePupils, useUpdatePupil } from '@/lib/hooks/use-pupils';
 import { useAttendanceByDateRange, useUpdateAttendanceRecord } from '@/lib/hooks/use-attendance';
+import { queueAttendanceSummaryPublication } from '@/lib/services/attendance-summary-outbox';
+import { getAttendanceCacheScope } from '@/lib/cache/attendance-summary-cache';
 import { useExcludedDays } from '@/lib/hooks/use-excluded-days';
 import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
@@ -273,6 +275,10 @@ const PupilRowWithDetails = ({
   historyDuration: 'week' | 'month' | 'term';
   router: any;
 }) => {
+  const { user, isAuthenticated } = useAuth();
+  const attendanceCacheScope = isAuthenticated
+    ? getAttendanceCacheScope(user?.id, user?.role)
+    : '';
   const updateAttendanceMutation = useUpdateAttendanceRecord();
   const updatePupilMutation = useUpdatePupil();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -320,7 +326,11 @@ const PupilRowWithDetails = ({
   }, [historyDuration, activeYear]);
 
   // Fetch attendance history for this pupil
-  const { data: historyRecords = [], isLoading: historyLoading } = useAttendanceByDateRange(dateRange.start, dateRange.end);
+  const { data: historyRecords = [], isLoading: historyLoading } = useAttendanceByDateRange(
+    dateRange.start,
+    dateRange.end,
+    { enabled: showHistory && isMenuOpen },
+  );
 
   // Calculate stats — deduplicate first (re-recorded attendance creates multiple docs per day)
   const stats = useMemo(() => {
@@ -426,8 +436,17 @@ const PupilRowWithDetails = ({
                   className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5 ${attendanceBadgeColor}`}
                   value={attendanceStatus}
                   onChange={async (e) => {
-                    if (!pupil.attendanceRecord?.id) return;
-                    try { await updateAttendanceMutation.mutateAsync({ id: pupil.attendanceRecord.id, data: { status: e.target.value as any } }); } catch { }
+                    const record = pupil.attendanceRecord;
+                    if (!record?.id || !record.classId || !record.pupilId || !record.date) return;
+                    try {
+                      await updateAttendanceMutation.mutateAsync({ id: record.id, data: { status: e.target.value as any } });
+                      queueAttendanceSummaryPublication(
+                        attendanceCacheScope,
+                        format(new Date(record.date), 'yyyy-MM-dd'),
+                        record.classId,
+                        [{ ...record, status: e.target.value as any }],
+                      );
+                    } catch { }
                   }}
                   disabled={updateAttendanceMutation.isPending}
                 >

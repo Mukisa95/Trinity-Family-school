@@ -48,10 +48,11 @@ import { HousesService } from "@/lib/services/houses.service";
 import { formatStaffRoles } from "@/lib/utils/format";
 import { usePupil, usePupilsByFamily, useUpdatePupil } from "@/lib/hooks/use-pupils";
 import { useClasses } from "@/lib/hooks/use-classes";
-import { useStaffById } from "@/lib/hooks/use-staff";
+import { useStaff, useStaffById } from "@/lib/hooks/use-staff";
 import { usePupilExamHistory, useExamResultByExamId, useExams } from "@/lib/hooks/use-exams";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
+import { createStaffNameMap } from "@/lib/utils/staff-names";
 import { generateModernBatchReportPDF, generateTransBatchReportPDF } from '@/components/exam/ModernBatchReportPDF';
 import { getNextTermDates } from '@/lib/utils/academic-year-utils';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
@@ -247,6 +248,7 @@ function PupilDetailContent() {
   const { data: pupil, isLoading: pupilLoading, error } = usePupil(pupilId || '');
   const { data: siblings = [], isLoading: siblingsLoading } = usePupilsByFamily(pupil?.familyId || '');
   const { data: classes = [] } = useClasses();
+  const { data: allStaff = [] } = useStaff();
   const { data: assignedStaff, isLoading: staffLoading } = useStaffById(pupil?.assignedStaffId || '', { enabled: !!pupil?.assignedStaffId });
 
   // 🚀 CRITICAL: Only show loading if we don't have cached data
@@ -2668,33 +2670,10 @@ function PupilDetailContent() {
         Promise.resolve(examResultData.majorSubjects || []),
 
         // Fetch teachers
-        (async () => {
+        (() => {
           const subjectSnaps = examResultData.subjectSnapshots || [];
           const uniqueTeacherIds = [...new Set(subjectSnaps.map((s: any) => s.teacherId).filter(Boolean))];
-          const teachersMap = new Map<string, string>();
-
-          if (uniqueTeacherIds.length > 0) {
-            const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-              try {
-                const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-                if (teacherResponse.ok) {
-                  const teacherData = await teacherResponse.json();
-                  const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                  return { teacherId, teacherName };
-                }
-              } catch (error) {
-                console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-              }
-              return { teacherId, teacherName: 'Unknown Teacher' };
-            });
-
-            const teacherResults = await Promise.all(teacherPromises);
-            teacherResults.forEach(({ teacherId, teacherName }) => {
-              teachersMap.set(teacherId, teacherName);
-            });
-          }
-
-          return teachersMap;
+          return createStaffNameMap(allStaff, uniqueTeacherIds);
         })()
       ]);
 
@@ -2702,7 +2681,7 @@ function PupilDetailContent() {
 
       const subjectSnaps = (examResultData.subjectSnapshots || []).map((subject: any) => {
         const teacherName = subject.teacherId
-          ? (teacherData.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teacherData.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -2786,7 +2765,7 @@ function PupilDetailContent() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [selectedExamId, pupil, examResultData, pupilId, pupilExamHistory, academicYears, schoolSettings, toast, getAcademicYearAndTerm, createProcessedResultForPupil, pdfViewer, updateProgress]);
+  }, [allStaff, selectedExamId, pupil, examResultData, pupilId, pupilExamHistory, academicYears, schoolSettings, toast, getAcademicYearAndTerm, createProcessedResultForPupil, pdfViewer, updateProgress]);
 
   // Handle TRANS report - show type selection modal first
   const handleTransReport = React.useCallback(() => {
@@ -2963,33 +2942,10 @@ function PupilDetailContent() {
 
         Promise.resolve(examResultData.majorSubjects || []),
 
-        (async () => {
+        (() => {
           const subjectSnaps = examResultData.subjectSnapshots || [];
           const uniqueTeacherIds = [...new Set(subjectSnaps.map((s: any) => s.teacherId).filter(Boolean))];
-          const teachersMap = new Map<string, string>();
-
-          if (uniqueTeacherIds.length > 0) {
-            const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-              try {
-                const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-                if (teacherResponse.ok) {
-                  const teacherData = await teacherResponse.json();
-                  const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                  return { teacherId, teacherName };
-                }
-              } catch (error) {
-                console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-              }
-              return { teacherId, teacherName: 'Unknown Teacher' };
-            });
-
-            const teacherResults = await Promise.all(teacherPromises);
-            teacherResults.forEach(({ teacherId, teacherName }) => {
-              teachersMap.set(teacherId, teacherName);
-            });
-          }
-
-          return teachersMap;
+          return createStaffNameMap(allStaff, uniqueTeacherIds);
         })()
       ]);
 
@@ -2997,7 +2953,7 @@ function PupilDetailContent() {
 
       const subjectSnaps = (examResultData.subjectSnapshots || []).map((subject: any) => {
         const teacherName = subject.teacherId
-          ? (teacherData.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teacherData.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -3097,7 +3053,7 @@ function PupilDetailContent() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [selectedExamId, pupil, examResultData, pupilId, pupilExamHistory, academicYears, schoolSettings, toast, getAcademicYearAndTerm, createProcessedResultForPupil, pdfViewer, updateProgress, reportConfig, customDates]);
+  }, [allStaff, selectedExamId, pupil, examResultData, pupilId, pupilExamHistory, academicYears, schoolSettings, toast, getAcademicYearAndTerm, createProcessedResultForPupil, pdfViewer, updateProgress, reportConfig, customDates]);
 
   // Handle report configuration completion - MUST be after generateTransReportWithGrading
   const handleReportConfigComplete = React.useCallback(() => {
@@ -3253,32 +3209,7 @@ function PupilDetailContent() {
           compSubjectSnaps.map((s: any) => s.teacherId)
         )
       ].filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Create single pupil processed result with comparison data
       const processedResultWithComparison = {
@@ -3291,7 +3222,7 @@ function PupilDetailContent() {
             const subjectCode = subject.code || subject.subjectCode;
             // Get teacher name from the teachersMap we just built
             const teacherName = subject.teacherId
-              ? (teachersMap.get(subject.teacherId) || 'Not Assigned')
+              ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Not Assigned')
               : 'Not Assigned';
 
             return {
@@ -3327,7 +3258,7 @@ function PupilDetailContent() {
           ...subject,
           code: subject.code || subject.subjectCode,
           name: subject.name || subject.subjectName,
-          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
           fullMarks: 100
         });
       });
@@ -3339,7 +3270,7 @@ function PupilDetailContent() {
               ...subject,
               code: code,
               name: subject.name || subject.subjectName,
-              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
               fullMarks: 100
             });
           }
@@ -3476,7 +3407,7 @@ function PupilDetailContent() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [selectedExamId, pupil, examResultData, pupilId, pupilExamHistory, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, createProcessedResultForPupil, pdfViewer, updateProgress, reportConfig, customDates]);
+  }, [allStaff, selectedExamId, pupil, examResultData, pupilId, pupilExamHistory, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, createProcessedResultForPupil, pdfViewer, updateProgress, reportConfig, customDates]);
 
   if (!pupilId) {
     return (

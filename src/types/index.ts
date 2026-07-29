@@ -393,6 +393,8 @@ export interface SchoolSettings {
     events?: number;
     classes?: number;
     academicYears?: number;
+    staff?: number;
+    attendance?: number;
   };
   generalInfo: {
     name: string;

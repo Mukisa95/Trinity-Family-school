@@ -111,3 +111,27 @@ test('the credential vault is inaccessible even to active administrators', async
   await assertFails(getDoc(doc(db, 'authCredentials', 'active-admin')));
   await assertFails(setDoc(doc(db, 'authCredentials', 'active-admin'), { passwordHash: 'tampered' }));
 });
+
+test('daily attendance summaries are restricted to staff and administrators', async () => {
+  const adminDb = testEnv.authenticatedContext('active-admin', {
+    appUser: true,
+    isActive: true,
+    role: 'Admin',
+  }).firestore();
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-1',
+  }).firestore();
+  const summaryRef = doc(adminDb, 'attendanceDailySummaries', '2026-07-29');
+
+  await assertSucceeds(setDoc(summaryRef, { date: '2026-07-29', records: [] }));
+  await assertSucceeds(getDoc(summaryRef));
+  await assertFails(getDoc(doc(parentDb, 'attendanceDailySummaries', '2026-07-29')));
+  await assertFails(setDoc(
+    doc(parentDb, 'attendanceDailySummaries', '2026-07-29'),
+    { records: [{ pupilId: 'pupil-1' }] },
+    { merge: true },
+  ));
+});

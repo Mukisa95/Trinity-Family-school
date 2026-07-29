@@ -1,160 +1,137 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/auth-context';
 import { StaffService } from '../services/staff.service';
 import type { Staff } from '@/types';
+import {
+  getStaffCacheScope,
+  normaliseStaff,
+  readStaffCache,
+  writeStaffCache,
+} from '@/lib/cache/staff-cache';
 
+// All normal staff consumers observe one identity-scoped list. The global
+// staff-cache bootstrap is the only browser path allowed to read Firestore.
 export const STAFF_QUERY_KEYS = {
   all: ['staff'] as const,
   lists: () => [...STAFF_QUERY_KEYS.all, 'list'] as const,
-  list: (filters: string) => [...STAFF_QUERY_KEYS.lists(), { filters }] as const,
-  details: () => [...STAFF_QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...STAFF_QUERY_KEYS.details(), id] as const,
-  byDepartment: (department: string) => [...STAFF_QUERY_KEYS.all, 'department', department] as const,
+  list: (scope: string) => [...STAFF_QUERY_KEYS.lists(), scope] as const,
 };
+
+function patchStaffSnapshot(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  patch: (current: Staff[]) => Staff[],
+) {
+  if (!scope) return;
+  const queryKey = STAFF_QUERY_KEYS.list(scope);
+  const current = queryClient.getQueryData<Staff[]>(queryKey) ?? readStaffCache(scope)?.data ?? [];
+  const next = normaliseStaff(patch(current));
+  queryClient.setQueryData(queryKey, next);
+  StaffService.hydrateSharedStaff(next);
+  // The settings revision will perform the one authoritative reconciliation.
+  // -1 must never be presented as a confirmed server revision.
+  writeStaffCache(scope, -1, next);
+}
 
 export function useStaff() {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getStaffCacheScope(user?.id, user?.role) : '';
+  const queryKey = STAFF_QUERY_KEYS.list(scope);
+  const inMemory = queryClient.getQueryData<Staff[]>(queryKey);
+  const persisted = inMemory === undefined ? readStaffCache(scope) : null;
+  const initialData = inMemory ?? persisted?.data;
 
-  // 🚀 CRITICAL: Get cached data immediately to avoid loading state
-  const cachedData = queryClient.getQueryData<Staff[]>(['staff']);
-
-  return useQuery({
-    queryKey: ['staff'],
-    queryFn: async () => {
-      // Check if we already have cached data from real-time listener
-      const currentCachedData = queryClient.getQueryData<Staff[]>(['staff']);
-      if (currentCachedData && currentCachedData.length > 0) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⚡ useStaff: Using ${currentCachedData.length} staff from cache`);
-        }
-        return currentCachedData;
-      }
-
-      // Give the layout-level listener a short head start. It owns the live
-      // subscription for the whole session and normally hydrates the offline
-      // cache immediately, avoiding a duplicate cold-start read here.
-      await new Promise(resolve => setTimeout(resolve, 120));
-      const preloadedData = queryClient.getQueryData<Staff[]>(['staff']);
-      if (preloadedData && preloadedData.length > 0) return preloadedData;
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 useStaff: No cache, fetching from server...');
-      }
-      return StaffService.getAllStaff();
-    },
-    staleTime: Infinity, // GlobalDataPreloader owns the real-time listener
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: cachedData && cachedData.length > 0 ? cachedData : undefined,
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // If we have cached data, use it immediately
-      if (cachedData && cachedData.length > 0) {
-        return cachedData;
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
+  const query = useQuery({
+    queryKey,
+    // Cache-only by design. This makes a page unable to create a private
+    // staff read while the central cache owner is hydrating or reconciling.
+    queryFn: async () => queryClient.getQueryData<Staff[]>(queryKey) ?? [],
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    initialData,
+    initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
+    placeholderData: previousData => previousData,
   });
+
+  return {
+    ...query,
+    isLoading: !!scope && query.data === undefined,
+  };
 }
 
-export function useStaffById(id: string) {
-  const queryClient = useQueryClient();
+export function useStaffById(id: string, options?: { enabled?: boolean }) {
+  const staffQuery = useStaff();
+  const data = useMemo(
+    () => staffQuery.data?.find(staff => staff.id === id),
+    [id, staffQuery.data],
+  );
 
-  // 🚀 CRITICAL: Get cached staff data immediately to find staff by id
-  const cachedStaff = queryClient.getQueryData<Staff[]>(['staff']);
-
-  return useQuery({
-    queryKey: ['staff', id],
-    queryFn: async () => {
-      // 🚀 CRITICAL: If we have cached staff, find by id (instant!)
-      if (cachedStaff && cachedStaff.length > 0 && id) {
-        const foundStaff = cachedStaff.find((staff) => staff.id === id);
-        if (foundStaff) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`⚡ useStaffById: Using staff from cache (instant!)`);
-          }
-          return foundStaff;
-        }
-      }
-
-      // Fallback to service if cache doesn't have this staff
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 useStaffById: No cache, fetching from server...');
-      }
-      return StaffService.getStaffById(id);
-    },
-    enabled: !!id,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: () => {
-      if (cachedStaff && cachedStaff.length > 0 && id) {
-        const foundStaff = cachedStaff.find((staff) => staff.id === id);
-        return foundStaff || undefined;
-      }
-      return undefined;
-    },
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // If we have cached staff, find and use it immediately
-      if (cachedStaff && cachedStaff.length > 0 && id) {
-        const foundStaff = cachedStaff.find((staff) => staff.id === id);
-        if (foundStaff) {
-          return foundStaff;
-        }
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
-  });
+  return {
+    ...staffQuery,
+    data,
+    isLoading: options?.enabled !== false && !!id && staffQuery.isLoading,
+  };
 }
 
 export function useStaffByDepartment(department: string) {
-  return useQuery({
-    queryKey: STAFF_QUERY_KEYS.byDepartment(department),
-    queryFn: () => StaffService.getStaffByDepartment(department),
-    enabled: !!department,
-  });
+  const staffQuery = useStaff();
+  const data = useMemo(
+    () => (staffQuery.data ?? []).filter(staff => staff.department?.includes(department)),
+    [department, staffQuery.data],
+  );
+
+  return {
+    ...staffQuery,
+    data,
+    isLoading: !!department && staffQuery.isLoading,
+  };
 }
 
 export function useCreateStaff() {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getStaffCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
-    mutationFn: (staffData: Omit<Staff, 'id' | 'createdAt'>) =>
-      StaffService.createStaff(staffData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.all });
+    mutationFn: (staffData: Omit<Staff, 'id' | 'createdAt'>) => StaffService.createStaff(staffData),
+    onSuccess: created => {
+      patchStaffSnapshot(queryClient, scope, current => [...current, created]);
     },
   });
 }
 
 export function useUpdateStaff() {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getStaffCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Staff, 'id' | 'createdAt'>> }) =>
       StaffService.updateStaff(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.detail(id) });
+    onSuccess: (updated, { id }) => {
+      patchStaffSnapshot(queryClient, scope, current => current.map(staff =>
+        staff.id === id ? { ...staff, ...updated, id } : staff,
+      ));
     },
   });
 }
 
 export function useDeleteStaff() {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getStaffCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: (id: string) => StaffService.deleteStaff(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: STAFF_QUERY_KEYS.all });
+    onSuccess: (_, id) => {
+      patchStaffSnapshot(queryClient, scope, current => current.filter(staff => staff.id !== id));
     },
   });
 }

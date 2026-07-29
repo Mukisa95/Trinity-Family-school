@@ -70,6 +70,7 @@ import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useStaff } from '@/lib/hooks/use-staff';
+import { createStaffNameMap } from '@/lib/utils/staff-names';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolSettingsService } from '@/lib/services/school-settings.service';
 import Link from 'next/link';
@@ -1898,37 +1899,11 @@ export default function ViewResultsView() {
 
       // 🚀 OPTIMIZED: Batch fetch all teachers in parallel
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter((teacherId): teacherId is string => Boolean(teacherId)))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          // Use batch API if available, otherwise parallel individual calls
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -2079,36 +2054,11 @@ export default function ViewResultsView() {
 
       // Fetch teachers
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter((teacherId): teacherId is string => Boolean(teacherId)))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -2329,39 +2279,14 @@ export default function ViewResultsView() {
           compSubjectSnaps.map((s: any) => s.teacherId)
         )
       ].filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-
-      if (uniqueTeacherIds.length > 0) {
-        try {
-          const teacherPromises = uniqueTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName} ${teacherData.lastName}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error batch fetching teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Create enhanced subject snaps with all subjects from all exams
       const allSubjectsMap = new Map<string, any>();
       subjectSnaps.forEach(subject => {
         allSubjectsMap.set(subject.code, {
           ...subject,
-          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
           fullMarks: 100
         });
       });
@@ -2370,7 +2295,7 @@ export default function ViewResultsView() {
           if (!allSubjectsMap.has(subject.code)) {
             allSubjectsMap.set(subject.code, {
               ...subject,
-              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
               fullMarks: 100
             });
           }
@@ -2803,47 +2728,12 @@ export default function ViewResultsView() {
 
       // 🚀 OPTIMIZED: Look up teachers from allStaff cache first
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-      const missingTeacherIds: string[] = [];
-
-      uniqueTeacherIds.forEach((teacherId) => {
-        const staffDoc = allStaff.find((s) => s.id === teacherId);
-        if (staffDoc) {
-          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
-        } else {
-          missingTeacherIds.push(teacherId);
-        }
-      });
-
-      if (missingTeacherIds.length > 0) {
-        try {
-          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error fetching missing teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Map teachers to subjects
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -3184,47 +3074,12 @@ export default function ViewResultsView() {
 
       // 🚀 OPTIMIZED: Look up teachers from allStaff cache first
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-      const missingTeacherIds: string[] = [];
-
-      uniqueTeacherIds.forEach((teacherId) => {
-        const staffDoc = allStaff.find((s) => s.id === teacherId);
-        if (staffDoc) {
-          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
-        } else {
-          missingTeacherIds.push(teacherId);
-        }
-      });
-
-      if (missingTeacherIds.length > 0) {
-        try {
-          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error fetching missing teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Map teachers to subjects
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {
@@ -3544,49 +3399,14 @@ export default function ViewResultsView() {
           compSubjectSnaps.map((s: any) => s.teacherId)
         )
       ].filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-      const missingTeacherIds: string[] = [];
-
-      uniqueTeacherIds.forEach((teacherId) => {
-        const staffDoc = allStaff.find((s) => s.id === teacherId);
-        if (staffDoc) {
-          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
-        } else {
-          missingTeacherIds.push(teacherId);
-        }
-      });
-
-      if (missingTeacherIds.length > 0) {
-        try {
-          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error fetching missing teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Create enhanced subject snaps with all subjects from all exams
       const allSubjectsMap = new Map<string, any>();
       subjectSnaps.forEach(subject => {
         allSubjectsMap.set(subject.code, {
           ...subject,
-          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+          teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
           fullMarks: 100
         });
       });
@@ -3595,7 +3415,7 @@ export default function ViewResultsView() {
           if (!allSubjectsMap.has(subject.code)) {
             allSubjectsMap.set(subject.code, {
               ...subject,
-              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher') : 'Not Assigned',
+              teacherName: subject.teacherId ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher') : 'Not Assigned',
               fullMarks: 100
             });
           }
@@ -3809,47 +3629,12 @@ export default function ViewResultsView() {
 
       // 🚀 OPTIMIZED: Look up teachers from allStaff cache first
       const uniqueTeacherIds = [...new Set(subjectSnaps.map(s => s.teacherId).filter(Boolean))];
-      const teachersMap = new Map<string, string>();
-      const missingTeacherIds: string[] = [];
-
-      uniqueTeacherIds.forEach((teacherId) => {
-        const staffDoc = allStaff.find((s) => s.id === teacherId);
-        if (staffDoc) {
-          teachersMap.set(teacherId, `${staffDoc.firstName || ''} ${staffDoc.lastName || ''}`.trim());
-        } else {
-          missingTeacherIds.push(teacherId);
-        }
-      });
-
-      if (missingTeacherIds.length > 0) {
-        try {
-          const teacherPromises = missingTeacherIds.map(async (teacherId) => {
-            try {
-              const teacherResponse = await fetch(`/api/staff/${teacherId}`);
-              if (teacherResponse.ok) {
-                const teacherData = await teacherResponse.json();
-                const teacherName = `${teacherData.firstName || ''} ${teacherData.lastName || ''}`.trim();
-                return { teacherId, teacherName };
-              }
-            } catch (error) {
-              console.warn(`Failed to fetch teacher ${teacherId}:`, error);
-            }
-            return { teacherId, teacherName: 'Unknown Teacher' };
-          });
-
-          const teacherResults = await Promise.all(teacherPromises);
-          teacherResults.forEach(({ teacherId, teacherName }) => {
-            teachersMap.set(teacherId, teacherName);
-          });
-        } catch (error) {
-          console.warn('Error fetching missing teachers:', error);
-        }
-      }
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
 
       // Map teachers to subjects
       const enhancedSubjectSnaps = subjectSnaps.map((subject) => {
         const teacherName = subject.teacherId
-          ? (teachersMap.get(subject.teacherId) || 'Unknown Teacher')
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
           : 'Not Assigned';
 
         return {

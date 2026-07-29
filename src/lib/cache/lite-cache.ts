@@ -14,7 +14,8 @@
  * - This cache is SURGICAL: only 3 small, rarely-changing collections
  *   (~50–100KB total) written ONCE when the preloader first loads them.
  *
- * Collections persisted here: academicYears, events, photos
+ * Collections persisted here: academicYears, events, photos, and published
+ * daily attendance summaries.
  * Each has its own TTL. Mutations must call liteInvalidate() to force refresh.
  */
 
@@ -28,6 +29,10 @@ export const LITE_TTL = {
   events: 48 * 60 * 60 * 1000,
   // Photos rarely change — 24-hour TTL
   photos: 24 * 60 * 60 * 1000,
+  // Attendance summaries are published after a recording session and are
+  // reconciled by the shared attendance revision. Keep a warm daily snapshot
+  // available across reloads without turning attendance into a daily query.
+  attendance: 48 * 60 * 60 * 1000,
 } as const;
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;

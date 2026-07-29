@@ -43,7 +43,11 @@ import {
   useBulkUpdateAttendanceRecords,
   useUpdateAttendanceRecord
 } from "@/lib/hooks/use-attendance";
-import { AttendanceService } from "@/lib/services/attendance.service";
+import { AttendanceService, getAttendanceRecordId } from "@/lib/services/attendance.service";
+import {
+  queueAttendanceSummaryPublication,
+  flushAttendanceSummarySession,
+} from "@/lib/services/attendance-summary-outbox";
 import { useRecordSignatures } from "@/lib/hooks/use-digital-signature";
 import { DigitalSignatureDisplay } from "@/components/common/digital-signature-display";
 import { AttendanceSignatureDisplay } from "@/components/attendance/AttendanceSignatureDisplay";
@@ -56,10 +60,45 @@ import {
   getAttendanceRecordingStatus
 } from "@/lib/utils/attendance-academic-utils";
 import { wasPupilActiveOnDate } from "@/lib/utils/pupil-status-utils";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { getAttendanceCacheScope } from "@/lib/cache/attendance-summary-cache";
 
 interface PupilAttendanceEntry {
   status: AttendanceStatus | "";
   remarks: string;
+}
+
+function buildSessionRecords(
+  date: string,
+  classId: string,
+  entries: Record<string, PupilAttendanceEntry>,
+  existing: AttendanceRecord[],
+  classInfo?: Class,
+): AttendanceRecord[] {
+  const existingForClass = existing.filter(record =>
+    record.classId === classId && format(new Date(record.date), 'yyyy-MM-dd') === date
+  );
+  const byPupil = new Map(existingForClass.map(record => [record.pupilId, record]));
+
+  Object.entries(entries).forEach(([pupilId, entry]) => {
+    if (!entry?.status) return;
+    const previous = byPupil.get(pupilId);
+    byPupil.set(pupilId, {
+      ...(previous || {}),
+      id: previous?.id || getAttendanceRecordId(date, classId, pupilId),
+      date,
+      classId,
+      className: classInfo?.name || previous?.className || '',
+      classCode: classInfo?.code || previous?.classCode || '',
+      pupilId,
+      status: entry.status,
+      remarks: entry.remarks || '',
+      recordedBy: previous?.recordedBy || 'System Admin',
+      recordedAt: previous?.recordedAt || new Date().toISOString(),
+    } as AttendanceRecord);
+  });
+
+  return Array.from(byPupil.values());
 }
 
 // ─── Memoized pupil row (desktop) ────────────────────────────────────────────
@@ -177,6 +216,10 @@ const MobilePupilCard = React.memo(function MobilePupilCard({
 });
 
 export default function RecordAttendancePage() {
+  const { user, isAuthenticated } = useAuth();
+  const attendanceCacheScope = isAuthenticated
+    ? getAttendanceCacheScope(user?.id, user?.role)
+    : '';
   const { toast } = useToast();
 
   // Firebase hooks
@@ -310,11 +353,22 @@ export default function RecordAttendancePage() {
 
   // Keep refs in sync every render so async callbacks always see current values
   attendanceDataRef.current = attendanceData;
-  existingAttendanceRecordsRef.current = existingAttendanceRecords;
   selectedClassIdRef.current = selectedClassId;
   allClassesRef.current = allClasses;
   activeAcademicYearRef.current = activeAcademicYear;
   currentTermRef.current = currentTerm;
+
+  React.useEffect(() => {
+    const recordKey = (record: AttendanceRecord) =>
+      `${record.date?.split('T')[0]}::${record.classId}::${record.pupilId}`;
+    const merged = new Map(existingAttendanceRecords.map(record => [recordKey(record), record]));
+    // Locally confirmed writes are newer than the published summary and must
+    // survive re-renders until the session projection is flushed.
+    existingAttendanceRecordsRef.current.forEach(record => {
+      merged.set(recordKey(record), record);
+    });
+    existingAttendanceRecordsRef.current = Array.from(merged.values());
+  }, [existingAttendanceRecords]);
 
   // Update current time every second
   React.useEffect(() => {
@@ -323,6 +377,24 @@ export default function RecordAttendancePage() {
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // A route change or class switch is the preferred flush boundary. The
+  // outbox remains persisted as a safety net if the browser is closed.
+  React.useEffect(() => {
+    if (!selectedClassId) return;
+    const flush = () => {
+      void flushAttendanceSummarySession(
+        attendanceCacheScope,
+        formattedCurrentDate,
+        selectedClassId,
+      );
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [attendanceCacheScope, formattedCurrentDate, selectedClassId]);
 
   // Load existing attendance data when class changes
   React.useEffect(() => {
@@ -419,6 +491,11 @@ export default function RecordAttendancePage() {
               className: currentSelectedClass?.name || '',
               classCode: currentSelectedClass?.code || '',
             });
+            existingAttendanceRecordsRef.current = currentExistingRecords.map(record =>
+              record.id === existingRecord.id
+                ? { ...record, status: pupilEntry.status as AttendanceStatus, remarks: pupilEntry.remarks }
+                : record
+            );
           } else {
             console.log(`⚡ AUTO-SAVE: Creating record for pupil ${pupilId} -> ${pupilEntry.status}`);
             const newId = await AttendanceService.createAttendanceRecord({
@@ -450,6 +527,20 @@ export default function RecordAttendancePage() {
               } as any
             ];
           }
+
+          queueAttendanceSummaryPublication(
+            attendanceCacheScope,
+            formattedCurrentDate,
+            currentSelectedClassId,
+            buildSessionRecords(
+              formattedCurrentDate,
+              currentSelectedClassId,
+              currentAttendanceData,
+              existingAttendanceRecordsRef.current,
+              currentSelectedClass,
+            ),
+            true,
+          );
         } catch (err) {
           console.error('⚠️ AUTO-SAVE failed for pupil', pupilId, err);
         } finally {
@@ -462,7 +553,7 @@ export default function RecordAttendancePage() {
       autoSaveQueue.current.set(pupilId, timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formattedCurrentDate]);
+  }, [attendanceCacheScope, formattedCurrentDate]);
 
   const handleSaveAttendance = React.useCallback(async () => {
     if (!selectedClassId) {
@@ -533,14 +624,45 @@ export default function RecordAttendancePage() {
       });
 
       // Process all operations in parallel for maximum performance
-      await Promise.all([
+      const [, createResult] = await Promise.all([
         recordsToUpdate.length > 0
           ? bulkUpdateMutation.mutateAsync(recordsToUpdate)
           : Promise.resolve(),
         recordsToCreate.length > 0
           ? bulkCreateMutation.mutateAsync(recordsToCreate)
-          : Promise.resolve(),
+          : Promise.resolve({ recordIds: [], records: [] }),
       ]);
+
+      if (createResult.recordIds.length > 0) {
+        const created = createResult.records.map((record, index) => ({
+          ...record,
+          id: createResult.recordIds[index],
+          recordedAt: new Date().toISOString(),
+        } as AttendanceRecord));
+        const createdKeys = new Set(created.map(record =>
+          `${record.date?.split('T')[0]}::${record.classId}::${record.pupilId}`
+        ));
+        existingAttendanceRecordsRef.current = [
+          ...existingAttendanceRecordsRef.current.filter(record => !createdKeys.has(
+            `${record.date?.split('T')[0]}::${record.classId}::${record.pupilId}`
+          )),
+          ...created,
+        ];
+      }
+
+      queueAttendanceSummaryPublication(
+        attendanceCacheScope,
+        formattedCurrentDate,
+        selectedClassId,
+        buildSessionRecords(
+          formattedCurrentDate,
+          selectedClassId,
+          attendanceData,
+          existingAttendanceRecordsRef.current,
+          selectedClass,
+        ),
+        true,
+      );
 
       toast({
         title: "Attendance Saved",
@@ -557,7 +679,7 @@ export default function RecordAttendancePage() {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedClassId, pupilsInClass, attendanceData, formattedCurrentDate, selectedClass?.name, bulkCreateMutation, bulkUpdateMutation, toast]);
+  }, [attendanceCacheScope, selectedClassId, pupilsInClass, attendanceData, formattedCurrentDate, selectedClass?.name, bulkCreateMutation, bulkUpdateMutation, toast]);
 
   const getStatusBadgeColor = (status: AttendanceStatus | "") => {
     switch (status) {

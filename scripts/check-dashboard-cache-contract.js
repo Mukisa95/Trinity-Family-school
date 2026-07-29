@@ -11,6 +11,7 @@ const section = (source, start, end) => {
 
 const classesHook = read('src/lib/hooks/use-classes.ts');
 const academicYearsHook = read('src/lib/hooks/use-academic-years.ts');
+const staffHook = read('src/lib/hooks/use-staff.ts');
 const eventsHook = read('src/lib/hooks/use-events-fixed.ts');
 const eventCache = read('src/lib/cache/event-cache.ts');
 const timetableService = read('src/lib/services/timetable.service.ts');
@@ -20,11 +21,25 @@ const batchReports = read('src/components/exam/BatchReportGenerator.tsx');
 const settingsHook = read('src/lib/hooks/use-school-settings.ts');
 const classBootstrap = read('src/lib/hooks/use-class-cache-bootstrap.ts');
 const academicYearBootstrap = read('src/lib/hooks/use-academic-year-cache-bootstrap.ts');
+const staffBootstrap = read('src/lib/hooks/use-staff-cache-bootstrap.ts');
 const classesService = read('src/lib/services/classes.service.ts');
 const academicYearsService = read('src/lib/services/academic-years.service.ts');
 const firestoreHelpers = read('src/lib/utils/firestore-helpers.ts');
 const classCache = read('src/lib/cache/class-cache.ts');
 const academicYearCache = read('src/lib/cache/academic-year-cache.ts');
+const staffCache = read('src/lib/cache/staff-cache.ts');
+const staffService = read('src/lib/services/staff.service.ts');
+const teacherNames = read('src/lib/hooks/use-teacher-names.ts');
+const staffNames = read('src/lib/utils/staff-names.ts');
+const viewResults = read('src/app/exams/[examId]/view-results/ViewResultsView.tsx');
+const pupilResults = read('src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx');
+const pupilDetail = read('src/app/pupil-detail/page.tsx');
+const attendanceDashboard = read('src/lib/hooks/use-dashboard-data.ts');
+const attendanceHook = read('src/lib/hooks/use-attendance.ts');
+const attendanceSummaryHook = read('src/lib/hooks/use-attendance-summary.ts');
+const attendanceSummaryService = read('src/lib/services/attendance-summary.service.ts');
+const attendanceOutbox = read('src/lib/services/attendance-summary-outbox.ts');
+const attendanceRecordPage = read('src/app/attendance/record/page.tsx');
 
 assert(
   classesHook.includes('enabled: false') &&
@@ -37,9 +52,18 @@ assert(
   'Ordinary academic-year hooks must remain cache-only.',
 );
 assert(
+  staffHook.includes('enabled: false') &&
+    !staffHook.includes('StaffService.getAllStaff()') &&
+    !staffHook.includes('StaffService.getStaffById(') &&
+    !staffHook.includes('StaffService.getStaffByDepartment('),
+  'Ordinary staff hooks must remain cache-only selectors.',
+);
+assert(
   preloader.includes('useClassCacheBootstrap();') &&
-    preloader.includes('useAcademicYearCacheBootstrap();'),
-  'The application preloader must mount the sole class and academic-year cache owners.',
+    preloader.includes('useAcademicYearCacheBootstrap();') &&
+    preloader.includes('useStaffCacheBootstrap();') &&
+    !preloader.includes('setupStaffListener();'),
+  'The application preloader must mount the sole cache owners and not start a staff listener.',
 );
 assert(
   settingsHook.includes('currentRevisions === undefined'),
@@ -47,8 +71,9 @@ assert(
 );
 assert(
   classBootstrap.includes('needsColdFetch') &&
-    academicYearBootstrap.includes('needsColdFetch'),
-  'Cold class and academic-year caches must not wait for revision readiness.',
+    academicYearBootstrap.includes('needsColdFetch') &&
+    staffBootstrap.includes('needsColdFetch'),
+  'Cold class, academic-year, and staff caches must not wait for revision readiness.',
 );
 assert(
   classBootstrap.includes('getAllFromFirestoreCache') &&
@@ -66,8 +91,56 @@ assert(
   'The corrected rollout must reject empty snapshots written by the initial deployment.',
 );
 assert(
+  staffCache.includes("role === 'Parent'") &&
+    staffCache.includes('STAFF_CACHE_SCHEMA') &&
+    staffService.includes('getDocsFromServerWithTimeout') &&
+    staffService.includes('getAllFromFirestoreCache') &&
+    staffService.includes('bumpStaffRevisionInBatch'),
+  'Staff data must be identity-scoped, cache-first, and mutation-revision driven.',
+);
+assert(
+  !teacherNames.includes('/api/staff/') &&
+    !viewResults.includes('/api/staff/') &&
+    !pupilResults.includes('/api/staff/') &&
+    !pupilDetail.includes('/api/staff/'),
+  'Browser report and teacher-name flows must never privately fetch staff records.',
+);
+assert(
+  staffNames.includes('if (id && name)') &&
+    pupilResults.includes('subject.teacherName') &&
+    viewResults.includes('subject.teacherName') &&
+    pupilDetail.includes('subject.teacherName'),
+  'Parent-safe report snapshots must retain embedded teacher names without exposing the staff collection.',
+);
+assert(
   batchReports.includes('useClasses()') && !batchReports.includes("api.get('/classes')"),
   'Exam reports must reuse the global class snapshot.',
+);
+
+assert(
+  attendanceDashboard.includes('useAttendanceSummary(today, enabled)') &&
+    !attendanceDashboard.includes('onSnapshot') &&
+    attendanceSummaryHook.includes('readAttendanceSummaryCache') &&
+    attendanceSummaryService.includes('attendanceDailySummaries'),
+  'Dashboard attendance must use the shared daily summary cache, not a live collection listener.',
+);
+assert(
+  !attendanceHook.includes('onSnapshot') &&
+    attendanceHook.includes('useAttendanceSummary(startDate, enabled && isDaily)') &&
+    attendanceHook.includes('options: { enabled?: boolean }') &&
+    attendanceHook.includes('useDashboardDataRevisions') &&
+    attendanceHook.includes('staleTime: 48 * 60 * 60 * 1000'),
+  'Attendance page hooks must be cache-first and free of whole-history listeners.',
+);
+assert(
+  attendanceRecordPage.includes('queueAttendanceSummaryPublication') &&
+    attendanceRecordPage.includes('flushAttendanceSummarySession') &&
+    attendanceRecordPage.includes('getAttendanceRecordId') &&
+    attendanceOutbox.includes('DEBOUNCE_MS') &&
+    attendanceOutbox.includes('inFlight') &&
+    attendanceOutbox.includes("latest[entryKey]?.token === entry.token") &&
+    attendanceSummaryService.includes('runTransaction'),
+  'Attendance recording must coalesce status changes and flush on session exit.',
 );
 
 assert(
