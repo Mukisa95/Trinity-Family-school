@@ -7,10 +7,11 @@ import {
   query, 
   orderBy,
   where,
-  Timestamp 
+  Timestamp,
+  getDocsFromCache,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { getDocsWithTimeout } from '../utils/firestore-helpers';
+import { getDocsFromServerWithTimeout } from '../utils/firestore-helpers';
 import type { AcademicYear } from '@/types';
 import { bumpAcademicYearsRevisionInBatch } from './dashboard-cache-revisions.service';
 
@@ -115,7 +116,7 @@ export class AcademicYearsService {
   }
   static async getAllForCache(): Promise<AcademicYear[]> {
     const q = query(collection(db, COLLECTION_NAME), orderBy('name', 'desc'));
-    const docs = await getDocsWithTimeout<AcademicYear & { id: string }>(q);
+    const docs = await getDocsFromServerWithTimeout<AcademicYear & { id: string }>(q);
     return docs.map(doc => ({
         ...doc,
         startDate: AcademicYearsService.convertTimestampToISO(doc.startDate),
@@ -126,6 +127,30 @@ export class AcademicYearsService {
           endDate: AcademicYearsService.convertTimestampToISO(term.endDate),
         })) || []
       })) as AcademicYear[];
+  }
+
+  /** Free, local-only recovery used while a cold persistent snapshot is rebuilt. */
+  static async getAllFromFirestoreCache(): Promise<AcademicYear[]> {
+    try {
+      const q = query(collection(db, COLLECTION_NAME), orderBy('name', 'desc'));
+      const snapshot = await getDocsFromCache(q);
+      return snapshot.docs.map(snapshotDoc => {
+        const data = snapshotDoc.data();
+        return {
+          id: snapshotDoc.id,
+          ...data,
+          startDate: AcademicYearsService.convertTimestampToISO(data.startDate),
+          endDate: AcademicYearsService.convertTimestampToISO(data.endDate),
+          terms: data.terms?.map((term: any) => ({
+            ...term,
+            startDate: AcademicYearsService.convertTimestampToISO(term.startDate),
+            endDate: AcademicYearsService.convertTimestampToISO(term.endDate),
+          })) || [],
+        } as AcademicYear;
+      });
+    } catch {
+      return [];
+    }
   }
 
   static async getAllAcademicYears(): Promise<AcademicYear[]> {

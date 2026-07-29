@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, getDocsFromServer, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { TimetableService, getPeriodsCollectionPath, getEntriesCollectionPath, getTimetablesCollectionPath } from '../services/timetable.service';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types';
@@ -85,11 +85,17 @@ export function useTimetableProfiles(yearId: string, termId: string) {
     const initialData = readTimetableCache<TimetableProfile[]>(cacheKey, revision, revisionsReady);
 
     return useQuery({
-        queryKey: [...timetableKeys.allProfiles(yearId, termId), scope, revision],
+        queryKey: [
+            ...timetableKeys.allProfiles(yearId, termId),
+            scope,
+            revision,
+            revisionsReady ? 'ready' : 'pending',
+        ],
         queryFn: async () => {
-            const snapshot = await getDocs(
-                query(collection(db, getTimetablesCollectionPath(yearId, termId)))
-            );
+            const profilesQuery = query(collection(db, getTimetablesCollectionPath(yearId, termId)));
+            const snapshot = revisionsReady
+                ? await getDocsFromServer(profilesQuery)
+                : await getDocs(profilesQuery);
             const profilesList = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -101,7 +107,7 @@ export function useTimetableProfiles(yearId: string, termId: string) {
             });
             // Sort descending by createdAt (matches original sort)
             profilesList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            writeTimetableCache(cacheKey, revision, profilesList);
+            writeTimetableCache(cacheKey, revisionsReady ? revision : -1, profilesList);
             return profilesList;
         },
         enabled: !!yearId && !!termId && !!scope &&
@@ -128,16 +134,22 @@ export function useTimetableProfile(yearId: string, termId: string, timetableId:
             ...timetableKeys.allProfiles(yearId, termId),
             scope,
             revision,
+            revisionsReady ? 'ready' : 'pending',
         ]) ?? readTimetableCache<TimetableProfile[]>(profilesCacheKey, revision, revisionsReady);
     const initialData = cachedProfile !== undefined
         ? cachedProfile
         : cachedProfiles?.find(profile => profile.id === timetableId);
 
     return useQuery({
-        queryKey: [...timetableKeys.profile(yearId, termId, timetableId), scope, revision],
+        queryKey: [
+            ...timetableKeys.profile(yearId, termId, timetableId),
+            scope,
+            revision,
+            revisionsReady ? 'ready' : 'pending',
+        ],
         queryFn: async () => {
             const profile = await TimetableService.getTimetableById(yearId, termId, timetableId);
-            writeTimetableCache(cacheKey, revision, profile);
+            writeTimetableCache(cacheKey, revisionsReady ? revision : -1, profile);
             return profile;
         },
         enabled: !!yearId && !!termId && !!timetableId && !!scope &&
@@ -161,16 +173,24 @@ export function useTimetablePeriods(yearId: string, termId: string, timetableId:
     const initialData = readTimetableCache<GeneratedPeriod[]>(cacheKey, revision, revisionsReady);
 
     return useQuery({
-        queryKey: [...timetableKeys.periods(yearId, termId, timetableId), scope, revision],
+        queryKey: [
+            ...timetableKeys.periods(yearId, termId, timetableId),
+            scope,
+            revision,
+            revisionsReady ? 'ready' : 'pending',
+        ],
         queryFn: async () => {
-            const snapshot = await getDocs(
-                query(collection(db, getPeriodsCollectionPath(yearId, termId, timetableId)))
+            const periodsQuery = query(
+                collection(db, getPeriodsCollectionPath(yearId, termId, timetableId)),
             );
+            const snapshot = revisionsReady
+                ? await getDocsFromServer(periodsQuery)
+                : await getDocs(periodsQuery);
             const periods = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
             })) as GeneratedPeriod[];
-            writeTimetableCache(cacheKey, revision, periods);
+            writeTimetableCache(cacheKey, revisionsReady ? revision : -1, periods);
             return periods;
         },
         enabled: !!yearId && !!termId && !!timetableId && !!scope &&
@@ -195,11 +215,19 @@ export function useTimetableEntries(yearId: string, termId: string, timetableId:
     const initialData = readTimetableCache<TimetableEntry[]>(cacheKey, revision, revisionsReady);
 
     return useQuery({
-        queryKey: [...timetableKeys.entries(yearId, termId, timetableId), scope, revision],
+        queryKey: [
+            ...timetableKeys.entries(yearId, termId, timetableId),
+            scope,
+            revision,
+            revisionsReady ? 'ready' : 'pending',
+        ],
         queryFn: async () => {
-            const snapshot = await getDocs(
-                query(collection(db, getEntriesCollectionPath(yearId, termId, timetableId)))
+            const entriesQuery = query(
+                collection(db, getEntriesCollectionPath(yearId, termId, timetableId)),
             );
+            const snapshot = revisionsReady
+                ? await getDocsFromServer(entriesQuery)
+                : await getDocs(entriesQuery);
             const entries = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -208,7 +236,7 @@ export function useTimetableEntries(yearId: string, termId: string, timetableId:
                     createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
                 } as TimetableEntry;
             });
-            writeTimetableCache(cacheKey, revision, entries);
+            writeTimetableCache(cacheKey, revisionsReady ? revision : -1, entries);
             return entries;
         },
         enabled: !!yearId && !!termId && !!timetableId && !!scope &&
@@ -238,18 +266,25 @@ export function useClassTimetableEntries(yearId: string, termId: string, timetab
             ...timetableKeys.entries(yearId, termId, timetableId),
             scope,
             revision,
+            revisionsReady ? 'ready' : 'pending',
         ]) ?? readTimetableCache<TimetableEntry[]>(allEntriesCacheKey, revision, revisionsReady);
     const initialData = cachedClassEntries ?? allEntries?.filter(entry => entry.classId === classId);
 
     return useQuery({
-        queryKey: [...timetableKeys.classEntries(yearId, termId, timetableId, classId), scope, revision],
+        queryKey: [
+            ...timetableKeys.classEntries(yearId, termId, timetableId, classId),
+            scope,
+            revision,
+            revisionsReady ? 'ready' : 'pending',
+        ],
         queryFn: async () => {
-            const snapshot = await getDocs(
-                query(
-                    collection(db, getEntriesCollectionPath(yearId, termId, timetableId)),
-                    where('classId', '==', classId)
-                )
+            const classEntriesQuery = query(
+                collection(db, getEntriesCollectionPath(yearId, termId, timetableId)),
+                where('classId', '==', classId),
             );
+            const snapshot = revisionsReady
+                ? await getDocsFromServer(classEntriesQuery)
+                : await getDocs(classEntriesQuery);
             const entries = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -258,7 +293,7 @@ export function useClassTimetableEntries(yearId: string, termId: string, timetab
                     createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
                 } as TimetableEntry;
             });
-            writeTimetableCache(cacheKey, revision, entries);
+            writeTimetableCache(cacheKey, revisionsReady ? revision : -1, entries);
             return entries;
         },
         enabled: !!yearId && !!termId && !!timetableId && !!classId && !!scope &&

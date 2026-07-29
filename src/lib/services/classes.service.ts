@@ -5,11 +5,16 @@ import {
   query, 
   orderBy,
   where,
-  Timestamp 
+  Timestamp,
+  getDocsFromCache,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Class } from '@/types';
-import { getDocWithTimeout, getDocsWithTimeout } from '../utils/firestore-helpers';
+import {
+  getDocWithTimeout,
+  getDocsFromServerWithTimeout,
+  getDocsWithTimeout,
+} from '../utils/firestore-helpers';
 import { bumpClassesRevisionInBatch } from './dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'classes';
@@ -83,13 +88,32 @@ export class ClassesService {
    */
   static async getAllForCache(): Promise<Class[]> {
     const q = query(collection(db, COLLECTION_NAME), orderBy('order', 'asc'));
-    const classes = await getDocsWithTimeout<Class>(q, 30000);
+    const classes = await getDocsFromServerWithTimeout<Class>(q, 30000);
     return classes.map(cls => ({
       ...cls,
       createdAt: typeof cls.createdAt === 'string'
         ? cls.createdAt
         : (cls.createdAt as any)?.toDate?.()?.toISOString() || cls.createdAt,
     }));
+  }
+
+  /** Free, local-only recovery used while a cold persistent snapshot is rebuilt. */
+  static async getAllFromFirestoreCache(): Promise<Class[]> {
+    try {
+      const q = query(collection(db, COLLECTION_NAME), orderBy('order', 'asc'));
+      const snapshot = await getDocsFromCache(q);
+      return snapshot.docs.map(snapshotDoc => {
+        const cls = { id: snapshotDoc.id, ...snapshotDoc.data() } as Class;
+        return {
+          ...cls,
+          createdAt: typeof cls.createdAt === 'string'
+            ? cls.createdAt
+            : (cls.createdAt as any)?.toDate?.()?.toISOString() || cls.createdAt,
+        };
+      });
+    } catch {
+      return [];
+    }
   }
 
   static async getAll(): Promise<Class[]> {

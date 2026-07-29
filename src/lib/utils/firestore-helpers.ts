@@ -1,4 +1,4 @@
-import { doc, getDoc, getDocs, collection, query, QueryConstraint, DocumentReference, CollectionReference, getDocFromCache, getDocFromServer, getDocsFromCache } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, query, QueryConstraint, DocumentReference, CollectionReference, getDocFromCache, getDocFromServer, getDocsFromCache, getDocsFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 /**
@@ -414,6 +414,39 @@ export async function getDocsWithTimeout<T>(
     // For other errors, log and re-throw so caller can handle
     console.error('Unexpected error in getDocsWithTimeout:', error);
     throw error;
+  }
+}
+
+/**
+ * Authoritative collection read for revision reconciliation.
+ *
+ * Unlike getDocsWithTimeout, this never converts a connectivity failure into
+ * an empty collection. Cache owners must only stamp the current revision after
+ * the server has confirmed the snapshot; otherwise a temporary outage can be
+ * persisted as valid empty data for months.
+ */
+export async function getDocsFromServerWithTimeout<T>(
+  collectionRef: CollectionReference | ReturnType<typeof query>,
+  timeoutMs: number = 30000,
+): Promise<T[]> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const snapshot = await Promise.race([
+      getDocsFromServer(collectionRef),
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error(`Authoritative query timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+
+    return snapshot.docs.map(snapshotDoc => ({
+      id: snapshotDoc.id,
+      ...(snapshotDoc.data() as Record<string, unknown>),
+    } as T));
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 

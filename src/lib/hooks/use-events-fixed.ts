@@ -6,6 +6,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDocsFromServer,
   getDoc,
   query,
   where,
@@ -360,7 +361,16 @@ export function useEvents(filters?: EventFilters) {
   const hasUsableCachedData = canUseCachedData && cachedData !== undefined;
 
   return useQuery({
-    queryKey: ['events', 'filtered', scope, filters, 'revision', currentRevision, refreshEpoch],
+    queryKey: [
+      'events',
+      'filtered',
+      scope,
+      filters,
+      'revision',
+      currentRevision,
+      revisionsReady ? 'ready' : 'pending',
+      refreshEpoch,
+    ],
     // A warm calendar paints without a read. A genuinely cold calendar may
     // fetch before revisions arrive so settings-listener trouble cannot freeze
     // the page; a later non-zero revision will reconcile through a new key.
@@ -387,13 +397,20 @@ export function useEvents(filters?: EventFilters) {
         const q = user?.role === 'Parent'
           ? query(eventsCollection, where('isPublic', '==', true))
           : query(eventsCollection, orderBy('startDate', 'desc'));
-        const snapshot = await getDocs(q);
+        const snapshot = revisionsReady
+          ? await getDocsFromServer(q)
+          : await getDocs(q);
         const events = snapshot.docs
           .map(convertFirestoreEvent)
           .filter(event => user?.role !== 'Parent' || event.isPublic)
           .sort((a, b) => b.startDate.localeCompare(a.startDate));
 
-        writeCachedEvents(queryClient, scope, currentRevision, events);
+        writeCachedEvents(
+          queryClient,
+          scope,
+          revisionsReady ? currentRevision : -1,
+          events,
+        );
 
         console.log('Events loaded successfully:', events.length);
         return applyEventFilters(events, filters, user?.role);
@@ -769,6 +786,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
   const revisionsQuery = useDashboardDataRevisions();
   const [refreshEpoch, setRefreshEpoch] = useState(0);
   const revision = revisionsQuery.data?.events ?? 0;
+  const revisionsReady = revisionsQuery.data !== undefined;
   const scope = isAuthenticated
     ? getEventCacheScope(user?.id, user?.role, user?.familyId)
     : '';
@@ -784,7 +802,13 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
   }, [cacheMetadata?.writtenAt, refreshEpoch]);
 
   return useQuery({
-    queryKey: ['exams-as-events', scope, revision, refreshEpoch],
+    queryKey: [
+      'exams-as-events',
+      scope,
+      revision,
+      revisionsReady ? 'ready' : 'pending',
+      refreshEpoch,
+    ],
     enabled:
       (options?.enabled ?? true) &&
       !!scope &&
@@ -813,8 +837,13 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
         console.log('Regular exam events found:', regularExamEvents.length);
         console.log('Exam IDs already in regular events:', Array.from(regularEventExamIds));
 
-        const cachedExams = queryClient.getQueryData<any[]>(['exams', 'list']);
-        const allExams = cachedExams || (await getDocs(collection(db, 'exams'))).docs.map(doc => {
+        // Reaching this queryFn means the persisted projection is cold,
+        // expired, or revision-mismatched. A generic exams query cache has no
+        // revision token, so it cannot authoritatively satisfy this refresh.
+        const examsSnapshot = revisionsReady
+          ? await getDocsFromServer(collection(db, 'exams'))
+          : await getDocs(collection(db, 'exams'));
+        const allExams = examsSnapshot.docs.map(doc => {
           const data = doc.data();
           return {
             id: doc.id,
@@ -826,9 +855,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
           };
         }) as any[];
 
-        if (!cachedExams) {
-          queryClient.setQueryData(['exams', 'list'], allExams);
-        }
+        queryClient.setQueryData(['exams', 'list'], allExams);
 
         // Filter out exams that are already represented as regular events
         const filteredExams = allExams.filter(exam => !regularEventExamIds.has(exam.id));
@@ -1192,7 +1219,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
           };
         });
 
-        writeLegacyExamEventCache(scope, revision, examEvents);
+        writeLegacyExamEventCache(scope, revisionsReady ? revision : -1, examEvents);
         console.log('Converted exam events:', examEvents.length);
         return examEvents;
       } catch (error) {

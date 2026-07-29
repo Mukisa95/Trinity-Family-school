@@ -70,6 +70,7 @@ export function useAcademicYearCacheBootstrap() {
     if (!needsColdFetch && !needsRevisionRefresh) return;
 
     let disposed = false;
+    let serverSucceeded = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const targetRevision = revisionsReady ? revision : 0;
     const target = `${scope}:${revisionsReady ? revision : 'cold'}`;
@@ -77,10 +78,26 @@ export function useAcademicYearCacheBootstrap() {
       retryTarget.current = target;
       retryCount.current = 0;
     }
+
+    if (needsColdFetch) {
+      // Restore Firestore's local IndexedDB snapshot without a billed read.
+      // Revision -1 deliberately keeps it eligible for authoritative
+      // reconciliation once the settings signal is available.
+      void AcademicYearsService.getAllFromFirestoreCache().then(cachedYears => {
+        if (disposed || serverSucceeded || cachedYears.length === 0) return;
+        const normalised = normaliseAcademicYears(cachedYears);
+        AcademicYearsService.hydrateSharedAcademicYears(normalised);
+        queryClient.setQueryData(queryKey, normalised);
+        writeAcademicYearCache(scope, -1, normalised);
+        performance.mark?.('trinity:academic-years-firestore-cache-ready');
+      });
+    }
+
     void AcademicYearsService.refreshSharedAcademicYears(
       () => AcademicYearsService.getAllForCache(),
     ).then(years => {
       if (disposed) return;
+      serverSucceeded = true;
       retryCount.current = 0;
       const normalised = normaliseAcademicYears(years);
       AcademicYearsService.hydrateSharedAcademicYears(normalised);

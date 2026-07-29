@@ -73,6 +73,7 @@ export function useClassCacheBootstrap() {
     if (!needsColdFetch && !needsRevisionRefresh) return;
 
     let disposed = false;
+    let serverSucceeded = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const targetRevision = revisionsReady ? revision : 0;
     const target = `${scope}:${revisionsReady ? revision : 'cold'}`;
@@ -80,8 +81,25 @@ export function useClassCacheBootstrap() {
       retryTarget.current = target;
       retryCount.current = 0;
     }
+
+    if (needsColdFetch) {
+      // Firestore's IndexedDB cache is free and may still contain the last
+      // confirmed class list after a lite-cache schema migration. Paint it
+      // immediately, but mark it unconfirmed so only the server response may
+      // claim the current revision.
+      void ClassesService.getAllFromFirestoreCache().then(cachedClasses => {
+        if (disposed || serverSucceeded || cachedClasses.length === 0) return;
+        const normalised = normaliseClasses(cachedClasses);
+        ClassesService.hydrateSharedClasses(normalised);
+        queryClient.setQueryData(queryKey, normalised);
+        writeClassCache(scope, -1, normalised);
+        performance.mark?.('trinity:classes-firestore-cache-ready');
+      });
+    }
+
     void ClassesService.refreshSharedClasses(() => ClassesService.getAllForCache()).then(classes => {
       if (disposed) return;
+      serverSucceeded = true;
       retryCount.current = 0;
       const normalised = normaliseClasses(classes);
       ClassesService.hydrateSharedClasses(normalised);

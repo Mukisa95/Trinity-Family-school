@@ -20,6 +20,9 @@ const batchReports = read('src/components/exam/BatchReportGenerator.tsx');
 const settingsHook = read('src/lib/hooks/use-school-settings.ts');
 const classBootstrap = read('src/lib/hooks/use-class-cache-bootstrap.ts');
 const academicYearBootstrap = read('src/lib/hooks/use-academic-year-cache-bootstrap.ts');
+const classesService = read('src/lib/services/classes.service.ts');
+const academicYearsService = read('src/lib/services/academic-years.service.ts');
+const firestoreHelpers = read('src/lib/utils/firestore-helpers.ts');
 
 assert(
   classesHook.includes('enabled: false') &&
@@ -44,6 +47,14 @@ assert(
   classBootstrap.includes('needsColdFetch') &&
     academicYearBootstrap.includes('needsColdFetch'),
   'Cold class and academic-year caches must not wait for revision readiness.',
+);
+assert(
+  classBootstrap.includes('getAllFromFirestoreCache') &&
+    academicYearBootstrap.includes('getAllFromFirestoreCache') &&
+    classesService.includes('getDocsFromServerWithTimeout') &&
+    academicYearsService.includes('getDocsFromServerWithTimeout') &&
+    firestoreHelpers.includes('Authoritative collection read for revision reconciliation'),
+  'Cold owners may paint local data, but only an authoritative server read may stamp a revision.',
 );
 assert(
   batchReports.includes('useClasses()') && !batchReports.includes("api.get('/classes')"),
@@ -101,7 +112,9 @@ assert(
 );
 assert(
   timetableHook.includes('(revisionsReady || initialData === undefined)') &&
-    eventsHook.includes('(revisionsReady || !hasUsableCachedData)'),
+    eventsHook.includes('(revisionsReady || !hasUsableCachedData)') &&
+    timetableHook.includes('getDocsFromServer') &&
+    eventsHook.includes('getDocsFromServer'),
   'Cold timetable and event caches must fail open while warm caches remain read-free.',
 );
 
