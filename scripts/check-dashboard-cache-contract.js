@@ -17,6 +17,9 @@ const timetableService = read('src/lib/services/timetable.service.ts');
 const timetableHook = read('src/lib/hooks/use-timetable.ts');
 const preloader = read('src/components/providers/global-data-preloader.tsx');
 const batchReports = read('src/components/exam/BatchReportGenerator.tsx');
+const settingsHook = read('src/lib/hooks/use-school-settings.ts');
+const classBootstrap = read('src/lib/hooks/use-class-cache-bootstrap.ts');
+const academicYearBootstrap = read('src/lib/hooks/use-academic-year-cache-bootstrap.ts');
 
 assert(
   classesHook.includes('enabled: false') &&
@@ -32,6 +35,15 @@ assert(
   preloader.includes('useClassCacheBootstrap();') &&
     preloader.includes('useAcademicYearCacheBootstrap();'),
   'The application preloader must mount the sole class and academic-year cache owners.',
+);
+assert(
+  settingsHook.includes('currentRevisions === undefined'),
+  'An empty first revision snapshot must still publish readiness.',
+);
+assert(
+  classBootstrap.includes('needsColdFetch') &&
+    academicYearBootstrap.includes('needsColdFetch'),
+  'Cold class and academic-year caches must not wait for revision readiness.',
 );
 assert(
   batchReports.includes('useClasses()') && !batchReports.includes("api.get('/classes')"),
@@ -86,6 +98,11 @@ assert(
   timetableHook.includes('user.familyId') &&
     timetableHook.includes('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
   'Timetable caches must be scoped to project and signed-in identity.',
+);
+assert(
+  timetableHook.includes('(revisionsReady || initialData === undefined)') &&
+    eventsHook.includes('(revisionsReady || !hasUsableCachedData)'),
+  'Cold timetable and event caches must fail open while warm caches remain read-free.',
 );
 
 console.log(

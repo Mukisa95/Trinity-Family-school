@@ -104,7 +104,8 @@ export function useTimetableProfiles(yearId: string, termId: string) {
             writeTimetableCache(cacheKey, revision, profilesList);
             return profilesList;
         },
-        enabled: !!yearId && !!termId && !!scope && revisionsReady,
+        enabled: !!yearId && !!termId && !!scope &&
+            (revisionsReady || initialData === undefined),
         staleTime: STALE_TIME,
         gcTime: GC_TIME,
         refetchOnMount: false,
@@ -139,7 +140,8 @@ export function useTimetableProfile(yearId: string, termId: string, timetableId:
             writeTimetableCache(cacheKey, revision, profile);
             return profile;
         },
-        enabled: !!yearId && !!termId && !!timetableId && !!scope && revisionsReady,
+        enabled: !!yearId && !!termId && !!timetableId && !!scope &&
+            (revisionsReady || initialData === undefined),
         staleTime: STALE_TIME,
         gcTime: GC_TIME,
         refetchOnMount: false,
@@ -171,7 +173,8 @@ export function useTimetablePeriods(yearId: string, termId: string, timetableId:
             writeTimetableCache(cacheKey, revision, periods);
             return periods;
         },
-        enabled: !!yearId && !!termId && !!timetableId && !!scope && revisionsReady,
+        enabled: !!yearId && !!termId && !!timetableId && !!scope &&
+            (revisionsReady || initialData === undefined),
         staleTime: STALE_TIME,
         gcTime: GC_TIME,
         refetchOnMount: false,
@@ -208,7 +211,8 @@ export function useTimetableEntries(yearId: string, termId: string, timetableId:
             writeTimetableCache(cacheKey, revision, entries);
             return entries;
         },
-        enabled: !!yearId && !!termId && !!timetableId && !!scope && revisionsReady,
+        enabled: !!yearId && !!termId && !!timetableId && !!scope &&
+            (revisionsReady || initialData === undefined),
         staleTime: STALE_TIME,
         gcTime: GC_TIME,
         refetchOnMount: false,
@@ -257,7 +261,8 @@ export function useClassTimetableEntries(yearId: string, termId: string, timetab
             writeTimetableCache(cacheKey, revision, entries);
             return entries;
         },
-        enabled: !!yearId && !!termId && !!timetableId && !!classId && !!scope && revisionsReady,
+        enabled: !!yearId && !!termId && !!timetableId && !!classId && !!scope &&
+            (revisionsReady || initialData === undefined),
         staleTime: STALE_TIME,
         gcTime: GC_TIME,
         refetchOnMount: false,

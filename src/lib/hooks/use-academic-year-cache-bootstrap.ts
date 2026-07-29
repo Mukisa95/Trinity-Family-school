@@ -61,11 +61,18 @@ export function useAcademicYearCacheBootstrap() {
       AcademicYearsService.hydrateSharedAcademicYears(sharedYears);
     }
 
-    if (!revisionsReady || persisted?.revision === revision) return;
+    const needsColdFetch = persisted === null && inMemory === undefined;
+    const needsRevisionRefresh =
+      revisionsReady && persisted?.revision !== revision;
+
+    // Cold recovery is independent of revision readiness. Otherwise a delayed
+    // settings snapshot can leave all year/term consumers loading forever.
+    if (!needsColdFetch && !needsRevisionRefresh) return;
 
     let disposed = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
-    const target = `${scope}:${revision}`;
+    const targetRevision = revisionsReady ? revision : 0;
+    const target = `${scope}:${revisionsReady ? revision : 'cold'}`;
     if (retryTarget.current !== target) {
       retryTarget.current = target;
       retryCount.current = 0;
@@ -78,7 +85,7 @@ export function useAcademicYearCacheBootstrap() {
       const normalised = normaliseAcademicYears(years);
       AcademicYearsService.hydrateSharedAcademicYears(normalised);
       queryClient.setQueryData(queryKey, normalised);
-      writeAcademicYearCache(scope, revision, normalised);
+      writeAcademicYearCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:academic-years-server-synced');
     }).catch(error => {
       console.error('Academic-year cache reconciliation failed:', error);

@@ -42,7 +42,10 @@ export class SchoolSettingsService {
       try {
         const cachedSnap = await getDocFromCache(docRef);
         if (cachedSnap.exists()) {
-          const cachedData = { id: cachedSnap.id, ...cachedSnap.data() } as SchoolSettings;
+          const cachedData = {
+            id: cachedSnap.id,
+            ...cachedSnap.data(),
+          } as unknown as SchoolSettings;
           if (process.env.NODE_ENV === 'development') {
             console.log('⚡ School settings loaded from cache (instant)');
           }

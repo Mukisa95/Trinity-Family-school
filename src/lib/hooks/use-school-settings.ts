@@ -40,7 +40,12 @@ function publishSettings(
 
   clients.forEach(client => {
     const currentRevisions = client.getQueryData<DashboardDataRevisions>(dashboardDataRevisionKeys.all);
-    if (JSON.stringify(currentRevisions ?? {}) !== JSON.stringify(revisions)) {
+    // `undefined` means the revision channel is not ready. It must not be
+    // treated as equal to an empty revision object: existing schools will not
+    // have dataRevisions until their first cache-aware mutation, and suppressing
+    // this initial `{}` publication leaves every cold cache owner disabled.
+    if (currentRevisions === undefined ||
+        JSON.stringify(currentRevisions) !== JSON.stringify(revisions)) {
       client.setQueryData(dashboardDataRevisionKeys.all, revisions);
     }
 

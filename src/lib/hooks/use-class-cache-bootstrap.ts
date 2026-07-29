@@ -64,11 +64,18 @@ export function useClassCacheBootstrap() {
       ClassesService.hydrateSharedClasses(sharedClasses);
     }
 
-    if (!revisionsReady || persisted?.revision === revision) return;
+    const needsColdFetch = persisted === null && inMemory === undefined;
+    const needsRevisionRefresh =
+      revisionsReady && persisted?.revision !== revision;
+
+    // A cold device must never wait indefinitely for the settings listener.
+    // Revision readiness only controls reconciliation of an existing snapshot.
+    if (!needsColdFetch && !needsRevisionRefresh) return;
 
     let disposed = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
-    const target = `${scope}:${revision}`;
+    const targetRevision = revisionsReady ? revision : 0;
+    const target = `${scope}:${revisionsReady ? revision : 'cold'}`;
     if (retryTarget.current !== target) {
       retryTarget.current = target;
       retryCount.current = 0;
@@ -79,7 +86,7 @@ export function useClassCacheBootstrap() {
       const normalised = normaliseClasses(classes);
       ClassesService.hydrateSharedClasses(normalised);
       queryClient.setQueryData(queryKey, normalised);
-      writeClassCache(scope, revision, normalised);
+      writeClassCache(scope, targetRevision, normalised);
       performance.mark?.('trinity:classes-server-synced');
     }).catch(error => {
       console.error('Class cache reconciliation failed:', error);

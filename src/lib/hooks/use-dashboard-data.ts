@@ -241,7 +241,7 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData: any) => previousData,
     initialData: () => {
       const cached = queryClient.getQueryData(dashboardKeys.attendance(today));
       return cached || undefined;
@@ -279,7 +279,9 @@ export function useDashboardData({ enabled = true }: UseDashboardDataOptions = {
 
   // Split loading states for better UX
   // Basic stats (pupils, staff, classes) load independently from attendance
-  const basicStatsLoading = pupilsLoading || staffLoading || classesLoading;
+  // Class metadata feeds the charts, but it must not keep already-restored
+  // pupil and staff totals behind a shared dashboard skeleton.
+  const basicStatsLoading = pupilsLoading || staffLoading;
   const isLoading = basicStatsLoading || attendanceLoading; // Keep for backward compatibility
   const hasError = pupilsError || staffError || classesError || attendanceError;
 

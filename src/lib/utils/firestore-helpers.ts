@@ -215,7 +215,7 @@ export async function getDocsWithTimeout<T>(
       }
       
       // Map the documents to the expected format
-      const results = querySnapshot.docs.map(doc => {
+      const results = querySnapshot.docs.map((doc: any) => {
         try {
           const data = doc.data() as Record<string, any>;
           return {
@@ -228,7 +228,7 @@ export async function getDocsWithTimeout<T>(
           }
           return null;
         }
-      }).filter((item): item is T => item !== null);
+      }).filter((item: T | null): item is T => item !== null);
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`✅ getDocsWithTimeout: Fetched ${results.length} documents from server`);

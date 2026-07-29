@@ -62,7 +62,7 @@ import { useDashboardData } from '@/lib/hooks/use-dashboard-data';
 import { usePupils, useUpdatePupil } from '@/lib/hooks/use-pupils';
 import { useAttendanceByDateRange, useUpdateAttendanceRecord } from '@/lib/hooks/use-attendance';
 import { useExcludedDays } from '@/lib/hooks/use-excluded-days';
-import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { isSchoolDay } from '@/lib/utils/attendance-academic-utils';
@@ -1366,7 +1366,7 @@ const AnimatedBarLabel = ({ x, y, width, value }: any) => {
     };
   }, [value]);
 
-  if (!value || value === 0) return null;
+  if (!value || value === 0) return <g aria-hidden="true" />;
 
   return (
     <text
@@ -2406,9 +2406,7 @@ export default function DashboardPage() {
     stats,
     pupilsLoading,
     staffLoading,
-    classesLoading,
     attendanceLoading,
-    basicStatsLoading, // For first 4 cards
     isLoading,
     hasError,
     refetchAll
@@ -2526,7 +2524,7 @@ export default function DashboardPage() {
                 { percentage: (stats.malePupils / stats.totalPupils) * 100, color: 'text-blue-500' },
                 { percentage: (stats.femalePupils / stats.totalPupils) * 100, color: 'text-pink-500' }
               ] : [{ percentage: 100, color: cardColors.pupils.text }]}
-              isLoading={basicStatsLoading}
+              isLoading={pupilsLoading}
             />
           )}
           {canViewGenderBreakdown && (
@@ -2539,7 +2537,7 @@ export default function DashboardPage() {
                 onClick={() => handleCardClick('/pupils?classId=all&gender=Male')}
                 subtitle={`${stats.totalPupils ? Math.round((stats.malePupils / stats.totalPupils) * 100) : 0}% of total`}
                 progress={stats.totalPupils ? Math.round((stats.malePupils / stats.totalPupils) * 100) : 0}
-                isLoading={basicStatsLoading}
+                isLoading={pupilsLoading}
               />
               <StatCard
                 title="Female Pupils"
@@ -2549,7 +2547,7 @@ export default function DashboardPage() {
                 onClick={() => handleCardClick('/pupils?classId=all&gender=Female')}
                 subtitle={`${stats.totalPupils ? Math.round((stats.femalePupils / stats.totalPupils) * 100) : 0}% of total`}
                 progress={stats.totalPupils ? Math.round((stats.femalePupils / stats.totalPupils) * 100) : 0}
-                isLoading={basicStatsLoading}
+                isLoading={pupilsLoading}
               />
             </>
           )}
@@ -2564,7 +2562,7 @@ export default function DashboardPage() {
                 { percentage: (staff.filter(s => s.gender === 'Male').length / staff.length) * 100, color: 'text-blue-500' },
                 { percentage: (staff.filter(s => s.gender === 'Female').length / staff.length) * 100, color: 'text-pink-500' }
               ] : [{ percentage: 100, color: cardColors.staff.text }]}
-              isLoading={basicStatsLoading}
+              isLoading={staffLoading}
               staff={staff}
             />
           )}

@@ -357,13 +357,14 @@ export function useEvents(filters?: EventFilters) {
   // 🚀 CRITICAL: Read from GlobalDataPreloader's pre-populated cache immediately
   const cachedData = getCachedEvents(queryClient, scope);
   const canUseCachedData = cacheIsFresh && revisionMatches;
+  const hasUsableCachedData = canUseCachedData && cachedData !== undefined;
 
   return useQuery({
     queryKey: ['events', 'filtered', scope, filters, 'revision', currentRevision, refreshEpoch],
-    // Wait for the already-mounted settings listener on a cold cache. This
-    // prevents a revision-0 fetch immediately followed by the real revision.
-    // Warm cached calendars still render from initialData before it arrives.
-    enabled: !!scope && revisionsReady,
+    // A warm calendar paints without a read. A genuinely cold calendar may
+    // fetch before revisions arrive so settings-listener trouble cannot freeze
+    // the page; a later non-zero revision will reconcile through a new key.
+    enabled: !!scope && (revisionsReady || !hasUsableCachedData),
     queryFn: async () => {
       const currentCache = getCachedEvents(queryClient, scope);
       if (canUseCachedData && currentCache) {
