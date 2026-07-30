@@ -99,6 +99,7 @@ import {
   processCarryForwardPayment,
   validateCarryForwardPayment
 } from './utils/carryForwardPayments';
+import { getCollectedUniformItemIds } from './utils/uniformCollectionState';
 
 // Helper functions to convert pupil attributes to uniform filter types
 const getUniformGender = (pupilGender: string | undefined): 'male' | 'female' | undefined => {
@@ -596,6 +597,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       })
       .map(record => {
         const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
+        const collectedItemIds = getCollectedUniformItemIds(record);
         const recordIsFullyCollected =
           record.collectionStatus === 'collected' ||
           (
@@ -604,7 +606,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               const totalQty = record.selectedQuantities?.[id] || 1;
               const collectedQty =
                 record.collectedQuantities?.[id] ??
-                (record.collectedItems?.includes(id) ? totalQty : 0);
+                (collectedItemIds.includes(id) ? totalQty : 0);
               return collectedQty >= totalQty;
             })
           );
@@ -613,7 +615,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           const totalQty = record.selectedQuantities?.[id] || 1;
           const colQty =
             record.collectedQuantities?.[id] ??
-            (record.collectedItems?.includes(id) || recordIsFullyCollected ? totalQty : 0);
+            (collectedItemIds.includes(id) || recordIsFullyCollected ? totalQty : 0);
           const isFullyCollected = colQty >= totalQty && colQty > 0;
           const isPartiallyCollected = colQty > 0 && colQty < totalQty;
           const rawName = uniform?.name || 'Unknown Uniform';

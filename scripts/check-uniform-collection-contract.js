@@ -33,6 +33,10 @@ const uniformFeesService = fs.readFileSync(
   'src/lib/services/uniform-fees-integration.service.ts',
   'utf8',
 );
+const uniformCollectionState = fs.readFileSync(
+  'src/app/fees/collect/[id]/utils/uniformCollectionState.ts',
+  'utf8',
+);
 
 const handlerStart = feeCard.indexOf('const handleCollectionSubmit = async');
 const handlerEnd = feeCard.indexOf('// Handle unmark', handlerStart);
@@ -86,9 +90,16 @@ assert(
 assert(
   pupilFeesPage.includes('const uniformTrackingSummary = useMemo') &&
     pupilFeesPage.includes('record.termId === selectedTermId') &&
+    pupilFeesPage.includes('getCollectedUniformItemIds(record)') &&
     pupilFeesPage.includes('Uniform Collected:') &&
     !pupilFeesPage.includes('return !(isFullyPaid && isFullyCollected);'),
   'The shared glass top bar must show collected uniforms for the selected term.',
+);
+assert(
+  feeCard.includes('getCollectedUniformItemIds(uniformTrackingRecord)') &&
+    uniformCollectionState.includes('record.history?.flatMap') &&
+    uniformCollectionState.includes('record.collectedItems || []'),
+  'The uniform card and glass top bar must share legacy-aware collected-item state.',
 );
 assert(
   trackingService.includes('getDocsFromCache') &&

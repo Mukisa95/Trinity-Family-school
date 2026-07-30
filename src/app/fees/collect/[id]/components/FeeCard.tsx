@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AcademicYear, PaymentRecord, Pupil, UniformTracking } from '@/types';
+import { getCollectedUniformItemIds } from '../utils/uniformCollectionState';
 
 // Extended PupilFee interface (matching the main component)
 interface PupilFee {
@@ -235,23 +236,10 @@ export function FeeCard({
     return allUniforms.filter(u => uniformIds.includes(u.id));
   }, [uniformTrackingRecord, allUniforms]);
 
-  // Get previously collected items — use the authoritative top-level collectedItems field
+  // Resolve current and legacy collected items through the shared display state.
   const previouslyCollectedItems = React.useMemo(() => {
     if (!uniformTrackingRecord) return [];
-
-    const explicitItems = uniformTrackingRecord.collectedItems || [];
-    const historicalItems = uniformTrackingRecord.history
-      ?.flatMap(entry => entry.collectedItems || []) || [];
-    const collected = [...new Set([...explicitItems, ...historicalItems])];
-
-    if (collected.length > 0) return collected;
-    if (uniformTrackingRecord.collectionStatus === 'collected') {
-      return Array.isArray(uniformTrackingRecord.uniformId)
-        ? uniformTrackingRecord.uniformId
-        : [uniformTrackingRecord.uniformId];
-    }
-
-    return [];
+    return getCollectedUniformItemIds(uniformTrackingRecord);
   }, [uniformTrackingRecord]);
 
   const effectiveCollectionStatus = React.useMemo(() => {
