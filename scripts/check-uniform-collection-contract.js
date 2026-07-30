@@ -84,6 +84,13 @@ assert(
   'Fee cards must receive authoritative records and preserve legacy collected state.',
 );
 assert(
+  pupilFeesPage.includes('const uniformTrackingSummary = useMemo') &&
+    pupilFeesPage.includes('record.termId === selectedTermId') &&
+    pupilFeesPage.includes('Uniform Collected:') &&
+    !pupilFeesPage.includes('return !(isFullyPaid && isFullyCollected);'),
+  'The shared glass top bar must show collected uniforms for the selected term.',
+);
+assert(
   trackingService.includes('getDocsFromCache') &&
     trackingService.includes('getDocFromCache') &&
     trackingHook.includes('setQueriesData') &&

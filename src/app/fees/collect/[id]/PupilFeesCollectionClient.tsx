@@ -86,7 +86,7 @@ import { useDigitalSignatureHelpers } from '@/lib/hooks/use-digital-signature';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useActiveFeesHolidaysByPupil } from '@/lib/hooks/use-fees-holiday';
 import { usePrint } from '@/lib/contexts/print-context';
-import { useActiveUniforms, useUniformsByFilter } from '@/lib/hooks/use-uniforms';
+import { useActiveUniforms, useUniforms, useUniformsByFilter } from '@/lib/hooks/use-uniforms';
 import { useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useFeeStructures } from '@/lib/hooks/use-fee-structures';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
@@ -294,6 +294,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Fetch uniforms for tracking modal
   const { data: activeUniforms = [] } = useActiveUniforms();
+  const { data: allUniforms = [] } = useUniforms();
   const createUniformTrackingMutation = useCreateUniformTracking();
   // Fetch fee structures to get names for assignments
   const { data: allFeeStructures = [] } = useFeeStructures();
@@ -585,34 +586,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       });
   }, [pupil?.assignedFees, allFeeStructures, selectedTermId, selectedAcademicYear, academicYears]);
 
-  const activeUniformTracking = useMemo(() => {
+  const uniformTrackingSummary = useMemo(() => {
     return uniformTrackingRecords
       .filter(record => {
-        // Calculate payment status on client side for maximum accuracy
-        const matchingPayments = pupilPayments.filter(
-          p => p.feeStructureId === `uniform-${record.id}` || 
-               (p as any).uniformTrackingId === record.id
+        return (
+          record.termId === selectedTermId &&
+          record.academicYearId === selectedAcademicYear?.id
         );
-        const totalPaid = matchingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-        const isFullyPaid = totalPaid >= (record.finalAmount || record.originalAmount);
-
-        // Calculate collection status on client side
-        const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
-        const isFullyCollected =
-          record.collectionStatus === 'collected' ||
-          (
-            uniformIds.length > 0 &&
-            uniformIds.every(id => {
-              const totalQty = record.selectedQuantities?.[id] || 1;
-              const collectedQty =
-                record.collectedQuantities?.[id] ??
-                (record.collectedItems?.includes(id) ? totalQty : 0);
-              return collectedQty >= totalQty;
-            })
-          );
-
-        // Only show if NOT (fully paid AND fully collected)
-        return !(isFullyPaid && isFullyCollected);
       })
       .map(record => {
         const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
@@ -629,7 +609,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             })
           );
         const items = uniformIds.map(id => {
-          const uniform = activeUniforms.find(u => u.id === id);
+          const uniform = allUniforms.find(u => u.id === id);
           const totalQty = record.selectedQuantities?.[id] || 1;
           const colQty =
             record.collectedQuantities?.[id] ??
@@ -654,10 +634,19 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         });
         return {
           id: record.id,
-          items
+          items,
+          isFullyCollected: recordIsFullyCollected,
+          isPartiallyCollected:
+            !recordIsFullyCollected &&
+            items.some(item => item.isPartiallyCollected || item.isFullyCollected),
         };
       });
-  }, [uniformTrackingRecords, activeUniforms, pupilPayments]);
+  }, [
+    uniformTrackingRecords,
+    allUniforms,
+    selectedTermId,
+    selectedAcademicYear?.id,
+  ]);
 
   // Handler functions
   const handleMakePayment = (fee: any, balance: number, totalPaid: number) => {
@@ -2075,9 +2064,30 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 </span>
               );
             })}
-            {activeUniformTracking.map((record, idx) => (
-              <span key={`uniform-${idx}`} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200 transition-all">
-                <span className="font-semibold text-blue-900">Uniform:</span>
+            {uniformTrackingSummary.map((record) => (
+              <span
+                key={`uniform-${record.id}`}
+                className={cn(
+                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] sm:text-xs font-medium border transition-all',
+                  record.isFullyCollected
+                    ? 'bg-green-100 text-green-800 border-green-300'
+                    : record.isPartiallyCollected
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-blue-100 text-blue-800 border-blue-200'
+                )}
+              >
+                <span
+                  className={cn(
+                    'font-semibold',
+                    record.isFullyCollected ? 'text-green-900' : 'text-blue-900'
+                  )}
+                >
+                  {record.isFullyCollected
+                    ? 'Uniform Collected:'
+                    : record.isPartiallyCollected
+                    ? 'Uniform Partial:'
+                    : 'Uniform:'}
+                </span>
                 <span className="flex flex-wrap items-center gap-x-1">
                   {record.items.map((item, itemIdx) => (
                     <span
