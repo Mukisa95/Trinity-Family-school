@@ -21,6 +21,18 @@ const trackingPage = fs.readFileSync(
   'src/app/uniform-tracking/page.tsx',
   'utf8',
 );
+const pupilFeesHook = fs.readFileSync(
+  'src/app/fees/collect/[id]/hooks/usePupilFees.ts',
+  'utf8',
+);
+const pupilFeesPage = fs.readFileSync(
+  'src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx',
+  'utf8',
+);
+const uniformFeesService = fs.readFileSync(
+  'src/lib/services/uniform-fees-integration.service.ts',
+  'utf8',
+);
 
 const handlerStart = feeCard.indexOf('const handleCollectionSubmit = async');
 const handlerEnd = feeCard.indexOf('// Handle unmark', handlerStart);
@@ -50,10 +62,33 @@ assert(
   'The standalone uniform tracking page must use the same atomic collection write.',
 );
 assert(
-  trackingService.includes('transaction.get(trackingRef)') &&
-    trackingService.indexOf('transaction.get(trackingRef)') <
-      trackingService.indexOf('transaction.update(trackingRef'),
-  'The transaction must read its records before writing them.',
+  !trackingService.includes('transaction.get(trackingRef)') &&
+    trackingService.includes('inventoryRefs.map(({ ref }) => transaction.get(ref))') &&
+    trackingService.includes('transaction.update(trackingRef'),
+  'The transaction must not reread tracking data already owned by the pupil cache.',
+);
+assert(
+  !feeCard.includes('useUniformTrackingRecord') &&
+    !pupilFeesPage.includes('useUniformTrackingByPupil') &&
+    pupilFeesHook.includes('useUniformTrackingByPupil(pupilId)') &&
+    pupilFeesHook.includes('convertTrackingRecordsToFees') &&
+    !pupilFeesHook.includes("queryKey: ['uniform-fees'"),
+  'The pupil fee hook must be the only uniform tracking owner on the fees page.',
+);
+assert(
+  uniformFeesService.includes('uniformTrackingRecord: record') &&
+    pupilFeesPage.includes('uniformTrackingRecord={') &&
+    pupilFeesPage.includes("record.collectionStatus === 'collected'") &&
+    feeCard.includes('effectiveCollectionStatus') &&
+    feeCard.includes('Collection is disabled to protect existing records.'),
+  'Fee cards must receive authoritative records and preserve legacy collected state.',
+);
+assert(
+  trackingService.includes('getDocsFromCache') &&
+    trackingService.includes('getDocFromCache') &&
+    trackingHook.includes('setQueriesData') &&
+    trackingHook.includes('reduceCachedUniformInventory'),
+  'Quota fallback and successful mutations must update cache without refetching.',
 );
 assert(
   collectionModal.includes('collectionQuantities: Record<string, number>') &&

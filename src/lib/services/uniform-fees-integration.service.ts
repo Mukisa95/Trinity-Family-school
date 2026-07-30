@@ -5,6 +5,7 @@ import type { PupilFee } from '@/app/fees/collect/[id]/types';
 
 export interface UniformFeeData extends PupilFee {
   uniformTrackingId: string;
+  uniformTrackingRecord: UniformTracking;
   uniformDetails: {
     uniformId: string | string[];
     selectionMode: 'item' | 'partial' | 'full';
@@ -53,18 +54,8 @@ export class UniformFeesIntegrationService {
       
       // Get all uniforms to resolve names and details
       const allUniforms = await UniformsService.getAllUniforms();
-      
-      // Convert tracking records to fee structures
-      const uniformFees: UniformFeeData[] = [];
-      
-      for (const record of filteredRecords) {
-        const uniformFee = await this.convertTrackingRecordToFee(record, allUniforms);
-        if (uniformFee) {
-          uniformFees.push(uniformFee);
-        }
-      }
-      
-      return uniformFees;
+
+      return this.convertTrackingRecordsToFees(filteredRecords, allUniforms);
     } catch (error) {
       console.error('Error fetching uniform fees for pupil:', error);
       return [];
@@ -95,18 +86,8 @@ export class UniformFeesIntegrationService {
       
       // Get all uniforms to resolve names and details
       const allUniforms = await UniformsService.getAllUniforms();
-      
-      // Convert tracking records to fee structures
-      const uniformFees: UniformFeeData[] = [];
-      
-      for (const record of trackingRecords) {
-        const uniformFee = await this.convertTrackingRecordToFee(record, allUniforms);
-        if (uniformFee) {
-          uniformFees.push(uniformFee);
-        }
-      }
-      
-      return uniformFees;
+
+      return this.convertTrackingRecordsToFees(trackingRecords, allUniforms);
     } catch (error) {
       console.error('Error fetching all uniform fees for pupil:', error);
       return [];
@@ -114,12 +95,32 @@ export class UniformFeesIntegrationService {
   }
 
   /**
+   * Convert already-loaded tracking data without another Firestore read.
+   */
+  static convertTrackingRecordsToFees(
+    trackingRecords: UniformTracking[],
+    allUniforms: UniformItem[],
+    termId?: string,
+    academicYearId?: string
+  ): UniformFeeData[] {
+    const filteredRecords = termId && academicYearId
+      ? trackingRecords.filter(
+          record => record.termId === termId && record.academicYearId === academicYearId
+        )
+      : trackingRecords;
+
+    return filteredRecords
+      .map(record => this.convertTrackingRecordToFee(record, allUniforms))
+      .filter((fee): fee is UniformFeeData => fee !== null);
+  }
+
+  /**
    * Convert a uniform tracking record to a fee structure
    */
-  private static async convertTrackingRecordToFee(
+  static convertTrackingRecordToFee(
     record: UniformTracking,
     allUniforms: UniformItem[]
-  ): Promise<UniformFeeData | null> {
+  ): UniformFeeData | null {
     try {
       // Get uniform details
       const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
@@ -193,6 +194,7 @@ export class UniformFeesIntegrationService {
 
         // Uniform-specific data
         uniformTrackingId: record.id,
+        uniformTrackingRecord: record,
         uniformDetails: {
           uniformId: record.uniformId,
           selectionMode: record.selectionMode,
@@ -386,4 +388,4 @@ export class UniformFeesIntegrationService {
       return [];
     }
   }
-} 
+}

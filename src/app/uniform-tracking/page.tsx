@@ -416,10 +416,6 @@ function UniformTrackingContent() {
         stockReductions,
       });
 
-      // Invalidate queries to sync with fees collection page
-      queryClient.invalidateQueries({ queryKey: ['uniform-fees'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-inventory'] });
-
       handleCloseCollectionModal();
     } catch (error) {
       console.error('Error updating collection status:', error);

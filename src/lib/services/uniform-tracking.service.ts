@@ -3,6 +3,8 @@ import {
   doc, 
   getDocs, 
   getDoc, 
+  getDocsFromCache,
+  getDocFromCache,
   addDoc, 
   updateDoc, 
   deleteDoc, 
@@ -26,11 +28,12 @@ export interface UniformStockReduction {
 
 export class UniformTrackingService {
   static async getTrackingRecordsByPupil(pupilId: string): Promise<UniformTracking[]> {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('pupilId', '==', pupilId)
+    );
+
     try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where('pupilId', '==', pupilId)
-      );
       const querySnapshot = await getDocs(q);
       
       const records = querySnapshot.docs.map(doc => {
@@ -53,14 +56,35 @@ export class UniformTrackingService {
         return dateB - dateA; // desc order
       });
     } catch (error) {
+      try {
+        const cachedSnapshot = await getDocsFromCache(q);
+        if (!cachedSnapshot.empty) {
+          console.warn('Uniform tracking server read failed; restored the pupil records from Firestore cache.');
+          return cachedSnapshot.docs.map(snapshot => {
+            const data = snapshot.data();
+            return {
+              id: snapshot.id,
+              ...data,
+              academicYearId: data.academicYearId || 'legacy-record',
+              termId: data.termId || 'legacy-record',
+              createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+              updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+            };
+          }) as UniformTracking[];
+        }
+      } catch {
+        // Preserve the original server error when no usable cache is available.
+      }
+
       console.error('Error fetching uniform tracking records:', error);
       throw error;
     }
   }
 
   static async getTrackingRecordById(id: string): Promise<UniformTracking | null> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+
     try {
-      const docRef = doc(db, COLLECTION_NAME, id);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
@@ -77,6 +101,24 @@ export class UniformTrackingService {
       }
       return null;
     } catch (error) {
+      try {
+        const cachedSnapshot = await getDocFromCache(docRef);
+        if (cachedSnapshot.exists()) {
+          const data = cachedSnapshot.data();
+          console.warn('Uniform tracking server read failed; restored the record from Firestore cache.');
+          return {
+            id: cachedSnapshot.id,
+            ...data,
+            academicYearId: data.academicYearId || 'legacy-record',
+            termId: data.termId || 'legacy-record',
+            createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+            updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+          } as UniformTracking;
+        }
+      } catch {
+        // Preserve the original server error when no usable cache is available.
+      }
+
       console.error('Error fetching uniform tracking record:', error);
       throw error;
     }
@@ -148,14 +190,9 @@ export class UniformTrackingService {
 
       return await runTransaction(db, async transaction => {
         // Firestore transactions require every read to happen before any write.
-        const [trackingSnapshot, inventorySnapshots] = await Promise.all([
-          transaction.get(trackingRef),
-          Promise.all(inventoryRefs.map(({ ref }) => transaction.get(ref))),
-        ]);
-
-        if (!trackingSnapshot.exists()) {
-          throw new Error(`Uniform tracking record not found: ${id}`);
-        }
+        const inventorySnapshots = await Promise.all(
+          inventoryRefs.map(({ ref }) => transaction.get(ref))
+        );
 
         const timestamp = Timestamp.now();
 
@@ -213,20 +250,11 @@ export class UniformTrackingService {
         });
         transaction.update(trackingRef, updateData);
 
-        const updatedData = {
-          ...trackingSnapshot.data(),
-          ...updateData,
-        };
-
         return {
           id,
-          ...updatedData,
-          academicYearId: updatedData.academicYearId || 'legacy-record',
-          termId: updatedData.termId || 'legacy-record',
-          createdAt:
-            updatedData.createdAt?.toDate?.()?.toISOString() || updatedData.createdAt,
+          ...trackingData,
           updatedAt:
-            updatedData.updatedAt?.toDate?.()?.toISOString() || updatedData.updatedAt,
+            updateData.updatedAt?.toDate?.()?.toISOString() || updateData.updatedAt,
         } as UniformTracking;
       });
     } catch (error) {

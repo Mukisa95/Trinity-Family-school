@@ -1,6 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
-import type { AcademicYear, Pupil, FeeStructure, PaymentRecord, FeesHoliday } from '@/types';
+import type {
+  AcademicYear,
+  Pupil,
+  FeeStructure,
+  PaymentRecord,
+  FeesHoliday,
+  UniformTracking,
+} from '@/types';
 import type { PupilFee, PreviousTermBalance } from '../types';
 import type { UniformFeeData } from '@/lib/services/uniform-fees-integration.service';
 
@@ -17,6 +24,8 @@ import { isTermEnded } from '@/lib/utils/academic-year-utils';
 // Optimized hooks
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { useFeeAdjustments } from '@/lib/hooks/use-fees';
+import { useUniformTrackingByPupil } from '@/lib/hooks/use-uniform-tracking';
+import { useUniforms } from '@/lib/hooks/use-uniforms';
 import { calculateFeeAmountForAcademicYear } from '@/lib/utils/fee-adjustments';
 
 // Utilities
@@ -40,6 +49,9 @@ interface UsePupilFeesOptions {
 interface UsePupilFeesReturn {
   pupilFees: PupilFee[];
   pupilPayments: PaymentRecord[];
+  uniformTrackingRecords: UniformTracking[];
+  isUniformTrackingLoading: boolean;
+  uniformTrackingError: Error | null;
   allFeeStructures: FeeStructure[]; // All fee structures for modals (redistribute, etc.)
   isLoading: boolean;
   isPaymentDataLoading: boolean; // True when payments or previous balance are still loading
@@ -206,37 +218,25 @@ export function usePupilFees({
     gcTime: 15 * 60 * 1000, // 15 minutes cache
   });
 
-  // Fetch uniform fees for the pupil - OPTIMIZED
-  // Load in parallel with other queries - don't block
-  const { data: uniformFees = [], isLoading: isLoadingUniformFees } = useQuery<UniformFeeData[]>({
-    queryKey: ['uniform-fees', pupilId, selectedTermId, selectedAcademicYear?.id, lastPaymentTimestamp],
-    queryFn: async (): Promise<UniformFeeData[]> => {
-      if (!pupilId || !selectedTermId || !selectedAcademicYear) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚡ Uniform fees: Early return - missing data');
-        }
-        return [];
-      }
+  // One pupil-scoped owner supplies both fee conversion and every fee card.
+  // This replaces the former collection query plus one document read per card.
+  const {
+    data: uniformTrackingRecords = [],
+    isLoading: isUniformTrackingLoading,
+    error: uniformTrackingError,
+  } = useUniformTrackingByPupil(pupilId);
+  const { data: allUniforms = [], isLoading: isLoadingUniforms } = useUniforms();
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('👕 Fetching uniform fees...');
-      }
-      const fees = await UniformFeesIntegrationService.getUniformFeesForPupil(
-        pupilId,
-        selectedTermId,
-        selectedAcademicYear.id
-      );
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Uniform fees loaded:', fees.length);
-      }
-      return fees;
-    },
-    enabled: !!pupilId && !!selectedTermId && !!selectedAcademicYear,
-    staleTime: 7 * 60 * 1000, // 7 minutes cache for uniform fees
-    gcTime: 12 * 60 * 1000, // 12 minutes cache
-    refetchOnWindowFocus: false, // Cache is fast, no need to refetch
-    refetchOnMount: false, // Use cached data on mount
-  });
+  const uniformFees = useMemo<UniformFeeData[]>(() => {
+    if (!selectedTermId || !selectedAcademicYear) return [];
+
+    return UniformFeesIntegrationService.convertTrackingRecordsToFees(
+      uniformTrackingRecords,
+      allUniforms,
+      selectedTermId,
+      selectedAcademicYear.id
+    );
+  }, [uniformTrackingRecords, allUniforms, selectedTermId, selectedAcademicYear?.id]);
 
   // 🔥 CRITICAL FIX: Fetch historical pupil snapshot for the selected term
   // This ensures we use the pupil's class/section as it was during that term,
@@ -436,7 +436,12 @@ export function usePupilFees({
 
   // 🚀 OPTIMIZED: Don't block on snapshot loading - fees can show with current pupil data
   // Snapshot will update fees when it loads, but we don't need to wait for it
-  const isLoading = isLoadingFees || isLoadingPayments || isLoadingPreviousBalance || isLoadingUniformFees;
+  const isLoading =
+    isLoadingFees ||
+    isLoadingPayments ||
+    isLoadingPreviousBalance ||
+    isUniformTrackingLoading ||
+    isLoadingUniforms;
 
   // Track specifically whether payment-related data is loading
   // This is used to disable payment buttons and prevent duplicate payments
@@ -451,7 +456,7 @@ export function usePupilFees({
       queryClient.invalidateQueries({ queryKey: ['fee-structures'] }),
       queryClient.invalidateQueries({ queryKey: ['pupil-payments', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['previous-balance', pupilId] }),
-      queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupilId] }),
+      queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupilId] }),
     ]);
   };
@@ -459,6 +464,9 @@ export function usePupilFees({
   return {
     pupilFees,
     pupilPayments,
+    uniformTrackingRecords,
+    isUniformTrackingLoading,
+    uniformTrackingError,
     allFeeStructures,
     isLoading,
     isPaymentDataLoading,

@@ -5,7 +5,7 @@ import autoTable from 'jspdf-autotable';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { useStaffById } from '@/lib/hooks/use-staff';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
-import { useUniformTrackingRecord, useUpdateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
+import { useUpdateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useUniforms } from '@/lib/hooks/use-uniforms';
 import { useUniformInventory, useIncrementStockBatch } from '@/lib/hooks/use-uniform-inventory';
 import { CollectionModal } from '@/components/common/collection-modal';
@@ -13,7 +13,7 @@ import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AcademicYear, PaymentRecord, Pupil } from '@/types';
+import type { AcademicYear, PaymentRecord, Pupil, UniformTracking } from '@/types';
 
 // Extended PupilFee interface (matching the main component)
 interface PupilFee {
@@ -52,9 +52,23 @@ interface FeeCardProps {
   selectedTerm: string;
   selectedAcademicYear: AcademicYear | null;
   isPaymentDataLoading?: boolean; // When true, payment buttons should be disabled
+  uniformTrackingRecord?: UniformTracking | null;
+  isUniformTrackingLoading?: boolean;
+  uniformTrackingError?: Error | null;
 }
 
-export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, selectedAcademicYear, isPaymentDataLoading = false }: FeeCardProps) {
+export function FeeCard({
+  fee,
+  pupil,
+  onPayment,
+  onRevertPayment,
+  selectedTerm,
+  selectedAcademicYear,
+  isPaymentDataLoading = false,
+  uniformTrackingRecord = null,
+  isUniformTrackingLoading = false,
+  uniformTrackingError = null,
+}: FeeCardProps) {
   const [isPaymentHistoryExpanded, setIsPaymentHistoryExpanded] = useState(false);
   const [isUniformTrackingExpanded, setIsUniformTrackingExpanded] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -69,11 +83,6 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
   const uniformTrackingId = UniformFeesIntegrationService.isUniformFee(fee)
     ? (fee as any).uniformTrackingId
     : null;
-
-  // Always fetch uniform tracking record for uniform fees (needed for color coding even when collapsed)
-  const { data: uniformTrackingRecord, isLoading: isLoadingTracking } = useUniformTrackingRecord(
-    uniformTrackingId || ''
-  );
 
   // Fetch uniforms for collection modal
   const { data: allUniforms = [] } = useUniforms();
@@ -145,15 +154,18 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
         stockReductions,
       });
 
-      // Invalidate uniform fees query to refresh the fee card
-      queryClient.invalidateQueries({ queryKey: ['uniform-fees'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-tracking'] });
-
       setIsCollectionModalOpen(false);
     } catch (error) {
       console.error('Error recording collection:', error);
-      alert('Failed to record collection. Please try again.');
+      const errorCode =
+        error && typeof error === 'object' && 'code' in error
+          ? String(error.code)
+          : '';
+      if (errorCode.includes('resource-exhausted')) {
+        alert('The school database read quota is temporarily exhausted. No collection was recorded and no stock was changed. Please try again later.');
+      } else {
+        alert('Failed to record collection. No collection or stock change was saved.');
+      }
       throw error;
     }
   };
@@ -208,9 +220,6 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
         },
       });
 
-      queryClient.invalidateQueries({ queryKey: ['uniform-fees'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-tracking'] });
     } catch (error) {
       console.error('Error unmarking item:', error);
       alert('Failed to unmark item. Please try again.');
@@ -228,8 +237,42 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
 
   // Get previously collected items — use the authoritative top-level collectedItems field
   const previouslyCollectedItems = React.useMemo(() => {
-    return uniformTrackingRecord?.collectedItems || [];
+    if (!uniformTrackingRecord) return [];
+
+    const explicitItems = uniformTrackingRecord.collectedItems || [];
+    const historicalItems = uniformTrackingRecord.history
+      ?.flatMap(entry => entry.collectedItems || []) || [];
+    const collected = [...new Set([...explicitItems, ...historicalItems])];
+
+    if (collected.length > 0) return collected;
+    if (uniformTrackingRecord.collectionStatus === 'collected') {
+      return Array.isArray(uniformTrackingRecord.uniformId)
+        ? uniformTrackingRecord.uniformId
+        : [uniformTrackingRecord.uniformId];
+    }
+
+    return [];
   }, [uniformTrackingRecord]);
+
+  const effectiveCollectionStatus = React.useMemo(() => {
+    if (!uniformTrackingRecord) return null;
+    if (uniformTrackingRecord.collectionStatus === 'collected') return 'collected';
+
+    const uniformIds = Array.isArray(uniformTrackingRecord.uniformId)
+      ? uniformTrackingRecord.uniformId
+      : [uniformTrackingRecord.uniformId];
+    const isFullyCollected =
+      uniformIds.length > 0 &&
+      uniformIds.every(id => {
+        const total = uniformTrackingRecord.selectedQuantities?.[id] || 1;
+        const collected =
+          uniformTrackingRecord.collectedQuantities?.[id] ??
+          (previouslyCollectedItems.includes(id) ? total : 0);
+        return collected >= total;
+      });
+
+    return isFullyCollected ? 'collected' : uniformTrackingRecord.collectionStatus;
+  }, [uniformTrackingRecord, previouslyCollectedItems]);
 
   // For carry forward fees, use the pre-calculated balance to avoid double-counting payments
   const balance = fee.id === 'previous-balance' ? (fee.balance || 0) : ((fee.amount || 0) - totalPaid);
@@ -710,7 +753,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
               {/* Expandable Uniform Tracking Section */}
               {isUniformTrackingExpanded && (
                 <div className="mt-2 p-3 rounded-md border border-indigo-200 bg-indigo-50">
-                  {isLoadingTracking ? (
+                  {isUniformTrackingLoading ? (
                     <div className="text-sm text-gray-600">Loading tracking information...</div>
                   ) : uniformTrackingRecord ? (
                     <div className="space-y-3">
@@ -718,10 +761,14 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700">Collection Status:</span>
                         <Badge
-                          variant={uniformTrackingRecord.collectionStatus === 'collected' ? 'default' : 'outline'}
+                          variant={effectiveCollectionStatus === 'collected' ? 'default' : 'outline'}
                           className="text-xs"
                         >
-                          {uniformTrackingRecord.collectionStatus === 'collected' ? '📦 Collected' : '⏱️ Pending'}
+                          {effectiveCollectionStatus === 'collected'
+                            ? '📦 Collected'
+                            : effectiveCollectionStatus === 'partial'
+                            ? '◐ Partial'
+                            : '⏱️ Pending'}
                         </Badge>
                       </div>
 
@@ -821,7 +868,11 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
                           <p className="text-xs font-medium text-gray-700 mb-1.5">📜 Collection History:</p>
                           <div className="space-y-1.5 max-h-32 overflow-y-auto">
                             {uniformTrackingRecord.history
-                              .filter(h => h.type === 'collection')
+                              .filter(h =>
+                                h.type === 'collection' ||
+                                Boolean(h.collectedItems?.length) ||
+                                h.collectionStatus === 'collected'
+                              )
                               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                               .map((historyItem, index) => (
                                 <div key={index} className="text-xs bg-white rounded border p-2">
@@ -847,7 +898,7 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
                       )}
 
                       {/* Record Collection Button */}
-                      {uniformTrackingRecord.collectionStatus !== 'collected' && (
+                      {effectiveCollectionStatus !== 'collected' && (
                         <Button
                           onClick={() => setIsCollectionModalOpen(true)}
                           size="sm"
@@ -860,7 +911,11 @@ export function FeeCard({ fee, pupil, onPayment, onRevertPayment, selectedTerm, 
                       )}
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-600">No tracking information available</div>
+                    <div className="text-sm text-amber-700">
+                      {uniformTrackingError
+                        ? 'Tracking status is temporarily unavailable. Collection is disabled to protect existing records.'
+                        : 'No tracking information available.'}
+                    </div>
                   )}
                 </div>
               )}

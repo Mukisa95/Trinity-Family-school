@@ -87,7 +87,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useActiveFeesHolidaysByPupil } from '@/lib/hooks/use-fees-holiday';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useActiveUniforms, useUniformsByFilter } from '@/lib/hooks/use-uniforms';
-import { useUniformTrackingByPupil, useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
+import { useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useFeeStructures } from '@/lib/hooks/use-fee-structures';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
@@ -295,8 +295,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   // Fetch uniforms for tracking modal
   const { data: activeUniforms = [] } = useActiveUniforms();
   const createUniformTrackingMutation = useCreateUniformTracking();
-  const { data: uniformTrackingRecords = [] } = useUniformTrackingByPupil(pupilId || '');
-
   // Fetch fee structures to get names for assignments
   const { data: allFeeStructures = [] } = useFeeStructures();
 
@@ -522,6 +520,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const {
     pupilFees,
     pupilPayments,
+    uniformTrackingRecords,
+    isUniformTrackingLoading,
+    uniformTrackingError,
     allFeeStructures: allFeeStructuresFromHook,
     isLoading: isPupilFeesLoading,
     isPaymentDataLoading,
@@ -597,17 +598,42 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
         // Calculate collection status on client side
         const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
-        const isFullyCollected = uniformIds.length > 0 && uniformIds.every(id => record.collectedItems?.includes(id));
+        const isFullyCollected =
+          record.collectionStatus === 'collected' ||
+          (
+            uniformIds.length > 0 &&
+            uniformIds.every(id => {
+              const totalQty = record.selectedQuantities?.[id] || 1;
+              const collectedQty =
+                record.collectedQuantities?.[id] ??
+                (record.collectedItems?.includes(id) ? totalQty : 0);
+              return collectedQty >= totalQty;
+            })
+          );
 
         // Only show if NOT (fully paid AND fully collected)
         return !(isFullyPaid && isFullyCollected);
       })
       .map(record => {
         const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
+        const recordIsFullyCollected =
+          record.collectionStatus === 'collected' ||
+          (
+            uniformIds.length > 0 &&
+            uniformIds.every(id => {
+              const totalQty = record.selectedQuantities?.[id] || 1;
+              const collectedQty =
+                record.collectedQuantities?.[id] ??
+                (record.collectedItems?.includes(id) ? totalQty : 0);
+              return collectedQty >= totalQty;
+            })
+          );
         const items = uniformIds.map(id => {
           const uniform = activeUniforms.find(u => u.id === id);
           const totalQty = record.selectedQuantities?.[id] || 1;
-          const colQty = record.collectedQuantities?.[id] ?? (record.collectedItems?.includes(id) ? totalQty : 0);
+          const colQty =
+            record.collectedQuantities?.[id] ??
+            (record.collectedItems?.includes(id) || recordIsFullyCollected ? totalQty : 0);
           const isFullyCollected = colQty >= totalQty && colQty > 0;
           const isPartiallyCollected = colQty > 0 && colQty < totalQty;
           const rawName = uniform?.name || 'Unknown Uniform';
@@ -1794,6 +1820,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             selectedTerm={selectedTermId}
             selectedAcademicYear={selectedAcademicYear}
             isPaymentDataLoading={isPaymentDataLoading}
+            uniformTrackingRecord={
+              (fee as any).uniformTrackingRecord ||
+              uniformTrackingRecords.find(
+                record => record.id === (fee as any).uniformTrackingId
+              ) ||
+              null
+            }
+            isUniformTrackingLoading={isUniformTrackingLoading}
+            uniformTrackingError={uniformTrackingError}
           />
         ))}
 
