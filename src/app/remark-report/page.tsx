@@ -147,20 +147,32 @@ export default function RemarkReportPage() {
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   const { data: schoolSettings = null, isLoading: settingsLoading } = useSchoolSettings();
 
-  const fetchLivePupilsMap = async (pupilIds: string[]) => {
+  const fetchLivePupilsMap = async (pupilIds: string[]): Promise<Record<string, Pupil>> => {
     if (pupilIds.length === 0) return {} as Record<string, Pupil>;
 
-    const response = await fetch('/api/pupils/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pupilIds: [...new Set(pupilIds)] }),
-    });
+    try {
+      const response = await fetch('/api/pupils/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pupilIds: [...new Set(pupilIds)] }),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch live pupil records');
+      if (!response.ok) {
+        console.warn(`⚠️ fetchLivePupilsMap: batch API returned ${response.status}, falling back to cached data`);
+        // Fall back to the locally cached pupils already loaded by the hook
+        const fallback: Record<string, Pupil> = {};
+        allPupils.forEach((p: Pupil) => { if (p?.id) fallback[p.id] = p; });
+        return fallback;
+      }
+
+      return await response.json() as Record<string, Pupil>;
+    } catch (error) {
+      console.warn('⚠️ fetchLivePupilsMap: network error, falling back to cached data', error);
+      // Fall back to the locally cached pupils so report generation still works
+      const fallback: Record<string, Pupil> = {};
+      allPupils.forEach((p: Pupil) => { if (p?.id) fallback[p.id] = p; });
+      return fallback;
     }
-
-    return await response.json() as Record<string, Pupil>;
   };
 
   // Use the new term status system

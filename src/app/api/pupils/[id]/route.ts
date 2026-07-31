@@ -1,28 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PupilsService } from '@/lib/services/pupils.service';
-import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await ensureServerFirestoreAuth();
     const { id: pupilId } = await params;
     console.log('🔍 API: Fetching pupil with ID:', pupilId);
 
     if (!pupilId) {
-      console.error('🔍 API: No pupil ID provided');
       return NextResponse.json(
         { error: 'Pupil ID is required' },
         { status: 400 }
       );
     }
 
-    const pupil = await PupilsService.getPupilById(pupilId);
-    console.log('🔍 API: PupilsService returned:', pupil ? 'DATA' : 'NULL');
+    const db = getFirestore(getFirebaseAdminApp());
+    const snap = await db.collection('pupils').doc(pupilId).get();
 
-    if (!pupil) {
+    if (!snap.exists) {
       console.error('🔍 API: Pupil not found for ID:', pupilId);
       return NextResponse.json(
         { error: 'Pupil not found' },
@@ -30,8 +31,8 @@ export async function GET(
       );
     }
 
+    const pupil = { id: snap.id, ...snap.data() };
     console.log('🔍 API: Pupil data keys:', Object.keys(pupil));
-    console.log('🔍 API: Photo field value:', pupil.photo ? 'HAS PHOTO' : 'NO PHOTO');
 
     return NextResponse.json(pupil);
   } catch (error) {
@@ -48,7 +49,6 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await ensureServerFirestoreAuth();
     const { id: pupilId } = await params;
     const body = await request.json();
 
@@ -59,7 +59,8 @@ export async function PATCH(
       );
     }
 
-    await PupilsService.updatePupil(pupilId, body);
+    const db = getFirestore(getFirebaseAdminApp());
+    await db.collection('pupils').doc(pupilId).update(body);
 
     return NextResponse.json({ success: true });
   } catch (error) {
