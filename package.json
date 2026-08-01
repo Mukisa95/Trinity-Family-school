@@ -25,6 +25,7 @@
     "test:dashboard-cache-contract": "node scripts/check-dashboard-cache-contract.js",
     "test:uniform-collection-contract": "node scripts/check-uniform-collection-contract.js",
     "test:schoolpay-inbox-contract": "node scripts/check-schoolpay-inbox-contract.js",
+    "test:schoolpay-recovery": "node --import tsx --test tests/schoolpay-recovery.test.ts",
     "test:firestore-subscriptions": "node --import tsx --test tests/firestore-subscription-registry.test.ts",
     "migrate": "tsx src/scripts/migrate-data.ts",
     "migrate-auth-credentials": "tsx src/scripts/migrate-auth-credentials.ts",

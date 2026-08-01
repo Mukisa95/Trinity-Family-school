@@ -75,6 +75,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /schoolPayReconciliationState/{dateId} {
+      allow read, write: if false;
+    }
+
+    match /schoolPaySyncLogs/{logId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /schoolPayPaymentMappings/{receiptId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
     // Transitional production boundary: preserve every existing authenticated
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
@@ -87,6 +99,9 @@ service cloud.firestore {
         && collection != 'photos'
         && collection != 'attendanceDailySummaries'
         && collection != 'schoolPayInboundTransactions'
+        && collection != 'schoolPayReconciliationState'
+        && collection != 'schoolPaySyncLogs'
+        && collection != 'schoolPayPaymentMappings'
         && isActiveApplicationUser();
     }
   }

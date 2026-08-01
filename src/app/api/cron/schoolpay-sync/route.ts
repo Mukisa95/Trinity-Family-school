@@ -37,6 +37,7 @@ function enumerateDates(start: string, end: string): string[] {
   let cursor = new Date(startDate);
   while (cursor <= endDate) {
     dates.push(formatDateInKampala(cursor));
+    if (dates.length > 14) throw new Error('A maximum of 14 SchoolPay dates can be synchronized at once');
     cursor.setDate(cursor.getDate() + 1);
   }
 
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     const dateFrom = request.nextUrl.searchParams.get('dateFrom');
     const dateTo = request.nextUrl.searchParams.get('dateTo');
     const daysBack = Math.min(
-      Math.max(parseInt(request.nextUrl.searchParams.get('daysBack') || '3', 10), 1),
+      Math.max(parseInt(request.nextUrl.searchParams.get('daysBack') || '7', 10), 1),
       14
     );
 

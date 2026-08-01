@@ -21,11 +21,16 @@ import { FeeStructuresService } from './fee-structures.service';
 import { PaymentsService } from './payments.service';
 import type { FeeStructure, Pupil } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import {
+  assessExistingSchoolPayPayments,
+  type ExistingLocalPaymentMatch,
+} from '@/lib/utils/schoolpay-recovery';
 
 const SCHOOLPAY_GENERAL_FEE_ID = 'schoolpay-general';
 const SCHOOLPAY_SYNC_LOGS = 'schoolPaySyncLogs';
 const SCHOOLPAY_PAYMENT_MAPPINGS = 'schoolPayPaymentMappings';
 const SCHOOLPAY_SUPPLEMENTARY_MAPPINGS = 'schoolPaySupplementaryFeeMappings';
+const SCHOOLPAY_RECONCILIATION_STATE = 'schoolPayReconciliationState';
 const DEFAULT_SCHOOLPAY_SYNC_BASE_URL = 'https://schoolpay.co.ug/paymentapi';
 
 export type SchoolPayPaymentType = 'SCHOOL_FEES' | 'OTHER_FEES';
@@ -158,7 +163,7 @@ export class SchoolPayIntegrationService {
     });
   }
 
-  static async syncTransactionsForDate(date: string): Promise<{
+  static async syncTransactionsForDate(date: string, options?: { force?: boolean }): Promise<{
     success: boolean;
     date: string;
     processed: number;
@@ -207,6 +212,39 @@ export class SchoolPayIntegrationService {
     }));
     const allPayments = [...schoolFees, ...otherFees];
 
+    // SchoolPay's date API returns the entire day every time. Remember a
+    // content hash so the seven-day safety window normally costs one state
+    // read per unchanged date instead of rereading and rewriting every receipt.
+    const responseHash = createHash('sha256').update(JSON.stringify(
+      allPayments
+        .map(item => ({
+          type: item.type,
+          receipt: `${item.payment.schoolpayReceiptNumber || ''}`.trim(),
+          transaction: `${item.payment.sourceChannelTransactionId || ''}`.trim(),
+          amount: this.parseAmount(item.payment.amount),
+          status: `${item.payment.transactionCompletionStatus || ''}`.trim(),
+          code: `${item.payment.studentPaymentCode || ''}`.trim(),
+        }))
+        .sort((a, b) => `${a.type}:${a.receipt}`.localeCompare(`${b.type}:${b.receipt}`)),
+    )).digest('hex');
+    const stateRef = getAdminFirestore(getFirebaseAdminApp())
+      .collection(SCHOOLPAY_RECONCILIATION_STATE)
+      .doc(date);
+    const previousState = await stateRef.get();
+    if (!options?.force && previousState.exists && previousState.data()?.responseHash === responseHash) {
+      return {
+        success: true,
+        date,
+        processed: 0,
+        duplicates: allPayments.length,
+        skipped: 0,
+        failed: 0,
+        results: [],
+        returnCode: data.returnCode,
+        returnMessage: 'SchoolPay day is unchanged since its last completed reconciliation',
+      };
+    }
+
     const results: ProcessingResult[] = [];
     for (const item of allPayments) {
       const { SchoolPayInboxService } = await import('./schoolpay-inbox.server');
@@ -250,6 +288,9 @@ export class SchoolPayIntegrationService {
     const duplicates = results.filter((item) => item.duplicate).length;
     const skipped = results.filter((item) => item.skipped).length;
     const failed = results.filter((item) => !item.success && !item.duplicate && !item.skipped).length;
+    const retryableFailures = results.filter(item =>
+      !item.success && item.statusCode !== 404 && item.statusCode !== 409
+    ).length;
 
     await this.logSync({
       type: 'sync_batch',
@@ -265,6 +306,19 @@ export class SchoolPayIntegrationService {
       receiptNumbers: results.map((item) => item.receiptNumber),
       timestamp: new Date().toISOString(),
     });
+
+    if (retryableFailures === 0) {
+      await stateRef.set({
+        date,
+        responseHash,
+        transactionCount: allPayments.length,
+        processed,
+        duplicates,
+        skipped,
+        failed,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    }
 
     return {
       success: failed === 0,
@@ -412,6 +466,52 @@ export class SchoolPayIntegrationService {
     }
 
     try {
+      const localMatch = await this.findExistingLocalPayment(payment);
+      if (localMatch?.conflict) {
+        await this.logSync({
+          type: 'payment',
+          source: context.source,
+          status: 'failed',
+          paymentType,
+          receiptNumber,
+          localPaymentIds: localMatch.localPaymentIds,
+          errorMessage: localMatch.conflict,
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          success: false,
+          statusCode: 409,
+          message: localMatch.conflict,
+          paymentType,
+          receiptNumber,
+          pupilId: localMatch.pupilId,
+          localPaymentIds: localMatch.localPaymentIds,
+        };
+      }
+
+      if (localMatch?.pupilId) {
+        await this.repairPaymentMapping(paymentType, payment, localMatch);
+        await this.logSync({
+          type: 'payment',
+          source: context.source,
+          status: 'duplicate_repaired',
+          paymentType,
+          receiptNumber,
+          pupilId: localMatch.pupilId,
+          localPaymentIds: localMatch.localPaymentIds,
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          success: true,
+          duplicate: true,
+          message: 'Existing local payment found; SchoolPay mapping repaired without adding another payment',
+          paymentType,
+          receiptNumber,
+          pupilId: localMatch.pupilId,
+          localPaymentIds: localMatch.localPaymentIds,
+        };
+      }
+
       const pupil = await this.findPupil(payment.studentPaymentCode, payment.studentRegistrationNumber);
       if (!pupil) {
         await this.logSync({
@@ -728,6 +828,69 @@ export class SchoolPayIntegrationService {
     ]);
     addMatches(registrationSnapshots);
     return matches.size === 1 ? Array.from(matches.values())[0] : null;
+  }
+
+  private static async findExistingLocalPayment(
+    payment: SchoolPayPaymentPayload,
+  ): Promise<ExistingLocalPaymentMatch | null> {
+    const receiptNumber = `${payment.schoolpayReceiptNumber || ''}`.trim();
+    const transactionId = `${payment.sourceChannelTransactionId || ''}`.trim();
+    const db = getAdminFirestore(getFirebaseAdminApp());
+    const payments = db.collection('payments');
+    const lookups: Promise<AdminQuerySnapshot<AdminDocumentData>>[] = [];
+
+    if (receiptNumber) {
+      lookups.push(payments.where('schoolPayReceiptNumber', '==', receiptNumber).get());
+    }
+    if (transactionId) {
+      lookups.push(payments.where('schoolPayTransactionId', '==', transactionId).get());
+    }
+    if (lookups.length === 0) return null;
+
+    const byId = new Map<string, AdminDocumentData>();
+    (await Promise.all(lookups)).forEach(snapshot => {
+      snapshot.docs.forEach(item => byId.set(item.id, item.data()));
+    });
+    if (byId.size === 0) return null;
+
+    return assessExistingSchoolPayPayments(
+      receiptNumber,
+      this.parseAmount(payment.amount),
+      Array.from(byId.entries()).map(([id, item]) => ({
+        id,
+        pupilId: item.pupilId,
+        amount: this.parseAmount(item.amount),
+      })),
+    );
+  }
+
+  private static async repairPaymentMapping(
+    paymentType: SchoolPayPaymentType,
+    payment: SchoolPayPaymentPayload,
+    match: ExistingLocalPaymentMatch,
+  ): Promise<void> {
+    if (!match.pupilId) throw new Error('Cannot repair a SchoolPay mapping without one pupil');
+    const receiptNumber = `${payment.schoolpayReceiptNumber || ''}`.trim();
+    const now = new Date().toISOString();
+    await getAdminFirestore(getFirebaseAdminApp())
+      .collection(SCHOOLPAY_PAYMENT_MAPPINGS)
+      .doc(receiptNumber)
+      .set({
+        schoolpayReceiptNumber: receiptNumber,
+        paymentType,
+        pupilId: match.pupilId,
+        studentPaymentCode: `${payment.studentPaymentCode || ''}`.trim(),
+        studentRegistrationNumber: `${payment.studentRegistrationNumber || ''}`.trim(),
+        localPaymentIds: match.localPaymentIds,
+        amount: this.parseAmount(payment.amount),
+        paymentDate: this.resolvePaymentDate(payment),
+        sourceChannelTransactionId: `${payment.sourceChannelTransactionId || ''}`.trim(),
+        sourcePaymentChannel: `${payment.sourcePaymentChannel || ''}`.trim(),
+        source: 'recovered_existing',
+        recoveredAt: now,
+        syncedAt: now,
+        createdAt: now,
+      }, { merge: true });
   }
 
   private static async resolveAcademicSlot(paymentDate: string): Promise<AcademicSlot> {

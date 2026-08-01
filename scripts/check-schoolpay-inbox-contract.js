@@ -12,6 +12,9 @@ const notify = read('src/app/api/schoolpay/notify/route.ts');
 const callback = read('src/app/api/schoolpay/callback/route.ts');
 const integration = read('src/lib/services/schoolpay-integration.service.ts');
 const assign = read('src/app/api/schoolpay/inbox/[id]/assign/route.ts');
+const reconcile = read('src/app/api/schoolpay/reconcile/route.ts');
+const logs = read('src/app/api/schoolpay/logs/route.ts');
+const cron = read('src/app/api/cron/schoolpay-sync/route.ts');
 const inbox = read('src/lib/services/schoolpay-inbox.server.ts');
 const hook = read('src/lib/hooks/use-schoolpay-inbox.ts');
 const feed = read('src/app/accounts/schoolpay-feed/page.tsx');
@@ -32,8 +35,21 @@ assert(inbox.includes('runTransaction') && inbox.includes("data.status === 'proc
   'Inbox processing must use a transactional concurrency claim.');
 assert(integration.includes("getAdminFirestore(getFirebaseAdminApp())") && !integration.includes("from './pupils.service'"),
   'Financial pupil matching must use authoritative Admin Firestore reads.');
+assert(integration.includes("where('schoolPayReceiptNumber', '==', receiptNumber)") &&
+  integration.includes("where('schoolPayTransactionId', '==', transactionId)") &&
+  integration.includes('repairPaymentMapping'),
+  'Recovery must detect existing local receipts and transaction ids before allocating money.');
+assert(integration.includes('SCHOOLPAY_RECONCILIATION_STATE') && integration.includes('responseHash'),
+  'Unchanged reconciliation days must use one state read instead of replaying every receipt.');
 assert(assign.includes('requireAppUser(request)') && assign.includes("canAccessPage(actor.user, 'fees', 'schoolpay_feed')"),
   'Code assignment must require an authenticated, permitted staff user.');
+assert(reconcile.includes('requireAppUser(request)') && reconcile.includes("canAccessPage(actor.user, 'fees', 'schoolpay_feed')") &&
+  reconcile.includes('{ force: true }'),
+  'Manual date recovery must be permission protected and intentionally bypass unchanged-day caching.');
+assert(logs.includes('requireAppUser(request)') && logs.includes("canAccessPage(actor.user, 'fees', 'schoolpay_feed')"),
+  'SchoolPay diagnostics must not be exposed without app-user authorization.');
+assert(cron.includes("get('daysBack') || '7'") && cron.includes('dates.length > 14'),
+  'Automatic recovery must cover seven days while bounding explicit ranges.');
 assert(hook.includes('acquireSharedFirestoreSubscription') && hook.includes("where('status', 'in', ['unmatched', 'failed'])"),
   'All UI consumers must share one unresolved-payment listener.');
 assert(!feed.includes("getDocs(collection(db, 'pupils'))") && feed.includes('reverted: !!d.reverted'),
@@ -41,8 +57,10 @@ assert(!feed.includes("getDocs(collection(db, 'pupils'))") && feed.includes('rev
 assert(card.includes('Copy code') && card.includes('Assign code') && card.includes('Dismiss prompt'),
   'The prompt must expose the required recovery actions.');
 assert(rules.includes('match /schoolPayInboundTransactions/{transactionId}') &&
-  rules.includes("collection != 'schoolPayInboundTransactions'"),
-  'Inbox rules must block the transitional catch-all and permit only the specific staff read.');
+  rules.includes("collection != 'schoolPayInboundTransactions'") &&
+  rules.includes("collection != 'schoolPayReconciliationState'") &&
+  rules.includes("collection != 'schoolPaySyncLogs'"),
+  'SchoolPay financial collections must be excluded from the transitional catch-all.');
 assert(vercel.crons.some(item => item.path === '/api/cron/schoolpay-sync'),
   'A SchoolPay reconciliation cron must be registered.');
 

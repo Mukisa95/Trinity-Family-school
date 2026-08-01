@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { requireAppUser } from '@/lib/server/app-auth';
+import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const actor = await requireAppUser(request);
+    if (!GranularPermissionService.canAccessPage(actor.user, 'fees', 'schoolpay_feed')) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have permission to view SchoolPay diagnostics.' },
+        { status: 403 },
+      );
+    }
     await ensureServerFirestoreAuth();
     const { collection, limit, orderBy, query, getDocs } = await import('firebase/firestore');
     const { db } = await import('@/lib/firebase');
@@ -22,12 +34,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, logs });
   } catch (error) {
     console.error('❌ [SchoolPay Logs] Error fetching logs:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
+      : message === 'ACCOUNT_INACTIVE' ? 403
+        : 500;
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: message,
       },
-      { status: 500 }
+      { status }
     );
   }
 }
