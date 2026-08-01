@@ -46,6 +46,7 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { AutoNotificationPermission } from '@/components/notifications/auto-notification-permission';
+import { SchoolPayInboxPrompt } from '@/components/schoolpay/schoolpay-inbox-prompt';
 import { logger } from '@/lib/utils/logger';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission, MODULE_ACTIONS } from '@/types/permissions';
@@ -572,6 +573,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           />
 
           <AutoNotificationPermission />
+          <SchoolPayInboxPrompt />
         </div>
       </NavigationWrapper>
     );
@@ -581,6 +583,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   return (
     <NavigationWrapper>
       <AutoNotificationPermission />
+      <SchoolPayInboxPrompt />
       {/* Dashboard background wrapper — background image covers the full viewport */}
       <div className="dashboard-bg-wrapper">
         <SidebarProvider defaultOpen>

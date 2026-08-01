@@ -1,5 +1,10 @@
 import { createHash, timingSafeEqual } from 'crypto';
 import {
+  getFirestore as getAdminFirestore,
+  type DocumentData as AdminDocumentData,
+  type QuerySnapshot as AdminQuerySnapshot,
+} from 'firebase-admin/firestore';
+import {
   addDoc,
   collection,
   doc,
@@ -14,8 +19,8 @@ import { db } from '../firebase';
 import { AcademicYearsService } from './academic-years.service';
 import { FeeStructuresService } from './fee-structures.service';
 import { PaymentsService } from './payments.service';
-import { PupilsService } from './pupils.service';
 import type { FeeStructure, Pupil } from '@/types';
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 
 const SCHOOLPAY_GENERAL_FEE_ID = 'schoolpay-general';
 const SCHOOLPAY_SYNC_LOGS = 'schoolPaySyncLogs';
@@ -23,7 +28,7 @@ const SCHOOLPAY_PAYMENT_MAPPINGS = 'schoolPayPaymentMappings';
 const SCHOOLPAY_SUPPLEMENTARY_MAPPINGS = 'schoolPaySupplementaryFeeMappings';
 const DEFAULT_SCHOOLPAY_SYNC_BASE_URL = 'https://schoolpay.co.ug/paymentapi';
 
-type SchoolPayPaymentType = 'SCHOOL_FEES' | 'OTHER_FEES';
+export type SchoolPayPaymentType = 'SCHOOL_FEES' | 'OTHER_FEES';
 
 export interface SchoolPayPaymentPayload {
   amount: string | number;
@@ -63,11 +68,11 @@ interface AcademicSlot {
 }
 
 interface ProcessingContext {
-  source: 'webhook' | 'sync';
+  source: 'webhook' | 'sync' | 'assignment';
   verifySignature: boolean;
 }
 
-interface ProcessingResult {
+export interface ProcessingResult {
   success: boolean;
   duplicate?: boolean;
   skipped?: boolean;
@@ -115,6 +120,41 @@ export class SchoolPayIntegrationService {
     return this.processPaymentPayload(payload.type, payload.payment, payload.signature, {
       source: 'webhook',
       verifySignature: requireWebhookSignature || !!payload.signature,
+    });
+  }
+
+  static validateWebhookPayloadSignature(payload: SchoolPayWebhookPayload): {
+    valid: boolean;
+    required: boolean;
+    message?: string;
+  } {
+    const { requireWebhookSignature } = this.getConfig();
+    const receiptNumber = `${payload.payment?.schoolpayReceiptNumber || ''}`.trim();
+    const shouldVerify = requireWebhookSignature || !!payload.signature;
+
+    if (!shouldVerify) return { valid: true, required: false };
+    if (!payload.signature) return { valid: false, required: true, message: 'Missing signature' };
+    if (!this.verifyWebhookSignature(payload.signature, receiptNumber)) {
+      return { valid: false, required: true, message: 'Invalid signature' };
+    }
+    return { valid: true, required: true };
+  }
+
+  static async processVerifiedWebhookPayload(payload: SchoolPayWebhookPayload): Promise<ProcessingResult> {
+    return this.processPaymentPayload(payload.type, payload.payment, undefined, {
+      source: 'webhook',
+      verifySignature: false,
+    });
+  }
+
+  static async processReconciliationPayload(
+    paymentType: SchoolPayPaymentType,
+    payment: SchoolPayPaymentPayload,
+    source: 'sync' | 'assignment' = 'sync',
+  ): Promise<ProcessingResult> {
+    return this.processPaymentPayload(paymentType, payment, undefined, {
+      source,
+      verifySignature: false,
     });
   }
 
@@ -169,11 +209,41 @@ export class SchoolPayIntegrationService {
 
     const results: ProcessingResult[] = [];
     for (const item of allPayments) {
-      const result = await this.processPaymentPayload(item.type, item.payment, undefined, {
-        source: 'sync',
-        verifySignature: false,
-      });
-      results.push(result);
+      const { SchoolPayInboxService } = await import('./schoolpay-inbox.server');
+      const inboxId = await SchoolPayInboxService.recordReceived(item, 'sync');
+      const claimed = await SchoolPayInboxService.markProcessing(inboxId, 'sync');
+      if (!claimed) {
+        const existing = await SchoolPayInboxService.get(inboxId);
+        results.push({
+          success: existing?.status === 'recorded',
+          duplicate: existing?.status === 'recorded',
+          skipped: existing?.status === 'processing',
+          statusCode: 200,
+          message: existing?.status === 'recorded'
+            ? 'Payment already recorded'
+            : 'Payment is already being processed',
+          paymentType: item.type,
+          receiptNumber: `${item.payment.schoolpayReceiptNumber || ''}`.trim(),
+          pupilId: existing?.pupilId,
+          localPaymentIds: existing?.localPaymentIds || [],
+        });
+        continue;
+      }
+      try {
+        const result = await this.processReconciliationPayload(item.type, item.payment, 'sync');
+        await SchoolPayInboxService.markResult(inboxId, result);
+        results.push(result);
+      } catch (error) {
+        await SchoolPayInboxService.markUnexpectedFailure(inboxId, error);
+        results.push({
+          success: false,
+          statusCode: 500,
+          message: error instanceof Error ? error.message : 'Unknown SchoolPay processing error',
+          paymentType: item.type,
+          receiptNumber: `${item.payment.schoolpayReceiptNumber || ''}`.trim(),
+          localPaymentIds: [],
+        });
+      }
     }
 
     const processed = results.filter((item) => item.success && !item.duplicate && !item.skipped).length;
@@ -463,7 +533,7 @@ export class SchoolPayIntegrationService {
     pupilName: string;
     amount: number;
     breakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
-    source: 'webhook' | 'sync';
+    source: 'webhook' | 'sync' | 'assignment';
   }): Promise<void> {
     // Only send real-time push for webhook payments, not historical sync backfill
     if (opts.source !== 'webhook') return;
@@ -616,45 +686,48 @@ export class SchoolPayIntegrationService {
     studentPaymentCode?: string,
     studentRegistrationNumber?: string
   ): Promise<Pupil | null> {
-    const allPupils = await PupilsService.getAllPupils();
+    // Financial matching must always use authoritative server reads. The
+    // browser-oriented PupilsService is cache-first and can return a stale
+    // Vercel instance snapshot, which previously produced false unmatched
+    // payments for codes that already existed in Firestore.
+    const db = getAdminFirestore(getFirebaseAdminApp());
+    const pupils = db.collection('pupils');
+    const matches = new Map<string, Pupil>();
+    const addMatches = (snapshots: AdminQuerySnapshot<AdminDocumentData>[]) => {
+      for (const snapshot of snapshots) {
+        for (const item of snapshot.docs) {
+          matches.set(item.id, { id: item.id, ...item.data() } as Pupil);
+        }
+      }
+    };
 
-    const normalizedPaymentCode = `${studentPaymentCode || ''}`.trim().toLowerCase();
-    if (normalizedPaymentCode) {
-      const paymentCodeMatches = allPupils.filter((pupil) => {
-        const identifiers = (pupil.additionalIdentifiers || []).map((identifier) => ({
-          type: `${identifier.idType || ''}`.trim().toLowerCase(),
-          value: `${identifier.idValue || ''}`.trim().toLowerCase(),
-        }));
-
-        return (
-          `${pupil.payCode || ''}`.trim().toLowerCase() === normalizedPaymentCode ||
-          identifiers.some(
-            (identifier) =>
-              (identifier.type.includes('payment code') || identifier.type.includes('pay code')) &&
-              identifier.value === normalizedPaymentCode
-          )
-        );
-      });
-
-      if (paymentCodeMatches.length === 1) return paymentCodeMatches[0];
+    const paymentCode = `${studentPaymentCode || ''}`.trim();
+    if (paymentCode) {
+      const codeValues: Array<string | number> = [paymentCode];
+      if (/^\d+$/.test(paymentCode)) codeValues.push(Number(paymentCode));
+      const directFields = ['payCode', 'schoolPayCode', 'schoolPayPaymentCode', 'paymentCode'];
+      const queries = directFields.flatMap((field) =>
+        codeValues.map((value) => pupils.where(field, '==', value).limit(2).get())
+      );
+      queries.push(
+        pupils.where('additionalIdentifiers', 'array-contains', {
+          idType: 'SchoolPay Payment Code',
+          idValue: paymentCode,
+        }).limit(2).get(),
+      );
+      addMatches(await Promise.all(queries));
+      if (matches.size === 1) return Array.from(matches.values())[0];
+      if (matches.size > 1) return null;
     }
 
-    const normalizedRegistration = `${studentRegistrationNumber || ''}`.trim().toLowerCase();
-    if (!normalizedRegistration) return null;
-
-    const registrationMatches = allPupils.filter((pupil) => {
-      const identifiers = (pupil.additionalIdentifiers || []).map((identifier) =>
-        `${identifier.idValue || ''}`.trim().toLowerCase()
-      );
-
-      return (
-        `${pupil.admissionNumber || ''}`.trim().toLowerCase() === normalizedRegistration ||
-        `${pupil.learnerIdentificationNumber || ''}`.trim().toLowerCase() === normalizedRegistration ||
-        identifiers.includes(normalizedRegistration)
-      );
-    });
-
-    return registrationMatches.length === 1 ? registrationMatches[0] : null;
+    const registrationNumber = `${studentRegistrationNumber || ''}`.trim();
+    if (!registrationNumber) return null;
+    const registrationSnapshots = await Promise.all([
+      pupils.where('admissionNumber', '==', registrationNumber).limit(2).get(),
+      pupils.where('learnerIdentificationNumber', '==', registrationNumber).limit(2).get(),
+    ]);
+    addMatches(registrationSnapshots);
+    return matches.size === 1 ? Array.from(matches.values())[0] : null;
   }
 
   private static async resolveAcademicSlot(paymentDate: string): Promise<AcademicSlot> {
@@ -1148,7 +1221,7 @@ export class SchoolPayIntegrationService {
     paymentDate: string;
     sourceChannelTransactionId: string;
     sourcePaymentChannel: string;
-    source: 'webhook' | 'sync';
+    source: 'webhook' | 'sync' | 'assignment';
   }): Promise<void> {
     await setDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS, mapping.receiptNumber), {
       schoolpayReceiptNumber: mapping.receiptNumber,

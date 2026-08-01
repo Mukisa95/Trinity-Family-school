@@ -57,14 +57,12 @@ export async function GET(request: NextRequest) {
   const secret =
     request.headers.get('x-cron-secret') || request.nextUrl.searchParams.get('secret');
   const authHeader = request.headers.get('authorization');
-  const isVercelCron = request.headers.get('user-agent') === 'vercel-cron/1.0';
+  const cronSecret = process.env.CRON_SECRET;
+  const hasValidSecret = !!cronSecret && (
+    secret === cronSecret || authHeader === `Bearer ${cronSecret}`
+  );
 
-  if (
-    process.env.CRON_SECRET &&
-    secret !== process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}` &&
-    !isVercelCron
-  ) {
+  if (!hasValidSecret) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -81,7 +79,7 @@ export async function GET(request: NextRequest) {
     const dateFrom = request.nextUrl.searchParams.get('dateFrom');
     const dateTo = request.nextUrl.searchParams.get('dateTo');
     const daysBack = Math.min(
-      Math.max(parseInt(request.nextUrl.searchParams.get('daysBack') || '2', 10), 1),
+      Math.max(parseInt(request.nextUrl.searchParams.get('daysBack') || '3', 10), 1),
       14
     );
 

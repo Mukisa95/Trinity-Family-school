@@ -5,6 +5,7 @@ import {
   type SchoolPayWebhookPayload,
 } from '@/lib/services/schoolpay-integration.service';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { SchoolPayInboxService } from '@/lib/services/schoolpay-inbox.server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -185,17 +186,7 @@ async function parseIncomingPayload(request: NextRequest): Promise<ParsedWebhook
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureServerFirestoreAuth();
     const { payload, raw, contentType } = await parseIncomingPayload(request);
-
-    await SchoolPayIntegrationService.logWebhookReceipt({
-      url: request.url,
-      contentType,
-      userAgent: request.headers.get('user-agent') || '',
-      ...summarizeRawPayload(raw),
-    }).catch((error) => {
-      console.error('❌ [SchoolPay Webhook] Error logging webhook receipt:', error);
-    });
 
     if (!payload?.payment || !payload?.type) {
       return NextResponse.json(
@@ -219,12 +210,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await SchoolPayIntegrationService.processWebhookPayload(payload);
-    const status = result.statusCode || (result.success ? 200 : 500);
+    const signatureCheck = SchoolPayIntegrationService.validateWebhookPayloadSignature(payload);
+    if (!signatureCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: signatureCheck.message || 'Invalid SchoolPay signature' },
+        { status: 401 },
+      );
+    }
+
+    // Inbox-first: a valid provider callback must be durably visible before
+    // any pupil lookup or fee allocation starts. If this write fails we return
+    // a non-2xx response so SchoolPay can retry instead of silently losing it.
+    const inboxId = await SchoolPayInboxService.recordReceived(payload, 'webhook');
+    const claimed = await SchoolPayInboxService.markProcessing(inboxId, 'webhook');
+    if (!claimed) {
+      const existing = await SchoolPayInboxService.get(inboxId);
+      return NextResponse.json({
+        success: existing?.status === 'recorded',
+        accepted: true,
+        duplicate: existing?.status === 'recorded',
+        message: existing?.status === 'recorded'
+          ? 'Payment already recorded'
+          : 'Payment is already being processed',
+        receiptNumber: payload.payment.schoolpayReceiptNumber,
+        inboxId,
+      });
+    }
+
+    let result;
+    try {
+      // The durable Admin SDK inbox above must succeed before the legacy Web
+      // SDK server identity is needed by fee allocation.
+      await ensureServerFirestoreAuth();
+      await SchoolPayIntegrationService.logWebhookReceipt({
+        url: request.url,
+        contentType,
+        userAgent: request.headers.get('user-agent') || '',
+        ...summarizeRawPayload(raw),
+      }).catch((error) => {
+        console.error('[SchoolPay Webhook] Error logging webhook receipt:', error);
+      });
+      result = await SchoolPayIntegrationService.processVerifiedWebhookPayload(payload);
+      await SchoolPayInboxService.markResult(inboxId, result);
+    } catch (error) {
+      await SchoolPayInboxService.markUnexpectedFailure(inboxId, error);
+      throw error;
+    }
+    const acceptedUnmatched = result.statusCode === 404;
+    const status = acceptedUnmatched ? 200 : (result.statusCode || (result.success ? 200 : 500));
 
     return NextResponse.json(
       {
         success: result.success,
+        accepted: result.success || acceptedUnmatched,
         duplicate: !!result.duplicate,
         skipped: !!result.skipped,
         message: result.message,
@@ -232,6 +270,7 @@ export async function POST(request: NextRequest) {
         paymentType: result.paymentType,
         pupilId: result.pupilId,
         localPaymentIds: result.localPaymentIds,
+        inboxId,
       },
       { status }
     );

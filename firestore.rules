@@ -69,6 +69,12 @@ service cloud.firestore {
       allow read, write: if isStaffOrAdmin();
     }
 
+    // Canonical SchoolPay callbacks are written only by trusted server routes.
+    match /schoolPayInboundTransactions/{transactionId} {
+      allow read: if isStaffOrAdmin();
+      allow write: if false;
+    }
+
     // Transitional production boundary: preserve every existing authenticated
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
@@ -80,6 +86,7 @@ service cloud.firestore {
         && collection != 'settings'
         && collection != 'photos'
         && collection != 'attendanceDailySummaries'
+        && collection != 'schoolPayInboundTransactions'
         && isActiveApplicationUser();
     }
   }

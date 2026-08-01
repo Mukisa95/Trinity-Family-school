@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   Zap, ArrowLeft, ExternalLink, ChevronDown, ChevronRight,
@@ -13,6 +13,9 @@ import { useSchoolPayFeedState, type TxStatus } from '@/lib/hooks/use-schoolpay-
 import { useAuth } from '@/lib/contexts/auth-context';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { usePupils } from '@/lib/hooks/use-pupils';
+import { useSchoolPayInbox } from '@/lib/hooks/use-schoolpay-inbox';
+import { SchoolPayInboxCard } from '@/components/schoolpay/schoolpay-inbox-card';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,6 +37,7 @@ interface LivePayment {
   schoolPayOriginYearId?: string;
   paidBy?: { name?: string };
   createdAt?: string;
+  reverted?: boolean;
 }
 
 interface PupilInfo {
@@ -318,13 +322,29 @@ function FeedContent() {
   const router = useRouter();
   const { markFeedViewed, markTxClicked, getTxStatus } = useSchoolPayFeedState();
   const { data: academicYears = [] } = useAcademicYears();
+  const pupilsQuery = usePupils();
+  const { data: unresolvedPayments } = useSchoolPayInbox();
 
   const [payments, setPayments] = useState<LivePayment[]>([]);
-  const [pupils, setPupils] = useState<Map<string, PupilInfo>>(new Map());
   const [allTermLabels, setAllTermLabels] = useState<Map<string, string>>(new Map());
   const [connectionState, setConnectionState] = useState<FeedConnectionState>('connecting');
-  const [isLoadingPupils, setIsLoadingPupils] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'seen' | 'clicked' | 'today'>('all');
+
+  const pupils = useMemo(() => {
+    const map = new Map<string, PupilInfo>();
+    (pupilsQuery.data || []).forEach(pupil => map.set(pupil.id, {
+      id: pupil.id,
+      firstName: pupil.firstName || '',
+      lastName: pupil.lastName || '',
+      admissionNumber: pupil.admissionNumber || '',
+      classId: pupil.classId || '',
+      classCode: pupil.classCode || pupil.classId || '',
+      className: pupil.className || '',
+      section: pupil.section || '',
+    }));
+    return map;
+  }, [pupilsQuery.data]);
+  const isLoadingPupils = pupilsQuery.isLoading;
 
   // Mark feed as viewed on mount — clears the badge
   useEffect(() => {
@@ -345,34 +365,6 @@ function FeedContent() {
   }, [academicYears]);
 
   // ── Load pupils once ─────────────────────────────────────────────────────
-  useEffect(() => {
-    (async () => {
-      try {
-        setIsLoadingPupils(true);
-        const snap = await getDocs(collection(db, 'pupils'));
-        const map = new Map<string, PupilInfo>();
-        snap.docs.forEach(doc => {
-          const d = doc.data();
-          map.set(doc.id, {
-            id: doc.id,
-            firstName: d.firstName || '',
-            lastName: d.lastName || '',
-            admissionNumber: d.admissionNumber || '',
-            classId: d.classId || '',
-            classCode: d.classCode || d.classId || '',
-            className: d.className || '',
-            section: d.section || '',
-          });
-        });
-        setPupils(map);
-      } catch (e) {
-        console.error('Error loading pupils:', e);
-      } finally {
-        setIsLoadingPupils(false);
-      }
-    })();
-  }, []);
-
   // ── Live listener: SchoolPay payments ───────────────────────────────────
   useEffect(() => {
     const q = query(
@@ -413,9 +405,10 @@ function FeedContent() {
                 schoolPayOriginYearId: d.schoolPayOriginYearId,
                 paidBy: d.paidBy,
                 createdAt: d.createdAt?.toDate?.()?.toISOString?.() ?? d.createdAt,
+                reverted: !!d.reverted,
               } as LivePayment;
             })
-            .filter(p => !(p as any).reverted);
+            .filter(p => !p.reverted);
           setPayments(docs);
           setConnectionState('live');
         },
@@ -625,6 +618,16 @@ function FeedContent() {
         }
       />
       <div className="w-full px-3 sm:px-4 lg:px-6 py-4 space-y-4 pb-10">
+
+        {unresolvedPayments.length > 0 && (
+          <section aria-labelledby="schoolpay-recovery-heading" className="space-y-3">
+            <div>
+              <h2 id="schoolpay-recovery-heading" className="font-bold text-slate-950">Payments needing attention ({unresolvedPayments.length})</h2>
+              <p className="text-xs text-slate-500">These receipts were safely received but have not yet been added to pupil fees.</p>
+            </div>
+            {unresolvedPayments.map(record => <SchoolPayInboxCard key={record.id} record={record} compact />)}
+          </section>
+        )}
 
         {/* Feed */}
         {payments.length === 0 && !isLoadingPupils ? (

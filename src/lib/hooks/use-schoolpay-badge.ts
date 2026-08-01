@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { useSchoolPayInbox } from '@/lib/hooks/use-schoolpay-inbox';
 
 const STORAGE_KEY = (userId: string) => `schoolpay-feed-state-${userId}`;
 
@@ -27,6 +28,7 @@ function getLastViewedAt(userId: string): string | null {
 
 export function useSchoolPayBadge() {
   const { user } = useAuth();
+  const { data: unresolvedPayments } = useSchoolPayInbox();
   const userId = user?.id || 'anonymous';
 
   const [badgeCount, setBadgeCount] = useState(0);
@@ -102,5 +104,5 @@ export function useSchoolPayBadge() {
     };
   }, [lastViewedAt]);
 
-  return badgeCount;
+  return badgeCount + unresolvedPayments.length;
 }
