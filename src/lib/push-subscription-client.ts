@@ -5,10 +5,6 @@ import { auth } from '@/lib/firebase';
 const DEFAULT_VAPID_PUBLIC_KEY =
   'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
 
-const VAPID_PUBLIC_KEY = (
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY
-).trim();
-
 export type PushSyncResult = {
   active: boolean;
   reason?:
@@ -165,7 +161,10 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
     if (Notification.permission !== 'granted') return { active: false, reason: 'permission-required' };
     if (!await getIdentityToken(userId)) return { active: false, reason: 'signed-out' };
 
-    const publicKey = await getServerPublicKey().catch(() => VAPID_PUBLIC_KEY);
+    // Never create a subscription from a compile-time fallback: production
+    // signing credentials can differ between environments. The server-derived
+    // key is the only authoritative key for this deployment.
+    const publicKey = await getServerPublicKey();
     const subscription = await getCurrentOrNewSubscription(publicKey);
     await saveSubscription(userId, subscription);
     return { active: true };
