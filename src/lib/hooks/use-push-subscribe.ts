@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const VAPID_PUBLIC_KEY =
+const VAPID_PUBLIC_KEY = (
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
+  'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY'
+).trim();
 
 /**
  * Converts a URL-safe base64 VAPID public key to a Uint8Array.

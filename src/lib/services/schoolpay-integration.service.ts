@@ -21,6 +21,7 @@ import { FeeStructuresService } from './fee-structures.service';
 import { PaymentsService } from './payments.service';
 import type { FeeStructure, Pupil } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { getServerVapidDetails } from '@/lib/server/vapid-config';
 import {
   assessExistingSchoolPayPayments,
   type ExistingLocalPaymentMatch,
@@ -638,11 +639,7 @@ export class SchoolPayIntegrationService {
     // Only send real-time push for webhook payments, not historical sync backfill
     if (opts.source !== 'webhook') return;
 
-    const publicKey =
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
-    const privateKey = process.env.VAPID_PRIVATE_KEY || '';
-    const email = process.env.VAPID_EMAIL || 'admin@trinity-family-schools.com';
+    const { subject, publicKey, privateKey } = getServerVapidDetails();
 
     if (!privateKey) {
       console.warn('[SchoolPay Push] VAPID_PRIVATE_KEY is not set — skipping push notification');
@@ -652,7 +649,7 @@ export class SchoolPayIntegrationService {
     // Dynamic imports so this module stays importable in all environments
     const webpushModule = await import('web-push');
     const webpush = webpushModule.default || webpushModule;
-    webpush.setVapidDetails(`mailto:${email}`, publicKey, privateKey);
+    webpush.setVapidDetails(subject, publicKey, privateKey);
 
     const { getFeesAccessUserIds, getSubscriptionsForUsers } = await import(
       './push-notifications.service'

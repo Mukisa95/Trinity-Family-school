@@ -91,6 +91,23 @@ test('an active application identity keeps normal read and write behavior', asyn
   await assertSucceeds(deleteDoc(doc(db, 'pupils', 'pupil-2')));
 });
 
+test('the trusted Vercel server identity can read pupils for server-side notifications', async () => {
+  const trustedServerDb = testEnv.authenticatedContext('trinity-vercel-server', {
+    appUser: true,
+    isActive: true,
+    role: 'Server',
+    serverApp: true,
+  }).firestore();
+  const untrustedServerDb = testEnv.authenticatedContext('untrusted-server', {
+    appUser: true,
+    isActive: true,
+    role: 'Server',
+  }).firestore();
+
+  await assertSucceeds(getDoc(doc(trustedServerDb, 'pupils', 'pupil-1')));
+  await assertFails(getDoc(doc(untrustedServerDb, 'pupils', 'pupil-1')));
+});
+
 test('active users can read profiles but cannot mutate them directly', async () => {
   const db = testEnv.authenticatedContext('active-admin', {
     appUser: true,

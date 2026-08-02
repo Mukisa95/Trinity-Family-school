@@ -18,6 +18,12 @@ service cloud.firestore {
         && (request.auth.token.role == 'Admin' || request.auth.token.role == 'Staff');
     }
 
+    function isTrustedServerApp() {
+      return isActiveApplicationUser()
+        && request.auth.token.serverApp == true
+        && request.auth.token.role == 'Server';
+    }
+
     function isParentForFamily(familyId) {
       return isActiveApplicationUser()
         && request.auth.token.role == 'Parent'
@@ -59,7 +65,9 @@ service cloud.firestore {
     // from another family. Writes remain transitional until the privileged
     // write-path map is complete.
     match /pupils/{pupilId} {
-      allow read: if isStaffOrAdmin() || isParentForFamily(resource.data.familyId);
+      allow read: if isTrustedServerApp()
+        || isStaffOrAdmin()
+        || isParentForFamily(resource.data.familyId);
       allow write: if isActiveApplicationUser();
     }
 

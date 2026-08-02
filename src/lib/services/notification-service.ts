@@ -54,7 +54,9 @@ class NotificationService {
         const pushDeliveries = await this.sendPushNotifications(notification, targetUsers);
         deliveries.push(...pushDeliveries);
 
-        pushSent = pushDeliveries.filter(d => d.status === 'sent').length;
+        pushSent = pushDeliveries.filter(
+          d => d.status === 'sent' || d.status === 'delivered'
+        ).length;
         pushFailed = pushDeliveries.filter(d => d.status === 'failed').length;
       }
 
@@ -198,7 +200,7 @@ class NotificationService {
     console.log('📤 [Push Notification] Payload:', pushPayload);
 
     // Send push notifications via API endpoint
-    for (const { userId, subscription } of subscriptions) {
+    for (const { userId } of subscriptions) {
       try {
         console.log(`📨 [Push Notification] Sending to user ${userId}`);
 
@@ -209,14 +211,14 @@ class NotificationService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            subscription,
+            userIds: [userId],
             payload: pushPayload
           })
         });
 
         const result = await response.json();
 
-        if (response.ok) {
+        if (response.ok && result.sent > 0) {
           console.log(`✅ [Push Notification] Sent successfully to user ${userId}`);
           deliveries.push({
             id: `${Date.now()}-${Math.random()}`,
@@ -236,7 +238,7 @@ class NotificationService {
             method: 'push',
             status: 'failed',
             sentAt: new Date().toISOString(),
-            error: result.error,
+            error: result.error || result.message || 'No active device accepted the push notification',
             retryCount: 0
           });
 

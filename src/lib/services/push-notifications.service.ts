@@ -317,9 +317,10 @@ export const pushNotificationService = {
    * Subscribe a user — browser-side. Registers SW + saves to Firestore.
    */
   async subscribe(userId: string) {
-    const VAPID_KEY =
+    const VAPID_KEY = (
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
+      'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY'
+    ).trim();
 
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return null;

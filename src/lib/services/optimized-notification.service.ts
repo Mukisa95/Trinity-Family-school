@@ -28,6 +28,7 @@ import { userGroupService } from './user-groups';
 import { pushNotificationService } from './push-notifications.service';
 import { UnifiedNotificationsService } from './unified-notifications.service';
 import { pushNotificationIconService } from './push-notification-icon.service';
+import { getServerVapidDetails } from '@/lib/server/vapid-config';
 import type {
   Notification,
   CreateNotificationData,
@@ -549,23 +550,19 @@ class OptimizedNotificationService {
       }
 
       // VAPID configuration
-      const vapidKeys = {
-        publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4',
-        privateKey: process.env.VAPID_PRIVATE_KEY || '',
-        email: process.env.VAPID_EMAIL || 'admin@trinity-family-schools.com'
-      };
+      const vapidKeys = getServerVapidDetails();
 
       console.log(`🔑 [WEB PUSH] VAPID keys configuration:`, {
         hasPublicKey: !!vapidKeys.publicKey,
         publicKeyLength: vapidKeys.publicKey?.length,
         hasPrivateKey: !!vapidKeys.privateKey,
         privateKeyLength: vapidKeys.privateKey?.length,
-        email: vapidKeys.email
+        subject: vapidKeys.subject
       });
 
       try {
         webpush.setVapidDetails(
-          `mailto:${vapidKeys.email}`,
+          vapidKeys.subject,
           vapidKeys.publicKey,
           vapidKeys.privateKey
         );

@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { getServerVapidDetails } from '@/lib/server/vapid-config';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
 
 let webpush: any = null;
 
-function getVapidDetails() {
-  return {
-    subject: `mailto:${process.env.VAPID_EMAIL || 'admin@trinity-family-schools.com'}`,
-    publicKey:
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4',
-    privateKey: process.env.VAPID_PRIVATE_KEY || '',
-  };
-}
-
 async function getWebPush() {
   if (!webpush) {
     webpush = (await import('web-push')).default;
-    const { subject, publicKey, privateKey } = getVapidDetails();
+    const { subject, publicKey, privateKey } = getServerVapidDetails();
     if (!privateKey) throw new Error('VAPID_PRIVATE_KEY is not set');
     webpush.setVapidDetails(subject, publicKey, privateKey);
   }

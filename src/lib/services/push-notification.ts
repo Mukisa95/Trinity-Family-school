@@ -15,7 +15,10 @@ import { db } from '@/lib/firebase';
 import type { PushSubscription as PushSubscriptionType, NotificationDelivery } from '@/types';
 
 // VAPID public key - Default key generated 2025-10-26
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
+const VAPID_PUBLIC_KEY = (
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4'
+).trim();
 
 class PushNotificationService {
   private swRegistration: ServiceWorkerRegistration | null = null;
@@ -339,4 +342,4 @@ class PushNotificationService {
   }
 }
 
-export const pushNotificationService = new PushNotificationService(); 
+export const pushNotificationService = new PushNotificationService();
