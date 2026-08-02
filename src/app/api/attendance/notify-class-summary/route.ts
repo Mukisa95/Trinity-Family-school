@@ -110,7 +110,11 @@ export async function POST(request: NextRequest) {
         .where('userId', 'in', recipientIds.slice(index, index + 10))
         .where('isActive', '==', true)
         .get();
-      subscriptionDocs.docs.forEach(doc => subscriptions.push({ id: doc.id, ...doc.data() } as any));
+      const currentPublicKey = getServerVapidDetails().publicKey;
+      subscriptionDocs.docs.forEach(doc => {
+        const subscription = { id: doc.id, ...doc.data() } as any;
+        if (subscription.vapidPublicKey === currentPublicKey) subscriptions.push(subscription);
+      });
     }
     const push = await sendWebPush(subscriptions, JSON.stringify({
       title,

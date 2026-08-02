@@ -34,6 +34,7 @@ export interface PushSubscriptionRecord {
   userAgent: string;
   platform?: string;
   pwaInstalled?: boolean;
+  vapidPublicKey?: string;
   isActive: boolean;
   createdAt: Timestamp | ReturnType<typeof serverTimestamp>;
   updatedAt?: Timestamp | ReturnType<typeof serverTimestamp>;
@@ -109,7 +110,9 @@ export async function saveSubscription(
     userAgent?: string;
     platform?: string;
     pwaInstalled?: boolean;
+    vapidPublicKey?: string;
   } = {},
+  previousEndpoint?: string,
 ): Promise<string> {
   const subscriptionsRef = collection(db, 'pushSubscriptions');
 
@@ -133,7 +136,15 @@ export async function saveSubscription(
     userAgent: safeText(device.userAgent, 500),
     platform: safeText(device.platform, 100),
     pwaInstalled: device.pwaInstalled === true,
+    vapidPublicKey: safeText(device.vapidPublicKey, 100),
   };
+
+  // A VAPID-key rotation produces a different browser endpoint. Retire the
+  // endpoint that this same browser just replaced so future sends do not keep
+  // hitting a permanently incompatible record.
+  if (previousEndpoint && previousEndpoint !== subscription.endpoint) {
+    await deactivateSubscriptionEndpoint(userId, previousEndpoint);
+  }
 
   for (const existing of existingSnap.docs) {
     if (existing.id === matching?.id) continue;
@@ -240,7 +251,8 @@ export async function getUserSubscription(
  * Handles Firestore's 10-item `in` query limit internally.
  */
 export async function getSubscriptionsForUsers(
-  userIds: string[]
+  userIds: string[],
+  vapidPublicKey?: string,
 ): Promise<PushSubscriptionRecord[]> {
   if (userIds.length === 0) return [];
   const subscriptionsRef = collection(db, 'pushSubscriptions');
@@ -260,7 +272,9 @@ export async function getSubscriptionsForUsers(
     );
   }
 
-  return results;
+  return vapidPublicKey
+    ? results.filter(subscription => subscription.vapidPublicKey === vapidPublicKey)
+    : results;
 }
 
 /**

@@ -32,7 +32,10 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 function applicationServerKeyMatches(subscription: PushSubscription, publicKey: string): boolean {
   const currentKey = subscription.options.applicationServerKey;
-  if (!currentKey) return true;
+  // If the browser cannot expose the key used for an existing subscription we
+  // cannot safely assume it belongs to the current sender. Keeping an unknown
+  // subscription leaves installed PWAs registered against an old VAPID key.
+  if (!currentKey) return false;
 
   const expected = urlBase64ToUint8Array(publicKey);
   const actual = new Uint8Array(currentKey);
@@ -80,7 +83,12 @@ async function getIdentityToken(expectedUserId: string): Promise<string | null> 
   return firebaseUser.getIdToken();
 }
 
-async function saveSubscription(userId: string, subscription: PushSubscription): Promise<void> {
+async function saveSubscription(
+  userId: string,
+  subscription: PushSubscription,
+  publicKey: string,
+  previousEndpoint?: string,
+): Promise<void> {
   const token = await getIdentityToken(userId);
   if (!token) throw new Error('A verified signed-in session is required to save push notifications.');
 
@@ -94,6 +102,8 @@ async function saveSubscription(userId: string, subscription: PushSubscription):
       userId,
       subscription: subscription.toJSON(),
       device: getDeviceMetadata(),
+      publicKey,
+      ...(previousEndpoint ? { previousEndpoint } : {}),
     }),
     cache: 'no-store',
   });
@@ -104,14 +114,19 @@ async function saveSubscription(userId: string, subscription: PushSubscription):
   }
 }
 
-async function getCurrentOrNewSubscription(publicKey: string): Promise<PushSubscription> {
+async function getCurrentOrNewSubscription(publicKey: string): Promise<{
+  subscription: PushSubscription;
+  previousEndpoint?: string;
+}> {
   await navigator.serviceWorker.register('/sw.js');
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
+  let previousEndpoint: string | undefined;
 
   // A subscription created with a previous VAPID key cannot be used by the
   // current sender. Rotate it while permission is already granted.
   if (subscription && !applicationServerKeyMatches(subscription, publicKey)) {
+    previousEndpoint = subscription.endpoint;
     await subscription.unsubscribe();
     subscription = null;
   }
@@ -123,7 +138,7 @@ async function getCurrentOrNewSubscription(publicKey: string): Promise<PushSubsc
     });
   }
 
-  return subscription;
+  return { subscription, previousEndpoint };
 }
 
 let activeSync: { userId: string; promise: Promise<PushSyncResult> } | null = null;
@@ -165,8 +180,8 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
     // signing credentials can differ between environments. The server-derived
     // key is the only authoritative key for this deployment.
     const publicKey = await getServerPublicKey();
-    const subscription = await getCurrentOrNewSubscription(publicKey);
-    await saveSubscription(userId, subscription);
+    const { subscription, previousEndpoint } = await getCurrentOrNewSubscription(publicKey);
+    await saveSubscription(userId, subscription, publicKey, previousEndpoint);
     return { active: true };
   })().finally(() => {
     if (activeSync?.promise === promise) activeSync = null;

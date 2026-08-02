@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { getServerVapidDetails } from '@/lib/server/vapid-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const actor = await requireAppUser(request);
     await ensureServerFirestoreAuth();
-    const { userId, subscription, device } = await request.json();
+    const { userId, subscription, device, publicKey, previousEndpoint } = await request.json();
 
     if (userId && userId !== actor.decoded.uid) {
       return NextResponse.json(
@@ -44,8 +45,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const currentPublicKey = getServerVapidDetails().publicKey;
+    if (typeof publicKey !== 'string' || publicKey !== currentPublicKey) {
+      return NextResponse.json(
+        { error: 'The browser used an outdated Web Push key. Refresh and try again.' },
+        { status: 409 },
+      );
+    }
+
     const { saveSubscription } = await import('@/lib/services/push-notifications.service');
-    const docId = await saveSubscription(actor.decoded.uid, subscription, device || {});
+    const docId = await saveSubscription(
+      actor.decoded.uid,
+      subscription,
+      { ...(device || {}), vapidPublicKey: currentPublicKey },
+      typeof previousEndpoint === 'string' ? previousEndpoint : undefined,
+    );
 
     console.log(`Push subscription saved for user ${actor.decoded.uid} (doc: ${docId})`);
     return NextResponse.json({ success: true, subscriptionId: docId });

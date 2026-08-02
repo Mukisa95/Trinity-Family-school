@@ -33,7 +33,7 @@ async function sendReplyPushes(
   payload: Record<string, unknown>,
 ) {
   const { getSubscriptionsForUsers } = await import('@/lib/services/push-notifications.service');
-  const subscriptions = await getSubscriptionsForUsers(userIds);
+  const subscriptions = await getSubscriptionsForUsers(userIds, getServerVapidDetails().publicKey);
   if (!subscriptions.length) return { sent: 0, failed: 0, total: 0 };
 
   let sent = 0;
@@ -56,7 +56,9 @@ async function sendReplyPushes(
         else {
           failed += 1;
           const statusCode = (result.reason as any)?.statusCode;
-          if ((statusCode === 404 || statusCode === 410) && batch[itemIndex]?.id) expiredIds.push(batch[itemIndex].id);
+          if ((statusCode === 403 || statusCode === 404 || statusCode === 410) && batch[itemIndex]?.id) {
+            expiredIds.push(batch[itemIndex].id);
+          }
         }
       });
     }

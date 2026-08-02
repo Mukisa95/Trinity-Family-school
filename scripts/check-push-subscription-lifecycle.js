@@ -27,6 +27,10 @@ for (const requirement of [
   ['logout sends the current endpoint only', client.includes("JSON.stringify({ endpoint: subscription.endpoint })")],
   ['logout removes the browser subscription locally', client.includes('subscription.unsubscribe()')],
   ['VAPID changes rotate an incompatible browser subscription', client.includes('applicationServerKeyMatches')],
+  ['unknown browser VAPID keys are rotated instead of trusted', client.includes('if (!currentKey) return false')],
+  ['subscription rotation reports the replaced endpoint',
+    client.includes('previousEndpoint = subscription.endpoint')
+      && client.includes('...(previousEndpoint ? { previousEndpoint } : {})')],
   ['the browser obtains the authoritative VAPID public key from the server',
     client.includes("fetch('/api/notifications/vapid-public-key'")],
   ['the server derives the VAPID public key from its private key',
@@ -41,6 +45,15 @@ for (const requirement of [
   ['PWA subscriptions reconcile on foreground return', autoPrompt.includes("addEventListener('visibilitychange', handleVisibility)")],
   ['iOS users receive Add to Home Screen guidance', autoPrompt.includes('Add to Home Screen')],
   ['endpoint reconciliation updates an existing record', service.includes('if (matching)')],
+  ['the subscribe route rejects stale client VAPID keys',
+    route.includes('publicKey !== currentPublicKey') && route.includes('{ status: 409 }')],
+  ['the server records which VAPID key created each subscription',
+    route.includes('vapidPublicKey: currentPublicKey') && service.includes('vapidPublicKey?: string')],
+  ['rotated browser endpoints are retired for the same user',
+    service.includes('deactivateSubscriptionEndpoint(userId, previousEndpoint)')],
+  ['senders exclude subscriptions created for another VAPID key',
+    service.includes('subscription.vapidPublicKey === vapidPublicKey')
+      && sendRoute.includes('getSubscriptionsForUsers(targetUserIds, currentVapidPublicKey)')],
   ['the hook exposes automatic sync', hook.includes('sync: (userId: string) => Promise<boolean>')],
   ['push permission refreshes when the browser regains focus',
     hook.includes("addEventListener('focus', refresh)")],
@@ -64,7 +77,7 @@ for (const requirement of [
       && sendRoute.includes('recipientIds: targetUserIds')
       && sendRoute.includes('automaticInAppFallback: true')],
   ['fallback targeting resolves users independently of active push subscriptions',
-    sendRoute.includes('getSubscriptionsForUsers(targetUserIds)')
+    sendRoute.includes('getSubscriptionsForUsers(targetUserIds, currentVapidPublicKey)')
       && !sendRoute.includes('getAllActiveSubscriptions')],
   ['blocked and unsupported browsers explain the automatic inbox fallback',
     autoPrompt.includes('in-app inbox') && autoPrompt.includes('register this device automatically')],

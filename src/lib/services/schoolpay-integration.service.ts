@@ -659,7 +659,7 @@ export class SchoolPayIntegrationService {
     const userIds = await getFeesAccessUserIds();
     if (userIds.length === 0) return;
 
-    const subscriptions = await getSubscriptionsForUsers(userIds);
+    const subscriptions = await getSubscriptionsForUsers(userIds, publicKey);
     if (subscriptions.length === 0) return;
 
     // Build a human-readable breakdown line, e.g. "Tuition, Meals, Carry Forward"
@@ -706,7 +706,7 @@ export class SchoolPayIntegrationService {
           );
           return { ok: true, expired: false, subId: sub.id };
         } catch (err: any) {
-          if (err.statusCode === 410 || err.statusCode === 404) {
+          if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 403) {
             return { ok: false, expired: true, subId: sub.id };
           }
           console.warn(

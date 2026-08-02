@@ -650,7 +650,7 @@ class OptimizedNotificationService {
           });
           
           // Handle expired subscriptions
-          if (error?.statusCode === 410 || error?.statusCode === 404) {
+          if (error?.statusCode === 410 || error?.statusCode === 404 || error?.statusCode === 403) {
             console.log(`🗑️ [PUSH] Subscription expired for user ${sub.userId}, marking as inactive`);
             // Mark subscription as inactive
             try {
@@ -693,6 +693,7 @@ class OptimizedNotificationService {
    */
   private async getPushSubscriptionsBatch(users: User[]): Promise<PushSubscription[]> {
     const subscriptions: PushSubscription[] = [];
+    const currentVapidPublicKey = getServerVapidDetails().publicKey;
 
     try {
       const userIds = users.map(u => u.id);
@@ -715,6 +716,10 @@ class OptimizedNotificationService {
 
         querySnapshot.forEach((doc) => {
           const data = doc.data();
+
+          // Records without the current key marker predate the latest VAPID
+          // registration and cannot be safely delivered by this sender.
+          if (data.vapidPublicKey !== currentVapidPublicKey) return;
           
           // Handle both nested (keys.p256dh) and flat (p256dh) structures
           const p256dh = data.p256dh || data.keys?.p256dh;

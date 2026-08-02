@@ -43,7 +43,7 @@ async function sendToOne(
     );
     return { ok: true, expired: false };
   } catch (err: any) {
-    if (err.statusCode === 410 || err.statusCode === 404) {
+    if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 403) {
       return { ok: false, expired: true };
     }
     console.warn(`Push send failed (${err.statusCode}):`, err.body || err.message);
@@ -112,7 +112,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const subscriptions = await getSubscriptionsForUsers(targetUserIds);
+    const currentVapidPublicKey = getServerVapidDetails().publicKey;
+    const subscriptions = await getSubscriptionsForUsers(targetUserIds, currentVapidPublicKey);
     const adminDb = getFirestore(getFirebaseAdminApp());
     let selectedDestination: ResolvedNotificationDestination | null = null;
     if (destination) {
