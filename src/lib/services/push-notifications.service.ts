@@ -32,8 +32,12 @@ export interface PushSubscriptionRecord {
   auth: string;
   deviceType: 'desktop' | 'mobile';
   userAgent: string;
+  platform?: string;
+  pwaInstalled?: boolean;
   isActive: boolean;
   createdAt: Timestamp | ReturnType<typeof serverTimestamp>;
+  updatedAt?: Timestamp | ReturnType<typeof serverTimestamp>;
+  lastSeenAt?: Timestamp | ReturnType<typeof serverTimestamp>;
 }
 
 export interface PushPayload {
@@ -49,7 +53,7 @@ export interface PushPayload {
 // ─── VAPID key helper (browser-side only) ────────────────────────────────────
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const DEFAULT_VAPID_KEY = 'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
+  const DEFAULT_VAPID_KEY = 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
 
   let key = (base64String || '').trim();
   key = key.replace(/^["']|["']$/g, '').trim();
@@ -99,37 +103,70 @@ export async function saveSubscription(
   subscription: {
     endpoint: string;
     keys: { p256dh: string; auth: string };
-  }
+  },
+  device: {
+    deviceType?: 'desktop' | 'mobile';
+    userAgent?: string;
+    platform?: string;
+    pwaInstalled?: boolean;
+  } = {},
 ): Promise<string> {
   const subscriptionsRef = collection(db, 'pushSubscriptions');
 
-  // Deactivate any existing subscription with the same endpoint (clean upsert)
+  // One browser endpoint belongs to exactly one signed-in user. Reconciliation
+  // updates the current record instead of creating a new document every time
+  // the PWA comes online or returns to the foreground.
   const existingQ = query(
     subscriptionsRef,
     where('endpoint', '==', subscription.endpoint)
   );
   const existingSnap = await getDocs(existingQ);
+
+  const matching = existingSnap.docs.find(existing => existing.data().userId === userId);
+  const now = serverTimestamp();
+  const deviceType: PushSubscriptionRecord['deviceType'] =
+    device.deviceType === 'mobile' ? 'mobile' : 'desktop';
+  const safeText = (value: unknown, maxLength: number) =>
+    typeof value === 'string' ? value.slice(0, maxLength) : 'unknown';
+  const deviceFields = {
+    deviceType,
+    userAgent: safeText(device.userAgent, 500),
+    platform: safeText(device.platform, 100),
+    pwaInstalled: device.pwaInstalled === true,
+  };
+
   for (const existing of existingSnap.docs) {
-    await updateDoc(existing.ref, { isActive: false });
+    if (existing.id === matching?.id) continue;
+    await updateDoc(existing.ref, {
+      isActive: false,
+      deactivatedAt: now,
+      updatedAt: now,
+    });
   }
 
-  // Detect device type from user agent (server-safe, defaults to 'desktop' if no navigator)
-  const deviceType =
-    typeof navigator !== 'undefined' &&
-    /mobile|android|iphone|ipad/i.test(navigator.userAgent)
-      ? 'mobile'
-      : 'desktop';
+  if (matching) {
+    await updateDoc(matching.ref, {
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+      ...deviceFields,
+      isActive: true,
+      deactivatedAt: null,
+      updatedAt: now,
+      lastSeenAt: now,
+    });
+    return matching.id;
+  }
 
   const record: Omit<PushSubscriptionRecord, 'id'> = {
     userId,
     endpoint: subscription.endpoint,
     p256dh: subscription.keys.p256dh,
     auth: subscription.keys.auth,
-    deviceType,
-    userAgent:
-      typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+    ...deviceFields,
     isActive: true,
-    createdAt: serverTimestamp(),
+    createdAt: now,
+    updatedAt: now,
+    lastSeenAt: now,
   };
 
   const docRef = await addDoc(subscriptionsRef, record);
@@ -150,6 +187,25 @@ export async function deactivateUserSubscriptions(userId: string): Promise<void>
   const updates = snap.docs.map((d) =>
     updateDoc(d.ref, { isActive: false, deactivatedAt: serverTimestamp() })
   );
+  await Promise.all(updates);
+}
+
+/** Deactivate one browser endpoint without affecting the user's other devices. */
+export async function deactivateSubscriptionEndpoint(
+  userId: string,
+  endpoint: string,
+): Promise<void> {
+  const subscriptionsRef = collection(db, 'pushSubscriptions');
+  const q = query(subscriptionsRef, where('endpoint', '==', endpoint));
+  const snap = await getDocs(q);
+  const now = serverTimestamp();
+  const updates = snap.docs
+    .filter(subscription => subscription.data().userId === userId)
+    .map(subscription => updateDoc(subscription.ref, {
+      isActive: false,
+      deactivatedAt: now,
+      updatedAt: now,
+    }));
   await Promise.all(updates);
 }
 
@@ -317,40 +373,18 @@ export const pushNotificationService = {
    * Subscribe a user — browser-side. Registers SW + saves to Firestore.
    */
   async subscribe(userId: string) {
-    const VAPID_KEY = (
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY'
-    ).trim();
-
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return null;
-
-    const reg = await navigator.serviceWorker.register('/sw.js');
-    await navigator.serviceWorker.ready;
-
-    const pushSub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_KEY).buffer as ArrayBuffer,
-    });
-
-    const json = pushSub.toJSON();
-    if (!json.keys?.p256dh || !json.keys?.auth) return null;
-
-    const docId = await saveSubscription(userId, { endpoint: json.endpoint!, keys: json.keys as { p256dh: string; auth: string } });
-    return { id: docId, userId, endpoint: json.endpoint, isActive: true };
+    const { enablePushSubscription } = await import('@/lib/push-subscription-client');
+    const result = await enablePushSubscription(userId);
+    if (!result.active) return null;
+    return getUserSubscription(userId);
   },
 
   /**
    * Unsubscribe a user — deactivates browser subscription and Firestore record.
    */
   async unsubscribe(userId: string): Promise<void> {
-    const { deactivateUserSubscriptions } = await import('./push-notifications.service');
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) await sub.unsubscribe();
-    }
-    await deactivateUserSubscriptions(userId);
+    const { detachPushSubscriptionForLogout } = await import('@/lib/push-subscription-client');
+    await detachPushSubscriptionForLogout(userId);
   },
 
   /**
@@ -373,21 +407,15 @@ export const pushNotificationService = {
    */
   async validateAndSyncSubscription(userId: string) {
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const browserSub = await reg.pushManager.getSubscription();
-      const { getUserSubscription } = await import('./push-notifications.service');
+      const { reconcilePushSubscription } = await import('@/lib/push-subscription-client');
+      const syncResult = await reconcilePushSubscription(userId);
+      const reg = await navigator.serviceWorker.getRegistration();
+      const browserSub = await reg?.pushManager.getSubscription();
       const dbSub = await getUserSubscription(userId);
 
-      // If database says active but browser has no sub, deactivate DB record
-      if (dbSub && !browserSub) {
-        const { deactivateUserSubscriptions } = await import('./push-notifications.service');
-        await deactivateUserSubscriptions(userId);
-        return { isValid: false, needsResubscription: true, browserHasSubscription: false, databaseHasSubscription: true };
-      }
-
       return {
-        isValid: !!(browserSub && dbSub),
-        needsResubscription: !!browserSub && !dbSub,
+        isValid: syncResult.active && !!browserSub && !!dbSub,
+        needsResubscription: !syncResult.active && !browserSub,
         browserHasSubscription: !!browserSub,
         databaseHasSubscription: !!dbSub,
       };

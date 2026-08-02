@@ -9,6 +9,7 @@ import { onIdTokenChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
 import { validateCurrentAppSession } from '@/lib/auth/firebase-session';
+import { detachPushSubscriptionForLogout } from '@/lib/push-subscription-client';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often a long-lived tab asks Firebase Authentication for a fresh signed
@@ -372,6 +373,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    const departingUserId = user?.id || auth.currentUser?.uid;
+    if (departingUserId && typeof window !== 'undefined') {
+      try {
+        // Detach only this browser endpoint before the Firebase identity is
+        // cleared. Other subscribed phones/computers remain active.
+        await detachPushSubscriptionForLogout(departingUserId);
+      } catch (pushError) {
+        logger.warn('Could not finish server-side push cleanup during logout', pushError);
+      }
+    }
+
     try {
       logger.info('Explicit logout - clearing all user data');
       await firebaseSignOut(auth);

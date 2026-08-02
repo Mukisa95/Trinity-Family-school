@@ -71,6 +71,16 @@ service cloud.firestore {
       allow write: if isActiveApplicationUser();
     }
 
+    // Browser endpoints are owned by the verified Firebase identity. Clients
+    // may inspect only their own record; creation, reassignment, and logout
+    // cleanup go through the trusted subscription API.
+    match /pushSubscriptions/{subscriptionId} {
+      allow read: if isTrustedServerApp()
+        || isStaffOrAdmin()
+        || (isActiveApplicationUser() && resource.data.userId == request.auth.uid);
+      allow write: if isTrustedServerApp();
+    }
+
     // This derived document contains school-wide pupil attendance details.
     // Parents must continue through their family-scoped attendance flow.
     match /attendanceDailySummaries/{summaryId} {
@@ -103,6 +113,7 @@ service cloud.firestore {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
         && collection != 'pupils'
+        && collection != 'pushSubscriptions'
         && collection != 'settings'
         && collection != 'photos'
         && collection != 'attendanceDailySummaries'

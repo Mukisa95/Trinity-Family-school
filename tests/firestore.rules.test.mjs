@@ -46,6 +46,11 @@ beforeEach(async () => {
     await setDoc(doc(db, 'authCredentials', 'active-admin'), {
       passwordHash: 'server-only',
     });
+    await setDoc(doc(db, 'pushSubscriptions', 'parent-device'), {
+      userId: 'active-parent',
+      endpoint: 'https://push.example/parent-device',
+      isActive: true,
+    });
   });
 });
 
@@ -106,6 +111,36 @@ test('the trusted Vercel server identity can read pupils for server-side notific
 
   await assertSucceeds(getDoc(doc(trustedServerDb, 'pupils', 'pupil-1')));
   await assertFails(getDoc(doc(untrustedServerDb, 'pupils', 'pupil-1')));
+});
+
+test('push endpoints are user-readable but writable only by the trusted server', async () => {
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+  }).firestore();
+  const otherParentDb = testEnv.authenticatedContext('other-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+  }).firestore();
+  const trustedServerDb = testEnv.authenticatedContext('trinity-vercel-server', {
+    appUser: true,
+    isActive: true,
+    role: 'Server',
+    serverApp: true,
+  }).firestore();
+
+  await assertSucceeds(getDoc(doc(parentDb, 'pushSubscriptions', 'parent-device')));
+  await assertFails(getDoc(doc(otherParentDb, 'pushSubscriptions', 'parent-device')));
+  await assertFails(setDoc(
+    doc(parentDb, 'pushSubscriptions', 'forged-device'),
+    { userId: 'active-parent', endpoint: 'forged', isActive: true },
+  ));
+  await assertSucceeds(setDoc(
+    doc(trustedServerDb, 'pushSubscriptions', 'server-device'),
+    { userId: 'active-parent', endpoint: 'server-created', isActive: true },
+  ));
 });
 
 test('active users can read profiles but cannot mutate them directly', async () => {
