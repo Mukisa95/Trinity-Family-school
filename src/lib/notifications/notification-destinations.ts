@@ -73,6 +73,14 @@ function addAllowedFilters(params: URLSearchParams, destination: NotificationDes
   });
 }
 
+function cleanFilters(filters?: Record<string, string>) {
+  if (!filters) return undefined;
+  const entries = Object.entries(filters)
+    .map(([key, value]) => [key, cleanValue(value)] as const)
+    .filter(([, value]) => Boolean(value));
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 export function resolveNotificationDestination(selection: NotificationDestinationSelection): ResolvedNotificationDestination {
   const destination = getNotificationDestination(selection.id);
   if (!destination) throw new Error('Choose a valid application destination.');
@@ -83,7 +91,8 @@ export function resolveNotificationDestination(selection: NotificationDestinatio
   }
 
   const params = new URLSearchParams();
-  addAllowedFilters(params, destination, selection.filters);
+  const filters = cleanFilters(selection.filters);
+  addAllowedFilters(params, destination, filters);
 
   if (destination.id === 'pupil-profile') params.set('id', entityId);
   if (destination.id === 'class-detail') params.set('id', entityId);
@@ -101,10 +110,10 @@ export function resolveNotificationDestination(selection: NotificationDestinatio
       : displayLabel
         ? `${destination.label} · ${displayLabel}`
         : destination.label,
-    entityId: entityId || undefined,
-    entityLabel: entityLabel || undefined,
-    displayLabel: displayLabel || undefined,
-    filters: selection.filters,
+    ...(entityId ? { entityId } : {}),
+    ...(entityLabel ? { entityLabel } : {}),
+    ...(displayLabel ? { displayLabel } : {}),
+    ...(filters ? { filters } : {}),
     url,
   };
 }

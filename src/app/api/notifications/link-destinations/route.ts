@@ -16,7 +16,10 @@ function text(value: unknown) {
 }
 
 function pupilLabel(data: Record<string, unknown>) {
-  return [text(data.firstName), text(data.lastName), text(data.otherNames)].filter(Boolean).join(' ') || 'Unnamed pupil';
+  const nameFromFields = [text(data.firstName), text(data.lastName), text(data.otherNames)]
+    .filter(Boolean)
+    .join(' ');
+  return nameFromFields || text(data.fullName) || text(data.name) || 'Unnamed pupil';
 }
 
 export async function GET(request: NextRequest) {
@@ -38,17 +41,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Choose a supported destination type.' }, { status: 400 });
     }
     if (search.length < 2) return NextResponse.json({ results: [] });
+    const searchTerms = search.split(/\s+/).filter(Boolean);
 
     await ensureServerFirestoreAuth();
     const db = getFirestore(getFirebaseAdminApp());
     const collectionName = entity === 'pupil' ? 'pupils' : 'classes';
-    const snapshot = await db.collection(collectionName).limit(250).get();
+    const snapshot = await db.collection(collectionName).limit(1000).get();
     const results = snapshot.docs
       .map(document => ({ id: document.id, data: document.data() as Record<string, unknown> }))
       .map(({ id, data }) => {
         if (entity === 'pupil') {
           const label = pupilLabel(data);
-          const admissionNumber = text(data.admissionNumber);
+          const admissionNumber = text(data.admissionNumber)
+            || text(data.learnerIdentificationNumber)
+            || text(data.pupilIdentificationNumber)
+            || text(data.registrationNumber);
           const className = text(data.className);
           return {
             id,
@@ -61,7 +68,7 @@ export async function GET(request: NextRequest) {
         const code = text(data.code) || text(data.classCode);
         return { id, label, description: code, matchText: `${label} ${code}`.toLowerCase() };
       })
-      .filter(result => result.matchText.includes(search))
+      .filter(result => searchTerms.every(term => result.matchText.includes(term)))
       .sort((left, right) => {
         const leftStarts = left.matchText.startsWith(search) ? 0 : 1;
         const rightStarts = right.matchText.startsWith(search) ? 0 : 1;

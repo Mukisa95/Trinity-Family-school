@@ -31,18 +31,25 @@ function RecordLookup({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LookupResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
       setLoading(false);
+      setError(null);
       return;
     }
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       const firebaseUser = auth.currentUser;
-      if (!firebaseUser) return;
+      if (!firebaseUser) {
+        setResults([]);
+        setError('Your sign-in session is still loading. Please try again in a moment.');
+        return;
+      }
       setLoading(true);
+      setError(null);
       try {
         const token = await firebaseUser.getIdToken();
         const params = new URLSearchParams({ entity, q: query.trim() });
@@ -54,7 +61,10 @@ function RecordLookup({
         if (!response.ok) throw new Error(data.error || 'Unable to search records.');
         setResults(Array.isArray(data.results) ? data.results : []);
       } catch (error) {
-        if (!controller.signal.aborted) setResults([]);
+        if (!controller.signal.aborted) {
+          setResults([]);
+          setError(error instanceof Error ? error.message : 'Unable to search records.');
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -96,7 +106,7 @@ function RecordLookup({
       </div>
       {query.trim().length >= 2 && (
         <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          {results.length ? results.map(result => (
+          {error ? <p className="px-3.5 py-3 text-sm text-red-600">{error}</p> : results.length ? results.map(result => (
             <button
               key={result.id}
               type="button"
