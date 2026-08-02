@@ -8,11 +8,15 @@
  */
 
 const {onRequest} = require("firebase-functions/v2/https");
+const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {onTaskDispatched} = require("firebase-functions/tasks");
 const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const next = require("next");
 const admin = require("firebase-admin");
+const {getFunctions} = require("firebase-admin/functions");
+const {createHash} = require("crypto");
 const webpush = require("web-push");
 
 if (!admin.apps.length) admin.initializeApp();
@@ -20,8 +24,10 @@ if (!admin.apps.length) admin.initializeApp();
 const VAPID_PRIVATE_KEY = defineSecret("VAPID_PRIVATE_KEY");
 const DEFAULT_VAPID_PUBLIC_KEY = "BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY";
 const SCHOOL_TIME_ZONE = "Africa/Kampala";
-const REMINDER_WINDOW_MINUTES = 10;
 const PROCESSING_LEASE_MS = 15 * 60 * 1000;
+const ATTENDANCE_REMINDER_PLANS = "attendanceReminderPlans";
+const ATTENDANCE_REMINDER_RUNS = "attendanceReminderRuns";
+const ATTENDANCE_REMINDER_TASK_FUNCTION = "locations/us-central1/functions/attendanceReminderTask";
 
 function normalizeVapidValue(value) {
   return String(value || "").trim().replace(/^['\"]|['\"]$/g, "").replace(/\\n/g, "\n");
@@ -49,12 +55,6 @@ function getLocalClock(now = new Date()) {
 function normalizeReminderTimes(value) {
   const valid = Array.isArray(value) ? value.filter((time) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) : [];
   return Array.from(new Set(valid)).sort();
-}
-
-function isDueSlot(time, localMinutes) {
-  const [hour, minute] = time.split(":").map(Number);
-  const scheduled = hour * 60 + minute;
-  return localMinutes >= scheduled && localMinutes < scheduled + REMINDER_WINDOW_MINUTES;
 }
 
 function isPupilActiveOnDate(pupil, date) {
@@ -127,11 +127,12 @@ async function sendAttendanceReminderPush(subscriptions, payload, vapidPublicKey
   };
 }
 
-/**
- * Firebase owns the frequent schedule because Vercel Hobby supports only one
- * imprecise run each day. One Cloud Scheduler job checks the user-configured
- * Kampala slots and Firestore claims prevent duplicate sends on retries.
- */
+/*
+ * Retired five-minute attendance reminder poller.
+ *
+ * It remains here temporarily as migration reference only; it is not exported
+ * or deployed. Exact-time task queue functions below replace it.
+ *
 exports.attendanceReminderDispatcher = onSchedule(
   {
     schedule: "every 5 minutes",
@@ -276,6 +277,390 @@ exports.attendanceReminderDispatcher = onSchedule(
         }, {merge: true});
         logger.error("Attendance reminder push failed.", {date: clock.date, slot, error});
       }
+    }
+  },
+);
+
+*/
+
+function attendanceReminderConfiguration(storedSettings) {
+  const categories = storedSettings?.categories || {};
+  const attendance = categories.attendance || {};
+  const reminders = storedSettings?.attendanceReminders || {};
+  const times = normalizeReminderTimes(reminders.times);
+  return {
+    enabled: attendance.enabled !== false && attendance.missingReminders !== false,
+    times: times.length ? times : ["08:30", "11:30", "14:00"],
+    schoolDaysOnly: reminders.schoolDaysOnly !== false,
+  };
+}
+
+function attendanceReminderFingerprint(config) {
+  return JSON.stringify({
+    enabled: config.enabled,
+    times: config.times,
+    schoolDaysOnly: config.schoolDaysOnly,
+  });
+}
+
+function toKampalaScheduleTime(date, time) {
+  // Kampala uses a fixed UTC+03:00 offset and has no daylight-saving transition.
+  return new Date(`${date}T${time}:00+03:00`);
+}
+
+function taskIdForAttendanceReminder(date, slot, version, fingerprint) {
+  const digest = createHash("sha256")
+    .update(`${date}|${slot}|${version}|${fingerprint}`)
+    .digest("hex");
+  return `attendance-reminder-${digest}`;
+}
+
+function taskAlreadyExists(error) {
+  return String(error?.code || "").includes("task-already-exists")
+    || String(error?.message || "").includes("already exists");
+}
+
+function className(classItem) {
+  return classItem?.name || classItem?.className || classItem?.code || classItem?.classCode || classItem?.id;
+}
+
+function completedClassIds(summary) {
+  const completed = summary?.completedClasses;
+  if (completed && typeof completed === "object" && !Array.isArray(completed)) return new Set(Object.keys(completed));
+  return new Set(
+    (Array.isArray(summary?.records) ? summary.records : [])
+      .map((record) => record?.classId)
+      .filter(Boolean),
+  );
+}
+
+async function getAttendanceReminderRecipients(db) {
+  const usersSnapshot = await db.collection("system_users").get();
+  return usersSnapshot.docs
+    .filter((doc) => doc.data().isActive !== false)
+    .filter((doc) => {
+      const user = doc.data();
+      if (user.role === "Admin") return true;
+      if (user.role !== "Staff") return false;
+      const granular = (user.granularPermissions || []).find((module) => module.moduleId === "reports");
+      const page = granular?.pages?.find((item) => item.pageId === "dashboard");
+      if (page) return Boolean(page.canAccess && page.actions?.some((action) => action.actionId === "view_stat_attendance_today" && action.allowed));
+      return (user.modulePermissions || []).some((permission) => permission.module === "reports");
+    })
+    .map((doc) => doc.id);
+}
+
+async function getActiveAttendanceReminderSubscriptions(db, recipientIds) {
+  const vapidPublicKey = normalizeVapidValue(process.env.VAPID_PUBLIC_KEY) || DEFAULT_VAPID_PUBLIC_KEY;
+  const snapshots = await Promise.all(
+    Array.from({length: Math.ceil(recipientIds.length / 10)}, (_, index) => recipientIds.slice(index * 10, index * 10 + 10))
+      .map((userIds) => db.collection("pushSubscriptions").where("userId", "in", userIds).where("isActive", "==", true).get()),
+  );
+  const subscriptions = snapshots.flatMap((snapshot) => snapshot.docs)
+    .map((doc) => ({id: doc.id, ...doc.data()}))
+    .filter((subscription) => subscription.vapidPublicKey === vapidPublicKey && subscription.endpoint && subscription.p256dh && subscription.auth);
+  return {subscriptions, vapidPublicKey};
+}
+
+async function writeAttendanceReminderPlanState(ref, currentPlan, values) {
+  const version = Number(currentPlan?.version || 0) + 1;
+  await ref.set({
+    ...values,
+    version,
+    queuedSlots: [],
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+  return version;
+}
+
+/**
+ * Plans future reminder tasks once per day (or when reminder settings change).
+ * The roster scan is performed here, never in an individual reminder task.
+ */
+async function planAttendanceRemindersForDate(date, {now = new Date(), reason = "daily"} = {}) {
+  const db = admin.firestore();
+  const planRef = db.collection(ATTENDANCE_REMINDER_PLANS).doc(date);
+  const [settingsSnapshot, academicSnapshot, excludedSnapshot, planSnapshot] = await Promise.all([
+    db.collection("notificationAutomationSettings").doc("current").get(),
+    db.collection("academicYears").get(),
+    db.collection("excludedDays").get(),
+    planRef.get(),
+  ]);
+  const config = attendanceReminderConfiguration(settingsSnapshot.data() || {});
+  const fingerprint = attendanceReminderFingerprint(config);
+  const currentPlan = planSnapshot.exists ? planSnapshot.data() || {} : null;
+  const sameConfiguration = currentPlan?.settingsFingerprint === fingerprint;
+  const years = academicSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+  const academicYear = activeAcademicYear(years, date);
+  const excludedDays = excludedSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+
+  if (!config.enabled) {
+    await writeAttendanceReminderPlanState(planRef, currentPlan, {
+      date,
+      status: "disabled",
+      reason: "Attendance reminder notifications are disabled.",
+      settingsFingerprint: fingerprint,
+      times: config.times,
+      schoolDaysOnly: config.schoolDaysOnly,
+      planningReason: reason,
+    });
+    return {status: "disabled", date};
+  }
+
+  if (config.schoolDaysOnly && (!academicYear || isExcludedDate(date, academicYear, excludedDays))) {
+    await writeAttendanceReminderPlanState(planRef, currentPlan, {
+      date,
+      status: "skipped",
+      reason: academicYear ? "Excluded school date." : "Outside the active academic year.",
+      settingsFingerprint: fingerprint,
+      times: config.times,
+      schoolDaysOnly: config.schoolDaysOnly,
+      planningReason: reason,
+    });
+    return {status: "skipped", date};
+  }
+
+  const futureSlots = config.times.filter((slot) => toKampalaScheduleTime(date, slot).getTime() > now.getTime());
+  if (!futureSlots.length) {
+    await writeAttendanceReminderPlanState(planRef, currentPlan, {
+      date,
+      status: "elapsed",
+      reason: "No configured reminder times remain today.",
+      settingsFingerprint: fingerprint,
+      times: config.times,
+      schoolDaysOnly: config.schoolDaysOnly,
+      planningReason: reason,
+    });
+    return {status: "elapsed", date};
+  }
+
+  if (sameConfiguration && currentPlan?.status === "ready") {
+    const queuedSlots = new Set(Array.isArray(currentPlan.queuedSlots) ? currentPlan.queuedSlots : []);
+    if (futureSlots.every((slot) => queuedSlots.has(slot))) return {status: "ready", date, reused: true};
+  }
+
+  const [classesSnapshot, pupilsSnapshot] = await Promise.all([
+    db.collection("classes").orderBy("order", "asc").get(),
+    db.collection("pupils").get(),
+  ]);
+  const classes = classesSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+  const classById = new Map(classes.map((classItem) => [classItem.id, classItem]));
+  const expectedClassIds = Array.from(new Set(
+    pupilsSnapshot.docs
+      .map((doc) => ({id: doc.id, ...doc.data()}))
+      .filter((pupil) => pupil.classId && classById.has(pupil.classId) && isPupilActiveOnDate(pupil, date))
+      .map((pupil) => pupil.classId),
+  ));
+  const expectedClassNames = Object.fromEntries(expectedClassIds.map((id) => [id, className(classById.get(id)) || id]));
+  const version = sameConfiguration && currentPlan?.status === "ready"
+    ? Number(currentPlan.version || 1)
+    : Number(currentPlan?.version || 0) + 1;
+  const queuedSlots = sameConfiguration && currentPlan?.status === "ready"
+    ? new Set(Array.isArray(currentPlan.queuedSlots) ? currentPlan.queuedSlots : [])
+    : new Set();
+
+  await planRef.set({
+    date,
+    status: "ready",
+    version,
+    settingsFingerprint: fingerprint,
+    times: config.times,
+    queuedSlots: Array.from(queuedSlots),
+    schoolDaysOnly: config.schoolDaysOnly,
+    academicYearId: academicYear.id,
+    expectedClassIds,
+    expectedClassNames,
+    planningReason: reason,
+    plannedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+
+  const queue = getFunctions().taskQueue(ATTENDANCE_REMINDER_TASK_FUNCTION);
+  for (const slot of futureSlots) {
+    if (queuedSlots.has(slot)) continue;
+    const taskId = taskIdForAttendanceReminder(date, slot, version, fingerprint);
+    try {
+      await queue.enqueue(
+        {date, slot, planVersion: version, settingsFingerprint: fingerprint},
+        {id: taskId, scheduleTime: toKampalaScheduleTime(date, slot), dispatchDeadlineSeconds: 120},
+      );
+    } catch (error) {
+      if (!taskAlreadyExists(error)) {
+        await planRef.set({
+          lastEnqueueError: error instanceof Error ? error.message : "Unable to enqueue reminder task.",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        throw error;
+      }
+    }
+    queuedSlots.add(slot);
+    await planRef.set({
+      queuedSlots: Array.from(queuedSlots),
+      lastEnqueueError: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+  }
+
+  logger.info("Attendance reminder plan is ready.", {date, version, queuedSlots: futureSlots.length, expectedClasses: expectedClassIds.length, reason});
+  return {status: "ready", date, version, queuedSlots: futureSlots.length};
+}
+
+/** Runs once daily; Cloud Tasks handles the exact user-configured times. */
+exports.attendanceReminderPlanner = onSchedule(
+  {
+    schedule: "5 0 * * *",
+    timeZone: SCHOOL_TIME_ZONE,
+    region: "us-central1",
+    memory: "512MiB",
+    timeoutSeconds: 120,
+  },
+  async () => {
+    const clock = getLocalClock();
+    await planAttendanceRemindersForDate(clock.date, {reason: "daily"});
+  },
+);
+
+/** Replans only future slots when an administrator changes reminder settings. */
+exports.attendanceReminderSettingsChanged = onDocumentWritten(
+  {
+    document: "notificationAutomationSettings/current",
+    region: "us-central1",
+    memory: "512MiB",
+    timeoutSeconds: 120,
+  },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists) return;
+    const beforeFingerprint = event.data?.before?.exists
+      ? attendanceReminderFingerprint(attendanceReminderConfiguration(event.data.before.data() || {}))
+      : null;
+    const afterFingerprint = attendanceReminderFingerprint(attendanceReminderConfiguration(after.data() || {}));
+    if (beforeFingerprint === afterFingerprint) return;
+    const clock = getLocalClock();
+    await planAttendanceRemindersForDate(clock.date, {reason: "settings-change"});
+  },
+);
+
+/**
+ * Executes at an exact configured time. User and subscription reads happen only
+ * after the compact plan and daily attendance summary show a push is needed.
+ */
+exports.attendanceReminderTask = onTaskDispatched(
+  {
+    region: "us-central1",
+    memory: "512MiB",
+    timeoutSeconds: 120,
+    invoker: "private",
+    secrets: [VAPID_PRIVATE_KEY],
+    retryConfig: {maxAttempts: 3, maxRetrySeconds: 15 * 60, minBackoffSeconds: 60, maxBackoffSeconds: 5 * 60, maxDoublings: 3},
+    rateLimits: {maxConcurrentDispatches: 1, maxDispatchesPerSecond: 1},
+  },
+  async (request) => {
+    const {date, slot, planVersion, settingsFingerprint} = request.data || {};
+    const taskExecutionId = String(request.id || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "") || !/^([01]\d|2[0-3]):([0-5]\d)$/.test(slot || "") || !Number.isInteger(planVersion) || typeof settingsFingerprint !== "string") {
+      logger.error("Attendance reminder task ignored: invalid payload.", {data: request.data});
+      return;
+    }
+
+    const db = admin.firestore();
+    const planRef = db.collection(ATTENDANCE_REMINDER_PLANS).doc(date);
+    const runRef = db.collection(ATTENDANCE_REMINDER_RUNS).doc(`${date}_${slot.replace(":", "")}`);
+    const claim = await db.runTransaction(async (transaction) => {
+      const [planSnapshot, runSnapshot] = await Promise.all([transaction.get(planRef), transaction.get(runRef)]);
+      const plan = planSnapshot.data() || {};
+      if (!planSnapshot.exists || plan.status !== "ready" || Number(plan.version) !== planVersion || plan.settingsFingerprint !== settingsFingerprint || !Array.isArray(plan.times) || !plan.times.includes(slot)) {
+        return {claimed: false, reason: "stale-or-inactive-plan"};
+      }
+      const run = runSnapshot.data() || {};
+      if (run.status === "completed" || run.status === "skipped") return {claimed: false, reason: "already-finished"};
+      if (run.status === "processing" && Number(run.processingStartedAt || 0) > Date.now() - PROCESSING_LEASE_MS && run.processingTaskId !== taskExecutionId) {
+        return {claimed: false, reason: "active-lease"};
+      }
+      transaction.set(runRef, {
+        status: "processing",
+        date,
+        slot,
+        planVersion,
+        processingStartedAt: Date.now(),
+        processingTaskId: taskExecutionId,
+        attempts: Number(run.attempts || 0) + 1,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      return {
+        claimed: true,
+        expectedClassIds: Array.isArray(plan.expectedClassIds) ? plan.expectedClassIds : [],
+        expectedClassNames: plan.expectedClassNames && typeof plan.expectedClassNames === "object" ? plan.expectedClassNames : {},
+      };
+    });
+    if (!claim.claimed) {
+      logger.info("Attendance reminder task skipped.", {date, slot, reason: claim.reason});
+      return;
+    }
+
+    const summarySnapshot = await db.collection("attendanceDailySummaries").doc(date).get();
+    const completed = completedClassIds(summarySnapshot.data() || {});
+    const missingClassIds = claim.expectedClassIds.filter((classId) => !completed.has(classId));
+    const missingClassNames = missingClassIds.map((classId) => claim.expectedClassNames[classId] || classId);
+    if (!missingClassIds.length) {
+      await runRef.set({
+        status: "skipped",
+        reason: "All expected classes have recorded attendance.",
+        missingClassIds,
+        missingClassNames,
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      return;
+    }
+
+    try {
+      const recipientIds = await getAttendanceReminderRecipients(db);
+      if (!recipientIds.length) {
+        await runRef.set({
+          status: "skipped",
+          reason: "No eligible recipients.",
+          missingClassIds,
+          missingClassNames,
+          recipientCount: 0,
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        return;
+      }
+      const {subscriptions, vapidPublicKey} = await getActiveAttendanceReminderSubscriptions(db, recipientIds);
+      const push = await sendAttendanceReminderPush(subscriptions, JSON.stringify({
+        title: `Attendance reminder — ${missingClassIds.length} class${missingClassIds.length === 1 ? "" : "es"} pending`,
+        body: reminderBody(missingClassNames),
+        icon: "/trinity-logo-192.png",
+        badge: "/icons/trinity-badge-72.png",
+        tag: `attendance-reminder-${date}-${slot.replace(":", "")}`,
+        url: `/attendance/view?reportType=school&trendPeriod=daily&date=${encodeURIComponent(date)}`,
+        requireInteraction: true,
+      }), vapidPublicKey);
+      if (push.expiredIds.length) {
+        await Promise.all(push.expiredIds.map((id) => db.collection("pushSubscriptions").doc(id).set({
+          isActive: false,
+          deactivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          deactivationReason: "push-endpoint-expired",
+        }, {merge: true})));
+      }
+      await runRef.set({
+        status: "completed",
+        missingClassIds,
+        missingClassNames,
+        recipientCount: recipientIds.length,
+        pushSent: push.sent,
+        pushFailed: push.failed,
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      logger.info("Attendance reminder dispatched.", {date, slot, missingClasses: missingClassIds.length, pushSent: push.sent});
+    } catch (error) {
+      await runRef.set({
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : "Unknown reminder push error",
+        failedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      logger.error("Attendance reminder push failed.", {date, slot, error});
+      throw error;
     }
   },
 );

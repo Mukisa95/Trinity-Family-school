@@ -19,6 +19,7 @@
     "test:parent-preload-contract": "node scripts/check-parent-preload-contract.js",
     "test:firebase-claims-contract": "node scripts/check-firebase-claims-contract.js",
     "test:push-subscription-lifecycle": "node scripts/check-push-subscription-lifecycle.js",
+    "test:attendance-reminder-task-queue": "node scripts/check-attendance-reminder-task-queue.js",
     "test:parent-ownership-backfill-contract": "node scripts/check-parent-ownership-backfill-contract.js",
     "test:pupil-rule-canary-contract": "node scripts/check-pupil-rule-canary-contract.js",
     "test:read-only-snapshot-flows": "node scripts/check-read-only-snapshot-flows.js",
