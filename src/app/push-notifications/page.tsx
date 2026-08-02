@@ -149,7 +149,7 @@ function SubscriptionStatusCard({
         <button
           onClick={handleToggle}
           disabled={isLoading || permission === 'denied'}
-          className={`text-sm font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`hidden text-sm font-semibold px-4 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
             isSubscribed
               ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
@@ -293,6 +293,15 @@ export default function PushNotificationsPage() {
 
   const selectedOption = TARGET_OPTIONS.find((t) => t.value === target)!;
 
+  const handleSubscriptionToggle = useCallback(async () => {
+    if (!user?.id) return;
+    if (isSubscribed) {
+      await unsubscribe(user.id);
+      return;
+    }
+    await subscribe(user.id);
+  }, [isSubscribed, subscribe, unsubscribe, user?.id]);
+
   return (
     <div className="min-h-screen pb-12">
       <GlassPageTopBar
@@ -300,6 +309,24 @@ export default function PushNotificationsPage() {
         subtitle="Send direct push notifications to active app users"
         backHref="/dashboard"
         backLabel="Dashboard"
+        actions={isSupported && user?.id ? (
+          <GlassActionDock>
+            <GlassActionButton
+              label={subLoading ? 'Working' : isSubscribed ? 'Disable' : 'Enable'}
+              icon={subLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isSubscribed ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+              tone={isSubscribed ? 'slate' : 'emerald'}
+              onClick={handleSubscriptionToggle}
+              disabled={subLoading || permission === 'denied'}
+              title={
+                permission === 'denied'
+                  ? 'Push notifications are blocked in this browser'
+                  : isSubscribed
+                    ? 'Disable push notifications on this device'
+                    : 'Enable push notifications on this device'
+              }
+            />
+          </GlassActionDock>
+        ) : undefined}
       />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -361,11 +388,10 @@ export default function PushNotificationsPage() {
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Write your notification message here…"
-                maxLength={250}
-                rows={3}
-                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white resize-none"
+                rows={4}
+                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white resize-y"
               />
-              <p className="text-[11px] text-gray-400 mt-1 text-right">{body.length}/250</p>
+              <p className="text-[11px] text-gray-400 mt-1 text-right">{body.length.toLocaleString()} characters</p>
             </div>
 
             {/* URL */}
