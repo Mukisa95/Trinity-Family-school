@@ -198,6 +198,34 @@ export default function FeesCollectionPage() {
     term: ''
   });
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+  // Deep links from notifications arrive with the list state encoded in the
+  // URL. Apply it once per URL change before the class-specific data queries
+  // start, so recipients land on the intended collection view.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkedClassId = params.get('classId');
+    const linkedSearch = params.get('q');
+    const linkedSection = params.get('section');
+    const linkedStatus = params.get('status');
+    const linkedBalanceStatus = params.get('balanceStatus');
+    const linkedYear = params.get('year');
+    const linkedTerm = params.get('term');
+
+    if (linkedSearch !== null) setSearchQuery(linkedSearch);
+    if ([linkedClassId, linkedSection, linkedStatus, linkedBalanceStatus, linkedYear, linkedTerm].every(value => value === null)) return;
+
+    setFilters(previous => ({
+      ...previous,
+      class: linkedClassId || previous.class,
+      selectedClassId: linkedClassId || previous.selectedClassId,
+      section: linkedSection || previous.section,
+      status: linkedStatus || previous.status,
+      balanceStatus: linkedBalanceStatus || previous.balanceStatus,
+      year: linkedYear || previous.year,
+      term: linkedTerm || previous.term,
+    }));
+  }, []);
   const [isBulkSMSModalOpen, setIsBulkSMSModalOpen] = useState(false);
 
   const activeFiltersCount = useMemo(() => {

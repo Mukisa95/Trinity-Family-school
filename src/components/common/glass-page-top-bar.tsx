@@ -47,6 +47,7 @@ interface GlassPageTopBarProps {
   className?: string;
   contentClassName?: string;
   actionsClassName?: string;
+  inlineActions?: boolean;
   sticky?: boolean;
 }
 
@@ -67,6 +68,7 @@ export function GlassPageTopBar({
   className,
   contentClassName,
   actionsClassName,
+  inlineActions = false,
   sticky = true,
 }: GlassPageTopBarProps) {
   return (
@@ -79,7 +81,9 @@ export function GlassPageTopBar({
     >
       <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
       <div className={cn("w-full px-4 py-2.5 sm:px-6 lg:px-8", contentClassName)}>
-        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+        <div className={cn(
+          inlineActions ? "flex items-center gap-2.5" : "flex flex-col gap-2.5 lg:flex-row lg:items-center",
+        )}>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {backHref ? (
               <Link
@@ -123,7 +127,12 @@ export function GlassPageTopBar({
           )}
 
           {(actionsLeading || actions) && (
-            <div className={cn("flex w-full shrink-0 items-center justify-center gap-2 lg:w-auto lg:justify-start", actionsClassName)}>
+            <div className={cn(
+              inlineActions
+                ? "flex shrink-0 items-center justify-end gap-2"
+                : "flex w-full shrink-0 items-center justify-center gap-2 lg:w-auto lg:justify-start",
+              actionsClassName,
+            )}>
               {actionsLeading}
               {actions}
             </div>

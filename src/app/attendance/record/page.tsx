@@ -62,6 +62,7 @@ import {
 import { wasPupilActiveOnDate } from "@/lib/utils/pupil-status-utils";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { getAttendanceCacheScope } from "@/lib/cache/attendance-summary-cache";
+import { auth } from "@/lib/firebase";
 
 interface PupilAttendanceEntry {
   status: AttendanceStatus | "";
@@ -780,10 +781,33 @@ export default function RecordAttendancePage() {
       summaryPublishPendingRef.current = false;
       updateAutoSaveIndicator();
 
+      let attendanceNotificationSent = false;
+      if (published && user?.id && auth.currentUser?.uid === user.id) {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          const notificationResponse = await fetch('/api/attendance/notify-class-summary', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ date: formattedCurrentDate, classId: selectedClassId }),
+          });
+          attendanceNotificationSent = notificationResponse.ok;
+          if (!notificationResponse.ok) {
+            console.warn('Attendance saved, but class notification could not be sent:', await notificationResponse.text());
+          }
+        } catch (notificationError) {
+          console.warn('Attendance saved, but class notification could not be sent:', notificationError);
+        }
+      }
+
       toast({
         title: published ? "Attendance Saved and Synced" : "Attendance Saved; Sync Pending",
         description: published
-          ? `Attendance for ${selectedClass?.name} is now available on active devices.`
+          ? attendanceNotificationSent
+            ? `Attendance for ${selectedClass?.name} was sent to attendance dashboard users.`
+            : `Attendance for ${selectedClass?.name} is now available on active devices.`
           : "The pupil records were saved, but the dashboard refresh is queued for retry.",
         variant: published ? "default" : "destructive",
       });
@@ -813,6 +837,7 @@ export default function RecordAttendancePage() {
     selectedClass,
     selectedClassId,
     toast,
+    user?.id,
   ]);
 
   const getStatusBadgeColor = (status: AttendanceStatus | "") => {

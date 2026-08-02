@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Users,
@@ -76,6 +76,7 @@ import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
+import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
 
 const dashboardEase = [0.16, 1, 0.3, 1] as const;
 
@@ -2388,6 +2389,7 @@ const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const prefersReducedMotion = useReducedMotion();
 
   const { user } = useAuth();
@@ -2430,6 +2432,20 @@ export default function DashboardPage() {
     hasError,
     refetchAll
   } = useDashboardData();
+  const attendanceNoticeDate = searchParams.get('attendanceDate') || '';
+  const attendanceNoticeClassId = searchParams.get('attendanceClassId') || '';
+  const validAttendanceNoticeDate = /^\d{4}-\d{2}-\d{2}$/.test(attendanceNoticeDate);
+  const noticeAttendance = useAttendanceByDateRange(
+    validAttendanceNoticeDate ? attendanceNoticeDate : format(new Date(), 'yyyy-MM-dd'),
+    validAttendanceNoticeDate ? attendanceNoticeDate : format(new Date(), 'yyyy-MM-dd'),
+    { enabled: validAttendanceNoticeDate && attendanceNoticeDate !== format(new Date(), 'yyyy-MM-dd') },
+  );
+  const noticeRecords = attendanceNoticeDate === format(new Date(), 'yyyy-MM-dd')
+    ? attendanceData.records
+    : noticeAttendance.data || [];
+  const attendanceNoticeOpen = canViewAttendanceToday && validAttendanceNoticeDate && !!attendanceNoticeClassId &&
+    noticeRecords.some(record => record.classId === attendanceNoticeClassId);
+  const closeAttendanceNotice = () => router.replace('/', { scroll: false });
   const handleCardClick = (path: string) => {
     router.push(path);
   };
@@ -2709,6 +2725,15 @@ export default function DashboardPage() {
           />
         </motion.div>
       </motion.div>
+
+      <ClassAttendanceSummaryDialog
+        open={attendanceNoticeOpen}
+        onOpenChange={open => { if (!open) closeAttendanceNotice(); }}
+        date={attendanceNoticeDate}
+        classId={attendanceNoticeClassId}
+        records={noticeRecords}
+        pupils={pupils}
+      />
 
       <style jsx global>{`
         /* GPU Acceleration for better performance */

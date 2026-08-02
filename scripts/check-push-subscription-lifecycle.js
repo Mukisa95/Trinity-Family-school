@@ -9,6 +9,8 @@ const autoPrompt = fs.readFileSync(
 );
 const service = fs.readFileSync('src/lib/services/push-notifications.service.ts', 'utf8');
 const hook = fs.readFileSync('src/lib/hooks/use-push-subscribe.ts', 'utf8');
+const sendRoute = fs.readFileSync('src/app/api/notifications/send-push/route.ts', 'utf8');
+const pushPage = fs.readFileSync('src/app/push-notifications/page.tsx', 'utf8');
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 const explicitLogout = authContext.slice(authContext.indexOf('const logout = async () =>'));
 const failures = [];
@@ -32,6 +34,32 @@ for (const requirement of [
   ['iOS users receive Add to Home Screen guidance', autoPrompt.includes('Add to Home Screen')],
   ['endpoint reconciliation updates an existing record', service.includes('if (matching)')],
   ['the hook exposes automatic sync', hook.includes('sync: (userId: string) => Promise<boolean>')],
+  ['push permission refreshes when the browser regains focus',
+    hook.includes("addEventListener('focus', refresh)")],
+  ['push permission refreshes when the page becomes visible',
+    hook.includes("addEventListener('visibilitychange', refreshWhenVisible)")],
+  ['native notification permission changes refresh the hook',
+    hook.includes("query({ name: 'notifications' as PermissionName })")
+      && hook.includes("addEventListener('change', refresh)")],
+  ['parallel push hooks share subscription state changes',
+    hook.includes('PUSH_SUBSCRIPTION_CHANGE_EVENT')
+      && hook.includes('window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGE_EVENT))')],
+  ['notification sending verifies the Firebase identity', sendRoute.includes('requireAppUser(request)')],
+  ['notification sending checks the send-notification permission',
+    sendRoute.includes("'send_notification'") && sendRoute.includes('GranularPermissionService.canPerformAction')],
+  ['notification sending derives its audit identity from the verified UID',
+    sendRoute.includes('sentBy: actor.decoded.uid')],
+  ['notification sender requests use a Firebase bearer token',
+    pushPage.includes('Authorization: `Bearer ${idToken}`')],
+  ['all targeted users receive a user-scoped in-app fallback',
+    sendRoute.includes("collection('notificationDeliveries')")
+      && sendRoute.includes('recipientIds: targetUserIds')
+      && sendRoute.includes('automaticInAppFallback: true')],
+  ['fallback targeting resolves users independently of active push subscriptions',
+    sendRoute.includes('getSubscriptionsForUsers(targetUserIds)')
+      && !sendRoute.includes('getAllActiveSubscriptions')],
+  ['blocked and unsupported browsers explain the automatic inbox fallback',
+    autoPrompt.includes('in-app inbox') && autoPrompt.includes('register this device automatically')],
   ['Firestore removes push endpoints from the transitional catch-all',
     rules.includes("collection != 'pushSubscriptions'")],
   ['Firestore allows only the trusted server to mutate push endpoints',
@@ -58,4 +86,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Push subscription lifecycle contract passed: verified ownership, endpoint-scoped logout, PWA reconciliation, and one VAPID key.');
+console.log('Push subscription lifecycle contract passed: verified ownership, automatic inbox fallback, endpoint-scoped logout, PWA reconciliation, and one VAPID key.');

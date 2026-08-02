@@ -336,14 +336,21 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
+          const requestedUrl = event.notification.data?.url || '/';
+          const url = new URL(requestedUrl, self.location.origin);
+          if (url.origin !== self.location.origin) return undefined;
           for (const client of clientList) {
             if (client.url.includes(self.location.origin) && 'focus' in client) {
-              return client.focus();
+              // Focusing alone leaves an already-open dashboard on its old page.
+              // Navigate first so attendance notification query parameters can open
+              // the matching class-summary dialog.
+              return client.navigate(url.href).then((navigatedClient) =>
+                (navigatedClient || client).focus()
+              );
             }
           }
           if (clients.openWindow) {
-            const url = event.notification.data?.url || '/';
-            return clients.openWindow(url);
+            return clients.openWindow(url.href);
           }
         })
         .catch((error) => {

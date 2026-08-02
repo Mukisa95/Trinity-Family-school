@@ -140,6 +140,34 @@ class OptimizedNotificationService {
     }
   }
 
+  /** Operational alerts (payments, attendance) deliberately do not enter the in-app notification archive. */
+  async sendPushOnlyNotification(
+    data: Pick<CreateNotificationData, 'title' | 'description' | 'priority' | 'type' | 'enablePush' | 'pushTitle' | 'pushBody' | 'pushIcon' | 'pushUrl'>,
+    users: User[],
+  ): Promise<{ sent: number; failed: number; errors: string[] }> {
+    const transient = {
+      id: `push-only-${Date.now()}`,
+      title: data.title,
+      description: data.description || '',
+      type: data.type,
+      priority: data.priority,
+      status: 'completed',
+      recipients: [],
+      targetGroups: [],
+      createdBy: 'system',
+      createdAt: new Date().toISOString(),
+      enablePush: data.enablePush !== false,
+      pushTitle: data.pushTitle || data.title,
+      pushBody: data.pushBody || data.description || '',
+      pushIcon: data.pushIcon,
+      pushUrl: data.pushUrl || '/',
+      deliveryStats: { total: users.length, sent: 0, delivered: 0, failed: 0, read: 0 },
+      actions: [],
+      readBy: [],
+    } as Notification;
+    return this.processPushNotificationsBatch(transient, users);
+  }
+
   /**
    * 📝 Create notification record (fast, non-blocking)
    */

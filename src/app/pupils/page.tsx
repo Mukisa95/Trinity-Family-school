@@ -414,6 +414,25 @@ function PupilsContent() {
     setLocalSearchQuery(query);
   }, []);
 
+  // Notification links can open this list with an intentional search and
+  // filter state already applied. Keep the parameters one-way on arrival so
+  // normal in-page filtering remains responsive and does not rewrite history.
+  useEffect(() => {
+    const linkedClassId = searchParams?.get('classId') || '';
+    const linkedSearch = searchParams?.get('q') || '';
+    const linkedGender = searchParams?.get('gender') || 'all';
+    const linkedStatus = searchParams?.get('status') || 'Active';
+    const linkedSection = searchParams?.get('section') || 'all';
+
+    setLocalSearchQuery(linkedSearch);
+    if (linkedClassId !== selectedClassId) handleClassChange(linkedClassId);
+    handleFilterChange({
+      gender: linkedGender,
+      status: linkedStatus,
+      section: linkedSection,
+    });
+  }, [handleClassChange, handleFilterChange, searchParams, selectedClassId]);
+
   // 🚀 OPTIMIZED: Ensure we always have pupils to display (from cache)
   // If cached pupils are available, use them immediately regardless of class selection
   const pupilsToDisplay = useMemo(() => {

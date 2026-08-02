@@ -1,65 +1,117 @@
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { requireAppUser } from '@/lib/server/app-auth';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
-/**
- * GET /api/notifications/[id]
- * Get notification details including delivery stats
- */
-export async function GET(
+export const dynamic = 'force-dynamic';
+export const revalidate = false;
+
+const DELETE_BATCH_SIZE = 400;
+
+function errorStatus(message: string) {
+  if (message === 'AUTH_REQUIRED' || message === 'APP_AUTH_REQUIRED') return 401;
+  if (message === 'ACCOUNT_INACTIVE') return 403;
+  return 500;
+}
+
+export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const actor = await requireAppUser(request);
+    const { id } = await params;
+    const scope = request.nextUrl.searchParams.get('scope') === 'everyone' ? 'everyone' : 'me';
+
     await ensureServerFirestoreAuth();
-    const { id: notificationId } = await params;
+    const db = getFirestore(getFirebaseAdminApp());
+    const notificationRef = db.collection('notifications').doc(id);
+    const notificationSnapshot = await notificationRef.get();
 
-    if (!notificationId) {
+    if (!notificationSnapshot.exists) {
+      return NextResponse.json({ error: 'Notification not found.' }, { status: 404 });
+    }
+
+    const notification = notificationSnapshot.data() as Record<string, unknown>;
+    const isSender = notification.createdBy === actor.decoded.uid;
+    if (scope === 'me') {
+      const deliveries = await db.collection('notificationDeliveries')
+        .where('notificationId', '==', id)
+        .where('userId', '==', actor.decoded.uid)
+        .get();
+      // The delivery document is the authoritative inbox-access record. This
+      // also keeps removal working for older notifications created before the
+      // recipientIds backfill.
+      if (!isSender && deliveries.empty && actor.user.role !== 'Admin') {
+        return NextResponse.json({ error: 'You do not have access to this notification.' }, { status: 403 });
+      }
+
+      if (!deliveries.empty) {
+        const batch = db.batch();
+        deliveries.docs.forEach(delivery => batch.delete(delivery.ref));
+        await batch.commit();
+      }
+
+      return NextResponse.json({
+        success: true,
+        scope,
+        deletedDeliveries: deliveries.size,
+      });
+    }
+
+    if (!isSender && actor.user.role !== 'Admin') {
       return NextResponse.json(
-        { error: 'Notification ID is required' },
-        { status: 400 }
+        { error: 'Only the sender or an administrator can delete this notification from the database.' },
+        { status: 403 },
       );
     }
 
-    // Get notification from database
-    const notificationRef = doc(db, 'notifications', notificationId);
-    const notificationSnap = await getDoc(notificationRef);
+    let deletedDeliveries = 0;
+    while (true) {
+      const deliveries = await db.collection('notificationDeliveries')
+        .where('notificationId', '==', id)
+        .limit(DELETE_BATCH_SIZE)
+        .get();
+      if (deliveries.empty) break;
 
-    if (!notificationSnap.exists()) {
-      return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
-      );
+      const batch = db.batch();
+      deliveries.docs.forEach(delivery => batch.delete(delivery.ref));
+      await batch.commit();
+      deletedDeliveries += deliveries.size;
+      if (deliveries.size < DELETE_BATCH_SIZE) break;
     }
 
-    const notificationData = {
-      id: notificationSnap.id,
-      ...notificationSnap.data()
-    };
-
-    return NextResponse.json(notificationData);
-
-  } catch (error) {
-    console.error('Error fetching notification:', error);
-    
-    return NextResponse.json(
-      { 
-        error: 'Failed to fetch notification',
-        details: error instanceof Error ? error.message : 'Unknown error'
+    const actorName = [actor.user.firstName, actor.user.lastName].filter(Boolean).join(' ')
+      || actor.user.username
+      || actor.user.id;
+    const finalBatch = db.batch();
+    finalBatch.delete(notificationRef);
+    finalBatch.set(db.collection('historyLogs').doc(), {
+      a: 'delete',
+      e: 'notification',
+      rid: id,
+      rl: `Permanently deleted notification: ${String(notification.title || 'Untitled notification')}`,
+      m: {
+        notificationId: id,
+        notificationTitle: String(notification.title || ''),
+        originalSenderId: String(notification.createdBy || ''),
+        deletedDeliveries,
       },
-      { status: 500 }
+      uid: actor.user.id,
+      un: actorName,
+      ur: actor.user.role,
+      ts: Timestamp.now(),
+    });
+    await finalBatch.commit();
+
+    return NextResponse.json({ success: true, scope, deletedDeliveries });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to delete notification.';
+    return NextResponse.json(
+      { error: errorStatus(message) === 401 ? 'Sign in again to delete this notification.' : message },
+      { status: errorStatus(message) },
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-

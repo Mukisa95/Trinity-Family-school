@@ -59,17 +59,14 @@ class FeesPaymentNotificationServerService {
       console.log(`👥 [Fees Notification] Found ${staffWithPermissions.length} staff with fees permissions`);
 
       // Step 3: Combine recipients
-      const allRecipients = [
-        ...parents.map(p => ({ type: 'user' as const, value: p.id })),
-        ...staffWithPermissions.map(s => ({ type: 'user' as const, value: s.id }))
-      ];
+      const recipients = [...parents, ...staffWithPermissions];
 
-      if (allRecipients.length === 0) {
+      if (recipients.length === 0) {
         console.log('⚠️ [Fees Notification] No recipients found, skipping notification');
         return;
       }
 
-      console.log(`📊 [Fees Notification] Total recipients: ${allRecipients.length}`);
+      console.log(`📊 [Fees Notification] Total recipients: ${recipients.length}`);
 
       // Step 4: Format notification content
       const notificationContent = this.formatPaymentNotification(
@@ -83,11 +80,10 @@ class FeesPaymentNotificationServerService {
       // Step 5: Send notification
       console.log(`📨 [Fees Notification] Sending notification...`);
       
-      await optimizedNotificationService.sendNotificationOptimized({
-        ...notificationContent,
-        recipients: allRecipients,
-        createdBy: paymentData.paidBy.id
-      });
+      await optimizedNotificationService.sendPushOnlyNotification(
+        notificationContent,
+        recipients,
+      );
 
       console.log(`✅ [Fees Notification] Payment notification sent successfully!\n`);
 
@@ -246,4 +242,3 @@ class FeesPaymentNotificationServerService {
 }
 
 export const feesPaymentNotificationServerService = new FeesPaymentNotificationServerService();
-

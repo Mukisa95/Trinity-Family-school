@@ -1239,6 +1239,13 @@ export interface NotificationDelivery {
   retryCount: number;
 }
 
+export interface NotificationSenderSnapshot {
+  userId: string;
+  displayName: string;
+  role: string;
+  contextLabel?: string;
+}
+
 export interface Notification {
   id: string;
   title: string;
@@ -1253,6 +1260,13 @@ export interface Notification {
   recipientIds?: string[];
   targetGroups: string[]; // Group IDs
   createdBy: string;
+  senderSnapshot?: NotificationSenderSnapshot;
+  // Replies remain regular notifications so they use the same private inbox and
+  // push-delivery pipeline as the original message.
+  threadId?: string;
+  rootNotificationId?: string;
+  replyToNotificationId?: string;
+  replyMode?: 'sender' | 'all';
   createdAt: string;
   scheduledFor?: string;
   sentAt?: string;

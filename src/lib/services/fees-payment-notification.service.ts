@@ -68,17 +68,14 @@ class FeesPaymentNotificationService {
       }
 
       // Step 3: Combine recipients
-      const allRecipients = [
-        ...parents.map(p => ({ type: 'user' as const, value: p.id })),
-        ...staffWithPermissions.map(s => ({ type: 'user' as const, value: s.id }))
-      ];
+       const recipients = [...parents, ...staffWithPermissions];
 
-      if (allRecipients.length === 0) {
+       if (recipients.length === 0) {
         console.log('⚠️ [Fees Notification] No recipients found, skipping notification');
         return;
       }
 
-      console.log(`📊 [Fees Notification] Total recipients: ${allRecipients.length}`);
+       console.log(`📊 [Fees Notification] Total recipients: ${recipients.length}`);
       console.log(`   - Parents: ${parents.length}`);
       console.log(`   - Staff: ${staffWithPermissions.length}`);
 
@@ -101,11 +98,10 @@ class FeesPaymentNotificationService {
       // Dynamic import to avoid bundling server-only modules in client
       const { optimizedNotificationService } = await import('./optimized-notification.service');
       
-      await optimizedNotificationService.sendNotificationOptimized({
-        ...notificationContent,
-        recipients: allRecipients,
-        createdBy: paymentData.paidBy.id
-      });
+       await optimizedNotificationService.sendPushOnlyNotification(
+         notificationContent,
+         recipients,
+       );
 
       console.log(`✅ [Fees Notification] Payment notification sent successfully!\n`);
 
@@ -309,4 +305,3 @@ class FeesPaymentNotificationService {
 }
 
 export const feesPaymentNotificationService = new FeesPaymentNotificationService();
-

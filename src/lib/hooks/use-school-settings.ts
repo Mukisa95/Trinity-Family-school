@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { SchoolSettingsService } from '../services/school-settings.service';
 import type { SchoolSettings } from '@/types';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -218,6 +218,11 @@ export function useDashboardDataRevisions() {
 
   return useQuery({
     queryKey: dashboardDataRevisionKeys.all,
+    // This cache channel is populated exclusively by the singleton Firestore
+    // listener above. `skipToken` makes that ownership explicit and prevents
+    // TanStack Query from treating the intentionally fetchless query as an
+    // invalid configuration.
+    queryFn: skipToken,
     enabled: false,
     staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,

@@ -56,7 +56,6 @@ export function AutoNotificationPermission() {
 
   useEffect(() => {
     if (!user) return;
-    if (!needsIosInstall && !isSupported) return;
     if (!needsIosInstall && permission === 'granted' && isSubscribed) return;
     if (sessionStorage.getItem('push_prompt_dismissed')) return;
 
@@ -79,20 +78,24 @@ export function AutoNotificationPermission() {
   };
 
   if (!user) return null;
-  if (!needsIosInstall && !isSupported) return null;
   if (!needsIosInstall && permission === 'granted' && isSubscribed) return null;
 
+  const notificationsUnsupported = !needsIosInstall && !isSupported;
   const notificationsBlocked = !needsIosInstall && permission === 'denied';
   const heading = needsIosInstall
     ? 'Install the School App'
-    : notificationsBlocked
-      ? 'Notifications Are Blocked'
-      : 'Stay in the Loop';
+    : notificationsUnsupported
+      ? 'In-App Alerts Are Active'
+      : notificationsBlocked
+        ? 'Web Push Is Blocked'
+        : 'Stay in the Loop';
   const subheading = needsIosInstall
     ? 'Required for notifications on iPhone and iPad'
-    : notificationsBlocked
-      ? 'Allow them in your browser or phone settings'
-      : 'Enable push notifications';
+    : notificationsUnsupported
+      ? 'This browser cannot receive background alerts'
+      : notificationsBlocked
+        ? 'Your inbox remains available automatically'
+        : 'Enable push notifications';
 
   return (
     <AnimatePresence>
@@ -138,10 +141,15 @@ export function AutoNotificationPermission() {
                   In Safari, tap <strong>Share</strong>, choose <strong>Add to Home Screen</strong>,
                   then open Trinity School from its icon and enable notifications there.
                 </Guidance>
+              ) : notificationsUnsupported ? (
+                <Guidance onDismiss={handleDismiss}>
+                  This browser cannot receive Web Push, but notifications will still arrive in your
+                  in-app inbox. For background alerts, use a supported browser or install the app as a PWA.
+                </Guidance>
               ) : notificationsBlocked ? (
                 <Guidance onDismiss={handleDismiss}>
-                  Open this app in your phone or browser notification settings, allow notifications,
-                  then return here. The app will register this device automatically.
+                  Notifications will still arrive in your in-app inbox. If you allow notifications in
+                  your browser or phone settings and return here, the app will register this device automatically.
                 </Guidance>
               ) : (
                 <>
