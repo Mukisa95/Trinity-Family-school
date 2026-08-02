@@ -10,6 +10,8 @@ const autoPrompt = fs.readFileSync(
 const service = fs.readFileSync('src/lib/services/push-notifications.service.ts', 'utf8');
 const hook = fs.readFileSync('src/lib/hooks/use-push-subscribe.ts', 'utf8');
 const sendRoute = fs.readFileSync('src/app/api/notifications/send-push/route.ts', 'utf8');
+const vapidConfig = fs.readFileSync('src/lib/server/vapid-config.ts', 'utf8');
+const vapidRoute = fs.readFileSync('src/app/api/notifications/vapid-public-key/route.ts', 'utf8');
 const pushPage = fs.readFileSync('src/app/push-notifications/page.tsx', 'utf8');
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 const explicitLogout = authContext.slice(authContext.indexOf('const logout = async () =>'));
@@ -25,6 +27,12 @@ for (const requirement of [
   ['logout sends the current endpoint only', client.includes("JSON.stringify({ endpoint: subscription.endpoint })")],
   ['logout removes the browser subscription locally', client.includes('subscription.unsubscribe()')],
   ['VAPID changes rotate an incompatible browser subscription', client.includes('applicationServerKeyMatches')],
+  ['the browser obtains the authoritative VAPID public key from the server',
+    client.includes("fetch('/api/notifications/vapid-public-key'")],
+  ['the server derives the VAPID public key from its private key',
+    vapidConfig.includes("createECDH('prime256v1')")],
+  ['the public-key endpoint disables caching',
+    vapidRoute.includes("'Cache-Control': 'no-store, max-age=0'")],
   ['authorized subscriptions reconcile without another prompt', client.includes('reconcilePushSubscription')],
   ['explicit logout detaches push before Firebase sign-out',
     explicitLogout.indexOf('detachPushSubscriptionForLogout(departingUserId)')
@@ -50,7 +58,7 @@ for (const requirement of [
   ['notification sending derives its audit identity from the verified UID',
     sendRoute.includes('sentBy: actor.decoded.uid')],
   ['notification sender requests use a Firebase bearer token',
-    pushPage.includes('Authorization: `Bearer ${idToken}`')],
+    pushPage.includes('Authorization: `Bearer ${await firebaseUser.getIdToken()}`')],
   ['all targeted users receive a user-scoped in-app fallback',
     sendRoute.includes("collection('notificationDeliveries')")
       && sendRoute.includes('recipientIds: targetUserIds')
@@ -67,17 +75,6 @@ for (const requirement of [
       && rules.includes('allow write: if isTrustedServerApp();')],
 ]) {
   if (!requirement[1]) failures.push(requirement[0]);
-}
-
-const obsoleteVapidKey = 'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
-for (const [label, source] of [
-  ['push client', client],
-  ['push hook', hook],
-  ['push service', service],
-]) {
-  if (source.includes(obsoleteVapidKey)) {
-    failures.push(`${label} must not fall back to the obsolete VAPID key`);
-  }
 }
 
 if (failures.length) {

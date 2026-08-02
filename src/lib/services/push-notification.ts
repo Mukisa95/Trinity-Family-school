@@ -17,7 +17,7 @@ import type { PushSubscription as PushSubscriptionType, NotificationDelivery } f
 // VAPID public key - Default key generated 2025-10-26
 const VAPID_PUBLIC_KEY = (
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4'
+  'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY'
 ).trim();
 
 class PushNotificationService {
@@ -279,7 +279,7 @@ class PushNotificationService {
 
   // Utility methods
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const DEFAULT_VAPID_KEY = 'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
+    const DEFAULT_VAPID_KEY = 'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
 
     let key = (base64String || '').trim();
     key = key.replace(/^["']|["']$/g, '').trim();

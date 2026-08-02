@@ -3,7 +3,7 @@
 import { auth } from '@/lib/firebase';
 
 const DEFAULT_VAPID_PUBLIC_KEY =
-  'BKdPGmGr1PGvX5FgBPph5yywU7ilPtSFxSYzpNdf751UHl7dFn-Qgt_qVQWeZ4-KSCkXC1F0VrbnfJ6m7Ozc2W4';
+  'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
 
 const VAPID_PUBLIC_KEY = (
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY
@@ -34,13 +34,35 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from(rawData, character => character.charCodeAt(0));
 }
 
-function applicationServerKeyMatches(subscription: PushSubscription): boolean {
+function applicationServerKeyMatches(subscription: PushSubscription, publicKey: string): boolean {
   const currentKey = subscription.options.applicationServerKey;
   if (!currentKey) return true;
 
-  const expected = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+  const expected = urlBase64ToUint8Array(publicKey);
   const actual = new Uint8Array(currentKey);
   return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+}
+
+let serverPublicKeyPromise: Promise<string> | null = null;
+
+async function getServerPublicKey(): Promise<string> {
+  if (!serverPublicKeyPromise) {
+    serverPublicKeyPromise = fetch('/api/notifications/vapid-public-key', {
+      cache: 'no-store',
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error('Unable to load the Web Push public key.');
+        const payload = await response.json();
+        const publicKey = typeof payload?.publicKey === 'string' ? payload.publicKey.trim() : '';
+        if (!publicKey) throw new Error('The Web Push public key is unavailable.');
+        return publicKey;
+      })
+      .catch(error => {
+        serverPublicKeyPromise = null;
+        throw error;
+      });
+  }
+  return serverPublicKeyPromise;
 }
 
 function getDeviceMetadata() {
@@ -86,14 +108,14 @@ async function saveSubscription(userId: string, subscription: PushSubscription):
   }
 }
 
-async function getCurrentOrNewSubscription(): Promise<PushSubscription> {
+async function getCurrentOrNewSubscription(publicKey: string): Promise<PushSubscription> {
   await navigator.serviceWorker.register('/sw.js');
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
 
   // A subscription created with a previous VAPID key cannot be used by the
   // current sender. Rotate it while permission is already granted.
-  if (subscription && !applicationServerKeyMatches(subscription)) {
+  if (subscription && !applicationServerKeyMatches(subscription, publicKey)) {
     await subscription.unsubscribe();
     subscription = null;
   }
@@ -101,7 +123,7 @@ async function getCurrentOrNewSubscription(): Promise<PushSubscription> {
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+      applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
     });
   }
 
@@ -143,7 +165,8 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
     if (Notification.permission !== 'granted') return { active: false, reason: 'permission-required' };
     if (!await getIdentityToken(userId)) return { active: false, reason: 'signed-out' };
 
-    const subscription = await getCurrentOrNewSubscription();
+    const publicKey = await getServerPublicKey().catch(() => VAPID_PUBLIC_KEY);
+    const subscription = await getCurrentOrNewSubscription(publicKey);
     await saveSubscription(userId, subscription);
     return { active: true };
   })().finally(() => {
