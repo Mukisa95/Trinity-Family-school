@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/schoolpay-sync",
       "schedule": "15 2 * * *"
-    },
-    {
-      "path": "/api/cron/attendance-reminders",
-      "schedule": "*/5 * * * *"
     }
   ],
   "headers": [

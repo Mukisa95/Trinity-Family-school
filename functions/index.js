@@ -8,8 +8,277 @@
  */
 
 const {onRequest} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {defineSecret} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const next = require("next");
+const admin = require("firebase-admin");
+const webpush = require("web-push");
+
+if (!admin.apps.length) admin.initializeApp();
+
+const VAPID_PRIVATE_KEY = defineSecret("VAPID_PRIVATE_KEY");
+const DEFAULT_VAPID_PUBLIC_KEY = "BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY";
+const SCHOOL_TIME_ZONE = "Africa/Kampala";
+const REMINDER_WINDOW_MINUTES = 10;
+const PROCESSING_LEASE_MS = 15 * 60 * 1000;
+
+function normalizeVapidValue(value) {
+  return String(value || "").trim().replace(/^['\"]|['\"]$/g, "").replace(/\\n/g, "\n");
+}
+
+function getLocalClock(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SCHOOL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const value = (type) => parts.find((part) => part.type === type)?.value || "";
+  const hour = Number(value("hour"));
+  const minute = Number(value("minute"));
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    minutes: hour * 60 + minute,
+  };
+}
+
+function normalizeReminderTimes(value) {
+  const valid = Array.isArray(value) ? value.filter((time) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) : [];
+  return Array.from(new Set(valid)).sort();
+}
+
+function isDueSlot(time, localMinutes) {
+  const [hour, minute] = time.split(":").map(Number);
+  const scheduled = hour * 60 + minute;
+  return localMinutes >= scheduled && localMinutes < scheduled + REMINDER_WINDOW_MINUTES;
+}
+
+function isPupilActiveOnDate(pupil, date) {
+  const targetDate = date.split("T")[0];
+  if (pupil.status === "Graduated" && pupil.graduationDate) {
+    if (targetDate < pupil.graduationDate) return true;
+    if (!Array.isArray(pupil.statusChangeHistory) || pupil.statusChangeHistory.length === 0) return false;
+  }
+  if (!Array.isArray(pupil.statusChangeHistory) || pupil.statusChangeHistory.length === 0) {
+    return pupil.status === "Active" || pupil.status === "Pending" || pupil.status === "" || !pupil.status;
+  }
+  const history = [...pupil.statusChangeHistory].sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  let status = history[0].fromStatus === "N/A" ? "Active" : history[0].fromStatus;
+  for (const entry of history) {
+    if (String(entry.date).split("T")[0] <= targetDate) status = entry.toStatus;
+    else break;
+  }
+  return status === "Active" || status === "Pending" || status === "";
+}
+
+function isExcludedDate(date, academicYear, excludedDays) {
+  const day = new Date(`${date}T12:00:00+03:00`);
+  const yyyyMmDd = date;
+  return excludedDays.some((rule) => {
+    if (academicYear && Array.isArray(rule.skippedYearIds) && rule.skippedYearIds.includes(academicYear.id)) return false;
+    if (academicYear && rule.applicableYearId && rule.applicableYearId !== "all" && rule.applicableYearId !== academicYear.id) return false;
+    if (rule.type === "specific_date") return String(rule.date || "").slice(0, 10) === yyyyMmDd;
+    if (rule.type === "recurring_day_of_week") return day.getDay() === rule.dayOfWeek;
+    if (rule.type === "recurring_monthly") return day.getDate() === rule.dayOfMonth;
+    if (rule.type === "recurring_annual") return day.getDate() === rule.dayOfMonth && day.getMonth() + 1 === rule.monthOfYear;
+    return false;
+  });
+}
+
+function activeAcademicYear(years, date) {
+  return years.find((year) => year.isActive) || years.find((year) => date >= String(year.startDate).slice(0, 10) && date <= String(year.endDate).slice(0, 10)) || null;
+}
+
+function reminderBody(classNames) {
+  if (classNames.length <= 4) return `${classNames.join(", ")} have not recorded attendance today.`;
+  return `${classNames.slice(0, 4).join(", ")}, and ${classNames.length - 4} more have not recorded attendance today.`;
+}
+
+async function sendAttendanceReminderPush(subscriptions, payload, vapidPublicKey) {
+  const privateKey = normalizeVapidValue(VAPID_PRIVATE_KEY.value());
+  if (!privateKey) throw new Error("VAPID_PRIVATE_KEY Firebase secret is not configured");
+  webpush.setVapidDetails(
+    normalizeVapidValue(process.env.VAPID_EMAIL) || "mailto:admin@trinity-family-schools.com",
+    vapidPublicKey,
+    privateKey,
+  );
+  const results = await Promise.allSettled(subscriptions.map(async (subscription) => {
+    try {
+      await webpush.sendNotification(
+        {endpoint: subscription.endpoint, keys: {p256dh: subscription.p256dh, auth: subscription.auth}},
+        payload,
+        {urgency: "high", TTL: 6 * 60 * 60},
+      );
+      return {sent: true, expired: false, id: subscription.id};
+    } catch (error) {
+      const status = error?.statusCode;
+      return {sent: false, expired: status === 403 || status === 404 || status === 410, id: subscription.id};
+    }
+  }));
+  const settled = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+  return {
+    sent: settled.filter((result) => result.sent).length,
+    failed: subscriptions.length - settled.filter((result) => result.sent).length,
+    expiredIds: settled.filter((result) => result.expired).map((result) => result.id),
+  };
+}
+
+/**
+ * Firebase owns the frequent schedule because Vercel Hobby supports only one
+ * imprecise run each day. One Cloud Scheduler job checks the user-configured
+ * Kampala slots and Firestore claims prevent duplicate sends on retries.
+ */
+exports.attendanceReminderDispatcher = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: SCHOOL_TIME_ZONE,
+    region: "us-central1",
+    memory: "512MiB",
+    timeoutSeconds: 120,
+    secrets: [VAPID_PRIVATE_KEY],
+  },
+  async () => {
+    const db = admin.firestore();
+    const settingsSnapshot = await db.collection("notificationAutomationSettings").doc("current").get();
+    const storedSettings = settingsSnapshot.data() || {};
+    const categories = storedSettings.categories || {};
+    const attendanceSettings = categories.attendance || {};
+    if (categories.schoolPay === undefined) categories.schoolPay = true;
+    const attendanceEnabled = attendanceSettings.enabled !== false && attendanceSettings.missingReminders !== false;
+    if (!attendanceEnabled) return logger.info("Attendance reminder dispatcher skipped: disabled in settings.");
+
+    const reminderSettings = storedSettings.attendanceReminders || {};
+    const times = normalizeReminderTimes(reminderSettings.times);
+    const effectiveTimes = times.length ? times : ["08:30", "11:30", "14:00"];
+    const clock = getLocalClock();
+    const dueSlots = effectiveTimes.filter((time) => isDueSlot(time, clock.minutes));
+    if (!dueSlots.length) return;
+
+    const [academicSnapshot, excludedSnapshot, classesSnapshot, pupilsSnapshot, summarySnapshot, usersSnapshot] = await Promise.all([
+      db.collection("academicYears").get(),
+      db.collection("excludedDays").get(),
+      db.collection("classes").orderBy("order", "asc").get(),
+      db.collection("pupils").get(),
+      db.collection("attendanceDailySummaries").doc(clock.date).get(),
+      db.collection("system_users").get(),
+    ]);
+    const years = academicSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+    const academicYear = activeAcademicYear(years, clock.date);
+    const excludedDays = excludedSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+    if (reminderSettings.schoolDaysOnly !== false && isExcludedDate(clock.date, academicYear, excludedDays)) {
+      return logger.info("Attendance reminder dispatcher skipped: excluded school date.", {date: clock.date});
+    }
+
+    const classes = classesSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+    const classById = new Map(classes.map((classItem) => [classItem.id, classItem]));
+    const expectedClassIds = new Set(
+      pupilsSnapshot.docs
+        .map((doc) => ({id: doc.id, ...doc.data()}))
+        .filter((pupil) => pupil.classId && classById.has(pupil.classId) && isPupilActiveOnDate(pupil, clock.date))
+        .map((pupil) => pupil.classId),
+    );
+    const summary = summarySnapshot.data() || {};
+    const hasCompletionMap = summary.completedClasses && typeof summary.completedClasses === "object" && !Array.isArray(summary.completedClasses);
+    const completedClassIds = new Set(hasCompletionMap
+      ? Object.keys(summary.completedClasses)
+      : Array.from(new Set((Array.isArray(summary.records) ? summary.records : []).map((record) => record?.classId).filter(Boolean))),
+    );
+    const missingClassIds = [...expectedClassIds].filter((classId) => !completedClassIds.has(classId));
+    const missingClassNames = missingClassIds.map((classId) => classById.get(classId)?.name || classById.get(classId)?.code || classId);
+    const recipientIds = usersSnapshot.docs
+      .filter((doc) => doc.data().isActive !== false)
+      .filter((doc) => {
+        const user = doc.data();
+        if (user.role === "Admin") return true;
+        if (user.role !== "Staff") return false;
+        const granular = (user.granularPermissions || []).find((module) => module.moduleId === "reports");
+        const page = granular?.pages?.find((item) => item.pageId === "dashboard");
+        if (page) return Boolean(page.canAccess && page.actions?.some((action) => action.actionId === "view_stat_attendance_today" && action.allowed));
+        return (user.modulePermissions || []).some((permission) => permission.module === "reports");
+      })
+      .map((doc) => doc.id);
+
+    for (const slot of dueSlots) {
+      const runRef = db.collection("attendanceReminderRuns").doc(`${clock.date}_${slot.replace(":", "")}`);
+      const claimed = await db.runTransaction(async (transaction) => {
+        const current = await transaction.get(runRef);
+        const data = current.data() || {};
+        if (data.status === "completed" || data.status === "skipped") return false;
+        if (data.status === "processing" && Number(data.processingStartedAt || 0) > Date.now() - PROCESSING_LEASE_MS) return false;
+        transaction.set(runRef, {
+          status: "processing",
+          date: clock.date,
+          slot,
+          processingStartedAt: Date.now(),
+          attempts: Number(data.attempts || 0) + 1,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        return true;
+      });
+      if (!claimed) continue;
+
+      if (!missingClassIds.length || !recipientIds.length) {
+        await runRef.set({
+          status: "skipped",
+          reason: missingClassIds.length ? "No eligible recipients." : "All expected classes have recorded attendance.",
+          missingClassIds,
+          missingClassNames,
+          recipientCount: recipientIds.length,
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        continue;
+      }
+
+      try {
+        const vapidPublicKey = normalizeVapidValue(process.env.VAPID_PUBLIC_KEY) || DEFAULT_VAPID_PUBLIC_KEY;
+        const subscriptionsSnapshot = await Promise.all(
+          Array.from({length: Math.ceil(recipientIds.length / 10)}, (_, index) => recipientIds.slice(index * 10, index * 10 + 10))
+            .map((userIds) => db.collection("pushSubscriptions").where("userId", "in", userIds).where("isActive", "==", true).get()),
+        );
+        const subscriptions = subscriptionsSnapshot.flatMap((snapshot) => snapshot.docs)
+          .map((doc) => ({id: doc.id, ...doc.data()}))
+          .filter((subscription) => subscription.vapidPublicKey === vapidPublicKey && subscription.endpoint && subscription.p256dh && subscription.auth);
+        const push = await sendAttendanceReminderPush(subscriptions, JSON.stringify({
+          title: `Attendance reminder — ${missingClassIds.length} class${missingClassIds.length === 1 ? "" : "es"} pending`,
+          body: reminderBody(missingClassNames),
+          icon: "/trinity-logo-192.png",
+          badge: "/icons/trinity-badge-72.png",
+          tag: `attendance-reminder-${clock.date}-${slot.replace(":", "")}`,
+          url: `/attendance/view?reportType=school&trendPeriod=daily&date=${encodeURIComponent(clock.date)}`,
+          requireInteraction: true,
+        }), vapidPublicKey);
+        if (push.expiredIds.length) {
+          await Promise.all(push.expiredIds.map((id) => db.collection("pushSubscriptions").doc(id).set({
+            isActive: false,
+            deactivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            deactivationReason: "push-endpoint-expired",
+          }, {merge: true})));
+        }
+        await runRef.set({
+          status: "completed",
+          missingClassIds,
+          missingClassNames,
+          recipientCount: recipientIds.length,
+          pushSent: push.sent,
+          pushFailed: push.failed,
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        logger.info("Attendance reminder dispatched.", {date: clock.date, slot, missingClasses: missingClassIds.length, pushSent: push.sent});
+      } catch (error) {
+        await runRef.set({
+          status: "failed",
+          errorMessage: error instanceof Error ? error.message : "Unknown reminder push error",
+          failedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+        logger.error("Attendance reminder push failed.", {date: clock.date, slot, error});
+      }
+    }
+  },
+);
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
