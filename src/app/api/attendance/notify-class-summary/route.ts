@@ -10,6 +10,8 @@ import {
   type AttendanceNotificationRecord,
 } from '@/lib/attendance-notification';
 import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
+import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -67,6 +69,24 @@ export async function POST(request: NextRequest) {
     const summary = summariseAttendanceClass(date, classId, summaryRecords);
     if (!summary.total) {
       return NextResponse.json({ error: 'No published attendance was found for this class' }, { status: 409 });
+    }
+
+    // The derived summary can be published by autosave before a class is
+    // finished. This route is called only after explicit Save, so it is the
+    // authoritative point at which a class stops being "unrecorded".
+    await summaryDoc.ref.set({
+      completedClasses: {
+        [classId]: {
+          completedAt: FieldValue.serverTimestamp(),
+          completedBy: actor.decoded.uid,
+          recordCount: summary.total,
+        },
+      },
+    }, { merge: true });
+
+    const automationSettings = await getNotificationAutomationSettings();
+    if (!isNotificationAutomationEnabled(automationSettings, 'attendance.recorded')) {
+      return NextResponse.json({ success: true, skipped: true, reason: 'Attendance recorded alerts are disabled.' });
     }
 
     const allUsers = await adminDb.collection('system_users').get();

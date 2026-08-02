@@ -87,6 +87,17 @@ service cloud.firestore {
       allow read, write: if isStaffOrAdmin();
     }
 
+    // Automation configuration and execution logs are server-owned. The
+    // settings screen goes through a permission-checked API route so a signed
+    // browser cannot change school-wide reminder behaviour directly.
+    match /notificationAutomationSettings/{settingsId} {
+      allow read, write: if false;
+    }
+
+    match /attendanceReminderRuns/{runId} {
+      allow read, write: if false;
+    }
+
     // Canonical SchoolPay callbacks are written only by trusted server routes.
     match /schoolPayInboundTransactions/{transactionId} {
       allow read: if isStaffOrAdmin();
@@ -117,6 +128,8 @@ service cloud.firestore {
         && collection != 'settings'
         && collection != 'photos'
         && collection != 'attendanceDailySummaries'
+        && collection != 'notificationAutomationSettings'
+        && collection != 'attendanceReminderRuns'
         && collection != 'schoolPayInboundTransactions'
         && collection != 'schoolPayReconciliationState'
         && collection != 'schoolPaySyncLogs'

@@ -14,6 +14,8 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../firebase';
 import { optimizedNotificationService } from './optimized-notification.service';
 import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
+import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
+import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
 
 export interface PaymentNotificationDetails {
   paymentId: string;
@@ -42,6 +44,9 @@ class FeesPaymentNotificationServerService {
     balance: number
   ): Promise<void> {
     try {
+      const automationSettings = await getNotificationAutomationSettings();
+      if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
+
       console.log(`\n${'='.repeat(80)}`);
       console.log(`💳 [Fees Notification] Starting payment notification`);
       console.log(`   Payment ID: ${paymentId}`);
@@ -96,7 +101,7 @@ class FeesPaymentNotificationServerService {
   /**
    * Get parent accounts by familyId
    */
-  private async getParentsByFamilyId(familyId: string): Promise<User[]> {
+  private async getParentsByFamilyId(familyId?: string): Promise<User[]> {
     if (!familyId) {
       return [];
     }

@@ -374,6 +374,7 @@ export const MODULE_ACTIONS = {
         actions: [
           { id: 'view_notifications', name: 'View notifications', description: 'Can see notifications' },
           { id: 'send_notification', name: 'Send notification', description: 'Can send notifications' },
+          { id: 'manage_notification_settings', name: 'Manage notification settings', description: 'Can configure automated notification categories and attendance reminders' },
           { id: 'manage_groups', name: 'Manage groups', description: 'Can manage notification groups' },
           { id: 'view_history', name: 'View history', description: 'Can view notification history' },
           { id: 'manage_templates', name: 'Manage templates', description: 'Can manage notification templates' }

@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   Send,
+  Settings,
   SlidersHorizontal,
   Trash2,
   Users,
@@ -354,16 +355,25 @@ export default function PushNotificationsPage() {
         backHref="/dashboard"
         backLabel="Dashboard"
         inlineActions
-        actions={isSupported && user?.id ? (
+        actions={user?.id ? (
           <GlassActionDock>
             <GlassActionButton
-              label={subscriptionLoading ? 'Working' : isSubscribed ? 'Disable' : 'Enable'}
-              icon={subscriptionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isSubscribed ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-              onClick={toggleSubscription}
-              disabled={subscriptionLoading}
-              tone={isSubscribed ? 'slate' : 'blue'}
-              title={isSubscribed ? 'Disable browser push notifications on this device' : 'Enable browser push notifications on this device'}
+              label="Settings"
+              icon={<Settings className="h-4 w-4" />}
+              href="/push-notifications/settings"
+              tone="violet"
+              title="Configure automated notification alerts"
             />
+            {isSupported && (
+              <GlassActionButton
+                label={subscriptionLoading ? 'Working' : isSubscribed ? 'Disable' : 'Enable'}
+                icon={subscriptionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isSubscribed ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                onClick={toggleSubscription}
+                disabled={subscriptionLoading}
+                tone={isSubscribed ? 'slate' : 'blue'}
+                title={isSubscribed ? 'Disable browser push notifications on this device' : 'Enable browser push notifications on this device'}
+              />
+            )}
           </GlassActionDock>
         ) : undefined}
       />

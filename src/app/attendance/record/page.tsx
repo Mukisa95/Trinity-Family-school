@@ -793,9 +793,10 @@ export default function RecordAttendancePage() {
             },
             body: JSON.stringify({ date: formattedCurrentDate, classId: selectedClassId }),
           });
-          attendanceNotificationSent = notificationResponse.ok;
+          const notificationResult = await notificationResponse.json().catch(() => null);
+          attendanceNotificationSent = notificationResponse.ok && !notificationResult?.skipped;
           if (!notificationResponse.ok) {
-            console.warn('Attendance saved, but class notification could not be sent:', await notificationResponse.text());
+            console.warn('Attendance saved, but class notification could not be sent:', notificationResult?.error || 'Unknown error');
           }
         } catch (notificationError) {
           console.warn('Attendance saved, but class notification could not be sent:', notificationError);

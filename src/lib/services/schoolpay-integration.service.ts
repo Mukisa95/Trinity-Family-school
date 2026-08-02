@@ -22,6 +22,8 @@ import { PaymentsService } from './payments.service';
 import type { FeeStructure, Pupil } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
+import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
 import {
   assessExistingSchoolPayPayments,
   type ExistingLocalPaymentMatch,
@@ -638,6 +640,9 @@ export class SchoolPayIntegrationService {
   }): Promise<void> {
     // Only send real-time push for webhook payments, not historical sync backfill
     if (opts.source !== 'webhook') return;
+
+    const automationSettings = await getNotificationAutomationSettings();
+    if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
 
     const { subject, publicKey, privateKey } = getServerVapidDetails();
 
