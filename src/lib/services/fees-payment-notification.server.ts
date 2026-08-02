@@ -14,8 +14,10 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../firebase';
 import { optimizedNotificationService } from './optimized-notification.service';
 import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
-import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
-import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
+import {
+  isNotificationAutomationEnabled,
+  normalizeNotificationAutomationSettings,
+} from '@/lib/notifications/automation-settings';
 
 export interface PaymentNotificationDetails {
   paymentId: string;
@@ -44,7 +46,13 @@ class FeesPaymentNotificationServerService {
     balance: number
   ): Promise<void> {
     try {
-      const automationSettings = await getNotificationAutomationSettings();
+      // This legacy service is dynamically referenced by a client-reachable
+      // payment module. Do not import Firebase Admin or `server-only` here:
+      // doing so makes Next.js pull that server module into the pages bundle.
+      const settingsSnapshot = await getDoc(doc(db, 'notificationAutomationSettings', 'current'));
+      const automationSettings = normalizeNotificationAutomationSettings(
+        settingsSnapshot.exists() ? settingsSnapshot.data() : undefined,
+      );
       if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
 
       console.log(`\n${'='.repeat(80)}`);
