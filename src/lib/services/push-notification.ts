@@ -253,8 +253,8 @@ class PushNotificationService {
       if (this.swRegistration) {
         // Show notification via service worker (preferred method)
         await this.swRegistration.showNotification(title, {
-          badge: '/icons/badge-72x72.png',
-          icon: '/icons/icon-192x192.png',
+          badge: '/icons/trinity-badge-72.png',
+          icon: '/trinity-logo-192.png',
           requireInteraction: false,
           silent: false,
           ...options
@@ -262,7 +262,7 @@ class PushNotificationService {
       } else {
         // Fallback to regular notification
         const notification = new Notification(title, {
-          icon: '/icons/icon-192x192.png',
+          icon: '/trinity-logo-192.png',
           ...options
         });
         

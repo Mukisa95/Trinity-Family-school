@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
     const push = await sendWebPush(subscriptions, JSON.stringify({
       title,
       body: message,
-      icon: '/icon-192.png',
-      badge: '/icons/badge-72x72.png',
+      icon: '/trinity-logo-192.png',
+      badge: '/icons/trinity-badge-72.png',
       tag: `attendance-${date}-${classId}`,
       url: clickUrl,
       requireInteraction: false,

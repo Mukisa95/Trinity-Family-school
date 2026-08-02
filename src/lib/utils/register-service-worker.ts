@@ -24,6 +24,11 @@ function setupControllerChangeListener(): void {
   controllerChangeListenerAdded = true;
 
   const RELOAD_FLAG = 'sw_controller_reload';
+  const existingReloadAt = Number(sessionStorage.getItem(RELOAD_FLAG) || 0);
+  if (existingReloadAt) {
+    const remaining = Math.max(0, 5000 - (Date.now() - existingReloadAt));
+    window.setTimeout(() => sessionStorage.removeItem(RELOAD_FLAG), remaining);
+  }
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     console.log('🔄 New Service Worker took control - checking if reload needed');
@@ -48,8 +53,9 @@ function setupControllerChangeListener(): void {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SW_UPDATED') {
       console.log(`✅ Service Worker updated to ${event.data.version}`);
-      // The controllerchange event will handle the reload
-      // This message is just for logging/confirmation
+      window.dispatchEvent(new CustomEvent('trinity-service-worker-updated', {
+        detail: { version: event.data.version },
+      }));
     }
   });
 
@@ -442,4 +448,3 @@ export async function getServiceWorkerStatus(): Promise<{
     };
   }
 }
-

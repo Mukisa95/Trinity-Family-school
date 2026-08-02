@@ -403,7 +403,7 @@ export interface SchoolSettings {
     establishedYear?: string;
     schoolType?: string;
     registrationNumber?: string;
-    pushNotificationIcon?: string; // Path to icon used for push notifications (e.g., '/icons/icon-192x192.png')
+    pushNotificationIcon?: string; // Path to icon used for push notifications (e.g., '/trinity-logo-192.png')
   };
   contact: {
     email?: string;

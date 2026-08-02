@@ -20,9 +20,12 @@ const iconConfigs: IconConfig[] = [
   // PWA Icons in public root
   { size: 192, name: 'icon-192.png', description: 'PWA Icon 192x192' },
   { size: 512, name: 'icon-512.png', description: 'PWA Icon 512x512' },
+  { size: 192, name: 'trinity-logo-192.png', description: 'Trinity PWA Icon 192x192' },
+  { size: 512, name: 'trinity-logo-512.png', description: 'Trinity PWA Icon 512x512' },
   
   // Icons in public/icons folder
   { size: 72, name: 'badge-72x72.png', description: 'Badge Icon 72x72', directory: 'icons' },
+  { size: 72, name: 'trinity-badge-72.png', description: 'Trinity Notification Badge 72x72', directory: 'icons' },
   { size: 192, name: 'icon-192x192.png', description: 'Icon 192x192', directory: 'icons' },
   { size: 512, name: 'icon-512x512.png', description: 'Icon 512x512', directory: 'icons' },
   
@@ -82,13 +85,13 @@ export async function POST(request: NextRequest) {
 
     const results: { success: boolean; description: string; path: string; error?: string }[] = [];
 
-    // Save source image as "Budge C.png" in project root
-    const rootPath = path.join(process.cwd(), 'Budge C.png');
+    // Keep the canonical source in public so every generator uses one logo.
+    const rootPath = path.join(process.cwd(), 'public', 'logo.png');
     await writeFile(rootPath, buffer);
     results.push({
       success: true,
       description: 'Source Logo',
-      path: 'Budge C.png',
+      path: 'public/logo.png',
     });
 
     // Generate all icon sizes
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
         await sharp(buffer)
           .resize(config.size, config.size, {
             fit: 'contain',
-            background: { r: 255, g: 255, b: 255, alpha: 1 }
+            background: { r: 255, g: 255, b: 255, alpha: 0 }
           })
           .png()
           .toFile(outputPath);
@@ -185,7 +188,7 @@ export async function POST(request: NextRequest) {
     // 🔔 CRITICAL: Update push notification icon in settings
     // This ensures push notifications use the new app icon
     try {
-      await pushNotificationIconService.updatePushIcon('/icons/icon-192x192.png');
+      await pushNotificationIconService.updatePushIcon('/trinity-logo-192.png');
       console.log('✅ Push notification icon updated to use new app icon');
     } catch (error) {
       console.error('⚠️ Failed to update push notification icon setting:', error);

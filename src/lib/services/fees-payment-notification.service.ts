@@ -277,7 +277,7 @@ class FeesPaymentNotificationService {
       pushTitle: '💳 Fee Payment Received',
       pushBody: `${pupilName} paid ${formatCurrency(amountPaid)} for ${feeItemName}. Balance: ${formatCurrency(balance)}`,
       pushUrl: `/fees/collect/${paymentData.pupilId}`,
-      pushIcon: '/icons/icon-192x192.png',
+      pushIcon: '/trinity-logo-192.png',
       richContent: {
         paymentDetails: {
           paymentId,

@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       notification: {
         title: payload.title,
         body: payload.body,
-        icon: payload.icon || '/icons/icon-192x192.png',
+        icon: payload.icon || '/trinity-logo-192.png',
       },
       data: {
         url: payload.url || '/',

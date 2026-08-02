@@ -30,8 +30,8 @@ const DYNAMIC_CACHE = `dynamic-${SW_VERSION}`;
 const STATIC_FILES = [
   '/',
   '/offline',
-  '/icon-192.png',
-  '/icon-512.png',
+  '/trinity-logo-192.png',
+  '/trinity-logo-512.png',
   '/manifest.json'
 ];
 
@@ -80,15 +80,23 @@ self.addEventListener('activate', (event) => {
       .then(() => {
         // 🔔 Notify ALL clients that a new SW version is active
         // This allows the client-side code to reload and pick up fresh bundles
-        return self.clients.matchAll({ type: 'window' }).then(clients => {
-          clients.forEach(client => {
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+          const refreshes = clients.map(client => {
             client.postMessage({
               type: 'SW_UPDATED',
               version: SW_VERSION,
               timestamp: Date.now()
             });
+            // Older installed PWAs could retain a stale reload flag. Navigating
+            // an open client guarantees it loads the newest reconciliation
+            // code; a closed PWA receives it on its next ordinary launch.
+            if ('navigate' in client) {
+              return client.navigate(client.url).catch(() => undefined);
+            }
+            return Promise.resolve();
           });
           console.log(`✅ Notified ${clients.length} client(s) about SW update to ${SW_VERSION}`);
+          return Promise.all(refreshes);
         });
       })
   );
@@ -206,8 +214,8 @@ async function checkForMissedNotifications() {
         for (const notification of data.notifications) {
           await self.registration.showNotification(notification.title, {
             body: notification.body || notification.description,
-            icon: notification.icon || '/icons/icon-192x192.png',
-            badge: '/icons/badge-72x72.png',
+            icon: notification.icon || '/trinity-logo-192.png',
+            badge: '/icons/trinity-badge-72.png',
             tag: notification.id,
             data: {
               url: notification.url || '/notifications',
@@ -257,8 +265,8 @@ self.addEventListener('push', (event) => {
   let notificationData = {
     title: 'New Notification',
     body: 'You have a new notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
+    icon: '/trinity-logo-192.png',
+    badge: '/icons/trinity-badge-72.png',
     tag: 'notification',
     data: { url: '/notifications' },
     requireInteraction: false,
@@ -318,7 +326,7 @@ self.addEventListener('push', (event) => {
     // Show a fallback notification
     return self.registration.showNotification('Notification Error', {
       body: 'Failed to display notification',
-      icon: '/icons/icon-192x192.png'
+      icon: '/trinity-logo-192.png'
     });
   });
 

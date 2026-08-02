@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       enablePush: true,
       pushTitle: payload.title,
       pushBody: payload.body,
-      pushIcon: payload.icon || '/icon-192.png',
+      pushIcon: payload.icon || '/trinity-logo-192.png',
       pushUrl: notificationUrl,
       deliveryStats: {
         total: targetUserIds.length,
@@ -225,8 +225,8 @@ export async function POST(request: NextRequest) {
     const payloadStr = JSON.stringify({
       title: `${senderSnapshot.displayName}: ${payload.title}`,
       body: payload.body,
-      icon: payload.icon || '/icon-192.png',
-      badge: '/icons/badge-72x72.png',
+      icon: payload.icon || '/trinity-logo-192.png',
+      badge: '/icons/trinity-badge-72.png',
       url: notificationUrl,
       tag: payload.tag || 'trinity-push',
       requireInteraction: payload.requireInteraction ?? false,

@@ -686,8 +686,8 @@ export class SchoolPayIntegrationService {
     const payloadStr = JSON.stringify({
       title: '\uD83D\uDCB3 SchoolPay Payment Received',
       body,
-      icon: '/icon-192.png',
-      badge: '/icons/badge-72x72.png',
+      icon: '/trinity-logo-192.png',
+      badge: '/icons/trinity-badge-72.png',
       url: '/accounts/schoolpay-feed',
       // Receipt number as tag: OS collapses duplicate alerts on SchoolPay retries
       tag: `schoolpay-receipt-${opts.receiptNumber}`,

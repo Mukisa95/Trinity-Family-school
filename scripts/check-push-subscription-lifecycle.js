@@ -13,6 +13,9 @@ const sendRoute = fs.readFileSync('src/app/api/notifications/send-push/route.ts'
 const vapidConfig = fs.readFileSync('src/lib/server/vapid-config.ts', 'utf8');
 const vapidRoute = fs.readFileSync('src/app/api/notifications/vapid-public-key/route.ts', 'utf8');
 const pushPage = fs.readFileSync('src/app/push-notifications/page.tsx', 'utf8');
+const serviceWorker = fs.readFileSync('public/sw.js', 'utf8');
+const manifest = fs.readFileSync('public/manifest.json', 'utf8');
+const swVersionScript = fs.readFileSync('scripts/update-sw-version.js', 'utf8');
 const rules = fs.readFileSync('firestore.rules', 'utf8');
 const explicitLogout = authContext.slice(authContext.indexOf('const logout = async () =>'));
 const failures = [];
@@ -43,7 +46,18 @@ for (const requirement of [
       < explicitLogout.indexOf('await firebaseSignOut(auth)')],
   ['PWA subscriptions reconcile when connectivity returns', autoPrompt.includes("addEventListener('online', reconcile)")],
   ['PWA subscriptions reconcile on foreground return', autoPrompt.includes("addEventListener('visibilitychange', handleVisibility)")],
+  ['PWA subscriptions reconcile immediately after a worker update',
+    autoPrompt.includes("addEventListener('trinity-service-worker-updated', reconcile)")],
+  ['open installed PWAs are refreshed when a new worker activates',
+    serviceWorker.includes("client.navigate(client.url)")],
+  ['each deployment receives a unique service-worker cache version',
+    swVersionScript.includes("const newVersion = `build-${timestamp.replace")],
   ['iOS users receive Add to Home Screen guidance', autoPrompt.includes('Add to Home Screen')],
+  ['the manifest uses the canonical Trinity logo assets',
+    manifest.includes('/trinity-logo-192.png') && manifest.includes('/trinity-logo-512.png')],
+  ['push notifications use the Trinity logo and badge',
+    serviceWorker.includes("icon: '/trinity-logo-192.png'")
+      && serviceWorker.includes("badge: '/icons/trinity-badge-72.png'")],
   ['endpoint reconciliation updates an existing record', service.includes('if (matching)')],
   ['the subscribe route rejects stale client VAPID keys',
     route.includes('publicKey !== currentPublicKey') && route.includes('{ status: 409 }')],

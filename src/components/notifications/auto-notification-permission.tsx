@@ -43,12 +43,14 @@ export function AutoNotificationPermission() {
     reconcile();
     window.addEventListener('online', reconcile);
     window.addEventListener('focus', reconcile);
+    window.addEventListener('trinity-service-worker-updated', reconcile);
     document.addEventListener('visibilitychange', handleVisibility);
     const timer = window.setInterval(reconcile, 30 * 60 * 1000);
 
     return () => {
       window.removeEventListener('online', reconcile);
       window.removeEventListener('focus', reconcile);
+      window.removeEventListener('trinity-service-worker-updated', reconcile);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.clearInterval(timer);
     };

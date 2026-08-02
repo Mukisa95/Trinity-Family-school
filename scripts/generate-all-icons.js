@@ -2,16 +2,19 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const sourceImage = path.join(__dirname, '..', 'Budge C.png');
+const sourceImage = path.join(__dirname, '..', 'public', 'logo.png');
 const outputDir = path.join(__dirname, '..', 'public');
 
 const icons = [
   // PWA Icons
   { size: 192, name: 'icon-192.png', description: 'PWA Icon 192x192' },
   { size: 512, name: 'icon-512.png', description: 'PWA Icon 512x512' },
+  { size: 192, name: 'trinity-logo-192.png', description: 'Versioned Trinity PWA Icon 192x192' },
+  { size: 512, name: 'trinity-logo-512.png', description: 'Versioned Trinity PWA Icon 512x512' },
   
   // Icons folder
   { size: 72, name: 'icons/badge-72x72.png', description: 'Badge Icon 72x72' },
+  { size: 72, name: 'icons/trinity-badge-72.png', description: 'Trinity Notification Badge 72x72' },
   { size: 192, name: 'icons/icon-192x192.png', description: 'Icon 192x192' },
   { size: 512, name: 'icons/icon-512x512.png', description: 'Icon 512x512' },
   
@@ -25,12 +28,12 @@ const icons = [
 
 async function generateAllIcons() {
   console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║  Generating All PWA Icons from "Budge C.png"              ║');
+  console.log('║  Generating All PWA Icons from public/logo.png             ║');
   console.log('╚════════════════════════════════════════════════════════════╝\n');
 
   if (!fs.existsSync(sourceImage)) {
     console.error('❌ Error: Source image not found at:', sourceImage);
-    console.error('   Please ensure "Budge C.png" exists in the project root.');
+    console.error('   Please ensure public/logo.png exists.');
     process.exit(1);
   }
 
@@ -54,7 +57,7 @@ async function generateAllIcons() {
       await sharp(sourceImage)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 1 }
+          background: { r: 255, g: 255, b: 255, alpha: 0 }
         })
         .png()
         .toFile(outputPath);
@@ -108,11 +111,10 @@ async function generateAllIcons() {
   if (failCount === 0) {
     console.log('✨ All icons generated successfully!\n');
     console.log('📱 Next Steps:');
-    console.log('   1. Clear your browser cache (Ctrl+Shift+Delete)');
-    console.log('   2. Uninstall the PWA if already installed');
-    console.log('   3. Reload the website');
-    console.log('   4. Install the PWA again to see the new icon\n');
-    console.log('💡 The custom "Budge C.png" logo is now your PWA icon!\n');
+    console.log('   1. Deploy the generated assets');
+    console.log('   2. Open the installed PWA normally so its manifest refreshes');
+    console.log('   3. No cache clearing or PWA reinstallation is required\n');
+    console.log('💡 public/logo.png is now the source for every app icon.\n');
   } else {
     console.log('⚠️  Some icons failed to generate. Please check the errors above.\n');
     process.exit(1);
@@ -123,4 +125,3 @@ generateAllIcons().catch(error => {
   console.error('\n❌ Fatal error:', error);
   process.exit(1);
 });
-

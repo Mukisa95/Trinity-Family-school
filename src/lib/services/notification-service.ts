@@ -185,7 +185,7 @@ class NotificationService {
     const pushPayload = {
       title: notification.pushTitle || notification.title,
       body: notification.pushBody || notification.description || '',
-      icon: notification.pushIcon || '/icons/icon-192x192.png',
+      icon: notification.pushIcon || '/trinity-logo-192.png',
       image: notification.pushImage,
       url: notification.pushUrl || '/notifications',
       tag: `notification-${notification.id}`,
@@ -334,7 +334,7 @@ class NotificationService {
           notification.title,
           {
             body: notification.description,
-            icon: notification.pushIcon || '/icons/icon-192x192.png',
+            icon: notification.pushIcon || '/trinity-logo-192.png',
             tag: `notification-${notification.id}`,
             requireInteraction: notification.priority === 'urgent',
             data: {

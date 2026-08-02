@@ -124,7 +124,7 @@ export class UnifiedNotificationsService {
       // Show local notification first
       const notification = new Notification(title, {
         body: message,
-        icon: options.icon || '/icons/icon-192x192.png',
+        icon: options.icon || '/trinity-logo-192.png',
         tag: options.tag || 'trinity-notification',
         requireInteraction: options.requireInteraction || false
       });

@@ -555,7 +555,7 @@ class OptimizedNotificationService {
       const pushPayload = {
         title: notification.pushTitle || notification.title,
         body: notification.pushBody || notification.description || '',
-        icon: notification.pushIcon || '/icons/icon-192x192.png',
+        icon: notification.pushIcon || '/trinity-logo-192.png',
         url: notification.pushUrl || '/notifications',
         // Tag must be max 32 chars (web-push spec) - use just the ID or truncate with prefix
         tag: notification.id.length <= 32 ? notification.id : `n-${notification.id.substring(0, 30)}`,
@@ -610,7 +610,7 @@ class OptimizedNotificationService {
             title: pushPayload.title,
             body: pushPayload.body,
             icon: pushPayload.icon,
-            badge: '/icons/badge-72x72.png',
+            badge: '/icons/trinity-badge-72.png',
             url: pushPayload.url,
             tag: pushPayload.tag,
             requireInteraction: pushPayload.requireInteraction,

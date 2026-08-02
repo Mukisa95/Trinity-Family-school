@@ -45,7 +45,7 @@ class PushNotificationIconService {
       
       if (settingsSnap.exists()) {
         const settings = settingsSnap.data() as SchoolSettings;
-        const icon = settings.generalInfo?.pushNotificationIcon || '/icons/icon-192x192.png';
+        const icon = settings.generalInfo?.pushNotificationIcon || '/trinity-logo-192.png';
         
         // Update cache
         this.cachedIcon = icon;
@@ -58,7 +58,7 @@ class PushNotificationIconService {
     }
 
     // Fallback to default icon
-    return '/icons/icon-192x192.png';
+    return '/trinity-logo-192.png';
   }
 
   /**
@@ -109,4 +109,3 @@ class PushNotificationIconService {
 }
 
 export const pushNotificationIconService = PushNotificationIconService.getInstance();
-

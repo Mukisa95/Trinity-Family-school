@@ -18,17 +18,14 @@ try {
   // Read the service worker file
   let swContent = fs.readFileSync(SW_PATH, 'utf8');
   
-  // Get current version
   const versionMatch = swContent.match(/const SW_VERSION = '([^']+)'/);
-  const currentVersion = versionMatch ? versionMatch[1] : 'v1.0.0';
-  
-  // Increment version (simple increment of patch version)
-  const versionParts = currentVersion.replace('v', '').split('.');
-  versionParts[2] = String(parseInt(versionParts[2] || 0) + 1);
-  const newVersion = 'v' + versionParts.join('.');
-  
-  // Get current timestamp
+  const currentVersion = versionMatch ? versionMatch[1] : 'unknown';
+
+  // Vercel starts each build from the checked-in file, so incrementing its
+  // patch number produced the same deployed cache name repeatedly. A timestamp
+  // version is unique per build and reliably refreshes installed PWAs.
   const timestamp = new Date().toISOString();
+  const newVersion = `build-${timestamp.replace(/[-:.TZ]/g, '')}`;
   
   // Update version
   swContent = swContent.replace(
@@ -55,4 +52,3 @@ try {
   console.error('❌ Error updating service worker version:', error.message);
   process.exit(1);
 }
-
