@@ -15,6 +15,8 @@ import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
 import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
 import { useStaffCacheBootstrap } from '@/lib/hooks/use-staff-cache-bootstrap';
+import { usePupilCacheBootstrap } from '@/lib/hooks/use-pupil-cache-bootstrap';
+import { PupilsService } from '@/lib/services/pupils.service';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
@@ -34,6 +36,7 @@ export function GlobalDataPreloader() {
   useClassCacheBootstrap();
   useAcademicYearCacheBootstrap();
   useStaffCacheBootstrap();
+  usePupilCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
   const userFamilyId = user?.familyId;
@@ -197,14 +200,16 @@ export function GlobalDataPreloader() {
       unsubscribers.push(unsubscribe);
     };
 
-    // 5. PUPILS - One cache-first, server-backed real-time listener.
+    // 5. PUPILS - Parent-only, family-scoped real-time listener.
     //
     // Firestore emits the listener's local IndexedDB snapshot first and then
     // reconciles it with the server. Cached data must never wait behind a count
     // request or a duplicate getDocs() call.
-    const setupPupilsListener = async (
+    const setupParentPupilsListener = async (
       onParentPupilIds?: (pupilIds: string[]) => void,
     ) => {
+      if (userRole !== 'Parent' || !userFamilyId) return;
+
       const normalizePupilDoc = (doc: any) => {
         const data = doc.data();
         return {
@@ -217,16 +222,15 @@ export function GlobalDataPreloader() {
         };
       };
 
-      // Build the base query (scoped to family for parents)
-      const baseQuery = (userRole === 'Parent' && userFamilyId)
-        ? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))
-        : firestoreQuery(collection(db, 'pupils'));
+      // Staff and administrator snapshots are owned by
+      // usePupilCacheBootstrap and must never enter this listener.
+      const baseQuery = firestoreQuery(
+        collection(db, 'pupils'),
+        where('familyId', '==', userFamilyId),
+      );
       const projectId =
         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-      const cacheScope =
-        userRole === 'Parent'
-          ? `parent:${userId}:family:${userFamilyId || 'unassigned'}`
-          : `user:${userId}`;
+      const cacheScope = `parent:${userId}:family:${userFamilyId}`;
       const persistentCacheKey = persistentCollectionCacheKey(
         projectId,
         'pupils',
@@ -286,6 +290,7 @@ export function GlobalDataPreloader() {
         }
 
         queryClient.setQueryData(['pupils', 'list'], persistedPupils);
+        PupilsService.hydrateSharedPupils(persistedPupils);
         onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
         performance.mark?.('trinity:pupils-fast-cache-ready');
         console.log(
@@ -308,6 +313,7 @@ export function GlobalDataPreloader() {
             // The following server snapshot will authoritatively add/remove docs.
             if (!(snapshot.metadata.fromCache && allPupils.length === 0 && existingPupils?.length)) {
               queryClient.setQueryData(['pupils', 'list'], allPupils);
+              PupilsService.hydrateSharedPupils(allPupils);
               onParentPupilIds?.(allPupils.map(pupil => pupil.id));
             }
             schedulePersistentPupilCacheWrite();
@@ -332,6 +338,7 @@ export function GlobalDataPreloader() {
                 ['pupils', 'list'],
                 snapshot.docs.map(normalizePupilDoc),
               );
+              PupilsService.hydrateSharedPupils(snapshot.docs.map(normalizePupilDoc));
               schedulePersistentPupilCacheWrite();
             }
             return;
@@ -349,6 +356,8 @@ export function GlobalDataPreloader() {
                   },
             ),
           );
+          const currentPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
+          if (currentPupils) PupilsService.hydrateSharedPupils(currentPupils);
           schedulePersistentPupilCacheWrite();
 
           if (!snapshot.metadata.fromCache) {
@@ -359,6 +368,7 @@ export function GlobalDataPreloader() {
         (error) => console.error('❌ PRELOADER: Pupils listener error:', error.message)
       );
       unsubscribers.push(unsubscribe);
+      unsubscribers.push(() => PupilsService.clearSharedPupils());
     };
 
 
@@ -618,7 +628,7 @@ export function GlobalDataPreloader() {
     // ═══════════════════════════════════════════════════════════
 
     // Fire all data setup calls in PARALLEL — do not await any single one
-    // before starting the others. setupPupilsListener is async only so setup
+    // before starting the others. The parent listener is async only so setup
     // failures can be reported consistently; the listener itself starts at once.
     (async () => {
       try {
@@ -629,13 +639,11 @@ export function GlobalDataPreloader() {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
           const syncParentPupilRecords = setupParentRecordsListeners();
-          setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          setupParentPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           fetchFees();
           console.log('✅ PARENT PRELOADER: Essential data + payment listener active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
-          setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
-
           deferredTimer = setTimeout(() => {
             setupSubjectsListener();
             void fetchPhotos();

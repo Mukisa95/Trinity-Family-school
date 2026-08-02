@@ -5,6 +5,7 @@ import { requireAppUser } from '@/lib/server/app-auth';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { SchoolPayInboxService } from '@/lib/services/schoolpay-inbox.server';
+import { updatePupilWithCacheRevision } from '@/lib/server/pupil-cache-revisions.admin';
 import {
   SchoolPayIntegrationService,
   type SchoolPayPaymentPayload,
@@ -92,7 +93,7 @@ export async function POST(
     // it the server identity, while pupil matching itself now uses Admin reads.
     let result;
     try {
-      await pupilRef.update({
+      await updatePupilWithCacheRevision(db, pupilRef, {
         payCode: paymentCode,
         additionalIdentifiers: identifiers,
         updatedAt: Timestamp.now(),

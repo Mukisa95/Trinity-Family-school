@@ -76,6 +76,31 @@ export function bumpStaffRevisionInBatch(batch: WriteBatch) {
   );
 }
 
+/**
+ * Reserve the next ordered pupil revision inside the source transaction.
+ * The caller writes a matching pupilCacheChanges document in that same
+ * transaction, so cache consumers can safely request only missing deltas.
+ */
+export async function reservePupilsRevisionInTransaction(
+  transaction: Transaction,
+): Promise<number> {
+  const settingsRef = schoolSettingsRef();
+  const settings = await transaction.get(settingsRef);
+  const current = Number(settings.data()?.dataRevisions?.pupils || 0);
+  const next = current + 1;
+
+  transaction.set(
+    settingsRef,
+    {
+      dataRevisions: {
+        pupils: next,
+      },
+    },
+    { merge: true },
+  );
+  return next;
+}
+
 /** Add an event revision bump to the same batch as its source mutation. */
 export function bumpEventsRevisionInBatch(batch: WriteBatch) {
   batch.set(

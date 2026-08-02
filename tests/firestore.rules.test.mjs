@@ -187,3 +187,27 @@ test('daily attendance summaries are restricted to staff and administrators', as
     { merge: true },
   ));
 });
+
+test('pupil cache deltas are restricted to staff and administrators', async () => {
+  const adminDb = testEnv.authenticatedContext('active-admin', {
+    appUser: true,
+    isActive: true,
+    role: 'Admin',
+  }).firestore();
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-1',
+  }).firestore();
+  const change = {
+    revision: 1,
+    pupilId: 'pupil-1',
+    operation: 'upsert',
+  };
+
+  await assertSucceeds(setDoc(doc(adminDb, 'pupilCacheChanges', '0000000000000001'), change));
+  await assertSucceeds(getDoc(doc(adminDb, 'pupilCacheChanges', '0000000000000001')));
+  await assertFails(getDoc(doc(parentDb, 'pupilCacheChanges', '0000000000000001')));
+  await assertFails(setDoc(doc(parentDb, 'pupilCacheChanges', 'forged'), change));
+});

@@ -22,6 +22,7 @@ const settingsHook = read('src/lib/hooks/use-school-settings.ts');
 const classBootstrap = read('src/lib/hooks/use-class-cache-bootstrap.ts');
 const academicYearBootstrap = read('src/lib/hooks/use-academic-year-cache-bootstrap.ts');
 const staffBootstrap = read('src/lib/hooks/use-staff-cache-bootstrap.ts');
+const pupilBootstrap = read('src/lib/hooks/use-pupil-cache-bootstrap.ts');
 const classesService = read('src/lib/services/classes.service.ts');
 const academicYearsService = read('src/lib/services/academic-years.service.ts');
 const firestoreHelpers = read('src/lib/utils/firestore-helpers.ts');
@@ -29,6 +30,12 @@ const classCache = read('src/lib/cache/class-cache.ts');
 const academicYearCache = read('src/lib/cache/academic-year-cache.ts');
 const staffCache = read('src/lib/cache/staff-cache.ts');
 const staffService = read('src/lib/services/staff.service.ts');
+const pupilsService = read('src/lib/services/pupils.service.ts');
+const pupilCache = read('src/lib/cache/pupil-cache.ts');
+const revisionService = read('src/lib/services/dashboard-cache-revisions.service.ts');
+const adminPupilRevision = read('src/lib/server/pupil-cache-revisions.admin.ts');
+const pupilApi = read('src/app/api/pupils/[id]/route.ts');
+const schoolPayAssignment = read('src/app/api/schoolpay/inbox/[id]/assign/route.ts');
 const teacherNames = read('src/lib/hooks/use-teacher-names.ts');
 const staffNames = read('src/lib/utils/staff-names.ts');
 const viewResults = read('src/app/exams/[examId]/view-results/ViewResultsView.tsx');
@@ -62,8 +69,38 @@ assert(
   preloader.includes('useClassCacheBootstrap();') &&
     preloader.includes('useAcademicYearCacheBootstrap();') &&
     preloader.includes('useStaffCacheBootstrap();') &&
+    preloader.includes('usePupilCacheBootstrap();') &&
     !preloader.includes('setupStaffListener();'),
   'The application preloader must mount the sole cache owners and not start a staff listener.',
+);
+assert(
+  pupilBootstrap.includes("revisionsQuery.data?.pupils") &&
+    pupilBootstrap.includes('getCacheChanges') &&
+    pupilBootstrap.includes('getPupilsByIdsForCache') &&
+    pupilBootstrap.includes('changes.length !== expectedChanges') &&
+    pupilCache.includes("role === 'Parent'") &&
+    pupilsService.includes("const CACHE_CHANGES_COLLECTION = 'pupilCacheChanges'") &&
+    pupilsService.includes('reservePupilsRevisionInTransaction') &&
+    revisionService.includes('reservePupilsRevisionInTransaction'),
+  'Staff/admin pupil data must use a scoped revision cache with ordered mutation deltas.',
+);
+assert(
+  preloader.includes("if (userRole !== 'Parent' || !userFamilyId) return;") &&
+    preloader.includes("where('familyId', '==', userFamilyId)") &&
+    !preloader.includes(": firestoreQuery(collection(db, 'pupils'))"),
+  'The remaining pupil listener must be parent-only and family-scoped.',
+);
+assert(
+  pupilsService.includes("if (typeof window !== 'undefined')") &&
+    pupilsService.includes('return this.waitForSharedPupils()') &&
+    pupilsService.includes('getDocsFromServerWithTimeout<Pupil>'),
+  'Browser pupil consumers must share the revision owner instead of starting collection reads.',
+);
+assert(
+  adminPupilRevision.includes("db.collection('pupilCacheChanges')") &&
+    pupilApi.includes('updatePupilWithCacheRevision') &&
+    schoolPayAssignment.includes('updatePupilWithCacheRevision'),
+  'Admin-owned pupil mutations must publish the same ordered cache delta.',
 );
 assert(
   settingsHook.includes('currentRevisions === undefined'),

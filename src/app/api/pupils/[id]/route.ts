@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import { updatePupilWithCacheRevision } from '@/lib/server/pupil-cache-revisions.admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,7 @@ export async function PATCH(
     }
 
     const db = getFirestore(getFirebaseAdminApp());
-    await db.collection('pupils').doc(pupilId).update(body);
+    await updatePupilWithCacheRevision(db, db.collection('pupils').doc(pupilId), body);
 
     return NextResponse.json({ success: true });
   } catch (error) {

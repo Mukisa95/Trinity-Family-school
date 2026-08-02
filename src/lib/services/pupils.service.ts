@@ -3,9 +3,6 @@ import {
   doc,
   getDocs,
   getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
   query,
   orderBy,
   where,
@@ -13,19 +10,156 @@ import {
   startAfter,
   DocumentSnapshot,
   QuerySnapshot,
-  Timestamp
+  Timestamp,
+  documentId,
+  getDocsFromCache,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ClassesService } from './classes.service';
 import type { Pupil } from '@/types';
 import { HousesService } from './houses.service';
-import { getDocWithTimeout, getDocsWithTimeout } from '../utils/firestore-helpers';
+import {
+  getDocWithTimeout,
+  getDocsFromServerWithTimeout,
+  getDocsWithTimeout,
+} from '../utils/firestore-helpers';
 import { HistoryLogService } from './history-log.service';
+import { reservePupilsRevisionInTransaction } from './dashboard-cache-revisions.service';
+import { normalisePupils } from '../cache/pupil-cache';
 
 const COLLECTION_NAME = 'pupils';
+const CACHE_CHANGES_COLLECTION = 'pupilCacheChanges';
+
+export type PupilCacheChange = {
+  id: string;
+  revision: number;
+  pupilId: string;
+  operation: 'upsert' | 'delete';
+  changedAt?: unknown;
+};
 
 export class PupilsService {
+  private static sharedPupils: Pupil[] | null = null;
+  private static pendingSharedRefresh: Promise<Pupil[]> | null = null;
+  private static pendingSharedRefreshTarget: number | null = null;
+  private static sharedReadyPromise: Promise<Pupil[]> | null = null;
+  private static resolveSharedReady: ((pupils: Pupil[]) => void) | null = null;
+  private static rejectSharedReady: ((error: unknown) => void) | null = null;
+
+  private static waitForSharedPupils(): Promise<Pupil[]> {
+    if (!this.sharedReadyPromise) {
+      this.sharedReadyPromise = new Promise<Pupil[]>((resolve, reject) => {
+        this.resolveSharedReady = resolve;
+        this.rejectSharedReady = reject;
+      });
+    }
+    return this.sharedReadyPromise;
+  }
+
+  static hydrateSharedPupils(pupils: Pupil[]): void {
+    this.sharedPupils = pupils;
+    this.resolveSharedReady?.(pupils);
+    this.resolveSharedReady = null;
+    this.rejectSharedReady = null;
+    this.sharedReadyPromise = Promise.resolve(pupils);
+  }
+
+  static clearSharedPupils(): void {
+    this.resolveSharedReady?.([]);
+    this.sharedPupils = null;
+    this.pendingSharedRefresh = null;
+    this.pendingSharedRefreshTarget = null;
+    this.sharedReadyPromise = null;
+    this.resolveSharedReady = null;
+    this.rejectSharedReady = null;
+  }
+
+  static refreshSharedPupils(
+    targetRevision: number,
+    load: () => Promise<Pupil[]>,
+  ): Promise<Pupil[]> {
+    if (this.pendingSharedRefresh) {
+      if (this.pendingSharedRefreshTarget === targetRevision) return this.pendingSharedRefresh;
+      // Revisions can advance while a large cold fetch is in flight. Queue the
+      // newer target instead of stamping the older result as the latest cache.
+      return this.pendingSharedRefresh
+        .catch(() => [])
+        .then(() => this.refreshSharedPupils(targetRevision, load));
+    }
+
+    const pending = load()
+      .catch(error => {
+        this.rejectSharedReady?.(error);
+        this.sharedReadyPromise = null;
+        this.resolveSharedReady = null;
+        this.rejectSharedReady = null;
+        throw error;
+      })
+      .finally(() => {
+        if (this.pendingSharedRefresh === pending) {
+          this.pendingSharedRefresh = null;
+          this.pendingSharedRefreshTarget = null;
+        }
+      });
+
+    this.pendingSharedRefresh = pending;
+    this.pendingSharedRefreshTarget = targetRevision;
+    return pending;
+  }
+
+  static async getAllForCache(): Promise<Pupil[]> {
+    const pupils = await getDocsFromServerWithTimeout<Pupil>(
+      query(collection(db, COLLECTION_NAME)),
+      30000,
+    );
+    return normalisePupils(pupils);
+  }
+
+  static async getAllFromFirestoreCache(): Promise<Pupil[]> {
+    try {
+      const snapshot = await getDocsFromCache(query(collection(db, COLLECTION_NAME)));
+      return normalisePupils(
+        snapshot.docs.map(snapshotDoc => ({ id: snapshotDoc.id, ...snapshotDoc.data() }) as Pupil),
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  static async getCacheChanges(fromRevision: number, toRevision: number): Promise<PupilCacheChange[]> {
+    if (toRevision <= fromRevision) return [];
+    const changesQuery = query(
+      collection(db, CACHE_CHANGES_COLLECTION),
+      where('revision', '>', fromRevision),
+      where('revision', '<=', toRevision),
+      orderBy('revision', 'asc'),
+    );
+    return getDocsFromServerWithTimeout<PupilCacheChange>(changesQuery, 15000);
+  }
+
+  static async getPupilsByIdsForCache(pupilIds: string[]): Promise<Pupil[]> {
+    const uniqueIds = Array.from(new Set(pupilIds.filter(Boolean)));
+    if (uniqueIds.length === 0) return [];
+
+    const pupils: Pupil[] = [];
+    for (let index = 0; index < uniqueIds.length; index += 30) {
+      const ids = uniqueIds.slice(index, index + 30);
+      pupils.push(...await getDocsFromServerWithTimeout<Pupil>(
+        query(collection(db, COLLECTION_NAME), where(documentId(), 'in', ids)),
+        15000,
+      ));
+    }
+    return normalisePupils(pupils);
+  }
+
   static async getAllPupils(): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      if (this.sharedPupils) return this.sharedPupils;
+      if (this.pendingSharedRefresh) return this.pendingSharedRefresh;
+      return this.waitForSharedPupils();
+    }
+
     try {
       console.log('🚀 BATCH LOADING: Fetching ALL pupils (cache-first)');
       const startTime = performance.now();
@@ -150,7 +284,17 @@ export class PupilsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(newPupil);
 
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedData);
+      const docRef = doc(collection(db, COLLECTION_NAME));
+      await runTransaction(db, async transaction => {
+        const revision = await reservePupilsRevisionInTransaction(transaction);
+        transaction.set(docRef, cleanedData);
+        transaction.set(doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')), {
+          revision,
+          pupilId: docRef.id,
+          operation: 'upsert',
+          changedAt: Timestamp.now(),
+        });
+      });
       await HistoryLogService.log({
         action: 'create',
         entity: 'pupil',
@@ -170,9 +314,6 @@ export class PupilsService {
 
   static async updatePupil(id: string, pupilData: Partial<Omit<Pupil, 'id' | 'createdAt'>>): Promise<void> {
     try {
-      // Get original pupil data for cache invalidation
-      const originalPupil = await this.getPupilById(id);
-
       const docRef = doc(db, COLLECTION_NAME, id);
       const updateData = {
         ...pupilData,
@@ -183,7 +324,20 @@ export class PupilsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
 
-      await updateDoc(docRef, cleanedData);
+      const originalPupil = await runTransaction(db, async transaction => {
+        const original = await transaction.get(docRef);
+        if (!original.exists()) throw new Error(`Pupil ${id} was not found.`);
+        const previousPupil = { id: original.id, ...original.data() } as Pupil;
+        const revision = await reservePupilsRevisionInTransaction(transaction);
+        transaction.update(docRef, cleanedData);
+        transaction.set(doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')), {
+          revision,
+          pupilId: id,
+          operation: 'upsert',
+          changedAt: Timestamp.now(),
+        });
+        return previousPupil;
+      });
       await HistoryLogService.log({
         action: 'update',
         entity: 'pupil',
@@ -250,9 +404,21 @@ export class PupilsService {
 
   static async deletePupil(id: string): Promise<void> {
     try {
-      const pupil = await this.getPupilById(id);
       const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const pupil = await runTransaction(db, async transaction => {
+        const original = await transaction.get(docRef);
+        if (!original.exists()) throw new Error(`Pupil ${id} was not found.`);
+        const previousPupil = { id: original.id, ...original.data() } as Pupil;
+        const revision = await reservePupilsRevisionInTransaction(transaction);
+        transaction.delete(docRef);
+        transaction.set(doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')), {
+          revision,
+          pupilId: id,
+          operation: 'delete',
+          changedAt: Timestamp.now(),
+        });
+        return previousPupil;
+      });
       await HistoryLogService.log({
         action: 'delete',
         entity: 'pupil',

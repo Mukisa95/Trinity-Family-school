@@ -394,6 +394,7 @@ export interface SchoolSettings {
     classes?: number;
     academicYears?: number;
     staff?: number;
+    pupils?: number;
     attendance?: number;
   };
   generalInfo: {

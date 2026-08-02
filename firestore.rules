@@ -71,6 +71,13 @@ service cloud.firestore {
       allow write: if isActiveApplicationUser();
     }
 
+    // Ordered pupil cache deltas contain only revision, pupil id, and operation.
+    // Staff/admin mutations publish them atomically with the source document;
+    // parent devices continue using their family-scoped pupils query.
+    match /pupilCacheChanges/{changeId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
     // Browser endpoints are owned by the verified Firebase identity. Clients
     // may inspect only their own record; creation, reassignment, and logout
     // cleanup go through the trusted subscription API.
@@ -124,6 +131,7 @@ service cloud.firestore {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
         && collection != 'pupils'
+        && collection != 'pupilCacheChanges'
         && collection != 'pushSubscriptions'
         && collection != 'settings'
         && collection != 'photos'
