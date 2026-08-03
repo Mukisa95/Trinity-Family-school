@@ -160,8 +160,10 @@ assert(
   attendanceDashboard.includes('useAttendanceSummary(today, enabled)') &&
     !attendanceDashboard.includes('onSnapshot') &&
     attendanceSummaryHook.includes('readAttendanceSummaryCache') &&
+    attendanceSummaryHook.includes('persistedMatchesRevision') &&
+    attendanceSummaryHook.includes('initialData: persistedMatchesRevision ? persisted : undefined') &&
     attendanceSummaryService.includes('attendanceDailySummaries'),
-  'Dashboard attendance must use the shared daily summary cache, not a live collection listener.',
+  'Dashboard attendance must use the shared daily summary cache, while a stale revision still triggers one reconciliation read.',
 );
 assert(
   !attendanceHook.includes('onSnapshot') &&

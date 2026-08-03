@@ -38,6 +38,15 @@ export function useAttendanceSummary(date: string, enabled = true) {
   const revisionsReady = revisionsQuery.data !== undefined;
   const revision = revisionsQuery.data?.attendance ?? 0;
   const persisted = useMemo(() => readAttendanceSummaryCache(scope, date), [date, scope]);
+  // A persisted daily summary is safe as real query data only while its
+  // revision matches the shared school-settings signal. If we seed a new
+  // revision query with an older summary while using `staleTime: Infinity`,
+  // TanStack Query correctly considers that query fresh and never performs
+  // the one required summary-document read. Keep stale data as a visual
+  // placeholder instead so attendance remains visible during reconciliation
+  // without blocking a cross-device update.
+  const persistedMatchesRevision = !!persisted &&
+    (!revisionsReady || persisted.revision === revision);
   const needsFetch = enabled && !!scope && !!date && (
     !persisted || (revisionsReady && persisted.revision !== revision)
   );
@@ -66,13 +75,13 @@ export function useAttendanceSummary(date: string, enabled = true) {
       return reconciled;
     },
     enabled: needsFetch,
-    initialData: persisted || undefined,
+    initialData: persistedMatchesRevision ? persisted : undefined,
     staleTime: Infinity,
     gcTime: 60 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    placeholderData: previous => previous,
+    placeholderData: previous => previous || persisted || undefined,
   });
 
   useEffect(() => {
