@@ -69,9 +69,10 @@ assert(
   preloader.includes('useClassCacheBootstrap();') &&
     preloader.includes('useAcademicYearCacheBootstrap();') &&
     preloader.includes('useStaffCacheBootstrap();') &&
-    preloader.includes('usePupilCacheBootstrap();') &&
+    preloader.includes('setupPupilsListener().catch') &&
+    !preloader.includes('usePupilCacheBootstrap();') &&
     !preloader.includes('setupStaffListener();'),
-  'The application preloader must mount the sole cache owners and not start a staff listener.',
+  'The application preloader must keep the proven pupil cache-first listener and not start a staff listener.',
 );
 assert(
   pupilBootstrap.includes("revisionsQuery.data?.pupils") &&
@@ -85,16 +86,17 @@ assert(
   'Staff/admin pupil data must use a scoped revision cache with ordered mutation deltas.',
 );
 assert(
-  preloader.includes("if (userRole !== 'Parent' || !userFamilyId) return;") &&
-    preloader.includes("where('familyId', '==', userFamilyId)") &&
-    !preloader.includes(": firestoreQuery(collection(db, 'pupils'))"),
-  'The remaining pupil listener must be parent-only and family-scoped.',
+  preloader.includes("where('familyId', '==', userFamilyId)") &&
+    preloader.includes("? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))") &&
+    preloader.includes(": firestoreQuery(collection(db, 'pupils'))"),
+  'The pupil listener must remain family-scoped for parents and shared cache-first for staff/admin users.',
 );
 assert(
   pupilsService.includes("if (typeof window !== 'undefined')") &&
     pupilsService.includes('return this.waitForSharedPupils()') &&
-    pupilsService.includes('getDocsFromServerWithTimeout<Pupil>'),
-  'Browser pupil consumers must share the revision owner instead of starting collection reads.',
+    preloader.includes('readPersistentCollection<any[]>(persistentCacheKey)') &&
+    preloader.includes('readPupilCache(revisionCacheScope)'),
+  'Browser pupil consumers must share a cache-first preloader owner and restore both supported cache formats.',
 );
 assert(
   adminPupilRevision.includes("db.collection('pupilCacheChanges')") &&

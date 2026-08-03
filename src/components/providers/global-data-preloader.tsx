@@ -5,17 +5,17 @@ import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { liteWrite, liteClearAll, LITE_KEYS } from '@/lib/cache/lite-cache';
+import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
 import {
   persistentCollectionCacheKey,
   readPersistentCollection,
   writePersistentCollection,
 } from '@/lib/cache/persistent-collection-cache';
+import { getPupilCacheScope, readPupilCache } from '@/lib/cache/pupil-cache';
 import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
 import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
 import { useStaffCacheBootstrap } from '@/lib/hooks/use-staff-cache-bootstrap';
-import { usePupilCacheBootstrap } from '@/lib/hooks/use-pupil-cache-bootstrap';
 import { PupilsService } from '@/lib/services/pupils.service';
 
 /**
@@ -36,7 +36,6 @@ export function GlobalDataPreloader() {
   useClassCacheBootstrap();
   useAcademicYearCacheBootstrap();
   useStaffCacheBootstrap();
-  usePupilCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
   const userFamilyId = user?.familyId;
@@ -50,27 +49,19 @@ export function GlobalDataPreloader() {
 
     console.log(`🚀 GLOBAL PRELOADER: Starting role-aware listeners for ${userRole}...`);
 
-    // ─── AUTO CACHE FLUSH ON SW UPDATE ────────────────────────────────────────
-    // register-service-worker.ts stamps 'sw_update_version' in sessionStorage
-    // just before the controlled page reload it fires on every SW controller
-    // change. On the very next authenticated mount we detect that stamp, wipe
-    // every cache layer (React Query + localStorage lite-cache + IndexedDB
-    // collection snapshots) and let the preloader fetch everything fresh from
-    // Firestore — automatically, with no manual "clear site data" from users.
+    // ─── SERVICE-WORKER UPDATE COMPATIBILITY ──────────────────────────────────
+    // A new JavaScript bundle does not make school data stale. Source mutations
+    // already invalidate their own shared caches, and the pupil listener below
+    // reconciles its local snapshot with Firestore. Clearing IndexedDB here made
+    // every update look like a cold start and, when the network was slow, left
+    // the app with no pupil list at all. Consume old update markers without
+    // deleting locally confirmed data.
     const SW_UPDATE_KEY = 'sw_update_version';
     const swUpdateStamp =
       typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(SW_UPDATE_KEY) : null;
     if (swUpdateStamp) {
-      console.log(`🔄 PRELOADER: SW update detected (${swUpdateStamp}) — flushing all caches`);
-      // 1. React Query in-memory cache — clears skip-if-cached guards
-      queryClient.clear();
-      // 2. localStorage lite-cache (academicYears, events, photos)
-      liteClearAll();
-      // 3. IndexedDB collection-snapshot cache (pupils fast-cache)
-      try { indexedDB.deleteDatabase('trinity-fast-collection-cache'); } catch { /* noop */ }
-      // Consume the stamp so this runs only once per SW update
+      console.log(`🔄 PRELOADER: SW update detected (${swUpdateStamp}) — preserving shared data cache`);
       sessionStorage.removeItem(SW_UPDATE_KEY);
-      console.log('✅ PRELOADER: All caches flushed — Firestore will provide fresh data');
     }
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -224,16 +215,14 @@ export function GlobalDataPreloader() {
       unsubscribers.push(unsubscribe);
     };
 
-    // 5. PUPILS - Parent-only, family-scoped real-time listener.
+    // 5. PUPILS - Cache-first shared real-time listener.
     //
     // Firestore emits the listener's local IndexedDB snapshot first and then
     // reconciles it with the server. Cached data must never wait behind a count
     // request or a duplicate getDocs() call.
-    const setupParentPupilsListener = async (
+    const setupPupilsListener = async (
       onParentPupilIds?: (pupilIds: string[]) => void,
     ) => {
-      if (userRole !== 'Parent' || !userFamilyId) return;
-
       const normalizePupilDoc = (doc: any) => {
         const data = doc.data();
         return {
@@ -246,15 +235,17 @@ export function GlobalDataPreloader() {
         };
       };
 
-      // Staff and administrator snapshots are owned by
-      // usePupilCacheBootstrap and must never enter this listener.
-      const baseQuery = firestoreQuery(
-        collection(db, 'pupils'),
-        where('familyId', '==', userFamilyId),
-      );
+      // Parents remain constrained to their own family. Staff and admins reuse
+      // the same cache-first owner, so browser consumers can never hang waiting
+      // for a separate revision bootstrap to finish.
+      const baseQuery = (userRole === 'Parent' && userFamilyId)
+        ? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))
+        : firestoreQuery(collection(db, 'pupils'));
       const projectId =
         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-      const cacheScope = `parent:${userId}:family:${userFamilyId}`;
+      const cacheScope = userRole === 'Parent'
+        ? `parent:${userId}:family:${userFamilyId || 'unassigned'}`
+        : `user:${userId}`;
       const persistentCacheKey = persistentCollectionCacheKey(
         projectId,
         'pupils',
@@ -321,6 +312,35 @@ export function GlobalDataPreloader() {
           `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
         );
       });
+
+      // The short-lived revision-cache rollout used a different, scoped key.
+      // Read it too so devices that already hold that complete snapshot recover
+      // immediately rather than waiting for a network response to seed the
+      // restored listener cache again.
+      const revisionCacheScope = getPupilCacheScope(userId, userRole);
+      if (revisionCacheScope) {
+        void readPupilCache(revisionCacheScope).then(snapshot => {
+          const persistedPupils = snapshot?.data;
+          const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
+          if (
+            disposed ||
+            serverSnapshotSeen ||
+            existingPupils?.length ||
+            !persistedPupils ||
+            persistedPupils.length === 0
+          ) {
+            return;
+          }
+
+          queryClient.setQueryData(['pupils', 'list'], persistedPupils);
+          PupilsService.hydrateSharedPupils(persistedPupils);
+          onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
+          performance.mark?.('trinity:pupils-revision-cache-ready');
+          console.log(
+            `FAST CACHE: Restored ${persistedPupils.length} pupils from the shared revision cache in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
+          );
+        });
+      }
 
       const unsubscribe = onSnapshot(
         baseQuery,
@@ -663,11 +683,12 @@ export function GlobalDataPreloader() {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
           // Fire all in parallel — pupils load concurrently with classes and fees
           const syncParentPupilRecords = setupParentRecordsListeners();
-          setupParentPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
+          setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           fetchFees();
           console.log('✅ PARENT PRELOADER: Essential data + payment listener active');
         } else {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
+          setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           deferredTimer = setTimeout(() => {
             setupSubjectsListener();
             void fetchPhotos();
