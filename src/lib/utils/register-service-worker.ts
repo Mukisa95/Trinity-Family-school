@@ -24,6 +24,10 @@ function setupControllerChangeListener(): void {
   controllerChangeListenerAdded = true;
 
   const RELOAD_FLAG = 'sw_controller_reload';
+  // Written before reload so GlobalDataPreloader can flush stale caches
+  // automatically on the next mount, saving users from a manual clear.
+  const SW_UPDATE_VERSION_KEY = 'sw_update_version';
+
   const existingReloadAt = Number(sessionStorage.getItem(RELOAD_FLAG) || 0);
   if (existingReloadAt) {
     const remaining = Math.max(0, 5000 - (Date.now() - existingReloadAt));
@@ -46,13 +50,26 @@ function setupControllerChangeListener(): void {
 
     console.log('🔄 Reloading page to activate new app version...');
     sessionStorage.setItem(RELOAD_FLAG, Date.now().toString());
+
+    // Stamp the current SW version so the preloader knows to flush
+    // stale localStorage/IndexedDB caches after the reload.
+    try {
+      const swVersion = navigator.serviceWorker.controller?.scriptURL ?? 'unknown';
+      sessionStorage.setItem(SW_UPDATE_VERSION_KEY, swVersion);
+    } catch { /* storage unavailable – safe to skip */ }
+
     window.location.reload();
   });
 
-  // Also listen for SW_UPDATED messages from the service worker
+  // Also listen for SW_UPDATED messages from the service worker.
+  // We stamp the new version into sessionStorage so GlobalDataPreloader
+  // can use it as a cache-flush signal on the next mount after the reload.
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SW_UPDATED') {
       console.log(`✅ Service Worker updated to ${event.data.version}`);
+      try {
+        sessionStorage.setItem('sw_update_version', event.data.version);
+      } catch { /* storage unavailable */ }
       window.dispatchEvent(new CustomEvent('trinity-service-worker-updated', {
         detail: { version: event.data.version },
       }));

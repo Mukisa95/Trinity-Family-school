@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
+import { liteWrite, liteClearAll, LITE_KEYS } from '@/lib/cache/lite-cache';
 import {
   persistentCollectionCacheKey,
   readPersistentCollection,
@@ -49,6 +49,30 @@ export function GlobalDataPreloader() {
     }
 
     console.log(`🚀 GLOBAL PRELOADER: Starting role-aware listeners for ${userRole}...`);
+
+    // ─── AUTO CACHE FLUSH ON SW UPDATE ────────────────────────────────────────
+    // register-service-worker.ts stamps 'sw_update_version' in sessionStorage
+    // just before the controlled page reload it fires on every SW controller
+    // change. On the very next authenticated mount we detect that stamp, wipe
+    // every cache layer (React Query + localStorage lite-cache + IndexedDB
+    // collection snapshots) and let the preloader fetch everything fresh from
+    // Firestore — automatically, with no manual "clear site data" from users.
+    const SW_UPDATE_KEY = 'sw_update_version';
+    const swUpdateStamp =
+      typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(SW_UPDATE_KEY) : null;
+    if (swUpdateStamp) {
+      console.log(`🔄 PRELOADER: SW update detected (${swUpdateStamp}) — flushing all caches`);
+      // 1. React Query in-memory cache — clears skip-if-cached guards
+      queryClient.clear();
+      // 2. localStorage lite-cache (academicYears, events, photos)
+      liteClearAll();
+      // 3. IndexedDB collection-snapshot cache (pupils fast-cache)
+      try { indexedDB.deleteDatabase('trinity-fast-collection-cache'); } catch { /* noop */ }
+      // Consume the stamp so this runs only once per SW update
+      sessionStorage.removeItem(SW_UPDATE_KEY);
+      console.log('✅ PRELOADER: All caches flushed — Firestore will provide fresh data');
+    }
+    // ──────────────────────────────────────────────────────────────────────────
 
     const unsubscribers: Array<() => void> = [];
     let deferredTimer: ReturnType<typeof setTimeout> | undefined;
