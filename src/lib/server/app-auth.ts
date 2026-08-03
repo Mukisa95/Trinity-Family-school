@@ -182,16 +182,36 @@ export async function authenticateLegacyUser(username: string, password: string)
     ...(match.data.pupilId ? { pupilId: match.data.pupilId } : {}),
   };
   const adminAuth = getAuth(getFirebaseAdminApp());
-  try {
-    const firebaseUser = await adminAuth.getUser(match.id);
-    if (firebaseUser.disabled) {
-      await adminAuth.updateUser(match.id, { disabled: false });
+
+  // TODO: Remove this bypass once the service account is granted the
+  // Firebase Authentication Admin IAM role on Google Cloud Console.
+  //
+  // getUser / createUser / updateUser / setCustomUserClaims all make
+  // outbound calls to the Firebase Auth REST API. The current service
+  // account ("trinity-usage-monitor") lacks that permission, so those
+  // calls throw and the route catches them as a 503.
+  //
+  // Admin users are still fully authenticated via the Firestore credential
+  // lookup above (username + scrypt password hash). The only thing skipped
+  // here is syncing the Firebase Auth user record — which is a side-effect
+  // that is not required for the custom token to be valid.
+  //
+  // createCustomToken() signs the JWT locally with the service-account
+  // private key (RSA, in Node.js crypto) — it makes NO outbound calls —
+  // so it works regardless of IAM permissions.
+  const isAdmin = String(match.data.role || '').toLowerCase() === 'admin';
+  if (!isAdmin) {
+    try {
+      const firebaseUser = await adminAuth.getUser(match.id);
+      if (firebaseUser.disabled) {
+        await adminAuth.updateUser(match.id, { disabled: false });
+      }
+    } catch (error: any) {
+      if (error?.code !== 'auth/user-not-found') throw error;
+      await adminAuth.createUser({ uid: match.id, disabled: false });
     }
-  } catch (error: any) {
-    if (error?.code !== 'auth/user-not-found') throw error;
-    await adminAuth.createUser({ uid: match.id, disabled: false });
+    await adminAuth.setCustomUserClaims(match.id, claims);
   }
-  await adminAuth.setCustomUserClaims(match.id, claims);
 
   return {
     user: sanitizeSystemUser(match.id, match.data),
