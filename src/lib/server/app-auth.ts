@@ -15,6 +15,8 @@ const SYSTEM_USERS_COLLECTION = 'system_users';
 const AUTH_CREDENTIALS_COLLECTION = 'authCredentials';
 const LEGACY_PASSWORD_SALT = 'trinity_school_2024';
 const SCRYPT_PREFIX = 'scrypt$v1';
+const EMERGENCY_ADMIN_USERNAME = 'admin';
+const EMERGENCY_ADMIN_UID = 'emergency-admin-access';
 
 type UserRecord = Record<string, any> & {
   username?: string;
@@ -56,6 +58,63 @@ function verifyServerPassword(password: string, storedHash: string) {
   // Preserve the one historical unsalted administrator password format.
   const suppliedUnsalted = Buffer.from(legacyHash(password, false), 'utf8');
   return suppliedUnsalted.length === expected.length && timingSafeEqual(suppliedUnsalted, expected);
+}
+
+function hasMatchingEmergencyAdminPassword(password: string) {
+  const configuredPassword = process.env.EMERGENCY_ADMIN_PASSWORD;
+  if (!configuredPassword) return false;
+
+  const supplied = Buffer.from(password, 'utf8');
+  const expected = Buffer.from(configuredPassword, 'utf8');
+  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+}
+
+function isEmergencyAdminEnabled() {
+  if (process.env.EMERGENCY_ADMIN_ENABLED !== 'true') return false;
+
+  const expiresAt = process.env.EMERGENCY_ADMIN_EXPIRES_AT;
+  if (!expiresAt) return true;
+
+  const expiresAtMs = Date.parse(expiresAt);
+  return Number.isFinite(expiresAtMs) && expiresAtMs > Date.now();
+}
+
+async function authenticateEmergencyAdmin(
+  username: string,
+  password: string,
+): Promise<{ user: SystemUser; customToken: string } | null> {
+  if (
+    !isEmergencyAdminEnabled() ||
+    username.trim().toLowerCase() !== EMERGENCY_ADMIN_USERNAME ||
+    !hasMatchingEmergencyAdminPassword(password)
+  ) {
+    return null;
+  }
+
+  // This is intentionally an Admin-SDK signed session rather than an
+  // unauthenticated Firestore rule exception. It lets the emergency account
+  // pass the normal signed-claim rules without reading Firestore, and can be
+  // removed immediately by disabling its Vercel environment flag.
+  const claims = {
+    appUser: true,
+    role: 'Admin',
+    isActive: true,
+    emergencyAccess: true,
+  };
+  const user: SystemUser = {
+    id: EMERGENCY_ADMIN_UID,
+    username: EMERGENCY_ADMIN_USERNAME,
+    firstName: 'Emergency',
+    lastName: 'Administrator',
+    role: 'Admin',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  return {
+    user,
+    customToken: await getAuth(getFirebaseAdminApp()).createCustomToken(EMERGENCY_ADMIN_UID, claims),
+  };
 }
 
 function timestampToIso(value: any): any {
@@ -170,6 +229,9 @@ async function findUserByCredentials(
 }
 
 export async function authenticateLegacyUser(username: string, password: string) {
+  const emergencyAdmin = await authenticateEmergencyAdmin(username, password);
+  if (emergencyAdmin) return emergencyAdmin;
+
   const match = await findUserByCredentials(username.trim(), password);
   if (!match) return null;
 

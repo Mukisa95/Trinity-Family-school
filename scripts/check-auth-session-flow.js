@@ -4,6 +4,7 @@ const fs = require('fs');
 const authContext = fs.readFileSync('src/lib/contexts/auth-context.tsx', 'utf8');
 const userRoute = fs.readFileSync('src/app/api/users/[id]/route.ts', 'utf8');
 const resumeModal = fs.readFileSync('src/components/common/SessionResumeModal.tsx', 'utf8');
+const appAuth = fs.readFileSync('src/lib/server/app-auth.ts', 'utf8');
 
 assert(
   !authContext.includes('SecureAuthService.verifyCredentials'),
@@ -46,6 +47,18 @@ assert(
 assert(
   resumeModal.includes('Resume without entering your password again.'),
   'The lock UI must explain the password-free resume behavior.',
+);
+
+assert(
+  appAuth.includes("process.env.EMERGENCY_ADMIN_PASSWORD") &&
+    appAuth.includes("process.env.EMERGENCY_ADMIN_ENABLED") &&
+    appAuth.includes('createCustomToken(EMERGENCY_ADMIN_UID, claims)'),
+  'Emergency administrator access must use an enabled server secret and a signed Firebase token.',
+);
+assert(
+  !appAuth.includes("EMERGENCY_ADMIN_PASSWORD || 'admin123'") &&
+    !appAuth.includes("EMERGENCY_ADMIN_PASSWORD ?? 'admin123'"),
+  'Emergency administrator access must never hard-code a default password.',
 );
 
 console.log(
