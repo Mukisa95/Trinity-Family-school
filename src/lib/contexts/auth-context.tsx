@@ -19,6 +19,25 @@ const SESSION_VALIDATION_INTERVAL_MS = 15 * 60 * 1000;
 // old for diagnostics, but still restore the session immediately.
 const AUTH_CACHE_MAX_AGE_MS = SESSION_VALIDATION_INTERVAL_MS * 2;
 
+// Firebase Authentication is independent of Firestore. During a temporary
+// Firestore outage/quota window, a device can still have a previously signed
+// Firebase user but be unable to refresh token claims right away.  Do not
+// turn that transient condition into a logout; the fallback below still
+// requires the Firebase identity to match the previously verified profile.
+const TRANSIENT_FIREBASE_AUTH_ERRORS = new Set([
+  'auth/network-request-failed',
+  'auth/quota-exceeded',
+  'auth/too-many-requests',
+  'auth/internal-error',
+  'auth/timeout',
+]);
+
+function isTransientFirebaseAuthError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' && TRANSIENT_FIREBASE_AUTH_ERRORS.has(code);
+}
+
 type SessionStatus = 'checking' | 'fresh' | 'stale' | 'degraded';
 
 type StoredAuthCache = {
@@ -248,6 +267,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setSessionMessage(null);
               performance.mark?.('trinity:firebase-auth-ready');
             } catch (error) {
+              const latestCache = readUserCache();
+              const cachedUser = latestCache?.user || restoredCachedUser;
+
+              // Keep a previously authenticated device working when Firebase
+              // Auth has restored its signed identity but cannot complete a
+              // live token-claims request. This is deliberately not a
+              // localStorage-only bypass: no Firebase identity, a different
+              // uid, or a non-transient verification failure still signs out.
+              if (
+                isTransientFirebaseAuthError(error) &&
+                cachedUser &&
+                cachedUser.id === firebaseUser.uid &&
+                validateStoredUser(cachedUser)
+              ) {
+                logger.warn('Keeping previously verified session during temporary Firebase Auth verification failure', error);
+                setUser(cachedUser);
+                restoredCachedUser = cachedUser;
+                setHasStoredUser(true);
+                setSessionStatus('degraded');
+                setSessionMessage('The service is temporarily unavailable. Your previously signed-in session remains available on this device.');
+                return;
+              }
+
               logger.error('AuthContext: Error processing Firebase identity', error);
               setUser(null);
               restoredCachedUser = null;
