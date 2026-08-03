@@ -26,10 +26,12 @@ const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${SW_VERSION}`;
 
-// Files to cache for offline use
+// Files to cache for offline use.
+// NOTE: Do NOT include '/offline' — it is not a real Next.js route and its
+// absence causes cache.addAll() to fail, aborting the whole install step.
+// Do NOT include '/' — it is an HTML page that must always be fetched fresh
+// to avoid serving a stale app-shell after deployments.
 const STATIC_FILES = [
-  '/',
-  '/offline',
   '/trinity-logo-192.png',
   '/trinity-logo-512.png',
   '/manifest.json'
@@ -78,25 +80,22 @@ self.addEventListener('activate', (event) => {
         return self.clients.claim();
       })
       .then(() => {
-        // 🔔 Notify ALL clients that a new SW version is active
-        // This allows the client-side code to reload and pick up fresh bundles
+        // 🔔 Notify ALL clients that a new SW version is active so they can
+        // update their in-memory version banner / badge — but do NOT force a
+        // navigate() or reload here. The client-side register-service-worker.ts
+        // already handles the single controlled reload via the 'controllerchange'
+        // event. A second navigate() from the SW causes a double-reload that
+        // destroys React Query caches and Firestore listeners before they can
+        // re-establish, which makes the dashboard appear blank after a deploy.
         return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-          const refreshes = clients.map(client => {
+          clients.forEach(client => {
             client.postMessage({
               type: 'SW_UPDATED',
               version: SW_VERSION,
               timestamp: Date.now()
             });
-            // Older installed PWAs could retain a stale reload flag. Navigating
-            // an open client guarantees it loads the newest reconciliation
-            // code; a closed PWA receives it on its next ordinary launch.
-            if ('navigate' in client) {
-              return client.navigate(client.url).catch(() => undefined);
-            }
-            return Promise.resolve();
           });
           console.log(`✅ Notified ${clients.length} client(s) about SW update to ${SW_VERSION}`);
-          return Promise.all(refreshes);
         });
       })
   );
@@ -450,16 +449,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
         .catch(() => {
-          return caches.match('/offline').then((offlinePage) => {
-            if (offlinePage) {
-              return offlinePage;
-            }
-            return new Response('Offline - Content not available', {
+          // '/offline' does not exist as a real Next.js route — return a plain
+          // in-memory response instead to avoid an uncaught fetch error.
+          return new Response(
+            '<!DOCTYPE html><html><body><h1>You are offline</h1><p>Please check your internet connection and try again.</p></body></html>',
+            {
               status: 503,
               statusText: 'Service Unavailable',
               headers: new Headers({ 'Content-Type': 'text/html' })
-            });
-          });
+            }
+          );
         })
     );
     return;
