@@ -1349,7 +1349,7 @@ export class SchoolPayIntegrationService {
     const mappings = getAdminFirestore(getFirebaseAdminApp())
       .collection(SCHOOLPAY_SUPPLEMENTARY_MAPPINGS);
     const directDoc = await mappings.doc(normalizedId).get();
-    if (directDoc.exists()) {
+    if (directDoc.exists) {
       const data = directDoc.data();
       return (data.feeStructureId as string) || null;
     }
@@ -1371,7 +1371,7 @@ export class SchoolPayIntegrationService {
       .collection(SCHOOLPAY_PAYMENT_MAPPINGS)
       .doc(receiptNumber)
       .get();
-    return mappingDoc.exists() ? mappingDoc.data() : null;
+    return mappingDoc.exists ? mappingDoc.data() : null;
   }
 
   private static async storePaymentMapping(mapping: {

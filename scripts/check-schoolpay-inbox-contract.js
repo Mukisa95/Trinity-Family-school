@@ -42,9 +42,11 @@ assert(integration.includes("where('schoolPayReceiptNumber', '==', receiptNumber
 assert(!integration.includes('getDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS') &&
   !integration.includes('setDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS') &&
   !integration.includes('collection(db, SCHOOLPAY_SYNC_LOGS)') &&
+  !integration.includes('mappingDoc.exists()') &&
+  !integration.includes('directDoc.exists()') &&
   integration.includes(".collection(SCHOOLPAY_PAYMENT_MAPPINGS)") &&
   integration.includes(".collection(SCHOOLPAY_SYNC_LOGS)"),
-  'Webhook mapping and diagnostic operations must use Admin Firestore, not staff-only browser rules.');
+  'Webhook mapping and diagnostic operations must use Admin Firestore and its snapshot API, not staff-only browser rules.');
 assert(integration.includes('SCHOOLPAY_RECONCILIATION_STATE') && integration.includes('responseHash'),
   'Unchanged reconciliation days must use one state read instead of replaying every receipt.');
 assert(assign.includes('requireAppUser(request)') && assign.includes("canAccessPage(actor.user, 'fees', 'schoolpay_feed')"),
