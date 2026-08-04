@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,20 +16,16 @@ export async function GET(request: NextRequest) {
         { status: 403 },
       );
     }
-    await ensureServerFirestoreAuth();
-    const { collection, limit, orderBy, query, getDocs } = await import('firebase/firestore');
-    const { db } = await import('@/lib/firebase');
-
     const url = new URL(request.url);
-    const maxResults = Math.min(parseInt(url.searchParams.get('limit') || '100', 10), 500);
-
-    const q = query(
-      collection(db, 'schoolPaySyncLogs'),
-      orderBy('timestamp', 'desc'),
-      limit(maxResults)
-    );
-
-    const snapshot = await getDocs(q);
+    const requestedLimit = parseInt(url.searchParams.get('limit') || '100', 10);
+    const maxResults = Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(requestedLimit, 500))
+      : 100;
+    const snapshot = await getFirestore(getFirebaseAdminApp())
+      .collection('schoolPaySyncLogs')
+      .orderBy('timestamp', 'desc')
+      .limit(maxResults)
+      .get();
     const logs = snapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }));
 
     return NextResponse.json({ success: true, logs });

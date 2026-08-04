@@ -4,17 +4,6 @@ import {
   type DocumentData as AdminDocumentData,
   type QuerySnapshot as AdminQuerySnapshot,
 } from 'firebase-admin/firestore';
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  setDoc,
-  where,
-} from 'firebase/firestore';
 import { db } from '../firebase';
 import { AcademicYearsService } from './academic-years.service';
 import { FeeStructuresService } from './fee-structures.service';
@@ -337,12 +326,15 @@ export class SchoolPayIntegrationService {
   }
 
   static async getSyncLogs(limitCount: number = 100): Promise<any[]> {
-    const q = query(
-      collection(db, SCHOOLPAY_SYNC_LOGS),
-      orderBy('timestamp', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.slice(0, limitCount).map((docItem) => ({
+    // Diagnostics are read through a protected server route. Use Admin here
+    // because this service is also called by webhook/cron execution, whose
+    // trusted server identity must not depend on staff-only browser rules.
+    const snapshot = await getAdminFirestore(getFirebaseAdminApp())
+      .collection(SCHOOLPAY_SYNC_LOGS)
+      .orderBy('timestamp', 'desc')
+      .limit(Math.max(1, Math.min(limitCount, 500)))
+      .get();
+    return snapshot.docs.map((docItem) => ({
       id: docItem.id,
       ...docItem.data(),
     }));
@@ -1354,24 +1346,31 @@ export class SchoolPayIntegrationService {
     const normalizedId = `${supplementaryFeeId || ''}`.trim();
     if (!normalizedId) return null;
 
-    const directDoc = await getDoc(doc(db, SCHOOLPAY_SUPPLEMENTARY_MAPPINGS, normalizedId));
+    const mappings = getAdminFirestore(getFirebaseAdminApp())
+      .collection(SCHOOLPAY_SUPPLEMENTARY_MAPPINGS);
+    const directDoc = await mappings.doc(normalizedId).get();
     if (directDoc.exists()) {
       const data = directDoc.data();
       return (data.feeStructureId as string) || null;
     }
 
-    const q = query(
-      collection(db, SCHOOLPAY_SUPPLEMENTARY_MAPPINGS),
-      where('supplementaryFeeId', '==', normalizedId)
-    );
-    const snapshot = await getDocs(q);
+    const snapshot = await mappings
+      .where('supplementaryFeeId', '==', normalizedId)
+      .limit(1)
+      .get();
     if (snapshot.empty) return null;
 
     return (snapshot.docs[0].data().feeStructureId as string) || null;
   }
 
   private static async getPaymentMapping(receiptNumber: string): Promise<any | null> {
-    const mappingDoc = await getDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS, receiptNumber));
+    // The webhook runs as a trusted server process, not as an Admin/Staff
+    // browser user. These records are intentionally staff-only in Firestore
+    // rules, so use Admin SDK for duplicate protection before allocation.
+    const mappingDoc = await getAdminFirestore(getFirebaseAdminApp())
+      .collection(SCHOOLPAY_PAYMENT_MAPPINGS)
+      .doc(receiptNumber)
+      .get();
     return mappingDoc.exists() ? mappingDoc.data() : null;
   }
 
@@ -1388,24 +1387,35 @@ export class SchoolPayIntegrationService {
     sourcePaymentChannel: string;
     source: 'webhook' | 'sync' | 'assignment';
   }): Promise<void> {
-    await setDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS, mapping.receiptNumber), {
-      schoolpayReceiptNumber: mapping.receiptNumber,
-      paymentType: mapping.paymentType,
-      pupilId: mapping.pupilId,
-      studentPaymentCode: mapping.studentPaymentCode,
-      studentRegistrationNumber: mapping.studentRegistrationNumber,
-      localPaymentIds: mapping.localPaymentIds,
-      amount: mapping.amount,
-      paymentDate: mapping.paymentDate,
-      sourceChannelTransactionId: mapping.sourceChannelTransactionId,
-      sourcePaymentChannel: mapping.sourcePaymentChannel,
-      source: mapping.source,
-      syncedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    });
+    await getAdminFirestore(getFirebaseAdminApp())
+      .collection(SCHOOLPAY_PAYMENT_MAPPINGS)
+      .doc(mapping.receiptNumber)
+      .set({
+        schoolpayReceiptNumber: mapping.receiptNumber,
+        paymentType: mapping.paymentType,
+        pupilId: mapping.pupilId,
+        studentPaymentCode: mapping.studentPaymentCode,
+        studentRegistrationNumber: mapping.studentRegistrationNumber,
+        localPaymentIds: mapping.localPaymentIds,
+        amount: mapping.amount,
+        paymentDate: mapping.paymentDate,
+        sourceChannelTransactionId: mapping.sourceChannelTransactionId,
+        sourcePaymentChannel: mapping.sourcePaymentChannel,
+        source: mapping.source,
+        syncedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      });
   }
 
   private static async logSync(data: Record<string, unknown>): Promise<void> {
-    await addDoc(collection(db, SCHOOLPAY_SYNC_LOGS), data);
+    // Logs are server-owned and must not rely on the browser SDK's staff-only
+    // rule. Preserve the payment outcome if an operational log is unavailable.
+    try {
+      await getAdminFirestore(getFirebaseAdminApp())
+        .collection(SCHOOLPAY_SYNC_LOGS)
+        .add(data);
+    } catch (error) {
+      console.error('[SchoolPay] Failed to write sync log:', error);
+    }
   }
 }

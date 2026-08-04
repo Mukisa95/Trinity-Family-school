@@ -39,6 +39,12 @@ assert(integration.includes("where('schoolPayReceiptNumber', '==', receiptNumber
   integration.includes("where('schoolPayTransactionId', '==', transactionId)") &&
   integration.includes('repairPaymentMapping'),
   'Recovery must detect existing local receipts and transaction ids before allocating money.');
+assert(!integration.includes('getDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS') &&
+  !integration.includes('setDoc(doc(db, SCHOOLPAY_PAYMENT_MAPPINGS') &&
+  !integration.includes('collection(db, SCHOOLPAY_SYNC_LOGS)') &&
+  integration.includes(".collection(SCHOOLPAY_PAYMENT_MAPPINGS)") &&
+  integration.includes(".collection(SCHOOLPAY_SYNC_LOGS)"),
+  'Webhook mapping and diagnostic operations must use Admin Firestore, not staff-only browser rules.');
 assert(integration.includes('SCHOOLPAY_RECONCILIATION_STATE') && integration.includes('responseHash'),
   'Unchanged reconciliation days must use one state read instead of replaying every receipt.');
 assert(assign.includes('requireAppUser(request)') && assign.includes("canAccessPage(actor.user, 'fees', 'schoolpay_feed')"),
@@ -48,6 +54,8 @@ assert(reconcile.includes('requireAppUser(request)') && reconcile.includes("canA
   'Manual date recovery must be permission protected and intentionally bypass unchanged-day caching.');
 assert(logs.includes('requireAppUser(request)') && logs.includes("canAccessPage(actor.user, 'fees', 'schoolpay_feed')"),
   'SchoolPay diagnostics must not be exposed without app-user authorization.');
+assert(logs.includes('getFirestore(getFirebaseAdminApp())') && !logs.includes("await import('firebase/firestore')"),
+  'SchoolPay diagnostics API must use Admin Firestore after permission checks.');
 assert(cron.includes("get('daysBack') || '7'") && cron.includes('dates.length > 14'),
   'Automatic recovery must cover seven days while bounding explicit ranges.');
 assert(hook.includes('acquireSharedFirestoreSubscription') && hook.includes("where('status', 'in', ['unmatched', 'failed'])"),
