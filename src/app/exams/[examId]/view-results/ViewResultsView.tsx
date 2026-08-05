@@ -84,6 +84,7 @@ import {
 import { generateExamPDF } from '@/components/exam/ExamResultsPDF';
 import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/components/exam/ComprehensiveReactPDF';
 import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
+import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
 import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
 import { generateNurseryAssessmentPDF } from '@/components/exam/NurseryAssessmentPDF';
 import { generateNurseryMiniReportPDF } from '@/components/exam/NurseryMiniReportPDF';
@@ -533,6 +534,7 @@ const PrintModal = ({
   onPrintAssessment,
   onPrintNurseryReport,
   onPrintTrans,
+  onPrintFullReport2,
   isGenerating,
   generationStatus,
   generationProgress,
@@ -546,6 +548,7 @@ const PrintModal = ({
   onPrintAssessment: () => void;
   onPrintNurseryReport: () => void;
   onPrintTrans: () => void;
+  onPrintFullReport2: () => void;
   isGenerating: boolean;
   generationStatus: string;
   generationProgress: number;
@@ -717,6 +720,21 @@ const PrintModal = ({
                 <div>
                   <h3 className="font-semibold text-gray-900">Full Report</h3>
                   <p className="text-sm text-gray-600">Individual pupil report cards (Comprehensive design)</p>
+                </div>
+              </div>
+            </button>}
+
+            {!isNursery && <button
+              onClick={onPrintFullReport2}
+              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <FileTextIcon className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Full Report 2</h3>
+                  <p className="text-sm text-gray-600">Individual pupil report cards (Trinity blue-and-gold design)</p>
                 </div>
               </div>
             </button>}
@@ -1205,6 +1223,7 @@ export default function ViewResultsView() {
   // TRANS report type selection state
   const [showTransTypeModal, setShowTransTypeModal] = useState(false);
   const [transReportType, setTransReportType] = useState<'grading' | 'progress' | null>(null);
+  const [selectedFullReportTemplate, setSelectedFullReportTemplate] = useState<'standard' | 'full2'>('standard');
   const [showReportConfigModal, setShowReportConfigModal] = useState(false);
   const [showComparisonExamModal, setShowComparisonExamModal] = useState(false);
   const [selectedComparisonExams, setSelectedComparisonExams] = useState<string[]>([]); // Up to 2 exams
@@ -1984,6 +2003,7 @@ export default function ViewResultsView() {
       toast({ title: "Error", description: "Missing required data for TRANS report generation" });
       return;
     }
+    setSelectedFullReportTemplate('standard');
     // Show type selection modal first
     setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, toast]);
@@ -2119,11 +2139,13 @@ export default function ViewResultsView() {
         }
       };
 
-      const blob = await generateTransBatchReportPDF(transBatchData);
+      const blob = await (selectedFullReportTemplate === 'full2'
+        ? generateFullReport2PDF(transBatchData as Parameters<typeof generateFullReport2PDF>[0])
+        : generateTransBatchReportPDF(transBatchData));
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_TRANS_Report.pdf`;
-      const title = 'Individual Pupil TRANS Report';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Report'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Full Report 2' : 'Individual Pupil TRANS Report';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgressForIndividual(95, 'Finalizing document...');
@@ -2152,7 +2174,7 @@ export default function ViewResultsView() {
         setSelectedPupilForPrint(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates]);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate]);
 
   // Generate individual TRANS report with progress assessment
   const generateIndividualTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
@@ -2373,11 +2395,13 @@ export default function ViewResultsView() {
 
       updateProgressForIndividual(70, 'Generating TRANS progress report PDF...');
 
-      const blob = await generateTransBatchReportPDF(transBatchData);
+      const blob = await (selectedFullReportTemplate === 'full2'
+        ? generateFullReport2PDF(transBatchData as Parameters<typeof generateFullReport2PDF>[0])
+        : generateTransBatchReportPDF(transBatchData));
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_TRANS_Progress_Report.pdf`;
-      const title = 'Individual Pupil TRANS Progress Report';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Progress_Report'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Full Report 2' : 'Individual Pupil TRANS Progress Report';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgressForIndividual(95, 'Finalizing document...');
@@ -2407,7 +2431,7 @@ export default function ViewResultsView() {
         setSelectedPupilForPrint(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates]);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate]);
 
   const handleExportCSV = useCallback(() => {
     if (!processedResults.length || !subjectSnaps.length) return;
@@ -2826,15 +2850,29 @@ export default function ViewResultsView() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate]);
 
   const handleTransReport = useCallback(() => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
       toast({ title: "Error", description: "Missing required data for TRANS batch reports generation" });
       return;
     }
+    setSelectedFullReportTemplate('standard');
     // Show type selection modal first
     setShowTransTypeModal(true);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
+
+  const handleFullReport2 = useCallback(() => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({ title: 'Error', description: 'Missing required data for Full Report 2 generation' });
+      return;
+    }
+    setSelectedFullReportTemplate('full2');
+    // This template has one mid-term performance table, so it goes straight to the
+    // same field configuration dialog used by Full Report rather than offering a
+    // progress-comparison layout that the supplied design does not contain.
+    setTransReportType('grading');
+    setShowReportConfigModal(true);
   }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
 
   // Handle TRANS report type selection
@@ -3155,18 +3193,21 @@ export default function ViewResultsView() {
       updateProgress(85, 'Generating TRANS batch report PDF...');
 
       // Generate the TRANS batch report PDF with progress tracking
-      const blob = await generateTransBatchReportPDF({
+      const reportDataWithProgress = {
         ...transBatchData,
-        onProgress: (progress, status) => {
+        onProgress: (progress: number, status: string) => {
           // Map internal progress (0-100) to our progress range (85-95)
           const mappedProgress = 85 + Math.round(progress * 0.1); // 85-95 range
           updateProgress(mappedProgress, status);
         }
-      });
+      };
+      const blob = await (selectedFullReportTemplate === 'full2'
+        ? generateFullReport2PDF(reportDataWithProgress as Parameters<typeof generateFullReport2PDF>[0])
+        : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
 
       // Open in PDF viewer
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_TRANS_Batch_Reports.pdf`;
-      const title = 'TRANS Batch Reports';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Batch_Reports'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Full Report 2' : 'TRANS Batch Reports';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -3192,7 +3233,7 @@ export default function ViewResultsView() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate]);
 
   // Handle report configuration completion (defined after loadComparisonExams and generateTransReportWithGrading)
   const handleReportConfigComplete = useCallback(() => {
@@ -3496,18 +3537,21 @@ export default function ViewResultsView() {
       updateProgress(85, 'Generating TRANS progress report PDF...');
 
       // Generate the TRANS progress batch report PDF with progress tracking
-      const blob = await generateTransBatchReportPDF({
+      const reportDataWithProgress = {
         ...transBatchData,
-        onProgress: (progress, status) => {
+        onProgress: (progress: number, status: string) => {
           // Map internal progress (0-100) to our progress range (85-95)
           const mappedProgress = 85 + Math.round(progress * 0.1); // 85-95 range
           updateProgress(mappedProgress, status);
         }
-      });
+      };
+      const blob = await (selectedFullReportTemplate === 'full2'
+        ? generateFullReport2PDF(reportDataWithProgress as Parameters<typeof generateFullReport2PDF>[0])
+        : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
 
       // Open in PDF viewer
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_TRANS_Progress_Reports.pdf`;
-      const title = 'TRANS Progress Reports';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Progress_Reports'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Full Report 2' : 'TRANS Progress Reports';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -4871,6 +4915,7 @@ export default function ViewResultsView() {
         onPrintAssessment={handleExportAssessment}
         onPrintNurseryReport={handleNurseryReport}
         onPrintTrans={handleTransReport}
+        onPrintFullReport2={handleFullReport2}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
         generationProgress={generationProgress}
@@ -4921,7 +4966,7 @@ export default function ViewResultsView() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
               <FileTextIcon className="h-5 w-5 text-orange-600" />
-              Select TRANS Report Type
+              Select Full Report Type
             </DialogTitle>
             <DialogDescription>
               Choose between grading scale or progress assessment
