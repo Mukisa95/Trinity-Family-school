@@ -415,23 +415,28 @@ function PupilsContent() {
   }, []);
 
   // Notification links can open this list with an intentional search and
-  // filter state already applied. Keep the parameters one-way on arrival so
-  // normal in-page filtering remains responsive and does not rewrite history.
+  // filter state already applied. Apply each URL state once: class selection
+  // from the dropdown must never be reset just because /pupils has no classId.
+  const appliedPupilsUrlStateRef = useRef<string | null>(null);
   useEffect(() => {
-    const linkedClassId = searchParams?.get('classId') || '';
+    const urlStateKey = searchParams?.toString() || '';
+    if (appliedPupilsUrlStateRef.current === urlStateKey) return;
+    appliedPupilsUrlStateRef.current = urlStateKey;
+
+    const linkedClassId = searchParams?.get('classId');
     const linkedSearch = searchParams?.get('q') || '';
     const linkedGender = searchParams?.get('gender') || 'all';
     const linkedStatus = searchParams?.get('status') || 'Active';
     const linkedSection = searchParams?.get('section') || 'all';
 
     setLocalSearchQuery(linkedSearch);
-    if (linkedClassId !== selectedClassId) handleClassChange(linkedClassId);
+    if (linkedClassId !== null) handleClassChange(linkedClassId);
     handleFilterChange({
       gender: linkedGender,
       status: linkedStatus,
       section: linkedSection,
     });
-  }, [handleClassChange, handleFilterChange, searchParams, selectedClassId]);
+  }, [handleClassChange, handleFilterChange, searchParams]);
 
   // 🚀 OPTIMIZED: Ensure we always have pupils to display (from cache)
   // If cached pupils are available, use them immediately regardless of class selection
@@ -540,22 +545,6 @@ function PupilsContent() {
     if (!selectedClassId || selectedClassId === '' || selectedClassId === 'all') return 0;
     return allPupilsData.filter(p => p.classId === selectedClassId && p.status === 'Pending').length;
   }, [allPupilsData, selectedClassId]);
-
-  // Set class selector when navigating from dashboard with filters
-  useEffect(() => {
-    const classIdParam = searchParams?.get('classId');
-
-    // Only set class if a specific classId is provided in URL
-    // Don't default to 'all' - require explicit selection
-    if (classIdParam && classIdParam !== 'all' && classIdParam !== '') {
-      handleClassChange(classIdParam);
-    }
-    // If classId is 'all', allow it (user explicitly selected it)
-    else if (classIdParam === 'all') {
-      handleClassChange('all');
-    }
-    // Otherwise, leave it empty (no class selected)
-  }, [searchParams, handleClassChange]);
 
   // Reset visible rows when filters / class / search changes
   useEffect(() => {
