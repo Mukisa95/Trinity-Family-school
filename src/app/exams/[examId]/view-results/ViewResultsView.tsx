@@ -1224,6 +1224,7 @@ export default function ViewResultsView() {
   const [showTransTypeModal, setShowTransTypeModal] = useState(false);
   const [transReportType, setTransReportType] = useState<'grading' | 'progress' | null>(null);
   const [selectedFullReportTemplate, setSelectedFullReportTemplate] = useState<'standard' | 'full2'>('standard');
+  const [fullReport2Palette, setFullReport2Palette] = useState<'blue' | 'purple' | 'orange'>('blue');
   const [showReportConfigModal, setShowReportConfigModal] = useState(false);
   const [showComparisonExamModal, setShowComparisonExamModal] = useState(false);
   const [selectedComparisonExams, setSelectedComparisonExams] = useState<string[]>([]); // Up to 2 exams
@@ -2141,7 +2142,7 @@ export default function ViewResultsView() {
       };
 
       const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF(transBatchData as Parameters<typeof generateFullReport2PDF>[0])
+        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
         : generateTransBatchReportPDF(transBatchData));
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
@@ -2175,7 +2176,7 @@ export default function ViewResultsView() {
         setSelectedPupilForPrint(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate]);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette]);
 
   // Generate individual TRANS report with progress assessment
   const generateIndividualTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
@@ -2397,7 +2398,7 @@ export default function ViewResultsView() {
       updateProgressForIndividual(70, 'Generating TRANS progress report PDF...');
 
       const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF(transBatchData as Parameters<typeof generateFullReport2PDF>[0])
+        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
         : generateTransBatchReportPDF(transBatchData));
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
@@ -2432,7 +2433,7 @@ export default function ViewResultsView() {
         setSelectedPupilForPrint(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate]);
+  }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette]);
 
   const handleExportCSV = useCallback(() => {
     if (!processedResults.length || !subjectSnaps.length) return;
@@ -2851,7 +2852,7 @@ export default function ViewResultsView() {
         setShowPrintModal(false);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
 
   const handleTransReport = useCallback(() => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
@@ -3199,7 +3200,7 @@ export default function ViewResultsView() {
         }
       };
       const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF(reportDataWithProgress as Parameters<typeof generateFullReport2PDF>[0])
+        ? generateFullReport2PDF({ ...reportDataWithProgress, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
         : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
 
       // Open in PDF viewer
@@ -3230,7 +3231,7 @@ export default function ViewResultsView() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate, fullReport2Palette]);
 
   // Handle report configuration completion (defined after loadComparisonExams and generateTransReportWithGrading)
   const handleReportConfigComplete = useCallback(() => {
@@ -3543,7 +3544,7 @@ export default function ViewResultsView() {
         }
       };
       const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF(reportDataWithProgress as Parameters<typeof generateFullReport2PDF>[0])
+        ? generateFullReport2PDF({ ...reportDataWithProgress, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
         : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
 
       // Open in PDF viewer
@@ -3576,7 +3577,7 @@ export default function ViewResultsView() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress]);
+  }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, academicYears, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, selectedFullReportTemplate, fullReport2Palette]);
 
   const generateDetailedAssessmentReport = useCallback(async () => {
     setIsGenerating(true);
@@ -5036,13 +5037,13 @@ export default function ViewResultsView() {
                     { id: 'purple', label: 'Purple', primary: '#6b21a8', secondary: '#d35ac7', soft: '#faf5ff' },
                     { id: 'orange', label: 'Orange', primary: '#f4510b', secondary: '#f59e0b', soft: '#fff7ed' },
                   ] as const).map((paletteOption) => {
-                    const isSelected = reportConfig.palette === paletteOption.id;
+                    const isSelected = fullReport2Palette === paletteOption.id;
                     return (
                       <button
                         key={paletteOption.id}
                         type="button"
                         aria-pressed={isSelected}
-                        onClick={() => setReportConfig(prev => ({ ...prev, palette: paletteOption.id }))}
+                        onClick={() => setFullReport2Palette(paletteOption.id)}
                         className="group rounded-xl border-2 bg-white p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                         style={{
                           borderColor: isSelected ? paletteOption.primary : '#e5e7eb',

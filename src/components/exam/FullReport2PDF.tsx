@@ -75,6 +75,7 @@ interface FullReport2Props {
     contact?: { phone?: string; alternativePhone?: string; email?: string };
   };
   gradingScale?: Array<{ minMark: number; maxMark?: number; grade: string; aggregates: number }>;
+  palette?: ReportPaletteName;
   isProgressReport?: boolean;
   comparisonExams?: Array<{ name: string; examTypeName?: string; startDate?: string; endDate?: string }>;
   nextTermInfo?: { startDate: string; endDate: string };
@@ -93,7 +94,7 @@ const assetPath = (fileName: string) => {
 };
 
 const ASSETS = {
-  background: assetPath('background.png'),
+  background: assetPath('background 2.png'),
   heading: assetPath('a87590a5-f340-418d-b28d-e776347aac2d.png'),
   aggregate: assetPath('f37cbfce-2a15-4b59-ad8e-52e96ed5856d.png'),
   division: {
@@ -405,7 +406,7 @@ const FullReport2Page = ({
   headTeacherReport: string;
 }) => {
   const config = props.reportConfig || defaultConfig;
-  const paletteName = config.palette || 'blue';
+  const paletteName = props.palette || config.palette || 'blue';
   const palette = REPORT_PALETTES[paletteName];
   const normalizedPupilPhoto = normalizePdfImageSrc(pupilPhoto);
   const generalInfo = props.schoolSettings?.generalInfo;
