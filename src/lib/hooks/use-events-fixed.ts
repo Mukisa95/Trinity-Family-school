@@ -32,7 +32,12 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useAcademicNow, useAcademicYears } from './use-academic-years';
 import { useDashboardDataRevisions } from './use-school-settings';
-import { bumpEventsRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
+import {
+  bumpExamDefinitionRevisionsInBatch,
+  bumpEventsRevisionInBatch,
+} from '@/lib/services/dashboard-cache-revisions.service';
+import { useExams } from './use-exams';
+import { getExamCacheScope, readExamCache } from '@/lib/cache/exam-cache';
 import { useClasses } from './use-classes';
 import { useSubjects } from './use-subjects';
 import {
@@ -580,6 +585,9 @@ export function useUpdateEvent() {
         const batch = writeBatch(db);
         batch.update(docRef, firestoreData);
 
+        const updatesExamDefinitions = !!(
+          existingEvent.isExamEvent && existingEvent.examIntegration?.examIds
+        );
         if (existingEvent.isExamEvent && existingEvent.examIntegration?.examIds) {
           const examIds = existingEvent.examIntegration.examIds;
           if (examIds.length > 498) {
@@ -600,7 +608,8 @@ export function useUpdateEvent() {
           });
         }
 
-        bumpEventsRevisionInBatch(batch);
+        if (updatesExamDefinitions) bumpExamDefinitionRevisionsInBatch(batch);
+        else bumpEventsRevisionInBatch(batch);
         await batch.commit();
         const updatedEvent = {
           ...existingEvent,
@@ -688,7 +697,7 @@ export function useDeleteEvent() {
 
           const batch = writeBatch(db);
           batch.delete(examDocRef);
-          bumpEventsRevisionInBatch(batch);
+          bumpExamDefinitionRevisionsInBatch(batch);
           await batch.commit();
           console.log(`Deleted exam: ${actualExamId}`);
 
@@ -713,7 +722,10 @@ export function useDeleteEvent() {
         const batch = writeBatch(db);
 
         // If it's an exam event, delete associated exams in the same commit.
-        if (eventData?.isExamEvent && eventData?.examIntegration?.examIds) {
+        const deletesExamDefinitions = !!(
+          eventData?.isExamEvent && eventData?.examIntegration?.examIds
+        );
+        if (deletesExamDefinitions) {
           const examIds = eventData.examIntegration.examIds as string[];
           if (examIds.length > 498) {
             throw new Error('This event has too many linked exams for an atomic delete.');
@@ -725,7 +737,8 @@ export function useDeleteEvent() {
         }
 
         batch.delete(eventDocRef);
-        bumpEventsRevisionInBatch(batch);
+        if (deletesExamDefinitions) bumpExamDefinitionRevisionsInBatch(batch);
+        else bumpEventsRevisionInBatch(batch);
         await batch.commit();
         console.log(`Deleted event: ${eventId}`);
 
@@ -777,8 +790,8 @@ export function useExamEvents() {
 
 // Get all exams and convert them to events (for testing)
 export function useExamsAsEvents(options?: { enabled?: boolean }) {
-  const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
+  const examsQuery = useExams();
   const { data: academicYears = [], isLoading: yearsLoading } = useAcademicYears();
   const { data: classes = [], isLoading: classesLoading } = useClasses();
   const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
@@ -786,6 +799,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
   const revisionsQuery = useDashboardDataRevisions();
   const [refreshEpoch, setRefreshEpoch] = useState(0);
   const revision = revisionsQuery.data?.events ?? 0;
+  const examRevision = revisionsQuery.data?.exams ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
   const scope = isAuthenticated
     ? getEventCacheScope(user?.id, user?.role, user?.familyId)
@@ -793,6 +807,9 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
   const persisted = readLegacyExamEventCache(scope);
   const cacheMetadata = readLegacyExamEventCacheMetadata(scope);
   const initialData = persisted?.revision === revision ? persisted.data : undefined;
+  const examScope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
+  const examSnapshotReady = user?.role === 'Parent' ||
+    (!!examScope && readExamCache(examScope)?.revision === examRevision);
 
   useEffect(() => {
     if (!cacheMetadata) return;
@@ -806,6 +823,7 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
       'exams-as-events',
       scope,
       revision,
+      examRevision,
       revisionsReady ? 'ready' : 'pending',
       refreshEpoch,
     ],
@@ -815,7 +833,9 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
       !eventsQuery.isLoading &&
       !yearsLoading &&
       !classesLoading &&
-      !subjectsLoading,
+      !subjectsLoading &&
+      !examsQuery.isLoading &&
+      examSnapshotReady,
     queryFn: async () => {
       try {
         // Legacy exam documents have no audience field. Showing an unscoped
@@ -837,25 +857,9 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
         console.log('Regular exam events found:', regularExamEvents.length);
         console.log('Exam IDs already in regular events:', Array.from(regularEventExamIds));
 
-        // Reaching this queryFn means the persisted projection is cold,
-        // expired, or revision-mismatched. A generic exams query cache has no
-        // revision token, so it cannot authoritatively satisfy this refresh.
-        const examsSnapshot = revisionsReady
-          ? await getDocsFromServer(collection(db, 'exams'))
-          : await getDocs(collection(db, 'exams'));
-        const allExams = examsSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt?.toDate?.() || data.createdAt,
-            updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
-            startDate: data.startDate?.toDate?.() || data.startDate,
-            endDate: data.endDate?.toDate?.() || data.endDate,
-          };
-        }) as any[];
-
-        queryClient.setQueryData(['exams', 'list'], allExams);
+        // Exam definitions are owned by the scoped bootstrap. This projection
+        // must never create a competing full collection read.
+        const allExams = examsQuery.data ?? [];
 
         // Filter out exams that are already represented as regular events
         const filteredExams = allExams.filter(exam => !regularEventExamIds.has(exam.id));
@@ -1450,6 +1454,7 @@ export function useCreateExamFromEvent() {
     }) => {
       try {
         let createdExamIds: string[];
+        const createsExamDefinitions = !eventData.existingExamIds?.length;
         const firestoreBatch = writeBatch(db);
 
         // If existing exam IDs are provided, use them instead of creating new exams
@@ -1583,7 +1588,8 @@ export function useCreateExamFromEvent() {
           updatedAt: serverTimestamp(),
         });
 
-        bumpEventsRevisionInBatch(firestoreBatch);
+        if (createsExamDefinitions) bumpExamDefinitionRevisionsInBatch(firestoreBatch);
+        else bumpEventsRevisionInBatch(firestoreBatch);
         await firestoreBatch.commit();
         return { eventId: eventDoc.id, examIds: createdExamIds };
       } catch (error) {

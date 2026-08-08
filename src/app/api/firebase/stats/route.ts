@@ -13,7 +13,18 @@ type MetricPoint = {
 type MonitoringResponse = {
   timeSeries?: Array<{ points?: MetricPoint[] }>;
   nextPageToken?: string;
+  error?: { code?: number; message?: string };
 };
+
+class MonitoringRequestError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'MonitoringRequestError';
+  }
+}
 
 type UsageStats = {
   checkedAt: string;
@@ -95,9 +106,18 @@ async function queryMetric(metricType: string, startTime: Date, resourceFilter?:
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: 'no-store',
     });
-    if (!response.ok) throw new Error(`Cloud Monitoring returned ${response.status}.`);
-
     const payload = await response.json() as MonitoringResponse;
+    if (!response.ok) {
+      const detail = payload.error?.message || `Cloud Monitoring returned ${response.status}.`;
+      if (response.status === 403) {
+        throw new MonitoringRequestError(
+          403,
+          `Cloud Monitoring denied the configured service account: ${detail} ` +
+            'Grant that exact FIREBASE_ADMIN_CLIENT_EMAIL the Monitoring Viewer role in this Firebase project, then confirm the Cloud Monitoring API is enabled.',
+        );
+      }
+      throw new MonitoringRequestError(response.status, `Cloud Monitoring returned ${response.status}: ${detail}`);
+    }
     for (const series of payload.timeSeries || []) points.push(...(series.points || []));
     pageToken = payload.nextPageToken;
   } while (pageToken);
@@ -142,7 +162,7 @@ async function buildUsageStats(): Promise<Omit<UsageStats, 'servedFromCache'>> {
   let monitoringMessage: string | undefined;
 
   try {
-    const [firestoreStorage, storageBytesMetric, storageObjectsMetric, readPoints, writePoints, deletePoints] = await Promise.all([
+    const metricResults = await Promise.allSettled([
       queryMetric('firestore.googleapis.com/storage/data_and_index_storage_bytes', windowStart),
       bucket ? queryMetric('storage.googleapis.com/storage/v2/total_bytes', new Date(now.getTime() - 48 * 60 * 60 * 1000), `resource.labels.bucket_name = \"${bucket}\"`) : Promise.resolve([]),
       bucket ? queryMetric('storage.googleapis.com/storage/v2/total_count', new Date(now.getTime() - 48 * 60 * 60 * 1000), `resource.labels.bucket_name = \"${bucket}\"`) : Promise.resolve([]),
@@ -150,6 +170,19 @@ async function buildUsageStats(): Promise<Omit<UsageStats, 'servedFromCache'>> {
       queryMetric('firestore.googleapis.com/document/write_count', windowStart),
       queryMetric('firestore.googleapis.com/document/delete_count', windowStart),
     ]);
+
+    const metricPoints: MetricPoint[][] = metricResults.map(result =>
+      result.status === 'fulfilled' ? result.value : [],
+    );
+    const monitoringFailure = metricResults.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+    if (monitoringFailure) {
+      monitoringMessage = monitoringFailure.reason instanceof Error
+        ? monitoringFailure.reason.message
+        : 'Cloud Monitoring is unavailable.';
+    }
+    const [firestoreStorage, storageBytesMetric, storageObjectsMetric, readPoints, writePoints, deletePoints] = metricPoints;
 
     const firestoreStorageResult = latestMetric(firestoreStorage);
     const storageBytesResult = latestMetric(storageBytesMetric);
@@ -165,7 +198,9 @@ async function buildUsageStats(): Promise<Omit<UsageStats, 'servedFromCache'>> {
     reads = operationTotals[0];
     writes = operationTotals[1];
     deletes = operationTotals[2];
-    operationsMeasuredAt = now.toISOString();
+    if (operationPoints.some(points => points.length > 0)) {
+      operationsMeasuredAt = now.toISOString();
+    }
   } catch (error) {
     monitoringMessage = error instanceof Error ? error.message : 'Cloud Monitoring is unavailable.';
   }

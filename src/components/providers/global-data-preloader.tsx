@@ -16,6 +16,7 @@ import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
 import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
 import { useStaffCacheBootstrap } from '@/lib/hooks/use-staff-cache-bootstrap';
+import { useExamCacheBootstrap } from '@/lib/hooks/use-exam-cache-bootstrap';
 import { PupilsService } from '@/lib/services/pupils.service';
 
 /**
@@ -36,6 +37,7 @@ export function GlobalDataPreloader() {
   useClassCacheBootstrap();
   useAcademicYearCacheBootstrap();
   useStaffCacheBootstrap();
+  useExamCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
   const userFamilyId = user?.familyId;

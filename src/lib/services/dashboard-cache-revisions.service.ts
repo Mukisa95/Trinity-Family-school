@@ -7,6 +7,8 @@ const SETTINGS_DOC_ID = 'school-settings';
 export const dashboardRevisionKeys = {
   timetable: (yearId: string, termId: string) =>
     `${encodeURIComponent(yearId)}__${encodeURIComponent(termId)}`,
+  examResults: (yearId: string, termId: string) =>
+    `${encodeURIComponent(yearId)}__${encodeURIComponent(termId)}`,
 };
 
 function schoolSettingsRef() {
@@ -24,7 +26,7 @@ export function bumpTimetableRevisionInBatch(
   termId: string,
 ) {
   const revisionKey = dashboardRevisionKeys.timetable(yearId, termId);
-  batch.set(
+  (batch as WriteBatch).set(
     schoolSettingsRef(),
     {
       dataRevisions: {
@@ -108,6 +110,51 @@ export function bumpEventsRevisionInBatch(batch: WriteBatch) {
     {
       dataRevisions: {
         events: increment(1),
+      },
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Exam definitions also feed the legacy calendar projection. Publish both
+ * invalidation tokens in one settings write so consumers never observe a new
+ * exam list with an old exam-event projection (or vice versa).
+ */
+export function bumpExamDefinitionRevisionsInBatch(
+  batch: WriteBatch,
+  options?: { affectsEvents?: boolean },
+) {
+  batch.set(
+    schoolSettingsRef(),
+    {
+      dataRevisions: {
+        exams: increment(1),
+        ...(options?.affectsEvents === false ? {} : { events: increment(1) }),
+      },
+    },
+    { merge: true },
+  );
+}
+
+/** Publish the revision for exactly one exam-result term in the result write batch. */
+export function bumpExamResultRevisionInBatch(
+  batch: WriteBatch | Transaction,
+  academicYearId: string,
+  termId: string,
+) {
+  if (!academicYearId || !termId) {
+    throw new Error('Exam result revisions require an academic year and term.');
+  }
+
+  const termKey = dashboardRevisionKeys.examResults(academicYearId, termId);
+  (batch as WriteBatch).set(
+    schoolSettingsRef(),
+    {
+      dataRevisions: {
+        examResults: {
+          [termKey]: increment(1),
+        },
       },
     },
     { merge: true },

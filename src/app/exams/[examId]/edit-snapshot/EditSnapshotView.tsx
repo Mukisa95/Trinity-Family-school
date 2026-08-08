@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { ModernDatePicker } from '@/components/common/modern-date-picker';
 import { useExam, useExamResultByExamId, useUpdateExamResult, useUpdateExam } from '@/lib/hooks/use-exams';
+import { useExamResultLease } from '@/lib/hooks/use-exam-result-lease';
 import { useStaff } from '@/lib/hooks/use-staff';
 import { useActivePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
@@ -54,6 +55,7 @@ export default function EditSnapshotView() {
   
   const updateExamResultMutation = useUpdateExamResult();
   const updateExamMutation = useUpdateExam();
+  const resultLease = useExamResultLease(examId);
 
   const [editedPupilSnapshots, setEditedPupilSnapshots] = useState<ExamRecordPupilInfo[]>([]);
   const [editedSubjectSnapshots, setEditedSubjectSnapshots] = useState<ExamRecordSubjectInfo[]>([]);
@@ -252,6 +254,16 @@ export default function EditSnapshotView() {
 
   const handleSave = async () => {
     if (!exam || !examResult) return;
+    if (!resultLease.canEdit) {
+      toast({
+        title: 'Editing is unavailable',
+        description: resultLease.holder
+          ? `This result is being edited by ${resultLease.holder.lockedByName}.`
+          : 'Wait for the editing lease before saving changes.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -343,7 +355,13 @@ export default function EditSnapshotView() {
 
       await updateExamResultMutation.mutateAsync({
         id: examResult.id,
-        data: resultUpdates
+        lease: resultLease.token,
+        data: {
+          ...resultUpdates,
+          examId: examResult.examId,
+          academicYearId: exam.academicYearId,
+          termId: exam.termId,
+        }
       });
 
       toast({
@@ -402,7 +420,7 @@ export default function EditSnapshotView() {
         </div>
         <Button
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || !resultLease.canEdit}
         >
           {isSaving ? (
             <>
@@ -434,16 +452,16 @@ export default function EditSnapshotView() {
             <div className="space-y-2">
               <Label>Start Date</Label>
               <ModernDatePicker
-                date={startDate}
-                onDateChange={setStartDate}
+                date={startDate ?? undefined}
+                setDate={date => setStartDate(date ?? null)}
                 placeholder="Select start date"
               />
             </div>
             <div className="space-y-2">
               <Label>End Date</Label>
               <ModernDatePicker
-                date={endDate}
-                onDateChange={setEndDate}
+                date={endDate ?? undefined}
+                setDate={date => setEndDate(date ?? null)}
                 placeholder="Select end date"
               />
             </div>

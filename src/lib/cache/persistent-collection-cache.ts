@@ -131,3 +131,31 @@ export async function writePersistentCollection<T>(key: string, data: T): Promis
     // Cache writes are an optimization. A failed write must never disrupt live data.
   }
 }
+
+/** Cache eviction is always best-effort; a failed delete must not affect live data. */
+export async function deletePersistentCollection(key: string): Promise<void> {
+  if (!canUseIndexedDb()) return;
+
+  try {
+    const database = await openDatabase();
+    const transaction = database.transaction(STORE_NAME, 'readwrite');
+    transaction.objectStore(STORE_NAME).delete(key);
+    await completeTransaction(transaction);
+  } catch {
+    // The cache is an optimization only.
+  }
+}
+
+export async function deletePersistentCollections(keys: string[]): Promise<void> {
+  if (!canUseIndexedDb() || keys.length === 0) return;
+
+  try {
+    const database = await openDatabase();
+    const transaction = database.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    keys.forEach(key => store.delete(key));
+    await completeTransaction(transaction);
+  } catch {
+    // The cache is an optimization only.
+  }
+}

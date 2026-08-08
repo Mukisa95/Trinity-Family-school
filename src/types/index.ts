@@ -396,6 +396,10 @@ export interface SchoolSettings {
     staff?: number;
     pupils?: number;
     attendance?: number;
+    /** Full exam-definition collection revision. */
+    exams?: number;
+    /** Reserved for the later per-term exam-result cache rollout. */
+    examResults?: Record<string, number>;
   };
   generalInfo: {
     name: string;
@@ -639,6 +643,10 @@ export interface ResultReleaseInfo {
 export interface ExamResult {
   id: string;
   examId: string;
+  /** Present on canonical result documents. Legacy documents may omit it during dual-read migration. */
+  academicYearId?: string;
+  /** Present on canonical result documents. Legacy documents may omit it during dual-read migration. */
+  termId?: string;
   assessmentMode?: ExamAssessmentMode;
   classId: string;
   classSnapshot?: ExamClassInfoSnapshot;
@@ -907,6 +915,16 @@ export interface UniformHistory {
   releasedBy?: string;
   collectedItems?: string[];
   unmarkedItems?: string[];
+}
+
+export interface ExamLease {
+  examId: string;
+  lockedByUid: string;
+  lockedByName: string;
+  leaseId: string;
+  acquiredAt: string;
+  renewedAt: string;
+  expiresAt: string;
 }
 
 export interface UniformTracking {

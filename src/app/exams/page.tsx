@@ -63,6 +63,8 @@ import { DigitalSignatureDisplay } from "@/components/common/digital-signature-d
 import { ExamSignatureDisplay } from "@/components/exam/ExamSignatureDisplay";
 import { formatPupilDisplayName } from "@/lib/utils/name-formatter";
 import { ExamsService } from "@/lib/services/exams.service";
+import { ExamLeaseService } from "@/lib/services/exam-lease.service";
+import { useAuth } from "@/lib/contexts/auth-context";
 import { getAssessmentModeForClass, isNurseryClass } from "@/lib/exam-assessment";
 
 import { DEFAULT_GRADING_SCALE, EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
@@ -356,6 +358,7 @@ export default function ExamsPage() {
   const createExamResultMutation = useCreateExamResult();
   const updateExamResultMutation = useUpdateExamResult();
   const createExamFromEventMutation = useCreateExamFromEvent();
+  const { user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingExam, setEditingExam] = React.useState<Exam | null>(null);
 
@@ -863,6 +866,10 @@ export default function ExamsPage() {
 
   const handleSaveStackGradingScale = React.useCallback(async () => {
     if (!stackGradingScaleTarget) return;
+    if (!user || (user.role !== 'Admin' && user.role !== 'Staff')) {
+      toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'Only Staff or Admin can acquire result editing leases.' });
+      return;
+    }
 
     const cleanedScale = stackGradingScaleDraft.map((item) => ({
       minMark: Number(item.minMark),
@@ -895,14 +902,31 @@ export default function ExamsPage() {
         stackGradingScaleTarget.examIds.map(async (examId) => {
           const examResult = await ExamsService.getExamResultByExamId(examId);
           if (!examResult) return;
-
-          await updateExamResultMutation.mutateAsync({
-            id: examResult.id,
-            data: {
-              examId,
-              gradingScale: cleanedScale,
-            }
-          });
+          const leaseId = typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          const acquired = await ExamLeaseService.acquire(
+            examId,
+            { id: user.id, name: user.firstName || user.username },
+            leaseId,
+          );
+          if (!acquired.acquired) {
+            throw new Error(`Result for ${examId} is being edited by ${acquired.holder?.lockedByName || 'another user'}.`);
+          }
+          try {
+            await updateExamResultMutation.mutateAsync({
+              id: examResult.id,
+              lease: { lockedByUid: user.id, leaseId },
+              data: {
+                examId,
+                academicYearId: examResult.academicYearId,
+                termId: examResult.termId,
+                gradingScale: cleanedScale,
+              }
+            });
+          } finally {
+            await ExamLeaseService.release(examId, { lockedByUid: user.id, leaseId }).catch(() => undefined);
+          }
         })
       );
 
@@ -922,7 +946,7 @@ export default function ExamsPage() {
     } finally {
       setIsSavingStackGradingScale(false);
     }
-  }, [stackGradingScaleTarget, stackGradingScaleDraft, toast, updateExamResultMutation]);
+  }, [stackGradingScaleTarget, stackGradingScaleDraft, toast, updateExamResultMutation, user]);
 
   const handleSubmit = async () => {
     // For CAT exams, also require assessment name and exam name
@@ -1176,6 +1200,8 @@ export default function ExamsPage() {
 
           const examResultShell: Omit<ExamResult, 'id'> = {
             examId: createdExamIds[index],
+            academicYearId: examData.academicYearId,
+            termId: examData.termId,
             assessmentMode: examData.assessmentMode,
             classId: examData.classId,
             classSnapshot: classSnapshotData,
@@ -1517,7 +1543,7 @@ export default function ExamsPage() {
               href="/remark-report"
               label="Nursery"
               icon={<GraduationCap className="w-4 h-4" />}
-              tone="indigo"
+              tone="purple"
               title="Nursery Reports"
             />
 

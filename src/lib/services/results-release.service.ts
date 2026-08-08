@@ -3,18 +3,30 @@ import {
   doc, 
   getDoc, 
   getDocs, 
-  updateDoc, 
-  setDoc, 
   query, 
   where,
   writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { ResultReleaseInfo } from '@/types';
+import { ExamsService } from './exams.service';
+import { bumpExamResultRevisionInBatch } from './dashboard-cache-revisions.service';
 
 export class ResultsReleaseService {
   private static COLLECTION = 'resultReleases';
   private static ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_RELEASE_PASSWORD || 'admin123'; // Should be in env
+
+  private static async publishResultRevision(batch: ReturnType<typeof writeBatch>, examId: string, result?: { academicYearId?: string; termId?: string }) {
+    const exam = result?.academicYearId && result.termId
+      ? undefined
+      : await ExamsService.getExamById(examId);
+    const academicYearId = result?.academicYearId ?? exam?.academicYearId;
+    const termId = result?.termId ?? exam?.termId;
+    if (!academicYearId || !termId) {
+      throw new Error(`Cannot publish a result revision for exam ${examId} without its academic period.`);
+    }
+    bumpExamResultRevisionInBatch(batch, academicYearId, termId);
+  }
 
   /**
    * Clean object of undefined and null values for Firebase
@@ -90,18 +102,12 @@ export class ResultsReleaseService {
 
       batch.set(releaseRef, releaseInfo, { merge: true });
 
-      // Update the main exam result document to mark pupils as released
-      // First, get the exam result document
-      const examResultsRef = collection(db, 'examResults');
-      const examResultQuery = query(examResultsRef, where('examId', '==', examId));
-      const examResultSnapshot = await getDocs(examResultQuery);
-      
-      if (!examResultSnapshot.empty) {
-        const examResultDoc = examResultSnapshot.docs[0];
-        const examResultData = examResultDoc.data();
+      // Dual-read service keeps legacy auto-ID results visible during migration.
+      const examResult = await ExamsService.getExamResultByExamId(examId);
+      if (examResult) {
         
         // Update pupil snapshots to mark them as released
-        const updatedPupilSnapshots = examResultData.pupilSnapshots?.map((pupil: any) => {
+        const updatedPupilSnapshots = examResult.pupilSnapshots?.map((pupil: any) => {
           if (pupilIds.includes(pupil.pupilId)) {
             return {
               ...pupil,
@@ -114,11 +120,12 @@ export class ResultsReleaseService {
         }) || [];
         
         // Update the exam result document
-        batch.update(doc(db, 'examResults', examResultDoc.id), {
+        batch.update(doc(db, 'examResults', examResult.id), {
           pupilSnapshots: updatedPupilSnapshots,
           lastUpdatedAt: new Date().toISOString(),
           lastUpdatedBy: adminUserId
         });
+        await this.publishResultRevision(batch, examId, examResult);
       }
 
       await batch.commit();
@@ -164,18 +171,12 @@ export class ResultsReleaseService {
         });
       }
 
-      // Update the main exam result document to mark pupils as not released
-      // First, get the exam result document
-      const examResultsRef = collection(db, 'examResults');
-      const examResultQuery = query(examResultsRef, where('examId', '==', examId));
-      const examResultSnapshot = await getDocs(examResultQuery);
-      
-      if (!examResultSnapshot.empty) {
-        const examResultDoc = examResultSnapshot.docs[0];
-        const examResultData = examResultDoc.data();
+      // Dual-read service keeps legacy auto-ID results visible during migration.
+      const examResult = await ExamsService.getExamResultByExamId(examId);
+      if (examResult) {
         
         // Update pupil snapshots to mark them as not released
-        const updatedPupilSnapshots = examResultData.pupilSnapshots?.map((pupil: any) => {
+        const updatedPupilSnapshots = examResult.pupilSnapshots?.map((pupil: any) => {
           if (pupilIds.includes(pupil.pupilId)) {
             return {
               ...pupil,
@@ -188,11 +189,12 @@ export class ResultsReleaseService {
         }) || [];
         
         // Update the exam result document
-        batch.update(doc(db, 'examResults', examResultDoc.id), {
+        batch.update(doc(db, 'examResults', examResult.id), {
           pupilSnapshots: updatedPupilSnapshots,
           lastUpdatedAt: new Date().toISOString(),
           lastUpdatedBy: adminUserId
         });
+        await this.publishResultRevision(batch, examId, examResult);
       }
 
       await batch.commit();
@@ -262,17 +264,12 @@ export class ResultsReleaseService {
     releaseNotes?: string
   ): Promise<boolean> {
     try {
-      // Get the exam result document to find all pupils
-      const examResultsRef = collection(db, 'examResults');
-      const examResultQuery = query(examResultsRef, where('examId', '==', examId));
-      const examResultSnapshot = await getDocs(examResultQuery);
-      
-      if (examResultSnapshot.empty) {
+      const examResult = await ExamsService.getExamResultByExamId(examId);
+      if (!examResult) {
         throw new Error('No exam results found for this exam');
       }
       
-      const examResultData = examResultSnapshot.docs[0].data();
-      const pupilIds = examResultData.pupilSnapshots?.map((pupil: any) => pupil.pupilId) || [];
+      const pupilIds = examResult.pupilSnapshots?.map((pupil: any) => pupil.pupilId) || [];
       
       if (pupilIds.length === 0) {
         throw new Error('No pupils found in this exam');
@@ -284,4 +281,4 @@ export class ResultsReleaseService {
       throw error;
     }
   }
-} 
+}

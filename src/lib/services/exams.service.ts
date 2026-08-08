@@ -3,43 +3,120 @@ import {
   doc,
   getDocs,
   getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
+  getDocsFromCache,
   query,
   where,
   orderBy,
+  runTransaction,
   Timestamp,
   writeBatch,
   type DocumentReference,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Exam, ExamResult, CreateExamData, UpdateExamData } from '@/types';
-import { bumpEventsRevisionInBatch } from './dashboard-cache-revisions.service';
+import { normaliseExams } from '@/lib/cache/exam-cache';
+import { getDocsFromServerWithTimeout } from '../utils/firestore-helpers';
+import {
+  bumpExamDefinitionRevisionsInBatch,
+  bumpExamResultRevisionInBatch,
+} from './dashboard-cache-revisions.service';
+import { ExamLeaseService, type ExamLeaseToken } from './exam-lease.service';
 
 export class ExamsService {
   private static readonly COLLECTION_NAME = 'exams';
   private static readonly EXAM_RESULTS_COLLECTION = 'examResults';
+  private static sharedExams: Exam[] | null = null;
+  private static pendingSharedRefresh: Promise<Exam[]> | null = null;
+  private static sharedReadyPromise: Promise<Exam[]> | null = null;
+  private static resolveSharedReady: ((exams: Exam[]) => void) | null = null;
+  private static rejectSharedReady: ((error: unknown) => void) | null = null;
 
-  // Exam CRUD Operations
-  static async getAllExams(): Promise<Exam[]> {
+  private static waitForSharedExams(): Promise<Exam[]> {
+    if (!this.sharedReadyPromise) {
+      this.sharedReadyPromise = new Promise<Exam[]>((resolve, reject) => {
+        this.resolveSharedReady = resolve;
+        this.rejectSharedReady = reject;
+      });
+    }
+    return this.sharedReadyPromise;
+  }
+
+  /** Makes the scoped bootstrap snapshot available to legacy browser callers. */
+  static hydrateSharedExams(exams: Exam[]): void {
+    this.sharedExams = normaliseExams(exams);
+    this.resolveSharedReady?.(this.sharedExams);
+    this.resolveSharedReady = null;
+    this.rejectSharedReady = null;
+    this.sharedReadyPromise = Promise.resolve(this.sharedExams);
+  }
+
+  static clearSharedExams(): void {
+    this.resolveSharedReady?.([]);
+    this.sharedExams = null;
+    this.pendingSharedRefresh = null;
+    this.sharedReadyPromise = null;
+    this.resolveSharedReady = null;
+    this.rejectSharedReady = null;
+  }
+
+  /** The central bootstrap is the only browser path allowed to refresh exams. */
+  static refreshSharedExams(load: () => Promise<Exam[]>): Promise<Exam[]> {
+    if (this.pendingSharedRefresh) return this.pendingSharedRefresh;
+
+    const pending = load()
+      .catch(error => {
+        this.rejectSharedReady?.(error);
+        this.sharedReadyPromise = null;
+        this.resolveSharedReady = null;
+        this.rejectSharedReady = null;
+        throw error;
+      })
+      .finally(() => {
+        if (this.pendingSharedRefresh === pending) {
+          this.pendingSharedRefresh = null;
+        }
+      });
+
+    this.pendingSharedRefresh = pending;
+    return pending;
+  }
+
+  /** Strict collection read used only by the exam-cache bootstrap. */
+  static async getAllForCache(): Promise<Exam[]> {
+    const examsQuery = query(collection(db, this.COLLECTION_NAME), orderBy('createdAt', 'desc'));
+    return normaliseExams(await getDocsFromServerWithTimeout<Exam>(examsQuery, 30000));
+  }
+
+  /** Free Firestore IndexedDB recovery while a cold local snapshot is rebuilt. */
+  static async getAllFromFirestoreCache(): Promise<Exam[]> {
     try {
-      const examsRef = collection(db, this.COLLECTION_NAME);
-      const q = query(examsRef, orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
-
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
-      })) as Exam[];
-    } catch (error) {
-      console.error('Error fetching exams:', error);
-      throw error;
+      const examsQuery = query(collection(db, this.COLLECTION_NAME), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocsFromCache(examsQuery);
+      return normaliseExams(snapshot.docs.map(snapshotDoc => ({
+        id: snapshotDoc.id,
+        ...snapshotDoc.data(),
+      })) as Exam[]);
+    } catch {
+      return [];
     }
   }
 
+  // Exam CRUD Operations
+  static async getAllExams(): Promise<Exam[]> {
+    if (typeof window !== 'undefined') {
+      if (this.sharedExams) return this.sharedExams;
+      if (this.pendingSharedRefresh) return this.pendingSharedRefresh;
+      return this.waitForSharedExams();
+    }
+
+    return this.getAllForCache();
+  }
+
   static async getExamById(id: string): Promise<Exam | null> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllExams()).find(exam => exam.id === id) ?? null;
+    }
+
     try {
       const examRef = doc(db, this.COLLECTION_NAME, id);
       const snapshot = await getDoc(examRef);
@@ -48,11 +125,10 @@ export class ExamsService {
         return null;
       }
 
-      return {
+      return normaliseExams([{
         id: snapshot.id,
         ...snapshot.data(),
-        createdAt: snapshot.data().createdAt?.toDate?.()?.toISOString() || snapshot.data().createdAt
-      } as Exam;
+      } as Exam])[0] ?? null;
     } catch (error) {
       console.error('Error fetching exam:', error);
       throw error;
@@ -60,23 +136,19 @@ export class ExamsService {
   }
 
   static async getExamsByClass(classId: string): Promise<Exam[]> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllExams()).filter(exam => exam.classId === classId);
+    }
+
     try {
       const examsRef = collection(db, this.COLLECTION_NAME);
       const q = query(examsRef, where('classId', '==', classId));
       const snapshot = await getDocs(q);
 
-      const exams = snapshot.docs.map(doc => ({
+      return normaliseExams(snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
-      })) as Exam[];
-
-      // Sort by createdAt in descending order on the client side
-      return exams.sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        return dateB - dateA; // Descending order
-      });
+      })) as Exam[]);
     } catch (error) {
       console.error('Error fetching exams by class:', error);
       throw error;
@@ -84,6 +156,10 @@ export class ExamsService {
   }
 
   static async getExamsByAcademicYear(academicYearId: string): Promise<Exam[]> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllExams()).filter(exam => exam.academicYearId === academicYearId);
+    }
+
     try {
       const examsRef = collection(db, this.COLLECTION_NAME);
       const q = query(
@@ -93,11 +169,10 @@ export class ExamsService {
       );
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map(doc => ({
+      return normaliseExams(snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
-      })) as Exam[];
+      })) as Exam[]);
     } catch (error) {
       console.error('Error fetching exams by academic year:', error);
       throw error;
@@ -106,6 +181,12 @@ export class ExamsService {
 
   // 🚀 OPTIMIZED: Get exams by academic year and optionally by term
   static async getExamsByAcademicYearAndTerm(academicYearId: string, termId?: string): Promise<Exam[]> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllExams()).filter(exam =>
+        exam.academicYearId === academicYearId && (!termId || exam.termId === termId),
+      );
+    }
+
     try {
       console.log('🎯 Fetching exams with filters:', { academicYearId, termId });
 
@@ -126,20 +207,14 @@ export class ExamsService {
 
       const snapshot = await getDocs(q);
 
-      const exams = snapshot.docs.map(doc => ({
+      const exams = normaliseExams(snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
-      })) as Exam[];
+      })) as Exam[]);
 
       console.log(`📊 Fetched ${exams.length} exams from database`);
 
-      // Sort by createdAt in descending order on the client side
-      return exams.sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        return dateB - dateA; // Descending order
-      });
+      return exams;
     } catch (error) {
       console.error('Error fetching exams by academic year and term:', error);
       throw error;
@@ -147,6 +222,10 @@ export class ExamsService {
   }
 
   static async getExamsByBatch(batchId: string): Promise<Exam[]> {
+    if (typeof window !== 'undefined') {
+      return (await this.getAllExams()).filter(exam => exam.batchId === batchId);
+    }
+
     try {
       const examsRef = collection(db, this.COLLECTION_NAME);
       const q = query(
@@ -156,11 +235,10 @@ export class ExamsService {
       );
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map(doc => ({
+      return normaliseExams(snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt
-      })) as Exam[];
+      })) as Exam[]);
     } catch (error) {
       console.error('Error fetching exams by batch:', error);
       throw error;
@@ -181,7 +259,7 @@ export class ExamsService {
       const docRef = doc(examsRef);
       const batch = writeBatch(db);
       batch.set(docRef, cleanedData);
-      bumpEventsRevisionInBatch(batch);
+      bumpExamDefinitionRevisionsInBatch(batch);
       await batch.commit();
 
       return docRef.id;
@@ -213,7 +291,7 @@ export class ExamsService {
         examIds.push(examRef.id);
       }
 
-      bumpEventsRevisionInBatch(batch);
+      bumpExamDefinitionRevisionsInBatch(batch);
       await batch.commit();
       return examIds;
     } catch (error) {
@@ -226,7 +304,6 @@ export class ExamsService {
     id: string,
     examData: UpdateExamData,
     options?: {
-      bumpEventRevision?: boolean;
       linkedEvent?: { ref: DocumentReference; data: Record<string, any> };
     },
   ): Promise<void> {
@@ -245,9 +322,7 @@ export class ExamsService {
       if (options?.linkedEvent) {
         batch.update(options.linkedEvent.ref, options.linkedEvent.data);
       }
-      if (options?.bumpEventRevision !== false) {
-        bumpEventsRevisionInBatch(batch);
-      }
+      bumpExamDefinitionRevisionsInBatch(batch);
       await batch.commit();
     } catch (error) {
       console.error('Error updating exam:', error);
@@ -260,7 +335,7 @@ export class ExamsService {
       const examRef = doc(db, this.COLLECTION_NAME, id);
       const batch = writeBatch(db);
       batch.delete(examRef);
-      bumpEventsRevisionInBatch(batch);
+      bumpExamDefinitionRevisionsInBatch(batch);
       await batch.commit();
     } catch (error) {
       console.error('Error deleting exam:', error);
@@ -269,17 +344,66 @@ export class ExamsService {
   }
 
   // Exam Results Operations
+  private static normaliseExamResult(id: string, data: Record<string, any>): ExamResult {
+    const toIso = (value: unknown) => {
+      if (value && typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
+        return value.toDate().toISOString();
+      }
+      return value instanceof Date ? value.toISOString() : value;
+    };
+
+    return {
+      id,
+      ...data,
+      recordedAt: (toIso(data.recordedAt) || '') as string,
+      lastUpdatedAt: toIso(data.lastUpdatedAt ?? data.updatedAt) as string | undefined,
+      releasedAt: toIso(data.releasedAt) as string | undefined,
+    } as ExamResult;
+  }
+
+  private static async resolveResultPeriod(
+    examId: string,
+    supplied?: Pick<Partial<ExamResult>, 'academicYearId' | 'termId'>,
+  ): Promise<{ academicYearId: string; termId: string }> {
+    if (supplied?.academicYearId && supplied?.termId) {
+      return { academicYearId: supplied.academicYearId, termId: supplied.termId };
+    }
+
+    const exam = await this.getExamById(examId);
+    if (!exam?.academicYearId || !exam.termId) {
+      throw new Error(`Cannot publish an exam-result revision because exam ${examId} has no academic year and term.`);
+    }
+    return { academicYearId: exam.academicYearId, termId: exam.termId };
+  }
+
+  /** Canonical documents use the exam ID; legacy auto-ID documents are a temporary fallback. */
+  static async getExamResultByExamId(examId: string): Promise<ExamResult | null> {
+    try {
+      const canonical = await getDoc(doc(db, this.EXAM_RESULTS_COLLECTION, examId));
+      if (canonical.exists()) return this.normaliseExamResult(canonical.id, canonical.data());
+
+      const legacy = await getDocs(query(
+        collection(db, this.EXAM_RESULTS_COLLECTION),
+        where('examId', '==', examId),
+      ));
+      if (legacy.empty) return null;
+
+      console.info(`[exam-result] Legacy result fallback used for ${examId}.`);
+      const legacyDoc = legacy.docs[0];
+      return this.normaliseExamResult(legacyDoc.id, legacyDoc.data());
+    } catch (error) {
+      console.error('Error fetching exam result by exam ID:', error);
+      throw error;
+    }
+  }
+
   static async getAllExamResults(): Promise<ExamResult[]> {
     try {
       const resultsRef = collection(db, this.EXAM_RESULTS_COLLECTION);
       const q = query(resultsRef, orderBy('recordedAt', 'desc'));
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        recordedAt: doc.data().recordedAt?.toDate?.()?.toISOString() || doc.data().recordedAt
-      })) as ExamResult[];
+      return snapshot.docs.map(snapshotDoc => this.normaliseExamResult(snapshotDoc.id, snapshotDoc.data()));
     } catch (error) {
       console.error('Error fetching exam results:', error);
       throw error;
@@ -295,18 +419,14 @@ export class ExamsService {
         return null;
       }
 
-      return {
-        id: snapshot.id,
-        ...snapshot.data(),
-        recordedAt: snapshot.data().recordedAt?.toDate?.()?.toISOString() || snapshot.data().recordedAt
-      } as ExamResult;
+      return this.normaliseExamResult(snapshot.id, snapshot.data());
     } catch (error) {
       console.error('Error fetching exam result:', error);
       throw error;
     }
   }
 
-  static async getExamResultByExamId(examId: string): Promise<ExamResult | null> {
+  private static async getLegacyExamResultByExamId(examId: string): Promise<ExamResult | null> {
     try {
       const resultsRef = collection(db, this.EXAM_RESULTS_COLLECTION);
       const q = query(resultsRef, where('examId', '==', examId));
@@ -330,32 +450,46 @@ export class ExamsService {
     }
   }
 
-  static async createExamResult(resultData: Omit<ExamResult, 'id'>): Promise<string> {
+  static async createExamResult(resultData: Omit<ExamResult, 'id'>): Promise<ExamResult> {
     try {
-      const resultsRef = collection(db, this.EXAM_RESULTS_COLLECTION);
+      const period = await this.resolveResultPeriod(resultData.examId, resultData);
       const newResult = {
         ...resultData,
-        recordedAt: resultData.recordedAt ? resultData.recordedAt : Timestamp.now()
+        ...period,
+        recordedAt: resultData.recordedAt ? resultData.recordedAt : Timestamp.now(),
       };
-
-      // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(newResult);
-
-      const docRef = await addDoc(resultsRef, cleanedData);
-
-      return docRef.id;
+      const resultRef = doc(db, this.EXAM_RESULTS_COLLECTION, resultData.examId);
+      const batch = writeBatch(db);
+      batch.set(resultRef, cleanedData, { merge: true });
+      bumpExamResultRevisionInBatch(batch, period.academicYearId, period.termId);
+      await batch.commit();
+      return this.normaliseExamResult(resultRef.id, cleanedData);
     } catch (error) {
       console.error('Error creating exam result:', error);
       throw error;
     }
   }
 
-  static async updateExamResult(id: string, resultData: Partial<ExamResult>): Promise<void> {
+  static async updateExamResult(
+    id: string,
+    resultData: Partial<ExamResult>,
+    options?: { lease?: ExamLeaseToken },
+  ): Promise<{
+    id: string;
+    examId: string;
+    academicYearId: string;
+    termId: string;
+    patch: Partial<ExamResult>;
+  }> {
     try {
+      if (!resultData.examId) throw new Error('Exam result updates require the exam ID.');
+      const period = await this.resolveResultPeriod(resultData.examId, resultData);
       const resultRef = doc(db, this.EXAM_RESULTS_COLLECTION, id);
       const updateData = {
         ...resultData,
-        updatedAt: Timestamp.now()
+        ...period,
+        lastUpdatedAt: Timestamp.now(),
       };
 
       // Clean undefined values before sending to Firebase
@@ -363,7 +497,25 @@ export class ExamsService {
 
       console.log('📝 Firestore updateExamResult - cleanedData.gradingScale:', cleanedData.gradingScale);
 
-      await updateDoc(resultRef, cleanedData);
+      if (options?.lease) {
+        await runTransaction(db, async transaction => {
+          await ExamLeaseService.verifyForSave(resultData.examId!, options.lease!, transaction);
+          transaction.update(resultRef, cleanedData);
+          bumpExamResultRevisionInBatch(transaction, period.academicYearId, period.termId);
+          transaction.delete(ExamLeaseService.ref(resultData.examId!));
+        });
+      } else {
+        const batch = writeBatch(db);
+        batch.update(resultRef, cleanedData);
+        bumpExamResultRevisionInBatch(batch, period.academicYearId, period.termId);
+        await batch.commit();
+      }
+      return {
+        id,
+        examId: resultData.examId,
+        ...period,
+        patch: this.normaliseExamResult(id, cleanedData),
+      };
 
       console.log('✅ Firestore update complete for document:', id);
     } catch (error) {
@@ -395,10 +547,24 @@ export class ExamsService {
     return obj;
   }
 
-  static async deleteExamResult(id: string): Promise<void> {
+  static async deleteExamResult(
+    id: string,
+    context?: Pick<ExamResult, 'examId' | 'academicYearId' | 'termId'>,
+  ): Promise<{ id: string; examId: string; academicYearId: string; termId: string }> {
     try {
       const resultRef = doc(db, this.EXAM_RESULTS_COLLECTION, id);
-      await deleteDoc(resultRef);
+      let resolved = context;
+      if (!resolved?.examId || !resolved.academicYearId || !resolved.termId) {
+        const existing = await getDoc(resultRef);
+        if (!existing.exists()) throw new Error('Exam result was already deleted.');
+        resolved = this.normaliseExamResult(existing.id, existing.data());
+      }
+      const period = await this.resolveResultPeriod(resolved.examId, resolved);
+      const batch = writeBatch(db);
+      batch.delete(resultRef);
+      bumpExamResultRevisionInBatch(batch, period.academicYearId, period.termId);
+      await batch.commit();
+      return { id, examId: resolved.examId, ...period };
     } catch (error) {
       console.error('Error deleting exam result:', error);
       throw error;

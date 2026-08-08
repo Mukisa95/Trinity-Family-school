@@ -150,6 +150,11 @@ export default function FirebaseUsagePage() {
           </CardHeader>
           <CardContent className="space-y-3 p-5 text-sm">
             <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Cloud Monitoring</span><Badge variant={stats?.monitoring.available ? 'default' : 'secondary'}>{stats?.monitoring.available ? 'Connected' : 'Not connected'}</Badge></div>
+            {stats?.monitoring.message && (
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+                {stats.monitoring.message}
+              </p>
+            )}
             <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Page checked</span><span className="text-right font-medium">{stats ? formatDate(stats.checkedAt) : '—'}</span></div>
             <p className="rounded-md bg-muted p-3 text-xs leading-relaxed text-muted-foreground">Storage is reported by Google Cloud as a daily measurement and may lag. Firestore operation counts are operational metrics; final billed totals can differ slightly due to billing rules such as index-entry reads.</p>
           </CardContent>

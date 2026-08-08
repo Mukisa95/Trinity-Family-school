@@ -52,6 +52,7 @@ try {
 }
 
 export { db };
+export const firebaseProjectId = firebaseConfig.projectId;
 
 // Reconnect when the device comes back online
 if (typeof window !== 'undefined') {

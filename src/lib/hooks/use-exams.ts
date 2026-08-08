@@ -1,241 +1,187 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  where,
+  writeBatch,
+  type DocumentReference,
+} from 'firebase/firestore';
 import { ExamsService } from '../services/exams.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
 import type { Exam, ExamResult, CreateExamData, UpdateExamData } from '@/types';
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  query,
-  where,
-  serverTimestamp,
-  onSnapshot,
-  writeBatch,
-  type DocumentReference,
-} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { bumpEventsRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
+import { bumpExamDefinitionRevisionsInBatch } from '@/lib/services/dashboard-cache-revisions.service';
+import {
+  getExamCacheScope,
+  normaliseExams,
+  readExamCache,
+  writeExamCache,
+} from '@/lib/cache/exam-cache';
+import {
+  deleteExamResultCache,
+  getExamResultCacheScope,
+  pruneExamResultCache,
+  readExamResultCache,
+  writeExamResultCache,
+} from '@/lib/cache/exam-result-cache';
+import { useDashboardDataRevisions } from './use-school-settings';
+import { dashboardRevisionKeys } from '@/lib/services/dashboard-cache-revisions.service';
+import { useAcademicYears } from './use-academic-years';
+import type { ExamLeaseToken } from '@/lib/services/exam-lease.service';
 
-// Query Keys
 export const examKeys = {
   all: ['exams'] as const,
   lists: () => [...examKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...examKeys.lists(), { filters }] as const,
+  list: (scope: string) => [...examKeys.lists(), scope] as const,
   details: () => [...examKeys.all, 'detail'] as const,
-  detail: (id: string) => [...examKeys.details(), id] as const,
-  byClass: (classId: string) => [...examKeys.all, 'byClass', classId] as const,
-  byAcademicYear: (academicYearId: string) => [...examKeys.all, 'byAcademicYear', academicYearId] as const,
-  byBatch: (batchId: string) => [...examKeys.all, 'byBatch', batchId] as const,
-  pupilHistory: (pupilId: string) => [...examKeys.all, 'pupilHistory', pupilId] as const,
+  detail: (scope: string, id: string) => [...examKeys.details(), scope, id] as const,
+  pupilHistory: (scope: string, pupilId: string) => [...examKeys.all, 'pupilHistory', scope, pupilId] as const,
 };
 
 export const examResultKeys = {
   all: ['examResults'] as const,
   lists: () => [...examResultKeys.all, 'list'] as const,
   details: () => [...examResultKeys.all, 'detail'] as const,
-  detail: (id: string) => [...examResultKeys.details(), id] as const,
-  byExam: (examId: string) => [...examResultKeys.all, 'byExam', examId] as const,
+  detail: (scope: string, id: string) => [...examResultKeys.details(), scope, id] as const,
+  byExam: (scope: string, examId: string, revision?: number) =>
+    [...examResultKeys.all, 'byExam', scope, examId, revision ?? 'pending'] as const,
 };
 
-// Exam Query Hooks
-export function useExams() {
-  const queryClient = useQueryClient();
-
-  // 🚀 OPTIMIZED: Set up real-time listener for instant updates
-  useEffect(() => {
-    const examsQuery = query(collection(db, 'exams'));
-
-    const unsubscribe = onSnapshot(
-      examsQuery,
-      (snapshot) => {
-        const examsList = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-            startDate: data.startDate?.toDate?.() || new Date(),
-            endDate: data.endDate?.toDate?.() || new Date(),
-          } as Exam;
-        });
-
-        // Update cache instantly
-        queryClient.setQueryData(examKeys.lists(), examsList);
-      },
-      (error) => {
-        console.error('Error in exams listener:', error);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [queryClient]);
-
-  return useQuery({
-    queryKey: examKeys.lists(),
-    queryFn: () => ExamsService.getAllExams(),
-    // 🚀 OPTIMIZED: Cache-first strategy for instant loading
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: false, // Don't refetch on mount if we have cached data
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // 🚀 Show cached data immediately while fetching in background
-    placeholderData: (previousData) => previousData,
-  });
+function patchExamSnapshot(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  patch: (current: Exam[]) => Exam[],
+) {
+  if (!scope) return;
+  const queryKey = examKeys.list(scope);
+  const current = queryClient.getQueryData<Exam[]>(queryKey) ?? readExamCache(scope)?.data ?? [];
+  const next = normaliseExams(patch(current));
+  queryClient.setQueryData(queryKey, next);
+  ExamsService.hydrateSharedExams(next);
+  // The settings revision confirms the server state. -1 is deliberately not a
+  // server revision, so a later reconciliation cannot be skipped accidentally.
+  writeExamCache(scope, -1, next);
 }
 
-// 🚀 OPTIMIZED: Fetch only current academic year and term exams by default
+/** Cache-only selector. The global bootstrap is the sole full-list reader. */
+export function useExams() {
+  const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
+  const queryKey = examKeys.list(scope);
+  const inMemory = queryClient.getQueryData<Exam[]>(queryKey);
+  const persisted = inMemory === undefined ? readExamCache(scope) : null;
+  const initialData = inMemory ?? persisted?.data;
+
+  const queryResult = useQuery({
+    queryKey,
+    queryFn: async () => queryClient.getQueryData<Exam[]>(queryKey) ?? [],
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    initialData,
+    initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
+    placeholderData: previousData => previousData,
+  });
+
+  return {
+    ...queryResult,
+    isLoading: !!scope && queryResult.data === undefined,
+  };
+}
+
 export function useExamsOptimized(options?: {
   academicYearId?: string;
   termId?: string;
   enabled?: boolean;
   includeAll?: boolean;
 }) {
-  return useQuery({
-    queryKey: examKeys.list({
-      academicYearId: options?.academicYearId,
-      termId: options?.termId,
-      includeAll: options?.includeAll
-    }),
-    queryFn: async () => {
-      // If includeAll is true or no filters provided, get all exams
-      if (options?.includeAll || (!options?.academicYearId && !options?.termId)) {
-        return ExamsService.getAllExams();
-      }
+  const examsQuery = useExams();
+  const data = useMemo(() => {
+    if (options?.enabled === false) return undefined;
+    const exams = examsQuery.data ?? [];
+    if (options?.includeAll || (!options?.academicYearId && !options?.termId)) return exams;
+    return exams.filter(exam =>
+      (!options.academicYearId || exam.academicYearId === options.academicYearId) &&
+      (!options.termId || exam.termId === options.termId),
+    );
+  }, [examsQuery.data, options?.academicYearId, options?.enabled, options?.includeAll, options?.termId]);
 
-      // Otherwise, get filtered exams
-      return ExamsService.getExamsByAcademicYearAndTerm(
-        options.academicYearId!,
-        options.termId
-      );
-    },
-    enabled: options?.enabled !== false,
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
-    refetchOnWindowFocus: false,
-    retry: (failureCount, error) => {
-      // Don't retry if it's an offline error
-      if (error?.message?.includes('offline') ||
-        error?.message?.includes('Could not reach Cloud Firestore') ||
-        (error as any)?.code === 'unavailable') {
-        console.log('🚫 Offline detected, not retrying exam query');
-        return false;
-      }
-      // Retry up to 2 times for other errors
-      return failureCount < 2;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-  });
+  return { ...examsQuery, data, isLoading: options?.enabled !== false && examsQuery.isLoading };
 }
 
 export function useExam(id: string) {
-  const queryClient = useQueryClient();
-
-  // 🚀 OPTIMIZED: Set up real-time listener for instant updates
-  useEffect(() => {
-    if (!id) return;
-
-    const unsubscribe = onSnapshot(
-      doc(db, 'exams', id),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          const examData = {
-            id: snapshot.id,
-            ...data,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-            startDate: data.startDate?.toDate?.() || new Date(),
-            endDate: data.endDate?.toDate?.() || new Date(),
-          } as Exam;
-
-          // Update cache instantly
-          queryClient.setQueryData(examKeys.detail(id), examData);
-        }
-      },
-      (error) => {
-        console.error('Error in exam detail listener:', error);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [id, queryClient]);
-
-  return useQuery({
-    queryKey: examKeys.detail(id),
-    queryFn: () => ExamsService.getExamById(id),
-    enabled: !!id,
-    // 🚀 OPTIMIZED: Cache-first strategy for instant loading
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    placeholderData: (previousData) => previousData,
-  });
+  const examsQuery = useExams();
+  const data = useMemo(() => examsQuery.data?.find(exam => exam.id === id), [examsQuery.data, id]);
+  return { ...examsQuery, data, isLoading: !!id && examsQuery.isLoading };
 }
 
 export function useExamsByClass(classId: string, options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: examKeys.byClass(classId),
-    queryFn: () => ExamsService.getExamsByClass(classId),
-    enabled: options?.enabled !== undefined ? options.enabled && !!classId : !!classId,
-  });
+  const examsQuery = useExams();
+  const enabled = options?.enabled !== false && !!classId;
+  const data = useMemo(
+    () => enabled ? (examsQuery.data ?? []).filter(exam => exam.classId === classId) : undefined,
+    [classId, enabled, examsQuery.data],
+  );
+  return { ...examsQuery, data, isLoading: enabled && examsQuery.isLoading };
 }
 
 export function useExamsByAcademicYear(academicYearId: string) {
-  return useQuery({
-    queryKey: examKeys.byAcademicYear(academicYearId),
-    queryFn: () => ExamsService.getExamsByAcademicYear(academicYearId),
-    enabled: !!academicYearId,
-  });
+  const examsQuery = useExams();
+  const data = useMemo(
+    () => academicYearId ? (examsQuery.data ?? []).filter(exam => exam.academicYearId === academicYearId) : undefined,
+    [academicYearId, examsQuery.data],
+  );
+  return { ...examsQuery, data, isLoading: !!academicYearId && examsQuery.isLoading };
 }
 
 export function useExamsByBatch(batchId: string) {
-  return useQuery({
-    queryKey: examKeys.byBatch(batchId),
-    queryFn: () => ExamsService.getExamsByBatch(batchId),
-    enabled: !!batchId,
-  });
+  const examsQuery = useExams();
+  const data = useMemo(
+    () => batchId ? (examsQuery.data ?? []).filter(exam => exam.batchId === batchId) : undefined,
+    [batchId, examsQuery.data],
+  );
+  return { ...examsQuery, data, isLoading: !!batchId && examsQuery.isLoading };
 }
 
-// Exam Mutation Hooks
 export function useCreateExam() {
   const queryClient = useQueryClient();
   const { signAction } = useDigitalSignatureHelpers();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: async (data: CreateExamData) => {
       const examId = await ExamsService.createExam(data);
-
-      // Create digital signature for exam creation
       if (user) {
-        await signAction(
-          'exam_creation',
-          examId,
-          'created',
-          {
-            examName: data.name,
-            classId: data.classId,
-            examType: data.examTypeName || 'Unknown',
-            maxMarks: data.maxMarks,
-            startDate: data.startDate,
-            academicYearId: data.academicYearId,
-            termId: data.termId
-          }
-        );
+        await signAction('exam_creation', examId, 'created', {
+          examName: data.name,
+          classId: data.classId,
+          examType: data.examTypeName || 'Unknown',
+          maxMarks: data.maxMarks,
+          startDate: data.startDate,
+          academicYearId: data.academicYearId,
+          termId: data.termId,
+        });
       }
-
       return examId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: examKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
+    onSuccess: (examId, data) => {
+      patchExamSnapshot(queryClient, scope, current => [
+        ...current,
+        { ...data, id: examId, createdAt: new Date().toISOString() } as Exam,
+      ]);
     },
   });
 }
@@ -243,41 +189,38 @@ export function useCreateExam() {
 export function useCreateMultipleExams() {
   const queryClient = useQueryClient();
   const { signAction } = useDigitalSignatureHelpers();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: async (data: CreateExamData[]) => {
       const examIds = await ExamsService.createMultipleExams(data);
-
-      // Create digital signatures for each exam creation
       if (user) {
-        for (let i = 0; i < examIds.length; i++) {
-          const examData = data[i];
-          const examId = examIds[i];
-
-          await signAction(
-            'exam_creation',
-            examId,
-            'created',
-            {
-              examName: examData.name,
-              classId: examData.classId,
-              examType: examData.examTypeName || 'Unknown',
-              maxMarks: examData.maxMarks,
-              startDate: examData.startDate,
-              academicYearId: examData.academicYearId,
-              termId: examData.termId,
-              batchId: examData.batchId
-            }
-          );
+        for (let index = 0; index < examIds.length; index += 1) {
+          const examData = data[index];
+          await signAction('exam_creation', examIds[index], 'created', {
+            examName: examData.name,
+            classId: examData.classId,
+            examType: examData.examTypeName || 'Unknown',
+            maxMarks: examData.maxMarks,
+            startDate: examData.startDate,
+            academicYearId: examData.academicYearId,
+            termId: examData.termId,
+            batchId: examData.batchId,
+          });
         }
       }
-
       return examIds;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: examKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
+    onSuccess: (examIds, data) => {
+      patchExamSnapshot(queryClient, scope, current => [
+        ...current,
+        ...data.map((exam, index) => ({
+          ...exam,
+          id: examIds[index],
+          createdAt: new Date().toISOString(),
+        }) as Exam),
+      ]);
     },
   });
 }
@@ -285,76 +228,44 @@ export function useCreateMultipleExams() {
 export function useUpdateExam() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateExamData }) => {
-      try {
-        // Update the exam
-        // Resolve the optional calendar mirror before committing so the exam,
-        // event, and invalidation revision can share one atomic batch.
-        const examDocRef = doc(db, 'exams', id);
-        const examDoc = await getDoc(examDocRef);
-        let linkedEvent:
-          | { ref: DocumentReference; data: Record<string, any> }
-          | undefined;
+      const examDocRef = doc(db, 'exams', id);
+      const examDoc = await getDoc(examDocRef);
+      let linkedEvent: { ref: DocumentReference; data: Record<string, unknown> } | undefined;
 
-        if (examDoc.exists()) {
-          const examData = examDoc.data();
-          const batchId = examData?.batchId;
-
-          if (batchId) {
-            // Find the associated event
-            const eventsQuery = query(
-              collection(db, 'events'),
-              where('isExamEvent', '==', true),
-              where('examIntegration.examIds', 'array-contains', id)
-            );
-            const eventsSnapshot = await getDocs(eventsQuery);
-
-            if (!eventsSnapshot.empty) {
-              const eventDoc = eventsSnapshot.docs[0];
-              const eventUpdateData: any = {};
-
-              // Update event fields that correspond to exam fields
-              if (data.name) eventUpdateData.title = data.name;
-              if (data.startDate) eventUpdateData.startDate = data.startDate;
-              if (data.endDate) eventUpdateData.endDate = data.endDate;
-              if (data.startTime) eventUpdateData.startTime = data.startTime;
-              if (data.endTime) eventUpdateData.endTime = data.endTime;
-              if (data.instructions) eventUpdateData.description = data.instructions;
-
-              eventUpdateData.updatedAt = serverTimestamp();
-
-              linkedEvent = { ref: eventDoc.ref, data: eventUpdateData };
-              console.log(`Updated associated event ${eventDoc.id} with exam changes`);
-            }
-          }
+      if (examDoc.exists() && examDoc.data()?.batchId) {
+        const eventsSnapshot = await getDocs(query(
+          collection(db, 'events'),
+          where('isExamEvent', '==', true),
+          where('examIntegration.examIds', 'array-contains', id),
+        ));
+        if (!eventsSnapshot.empty) {
+          const eventUpdateData: Record<string, unknown> = { updatedAt: serverTimestamp() };
+          if (data.name !== undefined) eventUpdateData.title = data.name;
+          if (data.startDate !== undefined) eventUpdateData.startDate = data.startDate;
+          if (data.endDate !== undefined) eventUpdateData.endDate = data.endDate;
+          if (data.startTime !== undefined) eventUpdateData.startTime = data.startTime;
+          if (data.endTime !== undefined) eventUpdateData.endTime = data.endTime;
+          if (data.instructions !== undefined) eventUpdateData.description = data.instructions;
+          linkedEvent = { ref: eventsSnapshot.docs[0].ref, data: eventUpdateData };
         }
-
-        await ExamsService.updateExam(id, data, { linkedEvent });
-        return id;
-      } catch (error) {
-        console.error('Error updating exam:', error);
-        throw error;
       }
+
+      await ExamsService.updateExam(id, data, { linkedEvent });
+      return id;
     },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: examKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: examKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ['events'] }); // Also invalidate events
-      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
-      toast({
-        title: "Success",
-        description: "Exam and associated event updated successfully",
-      });
+    onSuccess: (id, { data }) => {
+      patchExamSnapshot(queryClient, scope, current => current.map(exam =>
+        exam.id === id ? { ...exam, ...data, id, updatedAt: new Date().toISOString() } : exam,
+      ));
+      toast({ title: 'Success', description: 'Exam and associated event updated successfully' });
     },
-    onError: (error) => {
-      console.error('Error updating exam:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update exam",
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to update exam', variant: 'destructive' });
     },
   });
 }
@@ -362,82 +273,128 @@ export function useUpdateExam() {
 export function useDeleteExam() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
 
   return useMutation({
     mutationFn: async (examId: string) => {
-      try {
-        const examDocRef = doc(db, 'exams', examId);
-        const examDoc = await getDoc(examDocRef);
+      const examDocRef = doc(db, 'exams', examId);
+      const examDoc = await getDoc(examDocRef);
+      if (!examDoc.exists()) throw new Error('Exam not found');
 
-        if (!examDoc.exists()) {
-          throw new Error('Exam not found');
+      const batch = writeBatch(db);
+      batch.delete(examDocRef);
+      if (examDoc.data()?.batchId) {
+        const eventsSnapshot = await getDocs(query(
+          collection(db, 'events'),
+          where('isExamEvent', '==', true),
+          where('examIntegration.examIds', 'array-contains', examId),
+        ));
+        if (!eventsSnapshot.empty) {
+          const eventDoc = eventsSnapshot.docs[0];
+          const examIds = eventDoc.data().examIntegration?.examIds || [];
+          const remainingExamIds = examIds.filter((id: string) => id !== examId);
+          if (remainingExamIds.length === 0) batch.delete(eventDoc.ref);
+          else batch.update(eventDoc.ref, {
+            'examIntegration.examIds': remainingExamIds,
+            updatedAt: serverTimestamp(),
+          });
         }
-
-        const examData = examDoc.data();
-        const batch = writeBatch(db);
-        batch.delete(examDocRef);
-
-        if (examData?.batchId) {
-          const eventsSnapshot = await getDocs(query(
-            collection(db, 'events'),
-            where('isExamEvent', '==', true),
-            where('examIntegration.examIds', 'array-contains', examId),
-          ));
-          if (!eventsSnapshot.empty) {
-            const eventDoc = eventsSnapshot.docs[0];
-            const updatedExamIds =
-              eventDoc.data().examIntegration?.examIds?.filter((id: string) => id !== examId) || [];
-            if (updatedExamIds.length === 0) {
-              batch.delete(eventDoc.ref);
-            } else {
-              batch.update(eventDoc.ref, {
-                'examIntegration.examIds': updatedExamIds,
-                updatedAt: serverTimestamp(),
-              });
-            }
-          }
-        }
-
-        bumpEventsRevisionInBatch(batch);
-        await batch.commit();
-        console.log(`Deleted exam: ${examId}`);
-        return examId;
-      } catch (error) {
-        console.error('Error deleting exam:', error);
-        throw error;
       }
+      bumpExamDefinitionRevisionsInBatch(batch);
+      await batch.commit();
+      return examId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: examKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['events'] }); // Also invalidate events
-      queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
-      toast({
-        title: "Success",
-        description: "Exam and associated event updated successfully",
-      });
+    onSuccess: examId => {
+      patchExamSnapshot(queryClient, scope, current => current.filter(exam => exam.id !== examId));
+      toast({ title: 'Success', description: 'Exam and associated event updated successfully' });
     },
-    onError: (error) => {
-      console.error('Error deleting exam:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete exam",
-        variant: "destructive",
-      });
+    onError: () => {
+      toast({ title: 'Error', description: 'Failed to delete exam', variant: 'destructive' });
     },
   });
 }
 
-// Exam Results Query Hooks
+function retainedExamResultTerms(years: Array<{ id: string; terms: Array<{ id: string; startDate: string; endDate: string }> }>) {
+  const now = new Date();
+  const terms = years.flatMap(year => year.terms.map(term => ({
+    academicYearId: year.id,
+    termId: term.id,
+    start: new Date(term.startDate),
+    end: new Date(term.endDate),
+  }))).filter(term => !Number.isNaN(term.start.getTime()) && !Number.isNaN(term.end.getTime()))
+    .sort((left, right) => left.start.getTime() - right.start.getTime());
+  if (terms.length === 0) return new Set<string>();
+  const currentIndex = terms.findIndex(term => now >= term.start && now <= term.end);
+  const effectiveIndex = currentIndex >= 0
+    ? currentIndex
+    : Math.max(0, terms.reduce((latest, term, index) => term.start <= now ? index : latest, 0));
+  return new Set(terms.slice(Math.max(0, effectiveIndex - 2), effectiveIndex + 1)
+    .map(term => `${term.academicYearId}:${term.termId}`));
+}
+
+function patchExamResultSnapshot(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  examId: string,
+  academicYearId: string,
+  termId: string,
+  patch: Partial<ExamResult> | ExamResult | null,
+) {
+  const matchingQueries = queryClient.getQueriesData<ExamResult | null>({
+    predicate: cachedQuery =>
+      cachedQuery.queryKey[0] === 'examResults'
+      && cachedQuery.queryKey[1] === 'byExam'
+      && cachedQuery.queryKey[2] === scope
+      && cachedQuery.queryKey[3] === examId,
+  });
+  const currentRevision = matchingQueries
+    .map(([queryKey]) => queryKey[4])
+    .find((revision): revision is number => typeof revision === 'number');
+  queryClient.setQueriesData<ExamResult | null>(
+    {
+      predicate: cachedQuery =>
+        cachedQuery.queryKey[0] === 'examResults'
+        && cachedQuery.queryKey[1] === 'byExam'
+        && cachedQuery.queryKey[2] === scope
+        && cachedQuery.queryKey[3] === examId,
+    },
+    current => {
+      if (patch === null) return null;
+      if (!current) return current;
+      return { ...current, ...patch, id: patch.id ?? current.id, examId };
+    },
+  );
+
+  const current = queryClient.getQueriesData<ExamResult | null>({
+    predicate: cachedQuery =>
+      cachedQuery.queryKey[0] === 'examResults'
+      && cachedQuery.queryKey[1] === 'byExam'
+      && cachedQuery.queryKey[2] === scope
+      && cachedQuery.queryKey[3] === examId,
+  })[0]?.[1];
+  // The settings update is in the same commit as the result write. When the
+  // current term revision is known, stamp its expected successor so the saving
+  // device does not immediately re-read its own successful write.
+  const observedRevision = typeof currentRevision === 'number' ? currentRevision + 1 : -1;
+  if (scope) void writeExamResultCache(scope, examId, academicYearId, termId, observedRevision, current ?? null);
+}
+
+/** The app never preloads this collection; individual results are on-demand only. */
 export function useExamResults() {
   return useQuery({
     queryKey: examResultKeys.lists(),
-    queryFn: () => ExamsService.getAllExamResults(),
+    queryFn: async () => [],
+    enabled: false,
+    staleTime: Infinity,
   });
 }
 
 export function useExamResult(id: string) {
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamResultCacheScope(user?.id, user?.role) : '';
   return useQuery({
-    queryKey: examResultKeys.detail(id),
+    queryKey: examResultKeys.detail(scope, id),
     queryFn: () => ExamsService.getExamResultById(id),
     enabled: !!id,
   });
@@ -445,59 +402,84 @@ export function useExamResult(id: string) {
 
 export function useExamResultByExamId(examId: string) {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const examsQuery = useExams();
+  const revisionsQuery = useDashboardDataRevisions();
+  const { data: academicYears = [] } = useAcademicYears();
+  const scope = isAuthenticated ? getExamResultCacheScope(user?.id, user?.role) : '';
+  // A parent result view keeps its existing direct, pupil-authorized read and
+  // is deliberately never persisted as a class-wide result cache.
+  const queryScope = scope || `projection:${user?.id ?? 'anonymous'}:${user?.role ?? 'unknown'}`;
+  const exam = useMemo(() => examsQuery.data?.find(item => item.id === examId), [examId, examsQuery.data]);
+  const academicYearId = exam?.academicYearId;
+  const termId = exam?.termId;
+  const termKey = academicYearId && termId
+    ? dashboardRevisionKeys.examResults(academicYearId, termId)
+    : undefined;
+  const termRevision = termKey ? revisionsQuery.data?.examResults?.[termKey] : undefined;
+  const [cacheState, setCacheState] = useState<{ key: string; ready: boolean; matching: boolean }>({
+    key: '', ready: false, matching: false,
+  });
 
-  // 🚀 OPTIMIZED: Set up real-time listener for instant updates
   useEffect(() => {
-    if (!examId) return;
+    const cacheKey = `${scope}:${examId}:${academicYearId ?? ''}:${termId ?? ''}:${termRevision ?? 'pending'}`;
+    let cancelled = false;
+    if (!scope || !examId || !academicYearId || !termId || typeof termRevision !== 'number') {
+      setCacheState({ key: cacheKey, ready: true, matching: false });
+      return;
+    }
 
-    const examResultsQuery = query(
-      collection(db, 'examResults'),
-      where('examId', '==', examId)
-    );
-
-    const unsubscribe = onSnapshot(
-      examResultsQuery,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          const data = doc.data();
-          const examResultData = {
-            id: doc.id,
-            ...data,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-          } as unknown as ExamResult;
-
-          // Update cache instantly
-          queryClient.setQueryData(examResultKeys.byExam(examId), examResultData);
-        } else {
-          // No result found for this exam
-          queryClient.setQueryData(examResultKeys.byExam(examId), null);
-        }
-      },
-      (error) => {
-        console.error('Error in exam result listener:', error);
+    setCacheState({ key: cacheKey, ready: false, matching: false });
+    void readExamResultCache(scope, examId).then(cached => {
+      if (cancelled) return;
+      const matching = !!cached
+        && cached.academicYearId === academicYearId
+        && cached.termId === termId
+        && cached.observedTermRevision === termRevision;
+      if (cached) {
+        queryClient.setQueryData(examResultKeys.byExam(queryScope, examId, termRevision), cached.data);
       }
-    );
+      setCacheState({ key: cacheKey, ready: true, matching });
+    });
 
-    return () => unsubscribe();
-  }, [examId, queryClient]);
+    return () => { cancelled = true; };
+  }, [academicYearId, examId, queryClient, queryScope, scope, termId, termRevision]);
 
-  return useQuery({
-    queryKey: examResultKeys.byExam(examId),
-    queryFn: () => ExamsService.getExamResultByExamId(examId),
-    enabled: !!examId,
-    // 🚀 OPTIMIZED: Cache-first strategy for instant loading
-    staleTime: 2 * 60 * 1000, // 2 minutes (results change more frequently)
-    gcTime: 15 * 60 * 1000, // 15 minutes
+  useEffect(() => {
+    if (!scope || academicYears.length === 0) return;
+    void pruneExamResultCache(scope, retainedExamResultTerms(academicYears));
+  }, [academicYears, scope]);
+
+  const cacheKey = `${scope}:${examId}:${academicYearId ?? ''}:${termId ?? ''}:${termRevision ?? 'pending'}`;
+  const cacheReady = cacheState.key === cacheKey && cacheState.ready;
+  const cacheMatches = cacheState.key === cacheKey && cacheState.matching;
+
+  const queryResult = useQuery({
+    queryKey: examResultKeys.byExam(queryScope, examId, termRevision),
+    queryFn: async () => {
+      const result = await ExamsService.getExamResultByExamId(examId);
+      if (scope && academicYearId && termId && typeof termRevision === 'number') {
+        await writeExamResultCache(scope, examId, academicYearId, termId, termRevision, result);
+      }
+      return result;
+    },
+    enabled: !!examId && (
+      !scope || (!!academicYearId && !!termId && typeof termRevision === 'number' && cacheReady && !cacheMatches)
+    ),
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    placeholderData: (previousData) => previousData,
+    placeholderData: previousData => previousData,
   });
+
+  return {
+    ...queryResult,
+    isLoading: !!examId && queryResult.data === undefined && (scope ? !cacheReady || queryResult.isLoading : queryResult.isLoading),
+  };
 }
 
-// Exam Results Mutation Hooks
 export function useCreateExamResult() {
   const queryClient = useQueryClient();
   const { signAction } = useDigitalSignatureHelpers();
@@ -505,84 +487,85 @@ export function useCreateExamResult() {
 
   return useMutation({
     mutationFn: async (data: Omit<ExamResult, 'id'>) => {
-      const resultId = await ExamsService.createExamResult(data);
-
-      // Create digital signature for exam result recording
+      const result = await ExamsService.createExamResult(data);
       if (user) {
-        await signAction(
-          'exam_result',
-          resultId,
-          'recorded',
-          {
-            examId: data.examId,
-            classId: data.classId,
-            pupilCount: data.pupilSnapshots?.length || 0,
-            subjectCount: data.subjectSnapshots?.length || 0,
-            isPublished: data.isPublished || false
-          }
-        );
+        await signAction('exam_result', result.id, 'recorded', {
+          examId: data.examId,
+          classId: data.classId,
+          pupilCount: data.pupilSnapshots?.length || 0,
+          subjectCount: data.subjectSnapshots?.length || 0,
+          isPublished: data.isPublished || false,
+        });
       }
-
-      return resultId;
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: examResultKeys.all });
+    onSuccess: result => {
+      const scope = getExamResultCacheScope(user?.id, user?.role);
+      if (scope && result.academicYearId && result.termId) {
+        patchExamResultSnapshot(queryClient, scope, result.examId, result.academicYearId, result.termId, result);
+        void writeExamResultCache(scope, result.examId, result.academicYearId, result.termId, -1, result);
+      }
     },
   });
 }
 
 export function useUpdateExamResult() {
   const queryClient = useQueryClient();
-
+  const { user } = useAuth();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<ExamResult> }) =>
-      ExamsService.updateExamResult(id, data),
-    onSuccess: (_, { id, data }) => {
-      queryClient.invalidateQueries({ queryKey: examResultKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: examResultKeys.lists() });
-      // Also invalidate the byExam query if we have the examId
-      if (data.examId) {
-        queryClient.invalidateQueries({ queryKey: examResultKeys.byExam(data.examId) });
+    mutationFn: ({ id, data, lease }: { id: string; data: Partial<ExamResult>; lease?: ExamLeaseToken }) =>
+      ExamsService.updateExamResult(id, data, { lease }),
+    onSuccess: receipt => {
+      const scope = getExamResultCacheScope(user?.id, user?.role);
+      if (scope) {
+        patchExamResultSnapshot(
+          queryClient,
+          scope,
+          receipt.examId,
+          receipt.academicYearId,
+          receipt.termId,
+          receipt.patch,
+        );
       }
-      // Invalidate all byExam queries to be safe
-      queryClient.invalidateQueries({
-        predicate: (query) =>
-          query.queryKey[0] === 'examResults' &&
-          query.queryKey[1] === 'byExam'
-      });
     },
   });
 }
 
 export function useDeleteExamResult() {
   const queryClient = useQueryClient();
-
+  const { user } = useAuth();
   return useMutation({
     mutationFn: (id: string) => ExamsService.deleteExamResult(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: examResultKeys.all });
+    onSuccess: receipt => {
+      const scope = getExamResultCacheScope(user?.id, user?.role);
+      if (!scope) return;
+      patchExamResultSnapshot(queryClient, scope, receipt.examId, receipt.academicYearId, receipt.termId, null);
+      void deleteExamResultCache(scope, receipt.examId);
     },
   });
 }
 
-// Add new hook for pupil exam history
-export function usePupilExamHistory(pupilId: string, options?: { enabled?: boolean; currentExamId?: string; academicYearId?: string; termId?: string }) {
+export function usePupilExamHistory(
+  pupilId: string,
+  options?: { enabled?: boolean; currentExamId?: string; academicYearId?: string; termId?: string },
+) {
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
   return useQuery({
-    queryKey: [...examKeys.pupilHistory(pupilId), { academicYearId: options?.academicYearId, termId: options?.termId }],
+    queryKey: [...examKeys.pupilHistory(scope, pupilId), {
+      academicYearId: options?.academicYearId,
+      termId: options?.termId,
+    }],
     queryFn: () => ExamsService.getPupilExamHistory(pupilId, options?.currentExamId),
-    enabled: !!pupilId && (options?.enabled !== false),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (exams don't change often)
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    enabled: !!pupilId && options?.enabled !== false,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      // Don't retry if it's an offline error
       if (error?.message?.includes('offline') ||
         error?.message?.includes('Could not reach Cloud Firestore') ||
-        (error as any)?.code === 'unavailable') {
-        return false;
-      }
-      // Retry up to 2 times for other errors
+        (error as any)?.code === 'unavailable') return false;
       return failureCount < 2;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }

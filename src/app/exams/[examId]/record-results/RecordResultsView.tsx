@@ -47,6 +47,7 @@ import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import type { Exam, Pupil, Class, ExamResult as ImportedExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, ExamClassInfoSnapshot, PupilSubjectResult, GradingScaleItem } from '@/types';
 import { useExamResultByExamId, useUpdateExamResult } from '@/lib/hooks/use-exams';
+import { useExamResultLease } from '@/lib/hooks/use-exam-result-lease';
 import { ExamSignatureDisplay } from '@/components/exam/ExamSignatureDisplay';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import {
@@ -428,6 +429,7 @@ export default function RecordResultsView() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   const updateExamResultMutation = useUpdateExamResult();
+  const resultLease = useExamResultLease(examId);
 
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
   const { data: allClasses = [] } = useClasses();
@@ -435,8 +437,7 @@ export default function RecordResultsView() {
   const { 
     data: examResultData, 
     isLoading: isLoadingExamResult, 
-    error: examResultError,
-    refetch: refetchExamResult
+    error: examResultError
   } = useExamResultByExamId(examId);
 
   const examDetails = useMemo(() => {
@@ -829,6 +830,10 @@ export default function RecordResultsView() {
   }, [sortField]);
 
   const handleSubmit = useCallback(async () => {
+    if (!resultLease.canEdit) {
+      toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'This result is open by another editor, offline, or waiting for its editing lease.' });
+      return false;
+    }
     if (isSubmitting || !examResultData || !examDetails || !classSnap) {
         toast({variant: "destructive", title: "Error", description: "Missing critical data to save results."})
         return false;
@@ -865,8 +870,11 @@ export default function RecordResultsView() {
 
       await updateExamResultMutation.mutateAsync({
         id: examResultData.id,
+        lease: resultLease.token,
         data: { 
           examId: examResultData.examId, // Include examId for proper cache invalidation
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
           assessmentMode: isNurseryExam ? 'nursery_commentary' : 'marks',
           results: updatedResultsPayload, 
           gradingScale: isNurseryExam ? [] : gradingScaleItems,
@@ -875,7 +883,6 @@ export default function RecordResultsView() {
         }
       });
       toast({ title: "Success", description: "Results saved successfully" });
-      await refetchExamResult();
       return true;
     } catch (error) {
       console.error('Error saving results:', error);
@@ -885,7 +892,7 @@ export default function RecordResultsView() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, refetchExamResult, gradingScaleItems, selectedMajorSubjects, isNurseryExam]);
+  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canEdit, resultLease.token]);
 
   const canSaveDraft = isNurseryExam || examSubjects.length <= 4 || selectedMajorSubjects.length === 4;
 
@@ -1014,6 +1021,10 @@ export default function RecordResultsView() {
   }, []);
 
   const handleSaveGradingScale = useCallback(async (newScale?: GradingScaleItem[]) => {
+    if (!resultLease.canEdit) {
+      toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'Acquire the result editing lease before changing the grading scale.' });
+      return;
+    }
     if (!examResultData) {
         toast({variant: "destructive", title: "Error", description: "Exam result data not found."})
         return;
@@ -1073,8 +1084,11 @@ export default function RecordResultsView() {
       
       await updateExamResultMutation.mutateAsync({
         id: examResultData.id,
+        lease: resultLease.token,
         data: { 
             examId: examResultData.examId, // Include examId for proper cache invalidation
+            academicYearId: examDetails?.academicYearId,
+            termId: examDetails?.termId,
             gradingScale: scaleToSave,
             results: recalculatedResults,
             lastUpdatedAt: new Date().toISOString() 
@@ -1114,14 +1128,14 @@ export default function RecordResultsView() {
       setIsGradingModalOpen(false);
       
       // Refetch to get updated data from database
-      const refetchResult = await refetchExamResult();
+      const refetchResult = { data: { gradingScale: scaleToSave } };
       console.log('🔄 Refetched exam result data:', refetchResult.data?.gradingScale);
     } catch (error) {
       console.error('Error saving grading scale:', error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({ variant: "destructive", title: "Error", description: `Failed to update grading scale: ${errorMessage}` });
     }
-  }, [gradingScaleItems, examResultData, updateExamResultMutation, toast, refetchExamResult, subjectSnaps]);
+  }, [gradingScaleItems, examResultData, updateExamResultMutation, toast, subjectSnaps, resultLease.canEdit, resultLease.token]);
 
   const getHeaderContent = useCallback(() => {
     const examNameStr = examDetails?.name || 'Exam';
@@ -1638,17 +1652,20 @@ export default function RecordResultsView() {
                   label="Scale"
                   icon={<Settings className="h-4 w-4" />}
                   tone="slate"
-                  onClick={() => setIsGradingModalOpen(true)}
+                onClick={() => setIsGradingModalOpen(true)}
+                disabled={!resultLease.canEdit}
                 />
               )}
               <GlassActionButton
                 label={isSubmitting ? 'Saving' : 'Save'}
                 icon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 tone="blue"
-                disabled={isSubmitting || (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
+                disabled={!resultLease.canEdit || isSubmitting || (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
                 title={
                   isSubmitting
                     ? "Saving results..."
+                    : !resultLease.canEdit
+                      ? (resultLease.holder ? `Being edited by ${resultLease.holder.lockedByName}` : 'Waiting for an editing lease')
                     : (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)
                       ? `Select 4 major subjects above to enable saving (${selectedMajorSubjects.length}/4 selected)`
                       : "Save exam results"
