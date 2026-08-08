@@ -416,7 +416,13 @@ export function useExamResultByExamId(examId: string) {
   const termKey = academicYearId && termId
     ? dashboardRevisionKeys.examResults(academicYearId, termId)
     : undefined;
-  const termRevision = termKey ? revisionsQuery.data?.examResults?.[termKey] : undefined;
+  // Existing school-settings documents predate result revisions. Once the
+  // settings snapshot itself is ready, a missing term entry is a confirmed
+  // baseline of zero—not a reason to suppress the first result fetch.
+  const revisionsReady = revisionsQuery.data !== undefined;
+  const termRevision = termKey && revisionsReady
+    ? revisionsQuery.data.examResults?.[termKey] ?? 0
+    : undefined;
   const [cacheState, setCacheState] = useState<{ key: string; ready: boolean; matching: boolean }>({
     key: '', ready: false, matching: false,
   });

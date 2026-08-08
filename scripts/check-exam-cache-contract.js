@@ -94,6 +94,8 @@ assert(
   hooks.includes('readExamResultCache') &&
     hooks.includes('writeExamResultCache') &&
     hooks.includes('dashboardRevisionKeys.examResults') &&
+    hooks.includes('const revisionsReady = revisionsQuery.data !== undefined') &&
+    hooks.includes("revisionsQuery.data.examResults?.[termKey] ?? 0") &&
     !hooks.includes("onSnapshot(\n      examResultsQuery") &&
     service.includes("doc(db, this.EXAM_RESULTS_COLLECTION, examId)") &&
     service.includes('Legacy result fallback used') &&
