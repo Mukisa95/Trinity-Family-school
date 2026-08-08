@@ -272,6 +272,7 @@ const styles = StyleSheet.create({
   summaryGap: { marginRight: 7 },
   summaryCardImage: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'fill' },
   summaryValue: { position: 'absolute', left: '39%', right: 7, bottom: 5, fontFamily: 'Helvetica-Bold', fontSize: 16, color: '#ffffff', textAlign: 'center' },
+  ungradedSummaryValue: { bottom: 11 },
   promotion: { position: 'absolute', left: '39%', right: 7, bottom: 1.5, color: '#ffffff', fontSize: 3.8, textAlign: 'center' },
 
   scaleSection: { height: 65, marginTop: 9 },
@@ -367,7 +368,9 @@ const initialsFor = (name?: string) => name
   : '';
 
 const fieldValue = (setting: { show: boolean; fill: boolean }, value: string | number) => setting.show && setting.fill ? String(value) : '';
-const divisionAsset = (division: string) => ASSETS.division[division.replace('DIVISION ', '').trim() as keyof typeof ASSETS.division] || ASSETS.division.U;
+const divisionCode = (division: string) => division.replace('DIVISION ', '').trim().toUpperCase();
+const divisionAsset = (division: string) => ASSETS.division[divisionCode(division) as keyof typeof ASSETS.division] || ASSETS.division.U;
+const divisionLabel = (division: string) => divisionCode(division) === 'U' ? 'UNGRADED' : divisionCode(division);
 
 const normalizedExamName = (examTypeName?: string, fallback?: string) => {
   const raw = (examTypeName || fallback || 'END OF TERM').trim().replace(/\s+REPORT$/i, '');
@@ -576,7 +579,7 @@ const FullReport2Page = ({
             </View>
             <View style={styles.summaryCard}>
               <Image src={divisionAsset(result.division)} style={styles.summaryCardImage} />
-              <Text style={styles.summaryValue}>{result.division}</Text>
+              <Text style={divisionCode(result.division) === 'U' ? [styles.summaryValue, styles.ungradedSummaryValue] : styles.summaryValue}>{divisionLabel(result.division)}</Text>
               {config.promoted.show && config.promoted.fill && <Text style={styles.promotion}>{promotion}</Text>}
             </View>
           </View>
@@ -603,7 +606,7 @@ const FullReport2Page = ({
                   ))}
                   <View style={styles.progressTotalCell}><Text style={[styles.progressTotalText, { fontSize: progressFontSize }]}>{progressRow.totalMarks}</Text></View>
                   <View style={styles.progressAggregateCell}><Text style={[styles.progressAggregateText, { fontSize: progressFontSize }]}>{progressRow.totalAggregates}</Text></View>
-                  <View style={styles.progressDivisionCell}><Text style={[styles.progressDivisionText, { fontSize: progressFontSize }]}>{progressRow.division}</Text></View>
+                  <View style={styles.progressDivisionCell}><Text style={[styles.progressDivisionText, { fontSize: progressFontSize }]}>{divisionLabel(progressRow.division)}</Text></View>
                 </View>
               ))}
             </View>
