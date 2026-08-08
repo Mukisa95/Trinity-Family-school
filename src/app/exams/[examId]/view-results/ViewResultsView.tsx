@@ -1243,6 +1243,7 @@ export default function ViewResultsView() {
     createdOn: { show: true, fill: true, useCustom: false },
     nextTermBegins: { show: true, fill: true, useCustom: false },
     nextTermEnds: { show: true, fill: true, useCustom: false },
+    palette: 'blue' as 'blue' | 'purple' | 'orange',
   });
 
   // Custom dates state
@@ -2868,11 +2869,7 @@ export default function ViewResultsView() {
       return;
     }
     setSelectedFullReportTemplate('full2');
-    // This template has one mid-term performance table, so it goes straight to the
-    // same field configuration dialog used by Full Report rather than offering a
-    // progress-comparison layout that the supplied design does not contain.
-    setTransReportType('grading');
-    setShowReportConfigModal(true);
+    setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
 
   // Handle TRANS report type selection
@@ -5027,6 +5024,60 @@ export default function ViewResultsView() {
           </DialogHeader>
 
           <div className="py-4">
+            {selectedFullReportTemplate === 'full2' && (
+              <section className="mb-6 space-y-3" aria-labelledby="full-report-2-palette-heading">
+                <div>
+                  <h3 id="full-report-2-palette-heading" className="text-sm font-semibold text-gray-900">Report colour palette</h3>
+                  <p className="mt-1 text-xs text-gray-500">Choose the accent colours used throughout Full Report 2.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {([
+                    { id: 'blue', label: 'Current Blue', primary: '#244291', secondary: '#2563eb', soft: '#eef4ff' },
+                    { id: 'purple', label: 'Purple', primary: '#6b21a8', secondary: '#d35ac7', soft: '#faf5ff' },
+                    { id: 'orange', label: 'Orange', primary: '#f4510b', secondary: '#f59e0b', soft: '#fff7ed' },
+                  ] as const).map((paletteOption) => {
+                    const isSelected = reportConfig.palette === paletteOption.id;
+                    return (
+                      <button
+                        key={paletteOption.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setReportConfig(prev => ({ ...prev, palette: paletteOption.id }))}
+                        className="group rounded-xl border-2 bg-white p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                        style={{
+                          borderColor: isSelected ? paletteOption.primary : '#e5e7eb',
+                          boxShadow: isSelected ? `0 0 0 3px ${paletteOption.soft}` : undefined,
+                        }}
+                      >
+                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                          <div className="h-2" style={{ backgroundColor: paletteOption.primary }} />
+                          <div className="space-y-1.5 p-2" style={{ backgroundColor: paletteOption.soft }}>
+                            <div className="h-1.5 w-3/4 rounded-full" style={{ backgroundColor: paletteOption.primary, opacity: 0.75 }} />
+                            <div className="grid grid-cols-4 gap-1">
+                              <div className="col-span-2 h-4 rounded-sm" style={{ backgroundColor: paletteOption.primary }} />
+                              <div className="h-4 rounded-sm" style={{ backgroundColor: paletteOption.secondary }} />
+                              <div className="h-4 rounded-sm" style={{ backgroundColor: paletteOption.primary, opacity: 0.72 }} />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-gray-900">{paletteOption.label}</span>
+                          <span
+                            className="flex h-5 w-5 items-center justify-center rounded-full border"
+                            style={{
+                              borderColor: paletteOption.primary,
+                              backgroundColor: isSelected ? paletteOption.primary : '#ffffff',
+                            }}
+                          >
+                            {isSelected && <Check className="h-3.5 w-3.5 text-white" aria-hidden="true" />}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
