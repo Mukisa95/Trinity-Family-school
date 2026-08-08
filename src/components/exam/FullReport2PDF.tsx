@@ -96,13 +96,16 @@ const assetPath = (fileName: string) => {
 const ASSETS = {
   background: assetPath('background 2.png'),
   heading: assetPath('a87590a5-f340-418d-b28d-e776347aac2d.png'),
-  aggregate: assetPath('f37cbfce-2a15-4b59-ad8e-52e96ed5856d.png'),
+  summary: {
+    totalMarks: assetPath('Total.png'),
+    totalAggregates: assetPath('Total Agg.png'),
+  },
   division: {
-    I: assetPath('D1.png'),
-    II: assetPath('D2.png'),
-    III: assetPath('D3.png'),
-    IV: assetPath('D4.png'),
-    U: assetPath('DU.png'),
+    I: assetPath('Div 1.png'),
+    II: assetPath('Div 2.png'),
+    III: assetPath('Div 3.png'),
+    IV: assetPath('Div 4.png'),
+    U: assetPath('Div u.png'),
   },
 };
 
@@ -263,18 +266,13 @@ const styles = StyleSheet.create({
   remarkCell: { width: '27%' },
   initialsCell: { width: '10%', borderRightWidth: 0 },
 
-  summaryOuter: { height: 68, marginTop: 8, borderWidth: 1, borderColor: '#244291', borderRadius: 7, padding: 9, backgroundColor: '#ffffff' },
-  summaryRow: { height: 48, flexDirection: 'row' },
-  summaryCard: { flex: 1, position: 'relative', borderRadius: 6, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  summaryOuter: { height: 68, marginTop: 8, paddingVertical: 7 },
+  summaryRow: { height: 54, flexDirection: 'row' },
+  summaryCard: { flex: 1, position: 'relative', borderRadius: 7, overflow: 'hidden' },
   summaryGap: { marginRight: 7 },
-  totalCard: { backgroundColor: '#244291' },
-  aggregateCard: { backgroundColor: '#7c3aed' },
-  divisionCard: { backgroundColor: '#2563eb' },
-  summaryIcon: { position: 'absolute', left: 6, bottom: 5, width: 29, height: 29, objectFit: 'contain', opacity: 0.92 },
-  divisionIcon: { position: 'absolute', left: 6, bottom: 4, width: 34, height: 34, objectFit: 'contain' },
-  summaryLabel: { fontFamily: 'Helvetica-Bold', fontSize: 8.2, color: '#ffffff', textAlign: 'center' },
-  summaryValue: { fontFamily: 'Helvetica-Bold', fontSize: 15, color: '#ffffff', textAlign: 'center', marginTop: 3 },
-  promotion: { position: 'absolute', right: 5, bottom: 3, color: '#ffffff', fontSize: 4.8 },
+  summaryCardImage: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'fill' },
+  summaryValue: { position: 'absolute', left: '39%', right: 7, bottom: 5, fontFamily: 'Helvetica-Bold', fontSize: 16, color: '#ffffff', textAlign: 'center' },
+  promotion: { position: 'absolute', left: '39%', right: 7, bottom: 1.5, color: '#ffffff', fontSize: 3.8, textAlign: 'center' },
 
   scaleSection: { height: 65, marginTop: 9 },
   scaleTitle: { height: 15, fontFamily: 'Helvetica-Bold', fontSize: 8.7, color: '#64748b', paddingTop: 1 },
@@ -566,20 +564,18 @@ const FullReport2Page = ({
           </View>
         </View>
 
-        <View style={[styles.summaryOuter, { borderColor: palette.border }]} wrap={false}>
+        <View style={styles.summaryOuter} wrap={false}>
           <View style={styles.summaryRow}>
-            <View style={[styles.summaryCard, styles.summaryGap, { backgroundColor: palette.cardColors[0] }]}>
-              <Text style={styles.summaryLabel}>TOTAL MARKS</Text>
+            <View style={[styles.summaryCard, styles.summaryGap]}>
+              <Image src={ASSETS.summary.totalMarks} style={styles.summaryCardImage} />
               <Text style={styles.summaryValue}>{result.totalMarks}</Text>
             </View>
-            <View style={[styles.summaryCard, styles.summaryGap, { backgroundColor: palette.cardColors[1] }]}>
-              <Image src={ASSETS.aggregate} style={styles.summaryIcon} />
-              <Text style={styles.summaryLabel}>TOTAL AGGREGATES</Text>
+            <View style={[styles.summaryCard, styles.summaryGap]}>
+              <Image src={ASSETS.summary.totalAggregates} style={styles.summaryCardImage} />
               <Text style={styles.summaryValue}>{result.totalAggregates}</Text>
             </View>
-            <View style={[styles.summaryCard, { backgroundColor: palette.cardColors[2] }]}>
-              <Image src={divisionAsset(result.division)} style={styles.divisionIcon} />
-              <Text style={styles.summaryLabel}>DIVISION</Text>
+            <View style={styles.summaryCard}>
+              <Image src={divisionAsset(result.division)} style={styles.summaryCardImage} />
               <Text style={styles.summaryValue}>{result.division}</Text>
               {config.promoted.show && config.promoted.fill && <Text style={styles.promotion}>{promotion}</Text>}
             </View>
