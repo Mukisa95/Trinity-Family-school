@@ -14,8 +14,7 @@ import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
-import { useCommentTemplates } from '@/hooks/useCommentTemplates';
-import { getDynamicComments, getSubjectComments, BulkCommentGenerator } from '@/utils/commentUtils';
+import { BulkCommentGenerator } from '@/utils/commentUtils';
 import { commentaryService } from '@/services/commentaryService';
 import { pdf, Document } from '@react-pdf/renderer';
 import PupilPerformanceListPDF from '@/components/reports/PupilPerformanceListPDF';
@@ -879,11 +878,19 @@ export default function RemarkReportPage() {
     }
   };
 
-  const handlePrintReportLight = async (reportStyle: 'standard' | 'playful' = 'standard') => {
-    if (!selectedClass || filteredPupils.length === 0) {
+  const handlePrintReportLight = async (
+    reportStyle: 'standard' | 'playful' = 'standard',
+    targetPupils?: Pupil[],
+  ) => {
+    const pupilsToPrint = targetPupils ?? filteredPupils;
+    const isIndividualPrint = pupilsToPrint.length === 1 && Boolean(targetPupils);
+
+    if (!selectedClass || pupilsToPrint.length === 0) {
       toast({
         title: "No Data",
-        description: "Please select a class with pupils to generate batch reports.",
+        description: isIndividualPrint
+          ? "The selected pupil is not available for printing."
+          : "Please select a class with pupils to generate batch reports.",
         variant: "destructive",
       });
       return;
@@ -901,14 +908,16 @@ export default function RemarkReportPage() {
     try {
       setBatchProgress({
         isGenerating: true,
-        currentStep: `Initializing ${reportStyle === 'playful' ? 'playful' : 'standard'} batch report generation...`,
+        currentStep: `Initializing ${reportStyle === 'playful' ? 'playful' : 'standard'} ${isIndividualPrint ? 'pupil' : 'batch'} report...`,
         progress: 0,
-        total: Math.max(0, filteredPupils.length || 0)
+        total: pupilsToPrint.length,
       });
 
       toast({
-        title: "Generating Batch Reports",
-        description: `Creating ${reportStyle === 'playful' ? 'playful' : 'standard'} reports for ${filteredPupils.length} pupils. Please wait...`,
+        title: isIndividualPrint ? "Generating Pupil Report" : "Generating Batch Reports",
+        description: isIndividualPrint
+          ? `Creating the ${reportStyle === 'playful' ? 'playful' : 'assessment'} report for ${formatPupilDisplayName(pupilsToPrint[0])}...`
+          : `Creating ${reportStyle === 'playful' ? 'playful' : 'standard'} reports for ${pupilsToPrint.length} pupils. Please wait...`,
       });
 
       const effectiveData = getEffectiveTermForDataDisplay(academicYears);
@@ -990,20 +999,20 @@ export default function RemarkReportPage() {
       const nextTermDates = getNextTermDates(currentAcademicYear, currentTerm);
       const nextTermStartDate = formatDateForDisplay(nextTermDates.startDate);
       const nextTermEndDate = formatDateForDisplay(nextTermDates.endDate);
-      const livePupilsMap = await fetchLivePupilsMap(filteredPupils.map((pupil) => pupil.id));
+      const livePupilsMap = await fetchLivePupilsMap(pupilsToPrint.map((pupil) => pupil.id));
 
       setBatchProgress(prev => ({ ...prev, currentStep: 'Fetching comment templates...' }));
       const allTemplates = await commentaryService.getAllActiveTemplates();
       const commentGenerator = new BulkCommentGenerator(allTemplates);
 
       const allPupilsData = [];
-      for (let i = 0; i < filteredPupils.length; i++) {
-        const pupil = livePupilsMap[filteredPupils[i].id] || filteredPupils[i];
+      for (let i = 0; i < pupilsToPrint.length; i++) {
+        const pupil = livePupilsMap[pupilsToPrint[i].id] || pupilsToPrint[i];
         const performanceStatus = (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus) || pupil.performanceStatus || 'fair';
 
         setBatchProgress(prev => ({
           ...prev,
-          currentStep: `Preparing ${formatPupilDisplayName(pupil)} (${i + 1}/${filteredPupils.length})`,
+          currentStep: `Preparing ${formatPupilDisplayName(pupil)} (${i + 1}/${pupilsToPrint.length})`,
           progress: i + 1,
         }));
 
@@ -1033,7 +1042,7 @@ export default function RemarkReportPage() {
       }
 
       if (allPupilsData.length === 0) {
-        throw new Error('No pupil data available for batch report');
+        throw new Error('No pupil data available for report');
       }
 
       setBatchProgress(prev => ({
@@ -1043,8 +1052,8 @@ export default function RemarkReportPage() {
         total: Math.max(0, allPupilsData.length || 0)
       }));
 
-      const batchPdfDoc = (
-        <Document title={`${reportStyle === 'playful' ? 'Playful' : 'Assessment'} Reports - ${selectedClassData.name}`}>
+      const reportPdfDoc = (
+        <Document title={`${reportStyle === 'playful' ? 'Playful' : 'Assessment'} Report${isIndividualPrint ? '' : 's'} - ${selectedClassData.name}`}>
           {allPupilsData.map((pupilData, index) => (
             reportStyle === 'playful' ? (
               <PlayfulNurseryReportPageContent
@@ -1081,10 +1090,21 @@ export default function RemarkReportPage() {
         </Document>
       );
 
-      const fileName = `${reportStyle === 'playful' ? 'Batch_Playful_Reports' : 'Batch_Assessment_Reports'}_${selectedClassData.name}_${new Date().toISOString().split('T')[0]}.pdf`;
-      const title = reportStyle === 'playful' ? 'Batch Playful Reports' : 'Batch Assessment Reports';
+      const individualPupil = allPupilsData[0]?.pupil;
+      const individualPupilName = individualPupil
+        ? formatPupilDisplayName(individualPupil)
+        : 'the selected pupil';
+      const safePupilName = individualPupil
+        ? individualPupilName.replace(/[^a-zA-Z0-9]/g, '_')
+        : 'Pupil';
+      const fileName = isIndividualPrint
+        ? `${reportStyle === 'playful' ? 'Playful_Report' : 'Assessment_Report'}_${safePupilName}_${new Date().toISOString().split('T')[0]}.pdf`
+        : `${reportStyle === 'playful' ? 'Batch_Playful_Reports' : 'Batch_Assessment_Reports'}_${selectedClassData.name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const title = isIndividualPrint
+        ? (reportStyle === 'playful' ? 'Playful Pupil Report' : 'Pupil Assessment Report')
+        : (reportStyle === 'playful' ? 'Batch Playful Reports' : 'Batch Assessment Reports');
 
-      await pdfViewer.openPDF(batchPdfDoc, fileName, title);
+      await pdfViewer.openPDF(reportPdfDoc, fileName, title);
 
       setBatchProgress({
         isGenerating: false,
@@ -1094,8 +1114,10 @@ export default function RemarkReportPage() {
       });
 
       toast({
-        title: "Batch Report Generated",
-        description: `Combined ${reportStyle === 'playful' ? 'playful' : 'assessment'} report with ${allPupilsData.length} pupils from ${selectedClassData.name} is ready.`,
+        title: isIndividualPrint ? "Pupil Report Generated" : "Batch Report Generated",
+        description: isIndividualPrint
+          ? `${reportStyle === 'playful' ? 'Playful' : 'Assessment'} report for ${individualPupilName} is ready.`
+          : `Combined ${reportStyle === 'playful' ? 'playful' : 'assessment'} report with ${allPupilsData.length} pupils from ${selectedClassData.name} is ready.`,
       });
     } catch (error) {
       console.error('Error generating lightweight batch reports:', error);
@@ -1109,195 +1131,15 @@ export default function RemarkReportPage() {
 
       toast({
         title: "Error",
-        description: "Failed to generate the lighter batch assessment report. Please try again.",
+        description: isIndividualPrint
+          ? "Failed to generate the pupil report. Please try again."
+          : "Failed to generate the batch assessment report. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const handlePrintPlayfulReport = () => handlePrintReportLight('playful');
-
-  // Individual pupil print handler
-  const handlePrintPupil = async (pupil: Pupil) => {
-    if (!selectedClassData) {
-      toast({
-        title: "Error",
-        description: "Class information not available.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      toast({
-        title: "Generating Report",
-        description: `Creating assessment report for ${formatPupilDisplayName(pupil)}...`,
-      });
-
-      // Get current academic year and term via centralized effective-term detection
-      const effectiveData = getEffectiveTermForDataDisplay(academicYears);
-      const currentAcademicYear = effectiveData?.academicYear ?? null;
-      const currentTerm = effectiveData?.term ?? null;
-
-      // Get next term dates dynamically
-      const getNextTermDates = (academicYear: any, currentTerm: any) => {
-        if (!academicYear || !academicYear.terms || academicYear.terms.length === 0) {
-          return { startDate: null, endDate: null };
-        }
-
-        if (!currentTerm) {
-          // If no current term, return first term
-          const firstTerm = academicYear.terms[0];
-          return {
-            startDate: firstTerm?.startDate || null,
-            endDate: firstTerm?.endDate || null
-          };
-        }
-
-        // Find current term index
-        const currentTermIndex = academicYear.terms.findIndex((term: any) => term.id === currentTerm.id);
-
-        if (currentTermIndex === -1) {
-          // Current term not found, return first term
-          const firstTerm = academicYear.terms[0];
-          return {
-            startDate: firstTerm?.startDate || null,
-            endDate: firstTerm?.endDate || null
-          };
-        }
-
-        // Get next term (if exists in same academic year)
-        const nextTermIndex = currentTermIndex + 1;
-        if (nextTermIndex < academicYear.terms.length) {
-          const nextTerm = academicYear.terms[nextTermIndex];
-          console.log('📅 Next term found in same academic year:', nextTerm.name);
-          return {
-            startDate: nextTerm.startDate || null,
-            endDate: nextTerm.endDate || null
-          };
-        }
-
-        // If no next term in current academic year, look for next academic year's first term
-        // Note: Since AcademicYear uses 'name' instead of 'year', we'll need to parse the year from the name
-        const currentYearNumber = parseInt(academicYear.name.match(/\d{4}/)?.[0] || '0');
-        const nextAcademicYear = academicYears.find(year => {
-          const yearNumber = parseInt(year.name.match(/\d{4}/)?.[0] || '0');
-          return yearNumber === (currentYearNumber + 1);
-        });
-
-        if (nextAcademicYear && nextAcademicYear.terms && nextAcademicYear.terms.length > 0) {
-          const firstTermNextYear = nextAcademicYear.terms[0];
-          console.log('📅 Next term found in next academic year:', firstTermNextYear.name);
-          return {
-            startDate: firstTermNextYear.startDate || null,
-            endDate: firstTermNextYear.endDate || null
-          };
-        }
-
-        // Fallback: no next term found
-        console.log('📅 No next term found, using fallback');
-        return { startDate: null, endDate: null };
-      };
-
-      const nextTermDates = getNextTermDates(currentAcademicYear, currentTerm);
-
-      // Format dates for display
-      const formatDateForDisplay = (dateString: string | null): string => {
-        if (!dateString) return '';
-
-        try {
-          const date = new Date(dateString);
-          const day = date.getDate();
-          const month = date.toLocaleString('en-US', { month: 'long' }).toUpperCase();
-          const year = date.getFullYear();
-
-          // Add ordinal suffix to day
-          const getOrdinalSuffix = (day: number): string => {
-            if (day > 3 && day < 21) return 'TH';
-            switch (day % 10) {
-              case 1: return 'ST';
-              case 2: return 'ND';
-              case 3: return 'RD';
-              default: return 'TH';
-            }
-          };
-
-          return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
-        } catch (error) {
-          console.error('Error formatting date:', error);
-          return '';
-        }
-      };
-
-      const nextTermStartDate = formatDateForDisplay(nextTermDates.startDate);
-      const nextTermEndDate = formatDateForDisplay(nextTermDates.endDate);
-
-      console.log('📅 Next term dates:', {
-        startDate: nextTermStartDate,
-        endDate: nextTermEndDate,
-        rawDates: nextTermDates
-      });
-
-      const livePupilMap = await fetchLivePupilsMap([pupil.id]);
-      const livePupil = livePupilMap[pupil.id] || pupil;
-
-      // Get the performance status securely for the selected term
-      const performanceStatus = (selectedTermId ? livePupil.termPerformanceStatuses?.[selectedTermId] : livePupil.performanceStatus) || livePupil.performanceStatus || 'fair';
-
-      // Merge saved and unsaved subject statuses for the selected term (prioritize unsaved changes)
-      const allSubjectStatuses = {
-        ...(livePupil.termSubjectStatuses?.[selectedTermId] || {}),
-        ...(updatedSubjectStatuses[pupil.id]?.[selectedTermId] || {})
-      } as Record<SubjectCommentType, SubjectStatus>;
-
-      // Fetch dynamic comments from Commentary Management system
-      const comments = await getDynamicComments(performanceStatus, pupil.gender);
-
-      // Fetch subject comments based on subject statuses (with term ID)
-      const subjectCommentsMap = await getSubjectComments(
-        allSubjectStatuses,
-        pupil.classId,
-        pupil.gender,
-        selectedTermId
-      );
-
-      // Generate PDF with dynamic comments
-      const pdfDoc = (
-        <NurseryAssessmentReport
-          pupil={livePupil}
-          pupilClass={selectedClassData}
-          settings={schoolSettings}
-          currentAcademicYear={currentAcademicYear}
-          currentTerm={currentTerm}
-          nextTermStartDate={nextTermStartDate}
-          nextTermEndDate={nextTermEndDate}
-          performanceStatus={performanceStatus}
-          classTeacherComment={comments.classTeacherComment}
-          headTeacherComment={comments.headTeacherComment}
-          subjectComments={subjectCommentsMap}
-          showPayCode={showPayCode}
-        />
-      );
-
-      // Generate PDF and open in viewer
-      const fileName = `Assessment_Report_${formatPupilDisplayName(livePupil).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      const title = 'Assessment Report';
-
-      await pdfViewer.openPDF(pdfDoc, fileName, title);
-
-      toast({
-        title: "Report Generated",
-        description: `Assessment report for ${formatPupilDisplayName(livePupil)} has been downloaded.`,
-      });
-    } catch (error) {
-      console.error('Error generating pupil report:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate assessment report. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSaveChanges = async () => {
     if (Object.keys(updatedPupils).length === 0 && Object.keys(updatedSubjectStatuses).length === 0) return;
@@ -1846,16 +1688,38 @@ export default function RemarkReportPage() {
                                 </div>
                               </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePrintPupil(pupil)}
-                                className="h-8 w-8 p-0 text-green-600 border-green-600 hover:bg-green-50"
-                                aria-label={`Print report for ${formatPupilDisplayName(pupil)}`}
-                                title="Print Report"
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={batchProgress.isGenerating}
+                                    className="h-8 w-8 p-0 text-green-600 border-green-600 hover:bg-green-50"
+                                    aria-label={`Choose a report to print for ${formatPupilDisplayName(pupil)}`}
+                                    title="Choose Report"
+                                  >
+                                    {batchProgress.isGenerating
+                                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                                      : <Printer className="h-4 w-4" />}
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  <DropdownMenuItem
+                                    onClick={() => handlePrintReportLight('standard', [pupil])}
+                                    className="cursor-pointer"
+                                  >
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    Print Report
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handlePrintReportLight('playful', [pupil])}
+                                    className="cursor-pointer"
+                                  >
+                                    <FileText className="mr-2 h-4 w-4 text-emerald-600" />
+                                    Playful Report
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
                           </tr>
                           {isExpanded && (

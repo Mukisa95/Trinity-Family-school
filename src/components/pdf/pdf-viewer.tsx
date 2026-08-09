@@ -125,18 +125,18 @@ export function PDFViewer({
     }
   };
 
-  const openInNativePDFViewer = () => {
+  const handlePrint = () => {
     if (!pdfUrl) return;
 
-    // The browser's built-in PDF viewer hands printing to the computer's native
-    // print dialog, exposing the printer, paper, duplex, scale, and other local
-    // settings that an embedded iframe/object viewer cannot reliably provide.
-    const nativePdfWindow = window.open(pdfUrl, '_blank');
-    nativePdfWindow?.focus();
-  };
+    // Print the PDF document that is already loaded inside the preview. This
+    // keeps the app preview open while the browser/device print dialog is shown.
+    const previewWindow = iframeRef.current?.contentWindow
+      ?? objectRef.current?.contentWindow;
 
-  const handlePrint = () => {
-    openInNativePDFViewer();
+    if (previewWindow) {
+      previewWindow.focus();
+      previewWindow.print();
+    }
   };
 
   // Register print handler when PDF viewer is open (high priority for PDF viewer)
@@ -147,7 +147,11 @@ export function PDFViewer({
     }
   }, [isOpen, pdfUrl, registerPrintHandler]);
 
-  const handleOpenInNewTab = openInNativePDFViewer;
+  const handleOpenInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   return (
     <>
@@ -229,10 +233,10 @@ export function PDFViewer({
                   onClick={handlePrint}
                   disabled={!pdfUrl || isLoading}
                   className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
-                  title="Open the browser PDF viewer for your computer's full print settings"
+                  title="Open your device print settings"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="hidden sm:inline">System Print</span>
+                  <span className="hidden sm:inline">Print</span>
                 </Button>
               )}
               {showDownload && (
