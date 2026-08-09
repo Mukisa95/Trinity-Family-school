@@ -125,28 +125,18 @@ export function PDFViewer({
     }
   };
 
+  const openInNativePDFViewer = () => {
+    if (!pdfUrl) return;
+
+    // The browser's built-in PDF viewer hands printing to the computer's native
+    // print dialog, exposing the printer, paper, duplex, scale, and other local
+    // settings that an embedded iframe/object viewer cannot reliably provide.
+    const nativePdfWindow = window.open(pdfUrl, '_blank');
+    nativePdfWindow?.focus();
+  };
+
   const handlePrint = () => {
-    if (pdfUrl) {
-      // Try to print from the iframe first
-      if (iframeRef.current?.contentWindow) {
-        iframeRef.current.contentWindow.print();
-        return;
-      }
-      
-      // Fallback: Try to print from object
-      if (objectRef.current?.contentWindow) {
-        objectRef.current.contentWindow.print();
-        return;
-      }
-      
-      // Last resort: Open in new window and print
-      const printWindow = window.open(pdfUrl, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-      }
-    }
+    openInNativePDFViewer();
   };
 
   // Register print handler when PDF viewer is open (high priority for PDF viewer)
@@ -157,11 +147,7 @@ export function PDFViewer({
     }
   }, [isOpen, pdfUrl, registerPrintHandler]);
 
-  const handleOpenInNewTab = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
-  };
+  const handleOpenInNewTab = openInNativePDFViewer;
 
   return (
     <>
@@ -243,9 +229,10 @@ export function PDFViewer({
                   onClick={handlePrint}
                   disabled={!pdfUrl || isLoading}
                   className="gap-2 border-gray-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                  title="Open the browser PDF viewer for your computer's full print settings"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="hidden sm:inline">Print</span>
+                  <span className="hidden sm:inline">System Print</span>
                 </Button>
               )}
               {showDownload && (
@@ -535,4 +522,3 @@ export function PDFViewer({
     </>
   );
 }
-

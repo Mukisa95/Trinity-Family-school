@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   subjectGroup: { marginBottom: 0 },
   assessmentItem: { position: "relative", marginBottom: 8 },
   artwork: { position: "absolute", objectFit: "contain", zIndex: 3 },
-  groupHeading: { color: "#151515", fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 6 },
+  groupHeading: { color: "#c62828", fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 6 },
   subjectHeader: { height: 13, justifyContent: "center" },
   subjectName: { fontSize: 10, fontFamily: "Helvetica-Bold" },
   commentArea: { position: "relative", marginTop: 1 },

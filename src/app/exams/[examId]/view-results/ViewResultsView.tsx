@@ -86,7 +86,6 @@ import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/compon
 import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
 import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
 import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
-import { IndividualReportPrintDialog } from '@/components/exam/IndividualReportPrintDialog';
 import { FullReport2PaletteSelector } from '@/components/exam/FullReport2PaletteSelector';
 import { generateNurseryAssessmentPDF } from '@/components/exam/NurseryAssessmentPDF';
 import { generateNurseryMiniReportPDF } from '@/components/exam/NurseryMiniReportPDF';
@@ -462,6 +461,8 @@ const PrintModal = ({
   isNursery,
   omitNurseryTeacherComment,
   onOmitNurseryTeacherCommentChange,
+  individualPupilName,
+  isIndividual = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -476,17 +477,20 @@ const PrintModal = ({
   isNursery?: boolean;
   omitNurseryTeacherComment: boolean;
   onOmitNurseryTeacherCommentChange: (omit: boolean) => void;
+  individualPupilName?: string;
+  isIndividual?: boolean;
 }) => {
+  const isIndividualPrint = isIndividual || Boolean(individualPupilName);
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
             <Printer className="h-5 w-5 text-blue-600" />
-            Print Reports
+            Print Reports{individualPupilName ? ` - ${individualPupilName}` : ''}
           </DialogTitle>
           <DialogDescription>
-            Select the type of report to generate
+            {isIndividualPrint ? 'Select a report to generate for this pupil' : 'Select the type of report to generate'}
           </DialogDescription>
         </DialogHeader>
 
@@ -578,7 +582,7 @@ const PrintModal = ({
           </div>
         ) : (
           <div className="space-y-3">
-            <button
+            {!isIndividualPrint && <button
               onClick={onPrintAssessment}
               className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
             >
@@ -591,7 +595,7 @@ const PrintModal = ({
                   <p className="text-sm text-gray-600">Class-wide assessment summary</p>
                 </div>
               </div>
-            </button>
+            </button>}
 
             <button
               onClick={onPrintNurseryReport}
@@ -604,13 +608,15 @@ const PrintModal = ({
                 <div>
                   <h3 className="font-semibold text-gray-900">Mini Report</h3>
                   <p className="text-sm text-gray-600">
-                    {isNursery ? 'Playful nursery report cards (2 per page)' : 'Professional primary report cards (2 per page)'}
+                    {isIndividualPrint
+                      ? (isNursery ? 'Playful nursery report card for one pupil' : 'Professional half-page report card for one pupil')
+                      : (isNursery ? 'Playful nursery report cards (2 per page)' : 'Professional primary report cards (2 per page)')}
                   </p>
                 </div>
               </div>
             </button>
 
-            {isNursery && (
+            {isNursery && !isIndividualPrint && (
               <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                 <Checkbox
                   id="omit-nursery-teacher-comment"
@@ -639,7 +645,7 @@ const PrintModal = ({
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Full Report</h3>
-                  <p className="text-sm text-gray-600">Individual pupil report cards (Comprehensive design)</p>
+                  <p className="text-sm text-gray-600">{isIndividualPrint ? 'Comprehensive report card for this pupil' : 'Individual pupil report cards (Comprehensive design)'}</p>
                 </div>
               </div>
             </button>}
@@ -654,7 +660,7 @@ const PrintModal = ({
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Bespoke Report</h3>
-                  <p className="text-sm text-gray-600">Individual pupil report cards (fully customisable Trinity blue-and-gold design)</p>
+                  <p className="text-sm text-gray-600">{isIndividualPrint ? 'Fully customisable Trinity blue-and-gold report for this pupil' : 'Individual pupil report cards (fully customisable Trinity blue-and-gold design)'}</p>
                 </div>
               </div>
             </button>}
@@ -5678,21 +5684,26 @@ export default function ViewResultsView() {
         showPrint={true}
       />
 
-      {/* Individual Print Modal */}
-      <IndividualReportPrintDialog
+      {/* Individual Print Modal - shares the same option surface and PDF generators as batch printing */}
+      <PrintModal
         isOpen={showIndividualPrintModal}
         onClose={() => {
           setShowIndividualPrintModal(false);
           setSelectedPupilForPrint(null);
         }}
-        onPrintMini={handleIndividualMiniReport}
-        onPrintFull={handleIndividualFullReport}
+        onPrintAssessment={handleIndividualReportOne}
+        onPrintNurseryReport={handleIndividualMiniReport}
+        onPrintTrans={handleIndividualFullReport}
         onPrintFullReport2={handleIndividualFullReport2}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
         generationProgress={generationProgress}
         eta={eta}
-        pupilName={selectedPupilForPrint ? processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name : undefined}
+        isNursery={isNurseryExam}
+        omitNurseryTeacherComment={omitNurseryTeacherComment}
+        onOmitNurseryTeacherCommentChange={setOmitNurseryTeacherComment}
+        isIndividual={Boolean(selectedPupilForPrint)}
+        individualPupilName={selectedPupilForPrint ? processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name : undefined}
       />
     </div>
   );
