@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { Class, Pupil, SchoolSettings, SubjectCommentType } from "@/types";
 import { formatPupilDisplayName } from "@/lib/utils/name-formatter";
 
@@ -17,6 +17,9 @@ type PlayfulNurseryReportProps = {
   headTeacherComment?: string;
   subjectComments?: Partial<Record<SubjectCommentType, string>>;
 };
+
+const comicReliefSource = process.env.NEXT_PUBLIC_PLAYFUL_REPORT_FONT_URL || "/fonts/ComicRelief-Regular.ttf";
+Font.register({ family: "Comic Relief", src: comicReliefSource });
 
 const nurseryAsset = (fileName: string) => {
   const baseUrl = process.env.NEXT_PUBLIC_NURSERY_REPORT_ASSET_BASE_URL?.replace(/\/$/, "");
@@ -44,59 +47,58 @@ const calculateAge = (dateOfBirth?: string) => {
 };
 
 const styles = StyleSheet.create({
-  page: { position: "relative", backgroundColor: "#ffffff", fontFamily: "Helvetica", fontSize: 8.4, padding: 0 },
+  page: { position: "relative", backgroundColor: "#ffffff", fontFamily: "Helvetica", fontSize: 10, padding: 0 },
   background: { position: "absolute", left: 0, top: 0, width: "100%", height: "100%" },
-  pageSchoolName: { position: "absolute", top: 28, left: 105, right: 105, color: "#087337", fontSize: 17, fontFamily: "Helvetica-Bold", textAlign: "center", lineHeight: 19 },
-  pageContact: { position: "absolute", top: 54, left: 105, right: 105, color: "#183523", fontSize: 7.6, fontFamily: "Helvetica-Bold", textAlign: "center", lineHeight: 9 },
-  pageEmail: { position: "absolute", top: 65, left: 105, right: 105, color: "#183523", fontSize: 7.6, fontFamily: "Helvetica-Bold", textAlign: "center", lineHeight: 9 },
+  pageSchoolName: { position: "absolute", top: 28, left: 103, right: 103, color: "#087337", fontSize: 18, fontFamily: "Helvetica-Bold", textAlign: "center", lineHeight: 21 },
+  pageContact: { position: "absolute", top: 54, left: 105, right: 105, color: "#555555", fontSize: 10, fontFamily: "Helvetica", textAlign: "center", lineHeight: 11 },
+  pageEmail: { position: "absolute", top: 67, left: 105, right: 105, color: "#555555", fontSize: 10, fontFamily: "Helvetica", textAlign: "center", lineHeight: 11 },
   content: { position: "absolute", left: 22, right: 22, top: 18, bottom: 18 },
-  header: { height: 78, flexDirection: "row", alignItems: "center", position: "relative", overflow: "hidden" },
-  logo: { width: 72, height: 72, objectFit: "contain", marginRight: 8 },
-  logoPlaceholder: { width: 72, height: 72, marginRight: 8 },
-  schoolInfo: { position: "absolute", left: 79, right: 74, top: 6, height: 64, alignItems: "center", paddingHorizontal: 4 },
-  schoolNameWrap: { width: "100%", height: 24, overflow: "hidden" },
-  schoolName: { width: "100%", color: "#087337", fontSize: 17, fontFamily: "Helvetica-Bold", textAlign: "center", lineHeight: 19 },
-  contactWrap: { width: "100%", height: 24, marginTop: 5, overflow: "hidden" },
-  contact: { width: "100%", color: "#183523", fontSize: 7.6, fontFamily: "Helvetica-Bold", textAlign: "center", lineHeight: 9 },
+  header: { height: 79, flexDirection: "row", alignItems: "center", position: "relative", overflow: "hidden" },
+  logo: { width: 74, height: 74, objectFit: "contain", marginRight: 8 },
+  logoPlaceholder: { width: 74, height: 74, marginRight: 8 },
   photoColumn: { width: 71, marginLeft: "auto", alignItems: "center" },
   pupilPhoto: { width: 57, height: 68, objectFit: "cover", borderWidth: 1.2, borderColor: "#4a9a50", borderRadius: 8 },
-  admissionNumber: { marginTop: 2, color: "#193320", fontSize: 7.5, fontFamily: "Helvetica-Bold", textAlign: "center" },
-  infoPanel: { height: 58, marginTop: 7, borderWidth: 1, borderColor: "#4ca653", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 11 },
-  infoRow: { flexDirection: "row", flex: 1 },
-  infoCell: { flex: 1, flexDirection: "row", alignItems: "center", borderRightWidth: 0.8, borderRightColor: "#8ecb72", paddingHorizontal: 5 },
-  infoCellEnd: { flex: 1, flexDirection: "row", alignItems: "center", paddingLeft: 9 },
-  infoLabel: { color: "#157237", fontFamily: "Helvetica-Bold", fontSize: 8 },
-  infoValue: { flex: 1, minWidth: 0, marginLeft: 4, paddingBottom: 1, borderBottomWidth: 0.75, borderBottomColor: "#4d4d4d", color: "#1c2930", fontSize: 7.5, fontFamily: "Helvetica-Bold" },
-  reportBanner: { height: 35, marginTop: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#3a8b3b", borderWidth: 1.1, borderColor: "#176b32", borderRadius: 8 },
-  reportBannerText: { color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 15.5, letterSpacing: 0.55, textAlign: "center" },
-  assessmentGrid: { marginTop: 8 },
-  assessmentRow: { flexDirection: "row", gap: 8, marginBottom: 5 },
-  assessmentCard: { height: 61, flex: 1, flexDirection: "row", borderWidth: 1, borderRadius: 9, backgroundColor: "#ffffff", overflow: "hidden" },
-  artworkBox: { width: 50, alignItems: "center", justifyContent: "center", backgroundColor: "#f8fbf3", borderRightWidth: 0.5, borderRightColor: "#e1e8df" },
-  artwork: { width: 43, height: 43, objectFit: "contain" },
-  subjectBody: { flex: 1, paddingTop: 6, paddingRight: 8, paddingBottom: 5, paddingLeft: 6 },
-  subjectHeader: { flexDirection: "row", alignItems: "center", height: 12 },
-  numberBadge: { width: 15, height: 15, borderRadius: 8, alignItems: "center", justifyContent: "center", marginRight: 5 },
-  number: { color: "#ffffff", fontSize: 8.1, fontFamily: "Helvetica-Bold" },
-  subjectName: { flex: 1, fontSize: 8.2, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
-  commentArea: { position: "relative", marginTop: 4, height: 33 },
-  subjectComment: { position: "absolute", top: 0, left: 0, right: 0, maxHeight: 30, color: "#28352a", fontSize: 7, lineHeight: 9 },
-  dottedLine: { height: 10, borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
-  comments: { marginTop: 1 },
-  commentPanel: { height: 55, marginTop: 5, borderWidth: 1, borderRadius: 9, paddingTop: 6, paddingHorizontal: 11 },
-  teacherCommentBlock: { position: "relative", height: 22 },
-  teacherCommentText: { position: "absolute", top: 0, left: 0, right: 0, maxHeight: 20, color: "#28352a", fontSize: 7.8, lineHeight: 9.5 },
-  teacherCommentLabel: { fontFamily: "Helvetica-Bold", fontSize: 8.3 },
-  teacherCommentLines: { height: 20 },
-  signatureRow: { position: "absolute", right: 11, bottom: 6, flexDirection: "row", alignItems: "center", gap: 5 },
-  signatureLabel: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
-  signatureLine: { width: 126, borderBottomWidth: 0.75, borderBottomColor: "#57605a" },
-  nextTerm: { height: 26, marginTop: 5, borderWidth: 1, borderColor: "#a5c96e", borderRadius: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
+  admissionNumber: { marginTop: 2, color: "#666666", fontSize: 8, fontFamily: "Helvetica", textAlign: "center" },
+  infoPanel: { height: 48, marginTop: 4, paddingVertical: 5, paddingHorizontal: 8, backgroundColor: "rgba(255,255,255,0.82)", borderLeftWidth: 3, borderLeftColor: "#32CD32", borderRadius: 4 },
+  infoRow: { flexDirection: "row", height: 18, alignItems: "center" },
+  infoMetaRow: { flexDirection: "row", height: 17, alignItems: "center", borderTopWidth: 0.55, borderTopColor: "#72b965", borderTopStyle: "dotted" },
+  infoCellName: { flex: 2, flexDirection: "row", alignItems: "center", minWidth: 0, paddingRight: 7 },
+  infoCell: { flex: 1, flexDirection: "row", alignItems: "center", minWidth: 0, paddingRight: 7 },
+  infoMetaSmall: { width: "18%", flexDirection: "row", alignItems: "center", minWidth: 0 },
+  infoMetaMedium: { width: "22%", flexDirection: "row", alignItems: "center", minWidth: 0 },
+  infoMetaLarge: { flex: 1, flexDirection: "row", alignItems: "center", minWidth: 0, justifyContent: "flex-end" },
+  infoLabel: { color: "#006400", fontFamily: "Helvetica-Bold", fontSize: 10, marginRight: 5, flexShrink: 0 },
+  infoValue: { flex: 1, minWidth: 0, color: "#0000FF", fontSize: 10, fontFamily: "Comic Relief" },
+  reportTitle: { height: 19, marginTop: 5, color: "#087337", fontFamily: "Helvetica-Bold", fontSize: 12, letterSpacing: 0.3, textAlign: "center" },
+  assessmentGrid: { marginTop: 5 },
+  assessmentRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  assessmentCard: { height: 66, flex: 1, flexDirection: "row", borderWidth: 1, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.78)", overflow: "hidden" },
+  artworkBox: { width: 50, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(248,251,243,0.65)", borderRightWidth: 0.5, borderRightColor: "#e1e8df" },
+  artwork: { width: 45, height: 45, objectFit: "contain" },
+  subjectBody: { flex: 1, paddingTop: 6, paddingRight: 8, paddingBottom: 5, paddingLeft: 7 },
+  subjectHeader: { flexDirection: "row", alignItems: "center", height: 14 },
+  numberBadge: { width: 17, height: 17, borderRadius: 9, alignItems: "center", justifyContent: "center", marginRight: 5 },
+  number: { color: "#ffffff", fontSize: 10, fontFamily: "Helvetica-Bold" },
+  subjectName: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
+  commentArea: { position: "relative", marginTop: 4, height: 38 },
+  subjectComment: { position: "absolute", top: 0, left: 0, right: 0, maxHeight: 37, color: "#0000FF", fontSize: 10.5, lineHeight: 1.5, fontFamily: "Comic Relief" },
+  dottedLine: { height: 12, borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
+  comments: { marginTop: 16 },
+  commentsPanel: { height: 108, borderWidth: 1, borderColor: "#74b96d", borderRadius: 9, backgroundColor: "rgba(255,255,255,0.96)", paddingVertical: 6, paddingHorizontal: 11 },
+  teacherCommentBlock: { position: "relative", height: 43 },
+  teacherCommentText: { position: "absolute", top: 0, left: 0, right: 0, maxHeight: 12, color: "#0000FF", fontSize: 9, lineHeight: 1.3, fontFamily: "Comic Relief" },
+  teacherCommentLabel: { fontFamily: "Helvetica-Bold", fontSize: 10 },
+  teacherCommentLine: { height: 12, borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
+  signatureRow: { position: "absolute", right: 0, bottom: 1, flexDirection: "row", alignItems: "center", gap: 5 },
+  signatureLabel: { fontSize: 10, fontFamily: "Helvetica-Bold" },
+  signatureLine: { width: 132, borderBottomWidth: 0.75, borderBottomColor: "#57605a" },
+  commentsDivider: { height: 1, marginVertical: 2, borderBottomWidth: 0.55, borderBottomColor: "#a7c99a", borderBottomStyle: "dotted" },
+  nextTerm: { height: 27, marginTop: 11, borderWidth: 1, borderColor: "#a5c96e", borderRadius: 8, backgroundColor: "rgba(255,255,255,0.96)", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
   nextTermBlock: { flex: 1, flexDirection: "row", alignItems: "center" },
-  nextTermLabel: { color: "#177134", fontSize: 7.8, fontFamily: "Helvetica-Bold" },
-  nextTermValue: { flex: 1, marginLeft: 6, paddingBottom: 1, borderBottomWidth: 0.7, borderBottomColor: "#4e594e", color: "#243527", fontSize: 7.1 },
-  footer: { marginTop: 8, alignItems: "center" },
-  footerText: { color: "#ffffff", backgroundColor: "#36863c", borderRadius: 5, paddingVertical: 4, paddingHorizontal: 17, fontFamily: "Helvetica-Bold", fontSize: 10.8, letterSpacing: 0.55 },
+  nextTermLabel: { color: "#177134", fontSize: 10, fontFamily: "Helvetica-Bold" },
+  nextTermValue: { flex: 1, marginLeft: 6, paddingBottom: 1, borderBottomWidth: 0.7, borderBottomColor: "#4e594e", color: "#0000FF", fontSize: 10, fontFamily: "Comic Relief" },
+  footer: { position: "absolute", left: 0, right: 0, bottom: 5, alignItems: "center" },
+  footerText: { color: "#087337", fontFamily: "Helvetica-Bold", fontSize: 12, letterSpacing: 0.55 },
 });
 
 const palette = [
@@ -156,13 +158,11 @@ function SubjectCard({
   );
 }
 
-function CommentPanel({ title, comment, colour }: { title: string; comment?: string; colour: string }) {
+function TeacherCommentBlock({ title, comment, colour }: { title: string; comment?: string; colour: string }) {
   return (
-    <View style={[styles.commentPanel, { borderColor: colour }]}>
-      <View style={styles.teacherCommentBlock}>
-        <View style={styles.teacherCommentLines}><DottedLines count={2} /></View>
-        <Text style={styles.teacherCommentText}><Text style={[styles.teacherCommentLabel, { color: colour }]}>{title} </Text>{comment || ""}</Text>
-      </View>
+    <View style={styles.teacherCommentBlock}>
+      <View style={styles.teacherCommentLine} />
+      <Text style={styles.teacherCommentText}><Text style={[styles.teacherCommentLabel, { color: colour }]}>{title} </Text>{comment || ""}</Text>
       <View style={styles.signatureRow}>
         <Text style={[styles.signatureLabel, { color: colour }]}>Signature:</Text>
         <View style={styles.signatureLine} />
@@ -209,18 +209,18 @@ export function PlayfulNurseryReportPageContent({
 
         <View style={styles.infoPanel}>
           <View style={styles.infoRow}>
-            <View style={styles.infoCell}><Text style={styles.infoLabel}>NAME:</Text><Text style={styles.infoValue}>{formatPupilDisplayName(pupil)}</Text></View>
+            <View style={styles.infoCellName}><Text style={styles.infoLabel}>NAME:</Text><Text style={styles.infoValue}>{formatPupilDisplayName(pupil)}</Text></View>
             <View style={styles.infoCell}><Text style={styles.infoLabel}>CLASS:</Text><Text style={styles.infoValue}>{pupilClass?.name || ""}</Text></View>
-            <View style={styles.infoCellEnd}><Text style={styles.infoLabel}>AGE:</Text><Text style={styles.infoValue}>{calculateAge(pupil.dateOfBirth)}</Text></View>
+            <View style={styles.infoCell}><Text style={styles.infoLabel}>AGE:</Text><Text style={styles.infoValue}>{calculateAge(pupil.dateOfBirth)}</Text></View>
           </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoCell}><Text style={styles.infoLabel}>YEAR:</Text><Text style={styles.infoValue}>{String(year)}</Text></View>
-            <View style={styles.infoCell}><Text style={styles.infoLabel}>TERM:</Text><Text style={styles.infoValue}>{currentTerm?.name || ""}</Text></View>
-            <View style={styles.infoCellEnd}><Text style={styles.infoLabel}>PRINT DATE:</Text><Text style={styles.infoValue}>{printDate}</Text></View>
+          <View style={styles.infoMetaRow}>
+            <View style={styles.infoMetaSmall}><Text style={styles.infoLabel}>YEAR:</Text><Text style={styles.infoValue}>{String(year)}</Text></View>
+            <View style={styles.infoMetaMedium}><Text style={styles.infoLabel}>TERM:</Text><Text style={styles.infoValue}>{currentTerm?.name || ""}</Text></View>
+            <View style={styles.infoMetaLarge}><Text style={styles.infoLabel}>PRINT DATE:</Text><Text style={styles.infoValue}>{printDate}</Text></View>
           </View>
         </View>
 
-        <View style={styles.reportBanner}><Text style={styles.reportBannerText}>CHILD'S PROGRESSIVE ASSESSMENT REPORT</Text></View>
+        <Text style={styles.reportTitle}>CHILD'S PROGRESSIVE ASSESSMENT REPORT</Text>
 
         <View style={styles.assessmentGrid}>
           {Array.from({ length: 6 }, (_, rowIndex) => {
@@ -236,8 +236,11 @@ export function PlayfulNurseryReportPageContent({
         </View>
 
         <View style={styles.comments}>
-          <CommentPanel title="Class teacher's general comment:" comment={classTeacherComment} colour="#18723a" />
-          <CommentPanel title="Headteacher's comment:" comment={headTeacherComment} colour="#2f78bf" />
+          <View style={styles.commentsPanel}>
+            <TeacherCommentBlock title="Class teacher's general comment:" comment={classTeacherComment} colour="#18723a" />
+            <View style={styles.commentsDivider} />
+            <TeacherCommentBlock title="Headteacher's comment:" comment={headTeacherComment} colour="#2f78bf" />
+          </View>
         </View>
 
         <View style={styles.nextTerm}>
