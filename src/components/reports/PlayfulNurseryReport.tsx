@@ -70,34 +70,34 @@ const styles = StyleSheet.create({
   infoLabel: { color: "#006400", fontFamily: "Helvetica-Bold", fontSize: 10, marginRight: 5, flexShrink: 0 },
   infoValue: { flex: 1, minWidth: 0, color: "#0000FF", fontSize: 10, fontFamily: "Comic Relief" },
   reportTitle: { height: 19, marginTop: 5, color: "#087337", fontFamily: "Helvetica-Bold", fontSize: 12, letterSpacing: 0.3, textAlign: "center" },
-  assessmentGrid: { marginTop: 5 },
-  assessmentRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
-  assessmentCard: { height: 66, flex: 1, flexDirection: "row", borderWidth: 1, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.78)", overflow: "hidden" },
-  artworkBox: { width: 50, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(248,251,243,0.65)", borderRightWidth: 0.5, borderRightColor: "#e1e8df" },
-  artwork: { width: 45, height: 45, objectFit: "contain" },
-  subjectBody: { flex: 1, paddingTop: 6, paddingRight: 8, paddingBottom: 5, paddingLeft: 7 },
-  subjectHeader: { flexDirection: "row", alignItems: "center", height: 14 },
+  assessmentGrid: { marginTop: 4 },
+  assessmentRow: { flexDirection: "row", gap: 12, marginBottom: 2 },
+  assessmentItem: { flex: 1, position: "relative", paddingHorizontal: 2 },
+  artwork: { position: "absolute", objectFit: "contain", zIndex: 3 },
+  subjectHeader: { flexDirection: "row", alignItems: "center", height: 17 },
   numberBadge: { width: 17, height: 17, borderRadius: 9, alignItems: "center", justifyContent: "center", marginRight: 5 },
   number: { color: "#ffffff", fontSize: 10, fontFamily: "Helvetica-Bold" },
   subjectName: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
-  commentArea: { position: "relative", marginTop: 4, height: 38 },
-  subjectComment: { position: "absolute", top: 0, left: 0, right: 0, maxHeight: 37, color: "#0000FF", fontSize: 10.5, lineHeight: 1.5, fontFamily: "Comic Relief" },
-  dottedLine: { height: 12, borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
-  comments: { marginTop: 16 },
-  commentsPanel: { height: 108, borderWidth: 1, borderColor: "#74b96d", borderRadius: 9, backgroundColor: "rgba(255,255,255,0.96)", paddingVertical: 6, paddingHorizontal: 11 },
-  teacherCommentBlock: { position: "relative", height: 43 },
-  teacherCommentText: { position: "absolute", top: 0, left: 0, right: 0, maxHeight: 12, color: "#0000FF", fontSize: 9, lineHeight: 1.3, fontFamily: "Comic Relief" },
+  commentArea: { position: "relative", marginTop: 1 },
+  subjectComment: { position: "absolute", left: 0, color: "#0000FF", fontSize: 10.5, fontFamily: "Comic Relief", zIndex: 2 },
+  dottedLine: { borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
+  comments: { marginTop: 10 },
+  commentsPanel: { height: 94, borderWidth: 1, borderColor: "#74b96d", borderRadius: 9, backgroundColor: "rgba(255,255,255,0.96)", paddingVertical: 5, paddingHorizontal: 11 },
+  teacherCommentBlock: { position: "relative", height: 38 },
+  teacherCommentLine: { position: "relative" },
+  teacherCommentRule: { position: "absolute", left: 0, right: 0, bottom: 0, borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
+  teacherCommentText: { position: "absolute", left: 0, right: 0, color: "#0000FF", fontSize: 9, fontFamily: "Comic Relief", zIndex: 2 },
+  teacherCommentContinuation: { position: "absolute", left: 0, color: "#0000FF", fontSize: 9, fontFamily: "Comic Relief", zIndex: 2 },
   teacherCommentLabel: { fontFamily: "Helvetica-Bold", fontSize: 10 },
-  teacherCommentLine: { height: 12, borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
-  signatureRow: { position: "absolute", right: 0, bottom: 1, flexDirection: "row", alignItems: "center", gap: 5 },
+  signatureRow: { position: "absolute", right: 0, bottom: 1, flexDirection: "row", alignItems: "center", gap: 5, zIndex: 3 },
   signatureLabel: { fontSize: 10, fontFamily: "Helvetica-Bold" },
   signatureLine: { width: 132, borderBottomWidth: 0.75, borderBottomColor: "#57605a" },
   commentsDivider: { height: 1, marginVertical: 2, borderBottomWidth: 0.55, borderBottomColor: "#a7c99a", borderBottomStyle: "dotted" },
-  nextTerm: { height: 27, marginTop: 11, borderWidth: 1, borderColor: "#a5c96e", borderRadius: 8, backgroundColor: "rgba(255,255,255,0.96)", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
+  nextTerm: { height: 27, marginTop: 12, borderWidth: 1, borderColor: "#a5c96e", borderRadius: 8, backgroundColor: "rgba(255,255,255,0.96)", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
   nextTermBlock: { flex: 1, flexDirection: "row", alignItems: "center" },
   nextTermLabel: { color: "#177134", fontSize: 10, fontFamily: "Helvetica-Bold" },
   nextTermValue: { flex: 1, marginLeft: 6, paddingBottom: 1, borderBottomWidth: 0.7, borderBottomColor: "#4e594e", color: "#0000FF", fontSize: 10, fontFamily: "Comic Relief" },
-  footer: { position: "absolute", left: 0, right: 0, bottom: 5, alignItems: "center" },
+  footer: { position: "absolute", left: 0, right: 0, bottom: 22, alignItems: "center" },
   footerText: { color: "#087337", fontFamily: "Helvetica-Bold", fontSize: 12, letterSpacing: 0.55 },
 });
 
@@ -110,63 +110,180 @@ const palette = [
   { border: "#54bfc1", text: "#258a8d", badge: "#329fa3" },
 ];
 
-const subjectCards = [
-  ["Mathematical Concepts", "mathematical_concepts", "mathematical concepts.png"],
-  ["Writing Concepts", "writing_concepts", "writing concepts.png"],
-  ["Reading", "reading", "reading.png"],
-  ["Social / Emotional Development", "social_emotional_development", "social and emotional develoment.png"],
-  ["God and Creation", "god_and_his_creation", "God and creation.png"],
-  ["Life Skills", "life_skills", "life skils.png"],
-  ["Vocabulary", "vocabulary", "vocabulary.png"],
-  ["Story Telling", "story_telling", "story telling.png"],
-  ["General Knowledge", "general_knowledge", "general knowledge.png"],
-  ["Rhymes / Music", "rhymes_music", "rhymes, music.png"],
-  ["Outdoor Activities", "outdoor_activities", "outdoor activities.png"],
-  ["Punctuality", "punctuality", "punctuality.png"],
-] as const;
-
-function DottedLines({ count }: { count: number }) {
-  return <>{Array.from({ length: count }, (_, index) => <View key={index} style={styles.dottedLine} />)}</>;
-}
-
-function SubjectCard({
-  index,
-  label,
-  comment,
-  artwork,
-}: {
-  index: number;
+type SubjectLayout = {
   label: string;
-  comment?: string;
+  key: SubjectCommentType;
   artwork: string;
-}) {
-  const colour = palette[index % palette.length];
+  lineCount: number;
+  ruleHeight: number;
+  commentTop: number;
+  commentLineHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+  imageTop: number;
+  imageRight: number;
+};
+
+const subjectLayouts: SubjectLayout[] = [
+  { label: "Mathematical Concepts", key: "mathematical_concepts", artwork: "mathematical concepts.png", lineCount: 5, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 33, imageTop: 3, imageRight: 4 },
+  { label: "Writing Concepts", key: "writing_concepts", artwork: "writing concepts.png", lineCount: 4, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 46, imageHeight: 36, imageTop: 2, imageRight: 3 },
+  { label: "Reading", key: "reading", artwork: "reading.png", lineCount: 4, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 36, imageTop: 2, imageRight: 4 },
+  { label: "Social / Emotional Development", key: "social_emotional_development", artwork: "social and emotional develoment.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 44, imageHeight: 36, imageTop: 0, imageRight: 3 },
+  { label: "God and Creation", key: "god_and_his_creation", artwork: "God and creation.png", lineCount: 2, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 45, imageHeight: 34, imageTop: 0, imageRight: 4 },
+  { label: "Life Skills", key: "life_skills", artwork: "life skils.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 40, imageHeight: 40, imageTop: 0, imageRight: 4 },
+  { label: "Vocabulary", key: "vocabulary", artwork: "vocabulary.png", lineCount: 5, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 44, imageHeight: 38, imageTop: 2, imageRight: 4 },
+  { label: "Story Telling", key: "story_telling", artwork: "story telling.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 32, imageTop: 2, imageRight: 2 },
+  { label: "General Knowledge", key: "general_knowledge", artwork: "general knowledge.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 38, imageHeight: 45, imageTop: 0, imageRight: 6 },
+  { label: "Rhymes / Music", key: "rhymes_music", artwork: "rhymes, music.png", lineCount: 4, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 47, imageHeight: 39, imageTop: 1, imageRight: 2 },
+  { label: "Outdoor Activities", key: "outdoor_activities", artwork: "outdoor activities.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 35, imageTop: 1, imageRight: 2 },
+  { label: "Punctuality", key: "punctuality", artwork: "punctuality.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 36, imageHeight: 40, imageTop: 0, imageRight: 6 },
+];
+
+function SubjectLineWrapper({ layout, comment, height }: { layout: SubjectLayout; comment?: string; height: number }) {
+  const artworkAvoidance = layout.imageWidth + 8;
+  const shortenedLineCount = Math.min(layout.lineCount, Math.ceil((layout.imageTop + layout.imageHeight) / layout.ruleHeight));
   return (
-    <View style={[styles.assessmentCard, { borderColor: colour.border }]}>
-      <View style={styles.artworkBox}><Image style={styles.artwork} src={nurseryAsset(artwork)} /></View>
-      <View style={styles.subjectBody}>
-        <View style={styles.subjectHeader}>
-          <View style={[styles.numberBadge, { backgroundColor: colour.badge }]}><Text style={styles.number}>{index + 1}</Text></View>
-          <Text style={[styles.subjectName, { color: colour.text }]}>{label}</Text>
-        </View>
-        <View style={styles.commentArea}>
-          <DottedLines count={3} />
-          {!!comment && <Text style={styles.subjectComment}>{comment}</Text>}
-        </View>
-      </View>
+    <View style={[styles.commentArea, { height }]}>
+      {Array.from({ length: layout.lineCount }, (_, lineIndex) => (
+        <View
+          key={`${layout.key}-line-${lineIndex}`}
+          style={[
+            styles.dottedLine,
+            { height: layout.ruleHeight },
+            lineIndex < shortenedLineCount ? { marginRight: artworkAvoidance } : {},
+          ]}
+        />
+      ))}
+      {!!comment && (
+        <Text
+          style={[
+            styles.subjectComment,
+            { top: layout.commentTop, right: artworkAvoidance, lineHeight: layout.commentLineHeight },
+          ]}
+        >
+          {comment}
+        </Text>
+      )}
+      <Image
+        style={[
+          styles.artwork,
+          { right: layout.imageRight, top: layout.imageTop, width: layout.imageWidth, height: layout.imageHeight },
+        ]}
+        src={nurseryAsset(layout.artwork)}
+      />
     </View>
   );
 }
 
-function TeacherCommentBlock({ title, comment, colour }: { title: string; comment?: string; colour: string }) {
+function SubjectAssessment({
+  index,
+  layout,
+  comment,
+  rowLineCount,
+}: {
+  index: number;
+  layout: SubjectLayout;
+  comment?: string;
+  rowLineCount: number;
+}) {
+  const colour = palette[index % palette.length];
+  return (
+    <View style={styles.assessmentItem}>
+      <View style={styles.subjectHeader}>
+        <View style={[styles.numberBadge, { backgroundColor: colour.badge }]}><Text style={styles.number}>{index + 1}</Text></View>
+        <Text style={[styles.subjectName, { color: colour.text }]}>{layout.label}</Text>
+      </View>
+      <SubjectLineWrapper layout={layout} comment={comment} height={rowLineCount * layout.ruleHeight} />
+    </View>
+  );
+}
+
+function splitTeacherComment(comment: string, firstLineLimit: number) {
+  const words = comment.trim().split(/\s+/).filter(Boolean);
+  const firstLine: string[] = [];
+  while (words.length && `${firstLine.join(" ")} ${words[0]}`.trim().length <= firstLineLimit) {
+    firstLine.push(words.shift()!);
+  }
+  return { firstLine: firstLine.join(" "), secondLine: words.join(" ") };
+}
+
+type TeacherCommentLayout = {
+  key: "class-teacher" | "headteacher";
+  title: string;
+  colour: string;
+  firstLineLimit: number;
+  firstRuleHeight: number;
+  secondRuleHeight: number;
+  firstTextTop: number;
+  secondTextTop: number;
+  textLineHeight: number;
+  signatureSpace: number;
+};
+
+const classTeacherCommentLayout: TeacherCommentLayout = {
+  key: "class-teacher",
+  title: "Class teacher's general comment:",
+  colour: "#18723a",
+  firstLineLimit: 78,
+  firstRuleHeight: 16,
+  secondRuleHeight: 16,
+  firstTextTop: 0,
+  secondTextTop: 0,
+  textLineHeight: 1.3,
+  signatureSpace: 170,
+};
+
+const headteacherCommentLayout: TeacherCommentLayout = {
+  key: "headteacher",
+  title: "Headteacher's comment:",
+  colour: "#2f78bf",
+  firstLineLimit: 92,
+  firstRuleHeight: 16,
+  secondRuleHeight: 16,
+  firstTextTop: -0.25,
+  secondTextTop: -0.25,
+  textLineHeight: 1.3,
+  signatureSpace: 170,
+};
+
+function TeacherCommentLineWrapper({
+  layout,
+  text,
+  line,
+}: {
+  layout: TeacherCommentLayout;
+  text: string;
+  line: "first" | "signature";
+}) {
+  const isFirstLine = line === "first";
+  const height = isFirstLine ? layout.firstRuleHeight : layout.secondRuleHeight;
+  const textTop = isFirstLine ? layout.firstTextTop : layout.secondTextTop;
+  return (
+    <View style={[styles.teacherCommentLine, { height }]}>
+      <View style={[styles.teacherCommentRule, !isFirstLine ? { right: layout.signatureSpace } : {}]} />
+      {isFirstLine ? (
+        <Text style={[styles.teacherCommentText, { top: textTop, lineHeight: layout.textLineHeight }]}>
+          <Text style={[styles.teacherCommentLabel, { color: layout.colour }]}>{layout.title} </Text>{text}
+        </Text>
+      ) : (
+        <>
+          <Text style={[styles.teacherCommentContinuation, { top: textTop, right: layout.signatureSpace, lineHeight: layout.textLineHeight }]}>{text}</Text>
+          <View style={styles.signatureRow}>
+            <Text style={[styles.signatureLabel, { color: layout.colour }]}>Signature:</Text>
+            <View style={styles.signatureLine} />
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+function TeacherCommentBlock({ layout, comment }: { layout: TeacherCommentLayout; comment?: string }) {
+  const lines = splitTeacherComment(comment || "", layout.firstLineLimit);
   return (
     <View style={styles.teacherCommentBlock}>
-      <View style={styles.teacherCommentLine} />
-      <Text style={styles.teacherCommentText}><Text style={[styles.teacherCommentLabel, { color: colour }]}>{title} </Text>{comment || ""}</Text>
-      <View style={styles.signatureRow}>
-        <Text style={[styles.signatureLabel, { color: colour }]}>Signature:</Text>
-        <View style={styles.signatureLine} />
-      </View>
+      <TeacherCommentLineWrapper layout={layout} text={lines.firstLine} line="first" />
+      <TeacherCommentLineWrapper layout={layout} text={lines.secondLine} line="signature" />
     </View>
   );
 }
@@ -194,7 +311,7 @@ export function PlayfulNurseryReportPageContent({
 
   return (
     <Page size="A4" style={styles.page}>
-      <Image fixed src={nurseryAsset("background.png")} style={styles.background} />
+      <Image fixed src={nurseryAsset("background 2.png")} style={styles.background} />
       <Text style={styles.pageSchoolName}>{schoolName}</Text>
       <Text style={styles.pageContact}>{contacts ? `TEL: ${contacts}` : ""}</Text>
       <Text style={styles.pageEmail}>{contact?.email ? `EMAIL: ${contact.email}` : ""}</Text>
@@ -224,12 +341,13 @@ export function PlayfulNurseryReportPageContent({
 
         <View style={styles.assessmentGrid}>
           {Array.from({ length: 6 }, (_, rowIndex) => {
-            const left = subjectCards[rowIndex * 2];
-            const right = subjectCards[rowIndex * 2 + 1];
+            const left = subjectLayouts[rowIndex * 2];
+            const right = subjectLayouts[rowIndex * 2 + 1];
+            const rowLineCount = Math.max(left.lineCount, right.lineCount);
             return (
-              <View key={left[1]} style={styles.assessmentRow}>
-                <SubjectCard index={rowIndex * 2} label={left[0]} artwork={left[2]} comment={subjectComments?.[left[1] as SubjectCommentType]} />
-                <SubjectCard index={rowIndex * 2 + 1} label={right[0]} artwork={right[2]} comment={subjectComments?.[right[1] as SubjectCommentType]} />
+              <View key={left.key} style={[styles.assessmentRow, { height: 19 + rowLineCount * left.ruleHeight }]}>
+                <SubjectAssessment index={rowIndex * 2} layout={left} rowLineCount={rowLineCount} comment={subjectComments?.[left.key]} />
+                <SubjectAssessment index={rowIndex * 2 + 1} layout={right} rowLineCount={rowLineCount} comment={subjectComments?.[right.key]} />
               </View>
             );
           })}
@@ -237,9 +355,9 @@ export function PlayfulNurseryReportPageContent({
 
         <View style={styles.comments}>
           <View style={styles.commentsPanel}>
-            <TeacherCommentBlock title="Class teacher's general comment:" comment={classTeacherComment} colour="#18723a" />
+            <TeacherCommentBlock layout={classTeacherCommentLayout} comment={classTeacherComment} />
             <View style={styles.commentsDivider} />
-            <TeacherCommentBlock title="Headteacher's comment:" comment={headTeacherComment} colour="#2f78bf" />
+            <TeacherCommentBlock layout={headteacherCommentLayout} comment={headTeacherComment} />
           </View>
         </View>
 
