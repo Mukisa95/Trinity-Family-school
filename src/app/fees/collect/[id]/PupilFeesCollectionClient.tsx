@@ -88,7 +88,6 @@ import { useActiveFeesHolidaysByPupil } from '@/lib/hooks/use-fees-holiday';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useActiveUniforms, useUniforms, useUniformsByFilter } from '@/lib/hooks/use-uniforms';
 import { useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
-import { useFeeStructures } from '@/lib/hooks/use-fee-structures';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
 
@@ -297,10 +296,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const { data: activeUniforms = [] } = useActiveUniforms();
   const { data: allUniforms = [] } = useUniforms();
   const createUniformTrackingMutation = useCreateUniformTracking();
-  // Fetch fee structures to get names for assignments
-  const { data: allFeeStructures = [] } = useFeeStructures();
-
-
   // Get valid academic years for this pupil:
   // 1. Filters out years before the pupil's registration date
   // 2. Filters out years where the pupil was entirely inactive (Graduated/Transferred/Inactive)
@@ -525,7 +520,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     uniformTrackingRecords,
     isUniformTrackingLoading,
     uniformTrackingError,
-    allFeeStructures: allFeeStructuresFromHook,
+    allFeeStructures,
     isLoading: isPupilFeesLoading,
     isPaymentDataLoading,
     refetch,
@@ -2354,7 +2349,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     {pupil && selectedAcademicYear && (
                       <SchoolPayPaymentBanner
                         payments={pupilPayments}
-                        feeStructures={allFeeStructuresFromHook}
+                        feeStructures={allFeeStructures}
                         allAcademicYears={academicYears}
                         selectedTermId={selectedTermId}
                         selectedAcademicYear={selectedAcademicYear}
@@ -2547,8 +2542,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         <SchoolPayPaymentsModal
           pupilId={pupil.id}
           pupil={pupil}
-          feeStructures={allFeeStructuresFromHook}
-          allFeeStructures={allFeeStructuresFromHook}
+          feeStructures={allFeeStructures}
+          allFeeStructures={allFeeStructures}
           academicYears={academicYears}
           selectedTermId={selectedTermId}
           selectedAcademicYear={selectedAcademicYear}
@@ -2565,7 +2560,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       {isRedistributeModalOpen && redistributeTx && pupil && selectedAcademicYear && (
         <SchoolPayRedistributeModal
           transaction={redistributeTx}
-          feeStructures={allFeeStructuresFromHook}
+          feeStructures={allFeeStructures}
           allAcademicYears={academicYears}
           pupil={pupil}
           siblings={siblings}

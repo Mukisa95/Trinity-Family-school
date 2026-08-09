@@ -2261,122 +2261,46 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
 // Enhanced Header Component
 const EnhancedHeader = ({ schoolSettings }: { schoolSettings: any }) => {
-  const [showGreeting, setShowGreeting] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('hasSeenDashboardGreeting');
-    }
-    return true;
-  });
-  const [greetingMessage, setGreetingMessage] = useState('');
   const { user } = useAuth();
+  const [timeGreeting, setTimeGreeting] = useState('Welcome back');
 
-  // Generate greeting once on mount / user change
   useEffect(() => {
-    const getUserDisplayName = () => {
-      if (user?.firstName) return user.firstName;
-      if (user?.username) {
-        const username = user.username;
-        if (username.includes(' ')) return username.split(' ')[0];
-        if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
-        return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
-      }
-      return 'Friend';
-    };
     const hour = new Date().getHours();
-    const name = getUserDisplayName();
-    let timeGreeting = 'Good day';
-    if (hour < 12) timeGreeting = 'Good morning';
-    else if (hour < 17) timeGreeting = 'Good afternoon';
-    else timeGreeting = 'Good evening';
-    const variations = [
-      `Hello and welcome, ${name}! ${timeGreeting} ✨`,
-      `Hey ${name}! ${timeGreeting} 🌟`,
-      `Welcome back, ${name}! ${timeGreeting} 👋`,
-      `${timeGreeting}, ${name}! Great to see you! 😊`,
-      `Hi ${name}! ${timeGreeting} and welcome! 🎉`,
-      `${timeGreeting}, ${name}! Ready to make magic? ✨`,
-      `Hello ${name}! ${timeGreeting}! Let's do this! 💪`,
-      `Welcome, ${name}! ${timeGreeting} 🌈`,
-    ];
-    setGreetingMessage(variations[Math.floor(Math.random() * variations.length)]);
-  }, [user]);
+    if (hour < 12) setTimeGreeting('Good morning');
+    else if (hour < 17) setTimeGreeting('Good afternoon');
+    else setTimeGreeting('Good evening');
+  }, []);
 
-  // Show greeting for 6 seconds then reveal school name, only once per session
-  useEffect(() => {
-    if (!showGreeting) return;
-    sessionStorage.setItem('hasSeenDashboardGreeting', 'true');
-    const timer = setTimeout(() => setShowGreeting(false), 6000);
-    return () => clearTimeout(timer);
-  }, [showGreeting]);
+  const displayName = useMemo(() => {
+    if (user?.firstName) return user.firstName;
+    if (!user?.username) return 'Friend';
+
+    const username = user.username.trim();
+    if (username.includes(' ')) return username.split(' ')[0];
+    if (username.includes('_') || username.includes('.')) return username.split(/[_.]/)[0];
+    return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+  }, [user?.firstName, user?.username]);
 
   return (
-    <div className="relative pb-1 md:pb-2">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-1 sm:pt-3 sm:pb-2 md:pt-4 md:pb-2">
-        <div className="grid [grid-template-areas:'stack'] items-start min-h-[3.5rem] sm:min-h-[4rem]">
-          <AnimatePresence>
-            {showGreeting && greetingMessage ? (
-              /* ── Smooth, lightweight GPU-accelerated greeting ── */
-              <motion.div
-                key="greeting"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                style={{ willChange: "transform, opacity" }}
-                className="[grid-area:stack]"
-              >
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-900 drop-shadow-sm pb-1">
-                  {greetingMessage}
-                </h2>
-                <div className="mt-1 h-1 w-16 sm:w-20 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 opacity-80" />
-              </motion.div>
-            ) : (
-              /* ── School name & motto with animated logo reveal ── */
-              <motion.div
-                key="school-name"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                style={{ willChange: "opacity" }}
-                className="[grid-area:stack] flex items-center"
-              >
-                {/* Logo pops in and slides left */}
-                {schoolSettings?.generalInfo?.logo && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0, x: 40 }}
-                    animate={{ scale: 1, opacity: 1, x: 0 }}
-                    transition={{
-                      scale: { type: "spring", stiffness: 220, damping: 20, delay: 0.1 },
-                      opacity: { duration: 0.2, delay: 0.1 },
-                      x: { type: "spring", stiffness: 120, damping: 20, delay: 0.5 }
-                    }}
-                    className="flex-shrink-0 mr-3 sm:mr-4 z-10"
-                  >
-                    <img
-                      src={schoolSettings.generalInfo.logo}
-                      alt="School Logo"
-                      className="w-10 h-10 sm:w-12 sm:h-12 object-contain bg-transparent rounded-lg"
-                    />
-                  </motion.div>
-                )}
-
-                {/* Text fades in as logo slides */}
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 0.6, ease: "easeOut" }}
-                  style={{ willChange: "transform, opacity" }}
-                >
-                  <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 tracking-tight drop-shadow-sm">
-                    {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
-                  </h1>
-                  <p className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wide uppercase mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
-                    {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
-                  </p>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+    <div className="container mx-auto px-3 sm:px-6 lg:px-8 pt-2 pb-3 sm:pt-3 sm:pb-4">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        {schoolSettings?.generalInfo?.logo && (
+          <img
+            src={schoolSettings.generalInfo.logo}
+            alt="School Logo"
+            className="h-10 w-10 flex-shrink-0 rounded-lg object-contain sm:h-12 sm:w-12"
+          />
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-indigo-700 sm:text-base">
+            {timeGreeting}, {displayName}
+          </p>
+          <h1 className="truncate text-base font-bold tracking-tight text-gray-900 sm:text-lg md:text-xl">
+            {schoolSettings?.generalInfo?.name || 'TRINITY FAMILY NURSERY AND PRIMARY SCHOOL'}
+          </h1>
+          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-gray-500 sm:text-xs">
+            {schoolSettings?.generalInfo?.motto || 'GUIDING GROWTH, INSPIRING GREATNESS'}
+          </p>
         </div>
       </div>
     </div>
@@ -2496,6 +2420,8 @@ export default function DashboardPage() {
         <title>Dashboard - Trinity School Online</title>
         <meta name="description" content="Trinity School Online Dashboard - Comprehensive overview of school activities and statistics." />
       </Head>
+
+      <EnhancedHeader schoolSettings={schoolSettings} />
 
       <motion.div
         variants={groupVariants}

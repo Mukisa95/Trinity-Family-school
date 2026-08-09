@@ -84,7 +84,11 @@ export function usePupilFees({
   // 🔄 FUTURE YEARS FIXED: Fetch fees applicable to the selected year (including ongoing fees from previous years)
   // 🚀 OPTIMIZED: Don't wait for allAcademicYears - fees can load in parallel
   // If academic years aren't ready yet, we'll use a fallback or wait for them in the query function
-  const { data: currentTermFees = [], isLoading: isLoadingCurrentFees } = useQuery({
+  const {
+    data: currentTermFees = [],
+    isLoading: isLoadingCurrentFees,
+    refetch: refetchCurrentTermFees,
+  } = useQuery({
     queryKey: ['fee-structures-applicable-to-year', selectedAcademicYear?.id, selectedTermId],
     queryFn: async () => {
       if (!selectedTermId || !selectedAcademicYear?.id) {
@@ -120,12 +124,16 @@ export function usePupilFees({
     enabled: !!selectedTermId && !!selectedAcademicYear?.id,
     staleTime: 8 * 60 * 1000, // 8 minutes cache - slightly more frequent updates for complex logic
     refetchOnWindowFocus: false, // Cache is fast, no need to refetch
-    refetchOnMount: false, // Use cached data on mount
+    refetchOnMount: false, // Reuse selected-year fees until explicitly refreshed
   });
 
   // 🔄 CARRY FORWARD FIX: Fetch ALL fee structures for carry forward calculations
   // 🚀 OPTIMIZED: Load in parallel with other queries, don't block on academic years
-  const { data: allFeeStructures = [], isLoading: isLoadingAllFees } = useQuery({
+  const {
+    data: allFeeStructures = [],
+    isLoading: isLoadingAllFees,
+    refetch: refetchAllFeeStructures,
+  } = useQuery({
     queryKey: ['all-fee-structures-for-carryforward'],
     queryFn: async () => {
       const fees = await FeeStructuresService.getAllFeeStructures();
@@ -134,9 +142,11 @@ export function usePupilFees({
       }
       return fees;
     },
-    staleTime: 15 * 60 * 1000, // 15 minutes cache - needed less frequently
-    refetchOnWindowFocus: false, // Cache is fast, no need to refetch
-    refetchOnMount: false, // Use cached data on mount
+    // Fee structures rarely change. Keep them fresh until an edit explicitly
+    // invalidates this key; the next mounted collection screen then refetches.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
   const isLoadingFees = isLoadingCurrentFees || isLoadingAllFees;
@@ -453,7 +463,8 @@ export function usePupilFees({
   // Refetch function to invalidate all related queries
   const refetch = async () => {
     return await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['fee-structures'] }),
+      refetchCurrentTermFees(),
+      refetchAllFeeStructures(),
       queryClient.invalidateQueries({ queryKey: ['pupil-payments', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['previous-balance', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupilId] }),
