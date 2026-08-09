@@ -57,7 +57,8 @@ const styles = StyleSheet.create({
   logo: { width: 74, height: 74, objectFit: "contain", marginRight: 8 },
   logoPlaceholder: { width: 74, height: 74, marginRight: 8 },
   photoColumn: { width: 71, marginLeft: "auto", alignItems: "center" },
-  pupilPhoto: { width: 57, height: 68, objectFit: "cover", borderWidth: 1.2, borderColor: "#4a9a50", borderRadius: 8 },
+  pupilPhotoFrame: { width: 62, height: 73, padding: 2, borderWidth: 2.2, borderColor: "#087337", borderRadius: 10, backgroundColor: "rgba(255,255,255,0.92)", alignItems: "center", justifyContent: "center" },
+  pupilPhoto: { width: 54, height: 65, objectFit: "cover", borderWidth: 0.9, borderColor: "#9bd47d", borderRadius: 7 },
   admissionNumber: { marginTop: 2, color: "#666666", fontSize: 8, fontFamily: "Helvetica", textAlign: "center" },
   infoPanel: { height: 48, marginTop: 4, paddingVertical: 5, paddingHorizontal: 8, backgroundColor: "rgba(255,255,255,0.82)", borderLeftWidth: 3, borderLeftColor: "#32CD32", borderRadius: 4 },
   infoRow: { flexDirection: "row", height: 18, alignItems: "center" },
@@ -70,18 +71,18 @@ const styles = StyleSheet.create({
   infoLabel: { color: "#006400", fontFamily: "Helvetica-Bold", fontSize: 10, marginRight: 5, flexShrink: 0 },
   infoValue: { flex: 1, minWidth: 0, color: "#0000FF", fontSize: 10, fontFamily: "Comic Relief" },
   reportTitle: { height: 19, marginTop: 5, color: "#087337", fontFamily: "Helvetica-Bold", fontSize: 12, letterSpacing: 0.3, textAlign: "center" },
-  assessmentGrid: { marginTop: 4 },
-  assessmentRow: { flexDirection: "row", gap: 12, marginBottom: 2 },
-  assessmentItem: { flex: 1, position: "relative", paddingHorizontal: 2 },
+  assessmentGrid: { marginTop: 4, flexDirection: "row", gap: 12 },
+  assessmentColumn: { flex: 1, position: "relative", paddingHorizontal: 2 },
+  subjectGroup: { marginBottom: 0 },
+  assessmentItem: { position: "relative", marginBottom: 8 },
   artwork: { position: "absolute", objectFit: "contain", zIndex: 3 },
-  subjectHeader: { flexDirection: "row", alignItems: "center", height: 17 },
-  numberBadge: { width: 17, height: 17, borderRadius: 9, alignItems: "center", justifyContent: "center", marginRight: 5 },
-  number: { color: "#ffffff", fontSize: 10, fontFamily: "Helvetica-Bold" },
-  subjectName: { flex: 1, fontSize: 10, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
+  groupHeading: { color: "#151515", fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 6 },
+  subjectHeader: { height: 13, justifyContent: "center" },
+  subjectName: { fontSize: 10, fontFamily: "Helvetica-Bold" },
   commentArea: { position: "relative", marginTop: 1 },
   subjectComment: { position: "absolute", left: 0, color: "#0000FF", fontSize: 10.5, fontFamily: "Comic Relief", zIndex: 2 },
   dottedLine: { borderBottomWidth: 0.65, borderBottomColor: "#7d857c", borderBottomStyle: "dotted" },
-  comments: { marginTop: 10 },
+  comments: { marginTop: 3 },
   commentsPanel: { height: 94, borderWidth: 1, borderColor: "#74b96d", borderRadius: 9, backgroundColor: "rgba(255,255,255,0.96)", paddingVertical: 5, paddingHorizontal: 11 },
   teacherCommentBlock: { position: "relative", height: 38 },
   teacherCommentLine: { position: "relative" },
@@ -89,9 +90,9 @@ const styles = StyleSheet.create({
   teacherCommentText: { position: "absolute", left: 0, right: 0, color: "#0000FF", fontSize: 9, fontFamily: "Comic Relief", zIndex: 2 },
   teacherCommentContinuation: { position: "absolute", left: 0, color: "#0000FF", fontSize: 9, fontFamily: "Comic Relief", zIndex: 2 },
   teacherCommentLabel: { fontFamily: "Helvetica-Bold", fontSize: 10 },
-  signatureRow: { position: "absolute", right: 0, bottom: 1, flexDirection: "row", alignItems: "center", gap: 5, zIndex: 3 },
-  signatureLabel: { fontSize: 10, fontFamily: "Helvetica-Bold" },
-  signatureLine: { width: 132, borderBottomWidth: 0.75, borderBottomColor: "#57605a" },
+  signatureRow: { position: "absolute", right: 0, bottom: -1, flexDirection: "row", alignItems: "flex-end", gap: 5, zIndex: 3 },
+  signatureLabel: { fontSize: 10, lineHeight: 1, fontFamily: "Helvetica-Bold" },
+  signatureLine: { width: 132, height: 9, borderBottomWidth: 0.75, borderBottomColor: "#57605a" },
   commentsDivider: { height: 1, marginVertical: 2, borderBottomWidth: 0.55, borderBottomColor: "#a7c99a", borderBottomStyle: "dotted" },
   nextTerm: { height: 27, marginTop: 12, borderWidth: 1, borderColor: "#a5c96e", borderRadius: 8, backgroundColor: "rgba(255,255,255,0.96)", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
   nextTermBlock: { flex: 1, flexDirection: "row", alignItems: "center" },
@@ -114,6 +115,7 @@ type SubjectLayout = {
   label: string;
   key: SubjectCommentType;
   artwork: string;
+  paletteIndex: number;
   lineCount: number;
   ruleHeight: number;
   commentTop: number;
@@ -122,26 +124,64 @@ type SubjectLayout = {
   imageHeight: number;
   imageTop: number;
   imageRight: number;
+  itemMarginBottom?: number;
 };
 
-const subjectLayouts: SubjectLayout[] = [
-  { label: "Mathematical Concepts", key: "mathematical_concepts", artwork: "mathematical concepts.png", lineCount: 5, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 33, imageTop: 3, imageRight: 4 },
-  { label: "Writing Concepts", key: "writing_concepts", artwork: "writing concepts.png", lineCount: 4, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 46, imageHeight: 36, imageTop: 2, imageRight: 3 },
-  { label: "Reading", key: "reading", artwork: "reading.png", lineCount: 4, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 36, imageTop: 2, imageRight: 4 },
-  { label: "Social / Emotional Development", key: "social_emotional_development", artwork: "social and emotional develoment.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 44, imageHeight: 36, imageTop: 0, imageRight: 3 },
-  { label: "God and Creation", key: "god_and_his_creation", artwork: "God and creation.png", lineCount: 2, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 45, imageHeight: 34, imageTop: 0, imageRight: 4 },
-  { label: "Life Skills", key: "life_skills", artwork: "life skils.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 40, imageHeight: 40, imageTop: 0, imageRight: 4 },
-  { label: "Vocabulary", key: "vocabulary", artwork: "vocabulary.png", lineCount: 5, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 44, imageHeight: 38, imageTop: 2, imageRight: 4 },
-  { label: "Story Telling", key: "story_telling", artwork: "story telling.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 32, imageTop: 2, imageRight: 2 },
-  { label: "General Knowledge", key: "general_knowledge", artwork: "general knowledge.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 38, imageHeight: 45, imageTop: 0, imageRight: 6 },
-  { label: "Rhymes / Music", key: "rhymes_music", artwork: "rhymes, music.png", lineCount: 4, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 47, imageHeight: 39, imageTop: 1, imageRight: 2 },
-  { label: "Outdoor Activities", key: "outdoor_activities", artwork: "outdoor activities.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1, commentLineHeight: 1.286, imageWidth: 48, imageHeight: 35, imageTop: 1, imageRight: 2 },
-  { label: "Punctuality", key: "punctuality", artwork: "punctuality.png", lineCount: 3, ruleHeight: 13.5, commentTop: -1.5, commentLineHeight: 1.286, imageWidth: 36, imageHeight: 40, imageTop: 0, imageRight: 6 },
+type SubjectGroup = {
+  heading?: string;
+  subjects: SubjectLayout[];
+};
+
+const subjectRuleHeight = 12;
+const subjectRuleGap = 2;
+const subjectCommentLineHeight = 1.333;
+const subjectCommentTop = -2;
+
+const leftColumnGroups: SubjectGroup[] = [
+  {
+    heading: "COGNITIVE DEVELOPMENT SKILLS",
+    subjects: [
+      { label: "Mathematical Concepts", key: "mathematical_concepts", artwork: "mathematical concepts.png", paletteIndex: 0, lineCount: 5, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 48, imageHeight: 33, imageTop: 3, imageRight: 4 },
+      { label: "Reading", key: "reading", artwork: "reading.png", paletteIndex: 2, lineCount: 4, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 48, imageHeight: 36, imageTop: 2, imageRight: 4 },
+      { label: "Vocabulary", key: "vocabulary", artwork: "vocabulary.png", paletteIndex: 0, lineCount: 5, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 44, imageHeight: 38, imageTop: 2, imageRight: 4 },
+      { label: "General Knowledge", key: "general_knowledge", artwork: "general knowledge.png", paletteIndex: 2, lineCount: 3, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 38, imageHeight: 45, imageTop: 0, imageRight: 6, itemMarginBottom: 12 },
+    ],
+  },
+  {
+    heading: "MOTOR DEVELOPMENT SKILLS",
+    subjects: [
+      { label: "Outdoor Activities", key: "outdoor_activities", artwork: "outdoor activities.png", paletteIndex: 4, lineCount: 4, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 48, imageHeight: 35, imageTop: 1, imageRight: 2 },
+    ],
+  },
+];
+
+const rightColumnGroups: SubjectGroup[] = [
+  {
+    subjects: [
+      { label: "Writing Concepts", key: "writing_concepts", artwork: "writing concepts.png", paletteIndex: 1, lineCount: 4, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 46, imageHeight: 36, imageTop: 2, imageRight: 3 },
+    ],
+  },
+  {
+    heading: "SOCIAL/EMOTIONAL DEVELOPMENT SKILLS",
+    subjects: [
+      { label: "God and His Creation", key: "god_and_his_creation", artwork: "God and creation.png", paletteIndex: 4, lineCount: 2, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 45, imageHeight: 34, imageTop: 0, imageRight: 4 },
+      { label: "Life Skills", key: "life_skills", artwork: "life skils.png", paletteIndex: 5, lineCount: 3, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 40, imageHeight: 40, imageTop: 0, imageRight: 4 },
+    ],
+  },
+  {
+    heading: "LISTENING AND SEQUENCING",
+    subjects: [
+      { label: "Story Telling", key: "story_telling", artwork: "story telling.png", paletteIndex: 1, lineCount: 3, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 48, imageHeight: 32, imageTop: 2, imageRight: 2 },
+      { label: "Rhymes / Music", key: "rhymes_music", artwork: "rhymes, music.png", paletteIndex: 3, lineCount: 4, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 47, imageHeight: 39, imageTop: 1, imageRight: 2 },
+      { label: "Punctuality", key: "punctuality", artwork: "punctuality.png", paletteIndex: 5, lineCount: 3, ruleHeight: subjectRuleHeight, commentTop: subjectCommentTop, commentLineHeight: subjectCommentLineHeight, imageWidth: 36, imageHeight: 40, imageTop: 0, imageRight: 6 },
+    ],
+  },
 ];
 
 function SubjectLineWrapper({ layout, comment, height }: { layout: SubjectLayout; comment?: string; height: number }) {
   const artworkAvoidance = layout.imageWidth + 8;
-  const shortenedLineCount = Math.min(layout.lineCount, Math.ceil((layout.imageTop + layout.imageHeight) / layout.ruleHeight));
+  const linePitch = layout.ruleHeight + subjectRuleGap;
+  const shortenedLineCount = Math.min(layout.lineCount, Math.ceil((layout.imageTop + layout.imageHeight) / linePitch));
   return (
     <View style={[styles.commentArea, { height }]}>
       {Array.from({ length: layout.lineCount }, (_, lineIndex) => (
@@ -149,7 +189,7 @@ function SubjectLineWrapper({ layout, comment, height }: { layout: SubjectLayout
           key={`${layout.key}-line-${lineIndex}`}
           style={[
             styles.dottedLine,
-            { height: layout.ruleHeight },
+            { height: layout.ruleHeight, marginBottom: subjectRuleGap },
             lineIndex < shortenedLineCount ? { marginRight: artworkAvoidance } : {},
           ]}
         />
@@ -176,24 +216,28 @@ function SubjectLineWrapper({ layout, comment, height }: { layout: SubjectLayout
 }
 
 function SubjectAssessment({
-  index,
   layout,
   comment,
-  rowLineCount,
 }: {
-  index: number;
   layout: SubjectLayout;
   comment?: string;
-  rowLineCount: number;
 }) {
-  const colour = palette[index % palette.length];
+  const colour = palette[layout.paletteIndex];
   return (
-    <View style={styles.assessmentItem}>
+    <View style={[styles.assessmentItem, layout.itemMarginBottom ? { marginBottom: layout.itemMarginBottom } : {}]}>
       <View style={styles.subjectHeader}>
-        <View style={[styles.numberBadge, { backgroundColor: colour.badge }]}><Text style={styles.number}>{index + 1}</Text></View>
         <Text style={[styles.subjectName, { color: colour.text }]}>{layout.label}</Text>
       </View>
-      <SubjectLineWrapper layout={layout} comment={comment} height={rowLineCount * layout.ruleHeight} />
+      <SubjectLineWrapper layout={layout} comment={comment} height={layout.lineCount * (layout.ruleHeight + subjectRuleGap)} />
+    </View>
+  );
+}
+
+function SubjectGroupSection({ group, groupIndex, subjectComments }: { group: SubjectGroup; groupIndex: number; subjectComments?: Partial<Record<SubjectCommentType, string>> }) {
+  return (
+    <View style={styles.subjectGroup}>
+      {group.heading ? <Text style={[styles.groupHeading, groupIndex > 0 ? { marginTop: 8 } : {}]}>{group.heading}</Text> : null}
+      {group.subjects.map((layout) => <SubjectAssessment key={layout.key} layout={layout} comment={subjectComments?.[layout.key]} />)}
     </View>
   );
 }
@@ -227,8 +271,8 @@ const classTeacherCommentLayout: TeacherCommentLayout = {
   firstLineLimit: 78,
   firstRuleHeight: 16,
   secondRuleHeight: 16,
-  firstTextTop: 0,
-  secondTextTop: 0,
+  firstTextTop: 4,
+  secondTextTop: 4,
   textLineHeight: 1.3,
   signatureSpace: 170,
 };
@@ -240,8 +284,8 @@ const headteacherCommentLayout: TeacherCommentLayout = {
   firstLineLimit: 92,
   firstRuleHeight: 16,
   secondRuleHeight: 16,
-  firstTextTop: -0.25,
-  secondTextTop: -0.25,
+  firstTextTop: 3.75,
+  secondTextTop: 3.75,
   textLineHeight: 1.3,
   signatureSpace: 170,
 };
@@ -319,7 +363,9 @@ export function PlayfulNurseryReportPageContent({
         <View style={styles.header}>
           {schoolLogo ? <Image src={schoolLogo} style={styles.logo} /> : <View style={styles.logoPlaceholder} />}
           <View style={styles.photoColumn}>
-            {pupilPhoto ? <Image src={pupilPhoto} style={styles.pupilPhoto} /> : <View style={styles.pupilPhoto} />}
+            <View style={styles.pupilPhotoFrame}>
+              {pupilPhoto ? <Image src={pupilPhoto} style={styles.pupilPhoto} /> : <View style={styles.pupilPhoto} />}
+            </View>
             <Text style={styles.admissionNumber}>{pupil.admissionNumber || pupil.learnerIdentificationNumber || ""}</Text>
           </View>
         </View>
@@ -340,17 +386,12 @@ export function PlayfulNurseryReportPageContent({
         <Text style={styles.reportTitle}>CHILD'S PROGRESSIVE ASSESSMENT REPORT</Text>
 
         <View style={styles.assessmentGrid}>
-          {Array.from({ length: 6 }, (_, rowIndex) => {
-            const left = subjectLayouts[rowIndex * 2];
-            const right = subjectLayouts[rowIndex * 2 + 1];
-            const rowLineCount = Math.max(left.lineCount, right.lineCount);
-            return (
-              <View key={left.key} style={[styles.assessmentRow, { height: 19 + rowLineCount * left.ruleHeight }]}>
-                <SubjectAssessment index={rowIndex * 2} layout={left} rowLineCount={rowLineCount} comment={subjectComments?.[left.key]} />
-                <SubjectAssessment index={rowIndex * 2 + 1} layout={right} rowLineCount={rowLineCount} comment={subjectComments?.[right.key]} />
-              </View>
-            );
-          })}
+          <View style={styles.assessmentColumn}>
+            {leftColumnGroups.map((group, index) => <SubjectGroupSection key={group.heading} group={group} groupIndex={index} subjectComments={subjectComments} />)}
+          </View>
+          <View style={styles.assessmentColumn}>
+            {rightColumnGroups.map((group, index) => <SubjectGroupSection key={group.heading || `right-group-${index}`} group={group} groupIndex={index} subjectComments={subjectComments} />)}
+          </View>
         </View>
 
         <View style={styles.comments}>
