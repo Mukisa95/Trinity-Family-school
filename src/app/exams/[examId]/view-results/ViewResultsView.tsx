@@ -86,6 +86,8 @@ import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/compon
 import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
 import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
 import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
+import { IndividualReportPrintDialog } from '@/components/exam/IndividualReportPrintDialog';
+import { FullReport2PaletteSelector } from '@/components/exam/FullReport2PaletteSelector';
 import { generateNurseryAssessmentPDF } from '@/components/exam/NurseryAssessmentPDF';
 import { generateNurseryMiniReportPDF } from '@/components/exam/NurseryMiniReportPDF';
 import { PDFDownloadLink } from '@react-pdf/renderer';
@@ -280,88 +282,6 @@ const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(res
       },
     } as T;
   });
-};
-
-// Individual Print Modal component (for single pupil reports)
-const IndividualPrintModal = ({
-  isOpen,
-  onClose,
-  onPrintTrans,
-  isGenerating,
-  generationStatus,
-  generationProgress,
-  eta,
-  pupilName
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onPrintTrans: () => void;
-  isGenerating: boolean;
-  generationStatus: string;
-  generationProgress: number;
-  eta: string;
-  pupilName?: string;
-}) => {
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Printer className="h-5 w-5 text-blue-600" />
-            Print Reports{pupilName ? ` - ${pupilName}` : ''}
-          </DialogTitle>
-          <DialogDescription>
-            Select the type of report to generate
-          </DialogDescription>
-        </DialogHeader>
-
-        {isGenerating ? (
-          <div className="py-4">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin"></div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Generating Report</h3>
-              <p className="text-sm text-blue-600 font-medium mb-4">{generationStatus}</p>
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${generationProgress}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mb-4 text-sm">
-                <span className="font-semibold text-gray-800">{generationProgress}% Complete</span>
-                <span className="text-blue-600 font-medium">{eta}</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <button
-              onClick={onPrintTrans}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <FileTextIcon className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Full Report</h3>
-                  <p className="text-sm text-gray-600">Individual pupil report card (Comprehensive design)</p>
-                </div>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {!isGenerating && (
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
 };
 
 // Promotion Ranking Configuration Dialog (for Term 3 only)
@@ -733,8 +653,8 @@ const PrintModal = ({
                   <FileTextIcon className="h-5 w-5 text-indigo-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Full Report 2</h3>
-                  <p className="text-sm text-gray-600">Individual pupil report cards (Trinity blue-and-gold design)</p>
+                  <h3 className="font-semibold text-gray-900">Bespoke Report</h3>
+                  <p className="text-sm text-gray-600">Individual pupil report cards (fully customisable Trinity blue-and-gold design)</p>
                 </div>
               </div>
             </button>}
@@ -1999,16 +1919,106 @@ export default function ViewResultsView() {
     }
   }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, academicYears, schoolSettings, examResultData, toast, getAcademicYearAndTerm, getNextTermDates, updateProgressForIndividual, pdfViewer]);
 
-  // Handle individual pupil TRANS report - show type selection modal first
-  const handleIndividualTransReport = useCallback(() => {
+  const handleIndividualMiniReport = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !selectedPupilForPrint || !processedResults.length) {
+      toast({ title: 'Error', description: 'Missing required data for Mini Report generation' });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgressForIndividual(10, 'Preparing Mini Report data...');
+      const selectedPupilResult = processedResults.find(result => result.pupilInfo.pupilId === selectedPupilForPrint);
+      if (!selectedPupilResult) throw new Error('Pupil not found in results');
+
+      const resultsForReport = await prepareResultsWithLivePupilData([selectedPupilResult], allPupils);
+      const teachersMap = createStaffNameMap(
+        allStaff,
+        [...new Set(subjectSnaps.map(subject => subject.teacherId).filter((teacherId): teacherId is string => Boolean(teacherId)))],
+      );
+      const enhancedSubjectSnaps = subjectSnaps.map(subject => ({
+        ...subject,
+        teacherName: subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
+          : 'Not Assigned',
+        fullMarks: 100,
+      }));
+      const { academicYearName, termName } = getAcademicYearAndTerm(
+        examDetails.academicYearId || '',
+        examDetails.termId || '',
+      );
+
+      updateProgressForIndividual(65, 'Generating one half-page Mini Report...');
+      const blob = await generatePrimaryMiniReportPDF({
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          endDate: examDetails.endDate,
+          academicYearId: examDetails.academicYearId,
+          termId: examDetails.termId,
+          academicYearName,
+          termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: resultsForReport,
+        schoolSettings,
+        majorSubjects: examResultData?.majorSubjects,
+        backgroundImage: '/images/Primary%20Mini%20BG.png',
+        onProgress: (completed, total) => updateProgressForIndividual(
+          65 + Math.round((completed / Math.max(total, 1)) * 30),
+          `Generating Mini Report (${completed}/${total})...`,
+        ),
+      });
+
+      const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
+      pdfViewer.openPDFFromBlob(
+        blob,
+        `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Mini_Report.pdf`,
+        'Individual Pupil Mini Report',
+      );
+      updateProgressForIndividual(100, 'Complete!');
+      toast({ title: 'Success', description: 'Mini Report is ready for viewing.', duration: 1500 });
+    } catch (error) {
+      console.error('Error generating individual Mini Report:', error);
+      toast({ title: 'Error', description: 'Failed to generate Mini Report. Please try again.' });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowIndividualPrintModal(false);
+        setSelectedPupilForPrint(null);
+      }, 1000);
+    }
+  }, [allPupils, allStaff, classSnap, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, processedResults, schoolSettings, selectedPupilForPrint, subjectSnaps, toast, updateProgressForIndividual]);
+
+  const openIndividualFullReport = useCallback((template: 'standard' | 'full2') => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !selectedPupilForPrint || !processedResults.length) {
       toast({ title: "Error", description: "Missing required data for TRANS report generation" });
       return;
     }
-    setSelectedFullReportTemplate('standard');
-    // Show type selection modal first
+    setSelectedFullReportTemplate(template);
+    setShowIndividualPrintModal(false);
     setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, toast]);
+
+  const handleIndividualFullReport = useCallback(
+    () => openIndividualFullReport('standard'),
+    [openIndividualFullReport],
+  );
+
+  const handleIndividualFullReport2 = useCallback(
+    () => openIndividualFullReport('full2'),
+    [openIndividualFullReport],
+  );
 
   // Generate individual TRANS report with grading scale - OPTIMIZED
   const generateIndividualTransReportWithGrading = useCallback(async () => {
@@ -2146,8 +2156,8 @@ export default function ViewResultsView() {
         : generateTransBatchReportPDF(transBatchData));
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Report'}.pdf`;
-      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Full Report 2' : 'Individual Pupil TRANS Report';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgressForIndividual(95, 'Finalizing document...');
@@ -2402,8 +2412,8 @@ export default function ViewResultsView() {
         : generateTransBatchReportPDF(transBatchData));
 
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Progress_Report'}.pdf`;
-      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Full Report 2' : 'Individual Pupil TRANS Progress Report';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgressForIndividual(95, 'Finalizing document...');
@@ -2866,7 +2876,7 @@ export default function ViewResultsView() {
 
   const handleFullReport2 = useCallback(() => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
-      toast({ title: 'Error', description: 'Missing required data for Full Report 2 generation' });
+      toast({ title: 'Error', description: 'Missing required data for Bespoke Report generation' });
       return;
     }
     setSelectedFullReportTemplate('full2');
@@ -3204,8 +3214,8 @@ export default function ViewResultsView() {
         : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
 
       // Open in PDF viewer
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Batch_Reports'}.pdf`;
-      const title = selectedFullReportTemplate === 'full2' ? 'Full Report 2' : 'TRANS Batch Reports';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Batch_Reports'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Batch Reports';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -3548,8 +3558,8 @@ export default function ViewResultsView() {
         : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
 
       // Open in PDF viewer
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Full_Report_2' : 'TRANS_Progress_Reports'}.pdf`;
-      const title = selectedFullReportTemplate === 'full2' ? 'Full Report 2' : 'TRANS Progress Reports';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Reports'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Progress Reports';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -5026,58 +5036,7 @@ export default function ViewResultsView() {
 
           <div className="py-4">
             {selectedFullReportTemplate === 'full2' && (
-              <section className="mb-6 space-y-3" aria-labelledby="full-report-2-palette-heading">
-                <div>
-                  <h3 id="full-report-2-palette-heading" className="text-sm font-semibold text-gray-900">Report colour palette</h3>
-                  <p className="mt-1 text-xs text-gray-500">Choose the accent colours used throughout Full Report 2.</p>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {([
-                    { id: 'blue', label: 'Current Blue', primary: '#244291', secondary: '#2563eb', soft: '#eef4ff' },
-                    { id: 'purple', label: 'Purple', primary: '#6b21a8', secondary: '#d35ac7', soft: '#faf5ff' },
-                    { id: 'orange', label: 'Orange', primary: '#f4510b', secondary: '#f59e0b', soft: '#fff7ed' },
-                  ] as const).map((paletteOption) => {
-                    const isSelected = fullReport2Palette === paletteOption.id;
-                    return (
-                      <button
-                        key={paletteOption.id}
-                        type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => setFullReport2Palette(paletteOption.id)}
-                        className="group rounded-xl border-2 bg-white p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                        style={{
-                          borderColor: isSelected ? paletteOption.primary : '#e5e7eb',
-                          boxShadow: isSelected ? `0 0 0 3px ${paletteOption.soft}` : undefined,
-                        }}
-                      >
-                        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                          <div className="h-2" style={{ backgroundColor: paletteOption.primary }} />
-                          <div className="space-y-1.5 p-2" style={{ backgroundColor: paletteOption.soft }}>
-                            <div className="h-1.5 w-3/4 rounded-full" style={{ backgroundColor: paletteOption.primary, opacity: 0.75 }} />
-                            <div className="grid grid-cols-4 gap-1">
-                              <div className="col-span-2 h-4 rounded-sm" style={{ backgroundColor: paletteOption.primary }} />
-                              <div className="h-4 rounded-sm" style={{ backgroundColor: paletteOption.secondary }} />
-                              <div className="h-4 rounded-sm" style={{ backgroundColor: paletteOption.primary, opacity: 0.72 }} />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-gray-900">{paletteOption.label}</span>
-                          <span
-                            className="flex h-5 w-5 items-center justify-center rounded-full border"
-                            style={{
-                              borderColor: paletteOption.primary,
-                              backgroundColor: isSelected ? paletteOption.primary : '#ffffff',
-                            }}
-                          >
-                            {isSelected && <Check className="h-3.5 w-3.5 text-white" aria-hidden="true" />}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+              <FullReport2PaletteSelector palette={fullReport2Palette} onPaletteChange={setFullReport2Palette} />
             )}
             <Table>
               <TableHeader>
@@ -5720,13 +5679,15 @@ export default function ViewResultsView() {
       />
 
       {/* Individual Print Modal */}
-      <IndividualPrintModal
+      <IndividualReportPrintDialog
         isOpen={showIndividualPrintModal}
         onClose={() => {
           setShowIndividualPrintModal(false);
           setSelectedPupilForPrint(null);
         }}
-        onPrintTrans={handleIndividualTransReport}
+        onPrintMini={handleIndividualMiniReport}
+        onPrintFull={handleIndividualFullReport}
+        onPrintFullReport2={handleIndividualFullReport2}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
         generationProgress={generationProgress}

@@ -145,77 +145,6 @@ const REPORT_PALETTES: Record<ReportPaletteName, {
   },
 };
 
-const isRealPhoto = (photo?: string) => {
-  const trimmedPhoto = photo?.trim();
-  return !!(trimmedPhoto
-    && trimmedPhoto !== 'NO PHOTO'
-    && trimmedPhoto !== 'https://placehold.co/128x128.png'
-    && !trimmedPhoto.includes('ui-avatars.com')
-    && (trimmedPhoto.startsWith('http')
-      || trimmedPhoto.startsWith('data:')
-      || trimmedPhoto.startsWith('blob:')
-      || trimmedPhoto.startsWith('/uploads/')));
-};
-
-const normalizePdfImageSrc = (photo?: string) => {
-  const trimmedPhoto = photo?.trim() || '';
-  if (trimmedPhoto.startsWith('/') && typeof window !== 'undefined') {
-    return `${window.location.origin}${trimmedPhoto}`;
-  }
-  return trimmedPhoto;
-};
-
-const createCircularPhotoDataUrl = async (photo?: string) => {
-  const source = normalizePdfImageSrc(photo);
-  if (!isRealPhoto(photo) || typeof document === 'undefined') return source;
-
-  return new Promise<string>((resolve) => {
-    const imageElement = document.createElement('img');
-    let settled = false;
-    const finish = (value: string) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeoutId);
-      resolve(value);
-    };
-    const timeoutId = window.setTimeout(() => finish(source), 8000);
-
-    imageElement.crossOrigin = 'anonymous';
-    imageElement.onload = () => {
-      try {
-        const size = 320;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const context = canvas.getContext('2d');
-        if (!context || !imageElement.naturalWidth || !imageElement.naturalHeight) {
-          finish(source);
-          return;
-        }
-
-        const scale = Math.max(size / imageElement.naturalWidth, size / imageElement.naturalHeight);
-        const drawWidth = imageElement.naturalWidth * scale;
-        const drawHeight = imageElement.naturalHeight * scale;
-        const drawX = (size - drawWidth) / 2;
-        const drawY = (size - drawHeight) / 2;
-
-        context.clearRect(0, 0, size, size);
-        context.save();
-        context.beginPath();
-        context.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        context.clip();
-        context.drawImage(imageElement, drawX, drawY, drawWidth, drawHeight);
-        context.restore();
-        finish(canvas.toDataURL('image/png'));
-      } catch {
-        finish(source);
-      }
-    };
-    imageElement.onerror = () => finish(source);
-    imageElement.src = source;
-  });
-};
-
 const styles = StyleSheet.create({
   page: { position: 'relative', width: 595.28, height: 841.89, fontFamily: 'Helvetica', color: '#334155', backgroundColor: '#ffffff' },
   background: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
@@ -409,7 +338,6 @@ const FullReport2Page = ({
   const config = props.reportConfig || defaultConfig;
   const paletteName = props.palette || config.palette || 'blue';
   const palette = REPORT_PALETTES[paletteName];
-  const normalizedPupilPhoto = normalizePdfImageSrc(pupilPhoto);
   const generalInfo = props.schoolSettings?.generalInfo;
   const schoolName = generalInfo?.name || 'TRINITY FAMILY NUR AND PRI SCHOOL';
   const address = generalInfo?.physicalAddress || props.schoolSettings?.address?.physical || 'KAMPALA, KASUBI, KAWALA';
@@ -474,7 +402,7 @@ const FullReport2Page = ({
             <Text style={styles.schoolDetails}>{contactLine}</Text>
           </View>
           <View style={styles.photoSection}>
-            {isRealPhoto(pupilPhoto) && (
+            {!!pupilPhoto && (
               <View style={{ alignItems: 'center' }}>
                 <View style={[styles.photoFrame, { borderColor: palette.border }]}>
                   <View style={{
@@ -494,7 +422,7 @@ const FullReport2Page = ({
                     overflow: 'hidden',
                     backgroundColor: '#f8fafc',
                   }}>
-                    <Image src={normalizedPupilPhoto} style={styles.pupilPhoto} />
+                    <Image src={pupilPhoto} style={styles.pupilPhoto} />
                   </View>
                   <View style={{
                     position: 'absolute',
@@ -667,9 +595,8 @@ const FullReport2Page = ({
 };
 
 export const generateFullReport2PDF = async (props: FullReport2Props) => {
-  props.onProgress?.(0, `Preparing pupil photos and QR codes for ${props.processedResults.length} pupils...`);
-  const [qrCodes, circularPhotos] = await Promise.all([
-    Promise.all(props.processedResults.map(async result => [
+  props.onProgress?.(0, `Preparing QR codes for ${props.processedResults.length} pupils...`);
+  const qrCodes = await Promise.all(props.processedResults.map(async result => [
       result.pupilInfo.pupilId,
       await QRCode.toDataURL([
         `Name: ${result.pupilInfo.name}`,
@@ -678,19 +605,17 @@ export const generateFullReport2PDF = async (props: FullReport2Props) => {
         `Aggregates: ${result.totalAggregates}`,
         `Division: ${result.division}`,
       ].join('\n'), { errorCorrectionLevel: 'L', margin: 1, width: 180 }),
-    ] as const)),
-    Promise.all(props.processedResults.map(async result => [
-      result.pupilInfo.pupilId,
-      await createCircularPhotoDataUrl(result.pupilInfo.photo),
-    ] as const)),
-  ]);
+    ] as const));
 
-  props.onProgress?.(35, 'Pupil photos and QR codes ready. Rendering Full Report 2...');
+  props.onProgress?.(35, 'QR codes ready. Rendering Bespoke Report...');
   const qrByPupil = new Map(qrCodes);
-  const photoByPupil = new Map(circularPhotos);
+  const photoByPupil = new Map(props.processedResults.map(result => [
+    result.pupilInfo.pupilId,
+    result.pupilInfo.photo || '',
+  ]));
   const comments = new AggregateCommentPicker();
   const document = (
-    <Document title={`${props.examDetails.name} - Full Report 2`}>
+    <Document title={`${props.examDetails.name} - Bespoke Report`}>
       {props.processedResults.map(result => (
         <FullReport2Page
           key={result.pupilInfo.pupilId}
@@ -705,6 +630,6 @@ export const generateFullReport2PDF = async (props: FullReport2Props) => {
     </Document>
   );
   const blob = await pdf(document).toBlob();
-  props.onProgress?.(100, 'Full Report 2 generation complete.');
+  props.onProgress?.(100, 'Bespoke Report generation complete.');
   return blob;
 };

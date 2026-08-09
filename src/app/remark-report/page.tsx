@@ -20,6 +20,7 @@ import { commentaryService } from '@/services/commentaryService';
 import { pdf, Document } from '@react-pdf/renderer';
 import PupilPerformanceListPDF from '@/components/reports/PupilPerformanceListPDF';
 import NurseryAssessmentReport, { NurseryAssessmentReportPageContent } from '@/components/reports/NurseryAssessmentReport';
+import { PlayfulNurseryReportPageContent } from '@/components/reports/PlayfulNurseryReport';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
@@ -878,7 +879,7 @@ export default function RemarkReportPage() {
     }
   };
 
-  const handlePrintReportLight = async () => {
+  const handlePrintReportLight = async (reportStyle: 'standard' | 'playful' = 'standard') => {
     if (!selectedClass || filteredPupils.length === 0) {
       toast({
         title: "No Data",
@@ -900,14 +901,14 @@ export default function RemarkReportPage() {
     try {
       setBatchProgress({
         isGenerating: true,
-        currentStep: 'Initializing lightweight batch report generation...',
+        currentStep: `Initializing ${reportStyle === 'playful' ? 'playful' : 'standard'} batch report generation...`,
         progress: 0,
         total: Math.max(0, filteredPupils.length || 0)
       });
 
       toast({
         title: "Generating Batch Reports",
-        description: `Creating a lighter combined report for ${filteredPupils.length} pupils. Please wait...`,
+        description: `Creating ${reportStyle === 'playful' ? 'playful' : 'standard'} reports for ${filteredPupils.length} pupils. Please wait...`,
       });
 
       const effectiveData = getEffectiveTermForDataDisplay(academicYears);
@@ -1037,35 +1038,51 @@ export default function RemarkReportPage() {
 
       setBatchProgress(prev => ({
         ...prev,
-        currentStep: 'Rendering lightweight combined PDF...',
+        currentStep: `Rendering ${reportStyle === 'playful' ? 'playful' : 'standard'} combined PDF...`,
         progress: Math.max(0, allPupilsData.length || 0),
         total: Math.max(0, allPupilsData.length || 0)
       }));
 
       const batchPdfDoc = (
-        <Document title={`Batch Assessment Reports - ${selectedClassData.name}`}>
+        <Document title={`${reportStyle === 'playful' ? 'Playful' : 'Assessment'} Reports - ${selectedClassData.name}`}>
           {allPupilsData.map((pupilData, index) => (
-            <NurseryAssessmentReportPageContent
-              key={`${pupilData.pupil.id}-${selectedTermId || 'default'}-${index}`}
-              pupil={pupilData.pupil}
-              pupilClass={selectedClassData}
-              settings={schoolSettings}
-              currentAcademicYear={currentAcademicYear}
-              currentTerm={currentTerm}
-              nextTermStartDate={nextTermStartDate}
-              nextTermEndDate={nextTermEndDate}
-              performanceStatus={pupilData.performanceStatus}
-              classTeacherComment={pupilData.classTeacherComment}
-              headTeacherComment={pupilData.headTeacherComment}
-              subjectComments={pupilData.subjectComments || {}}
-              showPayCode={showPayCode}
-            />
+            reportStyle === 'playful' ? (
+              <PlayfulNurseryReportPageContent
+                key={`${pupilData.pupil.id}-${selectedTermId || 'default'}-${index}`}
+                pupil={pupilData.pupil}
+                pupilClass={selectedClassData}
+                settings={schoolSettings}
+                currentAcademicYear={currentAcademicYear}
+                currentTerm={currentTerm}
+                nextTermStartDate={nextTermStartDate}
+                nextTermEndDate={nextTermEndDate}
+                classTeacherComment={pupilData.classTeacherComment}
+                headTeacherComment={pupilData.headTeacherComment}
+                subjectComments={pupilData.subjectComments || {}}
+              />
+            ) : (
+              <NurseryAssessmentReportPageContent
+                key={`${pupilData.pupil.id}-${selectedTermId || 'default'}-${index}`}
+                pupil={pupilData.pupil}
+                pupilClass={selectedClassData}
+                settings={schoolSettings}
+                currentAcademicYear={currentAcademicYear}
+                currentTerm={currentTerm}
+                nextTermStartDate={nextTermStartDate}
+                nextTermEndDate={nextTermEndDate}
+                performanceStatus={pupilData.performanceStatus}
+                classTeacherComment={pupilData.classTeacherComment}
+                headTeacherComment={pupilData.headTeacherComment}
+                subjectComments={pupilData.subjectComments || {}}
+                showPayCode={showPayCode}
+              />
+            )
           ))}
         </Document>
       );
 
-      const fileName = `Batch_Assessment_Reports_${selectedClassData.name}_${new Date().toISOString().split('T')[0]}.pdf`;
-      const title = 'Batch Assessment Reports';
+      const fileName = `${reportStyle === 'playful' ? 'Batch_Playful_Reports' : 'Batch_Assessment_Reports'}_${selectedClassData.name}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const title = reportStyle === 'playful' ? 'Batch Playful Reports' : 'Batch Assessment Reports';
 
       await pdfViewer.openPDF(batchPdfDoc, fileName, title);
 
@@ -1078,7 +1095,7 @@ export default function RemarkReportPage() {
 
       toast({
         title: "Batch Report Generated",
-        description: `Combined assessment report with ${allPupilsData.length} pupils from ${selectedClassData.name} is ready.`,
+        description: `Combined ${reportStyle === 'playful' ? 'playful' : 'assessment'} report with ${allPupilsData.length} pupils from ${selectedClassData.name} is ready.`,
       });
     } catch (error) {
       console.error('Error generating lightweight batch reports:', error);
@@ -1097,6 +1114,8 @@ export default function RemarkReportPage() {
       });
     }
   };
+
+  const handlePrintPlayfulReport = () => handlePrintReportLight('playful');
 
   // Individual pupil print handler
   const handlePrintPupil = async (pupil: Pupil) => {
@@ -1543,9 +1562,13 @@ export default function RemarkReportPage() {
                     <List className="mr-2 h-4 w-4" />
                     Print List
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handlePrintReportLight} className="cursor-pointer">
+                  <DropdownMenuItem onClick={() => handlePrintReportLight()} className="cursor-pointer">
                     <FileText className="mr-2 h-4 w-4" />
                     Print Report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handlePrintPlayfulReport} className="cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4 text-emerald-600" />
+                    Playful Report
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

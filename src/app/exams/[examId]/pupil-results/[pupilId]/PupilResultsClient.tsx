@@ -70,6 +70,10 @@ import { Label } from '@/components/ui/label';
 import { useQuery } from '@tanstack/react-query';
 import { SchoolSettingsService } from '@/lib/services/school-settings.service';
 import { generateModernBatchReportPDF, generateTransBatchReportPDF } from '@/components/exam/ModernBatchReportPDF';
+import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
+import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
+import { IndividualReportPrintDialog } from '@/components/exam/IndividualReportPrintDialog';
+import { FullReport2PaletteSelector } from '@/components/exam/FullReport2PaletteSelector';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { getNextTermDates } from '@/lib/utils/academic-year-utils';
@@ -327,6 +331,8 @@ export default function PupilResultsClient() {
   // TRANS report type selection state
   const [showTransTypeModal, setShowTransTypeModal] = useState(false);
   const [transReportType, setTransReportType] = useState<'grading' | 'progress' | null>(null);
+  const [selectedFullReportTemplate, setSelectedFullReportTemplate] = useState<'standard' | 'full2'>('standard');
+  const [fullReport2Palette, setFullReport2Palette] = useState<'blue' | 'purple' | 'orange'>('blue');
   const [showReportConfigModal, setShowReportConfigModal] = useState(false);
   const [showComparisonExamModal, setShowComparisonExamModal] = useState(false);
   const [selectedComparisonExams, setSelectedComparisonExams] = useState<string[]>([]); // Up to 2 exams
@@ -720,15 +726,91 @@ export default function PupilResultsClient() {
     }
   }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer]);
 
-  // Handle TRANS report - show type selection modal first
-  const handleTransReport = useCallback(() => {
+  const handleMiniReport = useCallback(async () => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !pupilDetails) {
+      toast({ title: 'Error', description: 'Missing required data for Mini Report generation' });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationProgress(0);
+    setStartTime(Date.now());
+    setEta('Calculating...');
+
+    try {
+      updateProgress(10, 'Preparing Mini Report data...');
+      const singlePupilResult = await createProcessedResultForPupil();
+      if (!singlePupilResult) throw new Error('Failed to process pupil data');
+
+      const uniqueTeacherIds = [...new Set(subjectSnaps.map(subject => subject.teacherId).filter(Boolean))];
+      const teachersMap = createStaffNameMap(allStaff, uniqueTeacherIds);
+      const enhancedSubjectSnaps = subjectSnaps.map(subject => ({
+        ...subject,
+        teacherName: subject.teacherId
+          ? (teachersMap.get(subject.teacherId) || subject.teacherName || 'Unknown Teacher')
+          : 'Not Assigned',
+        fullMarks: 100,
+      }));
+      const { academicYearName, termName } = getAcademicYearAndTerm(
+        examDetails.academicYearId || '',
+        examDetails.termId || '',
+      );
+
+      updateProgress(65, 'Generating one half-page Mini Report...');
+      const blob = await generatePrimaryMiniReportPDF({
+        examDetails: {
+          name: examDetails.name,
+          examTypeName: examDetails.examTypeName || 'Exam',
+          startDate: examDetails.startDate,
+          academicYearName,
+          termName,
+        },
+        classSnap,
+        subjectSnaps: enhancedSubjectSnaps,
+        processedResults: [singlePupilResult],
+        schoolSettings,
+        majorSubjects: examResultData?.majorSubjects || [],
+        backgroundImage: '/images/Primary%20Mini%20BG.png',
+        onProgress: (completed, total) => updateProgress(
+          65 + Math.round((completed / Math.max(total, 1)) * 30),
+          `Generating Mini Report (${completed}/${total})...`,
+        ),
+      });
+
+      pdfViewer.openPDFFromBlob(
+        blob,
+        `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_Mini_Report.pdf`,
+        'Individual Pupil Mini Report',
+      );
+      updateProgress(100, 'Complete!');
+      toast({ title: 'Success', description: 'Mini Report is ready for viewing.', duration: 1500 });
+    } catch (error) {
+      console.error('Error generating Mini Report:', error);
+      toast({ title: 'Error', description: 'Failed to generate Mini Report. Please try again.' });
+    } finally {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationStatus('');
+        setGenerationProgress(0);
+        setStartTime(null);
+        setEta('');
+        setShowPrintModal(false);
+      }, 1000);
+    }
+  }, [allStaff, classSnap, createProcessedResultForPupil, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, pupilDetails, schoolSettings, subjectSnaps, toast, updateProgress]);
+
+  const openFullReport = useCallback((template: 'standard' | 'full2') => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !pupilDetails) {
       toast({ title: "Error", description: "Missing required data for TRANS report generation" });
       return;
     }
-    // Show type selection modal first
+    setSelectedFullReportTemplate(template);
+    setShowPrintModal(false);
     setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, pupilDetails, toast]);
+
+  const handleFullReport = useCallback(() => openFullReport('standard'), [openFullReport]);
+  const handleFullReport2 = useCallback(() => openFullReport('full2'), [openFullReport]);
 
   // Handle TRANS report type selection
   const handleTransTypeSelection = useCallback((type: 'grading' | 'progress') => {
@@ -917,10 +999,12 @@ export default function PupilResultsClient() {
         }
       };
 
-      const blob = await generateTransBatchReportPDF(transBatchData);
+      const blob = await (selectedFullReportTemplate === 'full2'
+        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+        : generateTransBatchReportPDF(transBatchData));
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_TRANS_Report.pdf`;
-      const title = 'Individual Pupil TRANS Report';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -946,7 +1030,7 @@ export default function PupilResultsClient() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates]);
+  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette]);
 
   // Generate TRANS report with progress assessment - MUST be before handleReportConfigComplete
   const generateTransReportWithProgress = useCallback(async (comparisonExamIds: string[], customNames: Record<string, string> = {}) => {
@@ -1200,10 +1284,12 @@ export default function PupilResultsClient() {
 
       updateProgress(70, 'Generating TRANS progress report PDF...');
 
-      const blob = await generateTransBatchReportPDF(transBatchData);
+      const blob = await (selectedFullReportTemplate === 'full2'
+        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+        : generateTransBatchReportPDF(transBatchData));
 
-      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_TRANS_Progress_Report.pdf`;
-      const title = 'Individual Pupil TRANS Progress Report';
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
+      const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
       pdfViewer.openPDFFromBlob(blob, fileName, title);
 
       updateProgress(95, 'Finalizing document...');
@@ -1237,7 +1323,7 @@ export default function PupilResultsClient() {
         setTransReportType(null);
       }, 1000);
     }
-  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, pupilId, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates]);
+  }, [allStaff, examDetails, classSnap, subjectSnaps, pupilDetails, pupilId, examResultData, academicYears, schoolSettings, toast, getAcademicYearAndTerm, getNextTermDates, updateProgress, createProcessedResultForPupil, pdfViewer, reportConfig, customDates, selectedFullReportTemplate, fullReport2Palette]);
 
   // Handle report configuration completion
   const handleReportConfigComplete = useCallback(() => {
@@ -1651,15 +1737,18 @@ export default function PupilResultsClient() {
         </div>
       </div>
 
-      {/* Print Modal */}
-      <PrintModal
+      {/* Individual report options */}
+      <IndividualReportPrintDialog
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
-        onPrintTrans={handleTransReport}
+        onPrintMini={handleMiniReport}
+        onPrintFull={handleFullReport}
+        onPrintFullReport2={handleFullReport2}
         isGenerating={isGenerating}
         generationStatus={generationStatus}
         generationProgress={generationProgress}
         eta={eta}
+        pupilName={pupilDetails?.name}
       />
 
       {/* TRANS Report Type Selection Modal */}
@@ -1668,7 +1757,7 @@ export default function PupilResultsClient() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
               <FileTextIcon className="h-5 w-5 text-orange-600" />
-              Select TRANS Report Type
+              Select Full Report Type
             </DialogTitle>
             <DialogDescription>
               Choose between grading scale or progress assessment
@@ -1729,6 +1818,9 @@ export default function PupilResultsClient() {
           </DialogHeader>
 
           <div className="py-4">
+            {selectedFullReportTemplate === 'full2' && (
+              <FullReport2PaletteSelector palette={fullReport2Palette} onPaletteChange={setFullReport2Palette} />
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
