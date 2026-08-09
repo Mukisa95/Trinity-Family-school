@@ -28,7 +28,10 @@ import { userGroupService } from './user-groups';
 import { pushNotificationService } from './push-notifications.service';
 import { UnifiedNotificationsService } from './unified-notifications.service';
 import { pushNotificationIconService } from './push-notification-icon.service';
-import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import {
+  getServerPushSubscriptionsForUsers,
+  sendServerWebPush,
+} from '@/lib/server/push-notifications';
 import type {
   Notification,
   CreateNotificationData,
@@ -535,154 +538,28 @@ class OptimizedNotificationService {
     const results = { sent: 0, failed: 0, errors: [] as string[] };
 
     try {
-      // Get push subscriptions for these users
-      console.log(`📱 [WEB PUSH] Fetching web push subscriptions from database...`);
       const subscriptions = await this.getPushSubscriptionsBatch(users);
-      console.log(`📱 [WEB PUSH] Found ${subscriptions.length} web push subscriptions`);
-
-      if (subscriptions.length === 0) {
-        console.log('⚠️ [WEB PUSH] No web push subscriptions found for this batch');
-        return results;
-      }
-
-      console.log(`📱 [WEB PUSH] Subscription details:`, subscriptions.map(s => ({
-        userId: s.userId,
-        hasEndpoint: !!s.endpoint,
-        hasKeys: !!(s.keys?.p256dh && s.keys?.auth)
-      })));
-
-      // Prepare push payload
-      const pushPayload = {
+      if (!subscriptions.length) return results;
+      const outcome = await sendServerWebPush(subscriptions.map(subscription => ({
+        id: subscription.id,
+        userId: subscription.userId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+      })), {
         title: notification.pushTitle || notification.title,
         body: notification.pushBody || notification.description || '',
         icon: notification.pushIcon || '/trinity-logo-192.png',
         url: notification.pushUrl || '/notifications',
-        // Tag must be max 32 chars (web-push spec) - use just the ID or truncate with prefix
         tag: notification.id.length <= 32 ? notification.id : `n-${notification.id.substring(0, 30)}`,
         requireInteraction: notification.priority === 'urgent',
-      };
-
-      // Send push notifications via web-push library directly
-      console.log(`📤 [WEB PUSH] Sending to ${subscriptions.length} subscriptions...`);
-
-      // Dynamic import web-push for server-side execution
-      console.log(`📦 [WEB PUSH] Importing web-push library...`);
-      let webpush;
-      try {
-        webpush = (await import('web-push')).default;
-        console.log(`✅ [WEB PUSH] web-push library imported successfully`);
-      } catch (importError) {
-        console.error(`❌ [WEB PUSH] Failed to import web-push library:`, importError);
-        results.errors.push(`web-push import failed: ${importError instanceof Error ? importError.message : 'Unknown error'}`);
-        return results;
-      }
-
-      // VAPID configuration
-      const vapidKeys = getServerVapidDetails();
-
-      console.log(`🔑 [WEB PUSH] VAPID keys configuration:`, {
-        hasPublicKey: !!vapidKeys.publicKey,
-        publicKeyLength: vapidKeys.publicKey?.length,
-        hasPrivateKey: !!vapidKeys.privateKey,
-        privateKeyLength: vapidKeys.privateKey?.length,
-        subject: vapidKeys.subject
       });
-
-      try {
-        webpush.setVapidDetails(
-          vapidKeys.subject,
-          vapidKeys.publicKey,
-          vapidKeys.privateKey
-        );
-        console.log(`✅ [WEB PUSH] VAPID details set successfully`);
-      } catch (vapidError) {
-        console.error(`❌ [WEB PUSH] Failed to set VAPID details:`, vapidError);
-        results.errors.push(`VAPID configuration failed: ${vapidError instanceof Error ? vapidError.message : 'Unknown error'}`);
-        return results;
-      }
-
-      const sendPromises = subscriptions.map(async (sub: any, index: number) => {
-        try {
-          console.log(`📤 [WEB PUSH] Sending push #${index + 1} to user ${sub.userId}...`);
-
-          // Prepare notification payload
-          const notificationPayload = JSON.stringify({
-            title: pushPayload.title,
-            body: pushPayload.body,
-            icon: pushPayload.icon,
-            badge: '/icons/trinity-badge-72.png',
-            url: pushPayload.url,
-            tag: pushPayload.tag,
-            requireInteraction: pushPayload.requireInteraction,
-            timestamp: Date.now()
-          });
-
-          // Send push notification directly using web-push
-          await webpush.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: {
-                p256dh: sub.keys.p256dh,
-                auth: sub.keys.auth
-              }
-            },
-            notificationPayload,
-            {
-              TTL: 24 * 60 * 60, // 24 hours
-              urgency: 'normal',
-              // Topic must also be max 32 chars - use same as tag
-              topic: pushPayload.tag
-            }
-          );
-
-          results.sent++;
-          console.log(`✅ [WEB PUSH] Successfully sent to user ${sub.userId}`);
-          return { success: true, userId: sub.userId };
-
-        } catch (error: any) {
-          results.failed++;
-          const errorMsg = error?.message || 'Unknown error';
-          results.errors.push(`User ${sub.userId}: ${errorMsg}`);
-          console.error(`❌ [WEB PUSH] Error sending to user ${sub.userId}:`, errorMsg);
-          console.error(`❌ [WEB PUSH] Error details:`, {
-            statusCode: error?.statusCode,
-            body: error?.body
-          });
-          
-          // Handle expired subscriptions
-          if (error?.statusCode === 410 || error?.statusCode === 404 || error?.statusCode === 403) {
-            console.log(`🗑️ [PUSH] Subscription expired for user ${sub.userId}, marking as inactive`);
-            // Mark subscription as inactive
-            try {
-              await updateDoc(doc(db, 'pushSubscriptions', sub.id), {
-                isActive: false,
-                deactivatedAt: serverTimestamp()
-              });
-            } catch (updateError) {
-              console.error(`❌ [PUSH] Failed to mark subscription as inactive:`, updateError);
-            }
-          }
-          
-          results.errors.push(`Push failed for user ${sub.userId}: ${errorMsg}`);
-          return { success: false, userId: sub.userId, error: errorMsg };
-        }
-      });
-
-      // Wait for all push notifications to be sent
-      console.log(`⏳ [PUSH] Waiting for all push notifications to complete...`);
-      const sendResults = await Promise.allSettled(sendPromises);
-
-      console.log(`✅ [WEB PUSH] All push notifications processed!`);
-      console.log(`✅ [WEB PUSH] Results: ${results.sent} successful, ${results.failed} failed`);
-
-      if (results.failed > 0) {
-        console.log(`❌ [WEB PUSH] Errors encountered:`, results.errors);
-      }
-
+      results.sent = outcome.accepted;
+      results.failed = outcome.failed;
+      if (outcome.rejected) results.errors.push(`${outcome.rejected} subscription(s) rejected the current VAPID credentials.`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       results.errors.push(`Web push error: ${errorMsg}`);
-      console.error('❌ [WEB PUSH] Error processing web push notifications:', error);
     }
 
     return results;
@@ -692,82 +569,20 @@ class OptimizedNotificationService {
    * 📱 Get push subscriptions for a batch of users
    */
   private async getPushSubscriptionsBatch(users: User[]): Promise<PushSubscription[]> {
-    const subscriptions: PushSubscription[] = [];
-    const currentVapidPublicKey = getServerVapidDetails().publicKey;
-
     try {
       const userIds = users.map(u => u.id);
-      console.log(`🔍 [PUSH] Searching subscriptions for ${userIds.length} users in database collection: pushSubscriptions`);
-
-      // Firestore 'in' query has a limit of 10 items
-      // Process in chunks of 10
-      for (let i = 0; i < userIds.length; i += 10) {
-        const chunk = userIds.slice(i, i + 10);
-        console.log(`🔍 [PUSH] Querying chunk ${Math.floor(i / 10) + 1} with ${chunk.length} user IDs:`, chunk.join(', '));
-
-        const subscriptionsQuery = query(
-          collection(db, 'pushSubscriptions'),
-          where('userId', 'in', chunk),
-          where('isActive', '==', true)
-        );
-
-        const querySnapshot = await getDocs(subscriptionsQuery);
-        console.log(`🔍 [PUSH] Chunk query returned ${querySnapshot.docs.length} subscriptions`);
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-
-          // Records without the current key marker predate the latest VAPID
-          // registration and cannot be safely delivered by this sender.
-          if (data.vapidPublicKey !== currentVapidPublicKey) return;
-          
-          // Handle both nested (keys.p256dh) and flat (p256dh) structures
-          const p256dh = data.p256dh || data.keys?.p256dh;
-          const auth = data.auth || data.keys?.auth;
-          
-          console.log(`🔍 [PUSH] Found subscription for user ${data.userId}:`, {
-            hasEndpoint: !!data.endpoint,
-            endpointStart: data.endpoint?.substring(0, 50),
-            hasP256dh: !!p256dh,
-            hasAuth: !!auth,
-            isActive: data.isActive,
-            dataStructure: data.keys ? 'nested (keys.p256dh)' : 'flat (p256dh)'
-          });
-
-          // Store in standardized format with nested keys
-          subscriptions.push({
-            id: doc.id,
-            userId: data.userId,
-            endpoint: data.endpoint,
-            keys: {
-              p256dh: p256dh || '',
-              auth: auth || ''
-            },
-            userAgent: data.userAgent,
-            createdAt: data.createdAt,
-            isActive: data.isActive
-          } as PushSubscription);
-        });
-      }
-
-      console.log(`📱 [PUSH] Total found: ${subscriptions.length} active push subscriptions for ${users.length} users`);
-
-      if (subscriptions.length === 0) {
-        console.log(`⚠️ [PUSH] NO SUBSCRIPTIONS FOUND! Checking database...`);
-        console.log(`💡 [PUSH] Database collection: pushSubscriptions`);
-        console.log(`💡 [PUSH] Looking for userId in:`, userIds);
-        console.log(`💡 [PUSH] Filter: isActive == true`);
-      }
-
+      const subscriptions = await getServerPushSubscriptionsForUsers(userIds);
+      return subscriptions.map(subscription => ({
+        id: subscription.id,
+        userId: subscription.userId,
+        endpoint: subscription.endpoint,
+        keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+        isActive: true,
+      } as PushSubscription));
     } catch (error) {
       console.error('❌ [PUSH] Error fetching push subscriptions:', error);
-      console.error('❌ [PUSH] Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      return [];
     }
-
-    return subscriptions;
   }
 
   /**

@@ -8,8 +8,9 @@ import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import { isIosDevice, isStandalonePwa } from '@/lib/push-subscription-client';
 
 /**
- * Prompts for the one user gesture browsers require, then keeps an authorized
- * PWA/browser subscription reconciled whenever it is online and in use.
+ * Prompts for the one user gesture browsers require, then confirms an
+ * authorized endpoint once per app session. Healthy devices do not reconcile
+ * on focus, visibility changes, or timers.
  */
 export function AutoNotificationPermission() {
   const { user } = useAuth();
@@ -33,28 +34,19 @@ export function AutoNotificationPermission() {
   useEffect(() => {
     if (!user?.id || !isSupported || permission !== 'granted') return;
 
-    const reconcile = () => {
-      if (navigator.onLine && document.visibilityState === 'visible') {
-        void sync(user.id);
-      }
+    const reconcileAfterFailure = () => {
+      if (!isSubscribed && navigator.onLine) void sync(user.id);
     };
-    const handleVisibility = () => reconcile();
 
-    reconcile();
-    window.addEventListener('online', reconcile);
-    window.addEventListener('focus', reconcile);
-    window.addEventListener('trinity-service-worker-updated', reconcile);
-    document.addEventListener('visibilitychange', handleVisibility);
-    const timer = window.setInterval(reconcile, 30 * 60 * 1000);
+    if (!isSubscribed && navigator.onLine) void sync(user.id);
+    window.addEventListener('online', reconcileAfterFailure);
+    window.addEventListener('trinity-push-subscription-invalidated', reconcileAfterFailure);
 
     return () => {
-      window.removeEventListener('online', reconcile);
-      window.removeEventListener('focus', reconcile);
-      window.removeEventListener('trinity-service-worker-updated', reconcile);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.clearInterval(timer);
+      window.removeEventListener('online', reconcileAfterFailure);
+      window.removeEventListener('trinity-push-subscription-invalidated', reconcileAfterFailure);
     };
-  }, [user?.id, isSupported, permission, sync]);
+  }, [user?.id, isSupported, permission, isSubscribed, sync]);
 
   useEffect(() => {
     if (!user) return;

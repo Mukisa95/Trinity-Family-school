@@ -9,43 +9,15 @@ import {
   summariseAttendanceClass,
   type AttendanceNotificationRecord,
 } from '@/lib/attendance-notification';
-import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import {
+  getServerPushSubscriptionsForUsers,
+  sendServerWebPush,
+} from '@/lib/server/push-notifications';
 import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
 import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
-
-async function sendWebPush(
-  subscriptions: Array<{ id: string; endpoint: string; p256dh: string; auth: string }>,
-  payload: string,
-) {
-  if (!subscriptions.length) return { sent: 0, failed: 0 };
-  try {
-    const webpush = (await import('web-push')).default;
-    const { subject, publicKey, privateKey } = getServerVapidDetails();
-    if (!privateKey) throw new Error('VAPID_PRIVATE_KEY is not set');
-    webpush.setVapidDetails(subject, publicKey, privateKey);
-    let sent = 0;
-    let failed = 0;
-    for (const subscription of subscriptions) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-          payload,
-          { urgency: 'normal', TTL: 24 * 60 * 60 },
-        );
-        sent += 1;
-      } catch {
-        failed += 1;
-      }
-    }
-    return { sent, failed };
-  } catch (error) {
-    console.warn('Attendance Web Push unavailable; inbox delivery remains active:', error);
-    return { sent: 0, failed: subscriptions.length };
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -124,32 +96,26 @@ export async function POST(request: NextRequest) {
     const title = `Attendance recorded — ${summary.className}`;
     const message = attendanceSummaryBody(summary);
 
-    const subscriptions: Array<{ id: string; endpoint: string; p256dh: string; auth: string }> = [];
-    for (let index = 0; index < recipientIds.length; index += 10) {
-      const subscriptionDocs = await adminDb.collection('pushSubscriptions')
-        .where('userId', 'in', recipientIds.slice(index, index + 10))
-        .where('isActive', '==', true)
-        .get();
-      const currentPublicKey = getServerVapidDetails().publicKey;
-      subscriptionDocs.docs.forEach(doc => {
-        const subscription = { id: doc.id, ...doc.data() } as any;
-        if (subscription.vapidPublicKey === currentPublicKey) subscriptions.push(subscription);
-      });
+    const subscriptions = await getServerPushSubscriptionsForUsers(recipientIds);
+    let push = { accepted: 0, failed: subscriptions.length };
+    try {
+      push = await sendServerWebPush(subscriptions, {
+        title,
+        body: message,
+        icon: '/trinity-logo-192.png',
+        badge: '/icons/trinity-badge-72.png',
+        tag: `attendance-${date}-${classId}`,
+        url: clickUrl,
+        requireInteraction: false,
+      }, { deactivateExpired: false });
+    } catch (error) {
+      console.warn('Attendance Web Push unavailable; inbox delivery remains active:', error);
     }
-    const push = await sendWebPush(subscriptions, JSON.stringify({
-      title,
-      body: message,
-      icon: '/trinity-logo-192.png',
-      badge: '/icons/trinity-badge-72.png',
-      tag: `attendance-${date}-${classId}`,
-      url: clickUrl,
-      requireInteraction: false,
-    }));
 
     await eventRef.update({
         status: 'completed',
         recipientCount: recipientIds.length,
-        pushSent: push.sent,
+        pushSent: push.accepted,
         pushFailed: push.failed,
         completedAt: FieldValue.serverTimestamp(),
       });
@@ -157,7 +123,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       recipients: recipientIds.length,
-      pushSent: push.sent,
+      pushSent: push.accepted,
       pushFailed: push.failed,
     });
   } catch (error) {

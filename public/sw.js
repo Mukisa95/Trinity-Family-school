@@ -332,6 +332,17 @@ self.addEventListener('push', (event) => {
   event.waitUntil(notificationPromise);
 });
 
+// Browsers may rotate or invalidate a push endpoint independently. Do not try
+// to write Firestore from the worker (there is no signed-in Firebase session);
+// notify any open app so its normal authenticated, server-confirmed path runs.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      clients.forEach(client => client.postMessage({ type: 'PUSH_SUBSCRIPTION_INVALIDATED' }));
+    })
+  );
+});
+
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification clicked:', event);

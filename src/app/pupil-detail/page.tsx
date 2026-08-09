@@ -80,6 +80,8 @@ import { AssignmentModal } from "@/components/pupils/assignment-modal";
 import { useToast } from "@/hooks/use-toast";
 import { PupilPhotoDetail } from "@/components/ui/pupil-photo-detail";
 import { ActionGuard } from "@/components/auth/action-guard";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { LinkedUserAccountDialog } from "@/components/users/linked-user-account-dialog";
 import { RMQRCode } from "@/components/ui/rmqr-code";
 import { usePupilPLEResults } from '@/lib/hooks/use-ple-results';
 import { DatePicker } from '@/components/common/date-picker';
@@ -246,6 +248,7 @@ function PupilDetailContent() {
   const router = useRouter();
   const pupilId = searchParams?.get('id');
   const { toast } = useToast();
+  const { canAccessModule } = useAuth();
   const queryClient = useQueryClient();
 
   // Firebase hooks - these will use cached data immediately if available
@@ -376,6 +379,7 @@ function PupilDetailContent() {
   const [isManageIdCodesModalOpen, setIsManageIdCodesModalOpen] = React.useState(false);
   const [isManagePayCodeModalOpen, setIsManagePayCodeModalOpen] = React.useState(false);
   const [isStatusChangeModalOpen, setIsStatusChangeModalOpen] = React.useState(false);
+  const [isLinkedAccountOpen, setIsLinkedAccountOpen] = React.useState(false);
 
   // Force reset modal state on component mount to ensure clean state
   React.useEffect(() => {
@@ -3794,6 +3798,15 @@ function PupilDetailContent() {
                         Pay Code (SchoolPay)
                       </DropdownMenuItem>
                     </ActionGuard>
+                    {canAccessModule('users') && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsLinkedAccountOpen(true)}>
+                          <UserPlus className="mr-2 h-4 w-4 text-violet-600" />
+                          Parent Account
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <ActionGuard module="pupils" page="detail" action="add_sibling">
                       <DropdownMenuItem onClick={() => {
@@ -3824,6 +3837,20 @@ function PupilDetailContent() {
             )}
           </div>
         } />
+
+      {pupil && (
+        <LinkedUserAccountDialog
+          target="pupil"
+          targetId={pupil.id}
+          targetName={formatPupilDisplayName(pupil)}
+          defaultUsername={`parent_${String(pupil.admissionNumber || pupil.id).replace(/\s+/g, '').toLowerCase()}`}
+          open={isLinkedAccountOpen}
+          onOpenChange={setIsLinkedAccountOpen}
+          onAccountChanged={() => {
+            void queryClient.invalidateQueries({ queryKey: ['pupils'] });
+          }}
+        />
+      )}
 
       {/* Main Content */}
 

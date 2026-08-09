@@ -32,10 +32,10 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 function applicationServerKeyMatches(subscription: PushSubscription, publicKey: string): boolean {
   const currentKey = subscription.options.applicationServerKey;
-  // If the browser cannot expose the key used for an existing subscription we
-  // cannot safely assume it belongs to the current sender. Keeping an unknown
-  // subscription leaves installed PWAs registered against an old VAPID key.
-  if (!currentKey) return false;
+  // Some browsers deliberately do not expose the key for an existing
+  // subscription. An unknown key is not proof of a mismatch and must never
+  // cause a working endpoint to be destroyed on startup.
+  if (!currentKey) return true;
 
   const expected = urlBase64ToUint8Array(publicKey);
   const actual = new Uint8Array(currentKey);
@@ -77,6 +77,54 @@ function getDeviceMetadata() {
   };
 }
 
+const CONFIRMED_SUBSCRIPTION_PREFIX = 'trinity-push-confirmed:';
+
+function endpointFingerprint(endpoint: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < endpoint.length; index += 1) {
+    hash ^= endpoint.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function confirmationKey(userId: string) {
+  return `${CONFIRMED_SUBSCRIPTION_PREFIX}${userId}`;
+}
+
+function markSubscriptionConfirmed(userId: string, endpoint: string) {
+  try {
+    sessionStorage.setItem(confirmationKey(userId), endpointFingerprint(endpoint));
+  } catch {
+    // A private browsing mode may make sessionStorage unavailable. The device
+    // still works; it will simply reconcile once again after a page reload.
+  }
+}
+
+function clearSubscriptionConfirmation(userId: string) {
+  try {
+    sessionStorage.removeItem(confirmationKey(userId));
+  } catch {
+    // Ignore unavailable storage during logout/cleanup.
+  }
+}
+
+function isSubscriptionConfirmed(userId: string, endpoint: string) {
+  try {
+    return sessionStorage.getItem(confirmationKey(userId)) === endpointFingerprint(endpoint);
+  } catch {
+    return false;
+  }
+}
+
+/** Browser-local status that was confirmed by the server in this app session. */
+export async function getConfirmedBrowserPushSubscription(userId: string): Promise<PushSubscription | null> {
+  if (!supportsWebPush() || Notification.permission !== 'granted') return null;
+  const registration = await navigator.serviceWorker.getRegistration();
+  const subscription = await registration?.pushManager.getSubscription();
+  return subscription && isSubscriptionConfirmed(userId, subscription.endpoint) ? subscription : null;
+}
+
 async function getIdentityToken(expectedUserId: string): Promise<string | null> {
   const firebaseUser = auth.currentUser;
   if (!firebaseUser || firebaseUser.isAnonymous || firebaseUser.uid !== expectedUserId) return null;
@@ -112,6 +160,9 @@ async function saveSubscription(
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload.error || 'Failed to save the push subscription.');
   }
+
+  const payload = await response.json().catch(() => ({}));
+  if (payload?.active !== true) throw new Error('The server did not confirm this push subscription.');
 }
 
 async function getCurrentOrNewSubscription(publicKey: string): Promise<{
@@ -163,8 +214,8 @@ export function isStandalonePwa(): boolean {
 
 /**
  * Reconcile an already-authorized browser subscription with the signed-in
- * user. This never opens a permission prompt, so it is safe on login, focus,
- * visibility, and online events.
+ * user. This never opens a permission prompt. Call it after login, after a
+ * real subscription invalidation, or when retrying a recorded failure.
  */
 export function reconcilePushSubscription(userId: string): Promise<PushSyncResult> {
   if (activeSync?.userId === userId) return activeSync.promise;
@@ -174,6 +225,11 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
     if (!navigator.onLine) return { active: false, reason: 'offline' };
     if (Notification.permission === 'denied') return { active: false, reason: 'permission-denied' };
     if (Notification.permission !== 'granted') return { active: false, reason: 'permission-required' };
+
+    // A marker is written only after the server confirms the endpoint. This
+    // makes additional hook mounts, focus events, and page UI checks free of
+    // Firestore reads and writes for the rest of the app session.
+    if (await getConfirmedBrowserPushSubscription(userId)) return { active: true };
     if (!await getIdentityToken(userId)) return { active: false, reason: 'signed-out' };
 
     // Never create a subscription from a compile-time fallback: production
@@ -182,6 +238,7 @@ export function reconcilePushSubscription(userId: string): Promise<PushSyncResul
     const publicKey = await getServerPublicKey();
     const { subscription, previousEndpoint } = await getCurrentOrNewSubscription(publicKey);
     await saveSubscription(userId, subscription, publicKey, previousEndpoint);
+    markSubscriptionConfirmed(userId, subscription.endpoint);
     return { active: true };
   })().finally(() => {
     if (activeSync?.promise === promise) activeSync = null;
@@ -210,6 +267,8 @@ export async function enablePushSubscription(userId: string): Promise<PushSyncRe
  */
 export async function detachPushSubscriptionForLogout(userId: string): Promise<void> {
   if (!supportsWebPush()) return;
+
+  clearSubscriptionConfirmation(userId);
 
   const registration = await navigator.serviceWorker.getRegistration();
   const subscription = await registration?.pushManager.getSubscription();

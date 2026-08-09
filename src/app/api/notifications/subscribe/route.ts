@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAppUser } from '@/lib/server/app-auth';
-import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import {
+  deactivateServerPushEndpoint,
+  saveServerPushSubscription,
+} from '@/lib/server/push-notifications';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +31,6 @@ function authErrorResponse(error: unknown, action: 'save' | 'deactivate') {
 export async function POST(request: NextRequest) {
   try {
     const actor = await requireAppUser(request);
-    await ensureServerFirestoreAuth();
     const { userId, subscription, device, publicKey, previousEndpoint } = await request.json();
 
     if (userId && userId !== actor.decoded.uid) {
@@ -53,16 +55,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { saveSubscription } = await import('@/lib/services/push-notifications.service');
-    const docId = await saveSubscription(
+    const result = await saveServerPushSubscription(
       actor.decoded.uid,
       subscription,
-      { ...(device || {}), vapidPublicKey: currentPublicKey },
+      device || {},
+      currentPublicKey,
       typeof previousEndpoint === 'string' ? previousEndpoint : undefined,
     );
 
-    console.log(`Push subscription saved for user ${actor.decoded.uid} (doc: ${docId})`);
-    return NextResponse.json({ success: true, subscriptionId: docId });
+    console.log(`Push subscription confirmed for user ${actor.decoded.uid} (changed: ${result.changed})`);
+    return NextResponse.json({ success: true, active: true, subscriptionId: result.id, changed: result.changed });
   } catch (error) {
     console.error('Subscribe error:', error);
     return authErrorResponse(error, 'save');
@@ -73,17 +75,13 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const actor = await requireAppUser(request);
-    await ensureServerFirestoreAuth();
     const { endpoint } = await request.json();
 
     if (!endpoint) {
       return NextResponse.json({ error: 'endpoint is required.' }, { status: 400 });
     }
 
-    const { deactivateSubscriptionEndpoint } = await import(
-      '@/lib/services/push-notifications.service'
-    );
-    await deactivateSubscriptionEndpoint(actor.decoded.uid, endpoint);
+    await deactivateServerPushEndpoint(actor.decoded.uid, endpoint);
 
     console.log(`Push endpoint deactivated for user ${actor.decoded.uid}`);
     return NextResponse.json({ success: true });

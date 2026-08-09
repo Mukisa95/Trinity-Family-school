@@ -39,7 +39,8 @@ import {
   FileText,
   Award,
   Activity,
-  Users
+  Users,
+  UserRoundPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,6 +58,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { StaffService } from '@/lib/services/staff.service';
 import { UsersService } from '@/lib/services/users.service';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { LinkedUserAccountDialog } from '@/components/users/linked-user-account-dialog';
 import { formatStaffRoles } from '@/lib/utils/format';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import Link from 'next/link';
@@ -68,11 +71,13 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
   const resolvedParams = use(params);
   const router = useRouter();
   const { toast } = useToast();
+  const { canAccessModule } = useAuth();
   const { data: staff, isLoading, error } = useStaffById(resolvedParams.id);
   const { mutate: updateStaff } = useUpdateStaff();
   const { data: allPupils = [] } = usePupils();
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [isLinkedAccountOpen, setIsLinkedAccountOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     personal: true,
     employment: true,
@@ -238,6 +243,15 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
         }
         actions={
           <GlassActionDock>
+            {canAccessModule('users') && (
+              <GlassActionButton
+                label="Account"
+                tone="purple"
+                icon={<UserRoundPlus className="h-4 w-4" />}
+                onClick={() => setIsLinkedAccountOpen(true)}
+                aria-label="Manage staff account"
+              />
+            )}
             <GlassActionButton
               label="Edit"
               tone="blue"
@@ -247,6 +261,14 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
             />
           </GlassActionDock>
         }
+      />
+      <LinkedUserAccountDialog
+        target="staff"
+        targetId={staff.id}
+        targetName={`${staff.firstName} ${staff.lastName}`.trim()}
+        defaultUsername={`${staff.firstName}.${staff.lastName}`.replace(/\s+/g, '').toLowerCase()}
+        open={isLinkedAccountOpen}
+        onOpenChange={setIsLinkedAccountOpen}
       />
       <div className="container mx-auto px-4 pb-6 max-w-6xl">
 
@@ -768,4 +790,4 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
       </div>
     </div>
   );
-} 
+}

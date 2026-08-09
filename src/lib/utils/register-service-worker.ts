@@ -74,6 +74,9 @@ function setupControllerChangeListener(): void {
         detail: { version: event.data.version },
       }));
     }
+    if (event.data && event.data.type === 'PUSH_SUBSCRIPTION_INVALIDATED') {
+      window.dispatchEvent(new Event('trinity-push-subscription-invalidated'));
+    }
   });
 
   console.log('✅ Controller change listener registered');

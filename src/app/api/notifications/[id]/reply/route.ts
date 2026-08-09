@@ -1,77 +1,34 @@
 import { createHash } from 'crypto';
-import { FieldValue, Firestore, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
-import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import {
+  getServerPushSubscriptionsForUsers,
+  sendServerWebPush,
+} from '@/lib/server/push-notifications';
 import {
   getActiveNotificationRecipientIds,
   hasNotificationAccess,
   resolveNotificationParticipant,
 } from '@/lib/server/notification-participants';
 import { requireAppUser } from '@/lib/server/app-auth';
-import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
 
-let webpush: any = null;
-
-async function getWebPush() {
-  if (!webpush) {
-    webpush = (await import('web-push')).default;
-    const { subject, publicKey, privateKey } = getServerVapidDetails();
-    if (!privateKey) throw new Error('VAPID_PRIVATE_KEY is not set');
-    webpush.setVapidDetails(subject, publicKey, privateKey);
-  }
-  return webpush;
-}
-
 async function sendReplyPushes(
-  db: Firestore,
   userIds: string[],
-  payload: Record<string, unknown>,
+  payload: { title: string; body: string; icon: string; badge: string; url: string; tag: string; timestamp: number },
 ) {
-  const { getSubscriptionsForUsers } = await import('@/lib/services/push-notifications.service');
-  const subscriptions = await getSubscriptionsForUsers(userIds, getServerVapidDetails().publicKey);
+  const subscriptions = await getServerPushSubscriptionsForUsers(userIds);
   if (!subscriptions.length) return { sent: 0, failed: 0, total: 0 };
-
-  let sent = 0;
-  let failed = 0;
-  const expiredIds: string[] = [];
   try {
-    const sender = await getWebPush();
-    const payloadText = JSON.stringify(payload);
-    for (let index = 0; index < subscriptions.length; index += 20) {
-      const batch = subscriptions.slice(index, index + 20);
-      const results = await Promise.allSettled(batch.map(async subscription => {
-        await sender.sendNotification(
-          { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-          payloadText,
-          { urgency: 'normal', TTL: 24 * 60 * 60 },
-        );
-      }));
-      results.forEach((result, itemIndex) => {
-        if (result.status === 'fulfilled') sent += 1;
-        else {
-          failed += 1;
-          const statusCode = (result.reason as any)?.statusCode;
-          if ((statusCode === 403 || statusCode === 404 || statusCode === 410) && batch[itemIndex]?.id) {
-            expiredIds.push(batch[itemIndex].id);
-          }
-        }
-      });
-    }
+    const result = await sendServerWebPush(subscriptions, payload);
+    return { sent: result.accepted, failed: result.failed, total: subscriptions.length };
   } catch {
-    failed = subscriptions.length;
+    return { sent: 0, failed: subscriptions.length, total: subscriptions.length };
   }
-
-  if (expiredIds.length) {
-    await Promise.allSettled(expiredIds.map(subscriptionId =>
-      db.collection('pushSubscriptions').doc(subscriptionId).update({ isActive: false }),
-    ));
-  }
-  return { sent, failed, total: subscriptions.length };
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -86,7 +43,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Provide a reply of up to 12,000 characters.' }, { status: 400 });
     }
 
-    await ensureServerFirestoreAuth();
     const db = getFirestore(getFirebaseAdminApp());
     const original = await db.collection('notifications').doc(id).get();
     if (!original.exists) return NextResponse.json({ error: 'Notification not found.' }, { status: 404 });
@@ -195,13 +151,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       await deliveryBatch.commit();
     }
 
-    const push = await sendReplyPushes(db, activeRecipientIds, {
+    const push = await sendReplyPushes(activeRecipientIds, {
       title: `${senderSnapshot.displayName}: Re: ${String(originalData.title || 'Notification')}`,
       body: message,
       icon: '/trinity-logo-192.png',
       badge: '/icons/trinity-badge-72.png',
       url: typeof originalData.pushUrl === 'string' && originalData.pushUrl.startsWith('/') ? originalData.pushUrl : '/push-notifications',
-      tag: `notification-reply-${rootNotificationId}`,
+      tag: `reply-${notificationRef.id}`,
       timestamp: Date.now(),
     });
     await notificationRef.update({

@@ -223,7 +223,16 @@ function ComposeNotificationDialog({
 export default function PushNotificationsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isSupported, isSubscribed, permission, isLoading: subscriptionLoading, subscribe, unsubscribe } = usePushSubscribe();
+  const {
+    isSupported,
+    isSubscribed,
+    permission,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+    subscribe,
+    unsubscribe,
+    sync,
+  } = usePushSubscribe();
   const [notifications, setNotifications] = useState<InboxNotification[]>([]);
   const [isInboxLoading, setIsInboxLoading] = useState(true);
   const [inboxError, setInboxError] = useState<string | null>(null);
@@ -250,6 +259,10 @@ export default function PushNotificationsPage() {
       setInboxError(snapshot.error);
     });
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && isSupported && permission === 'granted') void sync(user.id);
+  }, [isSupported, permission, sync, user?.id]);
 
   const filteredNotifications = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -387,6 +400,11 @@ export default function PushNotificationsPage() {
         {isSupported && permission === 'denied' && (
           <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Browser push is blocked for this site. You can still read all delivered notifications here.
+          </div>
+        )}
+        {isSupported && permission !== 'denied' && subscriptionError && (
+          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            Push notifications are not active on this device: {subscriptionError}
           </div>
         )}
 

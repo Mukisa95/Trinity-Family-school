@@ -10,7 +10,11 @@ import { FeeStructuresService } from './fee-structures.service';
 import { PaymentsService } from './payments.service';
 import type { FeeStructure, Pupil } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
-import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import {
+  getFeesAccessUserIdsAdmin,
+  getServerPushSubscriptionsForUsers,
+  sendServerWebPush,
+} from '@/lib/server/push-notifications';
 import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
 import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
 import {
@@ -567,17 +571,19 @@ export class SchoolPayIntegrationService {
         timestamp: new Date().toISOString(),
       });
 
-      // Fire-and-forget: send one consolidated push notification per SchoolPay receipt.
-      // This never blocks or throws to the webhook caller.
-      this.sendSchoolPayPushNotification({
-        receiptNumber,
-        pupilName: payment.studentName || `${pupil.firstName} ${pupil.lastName}`,
-        amount: this.parseAmount(payment.amount),
-        breakdown: recordingResult.distributionBreakdown,
-        source: context.source,
-      }).catch((err) => {
+      // Vercel may stop background work as soon as the webhook returns. Await
+      // delivery, but keep notification failure non-fatal to the payment.
+      try {
+        await this.sendSchoolPayPushNotification({
+          receiptNumber,
+          pupilName: payment.studentName || `${pupil.firstName} ${pupil.lastName}`,
+          amount: this.parseAmount(payment.amount),
+          breakdown: recordingResult.distributionBreakdown,
+          source: context.source,
+        });
+      } catch (err) {
         console.warn('[SchoolPay Push] Non-fatal push error:', err);
-      });
+      }
 
       return {
         success: true,
@@ -620,8 +626,8 @@ export class SchoolPayIntegrationService {
    *  - Only fires for source === 'webhook' (real-time). Sync/backfill payments are silent.
    *  - Uses the receipt number as the notification `tag` so the OS collapses duplicates
    *    if SchoolPay retries the same webhook.
-   *  - Fire-and-forget at the call site — a push failure never breaks the webhook response.
-   *  - Directly calls web-push and push-notifications.service (no internal HTTP round-trip).
+   *  - Awaited at the call site so serverless execution cannot stop it early.
+   *  - Uses the shared Admin-SDK sender without an internal HTTP round-trip.
    */
   private static async sendSchoolPayPushNotification(opts: {
     receiptNumber: string;
@@ -636,27 +642,12 @@ export class SchoolPayIntegrationService {
     const automationSettings = await getNotificationAutomationSettings();
     if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
 
-    const { subject, publicKey, privateKey } = getServerVapidDetails();
-
-    if (!privateKey) {
-      console.warn('[SchoolPay Push] VAPID_PRIVATE_KEY is not set — skipping push notification');
-      return;
-    }
-
-    // Dynamic imports so this module stays importable in all environments
-    const webpushModule = await import('web-push');
-    const webpush = webpushModule.default || webpushModule;
-    webpush.setVapidDetails(subject, publicKey, privateKey);
-
-    const { getFeesAccessUserIds, getSubscriptionsForUsers } = await import(
-      './push-notifications.service'
-    );
+    const userIds = await getFeesAccessUserIdsAdmin();
 
     // Resolve recipients
-    const userIds = await getFeesAccessUserIds();
     if (userIds.length === 0) return;
 
-    const subscriptions = await getSubscriptionsForUsers(userIds, publicKey);
+    const subscriptions = await getServerPushSubscriptionsForUsers(userIds);
     if (subscriptions.length === 0) return;
 
     // Build a human-readable breakdown line, e.g. "Tuition, Meals, Carry Forward"
@@ -680,7 +671,7 @@ export class SchoolPayIntegrationService {
       categories ? `. Allocated to: ${categories}` : ''
     }.`;
 
-    const payloadStr = JSON.stringify({
+    const payload = {
       title: '\uD83D\uDCB3 SchoolPay Payment Received',
       body,
       icon: '/trinity-logo-192.png',
@@ -690,54 +681,11 @@ export class SchoolPayIntegrationService {
       tag: `schoolpay-receipt-${opts.receiptNumber}`,
       requireInteraction: true,
       timestamp: Date.now(),
-    });
+    };
 
-    // Send concurrently to all active subscriptions
-    const results = await Promise.allSettled(
-      subscriptions.map(async (sub) => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            payloadStr,
-            { urgency: 'high', TTL: 24 * 60 * 60 }
-          );
-          return { ok: true, expired: false, subId: sub.id };
-        } catch (err: any) {
-          if (err.statusCode === 410 || err.statusCode === 404 || err.statusCode === 403) {
-            return { ok: false, expired: true, subId: sub.id };
-          }
-          console.warn(
-            `[SchoolPay Push] Send failed for subscription ${sub.id}:`,
-            err.statusCode,
-            err.message
-          );
-          return { ok: false, expired: false, subId: sub.id };
-        }
-      })
-    );
-
-    // Clean up expired / unsubscribed endpoints
-    const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
-    const expiredIds: string[] = [];
-    let sent = 0;
-    for (const r of results) {
-      if (r.status !== 'fulfilled') continue;
-      if (r.value.ok) {
-        sent++;
-      } else if (r.value.expired && r.value.subId) {
-        expiredIds.push(r.value.subId);
-      }
-    }
-
-    if (expiredIds.length > 0) {
-      await Promise.allSettled(
-        expiredIds.map((id) =>
-          updateDoc(firestoreDoc(db, 'pushSubscriptions', id), { isActive: false })
-        )
-      );
-    }
+    const result = await sendServerWebPush(subscriptions, payload, { urgency: 'high' });
     console.log(
-      `[SchoolPay Push] ✅ ${sent}/${subscriptions.length} push(es) sent for receipt ${
+      `[SchoolPay Push] ✅ ${result.accepted}/${subscriptions.length} push(es) accepted for receipt ${
         opts.receiptNumber
       }`
     );

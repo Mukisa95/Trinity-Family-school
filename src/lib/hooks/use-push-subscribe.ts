@@ -65,26 +65,18 @@ export function usePushSubscribe(): UsePushSubscribeResult {
         return;
       }
 
-      setError(null);
-      try {
-        const registration = await navigator.serviceWorker.getRegistration();
-        const subscription = await registration?.pushManager.getSubscription();
-        if (!disposed) setIsSubscribed(Boolean(subscription));
-      } catch {
-        if (!disposed) setIsSubscribed(false);
-      }
+      // A browser endpoint alone is not enough: the server must confirm that
+      // it is stored and active. sync/subscribe publish that confirmed state.
     };
 
-    const refreshWhenVisible = () => {
-      if (document.visibilityState === 'visible') void refreshBrowserState();
+    const refreshConfirmedState = (event: Event) => {
+      const active = (event as CustomEvent<{ active?: boolean }>).detail?.active;
+      if (typeof active === 'boolean') setIsSubscribed(active);
     };
     const refresh = () => void refreshBrowserState();
 
     void refreshBrowserState();
-    window.addEventListener('focus', refresh);
-    window.addEventListener('pageshow', refresh);
-    window.addEventListener(PUSH_SUBSCRIPTION_CHANGE_EVENT, refresh);
-    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener(PUSH_SUBSCRIPTION_CHANGE_EVENT, refreshConfirmedState);
 
     if ('permissions' in navigator) {
       void navigator.permissions
@@ -101,10 +93,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
 
     return () => {
       disposed = true;
-      window.removeEventListener('focus', refresh);
-      window.removeEventListener('pageshow', refresh);
-      window.removeEventListener(PUSH_SUBSCRIPTION_CHANGE_EVENT, refresh);
-      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener(PUSH_SUBSCRIPTION_CHANGE_EVENT, refreshConfirmedState);
       permissionStatus?.removeEventListener('change', refresh);
     };
   }, []);
@@ -115,7 +104,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
       setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'default');
       setIsSubscribed(result.active);
       if (result.active) setError(null);
-      window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGE_EVENT));
+      window.dispatchEvent(new CustomEvent(PUSH_SUBSCRIPTION_CHANGE_EVENT, { detail: { active: result.active } }));
       return result.active;
     } catch (syncError) {
       setIsSubscribed(false);
@@ -132,7 +121,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
       setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'default');
       setIsSubscribed(result.active);
       if (!result.active) setError(messageForReason(result.reason));
-      window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGE_EVENT));
+      window.dispatchEvent(new CustomEvent(PUSH_SUBSCRIPTION_CHANGE_EVENT, { detail: { active: result.active } }));
       return result.active;
     } catch (subscribeError) {
       const message = subscribeError instanceof Error
@@ -152,7 +141,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
     try {
       await detachPushSubscriptionForLogout(userId);
       setIsSubscribed(false);
-      window.dispatchEvent(new Event(PUSH_SUBSCRIPTION_CHANGE_EVENT));
+      window.dispatchEvent(new CustomEvent(PUSH_SUBSCRIPTION_CHANGE_EVENT, { detail: { active: false } }));
       return true;
     } catch (unsubscribeError) {
       setError(unsubscribeError instanceof Error

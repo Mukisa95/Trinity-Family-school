@@ -51,6 +51,27 @@ export interface PushPayload {
   requireInteraction?: boolean;
 }
 
+async function getConfirmedSubscriptionCompatibility(userId: string): Promise<any | null> {
+  const { getConfirmedBrowserPushSubscription } = await import('@/lib/push-subscription-client');
+  const subscription = await getConfirmedBrowserPushSubscription(userId);
+  if (!subscription) return null;
+  const json = subscription.toJSON();
+  const p256dh = json.keys?.p256dh || '';
+  const authKey = json.keys?.auth || '';
+  return {
+    id: 'browser-confirmed',
+    userId,
+    endpoint: subscription.endpoint,
+    p256dh,
+    auth: authKey,
+    keys: { p256dh, auth: authKey },
+    deviceType: /mobile|android|iphone|ipad/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    userAgent: navigator.userAgent,
+    isActive: true,
+    createdAt: Timestamp.now(),
+  };
+}
+
 // ─── VAPID key helper (browser-side only) ────────────────────────────────────
 
 export function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -386,11 +407,11 @@ export const pushNotificationService = {
   /**
    * Subscribe a user — browser-side. Registers SW + saves to Firestore.
    */
-  async subscribe(userId: string) {
+  async subscribe(userId: string): Promise<any | null> {
     const { enablePushSubscription } = await import('@/lib/push-subscription-client');
     const result = await enablePushSubscription(userId);
     if (!result.active) return null;
-    return getUserSubscription(userId);
+    return getConfirmedSubscriptionCompatibility(userId);
   },
 
   /**
@@ -404,15 +425,15 @@ export const pushNotificationService = {
   /**
    * Get user's active push subscription document from Firestore.
    */
-  async getSubscription(userId: string) {
-    return getUserSubscription(userId);
+  async getSubscription(userId: string): Promise<any | null> {
+    return getConfirmedSubscriptionCompatibility(userId);
   },
 
   /**
    * Alias for getSubscription for backward compatibility.
    */
-  async getUserPushSubscription(userId: string) {
-    return getUserSubscription(userId);
+  async getUserPushSubscription(userId: string): Promise<any | null> {
+    return getConfirmedSubscriptionCompatibility(userId);
   },
 
   /**
@@ -425,13 +446,12 @@ export const pushNotificationService = {
       const syncResult = await reconcilePushSubscription(userId);
       const reg = await navigator.serviceWorker.getRegistration();
       const browserSub = await reg?.pushManager.getSubscription();
-      const dbSub = await getUserSubscription(userId);
 
       return {
-        isValid: syncResult.active && !!browserSub && !!dbSub,
+        isValid: syncResult.active && !!browserSub,
         needsResubscription: !syncResult.active && !browserSub,
         browserHasSubscription: !!browserSub,
-        databaseHasSubscription: !!dbSub,
+        databaseHasSubscription: syncResult.active,
       };
     } catch {
       return { isValid: false, needsResubscription: false, browserHasSubscription: false, databaseHasSubscription: false };

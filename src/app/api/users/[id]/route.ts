@@ -27,7 +27,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function context(request: NextRequest, action: 'update' | 'delete') {
+async function context(request: NextRequest, action: 'delete') {
   const actor = await requireAppUser(request);
   if (!canManageUsers(actor, action)) throw new Error('PERMISSION_DENIED');
   return actor;
@@ -38,7 +38,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await context(request, 'update');
+    const actor = await requireAppUser(request);
     const { id } = await params;
     if (!id || id.length > 160) return json({ error: 'Invalid user ID.' }, 400);
 
@@ -46,14 +46,54 @@ export async function PATCH(
     if (!parsed.success) return json({ error: 'Invalid user details.' }, 400);
     const { password, passwordHash: _ignoredHash, id: _ignoredId, createdAt: _ignoredCreatedAt, ...profileUpdates } =
       parsed.data as Record<string, any>;
+    const allowedProfileFields = new Set([
+      'username',
+      'email',
+      'isActive',
+      'firstName',
+      'lastName',
+      'modulePermissions',
+      'granularPermissions',
+    ]);
+    const unknownField = Object.keys(profileUpdates).find(field => !allowedProfileFields.has(field));
+    if (unknownField) return json({ error: 'That account field cannot be changed here.' }, 400);
     const cleanUpdates = Object.fromEntries(
       Object.entries(profileUpdates).filter(([, value]) => value !== undefined),
-    );
+    ) as Record<string, any>;
+
+    if (Object.keys(cleanUpdates).length === 0 && !password) {
+      return json({ error: 'No account changes were supplied.' }, 400);
+    }
+    if (Object.keys(cleanUpdates).length > 0 && !canManageUsers(actor, 'update')) {
+      return json({ error: 'Permission denied.' }, 403);
+    }
+    if (password && !canManageUsers(actor, 'password')) {
+      return json({ error: 'Permission denied.' }, 403);
+    }
+
+    if (cleanUpdates.username !== undefined) {
+      if (typeof cleanUpdates.username !== 'string') return json({ error: 'Invalid username.' }, 400);
+      cleanUpdates.username = cleanUpdates.username.trim();
+      if (cleanUpdates.username.length < 1 || cleanUpdates.username.length > 160) {
+        return json({ error: 'Invalid username.' }, 400);
+      }
+    }
 
     const db = getFirestore(getFirebaseAdminApp());
     const userRef = db.collection('system_users').doc(id);
     const existing = await userRef.get();
     if (!existing.exists) return json({ error: 'User not found.' }, 404);
+
+    if (cleanUpdates.username) {
+      const duplicate = await db
+        .collection('system_users')
+        .where('username', '==', cleanUpdates.username)
+        .limit(2)
+        .get();
+      if (duplicate.docs.some(document => document.id !== id)) {
+        return json({ error: 'That username already exists.' }, 409);
+      }
+    }
 
     const now = Timestamp.now();
     const batch = db.batch();

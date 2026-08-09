@@ -315,7 +315,10 @@ export async function requireAppUser(request: NextRequest): Promise<Authenticate
   };
 }
 
-export function canManageUsers(actor: AuthenticatedAppUser, action: 'create' | 'update' | 'delete') {
+export function canManageUsers(
+  actor: AuthenticatedAppUser,
+  action: 'read' | 'create' | 'update' | 'password' | 'delete',
+) {
   if (actor.user.role === 'Admin') return true;
   if (actor.user.role !== 'Staff') return false;
 
@@ -323,15 +326,20 @@ export function canManageUsers(actor: AuthenticatedAppUser, action: 'create' | '
     String(permission.module).toLowerCase() === 'users'
   )?.permission;
   if (legacy === 'full_access') return true;
+  if (action === 'read') return Boolean(legacy);
   if (action !== 'delete' && legacy === 'edit') return true;
 
   const modulePermissions = actor.user.granularPermissions?.find(module => module.moduleId === 'users');
   if (!modulePermissions) return false;
-  const acceptedActions = action === 'create'
-    ? ['create_user', 'manage_permissions']
-    : action === 'update'
-      ? ['edit_user', 'manage_permissions']
-      : ['delete_user'];
+  const acceptedActions = action === 'read'
+    ? ['view_users', 'create_user', 'edit_user', 'reset_password', 'manage_permissions']
+    : action === 'create'
+      ? ['create_user', 'manage_permissions']
+      : action === 'update'
+        ? ['edit_user', 'manage_permissions']
+        : action === 'password'
+          ? ['reset_password', 'edit_user', 'manage_permissions']
+          : ['delete_user'];
 
   return modulePermissions.pages.some(page =>
     page.canAccess && page.actions.some(item => item.allowed && acceptedActions.includes(item.actionId))

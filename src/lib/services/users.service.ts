@@ -14,6 +14,8 @@ import { SecureAuthService } from './secure-auth.service';
 
 const USERS_COLLECTION = 'system_users';
 
+export type LinkedAccountTarget = 'pupil' | 'staff';
+
 async function authorizedJson(path: string, init: RequestInit) {
   const firebaseUser = auth.currentUser;
   if (!firebaseUser || firebaseUser.isAnonymous) {
@@ -35,6 +37,25 @@ async function authorizedJson(path: string, init: RequestInit) {
 }
 
 export class UsersService {
+  static async getLinkedAccount(target: LinkedAccountTarget, targetId: string): Promise<SystemUser | null> {
+    const query = new URLSearchParams({ target, targetId });
+    const payload = await authorizedJson(`/api/users/linked?${query.toString()}`, { method: 'GET' });
+    return (payload.user || null) as SystemUser | null;
+  }
+
+  static async activateLinkedAccount(input: {
+    target: LinkedAccountTarget;
+    targetId: string;
+    username: string;
+    password: string;
+  }): Promise<SystemUser> {
+    const payload = await authorizedJson('/api/users/linked', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return payload.user as SystemUser;
+  }
+
   // Create a new user
   static async createUser(userData: Omit<SystemUser, 'id' | 'createdAt'> & { password?: string }): Promise<string> {
     try {
