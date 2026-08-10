@@ -4,9 +4,19 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      action:
+        description: "Run the due-job dispatcher or the one-time scheduler migration"
+        required: true
+        default: dispatch
+        type: choice
+        options:
+          - dispatch
+          - migrate
 
 jobs:
   send-scheduled-communications:
+    if: github.event_name != 'workflow_dispatch' || inputs.action != 'migrate'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -30,3 +40,29 @@ jobs:
           curl --fail --show-error --silent --location \
             --header "Authorization: Bearer $CRON_SECRET" \
             "$DISPATCH_ENDPOINT"
+
+  backfill-scheduled-communications:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'migrate'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run one-time scheduler migration
+        env:
+          DEFAULT_APP_URL: https://trinityfamilyschool.vercel.app
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
+          BASE_URL="${BASE_URL%/}"
+          MIGRATION_ENDPOINT="$BASE_URL/api/admin/scheduler/backfill"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET is required for the scheduler migration."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent --location --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$MIGRATION_ENDPOINT"
