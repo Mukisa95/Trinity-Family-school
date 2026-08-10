@@ -19,12 +19,25 @@ function asDate(value: unknown): Date | null {
   return null;
 }
 
+async function authorizeBackfill(request: NextRequest): Promise<string> {
+  const cronSecret = process.env.CRON_SECRET;
+  const suppliedSecret = request.headers.get('x-cron-secret')
+    || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+
+  if (cronSecret && suppliedSecret === cronSecret) {
+    return 'cron';
+  }
+
+  const actor = await requireAppUser(request);
+  if (actor.user.role !== 'Admin') {
+    throw new Error('ADMIN_REQUIRED');
+  }
+  return actor.decoded.uid;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const actor = await requireAppUser(request);
-    if (actor.user.role !== 'Admin') {
-      return NextResponse.json({ error: 'Only an administrator can migrate scheduler jobs.' }, { status: 403 });
-    }
+    const actorId = await authorizeBackfill(request);
 
     const db = getFirestore(getFirebaseAdminApp());
     const [smsSnapshot, pushSnapshot] = await Promise.all([
@@ -53,7 +66,7 @@ export async function POST(request: NextRequest) {
         dueAt: Timestamp.fromDate(nextRunAt),
         leaseUntil: null,
         attempts: 0,
-        migratedBy: actor.decoded.uid,
+        migratedBy: actorId,
         migratedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
@@ -74,7 +87,7 @@ export async function POST(request: NextRequest) {
         dueAt: Timestamp.fromDate(runAt),
         leaseUntil: null,
         attempts: 0,
-        migratedBy: actor.decoded.uid,
+        migratedBy: actorId,
         migratedAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
@@ -82,7 +95,7 @@ export async function POST(request: NextRequest) {
     });
 
     await writer.close();
-    await updateNotificationAutomationSettings({}, actor.decoded.uid);
+    await updateNotificationAutomationSettings({}, actorId);
     return NextResponse.json({
       success: true,
       smsQueued,
@@ -91,7 +104,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
-    const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401 : 500;
-    return NextResponse.json({ error: status === 401 ? 'Sign in is required.' : 'Unable to migrate scheduler jobs.' }, { status });
+    const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
+      : message === 'ADMIN_REQUIRED' ? 403
+      : 500;
+    return NextResponse.json({
+      error: status === 401 ? 'Sign in is required.'
+        : status === 403 ? 'Only an administrator can migrate scheduler jobs.'
+          : 'Unable to migrate scheduler jobs.',
+    }, { status });
   }
 }
