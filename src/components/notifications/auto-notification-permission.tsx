@@ -7,6 +7,22 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import { isIosDevice, isStandalonePwa } from '@/lib/push-subscription-client';
 
+const PROMPT_DISMISS_PREFIX = 'trinity-push-prompt-dismissed:';
+const PROMPT_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function dismissalKey(userId: string) {
+  return `${PROMPT_DISMISS_PREFIX}${userId}`;
+}
+
+function hasRecentDismissal(userId: string) {
+  try {
+    const dismissedAt = Number(localStorage.getItem(dismissalKey(userId)) || 0);
+    return dismissedAt > 0 && Date.now() - dismissedAt < PROMPT_DISMISS_MS;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Prompts for the one user gesture browsers require, then confirms an
  * authorized endpoint once per app session. Healthy devices do not reconcile
@@ -19,6 +35,7 @@ export function AutoNotificationPermission() {
     isSubscribed,
     permission,
     isLoading,
+    isChecking,
     error,
     subscribe,
     sync,
@@ -26,13 +43,18 @@ export function AutoNotificationPermission() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [justEnabled, setJustEnabled] = useState(false);
   const [needsIosInstall, setNeedsIosInstall] = useState(false);
+  const [hasDismissedPrompt, setHasDismissedPrompt] = useState(false);
 
   useEffect(() => {
     setNeedsIosInstall(isIosDevice() && !isStandalonePwa());
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !isSupported || permission !== 'granted') return;
+    setHasDismissedPrompt(user?.id ? hasRecentDismissal(user.id) : false);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !isSupported || permission !== 'granted' || isChecking || isLoading) return;
 
     const reconcileAfterFailure = () => {
       if (!isSubscribed && navigator.onLine) void sync(user.id);
@@ -46,16 +68,15 @@ export function AutoNotificationPermission() {
       window.removeEventListener('online', reconcileAfterFailure);
       window.removeEventListener('trinity-push-subscription-invalidated', reconcileAfterFailure);
     };
-  }, [user?.id, isSupported, permission, isSubscribed, sync]);
+  }, [user?.id, isSupported, permission, isSubscribed, isChecking, isLoading, sync]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isChecking || isLoading || hasDismissedPrompt) return;
     if (!needsIosInstall && permission === 'granted' && isSubscribed) return;
-    if (sessionStorage.getItem('push_prompt_dismissed')) return;
 
     const timer = window.setTimeout(() => setShowPrompt(true), 3000);
     return () => window.clearTimeout(timer);
-  }, [user, isSupported, permission, isSubscribed, needsIosInstall]);
+  }, [user, isSupported, permission, isSubscribed, needsIosInstall, isChecking, isLoading, hasDismissedPrompt]);
 
   const handleEnable = async () => {
     if (!user?.id) return;
@@ -68,7 +89,14 @@ export function AutoNotificationPermission() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    sessionStorage.setItem('push_prompt_dismissed', '1');
+    if (!user?.id) return;
+    try {
+      localStorage.setItem(dismissalKey(user.id), String(Date.now()));
+    } catch {
+      // Storage can be unavailable in private browser modes; dismissing still
+      // works for this mounted application session.
+    }
+    setHasDismissedPrompt(true);
   };
 
   if (!user) return null;

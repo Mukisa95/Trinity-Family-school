@@ -3,6 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { requireAppUser, sanitizeSystemUser } from '@/lib/server/app-auth';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { getServerVapidDetails } from '@/lib/server/vapid-config';
 import { hasValidReminderTimes } from '@/lib/notifications/automation-settings';
 import {
   getNotificationAutomationSettings,
@@ -52,10 +53,21 @@ export async function GET(request: NextRequest) {
       db.collection('system_users').where('isActive', '==', true).get(),
       db.collection('pushSubscriptions').where('isActive', '==', true).get(),
     ]);
-    const subscriptionCounts = new Map<string, number>();
+    const deliveryReadySubscriptionCounts = new Map<string, number>();
+    const currentVapidPublicKey = getServerVapidDetails().publicKey;
     subscriptionsSnapshot.docs.forEach(document => {
-      const userId = String(document.data().userId || '');
-      if (userId) subscriptionCounts.set(userId, (subscriptionCounts.get(userId) || 0) + 1);
+      const data = document.data();
+      // The sender applies the same VAPID-key check. Showing only those
+      // subscriptions prevents the settings page from claiming an old device
+      // can receive a notification when it cannot.
+      if (data.vapidPublicKey !== currentVapidPublicKey) return;
+      const userId = String(data.userId || '');
+      if (userId) {
+        deliveryReadySubscriptionCounts.set(
+          userId,
+          (deliveryReadySubscriptionCounts.get(userId) || 0) + 1,
+        );
+      }
     });
     const recipients = usersSnapshot.docs
       .map(document => sanitizeSystemUser(document.id, document.data()))
@@ -67,7 +79,7 @@ export async function GET(request: NextRequest) {
           username: user.username,
           displayName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username,
           role: user.role,
-          subscriptionCount: subscriptionCounts.get(user.id) || 0,
+          subscriptionCount: deliveryReadySubscriptionCounts.get(user.id) || 0,
           eligible: {
             schoolPay: canReceiveFeeAlerts(user),
             attendanceRecorded: attendanceEligible,

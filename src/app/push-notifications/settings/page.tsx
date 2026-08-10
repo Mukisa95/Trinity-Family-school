@@ -112,6 +112,11 @@ export default function NotificationSettingsPage() {
     );
   }, [recipientOptions, recipientSearch]);
 
+  const deliveryReadyDeviceCount = useMemo(
+    () => recipientOptions.reduce((count, recipient) => count + recipient.subscriptionCount, 0),
+    [recipientOptions],
+  );
+
   const setCustomRecipientMode = (enabled: boolean) => update(current => ({
     ...current,
     recipients: enabled
@@ -235,7 +240,9 @@ export default function NotificationSettingsPage() {
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><Users className="h-5 w-5" /></span>
                 <div className="min-w-0 flex-1">
                   <h2 className="font-bold text-slate-900">Notification recipients</h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">Choose which authorised dashboard users receive each automated push. Parent fee receipts remain limited to their own linked family.</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Choose which authorised dashboard users receive each automated push. {deliveryReadyDeviceCount} delivery-ready device{deliveryReadyDeviceCount === 1 ? '' : 's'} registered; devices using an old browser key are shown as not ready until they reopen the app. Parent fee receipts remain limited to their own linked family.
+                  </p>
                 </div>
               </div>
 
@@ -273,7 +280,7 @@ export default function NotificationSettingsPage() {
                               <p className="mt-0.5 truncate text-xs text-slate-500">{recipient.username} · {recipient.role}</p>
                             </div>
                             <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${recipient.subscriptionCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                              {recipient.subscriptionCount > 0 ? `${recipient.subscriptionCount} device${recipient.subscriptionCount === 1 ? '' : 's'}` : 'No device'}
+                              {recipient.subscriptionCount > 0 ? `${recipient.subscriptionCount} ready device${recipient.subscriptionCount === 1 ? '' : 's'}` : 'Not ready'}
                             </span>
                           </div>
                           <div className="mt-4 space-y-2.5">

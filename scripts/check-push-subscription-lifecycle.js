@@ -13,6 +13,7 @@ const hook = fs.readFileSync('src/lib/hooks/use-push-subscribe.ts', 'utf8');
 const sendRoute = fs.readFileSync('src/app/api/notifications/send-push/route.ts', 'utf8');
 const vapidConfig = fs.readFileSync('src/lib/server/vapid-config.ts', 'utf8');
 const vapidRoute = fs.readFileSync('src/app/api/notifications/vapid-public-key/route.ts', 'utf8');
+const settingsRoute = fs.readFileSync('src/app/api/notifications/settings/route.ts', 'utf8');
 const pushPage = fs.readFileSync('src/app/push-notifications/page.tsx', 'utf8');
 const attendanceRoute = fs.readFileSync('src/app/api/attendance/notify-class-summary/route.ts', 'utf8');
 const replyRoute = fs.readFileSync('src/app/api/notifications/[id]/reply/route.ts', 'utf8');
@@ -86,7 +87,16 @@ for (const requirement of [
   ['senders exclude subscriptions created for another VAPID key',
     serverService.includes('data.vapidPublicKey !== vapidPublicKey')
       && sendRoute.includes('getServerPushSubscriptionsForUsers(targetUserIds)')],
+  ['notification settings show only devices the sender can actually use',
+    settingsRoute.includes('getServerVapidDetails')
+      && settingsRoute.includes('data.vapidPublicKey !== currentVapidPublicKey')],
   ['the hook exposes automatic sync', hook.includes('sync: (userId: string) => Promise<boolean>')],
+  ['the automatic prompt waits for browser and server subscription checks',
+    hook.includes('const [isChecking, setIsChecking] = useState(true)')
+      && autoPrompt.includes('isChecking || isLoading')],
+  ['dismissing the automatic prompt persists across app sessions',
+    autoPrompt.includes('localStorage.setItem(dismissalKey(user.id)')
+      && autoPrompt.includes('PROMPT_DISMISS_MS')],
   ['server-confirmed state is shared without a Firestore status read',
     hook.includes('CustomEvent(PUSH_SUBSCRIPTION_CHANGE_EVENT')
       && client.includes('CONFIRMED_SUBSCRIPTION_PREFIX')],

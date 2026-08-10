@@ -15,6 +15,7 @@ interface UsePushSubscribeResult {
   isSubscribed: boolean;
   permission: NotificationPermission;
   isLoading: boolean;
+  isChecking: boolean;
   error: string | null;
   subscribe: (userId: string) => Promise<boolean>;
   unsubscribe: (userId: string) => Promise<boolean>;
@@ -39,6 +40,9 @@ export function usePushSubscribe(): UsePushSubscribeResult {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isLoading, setIsLoading] = useState(false);
+  // Keep the automatic prompt quiet until the browser state and the server's
+  // subscription record have both had a chance to reconcile.
+  const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,27 +50,31 @@ export function usePushSubscribe(): UsePushSubscribeResult {
     let permissionStatus: PermissionStatus | null = null;
 
     const refreshBrowserState = async () => {
-      const supported = supportsWebPush();
-      if (disposed) return;
+      try {
+        const supported = supportsWebPush();
+        if (disposed) return;
 
-      setIsSupported(supported);
-      if (!supported) {
-        setPermission('default');
-        setIsSubscribed(false);
-        return;
+        setIsSupported(supported);
+        if (!supported) {
+          setPermission('default');
+          setIsSubscribed(false);
+          return;
+        }
+
+        const nextPermission = Notification.permission;
+        setPermission(nextPermission);
+        if (nextPermission !== 'denied') setError(null);
+
+        if (nextPermission !== 'granted') {
+          setIsSubscribed(false);
+          return;
+        }
+
+        // A browser endpoint alone is not enough: the server must confirm that
+        // it is stored and active. sync/subscribe publish that confirmed state.
+      } finally {
+        if (!disposed) setIsChecking(false);
       }
-
-      const nextPermission = Notification.permission;
-      setPermission(nextPermission);
-      if (nextPermission !== 'denied') setError(null);
-
-      if (nextPermission !== 'granted') {
-        setIsSubscribed(false);
-        return;
-      }
-
-      // A browser endpoint alone is not enough: the server must confirm that
-      // it is stored and active. sync/subscribe publish that confirmed state.
     };
 
     const refreshConfirmedState = (event: Event) => {
@@ -99,6 +107,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
   }, []);
 
   const sync = useCallback(async (userId: string): Promise<boolean> => {
+    setIsChecking(true);
     try {
       const result = await reconcilePushSubscription(userId);
       setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'default');
@@ -110,6 +119,8 @@ export function usePushSubscribe(): UsePushSubscribeResult {
       setIsSubscribed(false);
       setError(syncError instanceof Error ? syncError.message : 'Push subscription sync failed.');
       return false;
+    } finally {
+      setIsChecking(false);
     }
   }, []);
 
@@ -158,6 +169,7 @@ export function usePushSubscribe(): UsePushSubscribeResult {
     isSubscribed,
     permission,
     isLoading,
+    isChecking,
     error,
     subscribe,
     unsubscribe,
