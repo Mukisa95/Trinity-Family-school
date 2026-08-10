@@ -13,7 +13,8 @@ if (typeof window !== 'undefined') {
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { optimizedNotificationService } from './optimized-notification.service';
-import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
+import type { PaymentRecord, User, Pupil, FeeStructure, SystemUser } from '@/types';
+import { GranularPermissionService } from './granular-permissions.service';
 import 'server-only';
 
 import {
@@ -66,7 +67,8 @@ class FeesPaymentNotificationServerService {
       console.log(`${'='.repeat(80)}\n`);
 
       // Step 1: Get parent accounts by familyId
-      const parents = await this.getParentsByFamilyId(pupilDetails.familyId);
+      // Parent receipt pushes are intentionally excluded from this policy.
+      const parents: User[] = [];
       console.log(`👨‍👩‍👧 [Fees Notification] Found ${parents.length} parent account(s)`);
 
       // Step 2: Get staff/admin with fees permissions
@@ -76,11 +78,15 @@ class FeesPaymentNotificationServerService {
         'schoolPay',
         eligibleStaff.map(user => user.id),
       ));
-      const staffWithPermissions = eligibleStaff.filter(user => selectedStaffIds.has(user.id));
+      const staffWithPermissions = eligibleStaff.filter(user =>
+        selectedStaffIds.has(user.id)
+        && GranularPermissionService.canAccessPage(user as unknown as SystemUser, 'fees', 'collection')
+        && GranularPermissionService.canAccessPage(user as unknown as SystemUser, 'fees', 'collect'),
+      );
       console.log(`👥 [Fees Notification] Found ${staffWithPermissions.length} staff with fees permissions`);
 
       // Step 3: Combine recipients
-      const recipients = [...parents, ...staffWithPermissions];
+      const recipients = staffWithPermissions;
 
       if (recipients.length === 0) {
         console.log('⚠️ [Fees Notification] No recipients found, skipping notification');

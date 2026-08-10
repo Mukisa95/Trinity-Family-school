@@ -23,22 +23,12 @@ function canManageSettings(user: Parameters<typeof GranularPermissionService.can
 }
 
 function canReceiveFeeAlerts(user: ReturnType<typeof sanitizeSystemUser>) {
-  if (user.role === 'Admin') return true;
-  if (user.role !== 'Staff') return false;
-  return (user.modulePermissions || []).some(permission =>
-    ['fees', 'accounts'].includes(String(permission.module || '').toLowerCase())
-    && (permission as { allowed?: boolean }).allowed !== false,
-  );
+  return GranularPermissionService.canAccessPage(user, 'fees', 'collection')
+    && GranularPermissionService.canAccessPage(user, 'fees', 'collect');
 }
 
 function canReceiveAttendanceAlerts(user: ReturnType<typeof sanitizeSystemUser>) {
-  return (user.role === 'Admin' || user.role === 'Staff')
-    && GranularPermissionService.canPerformAction(
-      user,
-      'reports',
-      'dashboard',
-      'view_stat_attendance_today',
-    );
+  return Boolean(user.id);
 }
 
 export async function GET(request: NextRequest) {
@@ -71,7 +61,6 @@ export async function GET(request: NextRequest) {
     });
     const recipients = usersSnapshot.docs
       .map(document => sanitizeSystemUser(document.id, document.data()))
-      .filter(user => user.role === 'Admin' || user.role === 'Staff')
       .map(user => {
         const attendanceEligible = canReceiveAttendanceAlerts(user);
         return {

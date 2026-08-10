@@ -249,11 +249,11 @@ async function dispatchAttendance(
   }
 
   const users = usersSnapshot.docs.map(document => sanitizeSystemUser(document.id, document.data()));
-  const eligibleUsers = users.filter(user => (user.role === 'Admin' || user.role === 'Staff')
-    && GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_attendance_today'));
-  const recipientIds = settings.recipients.mode === 'custom'
-    ? resolveAutomatedNotificationRecipientIds(settings, 'attendanceMissing', eligibleUsers.map(user => user.id))
-    : eligibleUsers.filter(user => user.role === 'Admin').map(user => user.id);
+  const recipientIds = resolveAutomatedNotificationRecipientIds(
+    settings,
+    'attendanceMissing',
+    users.map(user => user.id),
+  );
   const sender = users.find(user => user.id === settings.updatedBy
       && user.role === 'Admin'
       && GranularPermissionService.canPerformAction(user, 'notifications', 'list', 'send_notification'))

@@ -3,6 +3,8 @@ import 'server-only';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getServerVapidDetails } from '@/lib/server/vapid-config';
+import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import type { SystemUser } from '@/types';
 
 export interface ServerPushSubscription {
   id: string;
@@ -201,13 +203,12 @@ export async function deactivateServerPushSubscriptionIds(ids: string[]): Promis
 export async function getFeesAccessUserIdsAdmin(): Promise<string[]> {
   const snapshot = await db().collection('system_users').where('isActive', '==', true).get();
   return snapshot.docs.filter(doc => {
-    const data = doc.data();
-    if (String(data.role || '').toLowerCase() === 'admin') return true;
-    const permissions = Array.isArray(data.modulePermissions) ? data.modulePermissions : [];
-    return permissions.some((permission: any) =>
-      ['fees', 'accounts'].includes(String(permission?.module || '').toLowerCase())
-      && permission?.allowed !== false,
-    );
+    const user = { id: doc.id, ...doc.data() } as SystemUser;
+    // SchoolPay is an operational finance alert. A recipient must be able to
+    // use both the fee collection list and the individual pupil collection
+    // page, rather than merely having broad Accounts/Fee access.
+    return GranularPermissionService.canAccessPage(user, 'fees', 'collection')
+      && GranularPermissionService.canAccessPage(user, 'fees', 'collect');
   }).map(doc => doc.id);
 }
 

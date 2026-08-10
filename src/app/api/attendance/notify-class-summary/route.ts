@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
-import { requireAppUser, sanitizeSystemUser } from '@/lib/server/app-auth';
+import { requireAppUser } from '@/lib/server/app-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import {
   attendanceSummaryBody,
@@ -64,17 +64,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, skipped: true, reason: 'Attendance recorded alerts are disabled.' });
     }
 
-    const allUsers = await adminDb.collection('system_users').get();
-    const eligibleRecipientIds = allUsers.docs
-      .filter(userDoc => userDoc.data()?.isActive !== false)
-      .map(userDoc => sanitizeSystemUser(userDoc.id, userDoc.data()))
-      .filter(user => (user.role === 'Admin' || user.role === 'Staff') &&
-        GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_attendance_today'))
-      .map(user => user.id);
+    const activeUsers = await adminDb.collection('system_users')
+      .where('isActive', '==', true)
+      .get();
     const recipientIds = resolveAutomatedNotificationRecipientIds(
       automationSettings,
       'attendanceRecorded',
-      eligibleRecipientIds,
+      activeUsers.docs.map(userDoc => userDoc.id),
     );
 
     const fingerprint = attendanceSummaryFingerprint(summary);

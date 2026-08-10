@@ -35,8 +35,9 @@ assert.ok(!cron.includes('enqueueDueAttendanceReminders'));
 assert.ok(cron.includes("claimed.channel === 'sms'"));
 assert.ok(cron.includes("claimed.channel === 'push'"));
 assert.ok(cron.includes('dispatchAttendance'));
-assert.ok(cron.includes("settings.recipients.mode === 'custom'"));
-assert.ok(cron.includes("filter(user => user.role === 'Admin')"));
+assert.ok(cron.includes("'attendanceMissing'"));
+assert.ok(cron.includes('users.map(user => user.id)'));
+assert.ok(!cron.includes("filter(user => user.role === 'Admin')"));
 
 assert.ok(queue.includes("channel: 'attendance'"));
 assert.ok(queue.includes('nextAttendanceRunAt'));

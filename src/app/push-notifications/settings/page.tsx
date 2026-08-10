@@ -20,7 +20,7 @@ type RecipientOption = {
   id: string;
   username: string;
   displayName: string;
-  role: 'Admin' | 'Staff';
+  role: string;
   subscriptionCount: number;
   eligible: Record<AutomatedNotificationRecipientType, boolean>;
 };
@@ -241,7 +241,7 @@ export default function NotificationSettingsPage() {
                 <div className="min-w-0 flex-1">
                   <h2 className="font-bold text-slate-900">Notification recipients</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Choose which authorised dashboard users receive each automated push. {deliveryReadyDeviceCount} delivery-ready device{deliveryReadyDeviceCount === 1 ? '' : 's'} registered; devices using an old browser key are shown as not ready until they reopen the app. Parent fee receipts remain limited to their own linked family.
+                    Attendance alerts go to every active user by default. SchoolPay alerts go only to users who can access both Fee Collection and individual Pupil Fee Collection. {deliveryReadyDeviceCount} delivery-ready device{deliveryReadyDeviceCount === 1 ? '' : 's'} registered; devices using an old browser key are shown as not ready until they reopen the app.
                   </p>
                 </div>
               </div>
@@ -312,14 +312,14 @@ export default function NotificationSettingsPage() {
 
             <section className="space-y-3">
               <div className="px-1"><h2 className="text-sm font-bold text-slate-800">Fee payments</h2><p className="mt-1 text-xs text-slate-500">Payment pushes for manual collections and real-time SchoolPay receipts.</p></div>
-              <ToggleRow title="Fee payment alerts" description="Notify selected subscribed users when a payment is received. Linked parents receive only their own family's receipt." checked={settings.categories.schoolPay} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, schoolPay: value } }))} icon={<CreditCard className="h-5 w-5" />} />
+              <ToggleRow title="Fee payment alerts" description="Notify only users who can open both Fee Collection and the individual Pupil Fee Collection page." checked={settings.categories.schoolPay} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, schoolPay: value } }))} icon={<CreditCard className="h-5 w-5" />} />
             </section>
 
             <section className="space-y-3">
-              <div className="px-1"><h2 className="text-sm font-bold text-slate-800">Attendance</h2><p className="mt-1 text-xs text-slate-500">The same subscribed dashboard users receive these operational alerts.</p></div>
+              <div className="px-1"><h2 className="text-sm font-bold text-slate-800">Attendance</h2><p className="mt-1 text-xs text-slate-500">Every active user is included by default. You can still choose recipients manually above.</p></div>
               <ToggleRow title="Attendance notifications" description="Master switch for all attendance push notifications." checked={settings.categories.attendance.enabled} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, attendance: { ...current.categories.attendance, enabled: value } } }))} icon={<BellRing className="h-5 w-5" />} />
               <ToggleRow title="Recorded attendance" description="Send a push when a class attendance record is explicitly saved." checked={settings.categories.attendance.recorded} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, attendance: { ...current.categories.attendance, recorded: value } } }))} disabled={!settings.categories.attendance.enabled} icon={<CheckCircle2 className="h-5 w-5" />} />
-              <ToggleRow title="Unrecorded attendance reminders" description="Remind staff about classes that still have no completed attendance record." checked={settings.categories.attendance.missingReminders} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, attendance: { ...current.categories.attendance, missingReminders: value } } }))} disabled={!settings.categories.attendance.enabled} icon={<CalendarClock className="h-5 w-5" />} />
+              <ToggleRow title="Unrecorded attendance reminders" description="Remind active users about classes that still have no completed attendance record." checked={settings.categories.attendance.missingReminders} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, attendance: { ...current.categories.attendance, missingReminders: value } } }))} disabled={!settings.categories.attendance.enabled} icon={<CalendarClock className="h-5 w-5" />} />
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
