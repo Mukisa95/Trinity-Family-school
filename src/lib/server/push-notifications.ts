@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getServerVapidDetails } from '@/lib/server/vapid-config';

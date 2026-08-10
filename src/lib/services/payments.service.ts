@@ -118,20 +118,6 @@ export class PaymentsService {
         });
       }
       
-      // 🆕 TRIGGER NOTIFICATION: Send payment notification in background
-      // Don't await to avoid blocking payment creation
-      const notificationPayment: PaymentRecord = {
-        id: paymentId,
-        ...paymentData,
-        createdAt: new Date(),
-        paymentDate: paymentData.paymentDate || new Date().toISOString(),
-      };
-
-      this.sendPaymentNotification(paymentId, notificationPayment).catch(error => {
-        console.error('❌ Error sending payment notification (non-blocking):', error);
-        // Don't throw - notification failure shouldn't fail payment
-      });
-      
       return paymentId;
     } catch (error) {
       console.error('Error creating payment:', error);
@@ -366,89 +352,4 @@ export class PaymentsService {
     return grouped;
   }
 
-  /**
-   * 🆕 Send payment notification to parents and staff
-   * This method is called after payment creation to notify:
-   * 1. Parents of the student (all accounts with same familyId)
-   * 2. Staff/Admin with fees collection permissions
-   * 
-   * NOTE: This only runs on server-side (Node.js environment)
-   */
-  private static async sendPaymentNotification(
-    paymentId: string,
-    paymentData: PaymentRecord
-  ): Promise<void> {
-    // Only run on server-side (not in browser)
-    if (typeof window !== 'undefined') {
-      console.log('⚠️ [Payment Notification] Skipping - running in browser');
-      return;
-    }
-
-    try {
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`🔔 [Payment Notification] Initiating notification for payment ${paymentId}`);
-      console.log(`${'='.repeat(80)}\n`);
-      
-      // Dynamic imports to avoid circular dependencies and ensure server-only execution
-      const { PupilsService } = await import('./pupils.service');
-      const { FeesService } = await import('./fees.service');
-      
-      // Get pupil details
-      console.log(`📖 [Payment Notification] Fetching pupil details for ID: ${paymentData.pupilId}`);
-      const pupil = await PupilsService.getPupilById(paymentData.pupilId);
-      if (!pupil) {
-        console.log('⚠️ [Payment Notification] Pupil not found, skipping notification');
-        return;
-      }
-      console.log(`   ✅ Pupil: ${pupil.firstName} ${pupil.lastName} (familyId: ${pupil.familyId || 'none'})`);
-      
-      // Get fee structure details
-      console.log(`📖 [Payment Notification] Fetching fee structure for ID: ${paymentData.feeStructureId}`);
-      const feeStructure = await FeesService.getFeeStructureById(paymentData.feeStructureId);
-      if (!feeStructure) {
-        console.log('⚠️ [Payment Notification] Fee structure not found, skipping notification');
-        return;
-      }
-      console.log(`   ✅ Fee: ${feeStructure.name} (Amount: ${feeStructure.amount})`);
-      
-      // Calculate balance (get all payments for this fee and calculate)
-      console.log(`🧮 [Payment Notification] Calculating balance...`);
-      const allPayments = await this.getPaymentsByFee(
-        paymentData.feeStructureId,
-        paymentData.pupilId,
-        paymentData.academicYearId,
-        paymentData.termId
-      );
-      
-      const totalPaid = allPayments.reduce((sum, p) => {
-        if (p.reverted) return sum;
-        return sum + p.amount;
-      }, 0);
-      
-      const balance = feeStructure.amount - totalPaid;
-      console.log(`   Total Paid: ${totalPaid}`);
-      console.log(`   Balance: ${balance}`);
-      
-      // Import and send notification (server-only module with .server.ts suffix)
-      console.log(`📤 [Payment Notification] Sending notification via server-only notification service...`);
-      const { feesPaymentNotificationServerService } = await import('./fees-payment-notification.server');
-      await feesPaymentNotificationServerService.sendPaymentNotification(
-        paymentId,
-        paymentData,
-        pupil,
-        feeStructure,
-        balance
-      );
-      
-      console.log(`✅ [Payment Notification] Notification process completed\n`);
-      
-    } catch (error) {
-      console.error('❌ [Payment Notification] Error in payment notification:', error);
-      console.error('❌ Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      // Don't throw - let payment succeed even if notification fails
-    }
-  }
-} 
+}

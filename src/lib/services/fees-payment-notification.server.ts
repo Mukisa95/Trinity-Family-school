@@ -14,6 +14,8 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../firebase';
 import { optimizedNotificationService } from './optimized-notification.service';
 import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
+import 'server-only';
+
 import {
   isNotificationAutomationEnabled,
   normalizeNotificationAutomationSettings,
@@ -46,9 +48,8 @@ class FeesPaymentNotificationServerService {
     balance: number
   ): Promise<void> {
     try {
-      // This legacy service is dynamically referenced by a client-reachable
-      // payment module. Do not import Firebase Admin or `server-only` here:
-      // doing so makes Next.js pull that server module into the pages bundle.
+      // This service is invoked only from the server payment route. Its
+      // delivery dependency can safely use Firebase Admin and Node-only APIs.
       const settingsSnapshot = await getDoc(doc(db, 'notificationAutomationSettings', 'current'));
       const automationSettings = normalizeNotificationAutomationSettings(
         settingsSnapshot.exists() ? settingsSnapshot.data() : undefined,
