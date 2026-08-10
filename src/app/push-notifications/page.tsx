@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   BellOff,
+  CalendarClock,
   CheckCircle2,
   Loader2,
   Plus,
@@ -55,20 +56,42 @@ const TARGET_OPTIONS = [
 type Target = (typeof TARGET_OPTIONS)[number]['value'];
 type InboxNotification = Notification & { _isSender?: boolean };
 
+function defaultScheduleFields() {
+  const future = new Date(Date.now() + 10 * 60 * 1000);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Kampala',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(future);
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || '';
+  return {
+    date: `${value('year')}-${value('month')}-${value('day')}`,
+    time: `${value('hour')}:${value('minute')}`,
+  };
+}
+
 function ComposeNotificationDialog({
   open,
   onOpenChange,
   userId,
+  onScheduled,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId?: string;
+  onScheduled?: () => void;
 }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [destination, setDestination] = useState<NotificationDestinationSelection | null>(null);
   const [target, setTarget] = useState<Target>('all');
   const [customIds, setCustomIds] = useState('');
+  const [deliveryMode, setDeliveryMode] = useState<'now' | 'scheduled'>('now');
+  const [scheduleFields, setScheduleFields] = useState(defaultScheduleFields);
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -88,7 +111,8 @@ function ComposeNotificationDialog({
         throw new Error('Your secure session has expired. Please sign in again.');
       }
 
-      const response = await fetch('/api/notifications/send-push', {
+      const isScheduled = deliveryMode === 'scheduled';
+      const response = await fetch(isScheduled ? '/api/notifications/scheduled' : '/api/notifications/send-push', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,17 +126,27 @@ function ComposeNotificationDialog({
           payload: { title: title.trim(), body: body.trim() },
           destination: destination || undefined,
           urgency: 'normal',
+          ...(isScheduled ? {
+            scheduleDate: scheduleFields.date,
+            scheduleTime: scheduleFields.time,
+          } : {}),
         }),
       });
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error || 'Unable to send this notification.');
 
-      setResult({ ok: true, message: data.message || 'Notification sent.' });
+      setResult({
+        ok: true,
+        message: data.message || (isScheduled
+          ? `Notification scheduled for ${scheduleFields.date} at ${scheduleFields.time}.`
+          : 'Notification sent.'),
+      });
       setTitle('');
       setBody('');
       setDestination(null);
       setCustomIds('');
+      if (isScheduled) onScheduled?.();
     } catch (error) {
       setResult({
         ok: false,
@@ -123,7 +157,13 @@ function ComposeNotificationDialog({
     }
   };
 
-  const canSend = Boolean(title.trim() && body.trim() && userId && (target !== 'custom' || customIds.trim()));
+  const canSend = Boolean(
+    title.trim()
+    && body.trim()
+    && userId
+    && (target !== 'custom' || customIds.trim())
+    && (deliveryMode === 'now' || (scheduleFields.date && scheduleFields.time)),
+  );
 
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -192,6 +232,35 @@ function ComposeNotificationDialog({
 
               <NotificationLinkPicker value={destination} onChange={setDestination} />
 
+              <fieldset>
+                <legend className="mb-2 text-sm font-semibold text-slate-700">Delivery time</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setDeliveryMode('now')} className={`rounded-xl border px-3.5 py-3 text-left transition ${deliveryMode === 'now' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                    <span className="block text-sm font-semibold text-slate-800">Send now</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Deliver immediately</span>
+                  </button>
+                  <button type="button" onClick={() => setDeliveryMode('scheduled')} className={`rounded-xl border px-3.5 py-3 text-left transition ${deliveryMode === 'scheduled' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                    <span className="block text-sm font-semibold text-slate-800">Schedule</span>
+                    <span className="mt-0.5 block text-xs text-slate-500">Within about five minutes</span>
+                  </button>
+                </div>
+                {deliveryMode === 'scheduled' && (
+                  <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3.5">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label>
+                        <span className="mb-1.5 block text-xs font-semibold text-violet-900">Date</span>
+                        <input type="date" value={scheduleFields.date} onChange={event => setScheduleFields(current => ({ ...current, date: event.target.value }))} className="h-11 w-full rounded-lg border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                      </label>
+                      <label>
+                        <span className="mb-1.5 block text-xs font-semibold text-violet-900">Time · Africa/Kampala</span>
+                        <input type="time" value={scheduleFields.time} onChange={event => setScheduleFields(current => ({ ...current, time: event.target.value }))} className="h-11 w-full rounded-lg border border-violet-200 bg-white px-3 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+                      </label>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-violet-700">The notification will show you as the sender and will be marked internally as scheduled.</p>
+                  </div>
+                )}
+              </fieldset>
+
               {result && (
                 <div className={`flex gap-3 rounded-xl border p-3.5 text-sm ${result.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
                   {result.ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0" />}
@@ -209,11 +278,125 @@ function ComposeNotificationDialog({
                 disabled={isSending || !canSend}
                 className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {isSending ? 'Sending…' : 'Send notification'}
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : deliveryMode === 'scheduled' ? <CalendarClock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                {isSending ? 'Working…' : deliveryMode === 'scheduled' ? 'Schedule notification' : 'Send notification'}
               </button>
             </div>
           </form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type ScheduledNotificationJob = {
+  id: string;
+  title: string;
+  body: string;
+  target: string;
+  status: 'scheduled' | 'processing' | 'sent' | 'failed' | 'cancelled';
+  runAt: string | null;
+  lastError?: string | null;
+};
+
+function ScheduledNotificationsDialog({
+  open,
+  onOpenChange,
+  userId,
+  refreshKey,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  userId?: string;
+  refreshKey: number;
+}) {
+  const [jobs, setJobs] = useState<ScheduledNotificationJob[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadJobs = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser || firebaseUser.uid !== userId) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const response = await fetch('/api/notifications/scheduled', {
+        headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` },
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to load schedules.');
+      setJobs(Array.isArray(result.jobs) ? result.jobs : []);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to load schedules.');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (open) void loadJobs();
+  }, [loadJobs, open, refreshKey]);
+
+  const cancelJob = async (jobId: string) => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser || firebaseUser.uid !== userId) return;
+    setCancellingId(jobId);
+    try {
+      const response = await fetch(`/api/notifications/scheduled/${encodeURIComponent(jobId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` },
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to cancel this schedule.');
+      await loadJobs();
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to cancel this schedule.');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden p-0 sm:max-w-2xl">
+        <div className="border-b border-slate-100 px-5 py-5 pr-14 sm:px-6">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900"><CalendarClock className="h-5 w-5 text-violet-600" /> Scheduled notifications</DialogTitle>
+          <DialogDescription className="mt-1">Upcoming and recently completed notifications. Times use Africa/Kampala.</DialogDescription>
+        </div>
+        <div className="max-h-[65dvh] overflow-y-auto p-4 sm:p-6">
+          {loading ? (
+            <div className="space-y-3">{[1, 2, 3].map(item => <div key={item} className="h-24 animate-pulse rounded-xl bg-slate-100" />)}</div>
+          ) : loadError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{loadError}</div>
+          ) : jobs.length ? (
+            <div className="space-y-3">
+              {jobs.map(job => (
+                <article key={job.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-bold text-slate-900">{job.title}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{job.body}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${job.status === 'sent' ? 'bg-emerald-100 text-emerald-700' : job.status === 'failed' ? 'bg-red-100 text-red-700' : job.status === 'cancelled' ? 'bg-slate-100 text-slate-600' : 'bg-violet-100 text-violet-700'}`}>{job.status}</span>
+                  </div>
+                  <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                    <CalendarClock className="h-4 w-4 text-violet-500" />
+                    <span>{job.runAt ? new Date(job.runAt).toLocaleString('en-UG', { timeZone: 'Africa/Kampala', dateStyle: 'medium', timeStyle: 'short' }) : 'Time unavailable'}</span>
+                    {job.status === 'scheduled' && (
+                      <button type="button" onClick={() => void cancelJob(job.id)} disabled={cancellingId === job.id} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                        {cancellingId === job.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Cancel
+                      </button>
+                    )}
+                  </div>
+                  {job.lastError && <p className="mt-2 rounded-lg bg-red-50 px-2.5 py-2 text-xs text-red-700">{job.lastError}</p>}
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center"><CalendarClock className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">No scheduled notifications</p><p className="mt-1 text-xs text-slate-400">Choose Schedule when composing a notification.</p></div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -240,6 +423,8 @@ export default function PushNotificationsPage() {
   const [search, setSearch] = useState('');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [scheduledOpen, setScheduledOpen] = useState(false);
+  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
   const [participantsNotification, setParticipantsNotification] = useState<InboxNotification | null>(null);
   const [deleteRequest, setDeleteRequest] = useState<{
     notification: InboxNotification;
@@ -371,6 +556,13 @@ export default function PushNotificationsPage() {
         actions={user?.id ? (
           <GlassActionDock>
             <GlassActionButton
+              label="Scheduled"
+              icon={<CalendarClock className="h-4 w-4" />}
+              onClick={() => setScheduledOpen(true)}
+              tone="emerald"
+              title="View and cancel scheduled notifications"
+            />
+            <GlassActionButton
               label="Settings"
               icon={<Settings className="h-4 w-4" />}
               href="/push-notifications/settings"
@@ -484,7 +676,8 @@ export default function PushNotificationsPage() {
         <span className="hidden sm:inline">Compose</span>
       </button>
 
-      <ComposeNotificationDialog open={composerOpen} onOpenChange={setComposerOpen} userId={user?.id} />
+      <ComposeNotificationDialog open={composerOpen} onOpenChange={setComposerOpen} userId={user?.id} onScheduled={() => setScheduledRefreshKey(value => value + 1)} />
+      <ScheduledNotificationsDialog open={scheduledOpen} onOpenChange={setScheduledOpen} userId={user?.id} refreshKey={scheduledRefreshKey} />
       <NotificationParticipantsDialog
         open={Boolean(participantsNotification)}
         notificationId={participantsNotification?.id}

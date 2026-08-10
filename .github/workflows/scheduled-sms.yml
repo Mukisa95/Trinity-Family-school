@@ -1,4 +1,4 @@
-name: Send scheduled SMS
+name: Send scheduled communications
 
 on:
   schedule:
@@ -6,11 +6,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  send-scheduled-sms:
+  send-scheduled-communications:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Trigger scheduled SMS dispatch
+      - name: Trigger unified due-job dispatch
         env:
           DEFAULT_APP_URL: https://trinityfamilyschool.vercel.app
           APP_URL: ${{ vars.APP_URL }}
@@ -20,12 +20,13 @@ jobs:
 
           BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
           BASE_URL="${BASE_URL%/}"
-          ENDPOINT="$BASE_URL/api/cron/send-scheduled-sms"
+          DISPATCH_ENDPOINT="$BASE_URL/api/cron/send-scheduled-sms"
 
-          if [ -n "${CRON_SECRET:-}" ]; then
-            curl --fail --show-error --silent --location \
-              --header "Authorization: Bearer $CRON_SECRET" \
-              "$ENDPOINT"
-          else
-            curl --fail --show-error --silent --location "$ENDPOINT"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET is required for scheduled communication dispatch."
+            exit 1
           fi
+
+          curl --fail --show-error --silent --location \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$DISPATCH_ENDPOINT"

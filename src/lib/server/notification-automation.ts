@@ -9,6 +9,7 @@ import {
   normalizeNotificationAutomationSettings,
   type NotificationAutomationSettings,
 } from '@/lib/notifications/automation-settings';
+import { syncAttendanceDispatches } from '@/lib/server/scheduled-dispatch-queue';
 
 function settingsRef() {
   return getFirestore(getFirebaseAdminApp())
@@ -29,8 +30,11 @@ export async function updateNotificationAutomationSettings(
   const ref = settingsRef();
   return db.runTransaction(async transaction => {
     const current = await transaction.get(ref);
+    const currentSettings = normalizeNotificationAutomationSettings(
+      current.exists ? current.data() : undefined,
+    );
     const next = mergeNotificationAutomationSettings(
-      normalizeNotificationAutomationSettings(current.exists ? current.data() : undefined),
+      currentSettings,
       patch,
     );
     transaction.set(ref, {
@@ -38,6 +42,7 @@ export async function updateNotificationAutomationSettings(
       updatedBy: actorId,
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
+    syncAttendanceDispatches(transaction, db, currentSettings, next, actorId);
     return { ...next, updatedBy: actorId, updatedAt: new Date().toISOString() };
   });
 }

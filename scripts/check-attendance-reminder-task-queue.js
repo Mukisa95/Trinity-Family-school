@@ -9,17 +9,12 @@ assert.equal(
 );
 
 const planner = functions.attendanceReminderPlanner?.__endpoint;
-assert.equal(planner?.scheduleTrigger?.schedule, '5 0 * * *', 'The daily planner must run once at 00:05.');
-assert.deepEqual(planner?.region, ['us-central1']);
+assert.equal(planner, undefined, 'The Firebase attendance planner must remain disabled on the Spark deployment.');
 
 const settingsTrigger = functions.attendanceReminderSettingsChanged?.__endpoint;
-assert.equal(settingsTrigger?.eventTrigger?.eventType, 'google.cloud.firestore.document.v1.written');
-assert.equal(settingsTrigger?.eventTrigger?.eventFilters?.document, 'notificationAutomationSettings/current');
+assert.equal(settingsTrigger, undefined, 'The Firebase attendance settings trigger must remain disabled on Spark.');
 
 const task = functions.attendanceReminderTask?.__endpoint;
-assert.ok(task?.taskQueueTrigger, 'Attendance reminders must be delivered by a Firebase task queue.');
-assert.deepEqual(task?.region, ['us-central1']);
-assert.equal(task?.taskQueueTrigger?.retryConfig?.maxAttempts, 3);
-assert.equal(task?.taskQueueTrigger?.rateLimits?.maxConcurrentDispatches, 1);
+assert.equal(task, undefined, 'The Firebase attendance task queue must remain disabled on Spark.');
 
-console.log('Attendance reminder task-queue contract passed.');
+console.log('Firebase attendance scheduler retirement contract passed.');

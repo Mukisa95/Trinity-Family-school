@@ -19,6 +19,7 @@ import 'server-only';
 import {
   isNotificationAutomationEnabled,
   normalizeNotificationAutomationSettings,
+  resolveAutomatedNotificationRecipientIds,
 } from '@/lib/notifications/automation-settings';
 
 export interface PaymentNotificationDetails {
@@ -69,7 +70,13 @@ class FeesPaymentNotificationServerService {
       console.log(`👨‍👩‍👧 [Fees Notification] Found ${parents.length} parent account(s)`);
 
       // Step 2: Get staff/admin with fees permissions
-      const staffWithPermissions = await this.getUsersWithFeesPermissions();
+      const eligibleStaff = await this.getUsersWithFeesPermissions();
+      const selectedStaffIds = new Set(resolveAutomatedNotificationRecipientIds(
+        automationSettings,
+        'schoolPay',
+        eligibleStaff.map(user => user.id),
+      ));
+      const staffWithPermissions = eligibleStaff.filter(user => selectedStaffIds.has(user.id));
       console.log(`👥 [Fees Notification] Found ${staffWithPermissions.length} staff with fees permissions`);
 
       // Step 3: Combine recipients

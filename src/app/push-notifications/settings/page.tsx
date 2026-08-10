@@ -1,18 +1,38 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { BellRing, CalendarClock, CheckCircle2, Clock3, CreditCard, Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { BellRing, CalendarClock, CheckCircle2, Clock3, CreditCard, Loader2, Plus, Save, Search, Trash2, Users } from 'lucide-react';
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from '@/components/common/glass-page-top-bar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
   DEFAULT_NOTIFICATION_AUTOMATION_SETTINGS,
+  type AutomatedNotificationRecipientType,
   type NotificationAutomationSettings,
 } from '@/lib/notifications/automation-settings';
 
 type SaveState = 'idle' | 'saving' | 'saved';
+
+type RecipientOption = {
+  id: string;
+  username: string;
+  displayName: string;
+  role: 'Admin' | 'Staff';
+  subscriptionCount: number;
+  eligible: Record<AutomatedNotificationRecipientType, boolean>;
+};
+
+const RECIPIENT_CATEGORIES: Array<{
+  id: AutomatedNotificationRecipientType;
+  label: string;
+}> = [
+  { id: 'schoolPay', label: 'Fee payments' },
+  { id: 'attendanceRecorded', label: 'Attendance saved' },
+  { id: 'attendanceMissing', label: 'Attendance reminders' },
+];
 
 function ToggleRow({
   title,
@@ -48,6 +68,8 @@ export default function NotificationSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [recipientOptions, setRecipientOptions] = useState<RecipientOption[]>([]);
+  const [recipientSearch, setRecipientSearch] = useState('');
 
   const load = useCallback(async () => {
     if (!user?.id || !auth.currentUser || auth.currentUser.uid !== user.id) return;
@@ -60,6 +82,7 @@ export default function NotificationSettingsPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to load notification settings.');
       setSettings(result.settings);
+      setRecipientOptions(Array.isArray(result.recipients) ? result.recipients : []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load notification settings.');
     } finally {
@@ -78,6 +101,45 @@ export default function NotificationSettingsPage() {
     setSettings(current => updater(current));
     setSaveState('idle');
   };
+
+  const filteredRecipients = useMemo(() => {
+    const search = recipientSearch.trim().toLowerCase();
+    if (!search) return recipientOptions;
+    return recipientOptions.filter(recipient =>
+      recipient.displayName.toLowerCase().includes(search)
+      || recipient.username.toLowerCase().includes(search)
+      || recipient.role.toLowerCase().includes(search),
+    );
+  }, [recipientOptions, recipientSearch]);
+
+  const setCustomRecipientMode = (enabled: boolean) => update(current => ({
+    ...current,
+    recipients: enabled
+      ? {
+          mode: 'custom',
+          schoolPay: recipientOptions.filter(recipient => recipient.eligible.schoolPay).map(recipient => recipient.id),
+          attendanceRecorded: recipientOptions.filter(recipient => recipient.eligible.attendanceRecorded).map(recipient => recipient.id),
+          attendanceMissing: recipientOptions.filter(recipient => recipient.eligible.attendanceMissing).map(recipient => recipient.id),
+        }
+      : { ...current.recipients, mode: 'automatic' },
+  }));
+
+  const setRecipientCategory = (
+    userId: string,
+    category: AutomatedNotificationRecipientType,
+    checked: boolean,
+  ) => update(current => {
+    const selected = new Set(current.recipients[category]);
+    if (checked) selected.add(userId);
+    else selected.delete(userId);
+    return {
+      ...current,
+      recipients: {
+        ...current.recipients,
+        [category]: Array.from(selected),
+      },
+    };
+  });
 
   const updateTime = (index: number, time: string) => update(current => ({
     ...current,
@@ -168,9 +230,82 @@ export default function NotificationSettingsPage() {
               </div>
             </section>
 
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><Users className="h-5 w-5" /></span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-bold text-slate-900">Notification recipients</h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">Choose which authorised dashboard users receive each automated push. Parent fee receipts remain limited to their own linked family.</p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <ToggleRow
+                  title="Choose recipients manually"
+                  description="When off, the app automatically uses each user's current permissions. Turning this on starts with every eligible user selected."
+                  checked={settings.recipients.mode === 'custom'}
+                  onCheckedChange={setCustomRecipientMode}
+                  icon={<Users className="h-5 w-5" />}
+                />
+              </div>
+
+              {settings.recipients.mode === 'custom' && (
+                <div className="mt-5 space-y-4">
+                  <label className="relative block">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="search"
+                      value={recipientSearch}
+                      onChange={event => setRecipientSearch(event.target.value)}
+                      placeholder="Search users"
+                      aria-label="Search notification recipients"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    />
+                  </label>
+
+                  {filteredRecipients.length ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {filteredRecipients.map(recipient => (
+                        <article key={recipient.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-sm font-bold text-slate-900">{recipient.displayName}</h3>
+                              <p className="mt-0.5 truncate text-xs text-slate-500">{recipient.username} · {recipient.role}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${recipient.subscriptionCount > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {recipient.subscriptionCount > 0 ? `${recipient.subscriptionCount} device${recipient.subscriptionCount === 1 ? '' : 's'}` : 'No device'}
+                            </span>
+                          </div>
+                          <div className="mt-4 space-y-2.5">
+                            {RECIPIENT_CATEGORIES.map(category => {
+                              const eligible = recipient.eligible[category.id];
+                              return (
+                                <label key={category.id} className={`flex items-center gap-2.5 text-xs font-semibold ${eligible ? 'text-slate-700' : 'text-slate-400'}`} title={eligible ? undefined : 'This user does not have permission to receive this alert.'}>
+                                  <Checkbox
+                                    checked={settings.recipients[category.id].includes(recipient.id)}
+                                    onCheckedChange={value => setRecipientCategory(recipient.id, category.id, value === true)}
+                                    disabled={!eligible}
+                                    aria-label={`${category.label} for ${recipient.displayName}`}
+                                  />
+                                  <span>{category.label}</span>
+                                  {!eligible && <span className="ml-auto text-[10px] font-medium">No access</span>}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">No matching active staff or admin users.</div>
+                  )}
+                </div>
+              )}
+            </section>
+
             <section className="space-y-3">
-              <div className="px-1"><h2 className="text-sm font-bold text-slate-800">SchoolPay</h2><p className="mt-1 text-xs text-slate-500">Payment pushes to users with fee access.</p></div>
-              <ToggleRow title="SchoolPay payment alerts" description="Notify eligible subscribed users when a real-time SchoolPay payment is received." checked={settings.categories.schoolPay} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, schoolPay: value } }))} icon={<CreditCard className="h-5 w-5" />} />
+              <div className="px-1"><h2 className="text-sm font-bold text-slate-800">Fee payments</h2><p className="mt-1 text-xs text-slate-500">Payment pushes for manual collections and real-time SchoolPay receipts.</p></div>
+              <ToggleRow title="Fee payment alerts" description="Notify selected subscribed users when a payment is received. Linked parents receive only their own family's receipt." checked={settings.categories.schoolPay} onCheckedChange={value => update(current => ({ ...current, categories: { ...current.categories, schoolPay: value } }))} icon={<CreditCard className="h-5 w-5" />} />
             </section>
 
             <section className="space-y-3">

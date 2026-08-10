@@ -28,6 +28,7 @@ const PROCESSING_LEASE_MS = 15 * 60 * 1000;
 const ATTENDANCE_REMINDER_PLANS = "attendanceReminderPlans";
 const ATTENDANCE_REMINDER_RUNS = "attendanceReminderRuns";
 const ATTENDANCE_REMINDER_TASK_FUNCTION = "locations/us-central1/functions/attendanceReminderTask";
+const ENABLE_FIREBASE_ATTENDANCE_REMINDERS = process.env.ENABLE_FIREBASE_ATTENDANCE_REMINDERS === "true";
 
 function normalizeVapidValue(value) {
   return String(value || "").trim().replace(/^['\"]|['\"]$/g, "").replace(/\\n/g, "\n");
@@ -55,6 +56,13 @@ function getLocalClock(now = new Date()) {
 function normalizeReminderTimes(value) {
   const valid = Array.isArray(value) ? value.filter((time) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(time)) : [];
   return Array.from(new Set(valid)).sort();
+}
+
+function normalizeRecipientIds(value) {
+  const valid = Array.isArray(value)
+    ? value.filter((id) => typeof id === "string" && id.trim() && id.length <= 160)
+    : [];
+  return Array.from(new Set(valid)).slice(0, 500);
 }
 
 function isPupilActiveOnDate(pupil, date) {
@@ -287,11 +295,14 @@ function attendanceReminderConfiguration(storedSettings) {
   const categories = storedSettings?.categories || {};
   const attendance = categories.attendance || {};
   const reminders = storedSettings?.attendanceReminders || {};
+  const recipients = storedSettings?.recipients || {};
   const times = normalizeReminderTimes(reminders.times);
   return {
     enabled: attendance.enabled !== false && attendance.missingReminders !== false,
     times: times.length ? times : ["08:30", "11:30", "14:00"],
     schoolDaysOnly: reminders.schoolDaysOnly !== false,
+    recipientMode: recipients.mode === "custom" ? "custom" : "automatic",
+    recipientUserIds: normalizeRecipientIds(recipients.attendanceMissing),
   };
 }
 
@@ -300,6 +311,8 @@ function attendanceReminderFingerprint(config) {
     enabled: config.enabled,
     times: config.times,
     schoolDaysOnly: config.schoolDaysOnly,
+    recipientMode: config.recipientMode,
+    recipientUserIds: config.recipientUserIds,
   });
 }
 
@@ -334,9 +347,9 @@ function completedClassIds(summary) {
   );
 }
 
-async function getAttendanceReminderRecipients(db) {
+async function getAttendanceReminderRecipients(db, recipientMode = "automatic", selectedRecipientIds = []) {
   const usersSnapshot = await db.collection("system_users").get();
-  return usersSnapshot.docs
+  const eligibleUserIds = usersSnapshot.docs
     .filter((doc) => doc.data().isActive !== false)
     .filter((doc) => {
       const user = doc.data();
@@ -348,6 +361,9 @@ async function getAttendanceReminderRecipients(db) {
       return (user.modulePermissions || []).some((permission) => permission.module === "reports");
     })
     .map((doc) => doc.id);
+  if (recipientMode !== "custom") return eligibleUserIds;
+  const selected = new Set(normalizeRecipientIds(selectedRecipientIds));
+  return eligibleUserIds.filter((userId) => selected.has(userId));
 }
 
 async function getActiveAttendanceReminderSubscriptions(db, recipientIds) {
@@ -467,6 +483,8 @@ async function planAttendanceRemindersForDate(date, {now = new Date(), reason = 
     times: config.times,
     queuedSlots: Array.from(queuedSlots),
     schoolDaysOnly: config.schoolDaysOnly,
+    recipientMode: config.recipientMode,
+    recipientUserIds: config.recipientUserIds,
     academicYearId: academicYear.id,
     expectedClassIds,
     expectedClassNames,
@@ -505,6 +523,9 @@ async function planAttendanceRemindersForDate(date, {now = new Date(), reason = 
   return {status: "ready", date, version, queuedSlots: futureSlots.length};
 }
 
+/* Legacy Firebase scheduler. Disabled by default because the Spark-compatible
+ * GitHub Actions/Vercel dispatcher is the production owner. */
+if (ENABLE_FIREBASE_ATTENDANCE_REMINDERS) {
 /** Runs once daily; Cloud Tasks handles the exact user-configured times. */
 exports.attendanceReminderPlanner = onSchedule(
   {
@@ -591,6 +612,8 @@ exports.attendanceReminderTask = onTaskDispatched(
         claimed: true,
         expectedClassIds: Array.isArray(plan.expectedClassIds) ? plan.expectedClassIds : [],
         expectedClassNames: plan.expectedClassNames && typeof plan.expectedClassNames === "object" ? plan.expectedClassNames : {},
+        recipientMode: plan.recipientMode === "custom" ? "custom" : "automatic",
+        recipientUserIds: normalizeRecipientIds(plan.recipientUserIds),
       };
     });
     if (!claim.claimed) {
@@ -614,7 +637,11 @@ exports.attendanceReminderTask = onTaskDispatched(
     }
 
     try {
-      const recipientIds = await getAttendanceReminderRecipients(db);
+      const recipientIds = await getAttendanceReminderRecipients(
+        db,
+        claim.recipientMode,
+        claim.recipientUserIds,
+      );
       if (!recipientIds.length) {
         await runRef.set({
           status: "skipped",
@@ -664,6 +691,7 @@ exports.attendanceReminderTask = onTaskDispatched(
     }
   },
 );
+}
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started

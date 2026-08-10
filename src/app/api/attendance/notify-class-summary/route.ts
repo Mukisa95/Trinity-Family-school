@@ -14,7 +14,10 @@ import {
   sendServerWebPush,
 } from '@/lib/server/push-notifications';
 import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
-import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
+import {
+  isNotificationAutomationEnabled,
+  resolveAutomatedNotificationRecipientIds,
+} from '@/lib/notifications/automation-settings';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -62,12 +65,17 @@ export async function POST(request: NextRequest) {
     }
 
     const allUsers = await adminDb.collection('system_users').get();
-    const recipientIds = allUsers.docs
+    const eligibleRecipientIds = allUsers.docs
       .filter(userDoc => userDoc.data()?.isActive !== false)
       .map(userDoc => sanitizeSystemUser(userDoc.id, userDoc.data()))
       .filter(user => (user.role === 'Admin' || user.role === 'Staff') &&
         GranularPermissionService.canPerformAction(user, 'reports', 'dashboard', 'view_stat_attendance_today'))
       .map(user => user.id);
+    const recipientIds = resolveAutomatedNotificationRecipientIds(
+      automationSettings,
+      'attendanceRecorded',
+      eligibleRecipientIds,
+    );
 
     const fingerprint = attendanceSummaryFingerprint(summary);
     const eventRef = adminDb.collection('attendanceNotificationEvents')

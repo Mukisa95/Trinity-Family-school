@@ -16,7 +16,10 @@ import {
   sendServerWebPush,
 } from '@/lib/server/push-notifications';
 import { getNotificationAutomationSettings } from '@/lib/server/notification-automation';
-import { isNotificationAutomationEnabled } from '@/lib/notifications/automation-settings';
+import {
+  isNotificationAutomationEnabled,
+  resolveAutomatedNotificationRecipientIds,
+} from '@/lib/notifications/automation-settings';
 import {
   assessExistingSchoolPayPayments,
   type ExistingLocalPaymentMatch,
@@ -642,7 +645,12 @@ export class SchoolPayIntegrationService {
     const automationSettings = await getNotificationAutomationSettings();
     if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
 
-    const userIds = await getFeesAccessUserIdsAdmin();
+    const eligibleUserIds = await getFeesAccessUserIdsAdmin();
+    const userIds = resolveAutomatedNotificationRecipientIds(
+      automationSettings,
+      'schoolPay',
+      eligibleUserIds,
+    );
 
     // Resolve recipients
     if (userIds.length === 0) return;

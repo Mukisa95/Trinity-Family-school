@@ -27,9 +27,7 @@ import {
   Save,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/lib/contexts/auth-context';
+import { auth } from '@/lib/firebase';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -117,8 +115,6 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
   pricePerSMS = 35,
 }) => {
   const { toast } = useToast();
-  const { user } = useAuth();
-
   // Step: 1 = pick type, 2 = configure, 3 = confirm
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [scheduleType, setScheduleType] = useState<ScheduleType>('once');
@@ -210,17 +206,25 @@ export const SMSScheduleDialog: React.FC<SMSScheduleDialogProps> = ({
         estimatedCost: totalCost,
         status,
         lockedAmount,
-        createdAt: serverTimestamp(),
-        sentAt: null,
-        schoolId: (user as any)?.schoolId || 'unknown',
-        createdBy: user?.id || 'unknown',
       };
 
-      await addDoc(collection(db, 'scheduledSMS'), payload);
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('Sign in again before scheduling an SMS.');
+      const response = await fetch('/api/sms/schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${await firebaseUser.getIdToken()}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to schedule this SMS.');
+      const savedAsDraft = result.status === 'draft';
 
       toast({
-        title: saveDraft ? 'Saved as Draft' : '✅ SMS Scheduled',
-        description: saveDraft
+        title: savedAsDraft ? 'Saved as Draft' : '✅ SMS Scheduled',
+        description: savedAsDraft
           ? 'The SMS has been saved as a draft. Activate it from the Schedule List when you have enough balance.'
           : `Your SMS is scheduled for ${occurrenceCount} occurrence${occurrenceCount > 1 ? 's' : ''}. UGX ${totalCost.toLocaleString()} has been reserved.`,
       });

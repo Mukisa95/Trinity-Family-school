@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
-import { requireAppUser } from '@/lib/server/app-auth';
+import { requireAppUser, sanitizeSystemUser } from '@/lib/server/app-auth';
 import {
   getServerPushSubscriptionsForUsers,
   resolvePushTargetToUserIdsAdmin,
@@ -22,7 +22,52 @@ export const revalidate = false;
 
 export async function POST(request: NextRequest) {
   try {
-    const actor = await requireAppUser(request);
+    const requestedBody = await request.json();
+    const scheduledJobId = typeof requestedBody?.scheduledJobId === 'string'
+      ? requestedBody.scheduledJobId
+      : null;
+    const adminDb = getFirestore(getFirebaseAdminApp());
+    let actor: Awaited<ReturnType<typeof requireAppUser>>;
+    let body = requestedBody;
+    let scheduledMetadata: { jobId: string; scheduledFor?: string } | null = null;
+
+    if (scheduledJobId) {
+      const cronSecret = process.env.CRON_SECRET;
+      const suppliedSecret = request.headers.get('x-cron-secret');
+      if (!cronSecret || suppliedSecret !== cronSecret) {
+        return NextResponse.json({ error: 'Scheduled dispatch is not authorised.' }, { status: 401 });
+      }
+      const jobSnapshot = await adminDb.collection('scheduledNotifications').doc(scheduledJobId).get();
+      const job = jobSnapshot.data();
+      if (!jobSnapshot.exists || job?.status !== 'processing') {
+        return NextResponse.json({ error: 'The scheduled notification is not ready for dispatch.' }, { status: 409 });
+      }
+      const senderId = String(job.createdBy || '');
+      const senderSnapshot = senderId
+        ? await adminDb.collection('system_users').doc(senderId).get()
+        : null;
+      if (!senderSnapshot?.exists || senderSnapshot.data()?.isActive === false) {
+        return NextResponse.json({ error: 'The scheduling user is no longer active.' }, { status: 403 });
+      }
+      actor = {
+        decoded: { uid: senderId },
+        user: sanitizeSystemUser(senderSnapshot.id, senderSnapshot.data() || {}),
+      } as Awaited<ReturnType<typeof requireAppUser>>;
+      body = {
+        target: job.target,
+        userIds: job.userIds,
+        payload: job.payload,
+        destination: job.destination,
+        urgency: job.urgency,
+      };
+      scheduledMetadata = {
+        jobId: scheduledJobId,
+        scheduledFor: job.runAt?.toDate?.().toISOString?.(),
+      };
+    } else {
+      actor = await requireAppUser(request);
+    }
+
     const canSend = GranularPermissionService.canPerformAction(
       actor.user,
       'notifications',
@@ -36,7 +81,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
     const { target, userIds: explicitUserIds, payload, destination, urgency = 'normal' } = body;
 
     if (!payload?.title || !payload?.body) {
@@ -76,7 +120,6 @@ export async function POST(request: NextRequest) {
     }
 
     const subscriptions = await getServerPushSubscriptionsForUsers(targetUserIds);
-    const adminDb = getFirestore(getFirebaseAdminApp());
     let selectedDestination: ResolvedNotificationDestination | null = null;
     if (destination) {
       try {
@@ -152,9 +195,14 @@ export async function POST(request: NextRequest) {
       actions: [],
       readBy: [],
       metadata: {
-        source: 'push-notifications',
+        source: scheduledMetadata ? 'scheduled-notifications' : 'push-notifications',
         target: target || 'explicit',
         automaticInAppFallback: true,
+        ...(scheduledMetadata ? {
+          scheduled: true,
+          scheduledJobId: scheduledMetadata.jobId,
+          scheduledFor: scheduledMetadata.scheduledFor,
+        } : {}),
         ...(selectedDestination ? { destination: selectedDestination } : {}),
       },
     });
@@ -237,6 +285,8 @@ export async function POST(request: NextRequest) {
         url: notificationUrl,
         target: target || 'explicit',
         sentBy: actor.decoded.uid,
+        source: scheduledMetadata ? 'scheduled-notifications' : 'push-notifications',
+        ...(scheduledMetadata ? { scheduledJobId: scheduledMetadata.jobId } : {}),
         sentAt: FieldValue.serverTimestamp(),
         totalRecipients: targetUserIds.length,
         inAppSent,
@@ -251,6 +301,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      notificationId: notificationRef.id,
       message: subscriptions.length > 0
         ? `In-app delivered to ${inAppSent} user${inAppSent === 1 ? '' : 's'}. Push service accepted ${sent} device alert${sent === 1 ? '' : 's'}; ${failed} failed.`
         : `In-app delivered to ${inAppSent} user${inAppSent === 1 ? '' : 's'}. No active Web Push subscription was available.`,

@@ -30,9 +30,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/lib/contexts/auth-context';
+import { collection, query, getDocs } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -245,11 +244,7 @@ function JobCard({
 
   const handleTriggerSend = useCallback(() => {
     if (!isEditing) {
-      fetch('/api/cron/send-scheduled-sms').catch(console.error).finally(() => {
-        if (onTriggerRefresh) {
-          setTimeout(onTriggerRefresh, 2500);
-        }
-      });
+      if (onTriggerRefresh) setTimeout(onTriggerRefresh, 5000);
     }
   }, [isEditing, onTriggerRefresh]);
 
@@ -448,7 +443,6 @@ function HistoryCard({ job }: { job: ScheduledJob }) {
 
 export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ open, onClose }) => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [tab, setTab] = useState<'upcoming' | 'history'>('upcoming');
   const [jobs, setJobs] = useState<ScheduledJob[]>([]);
   const [loading, setLoading] = useState(false);
@@ -485,9 +479,14 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
   async function handleCancel(id: string) {
     setCancelling(id);
     try {
-      await updateDoc(doc(db, 'scheduledSMS', id), {
-        status: 'cancelled'
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('Sign in again before cancelling this schedule.');
+      const response = await fetch(`/api/sms/schedule/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${await firebaseUser.getIdToken()}` },
       });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to cancel');
       toast({ title: 'Schedule Cancelled', description: 'The scheduled SMS has been cancelled and balance released.' });
       setJobs(prev => prev.map(j => j.id === id ? { ...j, status: 'cancelled' } : j));
     } catch (err) {
@@ -500,9 +499,18 @@ export const SMSScheduleListDialog: React.FC<SMSScheduleListDialogProps> = ({ op
 
   async function handleUpdateSchedule(id: string, newSchedule: Record<string, unknown>) {
     try {
-      await updateDoc(doc(db, 'scheduledSMS', id), {
-        schedule: newSchedule
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('Sign in again before updating this schedule.');
+      const response = await fetch(`/api/sms/schedule/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${await firebaseUser.getIdToken()}`,
+        },
+        body: JSON.stringify({ schedule: newSchedule }),
       });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to update schedule');
       toast({ title: 'Schedule Updated', description: 'The time and dates for this message have been updated successfully.' });
       setJobs(prev => prev.map(j => j.id === id ? { ...j, schedule: newSchedule } : j));
     } catch (err) {
