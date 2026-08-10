@@ -13,10 +13,11 @@ on:
         options:
           - dispatch
           - migrate
+          - migrate-ganda
 
 jobs:
   send-scheduled-communications:
-    if: github.event_name != 'workflow_dispatch' || inputs.action != 'migrate'
+    if: github.event_name != 'workflow_dispatch' || (inputs.action != 'migrate' && inputs.action != 'migrate-ganda')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -34,6 +35,32 @@ jobs:
 
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "CRON_SECRET is required for scheduled communication dispatch."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent --location \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$DISPATCH_ENDPOINT"
+
+  send-ganda-scheduled-communications:
+    if: github.event_name != 'workflow_dispatch' || (inputs.action != 'migrate' && inputs.action != 'migrate-ganda')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger Ganda unified due-job dispatch
+        env:
+          DEFAULT_APP_URL: https://gandalocked.vercel.app
+          APP_URL: ${{ vars.GANDA_APP_URL }}
+          CRON_SECRET: ${{ secrets.GANDA_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
+          BASE_URL="${BASE_URL%/}"
+          DISPATCH_ENDPOINT="$BASE_URL/api/cron/send-scheduled-sms"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "GANDA_CRON_SECRET is required for scheduled communication dispatch."
             exit 1
           fi
 
@@ -60,6 +87,32 @@ jobs:
 
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "CRON_SECRET is required for the scheduler migration."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent --location --request POST \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$MIGRATION_ENDPOINT"
+
+  backfill-ganda-scheduled-communications:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'migrate-ganda'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run one-time Ganda scheduler migration
+        env:
+          DEFAULT_APP_URL: https://gandalocked.vercel.app
+          APP_URL: ${{ vars.GANDA_APP_URL }}
+          CRON_SECRET: ${{ secrets.GANDA_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
+          BASE_URL="${BASE_URL%/}"
+          MIGRATION_ENDPOINT="$BASE_URL/api/admin/scheduler/backfill"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "GANDA_CRON_SECRET is required for the scheduler migration."
             exit 1
           fi
 

@@ -21,6 +21,9 @@ assert.ok(workflow.includes('*/5 * * * *'));
 assert.ok(workflow.includes('/api/cron/send-scheduled-sms'));
 assert.ok(!workflow.includes('/api/cron/send-scheduled-notifications'));
 assert.ok(workflow.includes('CRON_SECRET is required'));
+assert.ok(workflow.includes('https://gandalocked.vercel.app'));
+assert.ok(workflow.includes('GANDA_CRON_SECRET'));
+assert.ok(workflow.includes('migrate-ganda'));
 assert.ok(!fs.existsSync('src/app/api/cron/send-scheduled-notifications/route.ts'));
 
 assert.ok(cron.includes('SCHEDULED_DISPATCH_QUEUE'));
