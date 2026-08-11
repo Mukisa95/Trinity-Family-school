@@ -599,7 +599,7 @@ export function useUpdatePupil() {
         queryClient.removeQueries({ queryKey: pupilsKeys.detail(id), exact: true });
       }
     },
-    onSuccess: (_result, { id, data }) => {
+    onSuccess: (result, { id, data }) => {
       const existingPupil =
         queryClient.getQueryData<Pupil>(pupilsKeys.detail(id)) ||
         queryClient.getQueryData<Pupil[]>(pupilsKeys.lists())?.find(pupil => pupil.id === id);
@@ -608,6 +608,7 @@ export function useUpdatePupil() {
         patchPupilQueryCaches(queryClient, {
           ...existingPupil,
           ...data,
+          ...(result.photoDeleted && { photo: '' }),
           id,
           updatedAt: new Date().toISOString(),
         } as Pupil);

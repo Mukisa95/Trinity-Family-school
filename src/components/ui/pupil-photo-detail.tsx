@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoCropEditor } from "@/components/ui/photo-crop-editor";
-import { createSquareCropCanvas, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
+import { createPupilPhotoDataUrl, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
 import type { Pupil } from "@/types";
 import Image from "next/image";
 
@@ -30,62 +30,6 @@ interface PupilPhotoDetailProps {
   className?: string;
   ringColor?: string;
   isLoading?: boolean;
-}
-
-const TARGET_BLOB_SIZE_BYTES = 200 * 1024;
-
-function compressImage(canvas: HTMLCanvasElement, initialQuality = 0.92): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let currentQuality = initialQuality;
-
-    const attemptCompression = () => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("Failed to convert canvas to blob."));
-          return;
-        }
-
-        if (blob.size <= TARGET_BLOB_SIZE_BYTES) {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("FileReader error during compression."));
-          reader.readAsDataURL(blob);
-          return;
-        }
-
-        if (currentQuality > 0.35) {
-          const sizeRatio = blob.size / TARGET_BLOB_SIZE_BYTES;
-          const qualityReduction = sizeRatio > 2 ? 0.12 : 0.08;
-          currentQuality = Math.max(0.35, currentQuality - qualityReduction);
-          attemptCompression();
-          return;
-        }
-
-        const newCanvas = document.createElement("canvas");
-        const ctx = newCanvas.getContext("2d");
-        const scaleFactor = Math.sqrt(TARGET_BLOB_SIZE_BYTES / blob.size) * 0.88;
-        const minDimension = 600;
-
-        newCanvas.width = Math.max(minDimension, Math.round(canvas.width * scaleFactor));
-        newCanvas.height = Math.max(minDimension, Math.round(canvas.height * scaleFactor));
-
-        if (!ctx) {
-          reject(new Error("Failed to resize image for compression."));
-          return;
-        }
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
-
-        currentQuality = 0.85;
-        canvas = newCanvas;
-        attemptCompression();
-      }, "image/jpeg", currentQuality);
-    };
-
-    attemptCompression();
-  });
 }
 
 function downloadImage(dataUrl: string, filename: string) {
@@ -216,11 +160,7 @@ export function PupilPhotoDetail({
     setIsProcessing(true);
 
     try {
-      const canvas = await createSquareCropCanvas(imgSrc, croppedAreaPixels, {
-        minOutputSize: 400,
-        maxOutputSize: 1200,
-      });
-      const compressedDataUrl = await compressImage(canvas);
+      const compressedDataUrl = await createPupilPhotoDataUrl(imgSrc, croppedAreaPixels);
       onPhotoChange(compressedDataUrl);
       setIsDialogOpen(false);
       resetDialog();

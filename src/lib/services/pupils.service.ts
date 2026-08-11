@@ -14,6 +14,7 @@ import {
   documentId,
   getDocsFromCache,
   runTransaction,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ClassesService } from './classes.service';
@@ -27,6 +28,7 @@ import {
 import { HistoryLogService } from './history-log.service';
 import { reservePupilsRevisionInTransaction } from './dashboard-cache-revisions.service';
 import { normalisePupils } from '../cache/pupil-cache';
+import { shouldDeletePhotoForStatusTransition } from '../pupil-photo-retention';
 
 const COLLECTION_NAME = 'pupils';
 const CACHE_CHANGES_COLLECTION = 'pupilCacheChanges';
@@ -37,6 +39,10 @@ export type PupilCacheChange = {
   pupilId: string;
   operation: 'upsert' | 'delete';
   changedAt?: unknown;
+};
+
+export type PupilUpdateResult = {
+  photoDeleted: boolean;
 };
 
 export class PupilsService {
@@ -312,7 +318,10 @@ export class PupilsService {
     }
   }
 
-  static async updatePupil(id: string, pupilData: Partial<Omit<Pupil, 'id' | 'createdAt'>>): Promise<void> {
+  static async updatePupil(
+    id: string,
+    pupilData: Partial<Omit<Pupil, 'id' | 'createdAt'>>,
+  ): Promise<PupilUpdateResult> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       const updateData = {
@@ -324,29 +333,42 @@ export class PupilsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
 
-      const originalPupil = await runTransaction(db, async transaction => {
+      const { originalPupil, photoDeleted } = await runTransaction(db, async transaction => {
         const original = await transaction.get(docRef);
         if (!original.exists()) throw new Error(`Pupil ${id} was not found.`);
-        const previousPupil = { id: original.id, ...original.data() } as Pupil;
+        const originalData = original.data();
+        const previousPupil = { id: original.id, ...originalData } as Pupil;
+        const deletePhoto = shouldDeletePhotoForStatusTransition(
+          previousPupil.status,
+          pupilData.status,
+        ) && Object.prototype.hasOwnProperty.call(originalData, 'photo');
+        const transactionUpdate = deletePhoto
+          ? { ...cleanedData, photo: deleteField() }
+          : cleanedData;
         const revision = await reservePupilsRevisionInTransaction(transaction);
-        transaction.update(docRef, cleanedData);
+        transaction.update(docRef, transactionUpdate);
         transaction.set(doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')), {
           revision,
           pupilId: id,
           operation: 'upsert',
           changedAt: Timestamp.now(),
         });
-        return previousPupil;
+        return { originalPupil: previousPupil, photoDeleted: deletePhoto };
       });
+      const changedFields = Object.keys(cleanedData)
+        .filter(key => key !== 'syncUpdatedAt' && key !== 'updatedAt');
+      if (photoDeleted && !changedFields.includes('photo')) changedFields.push('photo');
+
       await HistoryLogService.log({
         action: 'update',
         entity: 'pupil',
         recordId: id,
         label: `${originalPupil?.firstName || pupilData.firstName || ''} ${originalPupil?.lastName || pupilData.lastName || ''}`.trim() || originalPupil?.admissionNumber || id,
-        changedFields: Object.keys(cleanedData).filter(key => key !== 'syncUpdatedAt' && key !== 'updatedAt'),
+        changedFields,
         meta: {
           admissionNo: originalPupil?.admissionNumber || '',
           classId: (pupilData.classId || originalPupil?.classId || '') as string,
+          ...(photoDeleted && { photoAutoDeleted: true }),
         },
       });
 
@@ -373,6 +395,7 @@ export class PupilsService {
           console.warn('Cache invalidation failed for pupil update:', cacheError);
         }
       }
+      return { photoDeleted };
     } catch (error) {
       console.error('Error updating pupil:', error);
       throw error;

@@ -14,70 +14,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Camera, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { PhotoCropEditor } from "@/components/ui/photo-crop-editor";
-import { createSquareCropCanvas, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
+import { createPupilPhotoDataUrl, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
 
 interface PhotoUploadCropProps {
   onPhotoChange: (photo: string | undefined) => void;
   currentPhoto?: string;
   className?: string;
-}
-
-function compressImage(canvas: HTMLCanvasElement, quality = 0.85): Promise<string> {
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        resolve("");
-        return;
-      }
-
-      const maxSize = 500 * 1024;
-
-      if (blob.size <= maxSize) {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-        return;
-      }
-
-      if (quality > 0.3) {
-        canvas.toBlob((compressedBlob) => {
-          if (compressedBlob) {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(compressedBlob);
-          } else {
-            resolve("");
-          }
-        }, "image/jpeg", quality - 0.1);
-      } else {
-        const newCanvas = document.createElement("canvas");
-        const ctx = newCanvas.getContext("2d");
-        const scaleFactor = Math.sqrt(maxSize / blob.size) * 0.9;
-
-        newCanvas.width = Math.max(800, Math.round(canvas.width * scaleFactor));
-        newCanvas.height = Math.max(800, Math.round(canvas.height * scaleFactor));
-
-        if (!ctx) {
-          resolve("");
-          return;
-        }
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
-
-        newCanvas.toBlob((finalBlob) => {
-          if (finalBlob) {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL(finalBlob);
-          } else {
-            resolve("");
-          }
-        }, "image/jpeg", 0.8);
-      }
-    }, "image/jpeg", quality);
-  });
 }
 
 export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: PhotoUploadCropProps) {
@@ -147,16 +89,14 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
     setIsProcessing(true);
 
     try {
-      const canvas = await createSquareCropCanvas(imgSrc, croppedAreaPixels, {
-        minOutputSize: 400,
-        maxOutputSize: 1200,
-      });
-      const compressedDataUrl = await compressImage(canvas);
-      onPhotoChange(compressedDataUrl || undefined);
+      const compressedDataUrl = await createPupilPhotoDataUrl(imgSrc, croppedAreaPixels);
+      onPhotoChange(compressedDataUrl);
       setIsDialogOpen(false);
       resetDialog();
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to process the selected image.";
       console.error("Error processing image:", error);
+      alert(`Photo processing failed: ${message}`);
     } finally {
       setIsProcessing(false);
     }
