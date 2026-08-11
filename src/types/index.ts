@@ -1284,6 +1284,9 @@ export interface Notification {
   // push-delivery pipeline as the original message.
   threadId?: string;
   rootNotificationId?: string;
+  // Denormalized onto replies so a retained conversation is still titled
+  // correctly after the original database record is cleaned up.
+  threadSubject?: string;
   replyToNotificationId?: string;
   replyMode?: 'sender' | 'all';
   createdAt: string;

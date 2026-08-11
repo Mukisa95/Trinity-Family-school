@@ -3,6 +3,7 @@ name: Send scheduled communications
 on:
   schedule:
     - cron: "*/5 * * * *"
+    - cron: "17 1 * * *"
   workflow_dispatch:
     inputs:
       action:
@@ -14,10 +15,11 @@ on:
           - dispatch
           - migrate
           - migrate-ganda
+          - cleanup
 
 jobs:
   send-scheduled-communications:
-    if: github.event_name != 'workflow_dispatch' || (inputs.action != 'migrate' && inputs.action != 'migrate-ganda')
+    if: (github.event_name == 'schedule' && github.event.schedule != '17 1 * * *') || (github.event_name == 'workflow_dispatch' && inputs.action == 'dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -43,7 +45,7 @@ jobs:
             "$DISPATCH_ENDPOINT"
 
   send-ganda-scheduled-communications:
-    if: github.event_name != 'workflow_dispatch' || (inputs.action != 'migrate' && inputs.action != 'migrate-ganda')
+    if: (github.event_name == 'schedule' && github.event.schedule != '17 1 * * *') || (github.event_name == 'workflow_dispatch' && inputs.action == 'dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -119,3 +121,25 @@ jobs:
           curl --fail --show-error --silent --location --request POST \
             --header "Authorization: Bearer $CRON_SECRET" \
             "$MIGRATION_ENDPOINT"
+
+  cleanup-notification-history:
+    if: github.event.schedule == '17 1 * * *' || (github.event_name == 'workflow_dispatch' && inputs.action == 'cleanup')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Remove expired database notification history
+        env:
+          DEFAULT_APP_URL: https://trinityfamilyschool.vercel.app
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
+          BASE_URL="${BASE_URL%/}"
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET is required for notification history cleanup."
+            exit 1
+          fi
+          curl --fail --show-error --silent --location \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$BASE_URL/api/cron/cleanup-notification-history"

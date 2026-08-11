@@ -99,6 +99,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const notificationRef = db.collection('notifications').doc();
     const rootNotificationId = String(originalData.rootNotificationId || originalData.threadId || id);
     const threadId = String(originalData.threadId || rootNotificationId);
+    const threadSubject = String(originalData.threadSubject || originalData.title || 'Notification').replace(/^Re:\s*/i, '');
     const recipientName = mode === 'sender'
       ? (originalData.senderSnapshot?.displayName || 'Original sender')
       : `All original recipients (${activeRecipientIds.length})`;
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       senderSnapshot,
       threadId,
       rootNotificationId,
+      threadSubject,
       replyToNotificationId: id,
       replyMode: mode,
       createdAt: FieldValue.serverTimestamp(),
@@ -157,7 +159,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       icon: '/trinity-logo-192.png',
       badge: '/icons/trinity-badge-72.png',
       url: typeof originalData.pushUrl === 'string' && originalData.pushUrl.startsWith('/') ? originalData.pushUrl : '/push-notifications',
-      tag: `reply-${notificationRef.id}`,
+      tag: `notification-thread-${threadId}`,
       timestamp: Date.now(),
     });
     await notificationRef.update({

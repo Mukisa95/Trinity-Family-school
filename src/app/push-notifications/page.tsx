@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   BellOff,
@@ -41,7 +41,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { auth } from '@/lib/firebase';
-import { markInboxNotificationRead, subscribeToUserNotificationInbox } from '@/lib/notification-inbox-store';
+import { markInboxNotificationRead, removeInboxNotification, subscribeToUserNotificationInbox, type InboxNotification } from '@/lib/notification-inbox-store';
+import { groupNotificationThreads } from '@/lib/notification-threads';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import type { NotificationDestinationSelection } from '@/lib/notifications/notification-destinations';
 import type { Notification } from '@/types';
@@ -54,7 +55,6 @@ const TARGET_OPTIONS = [
 ] as const;
 
 type Target = (typeof TARGET_OPTIONS)[number]['value'];
-type InboxNotification = Notification & { _isSender?: boolean };
 
 function defaultScheduleFields() {
   const future = new Date(Date.now() + 10 * 60 * 1000);
@@ -314,10 +314,13 @@ function ScheduledNotificationsDialog({
   const [loading, setLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const lastLoadedAtRef = useRef(0);
+  const loadedRefreshKeyRef = useRef<number | null>(null);
 
-  const loadJobs = useCallback(async () => {
+  const loadJobs = useCallback(async (force = false) => {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser || firebaseUser.uid !== userId) return;
+    if (!force && jobs.length && Date.now() - lastLoadedAtRef.current < 5 * 60 * 1000) return;
     setLoading(true);
     setLoadError(null);
     try {
@@ -328,15 +331,19 @@ function ScheduledNotificationsDialog({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to load schedules.');
       setJobs(Array.isArray(result.jobs) ? result.jobs : []);
+      lastLoadedAtRef.current = Date.now();
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Unable to load schedules.');
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [jobs.length, userId]);
 
   useEffect(() => {
-    if (open) void loadJobs();
+    if (!open) return;
+    const refreshRequested = loadedRefreshKeyRef.current !== refreshKey;
+    loadedRefreshKeyRef.current = refreshKey;
+    void loadJobs(refreshRequested);
   }, [loadJobs, open, refreshKey]);
 
   const cancelJob = async (jobId: string) => {
@@ -350,7 +357,7 @@ function ScheduledNotificationsDialog({
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to cancel this schedule.');
-      await loadJobs();
+      await loadJobs(true);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Unable to cancel this schedule.');
     } finally {
@@ -419,7 +426,7 @@ export default function PushNotificationsPage() {
   const [notifications, setNotifications] = useState<InboxNotification[]>([]);
   const [isInboxLoading, setIsInboxLoading] = useState(true);
   const [inboxError, setInboxError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<InboxNotification | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -449,22 +456,31 @@ export default function PushNotificationsPage() {
     if (user?.id && isSupported && permission === 'granted') void sync(user.id);
   }, [isSupported, permission, sync, user?.id]);
 
-  const filteredNotifications = useMemo(() => {
+  const threads = useMemo(
+    () => groupNotificationThreads(notifications, user?.id || ''),
+    [notifications, user?.id],
+  );
+  const selectedThread = threads.find(thread => thread.id === selectedThreadId) || null;
+  const selected = selectedThread?.latest || null;
+
+  const filteredThreads = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return notifications.filter(notification => {
-      const body = notification.description || notification.richContent?.longMessage || '';
-      const matchesSearch = !term || `${notification.title} ${body}`.toLowerCase().includes(term);
-      const isUnread = !notification.readBy?.includes(user?.id || '');
-      return matchesSearch && (!showUnreadOnly || isUnread);
+    return threads.filter(thread => {
+      const matchesSearch = !term || thread.messages.some(notification => {
+        const body = notification.description || notification.richContent?.longMessage || '';
+        return `${notification.title} ${body}`.toLowerCase().includes(term);
+      });
+      return matchesSearch && (!showUnreadOnly || thread.unreadCount > 0);
     });
-  }, [notifications, search, showUnreadOnly, user?.id]);
+  }, [search, showUnreadOnly, threads]);
 
   const unreadCount = notifications.filter(notification => !notification.readBy?.includes(user?.id || '')).length;
 
   const selectNotification = useCallback((notification: Notification) => {
     const inboxNotification = notification as InboxNotification;
-    setSelected(inboxNotification);
-    if (user?.id) markInboxNotificationRead(user.id, notification.id);
+    const threadId = inboxNotification.threadId || inboxNotification.rootNotificationId || inboxNotification.id;
+    setSelectedThreadId(threadId);
+    if (user?.id) void markInboxNotificationRead(user.id, notification.id);
   }, [user?.id]);
 
   const toggleSubscription = useCallback(async () => {
@@ -526,7 +542,8 @@ export default function PushNotificationsPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to delete this notification.');
 
-      if (selected?.id === deleteRequest.notification.id) setSelected(null);
+      removeInboxNotification(user.id, deleteRequest.notification.id);
+      if (selected?.id === deleteRequest.notification.id) setSelectedThreadId(null);
       if (participantsNotification?.id === deleteRequest.notification.id) setParticipantsNotification(null);
       toast({
         title: deleteRequest.scope === 'everyone' ? 'Notification permanently deleted' : 'Notification removed',
@@ -625,15 +642,18 @@ export default function PushNotificationsPage() {
                 <div className="space-y-3 p-4">{[1, 2, 3, 4].map(item => <div key={item} className="h-20 animate-pulse rounded-xl bg-slate-100" />)}</div>
               ) : inboxError ? (
                 <div className="px-6 py-12 text-center text-sm text-slate-500">Unable to load notifications. {inboxError}</div>
-              ) : filteredNotifications.length ? (
-                filteredNotifications.map(notification => (
+              ) : filteredThreads.length ? (
+                filteredThreads.map(thread => (
                   <NotificationInboxItem
-                    key={notification.id}
-                    notification={notification}
-                    isSelected={selected?.id === notification.id}
+                    key={thread.id}
+                    notification={thread.latest}
+                    isSelected={selectedThreadId === thread.id}
                     currentUserId={user?.id || ''}
-                    senderName={getSenderName(notification)}
+                    senderName={getSenderName(thread.latest)}
                     onClick={selectNotification}
+                    threadMessageCount={thread.messages.length}
+                    threadUnreadCount={thread.unreadCount}
+                    displayTitle={thread.subject}
                   />
                 ))
               ) : (
@@ -649,9 +669,10 @@ export default function PushNotificationsPage() {
           <section className={`${selected ? 'fixed inset-0 z-40 flex md:static' : 'hidden md:flex'} min-h-0 flex-col bg-white`}>
             <NotificationDetailPanel
               notification={selected}
+              threadNotifications={selectedThread?.messages}
               currentUserId={user?.id || ''}
               senderName={getSenderName(selected)}
-              onClose={() => setSelected(null)}
+              onClose={() => setSelectedThreadId(null)}
               onReply={sendReply}
               onViewRecipients={notification => setParticipantsNotification(notification as InboxNotification)}
               onDelete={(notification, scope = 'me') => setDeleteRequest({

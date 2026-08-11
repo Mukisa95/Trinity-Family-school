@@ -12,6 +12,9 @@ interface NotificationInboxItemProps {
   onClick: (notification: Notification) => void;
   senderName?: string;
   senderAvatar?: string;
+  threadMessageCount?: number;
+  threadUnreadCount?: number;
+  displayTitle?: string;
 }
 
 function getInitials(name: string): string {
@@ -73,8 +76,11 @@ export function NotificationInboxItem({
   onClick,
   senderName = 'System',
   senderAvatar,
+  threadMessageCount = 1,
+  threadUnreadCount = 0,
+  displayTitle,
 }: NotificationInboxItemProps) {
-  const isUnread = !notification.readBy?.includes(currentUserId);
+  const isUnread = threadUnreadCount > 0 || !notification.readBy?.includes(currentUserId);
   const isSender = notification._isSender || notification.createdBy === currentUserId;
   const initials = getInitials(senderName);
   const gradient = avatarGradient(senderName);
@@ -154,7 +160,10 @@ export function NotificationInboxItem({
           )}
         >
           <span className="mr-1">{typeEmoji}</span>
-          {notification.title}
+          {displayTitle || notification.threadSubject || notification.title}
+          {threadMessageCount > 1 && (
+            <span className="ml-1.5 text-xs font-semibold text-slate-400">({threadMessageCount})</span>
+          )}
         </div>
 
         {/* Row 3: Preview + badges */}

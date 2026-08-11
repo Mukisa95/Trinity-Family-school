@@ -182,6 +182,7 @@ export async function POST(request: NextRequest) {
       senderSnapshot,
       threadId: notificationRef.id,
       rootNotificationId: notificationRef.id,
+      threadSubject: payload.title,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       enablePush: true,
@@ -242,7 +243,7 @@ export async function POST(request: NextRequest) {
       icon: payload.icon || '/trinity-logo-192.png',
       badge: '/icons/trinity-badge-72.png',
       url: notificationUrl,
-      tag: payload.tag || `notification-${notificationRef.id}`,
+      tag: payload.tag || `notification-thread-${notificationRef.id}`,
       requireInteraction: payload.requireInteraction ?? false,
       timestamp: Date.now(),
     };

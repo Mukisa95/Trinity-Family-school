@@ -49,14 +49,12 @@ export async function GET(request: NextRequest) {
     if (!canSendNotifications(actor.user)) {
       return NextResponse.json({ error: 'You do not have permission to schedule notifications.' }, { status: 403 });
     }
-    const snapshot = await getFirestore(getFirebaseAdminApp())
-      .collection('scheduledNotifications')
-      .orderBy('createdAt', 'desc')
-      .limit(100)
-      .get();
-    const jobs = snapshot.docs
-      .filter(document => actor.user.role === 'Admin' || document.data().createdBy === actor.decoded.uid)
-      .map(serializeJob);
+    const jobsQuery = getFirestore(getFirebaseAdminApp())
+      .collection('scheduledNotifications');
+    const snapshot = actor.user.role === 'Admin'
+      ? await jobsQuery.orderBy('createdAt', 'desc').limit(100).get()
+      : await jobsQuery.where('createdBy', '==', actor.decoded.uid).orderBy('createdAt', 'desc').limit(100).get();
+    const jobs = snapshot.docs.map(serializeJob);
     return NextResponse.json({ jobs });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';

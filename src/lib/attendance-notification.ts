@@ -11,7 +11,8 @@ export type AttendanceNotificationRecord = {
 export type AttendanceNotificationSummary = {
   date: string;
   classId: string;
-  className: string;
+  /** Stable class label used in every notification. Never use the display name. */
+  classCode: string;
   present: number;
   absent: number;
   delayed: number;
@@ -30,10 +31,10 @@ export function summariseAttendanceClass(
   date: string,
   classId: string,
   records: AttendanceNotificationRecord[],
-  fallbackClassName = 'Class',
+  fallbackClassCode = classId,
 ): AttendanceNotificationSummary {
   const classRecords = records.filter(record => record.classId === classId);
-  const className = classRecords[0]?.className || classRecords[0]?.classCode || fallbackClassName;
+  const classCode = classRecords[0]?.classCode?.trim() || fallbackClassCode;
   const counts = classRecords.reduce((summary, record) => {
     if (record.status === 'Present') summary.present += 1;
     if (record.status === 'Late') {
@@ -49,7 +50,7 @@ export function summariseAttendanceClass(
     return summary;
   }, { present: 0, absent: 0, delayed: 0, late: 0, excused: 0 });
 
-  return { date, classId, className, total: classRecords.length, records: classRecords, ...counts };
+  return { date, classId, classCode, total: classRecords.length, records: classRecords, ...counts };
 }
 
 export function attendanceSummaryFingerprint(summary: AttendanceNotificationSummary) {

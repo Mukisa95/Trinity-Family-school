@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     const clickUrl = `/?attendanceDate=${encodeURIComponent(date)}&attendanceClassId=${encodeURIComponent(classId)}&attendanceNotice=${encodeURIComponent(eventRef.id)}`;
-    const title = `Attendance recorded — ${summary.className}`;
+    const title = `Attendance recorded — ${summary.classCode}`;
     const message = attendanceSummaryBody(summary);
 
     const subscriptions = await getServerPushSubscriptionsForUsers(recipientIds);

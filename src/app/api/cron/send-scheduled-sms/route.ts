@@ -268,8 +268,7 @@ async function dispatchAttendance(
   }
 
   const missingNames = missingClasses.map(classItem => String(
-    (classItem as Record<string, unknown>).name
-      || (classItem as Record<string, unknown>).code
+    (classItem as Record<string, unknown>).code
       || classItem.id,
   ));
   const totals = attendanceTotals(summary);

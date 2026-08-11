@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 
 interface NotificationDetailPanelProps {
   notification: (Notification & { _isSender?: boolean }) | null;
+  threadNotifications?: Array<Notification & { _isSender?: boolean }>;
   currentUserId: string;
   senderName?: string;
   // Retained for the legacy notifications screen; the compact header now uses
@@ -62,6 +63,7 @@ function EmptyState() {
 
 export function NotificationDetailPanel({
   notification,
+  threadNotifications = [],
   currentUserId,
   senderName = 'System',
   onClose,
@@ -127,6 +129,8 @@ export function NotificationDetailPanel({
   }
 
   const isSender = notification._isSender || notification.createdBy === currentUserId;
+  const conversation = threadNotifications.length ? threadNotifications : [notification];
+  const isThread = conversation.length > 1;
   const compactDate = format(new Date(notification.createdAt), "MMM d, yyyy - h:mm a");
   const attachments = notification.richContent?.attachments || [];
   const longMessage = notification.richContent?.longMessage;
@@ -177,7 +181,7 @@ export function NotificationDetailPanel({
 
         <div className="grid min-w-0 flex-1 grid-rows-2 content-center gap-0.5">
           <h2 className="truncate text-sm font-bold leading-5 text-slate-900 sm:text-[15px]" title={notification.title}>
-            {notification.title}
+            {notification.threadSubject || notification.title.replace(/^Re:\s*/i, '')}
           </h2>
           <p className="truncate text-xs leading-4 text-slate-500" title={`${isSender ? 'You' : senderName} - ${compactDate}`}>
             <span className="font-semibold text-slate-700">{isSender ? 'You' : senderName}</span>
@@ -291,8 +295,35 @@ export function NotificationDetailPanel({
       {/* ── Scrollable content ──────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="px-5 pt-6 pb-10 max-w-3xl mx-auto">
+          {isThread && (
+            <section className="mb-6 space-y-3" aria-label="Conversation">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Conversation</p>
+              {conversation.map(message => {
+                const authoredByCurrentUser = message.createdBy === currentUserId || message._isSender;
+                const body = message.description || message.richContent?.longMessage || 'No message body.';
+                return (
+                  <article
+                    key={message.id}
+                    className={cn(
+                      'max-w-[92%] rounded-2xl border px-4 py-3 text-sm shadow-sm',
+                      authoredByCurrentUser
+                        ? 'ml-auto border-blue-200 bg-blue-50 text-slate-800'
+                        : 'border-slate-200 bg-white text-slate-700',
+                    )}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-500">
+                      <span>{authoredByCurrentUser ? 'You' : message.senderSnapshot?.displayName || 'Trinity Family School'}</span>
+                      <time>{format(new Date(message.createdAt), 'MMM d, h:mm a')}</time>
+                    </div>
+                    <p className="whitespace-pre-wrap leading-relaxed">{body}</p>
+                  </article>
+                );
+              })}
+            </section>
+          )}
+
           {/* Message body */}
-          {notification.description && (
+          {!isThread && notification.description && (
             <div className="mb-4">
               <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
                 {notification.description}
@@ -301,7 +332,7 @@ export function NotificationDetailPanel({
           )}
 
           {/* Long message (flow type) */}
-          {longMessage && (
+          {!isThread && longMessage && (
             <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
               <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
                 {longMessage}

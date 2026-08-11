@@ -39,11 +39,15 @@ export const useNotificationBadge = () => {
   const markAsRead = useCallback(async (notificationId: string, userId?: string) => {
     const targetUserId = userId || user?.id;
     if (!targetUserId) return;
-    markInboxNotificationRead(targetUserId, notificationId);
-    try {
-      await notificationService.markAsRead(notificationId, targetUserId);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+    const updatedDelivery = await markInboxNotificationRead(targetUserId, notificationId);
+    if (!updatedDelivery) {
+      try {
+        // A few legacy notifications do not have user-scoped delivery records.
+        // Keep their older read path as a fallback only.
+        await notificationService.markAsRead(notificationId, targetUserId);
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
     }
   }, [user?.id]);
 
