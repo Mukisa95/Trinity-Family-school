@@ -103,7 +103,7 @@ export async function publishDailyAttendanceSummary(
     ]);
     const data = snapshot.exists() ? snapshot.data() as any : null;
     const currentSchoolRevision = settingsSnapshot.exists()
-      ? Number(settingsSnapshot.data()?.dataRevisions?.attendance || 0)
+      ? Number(settingsSnapshot.data()?.attendance || 0)
       : 0;
     const existingRecords = Array.isArray(data?.records)
       ? data.records.map(normaliseEntry).filter(Boolean) as AttendanceSummaryEntry[]

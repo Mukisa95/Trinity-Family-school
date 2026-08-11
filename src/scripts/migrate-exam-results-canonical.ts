@@ -106,13 +106,19 @@ async function main() {
   }
 
   if (apply && copiedTermCounts.size > 0) {
-    await store.collection('settings').doc('school-settings').set({
+    const revisionPatch = {
+      examResults: Object.fromEntries(
+        [...copiedTermCounts].map(([key, count]) => [key, FieldValue.increment(count)]),
+      ),
+    };
+    const batch = store.batch();
+    batch.set(store.collection('settings').doc('data-revisions-exam-results'), revisionPatch, { merge: true });
+    batch.set(store.collection('settings').doc('school-settings'), {
       dataRevisions: {
-        examResults: Object.fromEntries(
-          [...copiedTermCounts].map(([key, count]) => [key, FieldValue.increment(count)]),
-        ),
+        ...revisionPatch,
       },
     }, { merge: true });
+    await batch.commit();
   }
 
   console.log(JSON.stringify(report, null, 2));

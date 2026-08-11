@@ -46,6 +46,15 @@ beforeEach(async () => {
     await setDoc(doc(db, 'authCredentials', 'active-admin'), {
       passwordHash: 'server-only',
     });
+    await setDoc(doc(db, 'settings', 'school-settings'), {
+      generalInfo: { name: 'Trinity' },
+    });
+    await setDoc(doc(db, 'settings', 'school-settings-meta'), {
+      revision: 1,
+    });
+    await setDoc(doc(db, 'settings', 'data-revisions-operational'), {
+      pupils: 1,
+    });
     await setDoc(doc(db, 'pushSubscriptions', 'parent-device'), {
       userId: 'active-parent',
       endpoint: 'https://push.example/parent-device',
@@ -94,6 +103,14 @@ test('an active application identity keeps normal read and write behavior', asyn
   await assertSucceeds(getDoc(doc(db, 'pupils', 'pupil-1')));
   await assertSucceeds(setDoc(doc(db, 'pupils', 'pupil-2'), { firstName: 'Allowed' }));
   await assertSucceeds(deleteDoc(doc(db, 'pupils', 'pupil-2')));
+});
+
+test('only the small public school-profile token is anonymously readable', async () => {
+  const db = testEnv.unauthenticatedContext().firestore();
+  await assertSucceeds(getDoc(doc(db, 'settings', 'school-settings')));
+  await assertSucceeds(getDoc(doc(db, 'settings', 'school-settings-meta')));
+  await assertFails(getDoc(doc(db, 'settings', 'data-revisions-operational')));
+  await assertFails(setDoc(doc(db, 'settings', 'school-settings-meta'), { revision: 2 }));
 });
 
 test('the trusted Vercel server identity can read pupils for server-side notifications', async () => {

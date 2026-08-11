@@ -34,9 +34,11 @@ service cloud.firestore {
     // the school's public login/landing page. Keep this whitelist narrow: no
     // other collection inherits anonymous access from these rules.
     match /settings/{settingsDoc} {
-      // The landing page needs only this one document before sign-in. Other
-      // settings still require an application identity.
-      allow read: if settingsDoc == 'school-settings' || isActiveApplicationUser();
+      // The landing page needs the public profile and its tiny change token
+      // before sign-in. Operational revision documents remain authenticated.
+      allow read: if settingsDoc == 'school-settings'
+        || settingsDoc == 'school-settings-meta'
+        || isActiveApplicationUser();
       allow write: if isStaffOrAdmin();
     }
 

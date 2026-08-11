@@ -1,8 +1,8 @@
-import { doc, increment, type Transaction, type WriteBatch } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
-const SETTINGS_COLLECTION = 'settings';
-const SETTINGS_DOC_ID = 'school-settings';
+import { increment, type Transaction, type WriteBatch } from 'firebase/firestore';
+import {
+  dashboardRevisionDocumentRef,
+  schoolSettingsDocumentRef,
+} from './dashboard-revision-documents';
 
 export const dashboardRevisionKeys = {
   timetable: (yearId: string, termId: string) =>
@@ -11,128 +11,102 @@ export const dashboardRevisionKeys = {
     `${encodeURIComponent(yearId)}__${encodeURIComponent(termId)}`,
 };
 
-function schoolSettingsRef() {
-  return doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+/**
+ * New revision documents are deliberately tiny and separate from the school
+ * profile. The legacy write is temporary rollout compatibility: browsers that
+ * have not refreshed yet still listen to settings/school-settings. Remove it
+ * only in the follow-up release once those clients have aged out.
+ */
+function writeRevision(
+  batch: WriteBatch | Transaction,
+  kind: 'reference' | 'operational' | 'timetable' | 'examResults',
+  changes: Record<string, unknown>,
+) {
+  (batch as WriteBatch).set(dashboardRevisionDocumentRef(kind), changes, { merge: true });
+  (batch as WriteBatch).set(
+    schoolSettingsDocumentRef(),
+    { dataRevisions: changes },
+    { merge: true },
+  );
 }
 
-/**
- * Add a timetable revision bump to the same batch as the source mutation.
- * Consumers receive the revision through the existing school-settings listener
- * and only reload their local timetable cache when it changes.
- */
+/** Add a timetable revision bump to the same batch as its source mutation. */
 export function bumpTimetableRevisionInBatch(
   batch: WriteBatch,
   yearId: string,
   termId: string,
 ) {
   const revisionKey = dashboardRevisionKeys.timetable(yearId, termId);
-  (batch as WriteBatch).set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        timetable: {
-          [revisionKey]: increment(1),
-        },
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'timetable', {
+    timetable: { [revisionKey]: increment(1) },
+  });
 }
 
 /** Add a class-definition revision bump to the same batch as its mutation. */
 export function bumpClassesRevisionInBatch(batch: WriteBatch) {
-  batch.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        classes: increment(1),
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'reference', { classes: increment(1) });
 }
 
 /** Add an academic-year revision bump to the same batch as its mutation. */
 export function bumpAcademicYearsRevisionInBatch(batch: WriteBatch) {
-  batch.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        academicYears: increment(1),
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'reference', { academicYears: increment(1) });
 }
 
-/** Add a staff revision bump to the same batch as its source mutation. */
+/** Add a staff revision bump to the same batch as its mutation. */
 export function bumpStaffRevisionInBatch(batch: WriteBatch) {
-  batch.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        staff: increment(1),
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'reference', { staff: increment(1) });
 }
 
 /**
  * Reserve the next ordered pupil revision inside the source transaction.
- * The caller writes a matching pupilCacheChanges document in that same
- * transaction, so cache consumers can safely request only missing deltas.
+ * The modern operational document is small. Reading the legacy profile is
+ * temporary only, allowing old browser bundles to continue publishing pupil
+ * revisions during the migration window without creating duplicate deltas.
  */
 export async function reservePupilsRevisionInTransaction(
   transaction: Transaction,
 ): Promise<number> {
-  const settingsRef = schoolSettingsRef();
-  const settings = await transaction.get(settingsRef);
-  const current = Number(settings.data()?.dataRevisions?.pupils || 0);
+  const [operational, legacySettings] = await Promise.all([
+    transaction.get(dashboardRevisionDocumentRef('operational')),
+    transaction.get(schoolSettingsDocumentRef()),
+  ]);
+  const current = Math.max(
+    Number(operational.data()?.pupils || 0),
+    Number(legacySettings.data()?.dataRevisions?.pupils || 0),
+  );
   const next = current + 1;
 
-  transaction.set(
-    settingsRef,
-    {
-      dataRevisions: {
-        pupils: next,
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(transaction, 'operational', { pupils: next });
   return next;
 }
 
 /** Add an event revision bump to the same batch as its source mutation. */
 export function bumpEventsRevisionInBatch(batch: WriteBatch) {
-  batch.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        events: increment(1),
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'operational', { events: increment(1) });
 }
 
-/**
- * Exam definitions also feed the legacy calendar projection. Publish both
- * invalidation tokens in one settings write so consumers never observe a new
- * exam list with an old exam-event projection (or vice versa).
- */
+/** Publish exam-definition and optionally event revisions in one source batch. */
 export function bumpExamDefinitionRevisionsInBatch(
   batch: WriteBatch,
   options?: { affectsEvents?: boolean },
 ) {
-  batch.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        exams: increment(1),
-        ...(options?.affectsEvents === false ? {} : { events: increment(1) }),
-      },
-    },
+  (batch as WriteBatch).set(
+    dashboardRevisionDocumentRef('reference'),
+    { exams: increment(1) },
+    { merge: true },
+  );
+  const legacyChanges: Record<string, unknown> = { exams: increment(1) };
+  if (options?.affectsEvents !== false) {
+    (batch as WriteBatch).set(
+      dashboardRevisionDocumentRef('operational'),
+      { events: increment(1) },
+      { merge: true },
+    );
+    legacyChanges.events = increment(1);
+  }
+  (batch as WriteBatch).set(
+    schoolSettingsDocumentRef(),
+    { dataRevisions: legacyChanges },
     { merge: true },
   );
 }
@@ -148,34 +122,18 @@ export function bumpExamResultRevisionInBatch(
   }
 
   const termKey = dashboardRevisionKeys.examResults(academicYearId, termId);
-  (batch as WriteBatch).set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        examResults: {
-          [termKey]: increment(1),
-        },
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'examResults', {
+    examResults: { [termKey]: increment(1) },
+  });
 }
 
 /** Add one attendance-summary revision bump to the same publish batch. */
 export function bumpAttendanceRevisionInBatch(batch: WriteBatch) {
-  batch.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        attendance: increment(1),
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(batch, 'operational', { attendance: increment(1) });
 }
 
 export function getDashboardRevisionDocumentRef() {
-  return schoolSettingsRef();
+  return dashboardRevisionDocumentRef('operational');
 }
 
 /** Publish an exact attendance revision inside the summary transaction. */
@@ -183,13 +141,5 @@ export function setAttendanceRevisionInTransaction(
   transaction: Transaction,
   revision: number,
 ) {
-  transaction.set(
-    schoolSettingsRef(),
-    {
-      dataRevisions: {
-        attendance: revision,
-      },
-    },
-    { merge: true },
-  );
+  writeRevision(transaction, 'operational', { attendance: revision });
 }

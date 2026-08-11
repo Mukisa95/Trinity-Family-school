@@ -33,6 +33,9 @@ const staffService = read('src/lib/services/staff.service.ts');
 const pupilsService = read('src/lib/services/pupils.service.ts');
 const pupilCache = read('src/lib/cache/pupil-cache.ts');
 const revisionService = read('src/lib/services/dashboard-cache-revisions.service.ts');
+const revisionDocuments = read('src/lib/services/dashboard-revision-documents.ts');
+const schoolSettingsService = read('src/lib/services/school-settings.service.ts');
+const schoolSettingsCache = read('src/lib/cache/school-settings-cache.ts');
 const adminPupilRevision = read('src/lib/server/pupil-cache-revisions.admin.ts');
 const pupilApi = read('src/app/api/pupils/[id]/route.ts');
 const schoolPayAssignment = read('src/app/api/schoolpay/inbox/[id]/assign/route.ts');
@@ -105,8 +108,28 @@ assert(
   'Admin-owned pupil mutations must publish the same ordered cache delta.',
 );
 assert(
-  settingsHook.includes('currentRevisions === undefined'),
-  'An empty first revision snapshot must still publish readiness.',
+  settingsHook.includes('schoolSettingsMetaDocumentRef') &&
+    settingsHook.includes('dashboardRevisionDocumentIds') &&
+    settingsHook.includes('schoolSettingsDocumentRef()') &&
+    !settingsHook.includes('const revisions = settings?.dataRevisions'),
+  'School profile data and dashboard revisions must use separate listeners.',
+);
+assert(
+  schoolSettingsCache.includes("'public-profile'") &&
+    schoolSettingsService.includes('readSchoolSettingsCache') &&
+    schoolSettingsService.includes('getSchoolSettingsFromServer') &&
+    schoolSettingsService.includes('schoolSettingsMetaDocumentRef'),
+  'School settings must restore a persistent local profile and use the tiny meta revision before a server refresh.',
+);
+assert(
+  revisionDocuments.includes("data-revisions-reference") &&
+    revisionDocuments.includes("data-revisions-operational") &&
+    revisionDocuments.includes("data-revisions-timetable") &&
+    revisionDocuments.includes("data-revisions-exam-results") &&
+    revisionService.includes("writeRevision(batch, 'reference'") &&
+    revisionService.includes("writeRevision(batch, 'operational'") &&
+    settingsHook.includes('legacyCompatibility === false'),
+  'Long-lived, operational, timetable, and exam-result revisions must be published to separate tiny documents.',
 );
 assert(
   classBootstrap.includes('needsColdFetch') &&

@@ -124,8 +124,14 @@ export async function POST(request: NextRequest) {
       // so currently open staff dashboards refresh that relationship.
       let pupilRevision: number | null = null;
       if (target === 'pupil' && !targetData.familyId) {
-        const settings = await transaction.get(db.collection('settings').doc('school-settings'));
-        pupilRevision = Number(settings.data()?.dataRevisions?.pupils || 0) + 1;
+        const [operational, settings] = await Promise.all([
+          transaction.get(db.collection('settings').doc('data-revisions-operational')),
+          transaction.get(db.collection('settings').doc('school-settings')),
+        ]);
+        pupilRevision = Math.max(
+          Number(operational.data()?.pupils || 0),
+          Number(settings.data()?.dataRevisions?.pupils || 0),
+        ) + 1;
       }
 
       transaction.create(userRef, {
@@ -141,6 +147,9 @@ export async function POST(request: NextRequest) {
       });
       if (pupilRevision !== null && target === 'pupil' && parentFamilyId) {
         transaction.update(targetRef, { familyId: parentFamilyId, updatedAt: now });
+        transaction.set(db.collection('settings').doc('data-revisions-operational'), {
+          pupils: pupilRevision,
+        }, { merge: true });
         transaction.set(db.collection('settings').doc('school-settings'), {
           dataRevisions: { pupils: pupilRevision },
         }, { merge: true });

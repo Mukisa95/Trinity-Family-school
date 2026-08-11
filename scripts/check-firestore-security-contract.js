@@ -23,8 +23,8 @@ if (allPublicReadRules.length !== permittedPublicReads.length || permittedPublic
   failures.push('Only the intended public school content may allow anonymous reads.');
 }
 
-if (!/match\s+\/settings\/\{settingsDoc\}\s*\{[\s\S]*?allow\s+read\s*:\s*if\s+settingsDoc\s*==\s*'school-settings'\s*\|\|\s*isActiveApplicationUser\(\)\s*;/m.test(rules)) {
-  failures.push('Only settings/school-settings may be read anonymously.');
+if (!/match\s+\/settings\/\{settingsDoc\}\s*\{[\s\S]*?allow\s+read\s*:\s*if\s+settingsDoc\s*==\s*'school-settings'\s*\|\|\s*settingsDoc\s*==\s*'school-settings-meta'\s*\|\|\s*isActiveApplicationUser\(\)\s*;/m.test(rules)) {
+  failures.push('Only the public school profile and its revision token may be read anonymously.');
 }
 
 if (!/collection\s*!=\s*'settings'/.test(rules) || !/collection\s*!=\s*'photos'/.test(rules)) {

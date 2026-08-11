@@ -17,10 +17,20 @@ export async function updatePupilWithCacheRevision(
 ): Promise<number> {
   return db.runTransaction(async transaction => {
     const settingsRef = db.collection('settings').doc('school-settings');
-    const settings = await transaction.get(settingsRef);
-    const revision = Number(settings.data()?.dataRevisions?.pupils || 0) + 1;
+    const operationalRef = db.collection('settings').doc('data-revisions-operational');
+    const [operational, legacySettings] = await Promise.all([
+      transaction.get(operationalRef),
+      transaction.get(settingsRef),
+    ]);
+    const revision = Math.max(
+      Number(operational.data()?.pupils || 0),
+      Number(legacySettings.data()?.dataRevisions?.pupils || 0),
+    ) + 1;
 
     transaction.update(pupilRef, data);
+    transaction.set(operationalRef, { pupils: revision }, { merge: true });
+    // Compatibility bridge for browser bundles still subscribed to the old
+    // settings document. This is removed with the legacy listener release.
     transaction.set(settingsRef, {
       dataRevisions: {
         pupils: revision,
