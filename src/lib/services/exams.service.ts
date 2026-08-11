@@ -504,6 +504,10 @@ export class ExamsService {
           bumpExamResultRevisionInBatch(transaction, period.academicYearId, period.termId);
           transaction.delete(ExamLeaseService.ref(resultData.examId!));
         });
+        // Saving releases the active editor lease atomically. Dispatching is
+        // best-effort; the server checks that no editor has acquired it again
+        // before it sends any waiting-user notification.
+        void ExamLeaseService.notifyUnlockWaiters(resultData.examId!);
       } else {
         const batch = writeBatch(db);
         batch.update(resultRef, cleanedData);

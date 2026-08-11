@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { X, ArrowLeft, Settings, Loader2, ChevronDown, Save, BookOpen, ChevronRight, ChevronLeft, Search, ArrowUpDown, AlertTriangle, Users, Grid3X3, Check, Eye } from 'lucide-react';
+import { X, ArrowLeft, Settings, Loader2, ChevronDown, Save, BookOpen, ChevronRight, ChevronLeft, Search, ArrowUpDown, AlertTriangle, BellRing, Users, Grid3X3, Check, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,9 @@ import { useClasses } from '@/lib/hooks/use-classes';
 import type { Exam, Pupil, Class, ExamResult as ImportedExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, ExamClassInfoSnapshot, PupilSubjectResult, GradingScaleItem } from '@/types';
 import { useExamResultByExamId, useUpdateExamResult } from '@/lib/hooks/use-exams';
 import { useExamResultLease } from '@/lib/hooks/use-exam-result-lease';
+import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { auth } from '@/lib/firebase';
 import { ExamSignatureDisplay } from '@/components/exam/ExamSignatureDisplay';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import {
@@ -400,6 +403,8 @@ export default function RecordResultsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const pushSubscription = usePushSubscribe();
 
   const routeExamId = params?.examId as string;
   const routeClassId = searchParams?.get('classId');
@@ -416,6 +421,8 @@ export default function RecordResultsView() {
   const [isGradingModalOpen, setIsGradingModalOpen] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null);
   const [hydratedExamId, setHydratedExamId] = useState<string | null>(null);
+  const [acknowledgedBlockedLease, setAcknowledgedBlockedLease] = useState<string | null>(null);
+  const [unlockNotificationStatus, setUnlockNotificationStatus] = useState<'idle' | 'requesting' | 'requested'>('idle');
   
   const [gradingScaleItems, setGradingScaleItems] = useState<GradingScaleItem[]>(
     DEFAULT_GRADING_SCALE_ITEMS.map((item) => ({ ...item }))
@@ -430,6 +437,69 @@ export default function RecordResultsView() {
   
   const updateExamResultMutation = useUpdateExamResult();
   const resultLease = useExamResultLease(examId);
+  const blockedLeaseKey = resultLease.holder ? `${examId}:${resultLease.holder.leaseId}` : null;
+  const needsLockedEditorAcknowledgement =
+    resultLease.status === 'blocked' &&
+    blockedLeaseKey !== null &&
+    acknowledgedBlockedLease !== blockedLeaseKey;
+
+  useEffect(() => {
+    setUnlockNotificationStatus('idle');
+  }, [blockedLeaseKey]);
+
+  const handleNotifyWhenReady = useCallback(async () => {
+    if (!user || !blockedLeaseKey) return;
+
+    setUnlockNotificationStatus('requesting');
+    try {
+      const isPushActive = pushSubscription.isSubscribed || await pushSubscription.subscribe(user.id);
+      if (!isPushActive) {
+        throw new Error(pushSubscription.error || 'Push notifications are not active on this device.');
+      }
+
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser || firebaseUser.uid !== user.id) {
+        throw new Error('Your signed-in session has expired. Please sign in again.');
+      }
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch('/api/exams/unlock-notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ examId }),
+        cache: 'no-store',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (payload?.error === 'EXAM_UNLOCKED') {
+          setUnlockNotificationStatus('idle');
+          toast({ title: 'Results recording is ready', description: 'This page has already been unlocked.' });
+          return;
+        }
+        if (payload?.error === 'EXAM_LOCK_OWNED') {
+          setUnlockNotificationStatus('idle');
+          toast({ title: 'You already have this page', description: 'You can record marks now.' });
+          return;
+        }
+        if (payload?.error === 'PUSH_NOT_ACTIVE') {
+          throw new Error('Push notifications are not active on this device.');
+        }
+        throw new Error(payload?.error || 'Unable to request an unlock notification.');
+      }
+
+      setUnlockNotificationStatus('requested');
+      toast({ title: 'Notification requested', description: 'We will notify you when this Record Results page is ready.' });
+    } catch (error) {
+      setUnlockNotificationStatus('idle');
+      toast({
+        variant: 'destructive',
+        title: 'Notification unavailable',
+        description: error instanceof Error ? error.message : 'Unable to request an unlock notification.',
+      });
+    }
+  }, [blockedLeaseKey, examId, pushSubscription, toast, user]);
 
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
   const { data: allClasses = [] } = useClasses();
@@ -1542,6 +1612,50 @@ export default function RecordResultsView() {
       </div>
     );
   };
+
+  if (needsLockedEditorAcknowledgement && resultLease.holder) {
+    const editorName = resultLease.holder.lockedByName || 'Another user';
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+        <Card className="w-full max-w-lg border-amber-200 shadow-lg">
+          <CardHeader className="space-y-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100">
+              <AlertTriangle className="h-5 w-5 text-amber-700" aria-hidden="true" />
+            </div>
+            <div className="space-y-1.5">
+              <CardTitle className="text-xl text-slate-900">Marks are being recorded</CardTitle>
+              <CardDescription className="text-sm leading-6 text-slate-600">
+                {editorName} is currently recording marks for this exam. You can continue to view or enter marks, but anything you enter cannot be saved until {editorName} is done.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardFooter className="flex flex-col-reverse gap-2 border-t bg-amber-50/50 p-4 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => router.push('/exams')} className="w-full sm:w-auto">
+              Back to Exams
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleNotifyWhenReady}
+              disabled={unlockNotificationStatus !== 'idle' || pushSubscription.isLoading}
+              className="w-full border-amber-300 bg-white text-amber-800 hover:bg-amber-100 sm:w-auto"
+            >
+              {unlockNotificationStatus === 'requesting' || pushSubscription.isLoading
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <BellRing className="mr-2 h-4 w-4" />}
+              {unlockNotificationStatus === 'requested' ? 'Notification requested' : 'Notify me when ready'}
+            </Button>
+            <Button
+              onClick={() => setAcknowledgedBlockedLease(blockedLeaseKey)}
+              className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto"
+            >
+              Continue anyway
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div

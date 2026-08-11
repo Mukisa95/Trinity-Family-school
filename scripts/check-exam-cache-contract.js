@@ -19,6 +19,7 @@ const preloader = read('src/components/providers/global-data-preloader.tsx');
 const resultCache = read('src/lib/cache/exam-result-cache.ts');
 const resultLease = read('src/lib/services/exam-lease.service.ts');
 const resultHook = read('src/lib/hooks/use-exam-result-lease.ts');
+const recordResultsView = read('src/app/exams/[examId]/record-results/RecordResultsView.tsx');
 const releases = read('src/lib/services/results-release.service.ts');
 const migration = read('src/scripts/migrate-exam-results-canonical.ts');
 
@@ -111,6 +112,13 @@ assert(
     service.includes('verifyForSave') &&
     service.includes('transaction.delete(ExamLeaseService.ref'),
   'Result editing must use transactional, renewable, owner-verified leases and atomically release after a save.',
+);
+assert(
+  recordResultsView.includes('needsLockedEditorAcknowledgement') &&
+    recordResultsView.includes('resultLease.holder.lockedByName') &&
+    recordResultsView.includes('Continue anyway') &&
+    recordResultsView.includes('cannot be saved until'),
+  'A user blocked by an active result lease must acknowledge the editor and save limitation before entering marks.',
 );
 assert(
   releases.includes('publishResultRevision') &&

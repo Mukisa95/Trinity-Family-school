@@ -1,5 +1,5 @@
 import { doc, runTransaction, Timestamp, type Transaction } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import type { ExamLease } from '@/types';
 
 const LEASE_MINUTES = 10;
@@ -86,13 +86,37 @@ export class ExamLeaseService {
 
   static async release(examId: string, token: ExamLeaseToken): Promise<void> {
     const ref = this.ref(examId);
-    await runTransaction(db, async transaction => {
+    const released = await runTransaction(db, async transaction => {
       const current = await transaction.get(ref);
-      if (!current.exists()) return;
+      if (!current.exists()) return false;
       const lease = normalizeLease(examId, current.data());
-      if (lease.lockedByUid !== token.lockedByUid || lease.leaseId !== token.leaseId) return;
+      if (lease.lockedByUid !== token.lockedByUid || lease.leaseId !== token.leaseId) return false;
       transaction.delete(ref);
+      return true;
     });
+    if (released) void this.notifyUnlockWaiters(examId);
+  }
+
+  /** Best-effort push dispatch after this client has actually released its lease. */
+  static async notifyUnlockWaiters(examId: string): Promise<void> {
+    const user = auth.currentUser;
+    if (!user || user.isAnonymous) return;
+
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/exams/unlock-notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ examId }),
+        cache: 'no-store',
+        keepalive: true,
+      });
+    } catch {
+      // Releasing a lease must never be blocked by an unavailable push service.
+    }
   }
 
   static async verifyForSave(examId: string, token: ExamLeaseToken, transaction: Transaction): Promise<void> {

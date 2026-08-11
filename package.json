@@ -29,6 +29,7 @@
     "test:auth-session-flow": "node scripts/check-auth-session-flow.js",
     "test:dashboard-cache-contract": "node scripts/check-dashboard-cache-contract.js",
     "test:exam-cache-contract": "node scripts/check-exam-cache-contract.js",
+    "test:exam-unlock-notifications": "node scripts/check-exam-unlock-notifications.js",
     "test:uniform-collection-contract": "node scripts/check-uniform-collection-contract.js",
     "test:schoolpay-inbox-contract": "node scripts/check-schoolpay-inbox-contract.js",
     "test:schoolpay-recovery": "node --import tsx --test tests/schoolpay-recovery.test.ts",
