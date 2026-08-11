@@ -77,6 +77,14 @@ function setupControllerChangeListener(): void {
     if (event.data && event.data.type === 'PUSH_SUBSCRIPTION_INVALIDATED') {
       window.dispatchEvent(new Event('trinity-push-subscription-invalidated'));
     }
+    if (event.data && event.data.type === 'PUSH_NOTIFICATION_CLICKED') {
+      const url = event.data.url;
+      if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) {
+        window.dispatchEvent(new CustomEvent('trinity-push-notification-click', {
+          detail: { url },
+        }));
+      }
+    }
   });
 
   console.log('✅ Controller change listener registered');

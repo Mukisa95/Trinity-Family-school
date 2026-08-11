@@ -640,6 +640,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
 
+  // The service worker focuses an existing app window and forwards the
+  // notification destination here. Using the App Router keeps the current
+  // session, React Query cache, and Firestore listeners intact.
+  useEffect(() => {
+    const navigateFromPush = (event: Event) => {
+      const url = (event as CustomEvent<{ url?: unknown }>).detail?.url;
+      if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) {
+        router.push(url);
+      }
+    };
+    window.addEventListener('trinity-push-notification-click', navigateFromPush);
+    return () => window.removeEventListener('trinity-push-notification-click', navigateFromPush);
+  }, [router]);
+
   return (
     <NavigationProvider>
       <MemoizedAppLayout

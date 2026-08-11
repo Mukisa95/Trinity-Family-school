@@ -359,12 +359,14 @@ self.addEventListener('notificationclick', (event) => {
           if (url.origin !== self.location.origin) return undefined;
           for (const client of clientList) {
             if (client.url.includes(self.location.origin) && 'focus' in client) {
-              // Focusing alone leaves an already-open dashboard on its old page.
-              // Navigate first so attendance notification query parameters can open
-              // the matching class-summary dialog.
-              return client.navigate(url.href).then((navigatedClient) =>
-                (navigatedClient || client).focus()
-              );
+              // Keep an already-open app alive. A service-worker navigate()
+              // reloads the whole Next.js application and drops its in-memory
+              // caches. Let the active React router handle this internal URL.
+              client.postMessage({
+                type: 'PUSH_NOTIFICATION_CLICKED',
+                url: `${url.pathname}${url.search}${url.hash}`,
+              });
+              return client.focus();
             }
           }
           if (clients.openWindow) {

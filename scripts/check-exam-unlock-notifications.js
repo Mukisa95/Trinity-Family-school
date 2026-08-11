@@ -16,6 +16,6 @@ assert.ok(route.includes('/record-results?classId='), 'Unlock push must deep-lin
 assert.ok(lease.includes('if (released) void this.notifyUnlockWaiters(examId)'), 'The lease owner must dispatch notifications only after releasing its lock.');
 assert.ok(examService.includes('void ExamLeaseService.notifyUnlockWaiters(resultData.examId!)'), 'Saving results must dispatch pending unlock notifications after its atomic lease release.');
 assert.ok(view.includes('Notify me when ready') && view.includes('usePushSubscribe') && view.includes('/api/exams/unlock-notifications'), 'Blocked editors must be able to request a push notification from the entry notice.');
-assert.ok(serviceWorker.includes('client.navigate(url.href)') && serviceWorker.includes('clients.openWindow(url.href)'), 'Push notification clicks must navigate an existing or new app window to the supplied URL.');
+assert.ok(serviceWorker.includes("type: 'PUSH_NOTIFICATION_CLICKED'") && serviceWorker.includes('clients.openWindow(url.href)'), 'Push notification clicks must route an existing app client or open a new app window to the supplied URL.');
 
 console.log('Exam unlock notification contract passed: request, release dispatch, push delivery, and deep link are connected.');
