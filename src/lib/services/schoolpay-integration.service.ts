@@ -528,6 +528,24 @@ export class SchoolPayIntegrationService {
           timestamp: new Date().toISOString(),
         });
 
+        // An unresolved payment is still a real, completed SchoolPay receipt.
+        // Alert the same finance users immediately so the missing or unknown
+        // payment code can be assigned from the SchoolPay feed. This path used
+        // to return before the only push call below.
+        try {
+          await this.sendSchoolPayPushNotification({
+            receiptNumber,
+            pupilName: payment.studentName,
+            amount: this.parseAmount(payment.amount),
+            breakdown: [],
+            paymentCode: payment.studentPaymentCode,
+            mappingRequired: true,
+            source: context.source,
+          });
+        } catch (err) {
+          console.warn('[SchoolPay Push] Non-fatal unmatched-payment push error:', err);
+        }
+
         return {
           success: false,
           statusCode: 404,
@@ -637,6 +655,8 @@ export class SchoolPayIntegrationService {
     pupilName: string;
     amount: number;
     breakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
+    paymentCode?: string;
+    mappingRequired?: boolean;
     source: 'webhook' | 'sync' | 'assignment';
   }): Promise<void> {
     // Only send real-time push for webhook payments, not historical sync backfill
@@ -675,12 +695,16 @@ export class SchoolPayIntegrationService {
       })
       .join(', ');
 
-    const body = `UGX ${formattedAmount} for ${opts.pupilName}${
-      categories ? `. Allocated to: ${categories}` : ''
-    }.`;
+    const body = opts.mappingRequired
+      ? `UGX ${formattedAmount} was received${opts.pupilName ? ` for ${opts.pupilName}` : ''}. Payment code ${opts.paymentCode || 'was not supplied'} does not match a pupil. Open SchoolPay Feed to assign it.`
+      : `UGX ${formattedAmount} for ${opts.pupilName}${
+        categories ? `. Allocated to: ${categories}` : ''
+      }.`;
 
     const payload = {
-      title: '\uD83D\uDCB3 SchoolPay Payment Received',
+      title: opts.mappingRequired
+        ? '\u26A0\uFE0F SchoolPay Payment Needs Mapping'
+        : '\uD83D\uDCB3 SchoolPay Payment Received',
       body,
       icon: '/trinity-logo-192.png',
       badge: '/icons/trinity-badge-72.png',
