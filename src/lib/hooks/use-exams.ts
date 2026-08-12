@@ -260,6 +260,58 @@ export function useCreateMultipleExams() {
   });
 }
 
+/**
+ * Gives compatible existing exam definitions one shared batch ID. A batch is
+ * presentation metadata only: results, snapshots, and calendar links stay on
+ * their original exam documents.
+ */
+export function useConsolidateExamBatch() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
+
+  return useMutation({
+    mutationFn: async ({ batchId, examIds }: { batchId: string; examIds: string[] }) => {
+      const uniqueExamIds = Array.from(new Set(examIds));
+      if (!batchId || uniqueExamIds.length < 2) {
+        throw new Error('Choose at least two exams to form a batch.');
+      }
+      // Leave room for the two revision-document writes in the same atomic batch.
+      if (uniqueExamIds.length > 498) {
+        throw new Error('A batch can contain at most 498 exams at once.');
+      }
+
+      const batch = writeBatch(db);
+      uniqueExamIds.forEach(examId => {
+        batch.update(doc(db, 'exams', examId), { batchId, updatedAt: serverTimestamp() });
+      });
+      bumpExamDefinitionRevisionsInBatch(batch);
+      await batch.commit();
+      return { batchId, examIds: uniqueExamIds };
+    },
+    onSuccess: ({ batchId, examIds }) => {
+      const movedExamIds = new Set(examIds);
+      patchExamSnapshot(queryClient, scope, current => current.map(exam =>
+        movedExamIds.has(exam.id)
+          ? { ...exam, batchId, updatedAt: new Date().toISOString() }
+          : exam,
+      ));
+      toast({
+        title: 'Exam batch updated',
+        description: `${examIds.length} exams are now managed together.`,
+      });
+    },
+    onError: error => {
+      toast({
+        title: 'Batch update failed',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
 export function useUpdateExam() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

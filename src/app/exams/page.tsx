@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import ReactDOM from "react-dom";
-import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, LayoutList, LayoutGrid, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer } from "lucide-react"; // Added more icons
+import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, LayoutList, LayoutGrid, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer, Layers } from "lucide-react"; // Added more icons
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +51,7 @@ import { useClasses } from "@/lib/hooks/use-classes";
 import { useActivePupils } from "@/lib/hooks/use-pupils";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
-import { useExams, useExamsOptimized, useCreateExam, useCreateMultipleExams, useUpdateExam, useDeleteExam, useCreateExamResult, useUpdateExamResult } from "@/lib/hooks/use-exams";
+import { useExams, useExamsOptimized, useCreateExam, useCreateMultipleExams, useConsolidateExamBatch, useUpdateExam, useDeleteExam, useCreateExamResult, useUpdateExamResult } from "@/lib/hooks/use-exams";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { useCreateExamFromEvent } from "@/lib/hooks/use-events-fixed";
 import { useActivePupilsOptimized } from "@/lib/hooks/use-pupils";
@@ -128,6 +128,15 @@ const formatDateRange = (startDate: string | undefined | null, endDate: string |
   // Different years
   return `${format(start, "MMM dd, yyyy")} - ${format(end, "MMM dd, yyyy")}`;
 };
+
+/** Only like-for-like regular exams can be brought into one batch. */
+const getExamBatchCompatibilityKey = (exam: Exam): string => [
+  exam.academicYearId,
+  exam.termId,
+  exam.examTypeId,
+  exam.examNature || '',
+  exam.baseName || exam.name,
+].join('::');
 
 const cloneDefaultGradingScale = (): GradingScaleItem[] =>
   DEFAULT_GRADING_SCALE.map((item) => ({
@@ -229,6 +238,10 @@ export default function ExamsPage() {
   const [examToDelete, setExamToDelete] = React.useState<Exam | null>(null);
   const [examStackToDelete, setExamStackToDelete] = React.useState<{ examIds: string[]; label: string } | null>(null);
   const [subjectsPopupExam, setSubjectsPopupExam] = React.useState<Exam | null>(null);
+  const [batchManagerOpen, setBatchManagerOpen] = React.useState(false);
+  const [batchAnchorId, setBatchAnchorId] = React.useState('');
+  const [batchTargetId, setBatchTargetId] = React.useState('');
+  const [batchAdditionIds, setBatchAdditionIds] = React.useState<string[]>([]);
   const [adminPassword, setAdminPassword] = React.useState("");
   const [passwordError, setPasswordError] = React.useState(false);
 
@@ -353,6 +366,7 @@ export default function ExamsPage() {
   // Mutations
   const createExamMutation = useCreateExam();
   const createMultipleExamsMutation = useCreateMultipleExams();
+  const consolidateExamBatchMutation = useConsolidateExamBatch();
   const updateExamMutation = useUpdateExam();
   const deleteExamMutation = useDeleteExam();
   const createExamResultMutation = useCreateExamResult();
@@ -1396,6 +1410,75 @@ export default function ExamsPage() {
     };
   }, [allClasses]);
 
+  const regularBatchCandidates = React.useMemo(
+    () => groupedAndSortedExams.filter(exam => exam.examTypeId !== 'et_cat'),
+    [groupedAndSortedExams],
+  );
+  const batchAnchor = React.useMemo(
+    () => regularBatchCandidates.find(exam => exam.id === batchAnchorId) || null,
+    [batchAnchorId, regularBatchCandidates],
+  );
+  const compatibleBatchExams = React.useMemo(() => {
+    if (!batchAnchor) return [];
+    const compatibilityKey = getExamBatchCompatibilityKey(batchAnchor);
+    return regularBatchCandidates.filter(exam =>
+      exam.id !== batchAnchor.id && getExamBatchCompatibilityKey(exam) === compatibilityKey,
+    );
+  }, [batchAnchor, regularBatchCandidates]);
+  const currentBatchMemberIds = React.useMemo(
+    () => compatibleBatchExams
+      .filter(exam => batchTargetId && exam.batchId === batchTargetId)
+      .map(exam => exam.id),
+    [batchTargetId, compatibleBatchExams],
+  );
+
+  const openBatchManager = () => {
+    setBatchAnchorId('');
+    setBatchTargetId('');
+    setBatchAdditionIds([]);
+    setBatchManagerOpen(true);
+  };
+
+  const chooseBatchAnchor = (examId: string) => {
+    const anchor = regularBatchCandidates.find(exam => exam.id === examId);
+    setBatchAnchorId(examId);
+    setBatchTargetId(anchor?.batchId || `batch-${Date.now()}`);
+    setBatchAdditionIds([]);
+  };
+
+  const toggleBatchAddition = (examId: string, checked: boolean | string) => {
+    setBatchAdditionIds(current => checked
+      ? (current.includes(examId) ? current : [...current, examId])
+      : current.filter(id => id !== examId),
+    );
+  };
+
+  const saveExamBatch = async () => {
+    if (!batchAnchor || !batchTargetId) return;
+    const examIds = Array.from(new Set([
+      batchAnchor.id,
+      ...currentBatchMemberIds,
+      ...batchAdditionIds,
+    ]));
+    if (examIds.length < 2) {
+      toast({
+        title: 'Choose another exam',
+        description: 'Select at least one compatible exam to add to this batch.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    try {
+      await consolidateExamBatchMutation.mutateAsync({ batchId: batchTargetId, examIds });
+      setBatchManagerOpen(false);
+      setBatchAnchorId('');
+      setBatchTargetId('');
+      setBatchAdditionIds([]);
+    } catch {
+      // The mutation displays the actionable error toast.
+    }
+  };
+
   const openExamPrintOptions = React.useCallback((exam: Exam) => {
     router.push(`/exams/${exam.id}/view-results?classId=${exam.classId}&openPrint=1`);
   }, [router]);
@@ -1535,6 +1618,14 @@ export default function ExamsPage() {
               tone="blue"
               title="Filter Exams"
               badge={activeFiltersCount > 0 ? activeFiltersCount : undefined}
+            />
+
+            <GlassActionButton
+              onClick={openBatchManager}
+              label="Batches"
+              icon={<Layers className="w-4 h-4" />}
+              tone="indigo"
+              title="Consolidate or expand exam batches"
             />
 
             <GlassActionButton
@@ -1748,6 +1839,126 @@ export default function ExamsPage() {
             >
               Done
             </button>
+          </ModernDialogFooter>
+        </ModernDialogContent>
+      </ModernDialog>
+
+      <ModernDialog
+        open={batchManagerOpen}
+        onOpenChange={(open) => {
+          setBatchManagerOpen(open);
+          if (!open) {
+            setBatchAnchorId('');
+            setBatchTargetId('');
+            setBatchAdditionIds([]);
+          }
+        }}
+      >
+        <ModernDialogContent className="max-w-2xl">
+          <ModernDialogHeader>
+            <ModernDialogTitle className="flex items-center gap-2 text-indigo-950">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                <Layers className="h-4 w-4" />
+              </span>
+              Manage exam batch
+            </ModernDialogTitle>
+            <ModernDialogDescription>
+              Bring matching regular exams together, or add more classes to an existing batch. Results, snapshots, and dates stay unchanged.
+            </ModernDialogDescription>
+          </ModernDialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-sm text-indigo-950">
+              <p className="font-semibold">Start with one exam</p>
+              <p className="mt-0.5 text-xs leading-5 text-indigo-800">
+                Only exams with the same name, type, academic year, term, and assessment nature are offered. Continuous Assessment sets already have their own grouping.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="batch-anchor">Batch anchor</Label>
+              <Select value={batchAnchorId} onValueChange={chooseBatchAnchor}>
+                <SelectTrigger id="batch-anchor" className="h-11">
+                  <SelectValue placeholder={regularBatchCandidates.length ? 'Choose an exam to start or expand a batch' : 'No regular exams in this view'} />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {regularBatchCandidates.map(exam => {
+                    const classMeta = getClassMeta(exam.classId);
+                    return (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.baseName || exam.name} · {classMeta.code}
+                        {exam.batchId ? ' · existing batch' : ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {batchAnchor && (
+              <div className="overflow-hidden rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3 py-2.5">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Compatible exams</p>
+                    <p className="text-xs text-slate-500">Select the classes to join the batch.</p>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
+                    {1 + currentBatchMemberIds.length + batchAdditionIds.length} in batch
+                  </Badge>
+                </div>
+                <ScrollArea className="h-64">
+                  <div className="divide-y divide-slate-100">
+                    {compatibleBatchExams.length === 0 ? (
+                      <p className="px-3 py-8 text-center text-sm text-slate-500">
+                        No other compatible exams are available in this view.
+                      </p>
+                    ) : compatibleBatchExams.map(exam => {
+                      const isAlreadyInBatch = exam.batchId === batchTargetId;
+                      const classMeta = getClassMeta(exam.classId);
+                      return (
+                        <label
+                          key={exam.id}
+                          className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors ${isAlreadyInBatch ? 'bg-indigo-50/40' : 'hover:bg-slate-50'}`}
+                        >
+                          <Checkbox
+                            checked={isAlreadyInBatch || batchAdditionIds.includes(exam.id)}
+                            disabled={isAlreadyInBatch}
+                            onCheckedChange={(checked) => toggleBatchAddition(exam.id, checked)}
+                            aria-label={`Add ${exam.name} for ${classMeta.name} to this batch`}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-slate-800">{exam.name}</span>
+                            <span className="block text-xs text-slate-500">{classMeta.name} · {formatDateRange(exam.startDate, exam.endDate)}</span>
+                          </span>
+                          {isAlreadyInBatch ? (
+                            <Badge variant="outline" className="border-indigo-200 bg-white text-indigo-700">Already added</Badge>
+                          ) : exam.batchId ? (
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">Move here</Badge>
+                          ) : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </div>
+
+          <ModernDialogFooter>
+            <Button variant="outline" onClick={() => setBatchManagerOpen(false)} disabled={consolidateExamBatchMutation.isPending}>
+              Cancel
+            </Button>
+            <Button
+              onClick={saveExamBatch}
+              disabled={!batchAnchor || batchAdditionIds.length === 0 || consolidateExamBatchMutation.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              {consolidateExamBatchMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating batch...</>
+              ) : (
+                <><Layers className="mr-2 h-4 w-4" /> Update batch</>
+              )}
+            </Button>
           </ModernDialogFooter>
         </ModernDialogContent>
       </ModernDialog>

@@ -12,6 +12,7 @@ const between = (source, start, end) => {
 const cache = read('src/lib/cache/exam-cache.ts');
 const bootstrap = read('src/lib/hooks/use-exam-cache-bootstrap.ts');
 const hooks = read('src/lib/hooks/use-exams.ts');
+const examsPage = read('src/app/exams/page.tsx');
 const service = read('src/lib/services/exams.service.ts');
 const revisions = read('src/lib/services/dashboard-cache-revisions.service.ts');
 const events = read('src/lib/hooks/use-events-fixed.ts');
@@ -76,6 +77,15 @@ assert(
     revisions.includes('exams: increment(1)') &&
     revisions.includes('events: increment(1)'),
   'Exam definition mutations must atomically publish both exams and calendar projection revisions.',
+);
+assert(
+  hooks.includes('export function useConsolidateExamBatch()') &&
+    hooks.includes('batch.update(doc(db, \'exams\', examId), { batchId, updatedAt: serverTimestamp() })') &&
+    hooks.includes('A batch can contain at most 498 exams at once.') &&
+    examsPage.includes('getExamBatchCompatibilityKey') &&
+    examsPage.includes('Manage exam batch') &&
+    examsPage.includes('Only exams with the same name, type, academic year, term, and assessment nature are offered.'),
+  'Exam batch consolidation must be atomic, cache-aware, and limited to compatible regular exams.',
 );
 assert(
   examEvents.includes('const examsQuery = useExams();') &&
