@@ -58,6 +58,12 @@ assert(
   'Ordinary exam hooks must remain cache-only selectors with no competing collection listener or query.',
 );
 assert(
+  hooks.includes('getExamByIdForCacheRecovery') &&
+    hooks.includes("enabled: !!scope && !!id && examsQuery.data !== undefined && !cachedExam") &&
+    service.includes('getExamByIdForCacheRecovery'),
+  'A missing single exam may recover by point-read only after the cache-owned snapshot is present.',
+);
+assert(
   service.includes('getDocsFromServerWithTimeout') &&
     service.includes('getAllFromFirestoreCache') &&
     service.includes('waitForSharedExams') &&
@@ -102,6 +108,11 @@ assert(
     service.includes('Legacy result fallback used') &&
     service.includes('bumpExamResultRevisionInBatch'),
   'Individual result reads must use the canonical point document with revision-aware cached fallback and atomic invalidation.',
+);
+assert(
+  hooks.includes('options?.seed ?? current') &&
+    hooks.includes('patch === null || current'),
+  'A successful result save must not persist a guessed no-result cache entry.',
 );
 assert(
   resultLease.includes('runTransaction') &&

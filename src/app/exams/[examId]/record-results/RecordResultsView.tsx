@@ -42,11 +42,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useExams } from '@/lib/hooks/use-exams';
+import { useExam, useExams, useExamResultByExamId, useUpdateExamResult } from '@/lib/hooks/use-exams';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import type { Exam, Pupil, Class, ExamResult as ImportedExamResult, ExamRecordPupilInfo, ExamRecordSubjectInfo, ExamClassInfoSnapshot, PupilSubjectResult, GradingScaleItem } from '@/types';
-import { useExamResultByExamId, useUpdateExamResult } from '@/lib/hooks/use-exams';
 import { useExamResultLease } from '@/lib/hooks/use-exam-result-lease';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -502,18 +501,19 @@ export default function RecordResultsView() {
   }, [blockedLeaseKey, examId, pushSubscription, toast, user]);
 
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
+  const { data: selectedExam, isLoading: isLoadingSelectedExam } = useExam(examId);
   const { data: allClasses = [] } = useClasses();
   const { data: allPupils = [] } = usePupils(); // Fetch all pupils to get dateOfBirth
   const { 
     data: examResultData, 
     isLoading: isLoadingExamResult, 
     error: examResultError
-  } = useExamResultByExamId(examId);
+  } = useExamResultByExamId(examId, selectedExam ?? undefined);
 
   const examDetails = useMemo(() => {
-    if (!examId || exams.length === 0) return undefined;
-    return exams.find(exam => exam.id === examId);
-  }, [exams, examId]);
+    if (!examId) return undefined;
+    return selectedExam ?? exams.find(exam => exam.id === examId);
+  }, [exams, examId, selectedExam]);
 
   const examSwitcher = useMemo(() => {
     if (!examDetails) {
@@ -1247,7 +1247,9 @@ export default function RecordResultsView() {
   }, [examSubjects.length]);
 
   // 🚀 OPTIMIZED: Only show loading spinner if we have no cached data at all
-  const showLoadingSpinner = !examId || (isLoadingExams && exams.length === 0) || (isLoadingExamResult && !examResultData);
+  const showLoadingSpinner = !examId
+    || (!examDetails && (isLoadingExams || isLoadingSelectedExam))
+    || (isLoadingExamResult && !examResultData);
   
   if (showLoadingSpinner) {
     return (

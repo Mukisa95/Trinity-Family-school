@@ -64,8 +64,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useExams } from '@/lib/hooks/use-exams';
-import { useExamResultByExamId } from '@/lib/hooks/use-exams';
+import { useExam, useExams, useExamResultByExamId } from '@/lib/hooks/use-exams';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { usePupils } from '@/lib/hooks/use-pupils';
@@ -1207,6 +1206,7 @@ export default function ViewResultsView() {
   });
 
   const { data: exams = [], isLoading: isLoadingExams } = useExams();
+  const { data: selectedExam, isLoading: isLoadingSelectedExam } = useExam(examId);
   const { data: allClasses = [] } = useClasses();
   const { data: academicYears = [] } = useAcademicYears();
   const { data: allPupils = [] } = usePupils(); // Fetch all pupils to get dateOfBirth
@@ -1215,7 +1215,7 @@ export default function ViewResultsView() {
     data: examResultData,
     isLoading: isLoadingExamResult,
     error: examResultError
-  } = useExamResultByExamId(examId);
+  } = useExamResultByExamId(examId, selectedExam ?? undefined);
 
   // Results release hooks
   const { data: releaseInfo } = useReleaseInfo(examId, classId || '');
@@ -1224,8 +1224,8 @@ export default function ViewResultsView() {
   const releaseAllMutation = useReleaseAllResults();
 
   const examDetails = useMemo(() => {
-    if (!examId || exams.length === 0) return undefined;
-    const exam = exams.find(exam => exam.id === examId);
+    if (!examId) return undefined;
+    const exam = selectedExam ?? exams.find(exam => exam.id === examId);
 
     // Add termName to examDetails for easy access
     if (exam && exam.termId && academicYears.length > 0) {
@@ -1238,7 +1238,7 @@ export default function ViewResultsView() {
     }
 
     return exam;
-  }, [exams, examId, academicYears]);
+  }, [academicYears, exams, examId, selectedExam]);
 
   const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
   const isNurseryExam = useMemo(
@@ -3919,7 +3919,9 @@ export default function ViewResultsView() {
   };
 
   // 🚀 OPTIMIZED: Only show loading spinner if we have no cached data at all
-  const showLoadingSpinner = !examId || (isLoadingExams && exams.length === 0) || (isLoadingExamResult && !examResultData);
+  const showLoadingSpinner = !examId
+    || (!examDetails && (isLoadingExams || isLoadingSelectedExam))
+    || (isLoadingExamResult && !examResultData);
 
   // Loading state
   if (showLoadingSpinner) {

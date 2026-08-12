@@ -135,6 +135,21 @@ export class ExamsService {
     }
   }
 
+  /**
+   * A guarded point-read used only to repair a missing individual definition.
+   * Normal page loads use the scoped exam snapshot owned by the cache bootstrap.
+   */
+  static async getExamByIdForCacheRecovery(id: string): Promise<Exam | null> {
+    try {
+      const snapshot = await getDoc(doc(db, this.COLLECTION_NAME, id));
+      if (!snapshot.exists()) return null;
+      return normaliseExams([{ id: snapshot.id, ...snapshot.data() } as Exam])[0] ?? null;
+    } catch (error) {
+      console.error('Error recovering exam definition:', error);
+      throw error;
+    }
+  }
+
   static async getExamsByClass(classId: string): Promise<Exam[]> {
     if (typeof window !== 'undefined') {
       return (await this.getAllExams()).filter(exam => exam.classId === classId);

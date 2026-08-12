@@ -122,9 +122,44 @@ export function useExamsOptimized(options?: {
 }
 
 export function useExam(id: string) {
+  const queryClient = useQueryClient();
   const examsQuery = useExams();
-  const data = useMemo(() => examsQuery.data?.find(exam => exam.id === id), [examsQuery.data, id]);
-  return { ...examsQuery, data, isLoading: !!id && examsQuery.isLoading };
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
+  const cachedExam = useMemo(() => examsQuery.data?.find(exam => exam.id === id), [examsQuery.data, id]);
+
+  // The normal collection snapshot is cache-owned. A direct read is allowed
+  // only after that snapshot is present yet lacks the requested ID: this fixes
+  // a stale/corrupt local snapshot without turning every page refresh into a
+  // live collection read.
+  const recoveryQuery = useQuery({
+    queryKey: examKeys.detail(scope, id),
+    queryFn: async () => {
+      const recovered = await ExamsService.getExamByIdForCacheRecovery(id);
+      if (recovered) {
+        patchExamSnapshot(queryClient, scope, current => {
+          const existingIndex = current.findIndex(exam => exam.id === recovered.id);
+          if (existingIndex < 0) return [...current, recovered];
+          return current.map(exam => exam.id === recovered.id ? recovered : exam);
+        });
+      }
+      return recovered;
+    },
+    enabled: !!scope && !!id && examsQuery.data !== undefined && !cachedExam,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
+  const data = cachedExam ?? recoveryQuery.data ?? undefined;
+  return {
+    ...examsQuery,
+    data,
+    error: recoveryQuery.error ?? examsQuery.error,
+    isLoading: !!id && !data && (examsQuery.isLoading || recoveryQuery.isLoading),
+  };
 }
 
 export function useExamsByClass(classId: string, options?: { enabled?: boolean }) {
@@ -340,6 +375,7 @@ function patchExamResultSnapshot(
   academicYearId: string,
   termId: string,
   patch: Partial<ExamResult> | ExamResult | null,
+  options?: { seed?: ExamResult },
 ) {
   const matchingQueries = queryClient.getQueriesData<ExamResult | null>({
     predicate: cachedQuery =>
@@ -361,7 +397,7 @@ function patchExamResultSnapshot(
     },
     current => {
       if (patch === null) return null;
-      if (!current) return current;
+      if (!current) return options?.seed ?? current;
       return { ...current, ...patch, id: patch.id ?? current.id, examId };
     },
   );
@@ -377,7 +413,12 @@ function patchExamResultSnapshot(
   // current term revision is known, stamp its expected successor so the saving
   // device does not immediately re-read its own successful write.
   const observedRevision = typeof currentRevision === 'number' ? currentRevision + 1 : -1;
-  if (scope) void writeExamResultCache(scope, examId, academicYearId, termId, observedRevision, current ?? null);
+  // Never replace a valid saved result with a guessed "no result" entry. An
+  // update may run before this particular query has been mounted; in that case
+  // the term revision deliberately causes one recovery point-read instead.
+  if (scope && (patch === null || current)) {
+    void writeExamResultCache(scope, examId, academicYearId, termId, observedRevision, current ?? null);
+  }
 }
 
 /** The app never preloads this collection; individual results are on-demand only. */
@@ -400,7 +441,10 @@ export function useExamResult(id: string) {
   });
 }
 
-export function useExamResultByExamId(examId: string) {
+export function useExamResultByExamId(
+  examId: string,
+  knownPeriod?: Pick<Exam, 'academicYearId' | 'termId'>,
+) {
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const examsQuery = useExams();
@@ -411,8 +455,8 @@ export function useExamResultByExamId(examId: string) {
   // is deliberately never persisted as a class-wide result cache.
   const queryScope = scope || `projection:${user?.id ?? 'anonymous'}:${user?.role ?? 'unknown'}`;
   const exam = useMemo(() => examsQuery.data?.find(item => item.id === examId), [examId, examsQuery.data]);
-  const academicYearId = exam?.academicYearId;
-  const termId = exam?.termId;
+  const academicYearId = knownPeriod?.academicYearId ?? exam?.academicYearId;
+  const termId = knownPeriod?.termId ?? exam?.termId;
   const termKey = academicYearId && termId
     ? dashboardRevisionKeys.examResults(academicYearId, termId)
     : undefined;
@@ -508,8 +552,15 @@ export function useCreateExamResult() {
     onSuccess: result => {
       const scope = getExamResultCacheScope(user?.id, user?.role);
       if (scope && result.academicYearId && result.termId) {
-        patchExamResultSnapshot(queryClient, scope, result.examId, result.academicYearId, result.termId, result);
-        void writeExamResultCache(scope, result.examId, result.academicYearId, result.termId, -1, result);
+        patchExamResultSnapshot(
+          queryClient,
+          scope,
+          result.examId,
+          result.academicYearId,
+          result.termId,
+          result,
+          { seed: result },
+        );
       }
     },
   });
