@@ -125,6 +125,13 @@ assert(
   'Result editing must use transactional, renewable, owner-verified leases and atomically release after a save.',
 );
 assert(
+  resultHook.includes("const hasConfirmedOtherEditor = status === 'blocked' && holder !== null") &&
+    resultHook.includes('const canSave = canAttempt && !hasConfirmedOtherEditor') &&
+    recordResultsView.includes('resultLease.canSave') &&
+    recordResultsView.includes('resultLease.canEdit') === false,
+  'A failed lease check must remain saveable; only a confirmed different editor can lock result saves.',
+);
+assert(
   recordResultsView.includes('needsLockedEditorAcknowledgement') &&
     recordResultsView.includes('resultLease.holder.lockedByName') &&
     recordResultsView.includes('Continue anyway') &&

@@ -900,8 +900,8 @@ export default function RecordResultsView() {
   }, [sortField]);
 
   const handleSubmit = useCallback(async () => {
-    if (!resultLease.canEdit) {
-      toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'This result is open by another editor, offline, or waiting for its editing lease.' });
+    if (!resultLease.canSave) {
+      toast({ variant: 'destructive', title: 'Editing is unavailable', description: `This result is being edited by ${resultLease.holder?.lockedByName || 'another editor'}.` });
       return false;
     }
     if (isSubmitting || !examResultData || !examDetails || !classSnap) {
@@ -962,7 +962,7 @@ export default function RecordResultsView() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canEdit, resultLease.token]);
+  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canSave, resultLease.holder, resultLease.token]);
 
   const canSaveDraft = isNurseryExam || examSubjects.length <= 4 || selectedMajorSubjects.length === 4;
 
@@ -1091,8 +1091,8 @@ export default function RecordResultsView() {
   }, []);
 
   const handleSaveGradingScale = useCallback(async (newScale?: GradingScaleItem[]) => {
-    if (!resultLease.canEdit) {
-      toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'Acquire the result editing lease before changing the grading scale.' });
+    if (!resultLease.canSave) {
+      toast({ variant: 'destructive', title: 'Editing is unavailable', description: `This result is being edited by ${resultLease.holder?.lockedByName || 'another editor'}.` });
       return;
     }
     if (!examResultData) {
@@ -1205,7 +1205,7 @@ export default function RecordResultsView() {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({ variant: "destructive", title: "Error", description: `Failed to update grading scale: ${errorMessage}` });
     }
-  }, [gradingScaleItems, examResultData, updateExamResultMutation, toast, subjectSnaps, resultLease.canEdit, resultLease.token]);
+  }, [gradingScaleItems, examResultData, updateExamResultMutation, toast, subjectSnaps, resultLease.canSave, resultLease.holder, resultLease.token]);
 
   const getHeaderContent = useCallback(() => {
     const examNameStr = examDetails?.name || 'Exam';
@@ -1769,18 +1769,18 @@ export default function RecordResultsView() {
                   icon={<Settings className="h-4 w-4" />}
                   tone="slate"
                 onClick={() => setIsGradingModalOpen(true)}
-                disabled={!resultLease.canEdit}
+                disabled={!resultLease.canSave}
                 />
               )}
               <GlassActionButton
                 label={isSubmitting ? 'Saving' : 'Save'}
                 icon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 tone="blue"
-                disabled={!resultLease.canEdit || isSubmitting || (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
+                disabled={!resultLease.canSave || isSubmitting || (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
                 title={
                   isSubmitting
                     ? "Saving results..."
-                    : !resultLease.canEdit
+                    : !resultLease.canSave
                       ? (resultLease.holder ? `Being edited by ${resultLease.holder.lockedByName}` : 'Waiting for an editing lease')
                     : (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)
                       ? `Select 4 major subjects above to enable saving (${selectedMajorSubjects.length}/4 selected)`

@@ -254,12 +254,12 @@ export default function EditSnapshotView() {
 
   const handleSave = async () => {
     if (!exam || !examResult) return;
-    if (!resultLease.canEdit) {
+    if (!resultLease.canSave) {
       toast({
         title: 'Editing is unavailable',
         description: resultLease.holder
           ? `This result is being edited by ${resultLease.holder.lockedByName}.`
-          : 'Wait for the editing lease before saving changes.',
+          : 'This result is currently being edited by another user.',
         variant: 'destructive',
       });
       return;
@@ -420,7 +420,7 @@ export default function EditSnapshotView() {
         </div>
         <Button
           onClick={handleSave}
-          disabled={isSaving || !resultLease.canEdit}
+          disabled={isSaving || !resultLease.canSave}
         >
           {isSaving ? (
             <>

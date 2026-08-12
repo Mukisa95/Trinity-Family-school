@@ -111,8 +111,16 @@ export function useExamResultLease(examId: string) {
       : undefined,
   [lease, status, user]);
 
+  // A positive lease held by somebody else is the only evidence that should
+  // stop an authorised editor. Loading, offline, and listener/transaction
+  // errors mean Firestore could not establish the answer; those states must
+  // remain saveable instead of pretending that another editor is present.
+  const hasConfirmedOtherEditor = status === 'blocked' && holder !== null;
+  const canSave = canAttempt && !hasConfirmedOtherEditor;
+
   return {
     canEdit: !!token,
+    canSave,
     status,
     holder,
     token,
