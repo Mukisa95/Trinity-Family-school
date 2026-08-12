@@ -1315,6 +1315,17 @@ export default function ExamsPage() {
   };
 
   const groupedAndSortedExams = React.useMemo(() => {
+    // Use the same administrator-defined class order as class selectors,
+    // timetables, and other school views. Dates decide which batch appears
+    // first; classes inside that batch must always follow school order.
+    const classOrderById = new Map(
+      allClasses.map(schoolClass => [schoolClass.id, schoolClass.order]),
+    );
+    const compareBatchClasses = (left: Exam, right: Exam) => {
+      const leftOrder = classOrderById.get(left.classId) ?? Infinity;
+      const rightOrder = classOrderById.get(right.classId) ?? Infinity;
+      return leftOrder - rightOrder || left.classId.localeCompare(right.classId);
+    };
     const sorted = [...exams].sort((a, b) => {
       const dateA = safeParseDateString(a.startDate);
       const dateB = safeParseDateString(b.startDate);
@@ -1385,12 +1396,12 @@ export default function ExamsPage() {
     });
 
     return Object.values(grouped).flatMap((group) =>
-      group.map((exam, examIndex) => ({
+      group.sort(compareBatchClasses).map((exam, examIndex) => ({
         ...exam,
         isFirstInBatch: examIndex === 0,
       }))
     );
-  }, [exams, listFilters]);
+  }, [allClasses, exams, listFilters]);
 
   // Add mobile view state
   const [filtersExpanded, setFiltersExpanded] = React.useState(false);

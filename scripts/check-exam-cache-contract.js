@@ -88,6 +88,12 @@ assert(
   'Exam batch consolidation must be atomic, cache-aware, and limited to compatible regular exams.',
 );
 assert(
+  examsPage.includes('const classOrderById = new Map(') &&
+    examsPage.includes('const compareBatchClasses = (left: Exam, right: Exam)') &&
+    examsPage.includes('group.sort(compareBatchClasses).map'),
+  'Exam batches must order their classes with the shared administrator-defined class order.',
+);
+assert(
   examEvents.includes('const examsQuery = useExams();') &&
     examEvents.includes('examSnapshotReady') &&
     !examEvents.includes("getDocsFromServer(collection(db, 'exams'))") &&
