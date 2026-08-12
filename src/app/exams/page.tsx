@@ -371,6 +371,9 @@ export default function ExamsPage() {
   const [examNature, setExamNature] = React.useState<ExamNature>("");
 
   const [selectedClassIdsForm, setSelectedClassIdsForm] = React.useState<string[]>([]);
+  // React mutation state becomes visible on the next render. This ref closes
+  // the small gap where a rapid second tap could start another creation.
+  const examSubmitInFlightRef = React.useRef(false);
   const [perClassExamNatures, setPerClassExamNatures] = React.useState<Record<string, ExamNature>>({});
   const [perClassSelectedSubjects, setPerClassSelectedSubjects] = React.useState<Record<string, string[]>>({});
 
@@ -803,7 +806,7 @@ export default function ExamsPage() {
 
   const handleClassIdCheckboxChange = (classId: string, checked: boolean | string) => {
     setSelectedClassIdsForm(prev =>
-      checked ? [...prev, classId] : prev.filter(id => id !== classId)
+      checked ? (prev.includes(classId) ? prev : [...prev, classId]) : prev.filter(id => id !== classId)
     );
     if (!checked) {
       setPerClassSelectedSubjects(prev => {
@@ -963,12 +966,15 @@ export default function ExamsPage() {
       return;
     }
 
-    const selectedClasses = selectedClassIdsForm
+    // Keep the creation payload safe even if an input component reports the
+    // same class twice during a re-render.
+    const selectedClassIds = Array.from(new Set(selectedClassIdsForm));
+    const selectedClasses = selectedClassIds
       .map(classId => allClasses.find(schoolClass => schoolClass.id === classId))
       .filter((schoolClass): schoolClass is Class => Boolean(schoolClass));
     const includesMarksBasedClass = selectedClasses.some(schoolClass => !isNurseryClass(schoolClass));
 
-    if (!examTypeId || !startDate || !endDate || selectedClassIdsForm.length === 0 || (includesMarksBasedClass && (!maxMarks || passingMarks === '')) || !academicYearId || !termId || !examNature || (isCATExam && (!assessmentName || !examName)) || (!isCATExam && !examName)) {
+    if (!examTypeId || !startDate || !endDate || selectedClassIds.length === 0 || (includesMarksBasedClass && (!maxMarks || passingMarks === '')) || !academicYearId || !termId || !examNature || (isCATExam && (!assessmentName || !examName)) || (!isCATExam && !examName)) {
       toast({ variant: "destructive", title: "Missing Fields", description: "Please fill all required fields (*)." });
       return;
     }
@@ -976,17 +982,17 @@ export default function ExamsPage() {
       toast({ variant: "destructive", title: "Missing Custom Name", description: "Please provide a name for the 'Other' exam type." });
       return;
     }
-    const perClassNatures = selectedClassIdsForm.reduce<Record<string, ExamNature>>((acc, classId) => {
+    const perClassNatures = selectedClassIds.reduce<Record<string, ExamNature>>((acc, classId) => {
       acc[classId] = getExamNatureForClass(classId);
       return acc;
     }, {});
 
-    if (selectedClassIdsForm.some(classId => !perClassNatures[classId])) {
+    if (selectedClassIds.some(classId => !perClassNatures[classId])) {
       toast({ variant: "destructive", title: "Missing Exam Nature", description: "Please choose the exam nature for each selected class." });
       return;
     }
 
-    if (selectedClassIdsForm.some(classId => perClassNatures[classId] === 'Subject based' && (!perClassSelectedSubjects[classId] || perClassSelectedSubjects[classId].length === 0))) {
+    if (selectedClassIds.some(classId => perClassNatures[classId] === 'Subject based' && (!perClassSelectedSubjects[classId] || perClassSelectedSubjects[classId].length === 0))) {
       toast({ variant: "destructive", title: "Missing Subjects", description: "Each subject-based class needs at least one selected subject." });
       return;
     }
@@ -1015,6 +1021,8 @@ export default function ExamsPage() {
       determinedStatus = "Completed";
     }
 
+    if (examSubmitInFlightRef.current) return;
+    examSubmitInFlightRef.current = true;
     try {
       if (editingExam) {
         // Construct proper name for editing
@@ -1047,7 +1055,7 @@ export default function ExamsPage() {
         const currentBatchId = isAddingSet && baseExamForSet?.batchId ? baseExamForSet.batchId : `batch-${Date.now()}`;
         const baseName = isAddingSet && baseExamForSet?.baseName ? baseExamForSet.baseName : (isCATExam ? assessmentName : examName);
 
-        const newExamsData = selectedClassIdsForm.map((classId) => {
+        const newExamsData = selectedClassIds.map((classId) => {
           const classExamNature = perClassNatures[classId];
           const targetClass = allClasses.find(schoolClass => schoolClass.id === classId);
           // Generate unique examResultId for each exam
@@ -1233,7 +1241,7 @@ export default function ExamsPage() {
 
             await createExamFromEventMutation.mutateAsync({
               title: finalExamName,
-              description: instructions || `Exam scheduled for ${selectedClassIdsForm.length} class(es)`,
+              description: instructions || `Exam scheduled for ${selectedClassIds.length} class(es)`,
               startDate: format(startDate, "yyyy-MM-dd"),
               endDate: format(endDate, "yyyy-MM-dd"),
               startTime: "",
@@ -1243,7 +1251,7 @@ export default function ExamsPage() {
               termId: termId!,
               examTypeId: examTypeId,
               examNature: examNature,
-              selectedClassIds: selectedClassIdsForm,
+              selectedClassIds,
               perClassSelectedSubjects: perClassSelectedSubjects,
               maxMarks: marks,
               passingMarks: pMarks,
@@ -1276,6 +1284,8 @@ export default function ExamsPage() {
         title: "Error",
         description: "Failed to save exam. Please try again."
       });
+    } finally {
+      examSubmitInFlightRef.current = false;
     }
   };
 
@@ -3437,12 +3447,13 @@ export default function ExamsPage() {
                           </div>
                           <div className="mt-1.5">
                             <MultiSelect
-                              options={allClasses.map(cls => ({ value: cls.id, label: cls.code }))}
-                              selected={selectedClassIdsForm}
-                              onChange={(selected) => {
-                                setSelectedClassIdsForm(selected);
-                                if (selected.length < selectedClassIdsForm.length) {
-                                  const removedClasses = selectedClassIdsForm.filter(id => !selected.includes(id));
+                               options={allClasses.map(cls => ({ value: cls.id, label: cls.code }))}
+                               selected={selectedClassIdsForm}
+                               onChange={(selected) => {
+                                 const uniqueSelected = Array.from(new Set(selected));
+                                 setSelectedClassIdsForm(uniqueSelected);
+                                 if (uniqueSelected.length < selectedClassIdsForm.length) {
+                                   const removedClasses = selectedClassIdsForm.filter(id => !uniqueSelected.includes(id));
                                   setPerClassExamNatures(prev => {
                                     const updated = { ...prev };
                                     removedClasses.forEach(classId => { delete updated[classId]; });

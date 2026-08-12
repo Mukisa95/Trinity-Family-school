@@ -35,7 +35,12 @@ function toIso(value: unknown): unknown {
 
 /** Normalize timestamps once so the localStorage snapshot is JSON-safe. */
 export function normaliseExams(exams: Exam[]): Exam[] {
-  return [...exams]
+  // A creation can reach this cache through two valid paths at nearly the
+  // same time: the mutation's optimistic patch and the revision-triggered
+  // server reconciliation. Keep the first complete copy of each Firestore
+  // document so that race never renders the same exam twice.
+  const seenExamIds = new Set<string>();
+  return exams
     .map(exam => ({
       ...exam,
       createdAt: (toIso(exam.createdAt) || '') as string,
@@ -43,6 +48,11 @@ export function normaliseExams(exams: Exam[]): Exam[] {
       startDate: (toIso(exam.startDate) || '') as string,
       endDate: (toIso(exam.endDate) || '') as string,
     }))
+    .filter(exam => {
+      if (seenExamIds.has(exam.id)) return false;
+      seenExamIds.add(exam.id);
+      return true;
+    })
     .sort((a, b) => {
       const byCreatedAt = new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       return byCreatedAt || a.id.localeCompare(b.id);

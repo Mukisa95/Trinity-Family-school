@@ -38,7 +38,8 @@ assert(
   cache.includes("role === 'Parent'") &&
     cache.includes('NEXT_PUBLIC_FIREBASE_PROJECT_ID') &&
     cache.includes('EXAM_CACHE_SCHEMA') &&
-    cache.includes('normaliseExams'),
+    cache.includes('normaliseExams') &&
+    cache.includes('seenExamIds'),
   'Exam snapshots must be schema-versioned and scoped by project, user, role, and Parent exclusion.',
 );
 assert(
