@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
@@ -422,6 +423,10 @@ export default function RecordResultsView() {
   const [hydratedExamId, setHydratedExamId] = useState<string | null>(null);
   const [acknowledgedBlockedLease, setAcknowledgedBlockedLease] = useState<string | null>(null);
   const [unlockNotificationStatus, setUnlockNotificationStatus] = useState<'idle' | 'requesting' | 'requested'>('idle');
+  const [overrideSaveDialogOpen, setOverrideSaveDialogOpen] = useState(false);
+  const [overrideSaveAcknowledged, setOverrideSaveAcknowledged] = useState(false);
+  const [remoteUpdateWhileEditing, setRemoteUpdateWhileEditing] = useState(false);
+  const localDraftDirtyRef = useRef(false);
   
   const [gradingScaleItems, setGradingScaleItems] = useState<GradingScaleItem[]>(
     DEFAULT_GRADING_SCALE_ITEMS.map((item) => ({ ...item }))
@@ -444,6 +449,8 @@ export default function RecordResultsView() {
 
   useEffect(() => {
     setUnlockNotificationStatus('idle');
+    setOverrideSaveDialogOpen(false);
+    setOverrideSaveAcknowledged(false);
   }, [blockedLeaseKey]);
 
   const handleNotifyWhenReady = useCallback(async () => {
@@ -599,6 +606,15 @@ export default function RecordResultsView() {
   useEffect(() => {
     if (examResultData?.examId !== examId) return;
 
+    // A revision-triggered refresh should hydrate a clean page immediately,
+    // but must not erase marks the current editor has already typed.
+    if (hydratedExamId === examId && localDraftDirtyRef.current) {
+      setRemoteUpdateWhileEditing(true);
+      return;
+    }
+
+    setRemoteUpdateWhileEditing(false);
+
     if (examResultData?.gradingScale && examResultData.gradingScale.length > 0) {
       console.log('📊 Loading grading scale from database:', examResultData.gradingScale);
       setGradingScaleItems(examResultData.gradingScale);
@@ -639,7 +655,7 @@ export default function RecordResultsView() {
       setCommentaryResults(initialCommentary);
       setMissedSubjects(initialMissed);
     }
-  }, [examId, examResultData, subjectSnaps]);
+  }, [examId, examResultData, hydratedExamId, subjectSnaps]);
 
   useEffect(() => {
     if (!isLoadingExams && !isLoadingExamResult) {
@@ -710,6 +726,13 @@ export default function RecordResultsView() {
     return createDraftFingerprint(currentDraft) !== createDraftFingerprint(persistedDraft);
   }, [currentDraft, examId, hydratedExamId, isSwitchingExam, persistedDraft]);
 
+  useEffect(() => {
+    if (!hasUnsavedChanges && hydratedExamId === examId) {
+      localDraftDirtyRef.current = false;
+      setRemoteUpdateWhileEditing(false);
+    }
+  }, [examId, hasUnsavedChanges, hydratedExamId]);
+
   const unsavedChangeSummary = useMemo(() => {
     if (!persistedDraft) return [] as string[];
 
@@ -757,6 +780,7 @@ export default function RecordResultsView() {
 
   useEffect(() => {
     if (examResultData?.examId !== examId) return;
+    if (hydratedExamId === examId && localDraftDirtyRef.current) return;
 
     if (examSubjects.length > 4) {
       setShowMajorSubjectSelector(true);
@@ -772,9 +796,10 @@ export default function RecordResultsView() {
       setSelectedMajorSubjects(examSubjects.map(s => s.code));
     }
     setHydratedExamId(examId);
-  }, [examId, examSubjects, examResultData?.examId, examResultData?.majorSubjects]);
+  }, [examId, examSubjects, examResultData?.examId, examResultData?.majorSubjects, hydratedExamId]);
 
   const handleMajorSubjectSelection = useCallback((subjectCode: string) => {
+    localDraftDirtyRef.current = true;
     setSelectedMajorSubjects(prev => {
       if (prev.includes(subjectCode)) return prev.filter(code => code !== subjectCode);
       if (prev.length < 4) return [...prev, subjectCode];
@@ -849,6 +874,7 @@ export default function RecordResultsView() {
   }, [pupilSnaps, searchTerm, sortField, sortDirection, pupilTotals]);
 
   const handleMarksChange = useCallback((pupilId: string, subjectCode: string, value: string) => {
+    localDraftDirtyRef.current = true;
     const numValue = value === '' ? 0 : Math.min(100, Math.max(0, Number(value)));
     setResults(prev => ({ ...prev, [pupilId]: { ...(prev[pupilId] || {}), [subjectCode]: numValue }}));
     // Clear missed status when marks are entered
@@ -856,6 +882,7 @@ export default function RecordResultsView() {
   }, []);
 
   const handleCommentaryChange = useCallback((pupilId: string, subjectCode: string, value: NurseryCommentary) => {
+    localDraftDirtyRef.current = true;
     setCommentaryResults(prev => ({
       ...prev,
       [pupilId]: { ...(prev[pupilId] || {}), [subjectCode]: value },
@@ -867,6 +894,7 @@ export default function RecordResultsView() {
   }, []);
 
   const handleToggleMissedStatus = useCallback((pupilId: string, subjectCode: string) => {
+    localDraftDirtyRef.current = true;
     setMissedSubjects(prev => {
       const currentMissed = prev[pupilId]?.[subjectCode] || false;
       const newMissed = !currentMissed;
@@ -899,9 +927,14 @@ export default function RecordResultsView() {
     }
   }, [sortField]);
 
-  const handleSubmit = useCallback(async () => {
-    if (!resultLease.canSave) {
-      toast({ variant: 'destructive', title: 'Editing is unavailable', description: `This result is being edited by ${resultLease.holder?.lockedByName || 'another editor'}.` });
+  const handleSubmit = useCallback(async (options?: { overrideLock?: boolean }) => {
+    if (!resultLease.canSave && !options?.overrideLock) {
+      if (resultLease.canOverride) {
+        setOverrideSaveAcknowledged(false);
+        setOverrideSaveDialogOpen(true);
+      } else {
+        toast({ variant: 'destructive', title: 'Editing is unavailable', description: 'Your account cannot save these results.' });
+      }
       return false;
     }
     if (isSubmitting || !examResultData || !examDetails || !classSnap) {
@@ -938,9 +971,15 @@ export default function RecordResultsView() {
         });
       });
 
+      const overrideLease = options?.overrideLock ? resultLease.override : undefined;
+      if (options?.overrideLock && !overrideLease) {
+        throw new Error('The editing lock could not be transferred to this device. Please reload and try again.');
+      }
+
       await updateExamResultMutation.mutateAsync({
         id: examResultData.id,
-        lease: resultLease.token,
+        lease: options?.overrideLock ? undefined : resultLease.token,
+        overrideLease,
         data: { 
           examId: examResultData.examId, // Include examId for proper cache invalidation
           academicYearId: examDetails.academicYearId,
@@ -952,7 +991,14 @@ export default function RecordResultsView() {
           lastUpdatedAt: new Date().toISOString() 
         }
       });
-      toast({ title: "Success", description: "Results saved successfully" });
+      localDraftDirtyRef.current = false;
+      setRemoteUpdateWhileEditing(false);
+      toast({
+        title: options?.overrideLock ? 'Results saved with override' : 'Success',
+        description: options?.overrideLock
+          ? 'This device now owns the editing lock and the results were saved.'
+          : 'Results saved successfully',
+      });
       return true;
     } catch (error) {
       console.error('Error saving results:', error);
@@ -962,7 +1008,7 @@ export default function RecordResultsView() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canSave, resultLease.holder, resultLease.token]);
+  }, [isSubmitting, examResultData, examDetails, classSnap, pupilSnaps, subjectSnaps, examSubjects, results, commentaryResults, missedSubjects, calculateGrade, updateExamResultMutation, toast, gradingScaleItems, selectedMajorSubjects, isNurseryExam, resultLease.canOverride, resultLease.canSave, resultLease.override, resultLease.token]);
 
   const canSaveDraft = isNurseryExam || examSubjects.length <= 4 || selectedMajorSubjects.length === 4;
 
@@ -981,6 +1027,8 @@ export default function RecordResultsView() {
     setHydratedExamId(null);
     setSearchTerm('');
     setIsGradingModalOpen(false);
+    localDraftDirtyRef.current = false;
+    setRemoteUpdateWhileEditing(false);
     setExamId(targetExamId);
     setClassId(targetClassId);
 
@@ -1082,6 +1130,7 @@ export default function RecordResultsView() {
   }, [hasUnsavedChanges]);
 
   const handleGradeScaleItemChange = useCallback((index: number, field: keyof GradingScaleItem, value: string | number) => {
+    localDraftDirtyRef.current = true;
     setGradingScaleItems((prevScale: GradingScaleItem[]) => {
       const newScale = [...prevScale];
       const numericValue = (field === 'minMark' || field === 'maxMark' || field === 'aggregates') ? Number(value) : value;
@@ -1193,6 +1242,8 @@ export default function RecordResultsView() {
       
       setResults(updatedLocalResults);
       setMissedSubjects(updatedLocalMissed);
+      localDraftDirtyRef.current = false;
+      setRemoteUpdateWhileEditing(false);
       
       toast({ title: "Success", description: "Grading scale and grades updated successfully" });
       setIsGradingModalOpen(false);
@@ -1628,7 +1679,7 @@ export default function RecordResultsView() {
             <div className="space-y-1.5">
               <CardTitle className="text-xl text-slate-900">Marks are being recorded</CardTitle>
               <CardDescription className="text-sm leading-6 text-slate-600">
-                {editorName} is currently recording marks for this exam. You can continue to view or enter marks, but anything you enter cannot be saved until {editorName} is done.
+                {editorName} is currently recording marks for this exam. You can continue entering marks. When you save, you will either wait for {editorName} or explicitly override the lock after a final warning.
               </CardDescription>
             </div>
           </CardHeader>
@@ -1773,24 +1824,46 @@ export default function RecordResultsView() {
                 />
               )}
               <GlassActionButton
-                label={isSubmitting ? 'Saving' : 'Save'}
-                icon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                tone="blue"
-                disabled={!resultLease.canSave || isSubmitting || (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
+                label={isSubmitting ? 'Saving' : resultLease.canOverride ? 'Override' : 'Save'}
+                icon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : resultLease.canOverride ? <AlertTriangle className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                tone={resultLease.canOverride ? 'orange' : 'blue'}
+                disabled={(!resultLease.canSave && !resultLease.canOverride) || isSubmitting || (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)}
                 title={
                   isSubmitting
                     ? "Saving results..."
+                    : resultLease.canOverride
+                      ? `Save anyway and take over from ${resultLease.holder?.lockedByName || 'the current editor'}`
                     : !resultLease.canSave
-                      ? (resultLease.holder ? `Being edited by ${resultLease.holder.lockedByName}` : 'Waiting for an editing lease')
+                      ? 'Waiting for an editing lease'
                     : (!isNurseryExam && examSubjects.length > 4 && selectedMajorSubjects.length < 4)
                       ? `Select 4 major subjects above to enable saving (${selectedMajorSubjects.length}/4 selected)`
                       : "Save exam results"
                 }
-                onClick={handleSubmit}
+                onClick={() => { void handleSubmit(); }}
               />
             </GlassActionDock>
           }
         />
+
+      {resultLease.canOverride && acknowledgedBlockedLease === blockedLeaseKey && (
+        <div className="mx-3 mb-2 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-950 shadow-sm sm:mx-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+          <div className="min-w-0 text-xs leading-5">
+            <span className="font-bold">Editing lock active:</span>{' '}
+            {resultLease.holder?.lockedByName || 'Another editor'} may have unsaved marks. The Override button will show a final confirmation before taking control and saving this device's version.
+          </div>
+        </div>
+      )}
+
+      {remoteUpdateWhileEditing && (
+        <div className="mx-3 mb-2 flex items-start gap-3 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2.5 text-rose-950 shadow-sm sm:mx-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" aria-hidden="true" />
+          <div className="min-w-0 text-xs leading-5">
+            <span className="font-bold">Newer saved results arrived:</span>{' '}
+            Your unsaved entries were kept instead of being replaced. Review them carefully before saving or overriding the other device.
+          </div>
+        </div>
+      )}
 
       <GlassSummaryBar
         left={
@@ -1863,6 +1936,68 @@ export default function RecordResultsView() {
           </CardFooter>
         </Card>
       </div>
+
+      <Dialog
+        open={overrideSaveDialogOpen}
+        onOpenChange={(open) => {
+          if (isSubmitting) return;
+          setOverrideSaveDialogOpen(open);
+          if (!open) setOverrideSaveAcknowledged(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-800">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-100">
+                <AlertTriangle className="h-5 w-5 text-rose-700" aria-hidden="true" />
+              </span>
+              Override active editing lock?
+            </DialogTitle>
+            <DialogDescription className="leading-6">
+              {resultLease.holder?.lockedByName || 'Another editor'} currently owns this exam. This can also be another device or an older tab using the same account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm leading-6 text-rose-950">
+              Saving with override will take control on this device and replace the currently saved result with the marks shown here. Unsaved work on the other device will not be included, and its next save will be rejected unless it takes control again.
+            </div>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700 hover:bg-slate-50">
+              <Checkbox
+                checked={overrideSaveAcknowledged}
+                onCheckedChange={(checked) => setOverrideSaveAcknowledged(checked === true)}
+                className="mt-0.5"
+                aria-label="Acknowledge the risk of overriding the active result editor"
+              />
+              <span>I understand that this device's results will become the saved version.</span>
+            </label>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setOverrideSaveDialogOpen(false)} disabled={isSubmitting}>
+              Keep waiting
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!overrideSaveAcknowledged || isSubmitting}
+              onClick={async () => {
+                const didSave = await handleSubmit({ overrideLock: true });
+                if (!didSave) return;
+                setOverrideSaveDialogOpen(false);
+                setOverrideSaveAcknowledged(false);
+                if (pendingNavigation) {
+                  const target = pendingNavigation;
+                  setPendingNavigation(null);
+                  continueNavigation(target);
+                }
+              }}
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-2 h-4 w-4" />}
+              {isSubmitting ? 'Overriding and saving...' : 'Override and save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={pendingNavigation !== null} onOpenChange={(open) => !open && !isSubmitting && setPendingNavigation(null)}>
         <DialogContent className="sm:max-w-lg">

@@ -34,7 +34,7 @@ import {
 import { useDashboardDataRevisions } from './use-school-settings';
 import { dashboardRevisionKeys } from '@/lib/services/dashboard-cache-revisions.service';
 import { useAcademicYears } from './use-academic-years';
-import type { ExamLeaseToken } from '@/lib/services/exam-lease.service';
+import type { ExamLeaseOverride, ExamLeaseToken } from '@/lib/services/exam-lease.service';
 
 export const examKeys = {
   all: ['exams'] as const,
@@ -538,7 +538,11 @@ export function useExamResultByExamId(
         && cached.academicYearId === academicYearId
         && cached.termId === termId
         && cached.observedTermRevision === termRevision;
-      if (cached) {
+      // A cached result from an older revision is useful as placeholder data,
+      // but it must never be installed under the new revision key. Doing that
+      // makes React Query consider stale marks fresh forever and suppresses the
+      // required cross-device point read.
+      if (cached && matching) {
         queryClient.setQueryData(examResultKeys.byExam(queryScope, examId, termRevision), cached.data);
       }
       setCacheState({ key: cacheKey, ready: true, matching });
@@ -622,8 +626,8 @@ export function useUpdateExamResult() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: ({ id, data, lease }: { id: string; data: Partial<ExamResult>; lease?: ExamLeaseToken }) =>
-      ExamsService.updateExamResult(id, data, { lease }),
+    mutationFn: ({ id, data, lease, overrideLease }: { id: string; data: Partial<ExamResult>; lease?: ExamLeaseToken; overrideLease?: ExamLeaseOverride }) =>
+      ExamsService.updateExamResult(id, data, { lease, overrideLease }),
     onSuccess: receipt => {
       const scope = getExamResultCacheScope(user?.id, user?.role);
       if (scope) {

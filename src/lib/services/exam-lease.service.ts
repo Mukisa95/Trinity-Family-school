@@ -6,6 +6,7 @@ const LEASE_MINUTES = 10;
 const CLOCK_SKEW_MS = 15_000;
 
 export type ExamLeaseToken = Pick<ExamLease, 'leaseId' | 'lockedByUid'>;
+export type ExamLeaseOverride = ExamLeaseToken & Pick<ExamLease, 'lockedByName'>;
 export type ExamLeaseAttempt =
   | { acquired: true; lease: ExamLease }
   | { acquired: false; holder: ExamLease | null };
@@ -126,6 +127,32 @@ export class ExamLeaseService {
     if (lease.lockedByUid !== token.lockedByUid || lease.leaseId !== token.leaseId || isExpired(lease)) {
       throw new Error('Another editor now owns this result. Your changes were not saved.');
     }
+  }
+
+  /**
+   * Explicitly transfers the lease during an override save. Keeping the new
+   * lease after the write prevents the displaced browser from immediately
+   * reacquiring the exam and saving stale marks over the override.
+   */
+  static claimForOverrideSave(examId: string, override: ExamLeaseOverride, transaction: Transaction): ExamLease {
+    const now = Timestamp.now();
+    const expiresAt = nextExpiry();
+    transaction.set(this.ref(examId), {
+      examId,
+      lockedByUid: override.lockedByUid,
+      lockedByName: override.lockedByName,
+      leaseId: override.leaseId,
+      acquiredAt: now,
+      renewedAt: now,
+      expiresAt,
+    });
+    return {
+      examId,
+      ...override,
+      acquiredAt: now.toDate().toISOString(),
+      renewedAt: now.toDate().toISOString(),
+      expiresAt: expiresAt.toDate().toISOString(),
+    };
   }
 
   static isExpired(lease: ExamLease): boolean {

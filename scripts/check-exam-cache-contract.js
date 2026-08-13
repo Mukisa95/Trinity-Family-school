@@ -120,6 +120,7 @@ assert(
     hooks.includes('dashboardRevisionKeys.examResults') &&
     hooks.includes('const revisionsReady = revisionsQuery.data !== undefined') &&
     hooks.includes("revisionsQuery.data.examResults?.[termKey] ?? 0") &&
+    hooks.includes('if (cached && matching)') &&
     !hooks.includes("onSnapshot(\n      examResultsQuery") &&
     service.includes("doc(db, this.EXAM_RESULTS_COLLECTION, examId)") &&
     service.includes('Legacy result fallback used') &&
@@ -152,8 +153,14 @@ assert(
   recordResultsView.includes('needsLockedEditorAcknowledgement') &&
     recordResultsView.includes('resultLease.holder.lockedByName') &&
     recordResultsView.includes('Continue anyway') &&
-    recordResultsView.includes('cannot be saved until'),
-  'A user blocked by an active result lease must acknowledge the editor and save limitation before entering marks.',
+    recordResultsView.includes('Override active editing lock?') &&
+    recordResultsView.includes('Override and save') &&
+    recordResultsView.includes('overrideSaveAcknowledged') &&
+    recordResultsView.includes('Newer saved results arrived:') &&
+    recordResultsView.includes('localDraftDirtyRef.current') &&
+    resultLease.includes('claimForOverrideSave') &&
+    service.includes('options?.overrideLease'),
+  'A user blocked by an active result lease must receive a clear warning and explicitly acknowledge any override save.',
 );
 assert(
   releases.includes('publishResultRevision') &&

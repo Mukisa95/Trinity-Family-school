@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { onSnapshot } from 'firebase/firestore';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { ExamLease } from '@/types';
-import { ExamLeaseService, type ExamLeaseToken } from '@/lib/services/exam-lease.service';
+import { ExamLeaseService, type ExamLeaseOverride, type ExamLeaseToken } from '@/lib/services/exam-lease.service';
 
 const RENEW_EVERY_MS = 2 * 60_000;
 
@@ -117,6 +117,15 @@ export function useExamResultLease(examId: string) {
   // remain saveable instead of pretending that another editor is present.
   const hasConfirmedOtherEditor = status === 'blocked' && holder !== null;
   const canSave = canAttempt && !hasConfirmedOtherEditor;
+  const override = useMemo<ExamLeaseOverride | undefined>(() =>
+    canAttempt && user
+      ? {
+          lockedByUid: user.id,
+          lockedByName: user.firstName || user.username || 'Authorised editor',
+          leaseId: leaseIdRef.current,
+        }
+      : undefined,
+  [canAttempt, user]);
 
   return {
     canEdit: !!token,
@@ -124,5 +133,7 @@ export function useExamResultLease(examId: string) {
     status,
     holder,
     token,
+    canOverride: canAttempt && hasConfirmedOtherEditor,
+    override,
   };
 }

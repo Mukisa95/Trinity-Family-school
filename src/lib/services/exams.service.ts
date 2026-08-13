@@ -20,7 +20,7 @@ import {
   bumpExamDefinitionRevisionsInBatch,
   bumpExamResultRevisionInBatch,
 } from './dashboard-cache-revisions.service';
-import { ExamLeaseService, type ExamLeaseToken } from './exam-lease.service';
+import { ExamLeaseService, type ExamLeaseOverride, type ExamLeaseToken } from './exam-lease.service';
 
 export class ExamsService {
   private static readonly COLLECTION_NAME = 'exams';
@@ -489,7 +489,7 @@ export class ExamsService {
   static async updateExamResult(
     id: string,
     resultData: Partial<ExamResult>,
-    options?: { lease?: ExamLeaseToken },
+    options?: { lease?: ExamLeaseToken; overrideLease?: ExamLeaseOverride },
   ): Promise<{
     id: string;
     examId: string;
@@ -512,7 +512,13 @@ export class ExamsService {
 
       console.log('📝 Firestore updateExamResult - cleanedData.gradingScale:', cleanedData.gradingScale);
 
-      if (options?.lease) {
+      if (options?.overrideLease) {
+        await runTransaction(db, async transaction => {
+          transaction.update(resultRef, cleanedData);
+          bumpExamResultRevisionInBatch(transaction, period.academicYearId, period.termId);
+          ExamLeaseService.claimForOverrideSave(resultData.examId!, options.overrideLease!, transaction);
+        });
+      } else if (options?.lease) {
         await runTransaction(db, async transaction => {
           await ExamLeaseService.verifyForSave(resultData.examId!, options.lease!, transaction);
           transaction.update(resultRef, cleanedData);
