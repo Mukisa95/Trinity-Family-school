@@ -8,12 +8,22 @@ import {
   query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { CommentTemplate } from '@/types';
 
 const COLLECTION_NAME = 'commentTemplates';
+const TERM_TEMPLATE_IDS = ['term_1', 'term_2', 'term_3'];
+
+function normalizeTermTemplateId(termId: string): string {
+  const normalized = termId.toLowerCase().replace(/[\s_-]/g, '');
+  if (normalized === 't1' || normalized === 'term1') return 'term_1';
+  if (normalized === 't2' || normalized === 'term2') return 'term_2';
+  if (normalized === 't3' || normalized === 'term3') return 'term_3';
+  return termId;
+}
 
 function getTermAliases(termId?: string): string[] {
   if (!termId) return [];
@@ -192,6 +202,56 @@ export const commentaryService = {
     } catch (error) {
       console.error('Error updating comment template:', error);
       throw new Error('Failed to update comment template');
+    }
+  },
+
+  // Split a shared subject template before editing one term. Both the edited
+  // term copy and the original template's remaining term coverage are written
+  // together, so an edit cannot leak into another term.
+  async createTermScopedCommentTemplate(
+    source: CommentTemplate,
+    editedTemplate: Omit<CommentTemplate, 'id' | 'createdAt' | 'updatedAt'>,
+    termId: string,
+  ): Promise<string> {
+    if (source.type !== 'subject') {
+      throw new Error('Only subject comments can be edited for one term.');
+    }
+
+    try {
+      const selectedTerm = normalizeTermTemplateId(termId);
+      const sourceTerms = !source.applicableTerms?.length || source.applicableTerms.includes('all')
+        ? TERM_TEMPLATE_IDS
+        : Array.from(new Set(source.applicableTerms
+          .filter((term) => term !== 'all')
+          .map(normalizeTermTemplateId)));
+      const remainingTerms = sourceTerms.filter((term) => term !== selectedTerm);
+
+      if (remainingTerms.length === 0) {
+        throw new Error('This template is already limited to the selected term.');
+      }
+
+      const now = Timestamp.now();
+      const newTemplateRef = doc(collection(db, COLLECTION_NAME));
+      const cleanTemplate = Object.fromEntries(
+        Object.entries({ ...editedTemplate, applicableTerms: [selectedTerm] }).filter(([_, value]) => value !== undefined),
+      );
+      const batch = writeBatch(db);
+
+      batch.update(doc(db, COLLECTION_NAME, source.id), {
+        applicableTerms: remainingTerms,
+        updatedAt: now,
+      });
+      batch.set(newTemplateRef, {
+        ...cleanTemplate,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await batch.commit();
+      return newTemplateRef.id;
+    } catch (error) {
+      console.error('Error creating term-scoped comment template:', error);
+      throw new Error('Failed to create a term-specific comment template');
     }
   },
 

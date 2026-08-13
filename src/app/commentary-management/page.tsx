@@ -21,6 +21,7 @@ import { CommentTemplate, SubjectCommentType, SubjectStatus } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { SUBJECT_COMMENT_TYPES, SUBJECT_STATUS_OPTIONS, getSubjectLabel } from '@/lib/constants/subject-comments';
 import { useClasses } from '@/lib/hooks/use-classes';
+import { commentaryService } from '@/services/commentaryService';
 
 // Comment interface
 interface CommentItem {
@@ -149,6 +150,7 @@ export default function CommentaryManagementPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editingTermScope, setEditingTermScope] = useState<string | undefined>();
 
   // Push feature state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -176,6 +178,15 @@ export default function CommentaryManagementPage() {
   // Subject-based comment filters
   const [filterClass, setFilterClass] = useState<string>('all');
   const [filterTerm, setFilterTerm] = useState<string>('all');
+  const [expandedSubjectCommentGroups, setExpandedSubjectCommentGroups] = useState<Set<string>>(new Set());
+
+  const toggleSubjectCommentGroup = (groupKey: string) => {
+    setExpandedSubjectCommentGroups((previous) => {
+      const next = new Set(previous);
+      next.has(groupKey) ? next.delete(groupKey) : next.add(groupKey);
+      return next;
+    });
+  };
 
   // Continuous creation mode - form stays open after saving
   const [continuousMode, setContinuousMode] = useState(false);
@@ -221,8 +232,9 @@ export default function CommentaryManagementPage() {
     let saved = 0, failed = 0;
     const classTargets = pushTargetClasses.length === 0 ? [undefined] : pushTargetClasses.map(id => id);
     try {
+      const termTargets = pushTargetTerms.includes('all') ? ['all'] : pushTargetTerms;
       await Promise.all(commentsToPush.flatMap(c =>
-        classTargets.map(async (cid) => {
+        classTargets.flatMap((cid) => termTargets.map(async (termId) => {
           try {
             await addTemplate({
               type: 'subject',
@@ -231,11 +243,12 @@ export default function CommentaryManagementPage() {
               comment: c.comment,
               isActive: true,
               classId: cid,
-              applicableTerms: pushTargetTerms,
+              // A separate template for each chosen term keeps later edits isolated.
+              applicableTerms: [termId],
             });
             saved++;
           } catch { failed++; }
-        })
+        }))
       ));
       toast({ title: 'Push complete', description: `${saved} comment${saved !== 1 ? 's' : ''} pushed.${failed > 0 ? ` ${failed} failed.` : ''}` });
       if (failed === 0) { setSelectedIds(new Set()); setIsPushModalOpen(false); }
@@ -434,6 +447,7 @@ export default function CommentaryManagementPage() {
 
   const handleEditComment = (comment: CommentTemplate) => {
     setSelectedComment(comment);
+    setEditingTermScope(comment.type === 'subject' && filterTerm !== 'all' ? filterTerm : undefined);
     setIsEditModalOpen(true);
   };
 
@@ -459,6 +473,37 @@ export default function CommentaryManagementPage() {
 
   const handleUpdateComment = async (updatedComment: CommentTemplate) => {
     try {
+      const isEditingSharedCommentForOneTerm =
+        updatedComment.type === 'subject' &&
+        !!editingTermScope &&
+        !!selectedComment &&
+        (!selectedComment.applicableTerms?.length ||
+          selectedComment.applicableTerms.includes('all') ||
+          selectedComment.applicableTerms.length > 1);
+
+      if (isEditingSharedCommentForOneTerm && selectedComment && editingTermScope) {
+        await commentaryService.createTermScopedCommentTemplate(
+          selectedComment,
+          {
+            status: updatedComment.status,
+            type: updatedComment.type,
+            comment: updatedComment.comment,
+            isActive: updatedComment.isActive,
+            subject: updatedComment.subject,
+            subjectStatus: updatedComment.subjectStatus,
+            classId: updatedComment.classId,
+            applicableTerms: [editingTermScope],
+          },
+          editingTermScope,
+        );
+        await fetchAllTemplates();
+        setIsEditModalOpen(false);
+        setSelectedComment(null);
+        setEditingTermScope(undefined);
+        toast({ title: 'Term comment saved', description: 'Your edit applies only to this term.' });
+        return;
+      }
+
       const updateData: any = {
         comment: updatedComment.comment,
         type: updatedComment.type,
@@ -497,6 +542,7 @@ export default function CommentaryManagementPage() {
       await updateTemplate(updatedComment.id, updateData);
       setIsEditModalOpen(false);
       setSelectedComment(null);
+      setEditingTermScope(undefined);
     } catch (error) {
       // Error is already handled in the hook
     }
@@ -823,7 +869,7 @@ export default function CommentaryManagementPage() {
                                   {classKey === 'general' && (
                                     <p className="text-xs font-medium text-gray-500 mb-1">General (All Nursery Classes)</p>
                                   )}
-                                  {comments.map((comment: CommentTemplate) => (
+                                  {comments.slice(0, expandedSubjectCommentGroups.has(`${subjectKey}_${classKey}`) ? comments.length : 1).map((comment: CommentTemplate) => (
                                     <div key={comment.id} className="flex items-start gap-1">
                                       <Checkbox
                                         checked={selectedIds.has(comment.id)}
@@ -835,6 +881,24 @@ export default function CommentaryManagementPage() {
                                       </div>
                                     </div>
                                   ))}
+                                  {comments.length > 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="mt-1 h-7 px-1.5 text-xs text-violet-700 hover:text-violet-900"
+                                      onClick={() => toggleSubjectCommentGroup(`${subjectKey}_${classKey}`)}
+                                    >
+                                      {expandedSubjectCommentGroups.has(`${subjectKey}_${classKey}`) ? (
+                                        <ChevronDown className="mr-1 h-3.5 w-3.5" />
+                                      ) : (
+                                        <ChevronRight className="mr-1 h-3.5 w-3.5" />
+                                      )}
+                                      {expandedSubjectCommentGroups.has(`${subjectKey}_${classKey}`)
+                                        ? 'Hide additional comments'
+                                        : `Show ${comments.length - 1} more comment${comments.length === 2 ? '' : 's'}`}
+                                    </Button>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -1104,8 +1168,10 @@ export default function CommentaryManagementPage() {
           onClose={() => {
             setIsEditModalOpen(false);
             setSelectedComment(null);
+            setEditingTermScope(undefined);
           }}
           onSave={handleUpdateComment}
+          termScope={editingTermScope}
         />
       )}
 

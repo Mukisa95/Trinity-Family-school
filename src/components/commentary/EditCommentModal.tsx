@@ -17,8 +17,9 @@ import { toast } from '@/hooks/use-toast';
 interface EditCommentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (comment: CommentTemplate) => void;
+  onSave: (comment: CommentTemplate) => void | Promise<void>;
   comment: CommentTemplate | null;
+  termScope?: string;
 }
 
 const statusLabels = {
@@ -42,7 +43,7 @@ const TERM_OPTIONS = [
   { value: 'term_3', label: 'Term 3' },
 ];
 
-export function EditCommentModal({ isOpen, onClose, onSave, comment }: EditCommentModalProps) {
+export function EditCommentModal({ isOpen, onClose, onSave, comment, termScope }: EditCommentModalProps) {
   const [editedComment, setEditedComment] = useState<CommentTemplate | null>(null);
   // For subject comments, allow pushing to multiple classes
   const [targetClassIds, setTargetClassIds] = useState<string[]>([]);
@@ -53,11 +54,11 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment }: EditComme
 
   useEffect(() => {
     if (comment) {
-      setEditedComment({ ...comment });
+      setEditedComment({ ...comment, applicableTerms: termScope ? [termScope] : comment.applicableTerms });
       // Pre-select current classId if it exists
       setTargetClassIds(comment.classId ? [comment.classId] : []);
     }
-  }, [comment]);
+  }, [comment, termScope]);
 
   const handleSave = async () => {
     if (!editedComment) return;
@@ -68,7 +69,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment }: EditComme
       try {
         // Update existing template for the first target (or general)
         const firstClassId = targetClassIds[0] ?? undefined;
-        onSave({ ...editedComment, classId: firstClassId });
+        await onSave({ ...editedComment, classId: firstClassId, applicableTerms: termScope ? [termScope] : editedComment.applicableTerms });
 
         // Create new copies for remaining classes
         for (let i = 1; i < targetClassIds.length; i++) {
@@ -79,7 +80,7 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment }: EditComme
             comment: editedComment.comment,
             isActive: editedComment.isActive,
             classId: targetClassIds[i],
-            applicableTerms: editedComment.applicableTerms,
+            applicableTerms: termScope ? [termScope] : editedComment.applicableTerms,
           });
         }
         toast({ title: 'Saved', description: `Comment updated across ${targetClassIds.length} classes.` });
@@ -91,7 +92,16 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment }: EditComme
     } else {
       // Single class or general
       const resolvedClassId = targetClassIds.length === 1 ? targetClassIds[0] : undefined;
-      onSave({ ...editedComment, classId: editedComment.type === 'subject' ? resolvedClassId : editedComment.classId });
+      setIsSaving(true);
+      try {
+        await onSave({
+          ...editedComment,
+          classId: editedComment.type === 'subject' ? resolvedClassId : editedComment.classId,
+          applicableTerms: termScope && editedComment.type === 'subject' ? [termScope] : editedComment.applicableTerms,
+        });
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -256,27 +266,33 @@ export function EditCommentModal({ isOpen, onClose, onSave, comment }: EditComme
               </div>
 
               {/* Applicable Terms */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Applicable Terms</label>
-                <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
-                  <div className="flex flex-wrap gap-4">
-                    {TERM_OPTIONS.map((t) => (
-                      <label key={t.value} className="flex items-center gap-2 cursor-pointer select-none">
-                        <Checkbox
-                          checked={
-                            t.value === 'all'
-                              ? (editedComment.applicableTerms?.includes('all') || !editedComment.applicableTerms || editedComment.applicableTerms.length === 0)
-                              : editedComment.applicableTerms?.includes(t.value)
-                          }
-                          disabled={t.value !== 'all' && editedComment.applicableTerms?.includes('all')}
-                          onCheckedChange={(checked) => toggleTerm(t.value, !!checked)}
-                        />
-                        <span className="text-sm">{t.label}</span>
-                      </label>
-                    ))}
+              {termScope ? (
+                <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800">
+                  This edit applies only to {TERM_OPTIONS.find((term) => term.value === termScope)?.label || termScope}. Other terms will keep their current comment.
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Applicable Terms</label>
+                  <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <div className="flex flex-wrap gap-4">
+                      {TERM_OPTIONS.map((t) => (
+                        <label key={t.value} className="flex items-center gap-2 cursor-pointer select-none">
+                          <Checkbox
+                            checked={
+                              t.value === 'all'
+                                ? (editedComment.applicableTerms?.includes('all') || !editedComment.applicableTerms || editedComment.applicableTerms.length === 0)
+                                : editedComment.applicableTerms?.includes(t.value)
+                            }
+                            disabled={t.value !== 'all' && editedComment.applicableTerms?.includes('all')}
+                            onCheckedChange={(checked) => toggleTerm(t.value, !!checked)}
+                          />
+                          <span className="text-sm">{t.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
