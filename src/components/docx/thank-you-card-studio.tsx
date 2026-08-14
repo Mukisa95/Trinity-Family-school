@@ -115,7 +115,7 @@ function A4Sheet({
           {side === 'front' ? 'Fronts' : 'Reverse sides'}
         </Badge>
       </div>
-      <div className="docx-a4-sheet" data-docx-page={pageNumber}>
+      <div className="docx-a4-sheet">
         <ThankYouCardFace pupil={pair[0]} schoolBadge={schoolBadge} side={side} />
         <div className="docx-cut-line" aria-hidden="true" />
         <ThankYouCardFace pupil={pair[1]} schoolBadge={schoolBadge} side={side} />
@@ -148,32 +148,46 @@ async function createDuplexPdfBlob() {
 
   for (let index = 0; index < sheets.length; index += 1) {
     const sheet = sheets[index];
-    const pageNumber = sheet.dataset.docxPage;
+    const bounds = sheet.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      throw new Error('A DocX page could not be measured for the print preview.');
+    }
+    const captureScale = Math.min(3, Math.max(2, 2244 / bounds.width));
     const canvas = await html2canvas(sheet, {
-      scale: 2,
+      scale: captureScale,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',
       logging: false,
       imageTimeout: 20_000,
-      windowWidth: 1400,
-      windowHeight: 900,
-      onclone: (clonedDocument) => {
-        const clonedSheet = clonedDocument.querySelector<HTMLElement>(`[data-docx-page="${pageNumber}"]`);
-        if (!clonedSheet) return;
-        Object.assign(clonedSheet.style, {
-          width: '1122px',
-          maxWidth: 'none',
-          height: '794px',
-          aspectRatio: 'auto',
-          margin: '0',
-          boxShadow: 'none',
-        });
-      },
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height),
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
     });
 
     if (index > 0) pdf.addPage('a4', 'landscape');
-    pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
+    const pageWidth = 297;
+    const pageHeight = 210;
+    const canvasAspect = canvas.width / canvas.height;
+    let renderedWidth = pageWidth;
+    let renderedHeight = renderedWidth / canvasAspect;
+    if (renderedHeight > pageHeight) {
+      renderedHeight = pageHeight;
+      renderedWidth = renderedHeight * canvasAspect;
+    }
+    const offsetX = (pageWidth - renderedWidth) / 2;
+    const offsetY = (pageHeight - renderedHeight) / 2;
+    pdf.addImage(
+      canvas.toDataURL('image/jpeg', 0.98),
+      'JPEG',
+      offsetX,
+      offsetY,
+      renderedWidth,
+      renderedHeight,
+      undefined,
+      'FAST',
+    );
     canvas.width = 0;
     canvas.height = 0;
   }
