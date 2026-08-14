@@ -54,7 +54,7 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
     title: "Overview",
     description: "Dashboard, timetable, and calendar access.",
     groups: [
-      { id: "dashboard", title: "Dashboard", scopes: [{ id: "dashboard", title: "Dashboard", description: "Overview statistics and reports.", moduleId: "reports" }] },
+      { id: "dashboard", title: "Dashboard", scopes: [{ id: "dashboard", title: "Dashboard", description: "Overview statistics and reports.", moduleId: "reports", pageIds: ["dashboard"] }] },
       { id: "timetable", title: "Timetable", scopes: [{ id: "timetable", title: "Timetable", description: "School timetable and live tracking.", moduleId: "timetable" }] },
       { id: "events", title: "Events & Calendar", scopes: [{ id: "events", title: "Events & Calendar", description: "School events and calendar entries.", moduleId: "events" }] },
     ],
@@ -88,6 +88,7 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
         ],
       },
       { id: "exams", title: "Exams", scopes: [{ id: "exams", title: "Exams", description: "Exams and results.", moduleId: "exams" }] },
+      { id: "docx", title: "DocX", scopes: [{ id: "docx", title: "DocX", description: "Create personalised printable pupil documents.", moduleId: "reports", pageIds: ["docx"] }] },
       { id: "duty-service", title: "Duty & Service", scopes: [{ id: "duty-service", title: "Duty & Service", description: "Duty and service records.", moduleId: "duty_service" }] },
     ],
   },

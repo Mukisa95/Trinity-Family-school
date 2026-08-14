@@ -534,6 +534,16 @@ export const MODULE_ACTIONS = {
           { id: 'export_reports', name: 'Export reports', description: 'Can export reports' },
           { id: 'print_reports', name: 'Print reports', description: 'Can print reports' }
         ]
+      },
+      {
+        page: 'docx',
+        path: '/docx',
+        name: 'DocX',
+        actions: [
+          { id: 'view_documents', name: 'View documents', description: 'Can open the document studio' },
+          { id: 'select_pupils', name: 'Select pupils', description: 'Can select pupils for personalised documents' },
+          { id: 'print_documents', name: 'Print documents', description: 'Can print personalised pupil documents' }
+        ]
       }
     ]
   },
