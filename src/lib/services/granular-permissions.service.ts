@@ -23,6 +23,11 @@ export class GranularPermissionService {
     // broad/legacy Pupil permissions must never expose it accidentally.
     if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
 
+    // DocX is admin-only by default. Non-admin staff can receive access only
+    // through an explicit granular page grant above; legacy Reports access is
+    // intentionally not broad enough to expose personalised pupil documents.
+    if (moduleId === 'reports' && pageId === 'docx') return false;
+
     // Fallback to legacy permissions
     if (user.modulePermissions) {
       const modulePerms = user.modulePermissions.find(m => m.module === moduleId);
@@ -55,6 +60,8 @@ export class GranularPermissionService {
     // Historical seeding is deliberately opt-in for non-admin users. Existing
     // broad/legacy Pupil permissions must never expose it accidentally.
     if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
+
+    if (moduleId === 'reports' && pageId === 'docx') return false;
 
     // Fallback to legacy permissions with mapping
     if (user.modulePermissions) {
@@ -171,6 +178,7 @@ export class GranularPermissionService {
               moduleId: modulePerm.module,
               pages: moduleActions.pages
                 .filter(page => !(modulePerm.module === 'pupils' && page.page === 'historical_seeding'))
+                .filter(page => !(modulePerm.module === 'reports' && page.page === 'docx'))
                 .map(page => ({
                 pageId: page.page,
                 canAccess: true, // Legacy permissions grant access to all pages in module

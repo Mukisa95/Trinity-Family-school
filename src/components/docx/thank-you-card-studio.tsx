@@ -173,6 +173,30 @@ function drawImageContain(
   context.drawImage(image, x, y, image.naturalWidth * scale, image.naturalHeight * scale);
 }
 
+function drawPhotoFallback(
+  context: CanvasRenderingContext2D,
+  pupil: Pupil,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const gradient = context.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, '#d1fae5');
+  gradient.addColorStop(0.55, '#fef3c7');
+  gradient.addColorStop(1, '#fee2e2');
+  context.fillStyle = gradient;
+  context.fillRect(x, y, width, height);
+
+  context.save();
+  context.fillStyle = '#047857';
+  context.font = `900 ${Math.min(width, height) * 0.24}px Arial, sans-serif`;
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText(pupilInitials(pupil), x + width / 2, y + height / 2);
+  context.restore();
+}
+
 async function loadPrintableImage(source: string) {
   const absoluteSource = new URL(source, window.location.href).href;
   const existingImage = Array.from(document.images).find((image) => image.currentSrc === absoluteSource || image.src === absoluteSource);
@@ -252,20 +276,26 @@ function drawCardToCanvas({
   if (side === 'front') {
     const photo = pupil.photo ? images.get(pupil.photo) : undefined;
     const badge = images.get(schoolBadge);
-    if (!photo || !badge) throw new Error('A pupil photo or school badge is unavailable.');
+    if (!badge) throw new Error('The school badge is unavailable.');
 
     const photoWidth = cardWidth * CARD_LAYOUT.photo.width;
     const photoHeight = cardHeight * CARD_LAYOUT.photo.height;
-    drawImageCover(
-      context,
-      photo,
-      cardX + cardWidth - (cardWidth * CARD_LAYOUT.photo.right) - photoWidth,
-      cardHeight * CARD_LAYOUT.photo.top,
-      photoWidth,
-      photoHeight,
-      CARD_LAYOUT.photo.positionX,
-      CARD_LAYOUT.photo.positionY,
-    );
+    const photoX = cardX + cardWidth - (cardWidth * CARD_LAYOUT.photo.right) - photoWidth;
+    const photoY = cardHeight * CARD_LAYOUT.photo.top;
+    if (photo) {
+      drawImageCover(
+        context,
+        photo,
+        photoX,
+        photoY,
+        photoWidth,
+        photoHeight,
+        CARD_LAYOUT.photo.positionX,
+        CARD_LAYOUT.photo.positionY,
+      );
+    } else {
+      drawPhotoFallback(context, pupil, photoX, photoY, photoWidth, photoHeight);
+    }
     context.drawImage(artwork, cardX, 0, cardWidth, cardHeight);
 
     const badgeX = cardX + cardWidth * CARD_LAYOUT.badge.left;
@@ -302,12 +332,23 @@ async function createDuplexPdfBlob(pairs: CardPair[], schoolBadge: string) {
   if (pairs.length === 0) throw new Error('There are no DocX pages to preview.');
 
   const { default: jsPDF } = await import('jspdf');
-  const imageSources = new Set<string>([FRONT_ARTWORK, BACK_ARTWORK, schoolBadge]);
+  const essentialSources = [FRONT_ARTWORK, BACK_ARTWORK, schoolBadge];
+  const photoSources = new Set<string>();
   pairs.forEach((pair) => pair.forEach((pupil) => {
-    if (pupil?.photo) imageSources.add(pupil.photo);
+    if (pupil?.photo) photoSources.add(pupil.photo);
   }));
-  const loadedImages = await Promise.all(Array.from(imageSources, async (source) => [source, await loadPrintableImage(source)] as const));
-  const images = new Map<string, HTMLImageElement>(loadedImages);
+  const loadedEssentialImages = await Promise.all(essentialSources.map(async (source) => [source, await loadPrintableImage(source)] as const));
+  const loadedPhotoImages = await Promise.all(Array.from(photoSources, async (source) => {
+    try {
+      return [source, await loadPrintableImage(source)] as const;
+    } catch {
+      return null;
+    }
+  }));
+  const images = new Map<string, HTMLImageElement>([
+    ...loadedEssentialImages,
+    ...loadedPhotoImages.filter((entry): entry is readonly [string, HTMLImageElement] => entry !== null),
+  ]);
   const nameStyle = getCanvasNameStyle();
   const canvas = document.createElement('canvas');
   canvas.width = PDF_PAGE_WIDTH_PX;
@@ -434,7 +475,7 @@ export function ThankYouCardStudio() {
   };
 
   const handlePrint = async () => {
-    if (selectedPupils.length === 0 || missingPhotoCount > 0) return;
+    if (selectedPupils.length === 0) return;
     setIsPreparingPrint(true);
     try {
       await document.fonts?.ready;
@@ -463,9 +504,8 @@ export function ThankYouCardStudio() {
           actions={(
             <Button
               onClick={handlePrint}
-              disabled={selectedPupils.length === 0 || missingPhotoCount > 0 || isPreparingPrint}
+              disabled={selectedPupils.length === 0 || isPreparingPrint}
               className="min-h-11 bg-emerald-700 px-5 text-white shadow-sm hover:bg-emerald-800"
-              title={missingPhotoCount > 0 ? 'Every selected pupil needs a photo before printing.' : undefined}
             >
               {isPreparingPrint ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
               Print duplex set
@@ -629,7 +669,7 @@ export function ThankYouCardStudio() {
                 <div className="docx-screen-only mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>The school profile has no logo, so the small system badge fallback is being used. Add a high-resolution logo in About School for sharper printing.</span></div>
               )}
               {missingPhotoCount > 0 && (
-                <div className="docx-screen-only mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><ImageOff className="mt-0.5 h-4 w-4 shrink-0" /><span>{missingPhotoCount} selected pupil{missingPhotoCount === 1 ? ' is' : 's are'} missing a photo. Printing is paused until every selected pupil has an avatar.</span></div>
+                <div className="docx-screen-only mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><ImageOff className="mt-0.5 h-4 w-4 shrink-0" /><span>{missingPhotoCount} selected pupil{missingPhotoCount === 1 ? ' is' : 's are'} missing a photo. Their initials will be used, and the full selected batch can still be printed.</span></div>
               )}
 
               {pairs.length === 0 ? (
@@ -645,7 +685,7 @@ export function ThankYouCardStudio() {
                 </div>
               )}
 
-              {pairs.length > 0 && missingPhotoCount === 0 && (
+              {pairs.length > 0 && (
                 <div className="docx-screen-only mt-5 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" /><div><p className="font-semibold">Ready for duplex printing</p><p className="mt-1 text-emerald-800">Choose A4 landscape, two-sided printing, flip on the long edge, 100% scale, and no margins. Print one test pair before the full batch.</p></div></div>
               )}
             </CardContent>
