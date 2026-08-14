@@ -115,24 +115,28 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     console.log('⏳ Installing:', !!registration.installing);
     console.log('⏸️  Waiting:', !!registration.waiting);
 
-    // Listen for new service worker installations
+    const watchInstallingWorker = (newWorker: ServiceWorker) => {
+      newWorker.addEventListener('statechange', () => {
+        console.log('🔄 Service Worker state:', newWorker.state);
+
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('✅ New Service Worker installed - sending SKIP_WAITING');
+          // Tell the new SW to activate immediately (don't wait for tabs to close)
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+          // The controllerchange listener above will handle visible windows;
+          // sw.js refreshes only hidden/suspended app windows.
+        }
+      });
+    };
+
+    // Listen for new service worker installations. Also attach to an install
+    // that started during register(), before updatefound could be observed.
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
       console.log('🔄 Service Worker update found');
-
-      if (newWorker) {
-        newWorker.addEventListener('statechange', () => {
-          console.log('🔄 Service Worker state:', newWorker.state);
-
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('✅ New Service Worker installed - sending SKIP_WAITING');
-            // Tell the new SW to activate immediately (don't wait for tabs to close)
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
-            // The controllerchange listener above will handle the reload
-          }
-        });
-      }
+      if (newWorker) watchInstallingWorker(newWorker);
     });
+    if (registration.installing) watchInstallingWorker(registration.installing);
 
     // If there's already a waiting service worker, activate it immediately
     if (registration.waiting) {
@@ -141,21 +145,37 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       // The controllerchange listener will handle the reload
     }
 
-    // Check for updates frequently (every 5 minutes)
-    setInterval(() => {
+    let lastUpdateCheckAt = 0;
+    const checkForUpdate = (reason: string, force = false) => {
+      const now = Date.now();
+      if (!force && now - lastUpdateCheckAt < 10000) return;
+      lastUpdateCheckAt = now;
+      console.log(`🔄 Checking for Service Worker update (${reason})`);
       registration.update().catch(err => {
         console.warn('⚠️ Service Worker update check failed:', err);
       });
+    };
+
+    // register() can return an existing registration without immediately
+    // checking the network on every mobile browser. Force a check at startup.
+    checkForUpdate('startup', true);
+
+    // Check for updates frequently (every 5 minutes)
+    setInterval(() => {
+      checkForUpdate('interval');
     }, 5 * 60 * 1000);
 
-    // Also check for updates when the page becomes visible (user returns to app)
+    // Installed mobile apps are often resumed from a suspended page instead of
+    // receiving a fresh navigation, so cover every common resume signal.
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        console.log('🔄 Page became visible - checking for SW updates');
-        registration.update().catch(err => {
-          console.warn('⚠️ Service Worker update check failed:', err);
-        });
+        checkForUpdate('visible');
       }
+    });
+    window.addEventListener('focus', () => checkForUpdate('focus'));
+    window.addEventListener('online', () => checkForUpdate('online', true));
+    window.addEventListener('pageshow', (event) => {
+      checkForUpdate(event.persisted ? 'restored page' : 'page shown');
     });
 
     // 🔥 CRITICAL FOR MOBILE: Keep service worker alive with periodic pings

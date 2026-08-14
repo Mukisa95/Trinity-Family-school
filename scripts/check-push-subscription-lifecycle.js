@@ -59,9 +59,15 @@ for (const requirement of [
   ['browser subscription invalidation triggers authenticated reconciliation',
     serviceWorker.includes("addEventListener('pushsubscriptionchange'")
       && serviceWorkerRegistration.includes('trinity-push-subscription-invalidated')],
-  ['open installed PWAs use one controlled controller-change refresh owner',
+  ['visible PWAs use controller-change reloads while suspended PWAs are refreshed on activation',
     serviceWorkerRegistration.includes("addEventListener('controllerchange'")
-      && !serviceWorker.includes('client.navigate(client.url)')],
+      && serviceWorker.includes("client.visibilityState === 'hidden'")
+      && serviceWorker.includes('client.navigate(client.url)')],
+  ['installed PWAs check for updates at startup and on mobile resume signals',
+    serviceWorkerRegistration.includes("checkForUpdate('startup', true)")
+      && serviceWorkerRegistration.includes("addEventListener('visibilitychange'")
+      && serviceWorkerRegistration.includes("addEventListener('focus'")
+      && serviceWorkerRegistration.includes("addEventListener('pageshow'")],
   ['each deployment receives a unique service-worker cache version',
     swVersionScript.includes("const newVersion = `build-${timestamp.replace")],
   ['iOS users receive Add to Home Screen guidance', autoPrompt.includes('Add to Home Screen')],

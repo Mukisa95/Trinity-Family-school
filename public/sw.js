@@ -80,22 +80,29 @@ self.addEventListener('activate', (event) => {
         return self.clients.claim();
       })
       .then(() => {
-        // 🔔 Notify ALL clients that a new SW version is active so they can
-        // update their in-memory version banner / badge — but do NOT force a
-        // navigate() or reload here. The client-side register-service-worker.ts
-        // already handles the single controlled reload via the 'controllerchange'
-        // event. A second navigate() from the SW causes a double-reload that
-        // destroys React Query caches and Firestore listeners before they can
-        // re-establish, which makes the dashboard appear blank after a deploy.
+        // Notify every open client. Visible windows use the client-side
+        // controllerchange listener for one controlled reload. Mobile PWAs can
+        // remain as hidden/suspended WindowClients and miss that event, so only
+        // those hidden clients are navigated here. This refreshes a resumed app
+        // without reintroducing the double reload that affected visible pages.
         return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-          clients.forEach(client => {
+          const refreshes = clients.map(client => {
             client.postMessage({
               type: 'SW_UPDATED',
               version: SW_VERSION,
               timestamp: Date.now()
             });
+
+            if (client.visibilityState === 'hidden' && 'navigate' in client) {
+              return client.navigate(client.url).catch((error) => {
+                console.warn('⚠️ Could not refresh suspended app client:', error);
+              });
+            }
+
+            return Promise.resolve();
           });
           console.log(`✅ Notified ${clients.length} client(s) about SW update to ${SW_VERSION}`);
+          return Promise.all(refreshes);
         });
       })
   );
