@@ -30,7 +30,7 @@ import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const FRONT_ARTWORK = '/Document%20Macro/766933ac-540b-4fc7-ae23-cf9dcd6e92df.png';
+const FRONT_ARTWORK = '/Document%20Macro/0d6ff135-4b7e-487e-b10a-137ae9782773.png';
 const BACK_ARTWORK = '/Document%20Macro/64503b0c-d32f-4dfc-a07f-d595a28ee3a4.png';
 const FALLBACK_BADGE = '/icons/trinity-badge-72.png';
 
@@ -91,6 +91,7 @@ function ThankYouCardFace({
       <img className="docx-card-artwork" src={FRONT_ARTWORK} alt="Thank-you card front artwork" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="docx-school-badge" src={schoolBadge} alt="School badge" />
+      <div className="docx-pupil-name" title={pupilName(pupil)}>{pupilName(pupil)}</div>
     </div>
   );
 }
@@ -503,10 +504,11 @@ export function ThankYouCardStudio() {
         .docx-a4-sheet { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 297mm; aspect-ratio: 297 / 210; margin: 0 auto; overflow: hidden; background: white; box-shadow: 0 18px 50px rgba(15, 23, 42, .18); }
         .docx-card-side { position: relative; min-width: 0; height: 100%; overflow: hidden; background: white; }
         .docx-card-artwork { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: fill; }
-        .docx-photo-window { position: absolute; z-index: 1; top: 0; right: 0; width: 69%; height: 69%; overflow: hidden; background: #f8fafc; }
-        .docx-pupil-photo { width: 100%; height: 100%; object-fit: cover; object-position: center 24%; }
+        .docx-photo-window { position: absolute; z-index: 1; top: 5.5%; right: 0; width: 56.5%; height: 62.5%; overflow: hidden; background: #f8fafc; }
+        .docx-pupil-photo { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 24%; }
         .docx-photo-fallback { display: grid; width: 100%; height: 100%; place-items: center; background: linear-gradient(145deg, #d1fae5, #fef3c7 55%, #fee2e2); color: #047857; font-size: clamp(28px, 5vw, 72px); font-weight: 900; }
         .docx-school-badge { position: absolute; z-index: 3; top: 4.2%; left: 4.7%; width: 34%; height: 36%; object-fit: contain; object-position: top left; filter: drop-shadow(0 2px 2px rgba(15, 23, 42, .08)); }
+        .docx-pupil-name { position: absolute; z-index: 3; top: 49.1%; left: 3.4%; display: flex; width: 47.6%; height: 3.5%; align-items: flex-end; justify-content: center; overflow: hidden; padding: 0 1.5% .35%; color: #047a43; font-size: clamp(8px, 1.3vw, 18px); font-weight: 800; line-height: 1; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
         .docx-cut-line { position: absolute; z-index: 5; top: 0; bottom: 0; left: 50%; border-left: .2mm dashed rgba(15, 23, 42, .35); pointer-events: none; }
         .docx-card-blank { background: white; }
 
