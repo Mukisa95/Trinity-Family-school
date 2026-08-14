@@ -25,6 +25,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PDFViewer } from '@/components/pdf/pdf-viewer';
+import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const FRONT_ARTWORK = '/Document%20Macro/766933ac-540b-4fc7-ae23-cf9dcd6e92df.png';
@@ -111,7 +114,7 @@ function A4Sheet({
           {side === 'front' ? 'Fronts' : 'Reverse sides'}
         </Badge>
       </div>
-      <div className="docx-a4-sheet">
+      <div className="docx-a4-sheet" data-docx-page={pageNumber}>
         <ThankYouCardFace pupil={pair[0]} schoolBadge={schoolBadge} side={side} />
         <div className="docx-cut-line" aria-hidden="true" />
         <ThankYouCardFace pupil={pair[1]} schoolBadge={schoolBadge} side={side} />
@@ -120,8 +123,8 @@ function A4Sheet({
   );
 }
 
-async function waitForPrintableImages() {
-  const images = Array.from(document.querySelectorAll<HTMLImageElement>('#docx-print-root img'));
+async function waitForPrintableImages(root: ParentNode = document) {
+  const images = Array.from(root.querySelectorAll<HTMLImageElement>('#docx-print-root img'));
   await Promise.all(images.map((image) => {
     if (image.complete) return Promise.resolve();
     return new Promise<void>((resolve) => {
@@ -129,6 +132,52 @@ async function waitForPrintableImages() {
       image.addEventListener('error', () => resolve(), { once: true });
     });
   }));
+}
+
+async function createDuplexPdfBlob() {
+  const sheets = Array.from(document.querySelectorAll<HTMLElement>('#docx-print-root .docx-a4-sheet'));
+  if (sheets.length === 0) throw new Error('There are no DocX pages to preview.');
+
+  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf'),
+  ]);
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+  pdf.setProperties({ title: 'DocX Thank You Cards', subject: 'Personalised duplex pupil thank-you cards' });
+
+  for (let index = 0; index < sheets.length; index += 1) {
+    const sheet = sheets[index];
+    const pageNumber = sheet.dataset.docxPage;
+    const canvas = await html2canvas(sheet, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      imageTimeout: 20_000,
+      windowWidth: 1400,
+      windowHeight: 900,
+      onclone: (clonedDocument) => {
+        const clonedSheet = clonedDocument.querySelector<HTMLElement>(`[data-docx-page="${pageNumber}"]`);
+        if (!clonedSheet) return;
+        Object.assign(clonedSheet.style, {
+          width: '1122px',
+          maxWidth: 'none',
+          height: '794px',
+          aspectRatio: 'auto',
+          margin: '0',
+          boxShadow: 'none',
+        });
+      },
+    });
+
+    if (index > 0) pdf.addPage('a4', 'landscape');
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  return pdf.output('blob');
 }
 
 export function ThankYouCardStudio() {
@@ -142,6 +191,8 @@ export function ThankYouCardStudio() {
   const [photoFilter, setPhotoFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const pdfViewer = usePDFViewer();
+  const { toast } = useToast();
 
   const schoolBadge = schoolSettings?.generalInfo?.logo || FALLBACK_BADGE;
   const isUsingFallbackBadge = !settingsLoading && !schoolSettings?.generalInfo?.logo;
@@ -222,7 +273,16 @@ export function ThankYouCardStudio() {
     try {
       await document.fonts?.ready;
       await waitForPrintableImages();
-      window.print();
+      const pdfBlob = await createDuplexPdfBlob();
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      pdfViewer.openPDFFromBlob(pdfBlob, `docx-thank-you-cards-${dateStamp}.pdf`, 'DocX Thank You Cards');
+    } catch (error) {
+      console.error('Unable to prepare DocX print preview:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Print preview could not be prepared',
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
     } finally {
       setIsPreparingPrint(false);
     }
@@ -426,6 +486,16 @@ export function ThankYouCardStudio() {
           </Card>
         </div>
       </div>
+
+      <PDFViewer
+        isOpen={pdfViewer.isOpen}
+        onClose={pdfViewer.closePDF}
+        pdfBlob={pdfViewer.pdfBlob}
+        fileName={pdfViewer.fileName}
+        title={pdfViewer.title}
+        showDownload
+        showPrint
+      />
 
       <style jsx global>{`
         .docx-sheet-block { width: 100%; }
