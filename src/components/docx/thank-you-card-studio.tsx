@@ -33,6 +33,14 @@ import { cn } from '@/lib/utils';
 const FRONT_ARTWORK = '/Document%20Macro/0d6ff135-4b7e-487e-b10a-137ae9782773.png';
 const BACK_ARTWORK = '/Document%20Macro/64503b0c-d32f-4dfc-a07f-d595a28ee3a4.png';
 const FALLBACK_BADGE = '/icons/trinity-badge-72.png';
+const PDF_PAGE_WIDTH_PX = 1980;
+const PDF_PAGE_HEIGHT_PX = 1400;
+
+const CARD_LAYOUT = {
+  photo: { top: 0.055, right: 0, width: 0.565, height: 0.625, positionX: 0.5, positionY: 0.24 },
+  badge: { top: 0.042, left: 0.047, width: 0.34, height: 0.36 },
+  name: { top: 0.491, left: 0.034, width: 0.476, height: 0.035 },
+} as const;
 
 type CardPair = [Pupil, Pupil?];
 type PrintSide = 'front' | 'back';
@@ -70,7 +78,7 @@ function ThankYouCardFace({
     return (
       <div className="docx-card-side" aria-label={`Reverse of ${pupilName(pupil)}'s thank-you card`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="docx-card-artwork" src={BACK_ARTWORK} alt="Thank-you card reverse artwork" />
+        <img className="docx-card-artwork" src={BACK_ARTWORK} alt="Thank-you card reverse artwork" crossOrigin="anonymous" />
       </div>
     );
   }
@@ -80,7 +88,7 @@ function ThankYouCardFace({
       <div className="docx-photo-window">
         {pupil.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img className="docx-pupil-photo" src={pupil.photo} alt={pupilName(pupil)} />
+          <img className="docx-pupil-photo" src={pupil.photo} alt={pupilName(pupil)} crossOrigin="anonymous" />
         ) : (
           <div className="docx-photo-fallback" aria-label={`${pupilName(pupil)} has no photo`}>
             <span>{pupilInitials(pupil)}</span>
@@ -88,9 +96,9 @@ function ThankYouCardFace({
         )}
       </div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="docx-card-artwork" src={FRONT_ARTWORK} alt="Thank-you card front artwork" />
+      <img className="docx-card-artwork" src={FRONT_ARTWORK} alt="Thank-you card front artwork" crossOrigin="anonymous" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="docx-school-badge" src={schoolBadge} alt="School badge" />
+      <img className="docx-school-badge" src={schoolBadge} alt="School badge" crossOrigin="anonymous" />
       <div className="docx-pupil-name" title={pupilName(pupil)}>{pupilName(pupil)}</div>
     </div>
   );
@@ -135,63 +143,206 @@ async function waitForPrintableImages(root: ParentNode = document) {
   }));
 }
 
-async function createDuplexPdfBlob() {
-  const sheets = Array.from(document.querySelectorAll<HTMLElement>('#docx-print-root .docx-a4-sheet'));
-  if (sheets.length === 0) throw new Error('There are no DocX pages to preview.');
+function drawImageCover(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  positionX: number,
+  positionY: number,
+) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  const sourceX = (image.naturalWidth - sourceWidth) * positionX;
+  const sourceY = (image.naturalHeight - sourceHeight) * positionY;
+  context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, x, y, width, height);
+}
 
-  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-    import('html2canvas'),
-    import('jspdf'),
-  ]);
+function drawImageContain(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+  context.drawImage(image, x, y, image.naturalWidth * scale, image.naturalHeight * scale);
+}
+
+async function loadPrintableImage(source: string) {
+  const absoluteSource = new URL(source, window.location.href).href;
+  const existingImage = Array.from(document.images).find((image) => image.currentSrc === absoluteSource || image.src === absoluteSource);
+  if (existingImage?.complete && existingImage.naturalWidth > 0) return existingImage;
+
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.decoding = 'async';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('A pupil photo or card image could not be loaded for printing.'));
+    image.src = absoluteSource;
+  });
+}
+
+function fitNameToWidth(context: CanvasRenderingContext2D, name: string, maximumWidth: number) {
+  if (context.measureText(name).width <= maximumWidth) return name;
+  let shortened = name;
+  while (shortened.length > 1 && context.measureText(`${shortened}…`).width > maximumWidth) {
+    shortened = shortened.slice(0, -1);
+  }
+  return `${shortened.trimEnd()}…`;
+}
+
+interface CanvasNameStyle {
+  color: string;
+  fontFamily: string;
+  fontSizeRatio: number;
+  fontStyle: string;
+  fontWeight: string;
+  paddingBottomRatio: number;
+}
+
+function getCanvasNameStyle(): CanvasNameStyle {
+  const nameElement = document.querySelector<HTMLElement>('.docx-pupil-name');
+  const cardElement = nameElement?.closest<HTMLElement>('.docx-card-side');
+  if (!nameElement || !cardElement) {
+    return { color: '#047a43', fontFamily: 'Arial, sans-serif', fontSizeRatio: 0.0225, fontStyle: 'normal', fontWeight: '800', paddingBottomRatio: 0.0025 };
+  }
+  const styles = window.getComputedStyle(nameElement);
+  const cardHeight = cardElement.getBoundingClientRect().height || 1;
+  return {
+    color: styles.color,
+    fontFamily: styles.fontFamily,
+    fontSizeRatio: Number.parseFloat(styles.fontSize) / cardHeight,
+    fontStyle: styles.fontStyle,
+    fontWeight: styles.fontWeight,
+    paddingBottomRatio: Number.parseFloat(styles.paddingBottom) / cardHeight,
+  };
+}
+
+function drawCardToCanvas({
+  context,
+  pupil,
+  side,
+  cardX,
+  cardWidth,
+  cardHeight,
+  images,
+  schoolBadge,
+  nameStyle,
+}: {
+  context: CanvasRenderingContext2D;
+  pupil?: Pupil;
+  side: PrintSide;
+  cardX: number;
+  cardWidth: number;
+  cardHeight: number;
+  images: Map<string, HTMLImageElement>;
+  schoolBadge: string;
+  nameStyle: CanvasNameStyle;
+}) {
+  if (!pupil) return;
+  const artwork = images.get(side === 'front' ? FRONT_ARTWORK : BACK_ARTWORK);
+  if (!artwork) throw new Error('The DocX card artwork is unavailable.');
+
+  if (side === 'front') {
+    const photo = pupil.photo ? images.get(pupil.photo) : undefined;
+    const badge = images.get(schoolBadge);
+    if (!photo || !badge) throw new Error('A pupil photo or school badge is unavailable.');
+
+    const photoWidth = cardWidth * CARD_LAYOUT.photo.width;
+    const photoHeight = cardHeight * CARD_LAYOUT.photo.height;
+    drawImageCover(
+      context,
+      photo,
+      cardX + cardWidth - (cardWidth * CARD_LAYOUT.photo.right) - photoWidth,
+      cardHeight * CARD_LAYOUT.photo.top,
+      photoWidth,
+      photoHeight,
+      CARD_LAYOUT.photo.positionX,
+      CARD_LAYOUT.photo.positionY,
+    );
+    context.drawImage(artwork, cardX, 0, cardWidth, cardHeight);
+
+    const badgeX = cardX + cardWidth * CARD_LAYOUT.badge.left;
+    const badgeY = cardHeight * CARD_LAYOUT.badge.top;
+    const badgeWidth = cardWidth * CARD_LAYOUT.badge.width;
+    const badgeHeight = cardHeight * CARD_LAYOUT.badge.height;
+    drawImageContain(context, badge, badgeX, badgeY, badgeWidth, badgeHeight);
+
+    const nameBoxX = cardX + cardWidth * CARD_LAYOUT.name.left;
+    const nameBoxY = cardHeight * CARD_LAYOUT.name.top;
+    const nameBoxWidth = cardWidth * CARD_LAYOUT.name.width;
+    const nameBoxHeight = cardHeight * CARD_LAYOUT.name.height;
+    const fontSize = cardHeight * nameStyle.fontSizeRatio;
+    context.save();
+    context.beginPath();
+    context.rect(nameBoxX, nameBoxY, nameBoxWidth, nameBoxHeight);
+    context.clip();
+    context.fillStyle = nameStyle.color;
+    context.font = `${nameStyle.fontStyle} ${nameStyle.fontWeight} ${fontSize}px ${nameStyle.fontFamily}`;
+    context.textAlign = 'center';
+    context.textBaseline = 'alphabetic';
+    const displayName = fitNameToWidth(context, pupilName(pupil), nameBoxWidth * 0.94);
+    const metrics = context.measureText(displayName);
+    const baseline = nameBoxY + nameBoxHeight - (cardHeight * nameStyle.paddingBottomRatio) - (metrics.actualBoundingBoxDescent || fontSize * 0.18);
+    context.fillText(displayName, nameBoxX + nameBoxWidth / 2, baseline);
+    context.restore();
+    return;
+  }
+
+  context.drawImage(artwork, cardX, 0, cardWidth, cardHeight);
+}
+
+async function createDuplexPdfBlob(pairs: CardPair[], schoolBadge: string) {
+  if (pairs.length === 0) throw new Error('There are no DocX pages to preview.');
+
+  const { default: jsPDF } = await import('jspdf');
+  const imageSources = new Set<string>([FRONT_ARTWORK, BACK_ARTWORK, schoolBadge]);
+  pairs.forEach((pair) => pair.forEach((pupil) => {
+    if (pupil?.photo) imageSources.add(pupil.photo);
+  }));
+  const loadedImages = await Promise.all(Array.from(imageSources, async (source) => [source, await loadPrintableImage(source)] as const));
+  const images = new Map<string, HTMLImageElement>(loadedImages);
+  const nameStyle = getCanvasNameStyle();
+  const canvas = document.createElement('canvas');
+  canvas.width = PDF_PAGE_WIDTH_PX;
+  canvas.height = PDF_PAGE_HEIGHT_PX;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('The browser could not create the DocX print canvas.');
+
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
   pdf.setProperties({ title: 'DocX Thank You Cards', subject: 'Personalised duplex pupil thank-you cards' });
 
-  for (let index = 0; index < sheets.length; index += 1) {
-    const sheet = sheets[index];
-    const bounds = sheet.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) {
-      throw new Error('A DocX page could not be measured for the print preview.');
+  let pageIndex = 0;
+  for (const pair of pairs) {
+    for (const side of ['front', 'back'] as const) {
+      if (pageIndex > 0) pdf.addPage('a4', 'landscape');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      const cardWidth = canvas.width / 2;
+      drawCardToCanvas({ context, pupil: pair[0], side, cardX: 0, cardWidth, cardHeight: canvas.height, images, schoolBadge, nameStyle });
+      drawCardToCanvas({ context, pupil: pair[1], side, cardX: cardWidth, cardWidth, cardHeight: canvas.height, images, schoolBadge, nameStyle });
+      context.save();
+      context.setLineDash([6, 6]);
+      context.strokeStyle = 'rgba(15, 23, 42, 0.28)';
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(cardWidth, 0);
+      context.lineTo(cardWidth, canvas.height);
+      context.stroke();
+      context.restore();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
+      pageIndex += 1;
     }
-    const captureScale = Math.min(3, Math.max(2, 2244 / bounds.width));
-    const canvas = await html2canvas(sheet, {
-      scale: captureScale,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#ffffff',
-      logging: false,
-      imageTimeout: 20_000,
-      width: Math.round(bounds.width),
-      height: Math.round(bounds.height),
-      windowWidth: window.innerWidth,
-      windowHeight: window.innerHeight,
-    });
-
-    if (index > 0) pdf.addPage('a4', 'landscape');
-    const pageWidth = 297;
-    const pageHeight = 210;
-    const canvasAspect = canvas.width / canvas.height;
-    let renderedWidth = pageWidth;
-    let renderedHeight = renderedWidth / canvasAspect;
-    if (renderedHeight > pageHeight) {
-      renderedHeight = pageHeight;
-      renderedWidth = renderedHeight * canvasAspect;
-    }
-    const offsetX = (pageWidth - renderedWidth) / 2;
-    const offsetY = (pageHeight - renderedHeight) / 2;
-    pdf.addImage(
-      canvas.toDataURL('image/jpeg', 0.98),
-      'JPEG',
-      offsetX,
-      offsetY,
-      renderedWidth,
-      renderedHeight,
-      undefined,
-      'FAST',
-    );
-    canvas.width = 0;
-    canvas.height = 0;
   }
 
+  canvas.width = 0;
+  canvas.height = 0;
   return pdf.output('blob');
 }
 
@@ -288,7 +439,7 @@ export function ThankYouCardStudio() {
     try {
       await document.fonts?.ready;
       await waitForPrintableImages();
-      const pdfBlob = await createDuplexPdfBlob();
+      const pdfBlob = await createDuplexPdfBlob(pairs, schoolBadge);
       const dateStamp = new Date().toISOString().slice(0, 10);
       pdfViewer.openPDFFromBlob(pdfBlob, `docx-thank-you-cards-${dateStamp}.pdf`, 'DocX Thank You Cards');
     } catch (error) {
@@ -518,11 +669,11 @@ export function ThankYouCardStudio() {
         .docx-a4-sheet { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 100%; max-width: 297mm; aspect-ratio: 297 / 210; margin: 0 auto; overflow: hidden; background: white; box-shadow: 0 18px 50px rgba(15, 23, 42, .18); }
         .docx-card-side { position: relative; min-width: 0; height: 100%; overflow: hidden; background: white; }
         .docx-card-artwork { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; object-fit: fill; }
-        .docx-photo-window { position: absolute; z-index: 1; top: 5.5%; right: 0; width: 56.5%; height: 62.5%; overflow: hidden; background: #f8fafc; }
-        .docx-pupil-photo { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 24%; }
+        .docx-photo-window { position: absolute; z-index: 1; top: ${CARD_LAYOUT.photo.top * 100}%; right: ${CARD_LAYOUT.photo.right * 100}%; width: ${CARD_LAYOUT.photo.width * 100}%; height: ${CARD_LAYOUT.photo.height * 100}%; overflow: hidden; background: #f8fafc; }
+        .docx-pupil-photo { display: block; width: 100%; height: 100%; object-fit: cover; object-position: ${CARD_LAYOUT.photo.positionX * 100}% ${CARD_LAYOUT.photo.positionY * 100}%; }
         .docx-photo-fallback { display: grid; width: 100%; height: 100%; place-items: center; background: linear-gradient(145deg, #d1fae5, #fef3c7 55%, #fee2e2); color: #047857; font-size: clamp(28px, 5vw, 72px); font-weight: 900; }
-        .docx-school-badge { position: absolute; z-index: 3; top: 4.2%; left: 4.7%; width: 34%; height: 36%; object-fit: contain; object-position: top left; filter: drop-shadow(0 2px 2px rgba(15, 23, 42, .08)); }
-        .docx-pupil-name { position: absolute; z-index: 3; top: 49.1%; left: 3.4%; display: flex; width: 47.6%; height: 3.5%; align-items: flex-end; justify-content: center; overflow: hidden; padding: 0 1.5% .35%; color: #047a43; font-size: clamp(8px, 1.3vw, 18px); font-weight: 800; line-height: 1; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+        .docx-school-badge { position: absolute; z-index: 3; top: ${CARD_LAYOUT.badge.top * 100}%; left: ${CARD_LAYOUT.badge.left * 100}%; width: ${CARD_LAYOUT.badge.width * 100}%; height: ${CARD_LAYOUT.badge.height * 100}%; object-fit: contain; object-position: top left; filter: drop-shadow(0 2px 2px rgba(15, 23, 42, .08)); }
+        .docx-pupil-name { position: absolute; z-index: 3; top: ${CARD_LAYOUT.name.top * 100}%; left: ${CARD_LAYOUT.name.left * 100}%; display: flex; width: ${CARD_LAYOUT.name.width * 100}%; height: ${CARD_LAYOUT.name.height * 100}%; align-items: flex-end; justify-content: center; overflow: hidden; padding: 0 1.5% .35%; color: #047a43; font-size: clamp(8px, 1.3vw, 18px); font-weight: 800; line-height: 1; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
         .docx-cut-line { position: absolute; z-index: 5; top: 0; bottom: 0; left: 50%; border-left: .2mm dashed rgba(15, 23, 42, .35); pointer-events: none; }
         .docx-card-blank { background: white; }
 
