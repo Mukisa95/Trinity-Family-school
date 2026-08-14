@@ -81,12 +81,6 @@ export const navItems: NavigationItem[] = [
     section: 'Academics',
   },
   {
-    title: 'DocX',
-    href: '/docx',
-    icon: Files,
-    section: 'Academics',
-  },
-  {
     title: 'Duty & Service',
     href: '/duty-service',
     icon: Shield,
@@ -148,6 +142,11 @@ export const navItems: NavigationItem[] = [
         title: 'Push Notifications',
         href: '/push-notifications',
         icon: Bell,
+      },
+      {
+        title: 'DocX',
+        href: '/docx',
+        icon: Files,
       },
       {
         title: 'WhatsApp Group',

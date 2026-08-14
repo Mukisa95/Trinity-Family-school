@@ -88,7 +88,6 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
         ],
       },
       { id: "exams", title: "Exams", scopes: [{ id: "exams", title: "Exams", description: "Exams and results.", moduleId: "exams" }] },
-      { id: "docx", title: "DocX", scopes: [{ id: "docx", title: "DocX", description: "Create personalised printable pupil documents.", moduleId: "reports", pageIds: ["docx"] }] },
       { id: "duty-service", title: "Duty & Service", scopes: [{ id: "duty-service", title: "Duty & Service", description: "Duty and service records.", moduleId: "duty_service" }] },
     ],
   },
@@ -127,6 +126,7 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
         scopes: [
           { id: "bulk-sms", title: "Bulk SMS", description: "Bulk SMS messaging.", moduleId: "bulk_sms" },
           { id: "push-notifications", title: "Push Notifications", description: "In-system notification delivery.", moduleId: "notifications" },
+          { id: "docx", title: "DocX", description: "Create personalised printable pupil documents.", moduleId: "reports", pageIds: ["docx"] },
           { id: "commentary", title: "Internal Commentary", description: "Internal commentary and notices.", moduleId: "commentary" },
         ],
       },
