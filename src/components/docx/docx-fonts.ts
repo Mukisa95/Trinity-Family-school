@@ -148,7 +148,7 @@ export async function ensureDocXTemplateFontsLoaded(template: CustomPhotoTemplat
   template.pages.forEach((page) => {
     page.layers.forEach((layer) => {
       if (layer.kind === 'text' && !layer.hidden) {
-        requests.add(`${layer.fontWeight || 400} 48px ${quoteFontFamily(layer.fontFamily || 'Arial')}`);
+        requests.add(`${layer.fontStyle || 'normal'} ${layer.fontWeight || 400} 48px ${quoteFontFamily(layer.fontFamily || 'Arial')}`);
       }
     });
   });

@@ -7,6 +7,8 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type Dispatch,
+  type SetStateAction,
 } from 'react';
 import {
   AlignCenter,
@@ -14,19 +16,23 @@ import {
   AlignRight,
   ArrowDown,
   ArrowUp,
+  Bold,
   Building2,
   Check,
+  ChevronDown,
   ChevronsUpDown,
   ChevronLeft,
+  ChevronRight,
   CircleUserRound,
   Copy,
+  Columns2,
   Crop,
   Eye,
   EyeOff,
   FileImage,
   FilePlus2,
   ImagePlus,
-  ImageUp,
+  Italic,
   Layers3,
   LayoutGrid,
   Loader2,
@@ -35,15 +41,20 @@ import {
   PanelRight,
   Plus,
   Printer,
+  Redo2,
   RotateCcw,
   Save,
   Search,
   Trash2,
   Type,
+  Underline,
+  Undo2,
   Unlock,
   Users,
   WandSparkles,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import type { AcademicYear, Pupil } from '@/types';
 import type { SchoolSettings } from '@/types';
@@ -97,6 +108,7 @@ import {
   pupilDisplayName,
 } from './custom-photo-renderer';
 import {
+  applyTextCase,
   DYNAMIC_FIELD_OPTIONS,
   PAPER_SIZE_OPTIONS,
   createBlankPage,
@@ -106,6 +118,8 @@ import {
   createTextLayer,
   makeStudioId,
   getPaperDimensions,
+  getLayerColumnIndex,
+  isPupilDataLayer,
   normalizeCustomPhotoTemplate,
   resolvePupilField,
   templateUsesFees,
@@ -118,6 +132,7 @@ import {
   type PaperSize,
   type RenderPupilData,
   type SchoolDocumentInfo,
+  type TextCase,
 } from './custom-photo-types';
 
 const TEMPLATE_STORAGE_KEY = 'trinity-docx-custom-photo-templates-v1';
@@ -135,6 +150,12 @@ interface CustomPhotoStudioProps {
   schoolSettings?: SchoolSettings | null;
   schoolBadge?: string;
   onClose: () => void;
+}
+
+interface TemplateHistoryState {
+  past: CustomPhotoTemplate[];
+  present: CustomPhotoTemplate;
+  future: CustomPhotoTemplate[];
 }
 
 interface FeeDataBridgeProps {
@@ -329,7 +350,7 @@ function StudioLayer({
   if (layer.hidden) return null;
   const source = layer.kind === 'avatar' ? data?.pupil.photo : layer.kind === 'schoolLogo' ? data?.school?.logo : layer.source;
   const value = layer.kind === 'text'
-    ? (layer.field && data ? resolvePupilField(layer.field, data) : layer.text || 'Your message here')
+    ? applyTextCase(layer.field && data ? resolvePupilField(layer.field, data) : layer.text || 'Your message here', layer.textCase)
     : '';
 
   return (
@@ -349,7 +370,7 @@ function StudioLayer({
         top: `${layer.y * 100}%`,
         width: `${layer.width * 100}%`,
         height: `${layer.height * 100}%`,
-        transform: `rotate(${layer.rotation}deg)`,
+        transform: layer.kind === 'text' ? `rotate(${layer.rotation}deg)` : undefined,
         opacity: layer.opacity,
       }}
     >
@@ -363,6 +384,8 @@ function StudioLayer({
             fontFamily: layer.fontFamily,
             fontSize: `${layer.fontSize / 10}cqw`,
             fontWeight: layer.fontWeight,
+            fontStyle: layer.fontStyle,
+            textDecoration: layer.underline ? 'underline' : 'none',
             lineHeight: layer.lineHeight,
             textAlign: layer.textAlign,
             whiteSpace: 'pre-wrap',
@@ -390,7 +413,7 @@ function StudioLayer({
                 alt=""
                 draggable={false}
                 className="h-full w-full"
-                style={{ objectFit: layer.imageFit, transform: `scale(${layer.imageZoom}) translate(${layer.imageOffsetX * 20}%, ${layer.imageOffsetY * 20}%)` }}
+                style={{ objectFit: layer.imageFit, transform: `translate(${layer.imageOffsetX * 20}%, ${layer.imageOffsetY * 20}%) scale(${layer.imageZoom}) rotate(${layer.rotation}deg)` }}
               />
             ) : (
               <div className="grid h-full w-full place-items-center bg-slate-200 text-[5cqw] font-black text-slate-500">
@@ -421,10 +444,34 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const canvasRef = useRef<HTMLDivElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const imageLayerInputRef = useRef<HTMLInputElement>(null);
+  const historyGroupRef = useRef(false);
+  const historyGroupRecordedRef = useRef(false);
   const [stage, setStage] = useState<'design' | 'output'>('design');
-  const [template, setTemplate] = useState<CustomPhotoTemplate>(() => createBlankTemplate());
+  const [templateHistory, setTemplateHistory] = useState<TemplateHistoryState>(() => ({
+    past: [],
+    present: createBlankTemplate(),
+    future: [],
+  }));
+  const template = templateHistory.present;
+  const setTemplate = useCallback<Dispatch<SetStateAction<CustomPhotoTemplate>>>((action) => {
+    setTemplateHistory((history) => {
+      const next = typeof action === 'function'
+        ? (action as (previous: CustomPhotoTemplate) => CustomPhotoTemplate)(history.present)
+        : action;
+      if (next === history.present) return history;
+      const recordSnapshot = !historyGroupRef.current || !historyGroupRecordedRef.current;
+      if (historyGroupRef.current) historyGroupRecordedRef.current = true;
+      return {
+        past: recordSnapshot ? [...history.past, history.present].slice(-80) : history.past,
+        present: next,
+        future: [],
+      };
+    });
+  }, []);
   const [activePageId, setActivePageId] = useState<string>(() => template.pages[0].id);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(() => template.pages[0].layers[0]?.id || null);
+  const [expandedPageIds, setExpandedPageIds] = useState<Set<string>>(() => new Set([template.pages[0].id]));
+  const [canvasZoom, setCanvasZoom] = useState(1);
   const [savedTemplates, setSavedTemplates] = useState<CustomPhotoTemplate[]>([]);
   const [selectedPupilIds, setSelectedPupilIds] = useState<Set<string>>(new Set());
   const [pupilSearch, setPupilSearch] = useState('');
@@ -464,8 +511,13 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     () => pupils.filter((pupil) => selectedPupilIds.has(pupil.id)),
     [pupils, selectedPupilIds],
   );
-  const previewPupil = selectedPupils[0] || pupils.find((pupil) => pupil.status === 'Active') || pupils[0];
-  const previewData = previewPupil ? { pupil: previewPupil, fees: feesByPupil[previewPupil.id], school: schoolInfo } : undefined;
+  const previewPupils = useMemo(() => {
+    const fallbackPupils = pupils.filter((pupil) => pupil.status === 'Active');
+    const source = selectedPupils.length > 0 ? selectedPupils : (fallbackPupils.length > 0 ? fallbackPupils : pupils);
+    return source.slice(0, Math.max(1, template.pageColumns || 1));
+  }, [pupils, selectedPupils, template.pageColumns]);
+  const previewPupil = previewPupils[0];
+  const previewRenderData = previewPupils.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school: schoolInfo }));
   const usesFees = templateUsesFees(template);
   const classOptions = useMemo(() => Array.from(new Map(
     pupils.filter((pupil) => pupil.classId).map((pupil) => [pupil.classId, pupil.className || pupil.classCode || 'Unnamed class']),
@@ -480,9 +532,33 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     });
   }, [classFilter, pupilSearch, pupils, statusFilter]);
   const allFilteredSelected = filteredPupils.length > 0 && filteredPupils.every((pupil) => selectedPupilIds.has(pupil.id));
-  const estimatedPages = estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage);
+  const estimatedPages = estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage, template.pageColumns);
   const marginXPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectWidth) * 100, 0, 45);
   const marginYPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectHeight) * 100, 0, 45);
+
+  const undoTemplate = useCallback(() => {
+    setTemplateHistory((history) => {
+      const previous = history.past.at(-1);
+      if (!previous) return history;
+      return {
+        past: history.past.slice(0, -1),
+        present: previous,
+        future: [history.present, ...history.future].slice(0, 80),
+      };
+    });
+  }, []);
+
+  const redoTemplate = useCallback(() => {
+    setTemplateHistory((history) => {
+      const next = history.future[0];
+      if (!next) return history;
+      return {
+        past: [...history.past, history.present].slice(-80),
+        present: next,
+        future: history.future.slice(1),
+      };
+    });
+  }, []);
 
   useEffect(() => {
     try {
@@ -506,6 +582,28 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
       setSelectedLayerId(currentPage.layers[0]?.id || null);
     }
   }, [currentPage, selectedLayerId]);
+
+  useEffect(() => {
+    if (!template.pages.some((page) => page.id === activePageId)) {
+      setActivePageId(template.pages[0].id);
+      setSelectedLayerId(template.pages[0].layers[0]?.id || null);
+    }
+  }, [activePageId, template.pages]);
+
+  useEffect(() => {
+    const handleHistoryShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, [contenteditable="true"]')) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+      if (key !== 'z' && key !== 'y') return;
+      event.preventDefault();
+      if (key === 'y' || event.shiftKey) redoTemplate();
+      else undoTemplate();
+    };
+    window.addEventListener('keydown', handleHistoryShortcut);
+    return () => window.removeEventListener('keydown', handleHistoryShortcut);
+  }, [redoTemplate, undoTemplate]);
 
   const updateCurrentPage = useCallback((updater: (page: CustomPhotoPage) => CustomPhotoPage) => {
     setTemplate((previous) => ({
@@ -541,24 +639,36 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const addLayer = (layer: CustomPhotoLayer) => {
     updateCurrentPage((page) => ({ ...page, layers: [...page.layers, layer] }));
     setSelectedLayerId(layer.id);
+    setExpandedPageIds((previous) => new Set(previous).add(activePageId));
   };
 
-  const removeSelectedLayer = () => {
-    if (!selectedLayerId) return;
-    updateCurrentPage((page) => ({ ...page, layers: page.layers.filter((layer) => layer.id !== selectedLayerId) }));
-    setSelectedLayerId(null);
+  const updatePageById = useCallback((pageId: string, updater: (page: CustomPhotoPage) => CustomPhotoPage) => {
+    setTemplate((previous) => ({
+      ...previous,
+      pages: previous.pages.map((page) => page.id === pageId ? updater(page) : page),
+      updatedAt: new Date().toISOString(),
+    }));
+  }, [setTemplate]);
+
+  const removeLayer = (pageId: string, layerId: string) => {
+    updatePageById(pageId, (page) => ({ ...page, layers: page.layers.filter((layer) => layer.id !== layerId) }));
+    if (selectedLayerId === layerId) setSelectedLayerId(null);
   };
 
-  const duplicateSelectedLayer = () => {
-    if (!selectedLayer) return;
-    const copy = { ...selectedLayer, id: makeStudioId(selectedLayer.kind), label: `${selectedLayer.label} copy`, x: clamp(selectedLayer.x + 0.03, 0, 0.94), y: clamp(selectedLayer.y + 0.03, 0, 0.94) };
-    addLayer(copy);
+  const duplicateLayer = (pageId: string, layerId: string) => {
+    const page = template.pages.find((item) => item.id === pageId);
+    const layer = page?.layers.find((item) => item.id === layerId);
+    if (!layer) return;
+    const copy = { ...layer, id: makeStudioId(layer.kind), label: `${layer.label} copy`, x: clamp(layer.x + 0.03, 0, 0.94), y: clamp(layer.y + 0.03, 0, 0.94) };
+    updatePageById(pageId, (item) => ({ ...item, layers: [...item.layers, copy] }));
+    setActivePageId(pageId);
+    setSelectedLayerId(copy.id);
+    setExpandedPageIds((previous) => new Set(previous).add(pageId));
   };
 
-  const moveLayerOrder = (direction: -1 | 1) => {
-    if (!selectedLayerId) return;
-    updateCurrentPage((page) => {
-      const index = page.layers.findIndex((layer) => layer.id === selectedLayerId);
+  const moveLayerOrder = (pageId: string, layerId: string, direction: -1 | 1) => {
+    updatePageById(pageId, (page) => {
+      const index = page.layers.findIndex((layer) => layer.id === layerId);
       const next = clamp(index + direction, 0, page.layers.length - 1);
       if (index < 0 || index === next) return page;
       const layers = [...page.layers];
@@ -583,6 +693,8 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const initial = { x: layer.x, y: layer.y, width: layer.width, height: layer.height };
     const pointerId = event.pointerId;
     event.currentTarget.setPointerCapture?.(pointerId);
+    historyGroupRef.current = true;
+    historyGroupRecordedRef.current = false;
 
     const onMove = (moveEvent: PointerEvent) => {
       const dx = (moveEvent.clientX - startX) / bounds.width;
@@ -598,17 +710,21 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
         const maxWidth = layer.constrainToPage ? 1 - initial.x : 1.5;
         const maxHeight = layer.constrainToPage ? 1 - initial.y : 1.5;
         updateLayer(layer.id, {
-          width: clamp(initial.width + dx, 0.04, maxWidth),
-          height: clamp(initial.height + dy, 0.04, maxHeight),
+          width: clamp(initial.width + dx, 0.005, maxWidth),
+          height: clamp(initial.height + dy, 0.005, maxHeight),
         });
       }
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      historyGroupRef.current = false;
+      historyGroupRecordedRef.current = false;
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp, { once: true });
+    window.addEventListener('pointercancel', onUp, { once: true });
   };
 
   const importBackground = async (file?: File) => {
@@ -635,24 +751,54 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     setTemplate((previous) => ({ ...previous, pages: [...previous.pages, page], updatedAt: new Date().toISOString() }));
     setActivePageId(page.id);
     setSelectedLayerId(page.layers[0]?.id || null);
+    setExpandedPageIds((previous) => new Set(previous).add(page.id));
   };
 
-  const duplicatePage = () => {
-    if (!currentPage) return;
-    const copy = cloneTemplate({ ...template, pages: [currentPage] }).pages[0];
+  const duplicatePage = (pageId: string) => {
+    const sourceIndex = template.pages.findIndex((page) => page.id === pageId);
+    const source = template.pages[sourceIndex];
+    if (!source) return;
+    const copy = cloneTemplate({ ...template, pages: [source] }).pages[0];
     copy.id = makeStudioId('page');
-    copy.name = `${currentPage.name} copy`;
+    copy.name = `${source.name} copy`;
     copy.layers = copy.layers.map((layer) => ({ ...layer, id: makeStudioId(layer.kind) }));
-    setTemplate((previous) => ({ ...previous, pages: [...previous.pages, copy], updatedAt: new Date().toISOString() }));
+    setTemplate((previous) => {
+      const pages = [...previous.pages];
+      pages.splice(sourceIndex + 1, 0, copy);
+      return { ...previous, pages, updatedAt: new Date().toISOString() };
+    });
     setActivePageId(copy.id);
     setSelectedLayerId(copy.layers[0]?.id || null);
+    setExpandedPageIds((previous) => new Set(previous).add(copy.id));
   };
 
-  const removePage = () => {
-    if (template.pages.length <= 1 || !currentPage) return;
-    const remaining = template.pages.filter((page) => page.id !== currentPage.id);
+  const removePage = (pageId: string) => {
+    if (template.pages.length <= 1) return;
+    const removedIndex = template.pages.findIndex((page) => page.id === pageId);
+    const remaining = template.pages.filter((page) => page.id !== pageId);
     setTemplate((previous) => ({ ...previous, pages: remaining, updatedAt: new Date().toISOString() }));
-    setActivePageId(remaining[0].id);
+    if (activePageId === pageId) {
+      const nextPage = remaining[Math.min(Math.max(removedIndex, 0), remaining.length - 1)];
+      setActivePageId(nextPage.id);
+      setSelectedLayerId(nextPage.layers[0]?.id || null);
+    }
+    setExpandedPageIds((previous) => {
+      const next = new Set(previous);
+      next.delete(pageId);
+      return next;
+    });
+  };
+
+  const movePageOrder = (pageId: string, direction: -1 | 1) => {
+    setTemplate((previous) => {
+      const index = previous.pages.findIndex((page) => page.id === pageId);
+      const nextIndex = clamp(index + direction, 0, previous.pages.length - 1);
+      if (index < 0 || index === nextIndex) return previous;
+      const pages = [...previous.pages];
+      const [page] = pages.splice(index, 1);
+      pages.splice(nextIndex, 0, page);
+      return { ...previous, pages, updatedAt: new Date().toISOString() };
+    });
   };
 
   const saveTemplate = () => {
@@ -746,6 +892,10 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             <button type="button" onClick={() => setStage('design')} className={cn('rounded-full px-3 py-1.5 text-xs font-bold transition-colors', stage === 'design' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500')}>1. Design</button>
             <button type="button" onClick={() => setStage('output')} className={cn('rounded-full px-3 py-1.5 text-xs font-bold transition-colors', stage === 'output' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500')}>2. Pupils & output</button>
           </div>
+          <div className="flex rounded-full border border-slate-200 bg-white p-0.5 shadow-sm">
+            <Button type="button" variant="ghost" size="icon" disabled={templateHistory.past.length === 0} onClick={undoTemplate} className="h-8 w-8 rounded-full" title="Undo (Ctrl+Z)" aria-label="Undo"><Undo2 className="h-3.5 w-3.5" /></Button>
+            <Button type="button" variant="ghost" size="icon" disabled={templateHistory.future.length === 0} onClick={redoTemplate} className="h-8 w-8 rounded-full" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><Redo2 className="h-3.5 w-3.5" /></Button>
+          </div>
           <Button onClick={saveTemplate} variant="outline" size="sm" className="rounded-full"><Save className="mr-1.5 h-3.5 w-3.5" />Save</Button>
           <Button onClick={() => setStage('output')} size="sm" className="rounded-full bg-violet-700 hover:bg-violet-800">Create documents <PanelRight className="ml-1.5 h-3.5 w-3.5" /></Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full"><X className="h-4 w-4" /><span className="sr-only">Close editor</span></Button>
@@ -754,34 +904,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
         {stage === 'design' ? (
           <main className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[250px_minmax(460px,1fr)_300px] lg:overflow-hidden">
             <aside className="border-r border-slate-200 bg-white/75 p-3 lg:overflow-y-auto">
-              <div className="mb-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-3">
-                <div className="mb-2 flex items-start gap-2">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-violet-700 shadow-sm"><ImageUp className="h-4 w-4" /></span>
-                  <div><p className="text-xs font-black text-violet-950">Start with your artwork</p><p className="mt-0.5 text-[10px] leading-4 text-violet-700">Import any JPG, PNG or WebP image as this page’s template background.</p></div>
-                </div>
-                <Button type="button" onClick={() => backgroundInputRef.current?.click()} className="h-9 w-full bg-violet-700 text-xs font-bold hover:bg-violet-800"><ImagePlus className="mr-1.5 h-4 w-4" />Import template image</Button>
-              </div>
-              <div className="mb-3 flex items-center justify-between">
-                <div><p className="text-xs font-black text-slate-800">Pages</p><p className="text-[10px] text-slate-500">Each becomes a front, back, or follow-on page.</p></div>
-                <Button size="icon" variant="outline" onClick={addPage} className="h-8 w-8 rounded-lg"><Plus className="h-3.5 w-3.5" /></Button>
-              </div>
-              <div className="space-y-1.5">
-                {template.pages.map((page, index) => (
-                  <button key={page.id} type="button" onClick={() => setActivePageId(page.id)} className={cn('flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors', activePageId === page.id ? 'border-violet-300 bg-violet-50 text-violet-900' : 'border-transparent bg-slate-50 text-slate-600 hover:border-slate-200')}>
-                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-[10px] font-black shadow-sm">{index + 1}</span>
-                    <span className="min-w-0 flex-1 truncate text-xs font-bold">{page.name}</span>
-                    {page.background && <FileImage className="h-3.5 w-3.5 text-emerald-600" />}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex gap-1.5">
-                <Button size="sm" variant="ghost" onClick={duplicatePage} className="h-8 flex-1 text-[10px]"><Copy className="mr-1 h-3 w-3" />Duplicate</Button>
-                <Button size="sm" variant="ghost" disabled={template.pages.length <= 1} onClick={removePage} className="h-8 text-[10px] text-rose-600"><Trash2 className="h-3 w-3" /></Button>
-              </div>
-
-              <div className="my-4 h-px bg-slate-200" />
               <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5"><p className="text-xs font-black text-slate-800">Layers</p><Badge variant="secondary" className="text-[9px]">{currentPage?.layers.length || 0}</Badge></div>
+                <div><p className="text-xs font-black text-slate-800">Pages & layers</p><p className="text-[10px] text-slate-500">Arrange the document in one place.</p></div>
+                <Button size="icon" variant="outline" onClick={addPage} className="h-8 w-8 shrink-0 rounded-lg" title="Add page" aria-label="Add page"><Plus className="h-3.5 w-3.5" /></Button>
+              </div>
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" onClick={() => backgroundInputRef.current?.click()} className="h-8 justify-start px-2 text-[10px]"><ImagePlus className="mr-1.5 h-3.5 w-3.5" />Template</Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild><Button size="sm" className="h-8 rounded-lg bg-violet-700 px-2.5 text-[10px] font-bold hover:bg-violet-800"><Plus className="mr-1 h-3.5 w-3.5" />Add layer</Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
@@ -806,49 +934,108 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="space-y-1">
-                {[...(currentPage?.layers || [])].reverse().map((layer) => (
-                  <button key={layer.id} type="button" onClick={() => setSelectedLayerId(layer.id)} className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left', selectedLayerId === layer.id ? 'bg-violet-100 text-violet-900' : 'text-slate-600 hover:bg-slate-100')}>
-                    {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5" /> : layer.kind === 'schoolLogo' ? <Building2 className="h-3.5 w-3.5" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5" /> : <Type className="h-3.5 w-3.5" />}
-                    <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{layer.label}</span>
-                    {layer.hidden && <EyeOff className="h-3 w-3" />}
-                    {layer.locked && <Lock className="h-3 w-3" />}
-                  </button>
-                ))}
+              <div className="space-y-2">
+                {template.pages.map((page, pageIndex) => {
+                  const expanded = expandedPageIds.has(page.id);
+                  return (
+                    <div key={page.id} className={cn('overflow-hidden rounded-xl border transition-colors', activePageId === page.id ? 'border-violet-300 bg-violet-50/70' : 'border-slate-200 bg-white')}>
+                      <div className="flex items-center gap-1 p-1.5">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => setExpandedPageIds((previous) => { const next = new Set(previous); if (next.has(page.id)) next.delete(page.id); else next.add(page.id); return next; })} className="h-7 w-7 shrink-0" aria-label={expanded ? `Collapse ${page.name}` : `Expand ${page.name}`}>{expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</Button>
+                        <button type="button" onClick={() => { setActivePageId(page.id); setSelectedLayerId(null); setExpandedPageIds((previous) => new Set(previous).add(page.id)); }} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[10px] font-black shadow-sm">{pageIndex + 1}</span>
+                          <span className="min-w-0 flex-1 truncate text-[11px] font-bold text-slate-700">{page.name}</span>
+                          {page.background && <FileImage className="h-3.5 w-3.5 shrink-0 text-emerald-600" />}
+                        </button>
+                        <div className="flex shrink-0 items-center">
+                          <Button type="button" variant="ghost" size="icon" disabled={pageIndex === 0} onClick={() => movePageOrder(page.id, -1)} className="h-7 w-6" title="Move page up" aria-label="Move page up"><ArrowUp className="h-3 w-3" /></Button>
+                          <Button type="button" variant="ghost" size="icon" disabled={pageIndex === template.pages.length - 1} onClick={() => movePageOrder(page.id, 1)} className="h-7 w-6" title="Move page down" aria-label="Move page down"><ArrowDown className="h-3 w-3" /></Button>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => duplicatePage(page.id)} className="h-7 w-6" title="Duplicate page" aria-label="Duplicate page"><Copy className="h-3 w-3" /></Button>
+                          <Button type="button" variant="ghost" size="icon" disabled={template.pages.length <= 1} onClick={() => removePage(page.id)} className="h-7 w-6 text-rose-600" title="Delete page" aria-label="Delete page"><Trash2 className="h-3 w-3" /></Button>
+                        </div>
+                      </div>
+                      {expanded && (
+                        <div className="space-y-1 border-t border-slate-200/80 bg-white/75 p-1.5">
+                          {page.layers.length === 0 && <p className="px-2 py-2 text-center text-[10px] text-slate-400">No layers on this page</p>}
+                          {[...page.layers].reverse().map((layer) => {
+                            const layerIndex = page.layers.findIndex((item) => item.id === layer.id);
+                            return (
+                              <div key={layer.id} className={cn('flex items-center gap-1 rounded-lg px-1 py-1', activePageId === page.id && selectedLayerId === layer.id ? 'bg-violet-100 text-violet-900' : 'text-slate-600 hover:bg-slate-100')}>
+                                <button type="button" onClick={() => { setActivePageId(page.id); setSelectedLayerId(layer.id); }} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                                  {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'schoolLogo' ? <Building2 className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5 shrink-0" /> : <Type className="h-3.5 w-3.5 shrink-0" />}
+                                  <span className="min-w-0 flex-1 truncate text-[10px] font-semibold">{layer.label}</span>
+                                  {isPupilDataLayer(layer) && <span className={cn('rounded px-1 py-0.5 text-[8px] font-black uppercase', layer.pupilDataMode === 'follow' ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700')}>{layer.pupilDataMode === 'follow' ? 'Fol' : 'Dup'}</span>}
+                                  {layer.hidden && <EyeOff className="h-3 w-3 shrink-0" />}
+                                  {layer.locked && <Lock className="h-3 w-3 shrink-0" />}
+                                </button>
+                                <div className="flex shrink-0 items-center">
+                                  <Button type="button" variant="ghost" size="icon" disabled={layerIndex === page.layers.length - 1} onClick={() => moveLayerOrder(page.id, layer.id, 1)} className="h-6 w-5" title="Bring forward" aria-label="Bring layer forward"><ArrowUp className="h-3 w-3" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" disabled={layerIndex === 0} onClick={() => moveLayerOrder(page.id, layer.id, -1)} className="h-6 w-5" title="Send backward" aria-label="Send layer backward"><ArrowDown className="h-3 w-3" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => duplicateLayer(page.id, layer.id)} className="h-6 w-5" title="Duplicate layer" aria-label="Duplicate layer"><Copy className="h-3 w-3" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" onClick={() => removeLayer(page.id, layer.id)} className="h-6 w-5 text-rose-600" title="Delete layer" aria-label="Delete layer"><Trash2 className="h-3 w-3" /></Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className="mt-2 grid grid-cols-4 gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-full" disabled={!selectedLayer} onClick={() => moveLayerOrder(1)} title="Bring forward"><ArrowUp className="h-3.5 w-3.5" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-full" disabled={!selectedLayer} onClick={() => moveLayerOrder(-1)} title="Send backward"><ArrowDown className="h-3.5 w-3.5" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-full" disabled={!selectedLayer} onClick={duplicateSelectedLayer} title="Duplicate"><Copy className="h-3.5 w-3.5" /></Button>
-                <Button variant="outline" size="icon" className="h-8 w-full text-rose-600" disabled={!selectedLayer} onClick={removeSelectedLayer} title="Delete"><Trash2 className="h-3.5 w-3.5" /></Button>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Page setup</p>
+                <Input value={template.name} onChange={(event) => setTemplate((previous) => ({ ...previous, name: event.target.value }))} className="mb-2 h-8 bg-white text-xs font-bold" aria-label="Template name" />
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Document size</span><Select value={template.paperSize} onValueChange={(value) => applyPageFormat(value as PaperSize, template.pageOrientation)}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.map((size) => <SelectItem key={size.value} value={size.value}>{size.label}{size.value !== 'custom' ? ` · ${size.widthMm} × ${size.heightMm} mm` : ''}</SelectItem>)}</SelectContent></Select></label>
+                  <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Orientation</span><Select value={template.pageOrientation} onValueChange={(value) => applyPageFormat(template.paperSize, value as CustomPhotoTemplate['pageOrientation'])}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent></Select></label>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <NumberInput label="Safe margin" value={template.pageMarginMm} min={0} max={50} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, pageMarginMm: value }))} />
+                  <div className="rounded-lg border border-violet-100 bg-violet-50 px-2 py-1.5"><p className="text-[9px] font-semibold text-violet-500">Canvas</p><p className="mt-1 text-[10px] font-black text-violet-800">{template.aspectWidth} × {template.aspectHeight} mm</p></div>
+                </div>
+                {template.paperSize === 'custom' && <div className="mt-2 grid grid-cols-2 gap-2"><NumberInput label="Custom width" value={template.aspectWidth} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectWidth: value }))} /><NumberInput label="Custom height" value={template.aspectHeight} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectHeight: value }))} /></div>}
+                <div className="mt-2 grid grid-cols-2 gap-2"><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Background fit</span><Select value={currentPage?.backgroundFit} onValueChange={(value) => updateCurrentPage((page) => ({ ...page, backgroundFit: value as CustomPhotoPage['backgroundFit'] }))}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Cover</SelectItem><SelectItem value="contain">Contain</SelectItem><SelectItem value="stretch">Stretch</SelectItem></SelectContent></Select></label><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page colour</span><Input type="color" value={currentPage?.backgroundColor || '#ffffff'} onChange={(event) => updateCurrentPage((page) => ({ ...page, backgroundColor: event.target.value }))} className="h-8 bg-white p-1" /></label></div>
               </div>
+
+              <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/80 p-3">
+                <div className="mb-2 flex items-center gap-2"><span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-cyan-700 shadow-sm"><Columns2 className="h-3.5 w-3.5" /></span><div><p className="text-[10px] font-black uppercase tracking-wider text-cyan-900">Page splitter</p><p className="text-[9px] text-cyan-700">Equal pupil columns across every page</p></div></div>
+                <div className="grid grid-cols-6 gap-1 rounded-lg bg-white/80 p-1">
+                  {[1, 2, 3, 4, 5, 6].map((count) => <Button key={count} type="button" variant={template.pageColumns === count ? 'secondary' : 'ghost'} size="sm" onClick={() => setTemplate((previous) => ({ ...previous, pageColumns: count }))} className={cn('h-8 px-0 text-[10px] font-black', template.pageColumns === count && 'bg-cyan-100 text-cyan-800 hover:bg-cyan-100')}>{count}</Button>)}
+                </div>
+                <p className="mt-2 text-[9px] leading-3.5 text-cyan-700">Place pupil layers inside a column, then choose <strong>Dup</strong> for the same pupil or <strong>Fol</strong> to follow the selected pupil list.</p>
+              </div>
+
+              {savedTemplates.length > 0 && <div className="mt-3"><p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">Saved on this device</p><Select onValueChange={loadTemplate}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Open saved template" /></SelectTrigger><SelectContent>{savedTemplates.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>}
+              <input ref={backgroundInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importBackground(event.target.files?.[0]); event.target.value = ''; }} />
+              <input ref={imageLayerInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importImageLayer(event.target.files?.[0]); event.target.value = ''; }} />
             </aside>
 
             <section className="flex min-h-[650px] min-w-0 flex-col bg-[radial-gradient(circle_at_top,#ede9fe_0%,#f8fafc_42%,#e2e8f0_100%)] lg:min-h-0">
-              <div className="flex flex-wrap items-center justify-center gap-1.5 border-b border-white/70 bg-white/55 p-2 backdrop-blur-xl">
-                <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} className="h-8 rounded-full border-violet-200 bg-violet-50 text-[10px] text-violet-700"><ImageUp className="mr-1 h-3.5 w-3.5" />Import template</Button>
-                <Button size="sm" variant="outline" onClick={() => addLayer(createImageLayer('avatar'))} className="h-8 rounded-full text-[10px]"><CircleUserRound className="mr-1 h-3.5 w-3.5" />Pupil photo</Button>
-                <Button size="sm" variant="outline" onClick={() => addLayer(createImageLayer('schoolLogo'))} className="h-8 rounded-full text-[10px]"><Building2 className="mr-1 h-3.5 w-3.5" />School badge</Button>
-                <Button size="sm" variant="outline" onClick={() => addLayer(createCustomTextLayer())} className="h-8 rounded-full text-[10px]"><Type className="mr-1 h-3.5 w-3.5" />Text box</Button>
-                <Button size="sm" variant="outline" onClick={() => imageLayerInputRef.current?.click()} className="h-8 rounded-full text-[10px]"><FilePlus2 className="mr-1 h-3.5 w-3.5" />Photo art</Button>
-                <input ref={backgroundInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importBackground(event.target.files?.[0]); event.target.value = ''; }} />
-                <input ref={imageLayerInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importImageLayer(event.target.files?.[0]); event.target.value = ''; }} />
-              </div>
-              <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-5 sm:p-8">
-                <div
-                  ref={canvasRef}
-                  onClick={() => setSelectedLayerId(null)}
-                  className="relative max-h-full max-w-full overflow-hidden bg-white shadow-[0_24px_80px_rgba(15,23,42,0.25)] ring-1 ring-slate-900/10"
-                  style={{
-                    width: template.aspectWidth >= template.aspectHeight ? 'min(78vw, 800px)' : 'min(58vw, 620px)',
-                    aspectRatio: `${template.aspectWidth}/${template.aspectHeight}`,
-                    backgroundColor: currentPage?.backgroundColor,
-                    containerType: 'inline-size',
-                  }}
-                >
+              <div className="min-h-0 flex-1 overflow-auto p-5 sm:p-8">
+                <div className={cn('flex min-h-full min-w-full', canvasZoom > 1 ? 'items-start justify-start' : 'items-center justify-center')}>
+                  <div
+                    ref={canvasRef}
+                    onClick={() => setSelectedLayerId(null)}
+                    className="relative shrink-0 overflow-hidden bg-white shadow-[0_24px_80px_rgba(15,23,42,0.25)] ring-1 ring-slate-900/10"
+                    style={{
+                      width: template.aspectWidth >= template.aspectHeight ? `min(${78 * canvasZoom}vw, ${800 * canvasZoom}px)` : `min(${58 * canvasZoom}vw, ${620 * canvasZoom}px)`,
+                      aspectRatio: `${template.aspectWidth}/${template.aspectHeight}`,
+                      backgroundColor: currentPage?.backgroundColor,
+                      containerType: 'inline-size',
+                    }}
+                  >
                   {currentPage?.background && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={currentPage.background} alt="Imported page artwork" draggable={false} className={cn('pointer-events-none absolute inset-0 h-full w-full', currentPage.backgroundFit === 'cover' ? 'object-cover' : currentPage.backgroundFit === 'contain' ? 'object-contain' : 'object-fill')} />
+                  )}
+                  {template.pageColumns > 1 && (
+                    <div className="pointer-events-none absolute inset-0 z-10 flex">
+                      {Array.from({ length: template.pageColumns }, (_, columnIndex) => (
+                        <div key={columnIndex} className={cn('relative h-full flex-1', columnIndex > 0 && 'border-l border-dashed border-cyan-500/75')}>
+                          <span className="absolute left-1.5 top-1.5 rounded-full bg-cyan-600/90 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide text-white shadow-sm">Column {columnIndex + 1}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                   {template.pageMarginMm > 0 && (
                     <div
@@ -858,21 +1045,34 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                       <span className="absolute -top-4 left-0 rounded bg-violet-600/85 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wide text-white">Safe margin</span>
                     </div>
                   )}
-                  {currentPage?.layers.map((layer) => (
-                    <StudioLayer
-                      key={layer.id}
-                      layer={layer}
-                      data={previewData}
-                      selected={selectedLayerId === layer.id}
-                      onSelect={() => setSelectedLayerId(layer.id)}
-                      onPointerDown={(event) => beginTransform(event, layer, 'move')}
-                      onResizePointerDown={(event) => beginTransform(event, layer, 'resize')}
-                    />
-                  ))}
+                    {currentPage?.layers.map((layer) => {
+                      const pupilBound = isPupilDataLayer(layer);
+                      const layerData = pupilBound && layer.pupilDataMode === 'follow'
+                        ? previewRenderData[getLayerColumnIndex(layer, template.pageColumns)]
+                        : previewRenderData[0];
+                      if (pupilBound && layer.pupilDataMode === 'follow' && !layerData) return null;
+                      return (
+                        <StudioLayer
+                          key={layer.id}
+                          layer={layer}
+                          data={layerData}
+                          selected={selectedLayerId === layer.id}
+                          onSelect={() => setSelectedLayerId(layer.id)}
+                          onPointerDown={(event) => beginTransform(event, layer, 'move')}
+                          onResizePointerDown={(event) => beginTransform(event, layer, 'resize')}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between border-t border-white/70 bg-white/60 px-4 py-2 text-[10px] text-slate-500 backdrop-blur-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/70 bg-white/60 px-4 py-1.5 text-[10px] text-slate-500 backdrop-blur-xl">
                 <span>Drag layers freely. Use the corner handle to resize.</span>
+                <div className="flex items-center rounded-full border border-slate-200 bg-white p-0.5 shadow-sm">
+                  <Button type="button" variant="ghost" size="icon" disabled={canvasZoom <= 0.25} onClick={() => setCanvasZoom((value) => clamp(Number((value - 0.1).toFixed(2)), 0.25, 4))} className="h-6 w-6 rounded-full" title="Zoom out" aria-label="Zoom out"><ZoomOut className="h-3 w-3" /></Button>
+                  <button type="button" onClick={() => setCanvasZoom(1)} className="min-w-11 px-1 text-[9px] font-black tabular-nums text-slate-600" title="Reset canvas zoom">{Math.round(canvasZoom * 100)}%</button>
+                  <Button type="button" variant="ghost" size="icon" disabled={canvasZoom >= 4} onClick={() => setCanvasZoom((value) => clamp(Number((value + 0.1).toFixed(2)), 0.25, 4))} className="h-6 w-6 rounded-full" title="Zoom in" aria-label="Zoom in"><ZoomIn className="h-3 w-3" /></Button>
+                </div>
                 <span className="font-semibold">Preview pupil: {previewPupil ? pupilDisplayName(previewPupil) : 'No pupils found'}</span>
               </div>
             </section>
@@ -892,13 +1092,24 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     <div className="grid grid-cols-2 gap-2">
                       <NumberInput label="X" value={selectedLayer.x * 100} min={-50} max={150} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { x: value / 100 })} />
                       <NumberInput label="Y" value={selectedLayer.y * 100} min={-50} max={150} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { y: value / 100 })} />
-                      <NumberInput label="Width" value={selectedLayer.width * 100} min={4} max={150} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { width: value / 100 })} />
-                      <NumberInput label="Height" value={selectedLayer.height * 100} min={4} max={150} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { height: value / 100 })} />
+                      <NumberInput label="Width" value={selectedLayer.width * 100} min={0.5} max={150} step={0.1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { width: value / 100 })} />
+                      <NumberInput label="Height" value={selectedLayer.height * 100} min={0.5} max={150} step={0.1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { height: value / 100 })} />
                       <NumberInput label="Rotation" value={selectedLayer.rotation} min={-180} max={180} suffix="°" onChange={(value) => updateLayer(selectedLayer.id, { rotation: value })} />
                       <NumberInput label="Opacity" value={selectedLayer.opacity * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { opacity: value / 100 })} />
                     </div>
                     <label className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={selectedLayer.constrainToPage} onCheckedChange={(checked) => updateLayer(selectedLayer.id, { constrainToPage: checked === true })} />Mask movement to page boundaries</label>
                   </div>
+
+                  {isPupilDataLayer(selectedLayer) && (
+                    <div className="rounded-xl border border-cyan-200 bg-cyan-50/80 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-wider text-cyan-900">Pupil list behaviour</p><p className="mt-0.5 text-[9px] text-cyan-700">This layer is currently in column {getLayerColumnIndex(selectedLayer, template.pageColumns) + 1}.</p></div><Columns2 className="h-4 w-4 shrink-0 text-cyan-700" /></div>
+                      <div className="grid grid-cols-2 gap-1 rounded-lg bg-white/80 p-1">
+                        <Button type="button" variant={selectedLayer.pupilDataMode !== 'follow' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateLayer(selectedLayer.id, { pupilDataMode: 'duplicate' })} className={cn('h-8 text-[10px] font-black', selectedLayer.pupilDataMode !== 'follow' && 'bg-amber-100 text-amber-800 hover:bg-amber-100')}>Dup · duplicate</Button>
+                        <Button type="button" variant={selectedLayer.pupilDataMode === 'follow' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateLayer(selectedLayer.id, { pupilDataMode: 'follow' })} className={cn('h-8 text-[10px] font-black', selectedLayer.pupilDataMode === 'follow' && 'bg-cyan-100 text-cyan-800 hover:bg-cyan-100')}>Fol · follow list</Button>
+                      </div>
+                      <p className="mt-2 text-[9px] leading-3.5 text-cyan-700">Dup repeats the first pupil. Fol uses the pupil assigned to the column containing this layer.</p>
+                    </div>
+                  )}
 
                   {selectedLayer.kind !== 'text' ? (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
@@ -909,14 +1120,23 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         <SelectContent>{SHAPE_OPTIONS.map((shape) => <SelectItem key={shape.value} value={shape.value}>{shape.label}</SelectItem>)}</SelectContent>
                       </Select>
                       <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Photo fit</span><Select value={selectedLayer.imageFit} onValueChange={(value) => updateLayer(selectedLayer.id, { imageFit: value as CustomPhotoLayer['imageFit'] })}><SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Fill frame (crop)</SelectItem><SelectItem value="contain">Fit whole photo</SelectItem></SelectContent></Select></label>
-                      <div><div className="mb-1.5 flex justify-between text-[10px] font-semibold text-slate-500"><span>Crop zoom</span><span>{selectedLayer.imageZoom.toFixed(2)}×</span></div><Slider value={[selectedLayer.imageZoom]} min={1} max={3} step={0.01} onValueChange={([value]) => updateLayer(selectedLayer.id, { imageZoom: value })} /></div>
+                      <NumberInput label="Crop zoom (no maximum)" value={selectedLayer.imageZoom} min={0.01} step={0.05} suffix="×" onChange={(value) => updateLayer(selectedLayer.id, { imageZoom: Math.max(0.01, value) })} />
                       <div className="grid grid-cols-2 gap-2">
-                        <NumberInput label="Crop X" value={selectedLayer.imageOffsetX * 100} min={-100} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetX: value / 100 })} />
-                        <NumberInput label="Crop Y" value={selectedLayer.imageOffsetY * 100} min={-100} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetY: value / 100 })} />
+                        <NumberInput label="Crop X" value={selectedLayer.imageOffsetX * 100} step={1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetX: value / 100 })} />
+                        <NumberInput label="Crop Y" value={selectedLayer.imageOffsetY * 100} step={1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetY: value / 100 })} />
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                         <div className="mb-1.5 flex justify-between text-[10px] font-semibold text-slate-600"><span>Feather around shape</span><span>{selectedLayer.feather}%</span></div>
-                        <Slider value={[selectedLayer.feather]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { feather: value })} />
+                        <Slider
+                          value={[selectedLayer.feather]}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onPointerDown={() => { historyGroupRef.current = true; historyGroupRecordedRef.current = false; }}
+                          onPointerUp={() => { historyGroupRef.current = false; historyGroupRecordedRef.current = false; }}
+                          onPointerCancel={() => { historyGroupRef.current = false; historyGroupRecordedRef.current = false; }}
+                          onValueChange={([value]) => updateLayer(selectedLayer.id, { feather: value })}
+                        />
                         <p className="mt-2 text-[9px] leading-3.5 text-slate-500">Softens the actual circle, oval, rounded or polygon edge.</p>
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <NumberInput label="Top side" value={selectedLayer.featherTop || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherTop: value })} />
@@ -940,6 +1160,30 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Type text directly</span><Textarea value={selectedLayer.text || ''} onChange={(event) => updateLayer(selectedLayer.id, { text: event.target.value })} rows={4} placeholder="Type the text that should appear on this document…" className="min-h-20 resize-y bg-white text-xs" /></label>
                       )}
                       <FontPicker value={selectedLayer.fontFamily} onChange={(value) => updateLayer(selectedLayer.id, { fontFamily: value })} />
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-slate-500">Letter case</Label>
+                        <Select value={selectedLayer.textCase || 'original'} onValueChange={(value) => updateLayer(selectedLayer.id, { textCase: value as TextCase })}>
+                          <SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="original">As entered</SelectItem>
+                            <SelectItem value="sentence">Sentence case</SelectItem>
+                            <SelectItem value="lowercase">lowercase</SelectItem>
+                            <SelectItem value="uppercase">UPPERCASE</SelectItem>
+                            <SelectItem value="title">Title Case</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+                        <Button type="button" variant={selectedLayer.fontWeight >= 600 ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { fontWeight: selectedLayer.fontWeight >= 600 ? 400 : 700 })} title="Bold" aria-label="Bold"><Bold className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" variant={selectedLayer.fontStyle === 'italic' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { fontStyle: selectedLayer.fontStyle === 'italic' ? 'normal' : 'italic' })} title="Italic" aria-label="Italic"><Italic className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" variant={selectedLayer.underline ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { underline: !selectedLayer.underline })} title="Underline" aria-label="Underline"><Underline className="h-3.5 w-3.5" /></Button>
+                        <span className="mx-1 h-5 w-px bg-slate-200" />
+                        <label className="flex h-8 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 text-[10px] font-semibold text-slate-600 hover:bg-white" title="Font colour">
+                          <span className="h-4 w-4 rounded-full border border-slate-300 shadow-sm" style={{ backgroundColor: selectedLayer.color }} />
+                          Font colour
+                          <Input type="color" value={selectedLayer.color} onChange={(event) => updateLayer(selectedLayer.id, { color: event.target.value })} className="sr-only" />
+                        </label>
+                      </div>
                       <div className="grid grid-cols-3 gap-2">
                         <NumberInput label="Size" value={selectedLayer.fontSize} min={8} max={200} suffix="px" onChange={(value) => updateLayer(selectedLayer.id, { fontSize: value })} />
                         <NumberInput label="Weight" value={selectedLayer.fontWeight} min={100} max={900} step={100} onChange={(value) => updateLayer(selectedLayer.id, { fontWeight: value })} />
@@ -954,21 +1198,6 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 </div>
               )}
 
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Page setup</p>
-                <Input value={template.name} onChange={(event) => setTemplate((previous) => ({ ...previous, name: event.target.value }))} className="mb-2 h-8 bg-white text-xs font-bold" aria-label="Template name" />
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Document size</span><Select value={template.paperSize} onValueChange={(value) => applyPageFormat(value as PaperSize, template.pageOrientation)}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.map((size) => <SelectItem key={size.value} value={size.value}>{size.label}{size.value !== 'custom' ? ` · ${size.widthMm} × ${size.heightMm} mm` : ''}</SelectItem>)}</SelectContent></Select></label>
-                  <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Orientation</span><Select value={template.pageOrientation} onValueChange={(value) => applyPageFormat(template.paperSize, value as CustomPhotoTemplate['pageOrientation'])}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent></Select></label>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <NumberInput label="Safe margin" value={template.pageMarginMm} min={0} max={50} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, pageMarginMm: value }))} />
-                  <div className="rounded-lg border border-violet-100 bg-violet-50 px-2 py-1.5"><p className="text-[9px] font-semibold text-violet-500">Canvas</p><p className="mt-1 text-[10px] font-black text-violet-800">{template.aspectWidth} × {template.aspectHeight} mm</p></div>
-                </div>
-                {template.paperSize === 'custom' && <div className="mt-2 grid grid-cols-2 gap-2"><NumberInput label="Custom width" value={template.aspectWidth} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectWidth: value }))} /><NumberInput label="Custom height" value={template.aspectHeight} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectHeight: value }))} /></div>}
-                <div className="mt-2 grid grid-cols-2 gap-2"><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Background fit</span><Select value={currentPage?.backgroundFit} onValueChange={(value) => updateCurrentPage((page) => ({ ...page, backgroundFit: value as CustomPhotoPage['backgroundFit'] }))}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Cover</SelectItem><SelectItem value="contain">Contain</SelectItem><SelectItem value="stretch">Stretch</SelectItem></SelectContent></Select></label><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page colour</span><Input type="color" value={currentPage?.backgroundColor || '#ffffff'} onChange={(event) => updateCurrentPage((page) => ({ ...page, backgroundColor: event.target.value }))} className="h-8 bg-white p-1" /></label></div>
-              </div>
-              {savedTemplates.length > 0 && <div className="mt-3"><p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">Saved on this device</p><Select onValueChange={loadTemplate}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Open saved template" /></SelectTrigger><SelectContent>{savedTemplates.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>}
             </aside>
           </main>
         ) : (
@@ -991,11 +1220,11 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             </section>
 
             <aside className="space-y-3 overflow-y-auto rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur-xl">
-              <div><p className="text-sm font-black text-slate-900">Collage & page output</p><p className="text-[10px] text-slate-500">Choose the print sheet and how many personalised designs appear on it.</p></div>
+              <div><p className="text-sm font-black text-slate-900">Collage & page output</p><p className="text-[10px] text-slate-500">Choose the print sheet and how many design cards appear on it. Each card currently carries {template.pageColumns} pupil {template.pageColumns === 1 ? 'column' : 'columns'}.</p></div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Print sheet size</span><Select value={output.paperSize} onValueChange={(value) => setOutput((previous) => ({ ...previous, paperSize: value as PaperSize }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.filter((size) => size.value !== 'custom').map((size) => <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>)}</SelectContent></Select></label>
                 <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page orientation</span><Select value={output.orientation} onValueChange={(value) => setOutput((previous) => ({ ...previous, orientation: value as CustomPhotoOutputSettings['orientation'] }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent></Select></label>
-                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Designs per sheet</span><Select value={String(output.cardsPerPage)} onValueChange={(value) => setOutput((previous) => ({ ...previous, cardsPerPage: Number(value) }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 6, 8, 9, 12].map((count) => <SelectItem key={count} value={String(count)}>{count} per page</SelectItem>)}</SelectContent></Select></label>
+                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Design cards per sheet</span><Select value={String(output.cardsPerPage)} onValueChange={(value) => setOutput((previous) => ({ ...previous, cardsPerPage: Number(value) }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 6, 8, 9, 12].map((count) => <SelectItem key={count} value={String(count)}>{count} per page</SelectItem>)}</SelectContent></Select></label>
                 <NumberInput label="Page margin" value={output.marginMm} min={0} max={30} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, marginMm: value }))} />
                 <NumberInput label="Gap" value={output.gapMm} min={0} max={20} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, gapMm: value }))} />
               </div>

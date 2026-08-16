@@ -2,6 +2,9 @@ import jsPDF from 'jspdf';
 import type { Pupil } from '@/types';
 import type { PupilFeesInfo } from '@/lib/hooks/use-progressive-fees';
 import {
+  applyTextCase,
+  getLayerColumnIndex,
+  isPupilDataLayer,
   pupilDisplayName,
   resolvePupilField,
   getPaperDimensions,
@@ -212,8 +215,16 @@ async function renderImageLayer(
   if (source) {
     try {
       const image = await loadImage(source);
-      if (layer.imageFit === 'contain') drawContainedImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
-      else drawCoverImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
+      layerContext.save();
+      try {
+        layerContext.translate(pixelWidth / 2, pixelHeight / 2);
+        layerContext.rotate(layer.rotation * Math.PI / 180);
+        layerContext.translate(-pixelWidth / 2, -pixelHeight / 2);
+        if (layer.imageFit === 'contain') drawContainedImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
+        else drawCoverImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
+      } finally {
+        layerContext.restore();
+      }
     } catch {
       if (layer.kind === 'avatar') drawInitials(layerContext, data.pupil, pixelWidth, pixelHeight);
     }
@@ -273,11 +284,11 @@ function renderTextLayer(
     context.fillStyle = layer.backgroundColor;
     context.fillRect(0, 0, width, height);
   }
-  const text = layer.field ? resolvePupilField(layer.field, data) : (layer.text || '');
+  const text = applyTextCase(layer.field ? resolvePupilField(layer.field, data) : (layer.text || ''), layer.textCase);
   const fontSize = Math.max(7, layer.fontSize * cardWidth / 1000);
   context.fillStyle = layer.color;
   const fontFamily = `"${(layer.fontFamily || 'Arial').replaceAll('"', '\\"')}"`;
-  context.font = `${layer.fontWeight} ${fontSize}px ${fontFamily}`;
+  context.font = `${layer.fontStyle || 'normal'} ${layer.fontWeight} ${fontSize}px ${fontFamily}`;
   context.textAlign = layer.textAlign;
   context.textBaseline = 'middle';
   const lines = wrapText(context, text, Math.max(1, width - fontSize * 0.35));
@@ -285,7 +296,22 @@ function renderTextLayer(
   const totalHeight = lines.length * lineHeight;
   const startY = (height - totalHeight) / 2 + lineHeight / 2;
   const x = layer.textAlign === 'left' ? fontSize * 0.18 : layer.textAlign === 'right' ? width - fontSize * 0.18 : width / 2;
-  lines.forEach((line, index) => context.fillText(line, x, startY + index * lineHeight));
+  lines.forEach((line, index) => {
+    const y = startY + index * lineHeight;
+    context.fillText(line, x, y);
+    if (layer.underline && line) {
+      const lineWidth = context.measureText(line).width;
+      const startX = layer.textAlign === 'left' ? x : layer.textAlign === 'right' ? x - lineWidth : x - lineWidth / 2;
+      context.save();
+      context.beginPath();
+      context.moveTo(startX, y + fontSize * 0.38);
+      context.lineTo(startX + lineWidth, y + fontSize * 0.38);
+      context.strokeStyle = layer.color;
+      context.lineWidth = Math.max(1, fontSize * 0.055);
+      context.stroke();
+      context.restore();
+    }
+  });
 }
 
 async function renderLayer(
@@ -303,7 +329,7 @@ async function renderLayer(
   context.save();
   context.globalAlpha = layer.opacity;
   context.translate(x + width / 2, y + height / 2);
-  context.rotate(layer.rotation * Math.PI / 180);
+  if (layer.kind === 'text') context.rotate(layer.rotation * Math.PI / 180);
   context.translate(-width / 2, -height / 2);
   if (layer.kind === 'text') renderTextLayer(context, layer, data, width, height, cardWidth);
   else await renderImageLayer(context, layer, data, width, height);
@@ -313,7 +339,8 @@ async function renderLayer(
 async function renderDesignCard(
   context: CanvasRenderingContext2D,
   page: CustomPhotoPage,
-  data: RenderPupilData,
+  data: RenderPupilData[],
+  pageColumns: number,
   x: number,
   y: number,
   width: number,
@@ -336,8 +363,14 @@ async function renderDesignCard(
       // Keep the page background colour when an imported image is no longer available.
     }
   }
+  const primaryData = data[0];
   for (const layer of page.layers) {
-    await renderLayer(context, layer, data, width, height);
+    const pupilBound = isPupilDataLayer(layer);
+    const layerData = pupilBound && layer.pupilDataMode === 'follow'
+      ? data[getLayerColumnIndex(layer, pageColumns)]
+      : primaryData;
+    if (!layerData) continue;
+    await renderLayer(context, layer, layerData, width, height);
   }
   context.restore();
 }
@@ -399,13 +432,16 @@ async function renderOutputSheet(
   const margin = settings.marginMm * pxPerMm;
   const gap = settings.gapMm * pxPerMm;
   const grid = calculateGrid(settings.cardsPerPage, width, height, template.aspectWidth, template.aspectHeight, margin, gap);
+  const pageColumns = Math.max(1, template.pageColumns || 1);
+  const cardCount = Math.ceil(pupils.length / pageColumns);
 
-  for (let index = 0; index < pupils.length; index += 1) {
+  for (let index = 0; index < cardCount; index += 1) {
     const column = index % grid.columns;
     const row = Math.floor(index / grid.columns);
     const x = grid.startX + column * (grid.cardWidth + grid.gap);
     const y = grid.startY + row * (grid.cardHeight + grid.gap);
-    await renderDesignCard(context, designPage, pupils[index], x, y, grid.cardWidth, grid.cardHeight);
+    const cardPupils = pupils.slice(index * pageColumns, (index + 1) * pageColumns);
+    await renderDesignCard(context, designPage, cardPupils, pageColumns, x, y, grid.cardWidth, grid.cardHeight);
     if (settings.showCutLines) {
       context.save();
       context.strokeStyle = 'rgba(100,116,139,0.7)';
@@ -436,8 +472,9 @@ export async function createCustomPhotoPdf(
   const pageWidthMm = pdf.internal.pageSize.getWidth() || expectedDimensions.widthMm;
   const pageHeightMm = pdf.internal.pageSize.getHeight() || expectedDimensions.heightMm;
   const groups: Pupil[][] = [];
-  for (let index = 0; index < pupils.length; index += settings.cardsPerPage) {
-    groups.push(pupils.slice(index, index + settings.cardsPerPage));
+  const pupilsPerSheet = Math.max(1, settings.cardsPerPage) * Math.max(1, template.pageColumns || 1);
+  for (let index = 0; index < pupils.length; index += pupilsPerSheet) {
+    groups.push(pupils.slice(index, index + pupilsPerSheet));
   }
   const totalPages = groups.length * template.pages.length;
   let completed = 0;
@@ -460,8 +497,8 @@ export async function createCustomPhotoPdf(
   return pdf.output('blob');
 }
 
-export function estimatePdfPageCount(pupilCount: number, pageCount: number, cardsPerPage: number) {
-  return Math.ceil(pupilCount / Math.max(1, cardsPerPage)) * pageCount;
+export function estimatePdfPageCount(pupilCount: number, pageCount: number, cardsPerPage: number, pageColumns = 1) {
+  return Math.ceil(pupilCount / (Math.max(1, cardsPerPage) * Math.max(1, pageColumns))) * pageCount;
 }
 
 export { pupilDisplayName };

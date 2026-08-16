@@ -7,6 +7,8 @@ export type BackgroundFit = 'cover' | 'contain' | 'stretch';
 export type LayerKind = 'avatar' | 'schoolLogo' | 'text' | 'image';
 export type FrameShape = 'rectangle' | 'rounded' | 'circle' | 'oval' | 'diamond' | 'hexagon';
 export type TextAlign = 'left' | 'center' | 'right';
+export type TextCase = 'original' | 'uppercase' | 'lowercase' | 'sentence' | 'title';
+export type PupilDataMode = 'duplicate' | 'follow';
 export type DynamicField =
   | 'name'
   | 'firstName'
@@ -79,6 +81,10 @@ export interface CustomPhotoLayer {
   fontSize: number;
   fontFamily: string;
   fontWeight: number;
+  fontStyle: 'normal' | 'italic';
+  underline: boolean;
+  textCase: TextCase;
+  pupilDataMode: PupilDataMode;
   color: string;
   backgroundColor: string;
   textAlign: TextAlign;
@@ -101,6 +107,7 @@ export interface CustomPhotoTemplate {
   paperSize: PaperSize;
   pageOrientation: DocumentOrientation;
   pageMarginMm: number;
+  pageColumns: number;
   aspectWidth: number;
   aspectHeight: number;
   pages: CustomPhotoPage[];
@@ -145,6 +152,17 @@ export const DYNAMIC_FIELD_OPTIONS: Array<{ value: DynamicField; label: string; 
 
 export const FEE_FIELDS: DynamicField[] = ['feeBalance', 'totalPaid', 'totalFees'];
 
+export function isPupilDataLayer(layer: Pick<CustomPhotoLayer, 'kind' | 'field'>) {
+  if (layer.kind === 'avatar') return true;
+  if (layer.kind !== 'text' || !layer.field) return false;
+  return DYNAMIC_FIELD_OPTIONS.some((option) => option.value === layer.field && option.group === 'pupil');
+}
+
+export function getLayerColumnIndex(layer: Pick<CustomPhotoLayer, 'x' | 'width'>, pageColumns: number) {
+  const columns = Math.max(1, Math.round(pageColumns));
+  return Math.min(columns - 1, Math.max(0, Math.floor((layer.x + layer.width / 2) * columns)));
+}
+
 export function makeStudioId(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -183,6 +201,10 @@ export function createTextLayer(field: DynamicField = 'name'): CustomPhotoLayer 
     fontSize: 42,
     fontFamily: 'Arial',
     fontWeight: 800,
+    fontStyle: 'normal',
+    underline: false,
+    textCase: 'original',
+    pupilDataMode: 'duplicate',
     color: '#0f172a',
     backgroundColor: 'transparent',
     textAlign: 'center',
@@ -230,6 +252,10 @@ export function createImageLayer(kind: 'avatar' | 'schoolLogo' | 'image', source
     fontSize: 32,
     fontFamily: 'Arial',
     fontWeight: 700,
+    fontStyle: 'normal',
+    underline: false,
+    textCase: 'original',
+    pupilDataMode: 'duplicate',
     color: '#0f172a',
     backgroundColor: 'transparent',
     textAlign: 'center',
@@ -257,6 +283,7 @@ export function createBlankTemplate(): CustomPhotoTemplate {
     paperSize: 'a4',
     pageOrientation: 'portrait',
     pageMarginMm: 10,
+    pageColumns: 1,
     aspectWidth: 210,
     aspectHeight: 297,
     pages: [createBlankPage(0)],
@@ -277,13 +304,16 @@ export function normalizeCustomPhotoTemplate(template: Partial<CustomPhotoTempla
     paperSize,
     pageOrientation,
     pageMarginMm: Number.isFinite(template.pageMarginMm) ? Number(template.pageMarginMm) : 10,
+    pageColumns: Math.min(6, Math.max(1, Math.round(Number(template.pageColumns) || 1))),
     aspectWidth: Number(template.aspectWidth) || fallback.aspectWidth,
     aspectHeight: Number(template.aspectHeight) || fallback.aspectHeight,
     pages: (template.pages?.length ? template.pages : fallback.pages).map((page, pageIndex) => ({
       ...createBlankPage(pageIndex),
       ...page,
       layers: page.layers.map((layer) => ({
-        ...createImageLayer(layer.kind === 'avatar' || layer.kind === 'schoolLogo' ? layer.kind : 'image'),
+        ...(layer.kind === 'text'
+          ? createTextLayer(layer.field || 'name')
+          : createImageLayer(layer.kind === 'avatar' || layer.kind === 'schoolLogo' ? layer.kind : 'image')),
         ...layer,
         featherTop: Number(layer.featherTop) || 0,
         featherRight: Number(layer.featherRight) || 0,
@@ -338,6 +368,18 @@ export function resolvePupilField(field: DynamicField | undefined, data: RenderP
     case 'schoolPostalAddress': return school?.postalAddress || 'School postal address';
     default: return '';
   }
+}
+
+export function applyTextCase(value: string, textCase: TextCase = 'original') {
+  if (textCase === 'uppercase') return value.toUpperCase();
+  if (textCase === 'lowercase') return value.toLowerCase();
+  if (textCase === 'title') {
+    return value.toLowerCase().replace(/(^|[\s\-–—/])([\p{L}\p{N}])/gu, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+  }
+  if (textCase === 'sentence') {
+    return value.toLowerCase().replace(/(^|[.!?]\s+|\n+)([\p{L}\p{N}])/gu, (_match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+  }
+  return value;
 }
 
 export function getPaperDimensions(paperSize: PaperSize, orientation: DocumentOrientation) {
