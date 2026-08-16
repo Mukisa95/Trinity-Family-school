@@ -70,6 +70,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -372,7 +373,7 @@ function StudioLayer({
       ) : (
         <div className="relative h-full w-full overflow-visible">
           <div
-            className="absolute inset-0 overflow-hidden bg-slate-200"
+            className={cn('absolute inset-0 overflow-hidden', source ? 'bg-transparent' : 'bg-slate-200')}
             style={{
               clipPath: mask ? undefined : shapeClipPath(layer.shape),
               maskImage: mask ? `url(${mask})` : undefined,
@@ -727,8 +728,8 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   return (
     <>
       <style>{DOCX_FONT_FACE_CSS}</style>
-      <div className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-slate-100 text-slate-900" role="dialog" aria-modal="true" aria-label="DocX Custom Photo Studio">
-        <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-white/80 bg-white/85 px-3 py-2 shadow-sm backdrop-blur-2xl sm:px-5">
+      <div className="fixed inset-0 z-40 isolate flex flex-col overflow-hidden bg-slate-100 text-slate-900" role="dialog" aria-modal="true" aria-label="DocX Custom Photo Studio">
+        <header className="relative z-30 flex min-h-16 shrink-0 flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-5">
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full">
             <ChevronLeft className="mr-1.5 h-4 w-4" /> DocX
           </Button>
@@ -792,11 +793,15 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     <DropdownMenuItem onSelect={() => addLayer(createCustomTextLayer())}><Type className="mr-2 h-4 w-4" />Manual text box</DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger><CircleUserRound className="mr-2 h-4 w-4" />Pupil information</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="max-h-72 overflow-y-auto">{DYNAMIC_FIELD_OPTIONS.filter((field) => field.group === 'pupil').map((field) => <DropdownMenuItem key={field.value} onSelect={() => addLayer(createTextLayer(field.value))}>{field.label}</DropdownMenuItem>)}</DropdownMenuSubContent>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent className="z-[100000] max-h-72 overflow-y-auto">{DYNAMIC_FIELD_OPTIONS.filter((field) => field.group === 'pupil').map((field) => <DropdownMenuItem key={field.value} onSelect={() => addLayer(createTextLayer(field.value))}>{field.label}</DropdownMenuItem>)}</DropdownMenuSubContent>
+                      </DropdownMenuPortal>
                     </DropdownMenuSub>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger><Building2 className="mr-2 h-4 w-4" />School information</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>{DYNAMIC_FIELD_OPTIONS.filter((field) => field.group === 'school').map((field) => <DropdownMenuItem key={field.value} onSelect={() => addLayer(createTextLayer(field.value))}>{field.label}</DropdownMenuItem>)}</DropdownMenuSubContent>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent className="z-[100000]">{DYNAMIC_FIELD_OPTIONS.filter((field) => field.group === 'school').map((field) => <DropdownMenuItem key={field.value} onSelect={() => addLayer(createTextLayer(field.value))}>{field.label}</DropdownMenuItem>)}</DropdownMenuSubContent>
+                      </DropdownMenuPortal>
                     </DropdownMenuSub>
                   </DropdownMenuContent>
                 </DropdownMenu>
