@@ -4,11 +4,69 @@ import type { PupilFeesInfo } from '@/lib/hooks/use-progressive-fees';
 export type DocumentOrientation = 'portrait' | 'landscape';
 export type PaperSize = 'a3' | 'a4' | 'a5' | 'letter' | 'legal' | 'square' | 'custom';
 export type BackgroundFit = 'cover' | 'contain' | 'stretch';
-export type LayerKind = 'avatar' | 'schoolLogo' | 'text' | 'image';
+export type LayerKind = 'avatar' | 'schoolLogo' | 'text' | 'image' | 'shape';
 export type FrameShape = 'rectangle' | 'rounded' | 'circle' | 'oval' | 'diamond' | 'hexagon';
 export type TextAlign = 'left' | 'center' | 'right';
 export type TextCase = 'original' | 'uppercase' | 'lowercase' | 'sentence' | 'title';
 export type PupilDataMode = 'duplicate' | 'follow';
+export type PaintKind = 'solid' | 'linear' | 'radial';
+
+export interface GradientStop {
+  color: string;
+  position: number;
+}
+
+export interface LayerPaint {
+  kind: PaintKind;
+  color: string;
+  stops: GradientStop[];
+  angle: number;
+  centerX: number;
+  centerY: number;
+  radius: number;
+}
+
+export interface LayerAppearance {
+  fill: LayerPaint;
+  stroke: {
+    enabled: boolean;
+    width: number;
+    opacity: number;
+    paint: LayerPaint;
+  };
+  shadow: {
+    enabled: boolean;
+    kind: 'outer' | 'inner';
+    color: string;
+    opacity: number;
+    blur: number;
+    offsetX: number;
+    offsetY: number;
+  };
+  bevel: {
+    enabled: boolean;
+    depth: number;
+    softness: number;
+    angle: number;
+    highlightColor: string;
+    shadowColor: string;
+    opacity: number;
+  };
+  shine: {
+    enabled: boolean;
+    angle: number;
+    position: number;
+    width: number;
+    opacity: number;
+  };
+  extrusion: {
+    enabled: boolean;
+    depth: number;
+    angle: number;
+    color: string;
+    opacity: number;
+  };
+}
 export type DynamicField =
   | 'name'
   | 'firstName'
@@ -89,6 +147,7 @@ export interface CustomPhotoLayer {
   backgroundColor: string;
   textAlign: TextAlign;
   lineHeight: number;
+  appearance: LayerAppearance;
 }
 
 export interface CustomPhotoPage {
@@ -152,6 +211,135 @@ export const DYNAMIC_FIELD_OPTIONS: Array<{ value: DynamicField; label: string; 
 
 export const FEE_FIELDS: DynamicField[] = ['feeBalance', 'totalPaid', 'totalFees'];
 
+const clampAppearanceNumber = (value: unknown, minimum: number, maximum: number, fallback: number) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(maximum, Math.max(minimum, number)) : fallback;
+};
+
+export function createLayerPaint(color = '#0f172a'): LayerPaint {
+  return {
+    kind: 'solid',
+    color,
+    stops: [
+      { color, position: 0 },
+      { color, position: 1 },
+    ],
+    angle: 90,
+    centerX: 0.5,
+    centerY: 0.5,
+    radius: 0.75,
+  };
+}
+
+export function createLayerAppearance(color = '#0f172a', borderColor = '#ffffff', borderWidth = 0): LayerAppearance {
+  return {
+    fill: createLayerPaint(color),
+    stroke: { enabled: borderWidth > 0, width: borderWidth, opacity: 1, paint: createLayerPaint(borderColor) },
+    shadow: { enabled: false, kind: 'outer', color: '#0f172a', opacity: 0.28, blur: 8, offsetX: 0, offsetY: 4 },
+    bevel: { enabled: false, depth: 2, softness: 1, angle: 315, highlightColor: '#ffffff', shadowColor: '#0f172a', opacity: 0.55 },
+    shine: { enabled: false, angle: 115, position: 0.32, width: 0.22, opacity: 0.42 },
+    extrusion: { enabled: false, depth: 5, angle: 90, color: '#0f172a', opacity: 0.5 },
+  };
+}
+
+function normalizePaint(paint: Partial<LayerPaint> | undefined, fallbackColor: string): LayerPaint {
+  const base = createLayerPaint(fallbackColor);
+  const candidateStops = Array.isArray(paint?.stops) ? paint.stops : base.stops;
+  const stops = candidateStops
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((stop, index) => ({
+      color: typeof stop.color === 'string' && stop.color ? stop.color : fallbackColor,
+      position: clampAppearanceNumber(stop.position, 0, 1, index / Math.max(1, candidateStops.length - 1)),
+    }))
+    .sort((a, b) => a.position - b.position);
+  return {
+    kind: paint?.kind === 'linear' || paint?.kind === 'radial' ? paint.kind : 'solid',
+    color: typeof paint?.color === 'string' && paint.color ? paint.color : fallbackColor,
+    stops: stops.length >= 2 ? stops : base.stops,
+    angle: clampAppearanceNumber(paint?.angle, -360, 360, base.angle),
+    centerX: clampAppearanceNumber(paint?.centerX, 0, 1, base.centerX),
+    centerY: clampAppearanceNumber(paint?.centerY, 0, 1, base.centerY),
+    radius: clampAppearanceNumber(paint?.radius, 0.05, 2, base.radius),
+  };
+}
+
+export function normalizeLayerAppearance(appearance: Partial<LayerAppearance> | undefined, color = '#0f172a', borderColor = '#ffffff', borderWidth = 0): LayerAppearance {
+  const base = createLayerAppearance(color, borderColor, borderWidth);
+  return {
+    fill: normalizePaint(appearance?.fill, color),
+    stroke: {
+      enabled: typeof appearance?.stroke?.enabled === 'boolean' ? appearance.stroke.enabled : borderWidth > 0,
+      width: clampAppearanceNumber(appearance?.stroke?.width, 0, 40, borderWidth),
+      opacity: clampAppearanceNumber(appearance?.stroke?.opacity, 0, 1, 1),
+      paint: normalizePaint(appearance?.stroke?.paint, borderColor),
+    },
+    shadow: {
+      enabled: Boolean(appearance?.shadow?.enabled),
+      kind: appearance?.shadow?.kind === 'inner' ? 'inner' : 'outer',
+      color: typeof appearance?.shadow?.color === 'string' && appearance.shadow.color ? appearance.shadow.color : base.shadow.color,
+      opacity: clampAppearanceNumber(appearance?.shadow?.opacity, 0, 1, base.shadow.opacity),
+      blur: clampAppearanceNumber(appearance?.shadow?.blur, 0, 80, base.shadow.blur),
+      offsetX: clampAppearanceNumber(appearance?.shadow?.offsetX, -80, 80, base.shadow.offsetX),
+      offsetY: clampAppearanceNumber(appearance?.shadow?.offsetY, -80, 80, base.shadow.offsetY),
+    },
+    bevel: {
+      enabled: Boolean(appearance?.bevel?.enabled),
+      depth: clampAppearanceNumber(appearance?.bevel?.depth, 0, 30, base.bevel.depth),
+      softness: clampAppearanceNumber(appearance?.bevel?.softness, 0, 30, base.bevel.softness),
+      angle: clampAppearanceNumber(appearance?.bevel?.angle, -360, 360, base.bevel.angle),
+      highlightColor: typeof appearance?.bevel?.highlightColor === 'string' && appearance.bevel.highlightColor ? appearance.bevel.highlightColor : base.bevel.highlightColor,
+      shadowColor: typeof appearance?.bevel?.shadowColor === 'string' && appearance.bevel.shadowColor ? appearance.bevel.shadowColor : base.bevel.shadowColor,
+      opacity: clampAppearanceNumber(appearance?.bevel?.opacity, 0, 1, base.bevel.opacity),
+    },
+    shine: {
+      enabled: Boolean(appearance?.shine?.enabled),
+      angle: clampAppearanceNumber(appearance?.shine?.angle, -360, 360, base.shine.angle),
+      position: clampAppearanceNumber(appearance?.shine?.position, 0, 1, base.shine.position),
+      width: clampAppearanceNumber(appearance?.shine?.width, 0.02, 1, base.shine.width),
+      opacity: clampAppearanceNumber(appearance?.shine?.opacity, 0, 1, base.shine.opacity),
+    },
+    extrusion: {
+      enabled: Boolean(appearance?.extrusion?.enabled),
+      depth: clampAppearanceNumber(appearance?.extrusion?.depth, 0, 40, base.extrusion.depth),
+      angle: clampAppearanceNumber(appearance?.extrusion?.angle, -360, 360, base.extrusion.angle),
+      color: typeof appearance?.extrusion?.color === 'string' && appearance.extrusion.color ? appearance.extrusion.color : base.extrusion.color,
+      opacity: clampAppearanceNumber(appearance?.extrusion?.opacity, 0, 1, base.extrusion.opacity),
+    },
+  };
+}
+
+export const APPEARANCE_PRESETS: Array<{ id: string; label: string; appearance: LayerAppearance }> = [
+  { id: 'flat', label: 'Flat', appearance: createLayerAppearance('#0f172a') },
+  { id: 'polished-gold', label: 'Polished gold', appearance: {
+    ...createLayerAppearance('#d99000', '#fff0a6', 1.5),
+    fill: { kind: 'linear', color: '#d99000', angle: 112, centerX: 0.5, centerY: 0.5, radius: 0.75, stops: [{ color: '#7a4300', position: 0 }, { color: '#f4bd31', position: 0.23 }, { color: '#fff6b3', position: 0.47 }, { color: '#e19a07', position: 0.7 }, { color: '#754000', position: 1 }] },
+    stroke: { enabled: true, width: 1.5, opacity: 0.92, paint: { ...createLayerPaint('#fff3a2'), kind: 'linear', angle: 90, stops: [{ color: '#7b4700', position: 0 }, { color: '#fff4a8', position: 0.5 }, { color: '#9f5c00', position: 1 }] } },
+    bevel: { enabled: true, depth: 2, softness: 1, angle: 315, highlightColor: '#fff8c8', shadowColor: '#5f3400', opacity: 0.65 },
+    shine: { enabled: true, angle: 115, position: 0.3, width: 0.2, opacity: 0.38 },
+    shadow: { enabled: true, kind: 'outer', color: '#392100', opacity: 0.32, blur: 6, offsetX: 0, offsetY: 3 },
+  } },
+  { id: 'deep-navy', label: 'Deep navy gloss', appearance: {
+    ...createLayerAppearance('#062b72', '#dca72b', 1.2),
+    fill: { kind: 'linear', color: '#062b72', angle: 125, centerX: 0.5, centerY: 0.5, radius: 0.75, stops: [{ color: '#010d35', position: 0 }, { color: '#0d3c94', position: 0.38 }, { color: '#174eae', position: 0.56 }, { color: '#031442', position: 1 }] },
+    stroke: { enabled: true, width: 1.2, opacity: 0.9, paint: { ...createLayerPaint('#e9c66b'), kind: 'linear', angle: 90, stops: [{ color: '#87610c', position: 0 }, { color: '#ffe790', position: 0.5 }, { color: '#9a6c08', position: 1 }] } },
+    bevel: { enabled: true, depth: 2, softness: 1, angle: 300, highlightColor: '#91b7ff', shadowColor: '#010722', opacity: 0.58 },
+    shine: { enabled: true, angle: 120, position: 0.28, width: 0.18, opacity: 0.26 },
+    shadow: { enabled: true, kind: 'outer', color: '#010722', opacity: 0.38, blur: 8, offsetX: 0, offsetY: 4 },
+  } },
+  { id: 'silver-chrome', label: 'Silver chrome', appearance: {
+    ...createLayerAppearance('#b7c4d2', '#ffffff', 1.2),
+    fill: { kind: 'linear', color: '#b7c4d2', angle: 90, centerX: 0.5, centerY: 0.5, radius: 0.75, stops: [{ color: '#3d4a5b', position: 0 }, { color: '#ecf5ff', position: 0.28 }, { color: '#8c9caf', position: 0.5 }, { color: '#ffffff', position: 0.7 }, { color: '#526171', position: 1 }] },
+    bevel: { enabled: true, depth: 2, softness: 1, angle: 315, highlightColor: '#ffffff', shadowColor: '#263240', opacity: 0.58 },
+    shine: { enabled: true, angle: 90, position: 0.28, width: 0.17, opacity: 0.35 },
+    shadow: { enabled: true, kind: 'outer', color: '#15202b', opacity: 0.28, blur: 5, offsetX: 0, offsetY: 3 },
+  } },
+];
+
+export function getAppearancePreset(id: string) {
+  return APPEARANCE_PRESETS.find((preset) => preset.id === id);
+}
+
 export function isPupilDataLayer(layer: Pick<CustomPhotoLayer, 'kind' | 'field'>) {
   if (layer.kind === 'avatar') return true;
   if (layer.kind !== 'text' || !layer.field) return false;
@@ -209,6 +397,7 @@ export function createTextLayer(field: DynamicField = 'name'): CustomPhotoLayer 
     backgroundColor: 'transparent',
     textAlign: 'center',
     lineHeight: 1.1,
+    appearance: createLayerAppearance('#0f172a'),
   };
 }
 
@@ -260,6 +449,27 @@ export function createImageLayer(kind: 'avatar' | 'schoolLogo' | 'image', source
     backgroundColor: 'transparent',
     textAlign: 'center',
     lineHeight: 1.1,
+    appearance: createLayerAppearance('#0f172a', '#ffffff'),
+  };
+}
+
+export function createShapeLayer(shape: FrameShape = 'rounded'): CustomPhotoLayer {
+  const appearance = createLayerAppearance('#0f766e', '#ffffff', 0);
+  return {
+    ...createImageLayer('image'),
+    id: makeStudioId('shape'),
+    kind: 'shape',
+    label: 'Shape',
+    source: undefined,
+    x: 0.22,
+    y: 0.22,
+    width: 0.56,
+    height: 0.24,
+    shape,
+    imageFit: 'cover',
+    appearance,
+    color: appearance.fill.color,
+    backgroundColor: 'transparent',
   };
 }
 
@@ -313,12 +523,15 @@ export function normalizeCustomPhotoTemplate(template: Partial<CustomPhotoTempla
       layers: page.layers.map((layer) => ({
         ...(layer.kind === 'text'
           ? createTextLayer(layer.field || 'name')
-          : createImageLayer(layer.kind === 'avatar' || layer.kind === 'schoolLogo' ? layer.kind : 'image')),
+          : layer.kind === 'shape'
+            ? createShapeLayer(layer.shape || 'rounded')
+            : createImageLayer(layer.kind === 'avatar' || layer.kind === 'schoolLogo' ? layer.kind : 'image')),
         ...layer,
         featherTop: Number(layer.featherTop) || 0,
         featherRight: Number(layer.featherRight) || 0,
         featherBottom: Number(layer.featherBottom) || 0,
         featherLeft: Number(layer.featherLeft) || 0,
+        appearance: normalizeLayerAppearance(layer.appearance, layer.color || '#0f172a', layer.borderColor || '#ffffff', Number(layer.borderWidth) || 0),
       })),
     })),
     updatedAt: template.updatedAt || new Date().toISOString(),

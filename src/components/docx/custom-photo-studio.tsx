@@ -43,8 +43,10 @@ import {
   Printer,
   Redo2,
   RotateCcw,
+  RotateCw,
   Save,
   Search,
+  Settings2,
   Trash2,
   Type,
   Underline,
@@ -115,7 +117,11 @@ import {
   createBlankTemplate,
   createCustomTextLayer,
   createImageLayer,
+  createShapeLayer,
   createTextLayer,
+  createLayerPaint,
+  APPEARANCE_PRESETS,
+  getAppearancePreset,
   makeStudioId,
   getPaperDimensions,
   getLayerColumnIndex,
@@ -132,8 +138,8 @@ import {
   type PaperSize,
   type RenderPupilData,
   type SchoolDocumentInfo,
-  type TextCase,
 } from './custom-photo-types';
+import { getLayerPreviewStyle, paintToCss } from './custom-photo-appearance';
 
 const TEMPLATE_STORAGE_KEY = 'trinity-docx-custom-photo-templates-v1';
 const SHAPE_OPTIONS: Array<{ value: FrameShape; label: string }> = [
@@ -211,9 +217,10 @@ function pupilInitials(pupil?: Pupil) {
   return `${pupil.firstName?.[0] || ''}${pupil.lastName?.[0] || ''}`.toUpperCase() || 'P';
 }
 
-function ShapeBorder({ shape, width, color }: { shape: FrameShape; width: number; color: string }) {
-  if (width <= 0) return null;
-  const common = { fill: 'none', stroke: color, strokeWidth: width, vectorEffect: 'non-scaling-stroke' as const };
+function ShapeBorder({ shape, layer }: { shape: FrameShape; layer: CustomPhotoLayer }) {
+  const stroke = layer.appearance.stroke;
+  if (!stroke.enabled || stroke.width <= 0) return null;
+  const common = { fill: 'none', stroke: stroke.paint.color, strokeWidth: stroke.width, strokeOpacity: stroke.opacity, vectorEffect: 'non-scaling-stroke' as const };
   return (
     <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       {(shape === 'circle' || shape === 'oval') && <ellipse cx="50" cy="50" rx="49" ry="49" {...common} />}
@@ -335,6 +342,8 @@ function StudioLayer({
   onSelect,
   onPointerDown,
   onResizePointerDown,
+  onRotate,
+  onUpdate,
 }: {
   layer: CustomPhotoLayer;
   data?: RenderPupilData;
@@ -342,9 +351,11 @@ function StudioLayer({
   onSelect: () => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onResizePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onRotate: () => void;
+  onUpdate: (changes: Partial<CustomPhotoLayer>) => void;
 }) {
   const mask = useMemo(
-    () => layer.kind === 'text' ? undefined : createPhotoMaskDataUrl(layer),
+    () => layer.kind === 'text' || layer.kind === 'shape' ? undefined : createPhotoMaskDataUrl(layer),
     [layer.feather, layer.featherBottom, layer.featherLeft, layer.featherRight, layer.featherTop, layer.kind, layer.shape],
   );
   if (layer.hidden) return null;
@@ -370,7 +381,7 @@ function StudioLayer({
         top: `${layer.y * 100}%`,
         width: `${layer.width * 100}%`,
         height: `${layer.height * 100}%`,
-        transform: layer.kind === 'text' ? `rotate(${layer.rotation}deg)` : undefined,
+        transform: layer.kind === 'text' || layer.kind === 'shape' ? `rotate(${layer.rotation}deg)` : undefined,
         opacity: layer.opacity,
       }}
     >
@@ -379,7 +390,6 @@ function StudioLayer({
           className="flex h-full w-full items-center overflow-hidden px-[1.5%]"
           style={{
             justifyContent: layer.textAlign === 'left' ? 'flex-start' : layer.textAlign === 'right' ? 'flex-end' : 'center',
-            color: layer.color,
             background: layer.backgroundColor,
             fontFamily: layer.fontFamily,
             fontSize: `${layer.fontSize / 10}cqw`,
@@ -389,12 +399,44 @@ function StudioLayer({
             lineHeight: layer.lineHeight,
             textAlign: layer.textAlign,
             whiteSpace: 'pre-wrap',
+            ...getLayerPreviewStyle(layer.appearance, 'text'),
           }}
         >
           {value}
         </div>
-      ) : (
+      ) : layer.kind === 'shape' ? (
         <div className="relative h-full w-full overflow-visible">
+          {layer.appearance.extrusion.enabled && layer.appearance.extrusion.depth > 0 && (
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                clipPath: shapeClipPath(layer.shape),
+                background: layer.appearance.extrusion.color,
+                opacity: layer.appearance.extrusion.opacity,
+                transform: `translate(${Math.cos((layer.appearance.extrusion.angle - 90) * Math.PI / 180) * layer.appearance.extrusion.depth}px, ${Math.sin((layer.appearance.extrusion.angle - 90) * Math.PI / 180) * layer.appearance.extrusion.depth}px)`,
+              }}
+            />
+          )}
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{
+              clipPath: shapeClipPath(layer.shape),
+              ...getLayerPreviewStyle(layer.appearance, 'shape'),
+            }}
+          >
+            {layer.appearance.shine.enabled && (
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: `linear-gradient(${layer.appearance.shine.angle}deg, transparent ${Math.max(0, layer.appearance.shine.position * 100 - layer.appearance.shine.width * 50)}%, rgba(255,255,255,${layer.appearance.shine.opacity}) ${layer.appearance.shine.position * 100}%, transparent ${Math.min(100, layer.appearance.shine.position * 100 + layer.appearance.shine.width * 50)}%)`,
+                }}
+              />
+            )}
+          </div>
+          <ShapeBorder shape={layer.shape} layer={layer} />
+        </div>
+      ) : (
+        <div className="relative h-full w-full overflow-visible" style={getLayerPreviewStyle(layer.appearance, 'frame')}>
           <div
             className={cn('absolute inset-0 overflow-hidden', source ? 'bg-transparent' : 'bg-slate-200')}
             style={{
@@ -421,7 +463,49 @@ function StudioLayer({
               </div>
             )}
           </div>
-          <ShapeBorder shape={layer.shape} width={layer.borderWidth} color={layer.borderColor} />
+          <ShapeBorder shape={layer.shape} layer={layer} />
+        </div>
+      )}
+      {selected && !layer.locked && (
+        <div className="absolute left-1 top-1 z-20 flex items-center gap-1" onPointerDown={(event) => event.stopPropagation()}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="h-7 w-7 rounded-full border border-white bg-white/95 text-violet-700 shadow-md hover:bg-violet-50"
+            onClick={(event) => { event.stopPropagation(); onRotate(); }}
+            title="Rotate 15°"
+            aria-label="Rotate layer 15 degrees"
+          >
+            <RotateCw className="h-3.5 w-3.5" />
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="h-7 w-7 rounded-full border border-white bg-white/95 text-slate-700 shadow-md hover:bg-slate-50"
+                onClick={(event) => event.stopPropagation()}
+                title="Layer settings"
+                aria-label="Open layer settings"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" side="bottom" sideOffset={7} className="z-[100] w-64 rounded-xl p-3 shadow-xl" onPointerDown={(event) => event.stopPropagation()}>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Layer position & size</p>
+              <div className="grid grid-cols-2 gap-2">
+                <NumberInput label="X" value={layer.x * 100} min={-50} max={150} suffix="%" onChange={(value) => onUpdate({ x: value / 100 })} />
+                <NumberInput label="Y" value={layer.y * 100} min={-50} max={150} suffix="%" onChange={(value) => onUpdate({ y: value / 100 })} />
+                <NumberInput label="Width" value={layer.width * 100} min={0.5} max={150} step={0.1} suffix="%" onChange={(value) => onUpdate({ width: value / 100 })} />
+                <NumberInput label="Height" value={layer.height * 100} min={0.5} max={150} step={0.1} suffix="%" onChange={(value) => onUpdate({ height: value / 100 })} />
+                <NumberInput label="Rotation" value={layer.rotation} min={-180} max={180} suffix="°" onChange={(value) => onUpdate({ rotation: value })} />
+                <NumberInput label="Opacity" value={layer.opacity * 100} min={0} max={100} suffix="%" onChange={(value) => onUpdate({ opacity: value / 100 })} />
+              </div>
+              <label className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={layer.constrainToPage} onCheckedChange={(checked) => onUpdate({ constrainToPage: checked === true })} />Mask movement to page boundaries</label>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
       {selected && !layer.locked && (
@@ -472,6 +556,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(() => template.pages[0].layers[0]?.id || null);
   const [expandedPageIds, setExpandedPageIds] = useState<Set<string>>(() => new Set([template.pages[0].id]));
   const [canvasZoom, setCanvasZoom] = useState(1);
+  const [showSideFeather, setShowSideFeather] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<CustomPhotoTemplate[]>([]);
   const [selectedPupilIds, setSelectedPupilIds] = useState<Set<string>>(new Set());
   const [pupilSearch, setPupilSearch] = useState('');
@@ -629,6 +714,18 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
       layers: page.layers.map((layer) => layer.id === id ? { ...layer, ...changes } : layer),
     }));
   }, [updateCurrentPage]);
+
+  const updateLayerAppearance = useCallback((id: string, updater: (appearance: CustomPhotoLayer['appearance']) => CustomPhotoLayer['appearance']) => {
+    const layer = currentPage?.layers.find((item) => item.id === id);
+    if (!layer) return;
+    updateLayer(id, { appearance: updater(layer.appearance) });
+  }, [currentPage?.layers, updateLayer]);
+
+  const setLayerSolidFill = useCallback((id: string, color: string) => {
+    const layer = currentPage?.layers.find((item) => item.id === id);
+    if (!layer) return;
+    updateLayer(id, { color, appearance: { ...layer.appearance, fill: createLayerPaint(color) } });
+  }, [currentPage?.layers, updateLayer]);
 
   const applyPageFormat = (paperSize: PaperSize, orientation: CustomPhotoTemplate['pageOrientation']) => {
     const dimensions = paperSize === 'custom'
@@ -937,6 +1034,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     <DropdownMenuItem onSelect={() => addLayer(createImageLayer('schoolLogo'))}><Building2 className="mr-2 h-4 w-4" />School badge</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => imageLayerInputRef.current?.click()}><FilePlus2 className="mr-2 h-4 w-4" />Imported photo or art</DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => addLayer(createShapeLayer())}><LayoutGrid className="mr-2 h-4 w-4" />Shape</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => addLayer(createCustomTextLayer())}><Type className="mr-2 h-4 w-4" />Manual text box</DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger><CircleUserRound className="mr-2 h-4 w-4" />Pupil information</DropdownMenuSubTrigger>
@@ -1102,6 +1200,8 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                           onSelect={() => setSelectedLayerId(layer.id)}
                           onPointerDown={(event) => beginTransform(event, layer, 'move')}
                           onResizePointerDown={(event) => beginTransform(event, layer, 'resize')}
+                          onRotate={() => updateLayer(layer.id, { rotation: ((layer.rotation + 15 + 180) % 360) - 180 })}
+                          onUpdate={(changes) => updateLayer(layer.id, changes)}
                         />
                       );
                     })}
@@ -1131,53 +1231,37 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { hidden: !selectedLayer.hidden })}>{selectedLayer.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}</Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { locked: !selectedLayer.locked })}>{selectedLayer.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}</Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <NumberInput label="X" value={selectedLayer.x * 100} min={-50} max={150} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { x: value / 100 })} />
-                      <NumberInput label="Y" value={selectedLayer.y * 100} min={-50} max={150} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { y: value / 100 })} />
-                      <NumberInput label="Width" value={selectedLayer.width * 100} min={0.5} max={150} step={0.1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { width: value / 100 })} />
-                      <NumberInput label="Height" value={selectedLayer.height * 100} min={0.5} max={150} step={0.1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { height: value / 100 })} />
-                      <NumberInput label="Rotation" value={selectedLayer.rotation} min={-180} max={180} suffix="°" onChange={(value) => updateLayer(selectedLayer.id, { rotation: value })} />
-                      <NumberInput label="Opacity" value={selectedLayer.opacity * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { opacity: value / 100 })} />
-                    </div>
-                    <label className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={selectedLayer.constrainToPage} onCheckedChange={(checked) => updateLayer(selectedLayer.id, { constrainToPage: checked === true })} />Mask movement to page boundaries</label>
+                    <p className="rounded-lg border border-dashed border-slate-200 bg-white/75 px-2.5 py-2 text-[10px] leading-4 text-slate-500">Use the rotate arrow or settings button on the selected layer to adjust its position, size, rotation, opacity and page-boundary mask.</p>
                   </div>
 
-                  {selectedLayer.kind !== 'text' ? (
+                  {selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' ? (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Photo frame & crop</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Shape</span><Select value={selectedLayer.shape} onValueChange={(value) => updateLayer(selectedLayer.id, { shape: value as FrameShape })}><SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{SHAPE_OPTIONS.map((shape) => <SelectItem key={shape.value} value={shape.value}>{shape.label}</SelectItem>)}</SelectContent></Select></label>
+                        <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Fit</span><Select value={selectedLayer.imageFit} onValueChange={(value) => updateLayer(selectedLayer.id, { imageFit: value as CustomPhotoLayer['imageFit'] })}><SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Fill frame</SelectItem><SelectItem value="contain">Fit whole photo</SelectItem></SelectContent></Select></label>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <NumberInput label="Zoom" value={selectedLayer.imageZoom} min={0.01} step={0.05} suffix="×" onChange={(value) => updateLayer(selectedLayer.id, { imageZoom: Math.max(0.01, value) })} />
+                        <NumberInput label="Crop X" value={selectedLayer.imageOffsetX * 100} step={1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetX: value / 100 })} />
+                        <NumberInput label="Crop Y" value={selectedLayer.imageOffsetY * 100} step={1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetY: value / 100 })} />
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                        <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-slate-600"><span className="shrink-0">Feather</span><span className="min-w-0 flex-1"><Slider value={[selectedLayer.feather]} min={0} max={100} step={1} onPointerDown={() => { historyGroupRef.current = true; historyGroupRecordedRef.current = false; }} onPointerUp={() => { historyGroupRef.current = false; historyGroupRecordedRef.current = false; }} onPointerCancel={() => { historyGroupRef.current = false; historyGroupRecordedRef.current = false; }} onValueChange={([value]) => updateLayer(selectedLayer.id, { feather: value })} /></span><span className="w-7 text-right tabular-nums">{selectedLayer.feather}%</span><Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0 rounded-full" onClick={() => setShowSideFeather((value) => !value)} title={showSideFeather ? 'Hide side feather controls' : 'Show side feather controls'} aria-label={showSideFeather ? 'Hide side feather controls' : 'Show side feather controls'}><ChevronDown className={cn('h-3.5 w-3.5 transition-transform', showSideFeather && 'rotate-180')} /></Button></div>
+                        {showSideFeather && <div className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-200 pt-2"><label className="flex items-center gap-2 text-[9px] font-semibold text-slate-500"><span className="w-8">Top</span><Slider className="flex-1" value={[selectedLayer.featherTop || 0]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { featherTop: value })} /><span className="w-7 text-right tabular-nums">{selectedLayer.featherTop || 0}%</span></label><label className="flex items-center gap-2 text-[9px] font-semibold text-slate-500"><span className="w-8">Right</span><Slider className="flex-1" value={[selectedLayer.featherRight || 0]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { featherRight: value })} /><span className="w-7 text-right tabular-nums">{selectedLayer.featherRight || 0}%</span></label><label className="flex items-center gap-2 text-[9px] font-semibold text-slate-500"><span className="w-8">Bottom</span><Slider className="flex-1" value={[selectedLayer.featherBottom || 0]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { featherBottom: value })} /><span className="w-7 text-right tabular-nums">{selectedLayer.featherBottom || 0}%</span></label><label className="flex items-center gap-2 text-[9px] font-semibold text-slate-500"><span className="w-8">Left</span><Slider className="flex-1" value={[selectedLayer.featherLeft || 0]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { featherLeft: value })} /><span className="w-7 text-right tabular-nums">{selectedLayer.featherLeft || 0}%</span></label></div>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2"><NumberInput label="Border" value={selectedLayer.appearance.stroke.width} min={0} max={30} suffix="px" onChange={(value) => updateLayer(selectedLayer.id, { borderWidth: value, appearance: { ...selectedLayer.appearance, stroke: { ...selectedLayer.appearance.stroke, enabled: value > 0, width: value } } })} /><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Border colour</span><Input type="color" value={selectedLayer.appearance.stroke.paint.color} onChange={(event) => updateLayer(selectedLayer.id, { borderColor: event.target.value, appearance: { ...selectedLayer.appearance, stroke: { ...selectedLayer.appearance.stroke, paint: createLayerPaint(event.target.value) } } })} className="h-8 bg-white p-1" /></label></div>
+                      <Button variant="ghost" size="sm" className="h-8 w-full text-[10px]" onClick={() => updateLayer(selectedLayer.id, { imageZoom: 1, imageOffsetX: 0, imageOffsetY: 0, rotation: 0, feather: 0, featherTop: 0, featherRight: 0, featherBottom: 0, featherLeft: 0 })}><RotateCcw className="mr-1 h-3 w-3" />Reset photo treatment</Button>
+                    </div>
+                  ) : selectedLayer.kind === 'shape' ? (
+                    <div className="space-y-3 rounded-xl border border-slate-200 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Shape geometry</p>
                       <Label className="text-[10px]">Shape</Label>
                       <Select value={selectedLayer.shape} onValueChange={(value) => updateLayer(selectedLayer.id, { shape: value as FrameShape })}>
                         <SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{SHAPE_OPTIONS.map((shape) => <SelectItem key={shape.value} value={shape.value}>{shape.label}</SelectItem>)}</SelectContent>
                       </Select>
-                      <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Photo fit</span><Select value={selectedLayer.imageFit} onValueChange={(value) => updateLayer(selectedLayer.id, { imageFit: value as CustomPhotoLayer['imageFit'] })}><SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Fill frame (crop)</SelectItem><SelectItem value="contain">Fit whole photo</SelectItem></SelectContent></Select></label>
-                      <NumberInput label="Crop zoom (no maximum)" value={selectedLayer.imageZoom} min={0.01} step={0.05} suffix="×" onChange={(value) => updateLayer(selectedLayer.id, { imageZoom: Math.max(0.01, value) })} />
-                      <div className="grid grid-cols-2 gap-2">
-                        <NumberInput label="Crop X" value={selectedLayer.imageOffsetX * 100} step={1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetX: value / 100 })} />
-                        <NumberInput label="Crop Y" value={selectedLayer.imageOffsetY * 100} step={1} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetY: value / 100 })} />
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-                        <div className="mb-1.5 flex justify-between text-[10px] font-semibold text-slate-600"><span>Feather around shape</span><span>{selectedLayer.feather}%</span></div>
-                        <Slider
-                          value={[selectedLayer.feather]}
-                          min={0}
-                          max={100}
-                          step={1}
-                          onPointerDown={() => { historyGroupRef.current = true; historyGroupRecordedRef.current = false; }}
-                          onPointerUp={() => { historyGroupRef.current = false; historyGroupRecordedRef.current = false; }}
-                          onPointerCancel={() => { historyGroupRef.current = false; historyGroupRecordedRef.current = false; }}
-                          onValueChange={([value]) => updateLayer(selectedLayer.id, { feather: value })}
-                        />
-                        <p className="mt-2 text-[9px] leading-3.5 text-slate-500">Softens the actual circle, oval, rounded or polygon edge.</p>
-                        <div className="mt-2 grid grid-cols-2 gap-2">
-                          <NumberInput label="Top side" value={selectedLayer.featherTop || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherTop: value })} />
-                          <NumberInput label="Right side" value={selectedLayer.featherRight || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherRight: value })} />
-                          <NumberInput label="Bottom side" value={selectedLayer.featherBottom || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherBottom: value })} />
-                          <NumberInput label="Left side" value={selectedLayer.featherLeft || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherLeft: value })} />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2"><NumberInput label="Border" value={selectedLayer.borderWidth} min={0} max={30} suffix="px" onChange={(value) => updateLayer(selectedLayer.id, { borderWidth: value })} /><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Border colour</span><Input type="color" value={selectedLayer.borderColor} onChange={(event) => updateLayer(selectedLayer.id, { borderColor: event.target.value })} className="h-8 bg-white p-1" /></label></div>
-                      <Button variant="ghost" size="sm" className="h-8 w-full text-[10px]" onClick={() => updateLayer(selectedLayer.id, { imageZoom: 1, imageOffsetX: 0, imageOffsetY: 0, rotation: 0, feather: 0, featherTop: 0, featherRight: 0, featherBottom: 0, featherLeft: 0 })}><RotateCcw className="mr-1 h-3 w-3" />Reset photo treatment</Button>
+                      <p className="rounded-lg bg-slate-50 p-2 text-[9px] leading-3.5 text-slate-500">Use Appearance below to make this shape metallic, glossy, bevelled or dimensional.</p>
                     </div>
                   ) : (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
@@ -1191,28 +1275,22 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Type text directly</span><Textarea value={selectedLayer.text || ''} onChange={(event) => updateLayer(selectedLayer.id, { text: event.target.value })} rows={4} placeholder="Type the text that should appear on this document…" className="min-h-20 resize-y bg-white text-xs" /></label>
                       )}
                       <FontPicker value={selectedLayer.fontFamily} onChange={(value) => updateLayer(selectedLayer.id, { fontFamily: value })} />
-                      <div className="space-y-1">
-                        <Label className="text-[10px] text-slate-500">Letter case</Label>
-                        <Select value={selectedLayer.textCase || 'original'} onValueChange={(value) => updateLayer(selectedLayer.id, { textCase: value as TextCase })}>
-                          <SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="original">As entered</SelectItem>
-                            <SelectItem value="sentence">Sentence case</SelectItem>
-                            <SelectItem value="lowercase">lowercase</SelectItem>
-                            <SelectItem value="uppercase">UPPERCASE</SelectItem>
-                            <SelectItem value="title">Title Case</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                       <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
                         <Button type="button" variant={selectedLayer.fontWeight >= 600 ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { fontWeight: selectedLayer.fontWeight >= 600 ? 400 : 700 })} title="Bold" aria-label="Bold"><Bold className="h-3.5 w-3.5" /></Button>
                         <Button type="button" variant={selectedLayer.fontStyle === 'italic' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { fontStyle: selectedLayer.fontStyle === 'italic' ? 'normal' : 'italic' })} title="Italic" aria-label="Italic"><Italic className="h-3.5 w-3.5" /></Button>
                         <Button type="button" variant={selectedLayer.underline ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => updateLayer(selectedLayer.id, { underline: !selectedLayer.underline })} title="Underline" aria-label="Underline"><Underline className="h-3.5 w-3.5" /></Button>
-                        <span className="mx-1 h-5 w-px bg-slate-200" />
-                        <label className="flex h-8 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 text-[10px] font-semibold text-slate-600 hover:bg-white" title="Font colour">
-                          <span className="h-4 w-4 rounded-full border border-slate-300 shadow-sm" style={{ backgroundColor: selectedLayer.color }} />
-                          Font colour
-                          <Input type="color" value={selectedLayer.color} onChange={(event) => updateLayer(selectedLayer.id, { color: event.target.value })} className="sr-only" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-9 gap-0.5" title="Letter case" aria-label="Letter case"><span className="text-[11px] font-black leading-none">Aa</span><ChevronDown className="h-2.5 w-2.5" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="min-w-40"><DropdownMenuItem onSelect={() => updateLayer(selectedLayer.id, { textCase: 'original' })}>As entered</DropdownMenuItem><DropdownMenuItem onSelect={() => updateLayer(selectedLayer.id, { textCase: 'sentence' })}>Sentence case</DropdownMenuItem><DropdownMenuItem onSelect={() => updateLayer(selectedLayer.id, { textCase: 'lowercase' })}>lowercase</DropdownMenuItem><DropdownMenuItem onSelect={() => updateLayer(selectedLayer.id, { textCase: 'uppercase' })}>UPPERCASE</DropdownMenuItem><DropdownMenuItem onSelect={() => updateLayer(selectedLayer.id, { textCase: 'title' })}>Title Case</DropdownMenuItem></DropdownMenuContent>
+                        </DropdownMenu>
+                        <span className="mx-0.5 h-5 w-px bg-slate-200" />
+                        <label className="grid h-8 w-8 cursor-pointer place-items-center rounded-md hover:bg-white" title="Font colour">
+                          <span className="relative grid h-5 w-5 place-items-center"><Type className="h-4 w-4 text-slate-700" /><span className="absolute bottom-0 h-0.5 w-4 rounded-full" style={{ backgroundColor: selectedLayer.appearance.fill.color }} /></span>
+                          <Input type="color" value={selectedLayer.appearance.fill.color} onChange={(event) => setLayerSolidFill(selectedLayer.id, event.target.value)} className="sr-only" />
+                        </label>
+                        <label className="grid h-8 w-8 cursor-pointer place-items-center rounded-md hover:bg-white" title="Text background">
+                          <span className="h-4 w-4 rounded-[3px] border border-slate-300 shadow-sm" style={{ backgroundColor: selectedLayer.backgroundColor === 'transparent' ? '#ffffff' : selectedLayer.backgroundColor }} />
+                          <Input type="color" value={selectedLayer.backgroundColor === 'transparent' ? '#ffffff' : selectedLayer.backgroundColor} onChange={(event) => updateLayer(selectedLayer.id, { backgroundColor: event.target.value })} className="sr-only" />
                         </label>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
@@ -1220,11 +1298,96 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                         <NumberInput label="Weight" value={selectedLayer.fontWeight} min={100} max={900} step={100} onChange={(value) => updateLayer(selectedLayer.id, { fontWeight: value })} />
                         <NumberInput label="Line height" value={selectedLayer.lineHeight} min={0.7} max={2.5} step={0.05} onChange={(value) => updateLayer(selectedLayer.id, { lineHeight: value })} />
                       </div>
-                      <div className="grid grid-cols-2 gap-2"><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Text colour</span><Input type="color" value={selectedLayer.color} onChange={(event) => updateLayer(selectedLayer.id, { color: event.target.value })} className="h-8 bg-white p-1" /></label><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Background</span><Input type="color" value={selectedLayer.backgroundColor === 'transparent' ? '#ffffff' : selectedLayer.backgroundColor} onChange={(event) => updateLayer(selectedLayer.id, { backgroundColor: event.target.value })} className="h-8 bg-white p-1" /></label></div>
                       <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
                         {(['left', 'center', 'right'] as const).map((align) => { const Icon = align === 'left' ? AlignLeft : align === 'center' ? AlignCenter : AlignRight; return <Button key={align} type="button" variant={selectedLayer.textAlign === align ? 'secondary' : 'ghost'} size="icon" className="h-7 w-full" onClick={() => updateLayer(selectedLayer.id, { textAlign: align })}><Icon className="h-3.5 w-3.5" /></Button>; })}
                       </div>
                     </div>
+                  )}
+
+                  {selectedLayer.kind !== 'text' && selectedLayer.kind !== 'shape' && (
+                    <details className="group overflow-hidden rounded-xl border border-sky-200 bg-sky-50/55">
+                      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-sky-900 marker:hidden"><span>Frame finish</span><ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" /></summary>
+                      <div className="grid grid-cols-2 gap-2 border-t border-sky-100 p-3">
+                        <label className="space-y-1 text-[10px] font-semibold text-slate-600"><span className="flex items-center gap-1.5"><Checkbox checked={selectedLayer.appearance.shadow.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shadow: { ...appearance.shadow, enabled: checked === true, kind: 'outer' } }))} />Shadow</span><NumberInput label="Blur" value={selectedLayer.appearance.shadow.blur} min={0} max={80} suffix="px" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shadow: { ...appearance.shadow, blur: value } }))} /></label>
+                        <label className="space-y-1 text-[10px] font-semibold text-slate-600"><span className="flex items-center gap-1.5"><Checkbox checked={selectedLayer.appearance.bevel.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, bevel: { ...appearance.bevel, enabled: checked === true } }))} />Bevel</span><NumberInput label="Depth" value={selectedLayer.appearance.bevel.depth} min={0} max={30} suffix="px" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, bevel: { ...appearance.bevel, depth: value } }))} /></label>
+                        <label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600"><Checkbox checked={selectedLayer.appearance.shine.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shine: { ...appearance.shine, enabled: checked === true } }))} />Gloss highlight</label>
+                        <NumberInput label="Shine strength" value={selectedLayer.appearance.shine.opacity * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shine: { ...appearance.shine, opacity: value / 100 } }))} />
+                      </div>
+                    </details>
+                  )}
+
+                  {(selectedLayer.kind === 'text' || selectedLayer.kind === 'shape') && (
+                    <details open className="group overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50/70 via-white to-violet-50/60">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-amber-900 marker:hidden">
+                        <span className="flex items-center gap-1.5"><WandSparkles className="h-3.5 w-3.5 text-amber-600" />Appearance & depth</span>
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="space-y-3 border-t border-amber-100 px-3 pb-3 pt-2.5">
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {APPEARANCE_PRESETS.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              title={preset.label}
+                              onClick={() => {
+                                const next = getAppearancePreset(preset.id)?.appearance;
+                                if (!next) return;
+                                const appearance = JSON.parse(JSON.stringify(next)) as CustomPhotoLayer['appearance'];
+                                updateLayer(selectedLayer.id, { color: appearance.fill.color, borderColor: appearance.stroke.paint.color, borderWidth: appearance.stroke.width, appearance });
+                              }}
+                              className="overflow-hidden rounded-lg border border-white/90 bg-white text-left shadow-sm transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                            >
+                              <span className="block h-5" style={{ background: paintToCss(preset.appearance.fill) }} />
+                              <span className="block truncate px-1.5 py-1 text-[8px] font-bold text-slate-600">{preset.label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="rounded-lg border border-white bg-white/80 p-2.5">
+                          <div className="mb-2 flex items-center justify-between"><Label className="text-[10px] font-bold text-slate-700">Fill</Label><Select value={selectedLayer.appearance.fill.kind} onValueChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, kind: value as CustomPhotoLayer['appearance']['fill']['kind'] } }))}><SelectTrigger className="h-7 w-28 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="solid">Solid</SelectItem><SelectItem value="linear">Linear</SelectItem><SelectItem value="radial">Radial</SelectItem></SelectContent></Select></div>
+                          <div className="h-7 rounded-md border border-slate-200" style={{ background: paintToCss(selectedLayer.appearance.fill) }} />
+                          {selectedLayer.appearance.fill.kind === 'solid' ? (
+                            <label className="mt-2 flex items-center justify-between text-[10px] font-semibold text-slate-500"><span>Colour</span><Input type="color" value={selectedLayer.appearance.fill.color} onChange={(event) => setLayerSolidFill(selectedLayer.id, event.target.value)} className="h-8 w-12 bg-white p-1" /></label>
+                          ) : (
+                            <div className="mt-2 space-y-1.5">
+                              {selectedLayer.appearance.fill.stops.map((stop, index) => (
+                                <div key={`${stop.position}-${index}`} className="flex items-end gap-1.5">
+                                  <Input type="color" value={stop.color} onChange={(event) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, stops: appearance.fill.stops.map((item, itemIndex) => itemIndex === index ? { ...item, color: event.target.value } : item) } }))} className="h-8 w-10 bg-white p-1" />
+                                  <div className="min-w-0 flex-1"><NumberInput label={`Stop ${index + 1}`} value={stop.position * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, stops: appearance.fill.stops.map((item, itemIndex) => itemIndex === index ? { ...item, position: clamp(value / 100, 0, 1) } : item).sort((a, b) => a.position - b.position) } }))} /></div>
+                                  <Button type="button" variant="ghost" size="icon" disabled={selectedLayer.appearance.fill.stops.length <= 2} onClick={() => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, stops: appearance.fill.stops.filter((_, itemIndex) => itemIndex !== index) } }))} className="h-8 w-8 text-slate-400 hover:text-rose-600"><X className="h-3.5 w-3.5" /></Button>
+                                </div>
+                              ))}
+                              <div className="flex items-center gap-2">
+                                <Button type="button" variant="outline" size="sm" disabled={selectedLayer.appearance.fill.stops.length >= 8} onClick={() => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, stops: [...appearance.fill.stops, { color: '#ffffff', position: 0.5 }].sort((a, b) => a.position - b.position) } }))} className="h-7 flex-1 text-[9px]"><Plus className="mr-1 h-3 w-3" />Colour stop</Button>
+                                <NumberInput label="Angle" value={selectedLayer.appearance.fill.angle} min={-360} max={360} suffix="°" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, angle: value } }))} />
+                              </div>
+                              {selectedLayer.appearance.fill.kind === 'radial' && <div className="grid grid-cols-3 gap-2"><NumberInput label="Centre X" value={selectedLayer.appearance.fill.centerX * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, centerX: value / 100 } }))} /><NumberInput label="Centre Y" value={selectedLayer.appearance.fill.centerY * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, centerY: value / 100 } }))} /><NumberInput label="Spread" value={selectedLayer.appearance.fill.radius * 100} min={5} max={200} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, fill: { ...appearance.fill, radius: value / 100 } }))} /></div>}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="rounded-lg border border-white bg-white/80 p-2 text-[10px] font-semibold text-slate-600"><span className="flex items-center gap-1.5"><Checkbox checked={selectedLayer.appearance.stroke.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, stroke: { ...appearance.stroke, enabled: checked === true } }))} />Outline</span><NumberInput label="Width" value={selectedLayer.appearance.stroke.width} min={0} max={30} suffix="px" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, stroke: { ...appearance.stroke, width: value, enabled: value > 0 } }))} /></label>
+                          <label className="rounded-lg border border-white bg-white/80 p-2 text-[10px] font-semibold text-slate-600"><span className="flex items-center gap-1.5"><Checkbox checked={selectedLayer.appearance.shadow.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shadow: { ...appearance.shadow, enabled: checked === true } }))} />Shadow</span><NumberInput label="Blur" value={selectedLayer.appearance.shadow.blur} min={0} max={80} suffix="px" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shadow: { ...appearance.shadow, blur: value } }))} /></label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Outline colour</span><Input type="color" value={selectedLayer.appearance.stroke.paint.color} onChange={(event) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, stroke: { ...appearance.stroke, paint: createLayerPaint(event.target.value) } }))} className="h-8 bg-white p-1" /></label>
+                          <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Shadow colour</span><Input type="color" value={selectedLayer.appearance.shadow.color} onChange={(event) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shadow: { ...appearance.shadow, color: event.target.value } }))} className="h-8 bg-white p-1" /></label>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 rounded-lg border border-white bg-white/80 p-2">
+                          <label className="space-y-1 text-[10px] font-semibold text-slate-600"><span className="flex items-center gap-1.5"><Checkbox checked={selectedLayer.appearance.bevel.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, bevel: { ...appearance.bevel, enabled: checked === true } }))} />Bevel</span><NumberInput label="Depth" value={selectedLayer.appearance.bevel.depth} min={0} max={30} suffix="px" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, bevel: { ...appearance.bevel, depth: value } }))} /></label>
+                          <label className="space-y-1 text-[10px] font-semibold text-slate-600"><span className="flex items-center gap-1.5"><Checkbox checked={selectedLayer.appearance.shine.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shine: { ...appearance.shine, enabled: checked === true } }))} />Shine</span><NumberInput label="Strength" value={selectedLayer.appearance.shine.opacity * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shine: { ...appearance.shine, opacity: value / 100 } }))} /></label>
+                          <NumberInput label="Light angle" value={selectedLayer.appearance.bevel.angle} min={-360} max={360} suffix="°" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, bevel: { ...appearance.bevel, angle: value } }))} />
+                          <NumberInput label="Shine position" value={selectedLayer.appearance.shine.position * 100} min={0} max={100} suffix="%" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, shine: { ...appearance.shine, position: value / 100 } }))} />
+                        </div>
+
+                        <div className="rounded-lg border border-white bg-white/80 p-2">
+                          <div className="mb-2 flex items-center justify-between"><label className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600"><Checkbox checked={selectedLayer.appearance.extrusion.enabled} onCheckedChange={(checked) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, extrusion: { ...appearance.extrusion, enabled: checked === true } }))} />3D depth</label><Input type="color" value={selectedLayer.appearance.extrusion.color} onChange={(event) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, extrusion: { ...appearance.extrusion, color: event.target.value } }))} className="h-7 w-10 bg-white p-1" /></div>
+                          <div className="grid grid-cols-2 gap-2"><NumberInput label="Depth" value={selectedLayer.appearance.extrusion.depth} min={0} max={40} suffix="px" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, extrusion: { ...appearance.extrusion, depth: value } }))} /><NumberInput label="Direction" value={selectedLayer.appearance.extrusion.angle} min={-360} max={360} suffix="°" onChange={(value) => updateLayerAppearance(selectedLayer.id, (appearance) => ({ ...appearance, extrusion: { ...appearance.extrusion, angle: value } }))} /></div>
+                        </div>
+                      </div>
+                    </details>
                   )}
                 </div>
               )}

@@ -17,6 +17,7 @@ import {
   type RenderPupilData,
   type SchoolDocumentInfo,
 } from './custom-photo-types';
+import { createCanvasPaint, drawStyledShape, drawStyledText } from './custom-photo-appearance';
 
 interface GridLayout {
   columns: number;
@@ -237,16 +238,82 @@ async function renderImageLayer(
   layerContext.drawImage(maskCanvas, 0, 0);
   layerContext.restore();
 
-  context.drawImage(layerCanvas, 0, 0, width, height);
-  if (layer.borderWidth > 0) {
+  const appearance = layer.appearance;
+  if (appearance.shadow.enabled && appearance.shadow.kind === 'outer') {
     context.save();
-    const lineWidth = layer.borderWidth * Math.max(0.5, width / 500);
+    makeShapePath(context, layer.shape, width, height);
+    context.shadowColor = appearance.shadow.color;
+    context.shadowBlur = appearance.shadow.blur * Math.max(0.45, width / 500);
+    context.shadowOffsetX = appearance.shadow.offsetX * Math.max(0.45, width / 500);
+    context.shadowOffsetY = appearance.shadow.offsetY * Math.max(0.45, width / 500);
+    context.globalAlpha = appearance.shadow.opacity;
+    context.strokeStyle = appearance.shadow.color;
+    context.lineWidth = Math.max(1, appearance.stroke.width * Math.max(0.45, width / 500), width / 900);
+    context.stroke();
+    context.restore();
+  }
+  context.drawImage(layerCanvas, 0, 0, width, height);
+  const stroke = appearance.stroke;
+  if (appearance.bevel.enabled && appearance.bevel.depth > 0) {
+    const radians = (appearance.bevel.angle - 90) * Math.PI / 180;
+    const scale = Math.max(0.45, width / 500);
+    const depth = appearance.bevel.depth * scale;
+    context.save();
+    context.globalAlpha = appearance.bevel.opacity;
+    context.translate(-Math.cos(radians) * depth * 0.4, -Math.sin(radians) * depth * 0.4);
+    makeShapePath(context, layer.shape, width, height, depth / 2);
+    context.strokeStyle = appearance.bevel.highlightColor;
+    context.lineWidth = Math.max(1, depth);
+    context.stroke();
+    context.restore();
+    context.save();
+    context.globalAlpha = appearance.bevel.opacity;
+    context.translate(Math.cos(radians) * depth * 0.4, Math.sin(radians) * depth * 0.4);
+    makeShapePath(context, layer.shape, width, height, depth / 2);
+    context.strokeStyle = appearance.bevel.shadowColor;
+    context.lineWidth = Math.max(1, depth);
+    context.stroke();
+    context.restore();
+  }
+  if (stroke.enabled && stroke.width > 0) {
+    context.save();
+    const lineWidth = stroke.width * Math.max(0.5, width / 500);
     makeShapePath(context, layer.shape, width, height, lineWidth / 2);
-    context.strokeStyle = layer.borderColor;
+    context.globalAlpha = stroke.opacity;
+    context.strokeStyle = createCanvasPaint(context, stroke.paint, width, height);
     context.lineWidth = lineWidth;
     context.stroke();
     context.restore();
   }
+  if (appearance.shine.enabled) {
+    const radians = (appearance.shine.angle - 90) * Math.PI / 180;
+    const span = Math.max(width, height) * appearance.shine.width;
+    const offset = (appearance.shine.position - 0.5) * Math.max(width, height);
+    const gradient = context.createLinearGradient(
+      width / 2 - Math.sin(radians) * span + Math.cos(radians) * offset,
+      height / 2 + Math.cos(radians) * span + Math.sin(radians) * offset,
+      width / 2 + Math.sin(radians) * span + Math.cos(radians) * offset,
+      height / 2 - Math.cos(radians) * span + Math.sin(radians) * offset,
+    );
+    gradient.addColorStop(0, 'rgba(255,255,255,0)');
+    gradient.addColorStop(0.5, `rgba(255,255,255,${appearance.shine.opacity})`);
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    context.save();
+    makeShapePath(context, layer.shape, width, height, Math.max(0.5, appearance.stroke.width * Math.max(0.45, width / 500) / 2));
+    context.strokeStyle = gradient;
+    context.lineWidth = Math.max(1, appearance.stroke.width * Math.max(0.45, width / 500), width / 900);
+    context.stroke();
+    context.restore();
+  }
+}
+
+function renderShapeLayer(
+  context: CanvasRenderingContext2D,
+  layer: CustomPhotoLayer,
+  width: number,
+  height: number,
+) {
+  drawStyledShape(context, layer.shape, layer.appearance, width, height);
 }
 
 function wrapText(context: CanvasRenderingContext2D, value: string, maxWidth: number) {
@@ -286,7 +353,6 @@ function renderTextLayer(
   }
   const text = applyTextCase(layer.field ? resolvePupilField(layer.field, data) : (layer.text || ''), layer.textCase);
   const fontSize = Math.max(7, layer.fontSize * cardWidth / 1000);
-  context.fillStyle = layer.color;
   const fontFamily = `"${(layer.fontFamily || 'Arial').replaceAll('"', '\\"')}"`;
   context.font = `${layer.fontStyle || 'normal'} ${layer.fontWeight} ${fontSize}px ${fontFamily}`;
   context.textAlign = layer.textAlign;
@@ -296,22 +362,29 @@ function renderTextLayer(
   const totalHeight = lines.length * lineHeight;
   const startY = (height - totalHeight) / 2 + lineHeight / 2;
   const x = layer.textAlign === 'left' ? fontSize * 0.18 : layer.textAlign === 'right' ? width - fontSize * 0.18 : width / 2;
-  lines.forEach((line, index) => {
-    const y = startY + index * lineHeight;
-    context.fillText(line, x, y);
-    if (layer.underline && line) {
+  const drawFill = (target: CanvasRenderingContext2D) => {
+    lines.forEach((line, index) => target.fillText(line, x, startY + index * lineHeight));
+  };
+  const drawStroke = (target: CanvasRenderingContext2D) => {
+    lines.forEach((line, index) => target.strokeText(line, x, startY + index * lineHeight));
+  };
+  drawStyledText(context, layer.appearance, width, height, drawFill, drawStroke);
+  if (layer.underline) {
+    context.save();
+    context.strokeStyle = createCanvasPaint(context, layer.appearance.fill, width, height);
+    context.lineWidth = Math.max(1, fontSize * 0.055);
+    lines.forEach((line, index) => {
+      if (!line) return;
+      const y = startY + index * lineHeight;
       const lineWidth = context.measureText(line).width;
       const startX = layer.textAlign === 'left' ? x : layer.textAlign === 'right' ? x - lineWidth : x - lineWidth / 2;
-      context.save();
       context.beginPath();
       context.moveTo(startX, y + fontSize * 0.38);
       context.lineTo(startX + lineWidth, y + fontSize * 0.38);
-      context.strokeStyle = layer.color;
-      context.lineWidth = Math.max(1, fontSize * 0.055);
       context.stroke();
-      context.restore();
-    }
-  });
+    });
+    context.restore();
+  }
 }
 
 async function renderLayer(
@@ -329,9 +402,10 @@ async function renderLayer(
   context.save();
   context.globalAlpha = layer.opacity;
   context.translate(x + width / 2, y + height / 2);
-  if (layer.kind === 'text') context.rotate(layer.rotation * Math.PI / 180);
+  if (layer.kind === 'text' || layer.kind === 'shape') context.rotate(layer.rotation * Math.PI / 180);
   context.translate(-width / 2, -height / 2);
   if (layer.kind === 'text') renderTextLayer(context, layer, data, width, height, cardWidth);
+  else if (layer.kind === 'shape') renderShapeLayer(context, layer, width, height);
   else await renderImageLayer(context, layer, data, width, height);
   context.restore();
 }
