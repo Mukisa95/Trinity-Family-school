@@ -478,12 +478,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('Active');
   const [output, setOutput] = useState<CustomPhotoOutputSettings>({
-    paperSize: 'a4',
-    orientation: 'portrait',
-    cardsPerPage: 2,
-    marginMm: 8,
-    gapMm: 3,
-    showCutLines: true,
+    paperSize: template.paperSize,
+    orientation: template.pageOrientation,
+    cardsPerPage: 1,
+    marginMm: 0,
+    gapMm: 0,
+    showCutLines: false,
   });
   const [feesByPupil, setFeesByPupil] = useState<Record<string, PupilFeesInfo>>({});
   const [feesProcessing, setFeesProcessing] = useState(false);
@@ -533,6 +533,12 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   }, [classFilter, pupilSearch, pupils, statusFilter]);
   const allFilteredSelected = filteredPupils.length > 0 && filteredPupils.every((pupil) => selectedPupilIds.has(pupil.id));
   const estimatedPages = estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage, template.pageColumns);
+  const exactOutputSettings = useMemo<CustomPhotoOutputSettings>(() => ({
+    ...output,
+    paperSize: template.paperSize,
+    orientation: template.pageOrientation,
+    marginMm: 0,
+  }), [output, template.pageOrientation, template.paperSize]);
   const marginXPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectWidth) * 100, 0, 45);
   const marginYPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectHeight) * 100, 0, 45);
 
@@ -659,7 +665,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     const page = template.pages.find((item) => item.id === pageId);
     const layer = page?.layers.find((item) => item.id === layerId);
     if (!layer) return;
-    const copy = { ...layer, id: makeStudioId(layer.kind), label: `${layer.label} copy`, x: clamp(layer.x + 0.03, 0, 0.94), y: clamp(layer.y + 0.03, 0, 0.94) };
+    const copy = { ...layer, id: makeStudioId(layer.kind), label: `${layer.label} copy`, x: clamp(layer.x + 0.03, 0, 0.94), y: clamp(layer.y + 0.03, 0, 0.94), ...(isPupilDataLayer(layer) ? { pupilDataMode: 'follow' as const } : {}) };
     updatePageById(pageId, (item) => ({ ...item, layers: [...item.layers, copy] }));
     setActivePageId(pageId);
     setSelectedLayerId(copy.id);
@@ -676,6 +682,15 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
       layers.splice(next, 0, layer);
       return { ...page, layers };
     });
+  };
+
+  const setLayerPupilDataMode = (pageId: string, layerId: string, pupilDataMode: CustomPhotoLayer['pupilDataMode']) => {
+    updatePageById(pageId, (page) => ({
+      ...page,
+      layers: page.layers.map((layer) => layer.id === layerId ? { ...layer, pupilDataMode } : layer),
+    }));
+    setActivePageId(pageId);
+    setSelectedLayerId(layerId);
   };
 
   const beginTransform = (
@@ -858,7 +873,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     setGenerationProgress({ completed: 0, total: estimatedPages });
     try {
       await ensureDocXTemplateFontsLoaded(template);
-      const blob = await createCustomPhotoPdf(template, selectedPupils, feesByPupil, output, schoolInfo, (completed, total) => {
+      const blob = await createCustomPhotoPdf(template, selectedPupils, feesByPupil, exactOutputSettings, schoolInfo, (completed, total) => {
         setGenerationProgress({ completed, total });
       });
       const date = new Date().toISOString().slice(0, 10);
@@ -963,10 +978,33 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                                 <button type="button" onClick={() => { setActivePageId(page.id); setSelectedLayerId(layer.id); }} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
                                   {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'schoolLogo' ? <Building2 className="h-3.5 w-3.5 shrink-0" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5 shrink-0" /> : <Type className="h-3.5 w-3.5 shrink-0" />}
                                   <span className="min-w-0 flex-1 truncate text-[10px] font-semibold">{layer.label}</span>
-                                  {isPupilDataLayer(layer) && <span className={cn('rounded px-1 py-0.5 text-[8px] font-black uppercase', layer.pupilDataMode === 'follow' ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700')}>{layer.pupilDataMode === 'follow' ? 'Fol' : 'Dup'}</span>}
                                   {layer.hidden && <EyeOff className="h-3 w-3 shrink-0" />}
                                   {layer.locked && <Lock className="h-3 w-3 shrink-0" />}
                                 </button>
+                                {isPupilDataLayer(layer) && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button type="button" className={cn('rounded px-1.5 py-1 text-[8px] font-black uppercase ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-1', layer.pupilDataMode === 'follow' ? 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200')} aria-label={`Pupil list behaviour: ${layer.pupilDataMode === 'follow' ? 'follow list' : 'duplicate'}`}>{layer.pupilDataMode === 'follow' ? 'Fol' : 'Dup'}</button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-64">
+                                      <DropdownMenuLabel className="normal-case">
+                                        <span className="block text-xs font-black text-slate-800">Pupil list behaviour</span>
+                                        <span className="mt-1 block text-[10px] font-medium leading-4 text-slate-500">This layer is in column {getLayerColumnIndex(layer, template.pageColumns) + 1}. Choose how its pupil data is filled.</span>
+                                      </DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onSelect={() => setLayerPupilDataMode(page.id, layer.id, 'follow')} className="gap-2">
+                                        <span className="grid h-6 w-8 place-items-center rounded bg-cyan-100 text-[9px] font-black text-cyan-700">Fol</span>
+                                        <span className="min-w-0 flex-1"><span className="block text-xs font-bold">Follow pupil list</span><span className="block text-[9px] text-slate-500">Use the pupil assigned to this column.</span></span>
+                                        {layer.pupilDataMode === 'follow' && <Check className="h-3.5 w-3.5 text-cyan-700" />}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => setLayerPupilDataMode(page.id, layer.id, 'duplicate')} className="gap-2">
+                                        <span className="grid h-6 w-8 place-items-center rounded bg-amber-100 text-[9px] font-black text-amber-700">Dup</span>
+                                        <span className="min-w-0 flex-1"><span className="block text-xs font-bold">Duplicate first pupil</span><span className="block text-[9px] text-slate-500">Repeat the first pupil in every column.</span></span>
+                                        {layer.pupilDataMode === 'duplicate' && <Check className="h-3.5 w-3.5 text-amber-700" />}
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                                 <div className="flex shrink-0 items-center">
                                   <Button type="button" variant="ghost" size="icon" disabled={layerIndex === page.layers.length - 1} onClick={() => moveLayerOrder(page.id, layer.id, 1)} className="h-6 w-5" title="Bring forward" aria-label="Bring layer forward"><ArrowUp className="h-3 w-3" /></Button>
                                   <Button type="button" variant="ghost" size="icon" disabled={layerIndex === 0} onClick={() => moveLayerOrder(page.id, layer.id, -1)} className="h-6 w-5" title="Send backward" aria-label="Send layer backward"><ArrowDown className="h-3 w-3" /></Button>
@@ -1100,17 +1138,6 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                     <label className="mt-3 flex items-center gap-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={selectedLayer.constrainToPage} onCheckedChange={(checked) => updateLayer(selectedLayer.id, { constrainToPage: checked === true })} />Mask movement to page boundaries</label>
                   </div>
 
-                  {isPupilDataLayer(selectedLayer) && (
-                    <div className="rounded-xl border border-cyan-200 bg-cyan-50/80 p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-wider text-cyan-900">Pupil list behaviour</p><p className="mt-0.5 text-[9px] text-cyan-700">This layer is currently in column {getLayerColumnIndex(selectedLayer, template.pageColumns) + 1}.</p></div><Columns2 className="h-4 w-4 shrink-0 text-cyan-700" /></div>
-                      <div className="grid grid-cols-2 gap-1 rounded-lg bg-white/80 p-1">
-                        <Button type="button" variant={selectedLayer.pupilDataMode !== 'follow' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateLayer(selectedLayer.id, { pupilDataMode: 'duplicate' })} className={cn('h-8 text-[10px] font-black', selectedLayer.pupilDataMode !== 'follow' && 'bg-amber-100 text-amber-800 hover:bg-amber-100')}>Dup · duplicate</Button>
-                        <Button type="button" variant={selectedLayer.pupilDataMode === 'follow' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateLayer(selectedLayer.id, { pupilDataMode: 'follow' })} className={cn('h-8 text-[10px] font-black', selectedLayer.pupilDataMode === 'follow' && 'bg-cyan-100 text-cyan-800 hover:bg-cyan-100')}>Fol · follow list</Button>
-                      </div>
-                      <p className="mt-2 text-[9px] leading-3.5 text-cyan-700">Dup repeats the first pupil. Fol uses the pupil assigned to the column containing this layer.</p>
-                    </div>
-                  )}
-
                   {selectedLayer.kind !== 'text' ? (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
                       <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Photo frame & crop</p>
@@ -1220,15 +1247,19 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
             </section>
 
             <aside className="space-y-3 overflow-y-auto rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur-xl">
-              <div><p className="text-sm font-black text-slate-900">Collage & page output</p><p className="text-[10px] text-slate-500">Choose the print sheet and how many design cards appear on it. Each card currently carries {template.pageColumns} pupil {template.pageColumns === 1 ? 'column' : 'columns'}.</p></div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Print sheet size</span><Select value={output.paperSize} onValueChange={(value) => setOutput((previous) => ({ ...previous, paperSize: value as PaperSize }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.filter((size) => size.value !== 'custom').map((size) => <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>)}</SelectContent></Select></label>
-                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page orientation</span><Select value={output.orientation} onValueChange={(value) => setOutput((previous) => ({ ...previous, orientation: value as CustomPhotoOutputSettings['orientation'] }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent></Select></label>
-                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Design cards per sheet</span><Select value={String(output.cardsPerPage)} onValueChange={(value) => setOutput((previous) => ({ ...previous, cardsPerPage: Number(value) }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 6, 8, 9, 12].map((count) => <SelectItem key={count} value={String(count)}>{count} per page</SelectItem>)}</SelectContent></Select></label>
-                <NumberInput label="Page margin" value={output.marginMm} min={0} max={30} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, marginMm: value }))} />
-                <NumberInput label="Gap" value={output.gapMm} min={0} max={20} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, gapMm: value }))} />
+              <div><p className="text-sm font-black text-slate-900">Page output</p><p className="text-[10px] text-slate-500">Print uses the same page setup as the editing canvas.</p></div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3">
+                <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm"><Maximize2 className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-xs font-black text-emerald-900">Exact design page</p><p className="text-[10px] text-emerald-700">{PAPER_SIZE_OPTIONS.find((size) => size.value === template.paperSize)?.label || 'Custom'} · {template.pageOrientation} · {template.aspectWidth} × {template.aspectHeight} mm</p></div><Check className="h-4 w-4 text-emerald-700" /></div>
+                <p className="mt-2 text-[9px] leading-3.5 text-emerald-700">Orientation, canvas proportions and the {template.pageMarginMm} mm safe margin remain owned by Page setup.</p>
               </div>
-              <label className="flex items-center gap-2 rounded-lg bg-slate-50 p-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={output.showCutLines} onCheckedChange={(checked) => setOutput((previous) => ({ ...previous, showCutLines: checked === true }))} />Show dotted trimming lines</label>
+              <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Design cards per sheet</span><Select value={String(output.cardsPerPage)} onValueChange={(value) => setOutput((previous) => ({ ...previous, cardsPerPage: Number(value), gapMm: Number(value) === 1 ? 0 : previous.gapMm }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 6, 8, 9, 12].map((count) => <SelectItem key={count} value={String(count)}>{count === 1 ? '1 · exact editing size' : `${count} · collage`}</SelectItem>)}</SelectContent></Select></label>
+              {output.cardsPerPage > 1 && (
+                <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+                  <p className="text-[9px] leading-3.5 text-amber-700">Collage mode intentionally scales the full design to fit multiple copies on the same sheet.</p>
+                  <NumberInput label="Gap between designs" value={output.gapMm} min={0} max={20} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, gapMm: value }))} />
+                  <label className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-[10px] font-semibold text-slate-600"><Checkbox checked={output.showCutLines} onCheckedChange={(checked) => setOutput((previous) => ({ ...previous, showCutLines: checked === true }))} />Show dotted trimming lines</label>
+                </div>
+              )}
 
               {usesFees && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">

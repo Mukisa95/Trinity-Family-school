@@ -466,8 +466,12 @@ export async function createCustomPhotoPdf(
   if (template.pages.length === 0) throw new Error('Add at least one design page.');
   const orientation = settings.orientation;
   const preset = PAPER_SIZE_OPTIONS.find((option) => option.value === settings.paperSize) || PAPER_SIZE_OPTIONS[1];
-  const format: [number, number] = [preset.widthMm, preset.heightMm];
-  const expectedDimensions = getPaperDimensions(settings.paperSize, orientation);
+  const format: [number, number] = settings.paperSize === 'custom'
+    ? [template.aspectWidth, template.aspectHeight]
+    : [preset.widthMm, preset.heightMm];
+  const expectedDimensions = settings.paperSize === 'custom'
+    ? { widthMm: template.aspectWidth, heightMm: template.aspectHeight }
+    : getPaperDimensions(settings.paperSize, orientation);
   const pdf = new jsPDF({ orientation, unit: 'mm', format, compress: true });
   const pageWidthMm = pdf.internal.pageSize.getWidth() || expectedDimensions.widthMm;
   const pageHeightMm = pdf.internal.pageSize.getHeight() || expectedDimensions.heightMm;
