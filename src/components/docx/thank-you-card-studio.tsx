@@ -12,12 +12,14 @@ import {
   Search,
   Sparkles,
   Users,
+  WandSparkles,
   X,
 } from 'lucide-react';
 import type { Pupil } from '@/types';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
-import { PageHeader } from '@/components/common/page-header';
+import { GlassPageTopBar } from '@/components/common/glass-page-top-bar';
+import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { CustomPhotoStudio } from './custom-photo-studio';
 
 const FRONT_ARTWORK = '/Document%20Macro/0d6ff135-4b7e-487e-b10a-137ae9782773.png';
 const BACK_ARTWORK = '/Document%20Macro/64503b0c-d32f-4dfc-a07f-d595a28ee3a4.png';
@@ -398,6 +401,7 @@ export function ThankYouCardStudio() {
   const [photoFilter, setPhotoFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const [isCustomStudioOpen, setIsCustomStudioOpen] = useState(false);
   const pdfViewer = usePDFViewer();
   const { toast } = useToast();
 
@@ -496,43 +500,61 @@ export function ThankYouCardStudio() {
   };
 
   return (
-    <div className="docx-studio min-h-screen bg-slate-50/70 p-4 sm:p-6">
+    <div className="docx-studio min-h-screen bg-slate-50/70 p-3 sm:p-6">
       <div className="mx-auto max-w-[1600px]">
-        <PageHeader
+        <GlassPageTopBar
+          eyebrow="Personalised pupil documents"
           title="DocX"
-          description="Create personalised pupil documents, beginning with the duplex Thank You card."
+          subtitle="Create personalised pupil documents, beginning with the duplex Thank You card."
+          leading={<span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><Sparkles className="h-4 w-4" /></span>}
+          className="mb-1.5"
           actions={(
-            <Button
-              onClick={handlePrint}
-              disabled={selectedPupils.length === 0 || isPreparingPrint}
-              className="min-h-11 bg-emerald-700 px-5 text-white shadow-sm hover:bg-emerald-800"
-            >
-              {isPreparingPrint ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-              Print duplex set
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsCustomStudioOpen(true)}
+                className="h-9 rounded-full border-violet-200 bg-violet-50/80 px-4 text-xs font-semibold text-violet-700 shadow-sm hover:bg-violet-100"
+              >
+                <WandSparkles className="mr-2 h-4 w-4" />
+                Custom Photo Studio
+              </Button>
+              <Button
+                onClick={handlePrint}
+                disabled={selectedPupils.length === 0 || isPreparingPrint}
+                className="h-9 rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white shadow-sm hover:bg-emerald-800"
+              >
+                {isPreparingPrint ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                Print duplex set
+              </Button>
+            </div>
           )}
         />
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-emerald-700"><Sparkles className="h-5 w-5" /></span>
-              <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Template</p><p className="font-bold text-slate-900">Thank You card</p></div>
+        <GlassSummaryBar
+          className="mb-5"
+          left={
+            <div className="flex flex-wrap items-center gap-2">
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+              <span className="text-xs font-black uppercase tracking-wider text-indigo-900 sm:text-sm">Thank You card</span>
+              <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-[10px] font-semibold text-emerald-700">Duplex A4</Badge>
+              {missingPhotoCount > 0 && <Badge variant="outline" className="border-amber-200 bg-amber-50 text-[10px] font-semibold text-amber-700">{missingPhotoCount} initials fallback</Badge>}
             </div>
-          </div>
-          <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-100 text-blue-700"><Users className="h-5 w-5" /></span>
-              <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Selected</p><p className="font-bold text-slate-900">{selectedPupils.length} pupil{selectedPupils.length === 1 ? '' : 's'}</p></div>
+          }
+          right={
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex items-center gap-1.5 rounded-md border border-blue-100/60 bg-blue-50/80 px-2 py-1 text-[10px] sm:text-xs">
+                <Users className="h-3.5 w-3.5 text-blue-600" />
+                <span className="font-bold text-blue-700">{selectedPupils.length}</span>
+                <span className="font-medium text-blue-700/85">selected</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-md border border-amber-100/60 bg-amber-50/80 px-2 py-1 text-[10px] sm:text-xs">
+                <Files className="h-3.5 w-3.5 text-amber-600" />
+                <span className="font-bold text-amber-700">{pairs.length * 2}</span>
+                <span className="font-medium text-amber-700/85">A4 pages</span>
+              </div>
             </div>
-          </div>
-          <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-700"><Files className="h-5 w-5" /></span>
-              <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Output</p><p className="font-bold text-slate-900">{pairs.length * 2} A4 page{pairs.length * 2 === 1 ? '' : 's'}</p></div>
-            </div>
-          </div>
-        </div>
+          }
+        />
 
         <div className="space-y-5">
           <div className="space-y-5">
@@ -692,6 +714,10 @@ export function ThankYouCardStudio() {
           </Card>
         </div>
       </div>
+
+      {isCustomStudioOpen && (
+        <CustomPhotoStudio pupils={pupils} schoolBadge={schoolBadge} onClose={() => setIsCustomStudioOpen(false)} />
+      )}
 
       <PDFViewer
         isOpen={pdfViewer.isOpen}

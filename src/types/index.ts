@@ -37,7 +37,7 @@ export type Permission =
 
 // Legacy module permission type (kept for backward compatibility)
 export type ModulePermission = {
-  module: 'pupils' | 'classes' | 'staff' | 'subjects' | 'fees' | 'exams' | 'attendance' | 'academic_years' | 'users' | 'banking' | 'procurement' | 'requirements' | 'uniforms' | 'notifications' | 'bulk_sms' | 'reports' | 'settings' | 'pupil_history' | 'events' | 'promotion' | 'timetable';
+  module: 'pupils' | 'classes' | 'staff' | 'subjects' | 'fees' | 'exams' | 'attendance' | 'academic_years' | 'users' | 'banking' | 'procurement' | 'requirements' | 'uniforms' | 'notifications' | 'bulk_sms' | 'reports' | 'settings' | 'pupil_history' | 'events' | 'promotion' | 'timetable' | 'payroll';
   permission: Permission;
 };
 
@@ -2248,6 +2248,9 @@ export * from './inventory';
 
 // Re-export uniform inventory types
 export * from './uniform-inventory';
+
+// Payroll types
+export * from './payroll';
 
 // Timetable Types
 export interface TimetableProfile {

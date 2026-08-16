@@ -140,6 +140,29 @@ service cloud.firestore {
       allow read, write: if isStaffOrAdmin();
     }
 
+    // Salary data is especially sensitive. Payroll reads and all mutations use
+    // authenticated, permission-checked server routes; browser SDK access is
+    // intentionally denied even to administrators.
+    match /staffSalaryProfiles/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffSalaryComponents/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffSalaryPayments/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffSalaryOccurrences/{documentPath=**} {
+      allow read, write: if false;
+    }
+
+    match /staffSalaryAdjustments/{documentPath=**} {
+      allow read, write: if false;
+    }
+
     // Transitional production boundary: preserve every existing authenticated
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
@@ -162,6 +185,11 @@ service cloud.firestore {
         && collection != 'schoolPayReconciliationState'
         && collection != 'schoolPaySyncLogs'
         && collection != 'schoolPayPaymentMappings'
+        && collection != 'staffSalaryProfiles'
+        && collection != 'staffSalaryComponents'
+        && collection != 'staffSalaryPayments'
+        && collection != 'staffSalaryOccurrences'
+        && collection != 'staffSalaryAdjustments'
         && isActiveApplicationUser();
     }
   }

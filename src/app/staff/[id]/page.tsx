@@ -40,7 +40,8 @@ import {
   Award,
   Activity,
   Users,
-  UserRoundPlus
+  UserRoundPlus,
+  WalletCards
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -71,7 +72,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
   const resolvedParams = use(params);
   const router = useRouter();
   const { toast } = useToast();
-  const { canAccessModule } = useAuth();
+  const { canAccessModule, canAccessPage } = useAuth();
   const { data: staff, isLoading, error } = useStaffById(resolvedParams.id);
   const { mutate: updateStaff } = useUpdateStaff();
   const { data: allPupils = [] } = usePupils();
@@ -250,6 +251,15 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
                 icon={<UserRoundPlus className="h-4 w-4" />}
                 onClick={() => setIsLinkedAccountOpen(true)}
                 aria-label="Manage staff account"
+              />
+            )}
+            {canAccessPage('payroll', 'detail') && (
+              <GlassActionButton
+                label="Salary"
+                tone="emerald"
+                icon={<WalletCards className="h-4 w-4" />}
+                onClick={() => router.push(`/payroll/staff/${resolvedParams.id}`)}
+                aria-label="View staff salary"
               />
             )}
             <GlassActionButton

@@ -1,5 +1,5 @@
 import type { NavigationItem } from '@/types';
-import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards } from 'lucide-react';
 
 export const navItems: NavigationItem[] = [
   {
@@ -110,6 +110,11 @@ export const navItems: NavigationItem[] = [
         title: 'Banking',
         href: '/banking/list',
         icon: CreditCard,
+      },
+      {
+        title: 'Staff Payroll',
+        href: '/payroll',
+        icon: WalletCards,
       },
       {
         title: 'Procurement',

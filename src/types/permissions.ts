@@ -242,6 +242,43 @@ export const MODULE_ACTIONS = {
       }
     ]
   },
+  payroll: {
+    pages: [
+      {
+        page: 'overview',
+        path: '/payroll',
+        name: 'Staff Payroll',
+        actions: [
+          { id: 'view_payroll', name: 'View payroll overview', description: 'Can view staff salary summaries and due dates' },
+          { id: 'view_salary_amounts', name: 'View salary amounts', description: 'Can see salary and allowance amounts' },
+          { id: 'record_payment', name: 'Record salary payment', description: 'Can record staff salary payments' },
+          { id: 'export_payroll', name: 'Export payroll', description: 'Can export payroll records' }
+        ]
+      },
+      {
+        page: 'setup',
+        path: '/payroll/new',
+        name: 'Set Up Staff Salary',
+        actions: [
+          { id: 'create_salary', name: 'Create salary profile', description: 'Can set up a staff salary and allowances' },
+          { id: 'edit_salary', name: 'Edit salary schedule', description: 'Can change salary schedules and exceptions' },
+          { id: 'manage_allowances', name: 'Manage allowances', description: 'Can add, edit, or end staff allowances' },
+          { id: 'manage_exceptions', name: 'Manage skipped dates', description: 'Can skip specified salary dates or months' }
+        ]
+      },
+      {
+        page: 'detail',
+        path: '/payroll/staff',
+        name: 'Staff Salary Details',
+        actions: [
+          { id: 'view_payment_history', name: 'View payment history', description: 'Can view a staff member’s salary history' },
+          { id: 'record_payment', name: 'Record salary payment', description: 'Can record a payment from staff salary details' },
+          { id: 'increase_salary', name: 'Increase salary', description: 'Can schedule a salary increase' },
+          { id: 'reverse_payment', name: 'Reverse salary payment', description: 'Can reverse an incorrectly recorded salary payment' }
+        ]
+      }
+    ]
+  },
   classes: {
     pages: [
       {
@@ -774,6 +811,7 @@ const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'boarding', pageId: 'overview', pattern: /^\/boarding(?:\/list)?$/ },
   { moduleId: 'boarding', pageId: 'dormitories', pattern: /^\/boarding\/dormitory(?:\/[^/]+)?$/ },
   { moduleId: 'staff', pageId: 'list', pattern: /^\/staff\/(form|mofus|[^/]+)$/ },
+  { moduleId: 'payroll', pageId: 'detail', pattern: /^\/payroll\/staff\/[^/]+$/ },
   { moduleId: 'banking', pageId: 'list', pattern: /^\/banking\/(list|pupil-banking-details)$/ },
   { moduleId: 'procurement', pageId: 'items', pattern: /^\/procurement$/ },
   { moduleId: 'fees', pageId: 'collect', pattern: /^\/fees\/(collect(?:\/[^/]+)?|family\/.*)$/ },

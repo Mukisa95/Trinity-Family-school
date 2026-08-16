@@ -28,6 +28,10 @@ export class GranularPermissionService {
     // intentionally not broad enough to expose personalised pupil documents.
     if (moduleId === 'reports' && pageId === 'docx') return false;
 
+    // Payroll is deliberately explicit-only. Salary information must never be
+    // inherited from an ordinary Staff or Fees legacy module grant.
+    if (moduleId === 'payroll') return false;
+
     // Fallback to legacy permissions
     if (user.modulePermissions) {
       const modulePerms = user.modulePermissions.find(m => m.module === moduleId);
@@ -62,6 +66,7 @@ export class GranularPermissionService {
     if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
 
     if (moduleId === 'reports' && pageId === 'docx') return false;
+    if (moduleId === 'payroll') return false;
 
     // Fallback to legacy permissions with mapping
     if (user.modulePermissions) {
@@ -179,6 +184,7 @@ export class GranularPermissionService {
               pages: moduleActions.pages
                 .filter(page => !(modulePerm.module === 'pupils' && page.page === 'historical_seeding'))
                 .filter(page => !(modulePerm.module === 'reports' && page.page === 'docx'))
+                .filter(page => modulePerm.module !== 'payroll')
                 .map(page => ({
                 pageId: page.page,
                 canAccess: true, // Legacy permissions grant access to all pages in module
