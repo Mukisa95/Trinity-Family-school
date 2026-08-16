@@ -130,6 +130,7 @@ interface Filters {
   };
   hasCodeType?: string;
   hasCodeFilterType?: 'with' | 'without';
+  photoFilter: 'all' | 'with' | 'without';
 }
 
 
@@ -223,7 +224,8 @@ function PupilsContent() {
     houseId: '',
     ageRange: { min: 0, max: 100 },
     hasCodeType: '',
-    hasCodeFilterType: 'with'
+    hasCodeFilterType: 'with',
+    photoFilter: 'all',
   });
 
   // Update filters when URL parameters change (e.g., when navigating from dashboard cards)
@@ -753,6 +755,12 @@ function PupilsContent() {
 
       // Section filter
       if (filters.section && pupil.section !== filters.section) return false;
+
+      // Photo filter uses the pupil record so it remains immediate and stable
+      // while progressive avatar image loading continues in the background.
+      const hasPhoto = Boolean(pupil.photo?.trim());
+      if (filters.photoFilter === 'with' && !hasPhoto) return false;
+      if (filters.photoFilter === 'without' && hasPhoto) return false;
 
       // Age filter
       if (pupil.dateOfBirth) {
@@ -3037,6 +3045,7 @@ function PupilsContent() {
     if (filters.houseId) count++;
     if (filters.ageRange.min > 0 || filters.ageRange.max < 100) count++;
     if (filters.hasCodeType) count++;
+    if (filters.photoFilter !== 'all') count++;
     return count;
   }, [filters]);
 
@@ -3049,7 +3058,8 @@ function PupilsContent() {
       houseId: '',
       ageRange: { min: 0, max: 100 },
       hasCodeType: '',
-      hasCodeFilterType: 'with'
+      hasCodeFilterType: 'with',
+      photoFilter: 'all',
     });
   }, []);
 
@@ -4986,6 +4996,20 @@ function PupilsContent() {
                 <option value="">All Sections</option>
                 <option value="Boarding">Boarding</option>
                 <option value="Day">Day</option>
+              </select>
+            </div>
+
+            {/* Photo Filter */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-indigo-950">Photo</label>
+              <select
+                value={filters.photoFilter}
+                onChange={(e) => setFilters(prev => ({ ...prev, photoFilter: e.target.value as Filters['photoFilter'] }))}
+                className="w-full rounded-xl border border-gray-200/80 bg-gray-50/50 py-2 px-3 text-xs shadow-sm focus:ring-2 focus:ring-blue-400/50 focus:bg-white focus:outline-none transition-all duration-200 hover:bg-white"
+              >
+                <option value="all">All pupils</option>
+                <option value="with">With photo</option>
+                <option value="without">Without photo</option>
               </select>
             </div>
 

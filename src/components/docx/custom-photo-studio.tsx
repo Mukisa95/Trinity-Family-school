@@ -477,6 +477,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
   const [pupilSearch, setPupilSearch] = useState('');
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('Active');
+  const [photoFilter, setPhotoFilter] = useState<'all' | 'with' | 'without'>('all');
   const [output, setOutput] = useState<CustomPhotoOutputSettings>({
     paperSize: template.paperSize,
     orientation: template.pageOrientation,
@@ -527,10 +528,13 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     return pupils.filter((pupil) => {
       if (classFilter !== 'all' && pupil.classId !== classFilter) return false;
       if (statusFilter !== 'all' && pupil.status !== statusFilter) return false;
+      const hasPhoto = Boolean(pupil.photo?.trim());
+      if (photoFilter === 'with' && !hasPhoto) return false;
+      if (photoFilter === 'without' && hasPhoto) return false;
       if (!query) return true;
       return `${pupilDisplayName(pupil)} ${pupil.admissionNumber || ''} ${pupil.className || ''}`.toLowerCase().includes(query);
     });
-  }, [classFilter, pupilSearch, pupils, statusFilter]);
+  }, [classFilter, photoFilter, pupilSearch, pupils, statusFilter]);
   const allFilteredSelected = filteredPupils.length > 0 && filteredPupils.every((pupil) => selectedPupilIds.has(pupil.id));
   const estimatedPages = estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage, template.pageColumns);
   const exactOutputSettings = useMemo<CustomPhotoOutputSettings>(() => ({
@@ -1235,6 +1239,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
                 <div className="relative min-w-[180px] flex-1 sm:max-w-xs"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" /><Input value={pupilSearch} onChange={(event) => setPupilSearch(event.target.value)} placeholder="Search name or admission…" className="h-9 rounded-full bg-white pl-8 text-xs" /></div>
                 <Select value={classFilter} onValueChange={setClassFilter}><SelectTrigger className="h-9 w-[150px] rounded-full bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All classes</SelectItem>{classOptions.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-9 w-[120px] rounded-full bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All status</SelectItem><SelectItem value="Active">Active</SelectItem><SelectItem value="Inactive">Inactive</SelectItem><SelectItem value="Graduated">Graduated</SelectItem></SelectContent></Select>
+                <Select value={photoFilter} onValueChange={(value) => setPhotoFilter(value as 'all' | 'with' | 'without')}><SelectTrigger className="h-9 w-[132px] rounded-full bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All photos</SelectItem><SelectItem value="with">With photo</SelectItem><SelectItem value="without">Without photo</SelectItem></SelectContent></Select>
               </div>
               <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2"><Checkbox checked={allFilteredSelected} onCheckedChange={toggleAllFiltered} /><button type="button" onClick={toggleAllFiltered} className="text-[11px] font-bold text-slate-700">{allFilteredSelected ? 'Clear filtered pupils' : `Select all ${filteredPupils.length} filtered pupils`}</button><Badge className="ml-auto bg-violet-100 text-violet-700 hover:bg-violet-100">{selectedPupils.length} selected</Badge></div>
               <div className="min-h-0 flex-1 overflow-y-auto p-2">
