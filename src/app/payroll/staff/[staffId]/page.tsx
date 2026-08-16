@@ -250,7 +250,7 @@ export default function StaffPayrollDetailPage({
               <GlassActionButton
                 label="Record payment"
                 icon={<ReceiptText className="h-4 w-4" />}
-              tone="emerald"
+                tone="emerald"
                 onClick={() => setPaymentOpen(true)}
                 aria-label="Record salary payment"
               />
@@ -393,11 +393,14 @@ export default function StaffPayrollDetailPage({
                       release {component.schedule.anchorDate}
                     </p>
                     {component.schedule.excludedDates?.length ||
-                    component.schedule.excludedMonths?.length ? (
+                    component.schedule.excludedMonths?.length ||
+                    component.schedule.excludedMonthNumbers?.length ? (
                       <p className="mt-1 text-xs text-amber-700">
                         {component.schedule.excludedDates?.length || 0} date(s)
-                        and {component.schedule.excludedMonths?.length || 0}{" "}
-                        month(s) skipped
+                        , {component.schedule.excludedMonths?.length || 0}{" "}
+                        one-off month(s), and{" "}
+                        {component.schedule.excludedMonthNumbers?.length || 0}{" "}
+                        recurring month(s) skipped
                       </p>
                     ) : null}
                   </CardContent>

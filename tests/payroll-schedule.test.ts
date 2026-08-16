@@ -45,6 +45,14 @@ test("next due date skips excluded occurrences without shifting the cadence", ()
   );
 });
 
+test("monthly schedules can skip a named month every year", () => {
+  const schedule = { ...monthlyOn31st, excludedMonthNumbers: [11] };
+  assert.deepEqual(
+    getSalaryDatesBetween(schedule, "2026-10-01", "2027-01-31"),
+    ["2026-10-31", "2026-12-31", "2027-01-31"],
+  );
+});
+
 test("due labels distinguish upcoming, today, and overdue dates", () => {
   assert.deepEqual(getPayrollDueStatus("2026-08-20", "2026-08-16"), {
     kind: "upcoming",

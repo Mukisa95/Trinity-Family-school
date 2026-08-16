@@ -51,9 +51,24 @@ assert(
   server.includes("occurrenceSnapshots = await Promise.all"),
   "Salary payment transaction must read all occurrences before writes.",
 );
+assert(
+  server.includes("function omitUndefined"),
+  "Payroll writes must remove undefined optional fields before reaching Firestore.",
+);
+assert(
+  server.includes(
+    "transaction.set(ref, omitUndefined(componentValues[index]))",
+  ),
+  "Salary component writes must omit absent allowance fields.",
+);
+assert(
+  server.includes("getPayrollAccounting"),
+  "Payroll must calculate accounting totals from salary payment records.",
+);
 
 for (const route of [
   "src/app/api/payroll/overview/route.ts",
+  "src/app/api/payroll/accounting/route.ts",
   "src/app/api/payroll/profiles/route.ts",
   "src/app/api/payroll/staff/[staffId]/route.ts",
   "src/app/api/payroll/staff/[staffId]/payments/route.ts",

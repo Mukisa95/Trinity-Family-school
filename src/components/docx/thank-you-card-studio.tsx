@@ -716,7 +716,7 @@ export function ThankYouCardStudio() {
       </div>
 
       {isCustomStudioOpen && (
-        <CustomPhotoStudio pupils={pupils} schoolBadge={schoolBadge} onClose={() => setIsCustomStudioOpen(false)} />
+        <CustomPhotoStudio pupils={pupils} schoolSettings={schoolSettings} schoolBadge={schoolBadge} onClose={() => setIsCustomStudioOpen(false)} />
       )}
 
       <PDFViewer

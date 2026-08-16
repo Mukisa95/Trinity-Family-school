@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,9 @@ type ScheduleDraft = {
   interval: number;
   anchorDate: string;
   endDate: string;
-  excludedDates: string;
-  excludedMonths: string;
+  excludedDates: string[];
+  excludedMonths: string[];
+  excludedMonthNumbers: number[];
 };
 type AllowanceDraft = {
   id: string;
@@ -54,6 +55,20 @@ const allowanceNames = [
   "Airtime",
   "Other",
 ];
+const calendarMonths = [
+  { number: 1, label: "January" },
+  { number: 2, label: "February" },
+  { number: 3, label: "March" },
+  { number: 4, label: "April" },
+  { number: 5, label: "May" },
+  { number: 6, label: "June" },
+  { number: 7, label: "July" },
+  { number: 8, label: "August" },
+  { number: 9, label: "September" },
+  { number: 10, label: "October" },
+  { number: 11, label: "November" },
+  { number: 12, label: "December" },
+];
 function kampalaToday() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Africa/Kampala",
@@ -68,8 +83,9 @@ function newSchedule(): ScheduleDraft {
     interval: 1,
     anchorDate: kampalaToday(),
     endDate: "",
-    excludedDates: "",
-    excludedMonths: "",
+    excludedDates: [],
+    excludedMonths: [],
+    excludedMonthNumbers: [],
   };
 }
 function schedulePayload(schedule: ScheduleDraft) {
@@ -78,14 +94,9 @@ function schedulePayload(schedule: ScheduleDraft) {
     interval: Number(schedule.interval),
     anchorDate: schedule.anchorDate,
     endDate: schedule.endDate || undefined,
-    excludedDates: schedule.excludedDates
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
-    excludedMonths: schedule.excludedMonths
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
+    excludedDates: schedule.excludedDates,
+    excludedMonths: schedule.excludedMonths,
+    excludedMonthNumbers: schedule.excludedMonthNumbers,
     timezone: "Africa/Kampala" as const,
   };
 }
@@ -99,10 +110,28 @@ function ScheduleFields({
   onChange: (next: ScheduleDraft) => void;
   title?: string;
 }) {
+  const [skipDate, setSkipDate] = useState("");
+  const [skipMonth, setSkipMonth] = useState("");
   const update = (
     field: keyof ScheduleDraft,
     next: ScheduleDraft[keyof ScheduleDraft],
   ) => onChange({ ...value, [field]: next } as ScheduleDraft);
+  const toggleRecurringMonth = (month: number) => {
+    const next = value.excludedMonthNumbers.includes(month)
+      ? value.excludedMonthNumbers.filter((item) => item !== month)
+      : [...value.excludedMonthNumbers, month].sort((a, b) => a - b);
+    update("excludedMonthNumbers", next);
+  };
+  const addExcludedDate = () => {
+    if (!skipDate || value.excludedDates.includes(skipDate)) return;
+    update("excludedDates", [...value.excludedDates, skipDate].sort());
+    setSkipDate("");
+  };
+  const addExcludedMonth = () => {
+    if (!skipMonth || value.excludedMonths.includes(skipMonth)) return;
+    update("excludedMonths", [...value.excludedMonths, skipMonth].sort());
+    setSkipMonth("");
+  };
   return (
     <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -171,29 +200,130 @@ function ScheduleFields({
           Skip exact dates{" "}
           <span className="font-normal text-muted-foreground">(optional)</span>
         </Label>
-        <Input
-          id={`${title}-skip-dates`}
-          className="mt-1"
-          placeholder="2026-12-25, 2027-01-01"
-          value={value.excludedDates}
-          onChange={(event) => update("excludedDates", event.target.value)}
-        />
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+          <Input
+            id={`${title}-skip-dates`}
+            type="date"
+            value={skipDate}
+            onChange={(event) => setSkipDate(event.target.value)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11"
+            onClick={addExcludedDate}
+          >
+            Add date
+          </Button>
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Comma-separated dates. Skipping does not change the future schedule.
+          Skipping does not change the future schedule.
         </p>
+        {value.excludedDates.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {value.excludedDates.map((date) => (
+              <Button
+                key={date}
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="min-h-11 gap-1"
+                onClick={() =>
+                  update(
+                    "excludedDates",
+                    value.excludedDates.filter((item) => item !== date),
+                  )
+                }
+                aria-label={`Stop skipping ${date}`}
+              >
+                {date}
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="sm:col-span-2">
-        <Label htmlFor={`${title}-skip-months`}>
-          Skip full months{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
-        </Label>
-        <Input
-          id={`${title}-skip-months`}
-          className="mt-1"
-          placeholder="2026-12, 2027-08"
-          value={value.excludedMonths}
-          onChange={(event) => update("excludedMonths", event.target.value)}
-        />
+        {value.unit === "month" && (
+          <fieldset className="rounded-lg border bg-background p-3">
+            <legend className="px-1 text-sm font-medium">
+              Skip months every year
+            </legend>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Choose a month such as November to skip that monthly payment every
+              year.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {calendarMonths.map((month) => {
+                const selected = value.excludedMonthNumbers.includes(
+                  month.number,
+                );
+                return (
+                  <Button
+                    key={month.number}
+                    type="button"
+                    variant={selected ? "default" : "outline"}
+                    className="min-h-11 justify-start"
+                    aria-pressed={selected}
+                    onClick={() => toggleRecurringMonth(month.number)}
+                  >
+                    {month.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
+        <div className={value.unit === "month" ? "mt-3" : ""}>
+          <Label htmlFor={`${title}-skip-months`}>
+            Skip one calendar month{" "}
+            <span className="font-normal text-muted-foreground">
+              (optional)
+            </span>
+          </Label>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+            <Input
+              id={`${title}-skip-months`}
+              type="month"
+              value={skipMonth}
+              onChange={(event) => setSkipMonth(event.target.value)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={addExcludedMonth}
+            >
+              Add month
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Use this for a one-off month, for example November 2026.
+          </p>
+          {value.excludedMonths.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {value.excludedMonths.map((month) => (
+                <Button
+                  key={month}
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="min-h-11 gap-1"
+                  onClick={() =>
+                    update(
+                      "excludedMonths",
+                      value.excludedMonths.filter((item) => item !== month),
+                    )
+                  }
+                  aria-label={`Stop skipping ${month}`}
+                >
+                  {month}
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

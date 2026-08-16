@@ -4,16 +4,16 @@ import type { PupilFeesInfo } from '@/lib/hooks/use-progressive-fees';
 import {
   pupilDisplayName,
   resolvePupilField,
+  getPaperDimensions,
+  PAPER_SIZE_OPTIONS,
   type CustomPhotoLayer,
   type CustomPhotoOutputSettings,
   type CustomPhotoPage,
   type CustomPhotoTemplate,
   type FrameShape,
   type RenderPupilData,
+  type SchoolDocumentInfo,
 } from './custom-photo-types';
-
-const PORTRAIT_WIDTH = 1240;
-const PORTRAIT_HEIGHT = 1754;
 
 interface GridLayout {
   columns: number;
@@ -74,42 +74,112 @@ function drawContainedImage(
   image: HTMLImageElement,
   width: number,
   height: number,
+  zoom = 1,
+  offsetX = 0,
+  offsetY = 0,
 ) {
-  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight) * Math.max(0.1, zoom);
   const drawnWidth = image.naturalWidth * scale;
   const drawnHeight = image.naturalHeight * scale;
-  context.drawImage(image, (width - drawnWidth) / 2, (height - drawnHeight) / 2, drawnWidth, drawnHeight);
+  const x = (width - drawnWidth) / 2 + offsetX * Math.max(width, drawnWidth) * 0.2;
+  const y = (height - drawnHeight) / 2 + offsetY * Math.max(height, drawnHeight) * 0.2;
+  context.drawImage(image, x, y, drawnWidth, drawnHeight);
 }
 
-function makeShapePath(context: CanvasRenderingContext2D, shape: FrameShape, width: number, height: number) {
+function makeShapePath(context: CanvasRenderingContext2D, shape: FrameShape, width: number, height: number, inset = 0) {
+  const left = inset;
+  const top = inset;
+  const right = Math.max(left, width - inset);
+  const bottom = Math.max(top, height - inset);
+  const innerWidth = Math.max(1, right - left);
+  const innerHeight = Math.max(1, bottom - top);
   context.beginPath();
   if (shape === 'circle' || shape === 'oval') {
-    context.ellipse(width / 2, height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+    context.ellipse(width / 2, height / 2, innerWidth / 2, innerHeight / 2, 0, 0, Math.PI * 2);
     return;
   }
   if (shape === 'diamond') {
-    context.moveTo(width / 2, 0);
-    context.lineTo(width, height / 2);
-    context.lineTo(width / 2, height);
-    context.lineTo(0, height / 2);
+    context.moveTo(width / 2, top);
+    context.lineTo(right, height / 2);
+    context.lineTo(width / 2, bottom);
+    context.lineTo(left, height / 2);
     context.closePath();
     return;
   }
   if (shape === 'hexagon') {
-    context.moveTo(width * 0.25, 0);
-    context.lineTo(width * 0.75, 0);
-    context.lineTo(width, height / 2);
-    context.lineTo(width * 0.75, height);
-    context.lineTo(width * 0.25, height);
-    context.lineTo(0, height / 2);
+    context.moveTo(left + innerWidth * 0.25, top);
+    context.lineTo(left + innerWidth * 0.75, top);
+    context.lineTo(right, height / 2);
+    context.lineTo(left + innerWidth * 0.75, bottom);
+    context.lineTo(left + innerWidth * 0.25, bottom);
+    context.lineTo(left, height / 2);
     context.closePath();
     return;
   }
   if (shape === 'rounded') {
-    context.roundRect(0, 0, width, height, Math.min(width, height) * 0.12);
+    context.roundRect(left, top, innerWidth, innerHeight, Math.min(innerWidth, innerHeight) * 0.12);
     return;
   }
-  context.rect(0, 0, width, height);
+  context.rect(left, top, innerWidth, innerHeight);
+}
+
+function applyDirectionalFeather(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  side: 'top' | 'right' | 'bottom' | 'left',
+  amount: number,
+) {
+  if (amount <= 0) return;
+  const normalized = Math.min(0.75, amount / 100 * 0.75);
+  let gradient: CanvasGradient;
+  if (side === 'top') {
+    gradient = context.createLinearGradient(0, 0, 0, height * normalized);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'rgba(0,0,0,1)');
+  } else if (side === 'bottom') {
+    gradient = context.createLinearGradient(0, height * (1 - normalized), 0, height);
+    gradient.addColorStop(0, 'rgba(0,0,0,1)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  } else if (side === 'left') {
+    gradient = context.createLinearGradient(0, 0, width * normalized, 0);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'rgba(0,0,0,1)');
+  } else {
+    gradient = context.createLinearGradient(width * (1 - normalized), 0, width, 0);
+    gradient.addColorStop(0, 'rgba(0,0,0,1)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+  }
+  context.save();
+  context.globalCompositeOperation = 'destination-in';
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+  context.restore();
+}
+
+function createPhotoMaskCanvas(width: number, height: number, layer: CustomPhotoLayer) {
+  const maskCanvas = document.createElement('canvas');
+  maskCanvas.width = Math.max(2, Math.round(width));
+  maskCanvas.height = Math.max(2, Math.round(height));
+  const maskContext = maskCanvas.getContext('2d');
+  if (!maskContext) return maskCanvas;
+  const blur = Math.min(maskCanvas.width, maskCanvas.height) * Math.min(100, Math.max(0, layer.feather || 0)) / 100 * 0.16;
+  maskContext.save();
+  if (blur > 0.5) maskContext.filter = `blur(${blur}px)`;
+  makeShapePath(maskContext, layer.shape, maskCanvas.width, maskCanvas.height, blur > 0.5 ? blur * 1.35 : 0);
+  maskContext.fillStyle = '#ffffff';
+  maskContext.fill();
+  maskContext.restore();
+  applyDirectionalFeather(maskContext, maskCanvas.width, maskCanvas.height, 'top', layer.featherTop || 0);
+  applyDirectionalFeather(maskContext, maskCanvas.width, maskCanvas.height, 'right', layer.featherRight || 0);
+  applyDirectionalFeather(maskContext, maskCanvas.width, maskCanvas.height, 'bottom', layer.featherBottom || 0);
+  applyDirectionalFeather(maskContext, maskCanvas.width, maskCanvas.height, 'left', layer.featherLeft || 0);
+  return maskCanvas;
+}
+
+export function createPhotoMaskDataUrl(layer: CustomPhotoLayer, width = 180, height = 180) {
+  if (typeof document === 'undefined') return undefined;
+  return createPhotoMaskCanvas(width, height, layer).toDataURL('image/png');
 }
 
 function drawInitials(context: CanvasRenderingContext2D, pupil: Pupil, width: number, height: number) {
@@ -138,48 +208,31 @@ async function renderImageLayer(
   const layerContext = layerCanvas.getContext('2d');
   if (!layerContext) return;
 
-  layerContext.save();
-  makeShapePath(layerContext, layer.shape, pixelWidth, pixelHeight);
-  layerContext.clip();
-  const source = layer.kind === 'avatar' ? data.pupil.photo : layer.source;
+  const source = layer.kind === 'avatar' ? data.pupil.photo : layer.kind === 'schoolLogo' ? data.school?.logo : layer.source;
   if (source) {
     try {
       const image = await loadImage(source);
-      drawCoverImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
+      if (layer.imageFit === 'contain') drawContainedImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
+      else drawCoverImage(layerContext, image, pixelWidth, pixelHeight, layer.imageZoom, layer.imageOffsetX, layer.imageOffsetY);
     } catch {
       if (layer.kind === 'avatar') drawInitials(layerContext, data.pupil, pixelWidth, pixelHeight);
     }
   } else if (layer.kind === 'avatar') {
     drawInitials(layerContext, data.pupil, pixelWidth, pixelHeight);
   }
+  const maskCanvas = createPhotoMaskCanvas(pixelWidth, pixelHeight, layer);
+  layerContext.save();
+  layerContext.globalCompositeOperation = 'destination-in';
+  layerContext.drawImage(maskCanvas, 0, 0);
   layerContext.restore();
-
-  if (layer.feather > 0) {
-    layerContext.save();
-    layerContext.globalCompositeOperation = 'destination-in';
-    const feather = Math.min(0.48, layer.feather / 100 * 0.48);
-    const gradient = layerContext.createRadialGradient(
-      pixelWidth / 2,
-      pixelHeight / 2,
-      Math.min(pixelWidth, pixelHeight) * (0.5 - feather),
-      pixelWidth / 2,
-      pixelHeight / 2,
-      Math.max(pixelWidth, pixelHeight) * 0.72,
-    );
-    gradient.addColorStop(0, 'rgba(0,0,0,1)');
-    gradient.addColorStop(Math.max(0.05, 1 - feather * 2), 'rgba(0,0,0,1)');
-    gradient.addColorStop(1, 'rgba(0,0,0,0)');
-    layerContext.fillStyle = gradient;
-    layerContext.fillRect(0, 0, pixelWidth, pixelHeight);
-    layerContext.restore();
-  }
 
   context.drawImage(layerCanvas, 0, 0, width, height);
   if (layer.borderWidth > 0) {
     context.save();
-    makeShapePath(context, layer.shape, width, height);
+    const lineWidth = layer.borderWidth * Math.max(0.5, width / 500);
+    makeShapePath(context, layer.shape, width, height, lineWidth / 2);
     context.strokeStyle = layer.borderColor;
-    context.lineWidth = layer.borderWidth * Math.max(0.5, width / 500);
+    context.lineWidth = lineWidth;
     context.stroke();
     context.restore();
   }
@@ -223,7 +276,8 @@ function renderTextLayer(
   const text = layer.field ? resolvePupilField(layer.field, data) : (layer.text || '');
   const fontSize = Math.max(7, layer.fontSize * cardWidth / 1000);
   context.fillStyle = layer.color;
-  context.font = `${layer.fontWeight} ${fontSize}px ${layer.fontFamily}`;
+  const fontFamily = `"${(layer.fontFamily || 'Arial').replaceAll('"', '\\"')}"`;
+  context.font = `${layer.fontWeight} ${fontSize}px ${fontFamily}`;
   context.textAlign = layer.textAlign;
   context.textBaseline = 'middle';
   const lines = wrapText(context, text, Math.max(1, width - fontSize * 0.35));
@@ -328,10 +382,12 @@ async function renderOutputSheet(
   pupils: RenderPupilData[],
   template: CustomPhotoTemplate,
   settings: CustomPhotoOutputSettings,
+  pageWidthMm: number,
+  pageHeightMm: number,
 ) {
-  const portrait = settings.orientation === 'portrait';
-  const width = portrait ? PORTRAIT_WIDTH : PORTRAIT_HEIGHT;
-  const height = portrait ? PORTRAIT_HEIGHT : PORTRAIT_WIDTH;
+  const pixelsPerMm = 5.9;
+  const width = Math.round(pageWidthMm * pixelsPerMm);
+  const height = Math.round(pageHeightMm * pixelsPerMm);
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -339,7 +395,7 @@ async function renderOutputSheet(
   if (!context) throw new Error('Your browser could not start the document renderer.');
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, width, height);
-  const pxPerMm = width / (portrait ? 210 : 297);
+  const pxPerMm = width / pageWidthMm;
   const margin = settings.marginMm * pxPerMm;
   const gap = settings.gapMm * pxPerMm;
   const grid = calculateGrid(settings.cardsPerPage, width, height, template.aspectWidth, template.aspectHeight, margin, gap);
@@ -367,14 +423,18 @@ export async function createCustomPhotoPdf(
   pupils: Pupil[],
   feesByPupil: Record<string, PupilFeesInfo>,
   settings: CustomPhotoOutputSettings,
+  school?: SchoolDocumentInfo,
   onProgress?: (completed: number, total: number) => void,
 ) {
   if (pupils.length === 0) throw new Error('Select at least one pupil.');
   if (template.pages.length === 0) throw new Error('Add at least one design page.');
   const orientation = settings.orientation;
-  const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true });
-  const pageWidthMm = orientation === 'portrait' ? 210 : 297;
-  const pageHeightMm = orientation === 'portrait' ? 297 : 210;
+  const preset = PAPER_SIZE_OPTIONS.find((option) => option.value === settings.paperSize) || PAPER_SIZE_OPTIONS[1];
+  const format: [number, number] = [preset.widthMm, preset.heightMm];
+  const expectedDimensions = getPaperDimensions(settings.paperSize, orientation);
+  const pdf = new jsPDF({ orientation, unit: 'mm', format, compress: true });
+  const pageWidthMm = pdf.internal.pageSize.getWidth() || expectedDimensions.widthMm;
+  const pageHeightMm = pdf.internal.pageSize.getHeight() || expectedDimensions.heightMm;
   const groups: Pupil[][] = [];
   for (let index = 0; index < pupils.length; index += settings.cardsPerPage) {
     groups.push(pupils.slice(index, index + settings.cardsPerPage));
@@ -384,10 +444,10 @@ export async function createCustomPhotoPdf(
   let isFirstPage = true;
 
   for (const group of groups) {
-    const renderData = group.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id] }));
+    const renderData = group.map((pupil) => ({ pupil, fees: feesByPupil[pupil.id], school }));
     for (const designPage of template.pages) {
-      if (!isFirstPage) pdf.addPage('a4', orientation);
-      const canvas = await renderOutputSheet(designPage, renderData, template, settings);
+      if (!isFirstPage) pdf.addPage(format, orientation);
+      const canvas = await renderOutputSheet(designPage, renderData, template, settings, pageWidthMm, pageHeightMm);
       const blob = await canvasToBlob(canvas);
       const imageData = await blob.arrayBuffer();
       pdf.addImage(new Uint8Array(imageData), 'JPEG', 0, 0, pageWidthMm, pageHeightMm, undefined, 'FAST');

@@ -4,6 +4,8 @@ import { auth } from "@/lib/firebase";
 export const PAYROLL_QUERY_KEYS = {
   all: ["payroll"] as const,
   overview: () => [...PAYROLL_QUERY_KEYS.all, "overview"] as const,
+  accounting: (startDate: string, endDate: string) =>
+    [...PAYROLL_QUERY_KEYS.all, "accounting", startDate, endDate] as const,
   staff: (staffId: string) =>
     [...PAYROLL_QUERY_KEYS.all, "staff", staffId] as const,
 };
@@ -36,6 +38,23 @@ export function usePayrollOverview(enabled = true) {
     queryFn: () =>
       payrollRequest<{ today: string; rows: any[] }>("/api/payroll/overview"),
     enabled,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function usePayrollAccounting(
+  startDate: string,
+  endDate: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: PAYROLL_QUERY_KEYS.accounting(startDate, endDate),
+    queryFn: () =>
+      payrollRequest<any>(
+        `/api/payroll/accounting?${new URLSearchParams({ startDate, endDate }).toString()}`,
+      ),
+    enabled: enabled && Boolean(startDate) && Boolean(endDate),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

@@ -72,7 +72,9 @@ export function isSalaryDateExcluded(schedule: SalarySchedule, date: string) {
   if (!DATE_PATTERN.test(date)) return false;
   return (
     new Set(schedule.excludedDates ?? []).has(date) ||
-    new Set(schedule.excludedMonths ?? []).has(date.slice(0, 7))
+    new Set(schedule.excludedMonths ?? []).has(date.slice(0, 7)) ||
+    (schedule.unit === "month" &&
+      new Set(schedule.excludedMonthNumbers ?? []).has(Number(date.slice(5, 7))))
   );
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   AlertCircle,
+  BarChart3,
   CalendarClock,
   ChevronRight,
   CircleDollarSign,
@@ -113,6 +114,13 @@ export default function PayrollPage() {
         }
         actions={
           <GlassActionDock>
+            <GlassActionButton
+              label="Salary Spending"
+              icon={<BarChart3 className="h-4 w-4" />}
+              tone="emerald"
+              onClick={() => window.location.assign("/payroll/accounting")}
+              aria-label="View salary spending accounting"
+            />
             {canCreate && (
               <GlassActionButton
                 label="Set Up Salary"

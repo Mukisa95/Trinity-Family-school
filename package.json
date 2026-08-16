@@ -37,6 +37,7 @@
     "test:schoolpay-push-contract": "node scripts/check-schoolpay-push-contract.js",
     "test:schoolpay-recovery": "node --import tsx --test tests/schoolpay-recovery.test.ts",
     "test:payroll-schedule": "node --import tsx --test tests/payroll-schedule.test.ts",
+    "test:payroll-accounting": "node --import tsx --test tests/payroll-accounting.test.ts",
     "test:payroll-contract": "node scripts/check-payroll-contract.js",
     "test:firebase-usage-contract": "node scripts/check-firebase-usage-contract.js",
     "test:firestore-subscriptions": "node --import tsx --test tests/firestore-subscription-registry.test.ts",

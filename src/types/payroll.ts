@@ -10,6 +10,8 @@ export type SalarySchedule = {
   excludedDates?: string[];
   /** Whole calendar months that are not due, stored as YYYY-MM. */
   excludedMonths?: string[];
+  /** Month numbers (1-12) that are never due for recurring monthly schedules. */
+  excludedMonthNumbers?: number[];
   timezone: "Africa/Kampala";
 };
 

@@ -14,7 +14,9 @@ import {
   AlignRight,
   ArrowDown,
   ArrowUp,
+  Building2,
   Check,
+  ChevronsUpDown,
   ChevronLeft,
   CircleUserRound,
   Copy,
@@ -24,6 +26,7 @@ import {
   FileImage,
   FilePlus2,
   ImagePlus,
+  ImageUp,
   Layers3,
   LayoutGrid,
   Loader2,
@@ -43,6 +46,7 @@ import {
   X,
 } from 'lucide-react';
 import type { AcademicYear, Pupil } from '@/types';
+import type { SchoolSettings } from '@/types';
 import type { PupilFeesInfo } from '@/lib/hooks/use-progressive-fees';
 import { useProgressiveFees } from '@/lib/hooks/use-progressive-fees';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
@@ -50,27 +54,58 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Textarea } from '@/components/ui/textarea';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
+  DOCX_FONT_FACE_CSS,
+  DOCX_FONT_OPTIONS,
+  ensureDocXTemplateFontsLoaded,
+  getDocXFontOption,
+} from './docx-fonts';
+import {
   createCustomPhotoPdf,
+  createPhotoMaskDataUrl,
   estimatePdfPageCount,
   pupilDisplayName,
 } from './custom-photo-renderer';
 import {
   DYNAMIC_FIELD_OPTIONS,
+  PAPER_SIZE_OPTIONS,
   createBlankPage,
   createBlankTemplate,
   createCustomTextLayer,
   createImageLayer,
   createTextLayer,
   makeStudioId,
+  getPaperDimensions,
+  normalizeCustomPhotoTemplate,
   resolvePupilField,
   templateUsesFees,
   type CustomPhotoLayer,
@@ -79,11 +114,12 @@ import {
   type CustomPhotoTemplate,
   type DynamicField,
   type FrameShape,
+  type PaperSize,
   type RenderPupilData,
+  type SchoolDocumentInfo,
 } from './custom-photo-types';
 
 const TEMPLATE_STORAGE_KEY = 'trinity-docx-custom-photo-templates-v1';
-const FONT_OPTIONS = ['Arial', 'Georgia', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
 const SHAPE_OPTIONS: Array<{ value: FrameShape; label: string }> = [
   { value: 'rectangle', label: 'Rectangle' },
   { value: 'rounded', label: 'Rounded' },
@@ -95,6 +131,7 @@ const SHAPE_OPTIONS: Array<{ value: FrameShape; label: string }> = [
 
 interface CustomPhotoStudioProps {
   pupils: Pupil[];
+  schoolSettings?: SchoolSettings | null;
   schoolBadge?: string;
   onClose: () => void;
 }
@@ -152,6 +189,20 @@ function pupilInitials(pupil?: Pupil) {
   return `${pupil.firstName?.[0] || ''}${pupil.lastName?.[0] || ''}`.toUpperCase() || 'P';
 }
 
+function ShapeBorder({ shape, width, color }: { shape: FrameShape; width: number; color: string }) {
+  if (width <= 0) return null;
+  const common = { fill: 'none', stroke: color, strokeWidth: width, vectorEffect: 'non-scaling-stroke' as const };
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      {(shape === 'circle' || shape === 'oval') && <ellipse cx="50" cy="50" rx="49" ry="49" {...common} />}
+      {shape === 'rounded' && <rect x="1" y="1" width="98" height="98" rx="12" ry="12" {...common} />}
+      {shape === 'rectangle' && <rect x="1" y="1" width="98" height="98" {...common} />}
+      {shape === 'diamond' && <polygon points="50,1 99,50 50,99 1,50" {...common} />}
+      {shape === 'hexagon' && <polygon points="25,1 75,1 99,50 75,99 25,99 1,50" {...common} />}
+    </svg>
+  );
+}
+
 function NumberInput({
   label,
   value,
@@ -188,6 +239,73 @@ function NumberInput({
   );
 }
 
+function FontPicker({ value, onChange }: { value: string; onChange: (family: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = getDocXFontOption(value);
+
+  return (
+    <div className="space-y-1 text-[10px] font-semibold text-slate-500">
+      <span>Font</span>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="h-11 w-full justify-between rounded-lg bg-white px-2.5 text-left font-normal"
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                {selected?.category || 'Saved font'}
+              </span>
+              <span className="block truncate text-sm text-slate-800" style={{ fontFamily: value }}>
+                {selected?.label || value}
+              </span>
+            </span>
+            <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 text-slate-400" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={6} className="w-[min(360px,calc(100vw-24px))] p-0">
+          <Command>
+            <CommandInput placeholder="Search fonts…" className="text-xs" />
+            <CommandList className="max-h-[min(440px,65vh)]">
+              <CommandEmpty>No matching font found.</CommandEmpty>
+              <CommandGroup heading={`${DOCX_FONT_OPTIONS.length} available fonts`}>
+                {DOCX_FONT_OPTIONS.map((option) => (
+                  <CommandItem
+                    key={option.family}
+                    value={`${option.label} ${option.category}`}
+                    onSelect={() => {
+                      onChange(option.family);
+                      setOpen(false);
+                    }}
+                    className="gap-2 rounded-lg px-2.5 py-2"
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-base text-slate-700" style={{ fontFamily: option.family }}>
+                      Aa
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-[10px] font-semibold text-slate-500">{option.label}</span>
+                        <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-400">{option.category}</span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-base leading-5 text-slate-900" style={{ fontFamily: option.family }}>
+                        Thank You, Trinity!
+                      </span>
+                    </span>
+                    <Check className={cn('h-4 w-4 shrink-0 text-violet-600', value === option.family ? 'opacity-100' : 'opacity-0')} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function StudioLayer({
   layer,
   data,
@@ -203,15 +321,15 @@ function StudioLayer({
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onResizePointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
 }) {
+  const mask = useMemo(
+    () => layer.kind === 'text' ? undefined : createPhotoMaskDataUrl(layer),
+    [layer.feather, layer.featherBottom, layer.featherLeft, layer.featherRight, layer.featherTop, layer.kind, layer.shape],
+  );
   if (layer.hidden) return null;
-  const source = layer.kind === 'avatar' ? data?.pupil.photo : layer.source;
+  const source = layer.kind === 'avatar' ? data?.pupil.photo : layer.kind === 'schoolLogo' ? data?.school?.logo : layer.source;
   const value = layer.kind === 'text'
     ? (layer.field && data ? resolvePupilField(layer.field, data) : layer.text || 'Your message here')
     : '';
-  const feather = clamp(layer.feather, 0, 100);
-  const mask = feather > 0
-    ? `radial-gradient(ellipse at center, #000 0%, #000 ${Math.max(15, 100 - feather * 0.62)}%, transparent 100%)`
-    : undefined;
 
   return (
     <div
@@ -252,32 +370,34 @@ function StudioLayer({
           {value}
         </div>
       ) : (
-        <div
-          className="relative h-full w-full overflow-hidden bg-slate-200"
-          style={{
-            clipPath: shapeClipPath(layer.shape),
-            border: layer.borderWidth > 0 ? `${layer.borderWidth}px solid ${layer.borderColor}` : undefined,
-            maskImage: mask,
-            WebkitMaskImage: mask,
-          }}
-        >
-          {source ? (
-            // Imported and pupil images may be remote; browser rendering handles their display while Canvas handles print CORS.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={source}
-              alt=""
-              draggable={false}
-              className="h-full w-full object-cover"
-              style={{
-                transform: `scale(${layer.imageZoom}) translate(${layer.imageOffsetX * 20}%, ${layer.imageOffsetY * 20}%)`,
-              }}
-            />
-          ) : (
-            <div className="grid h-full w-full place-items-center bg-slate-200 text-[5cqw] font-black text-slate-500">
-              {layer.kind === 'avatar' ? pupilInitials(data?.pupil) : <ImagePlus className="h-8 w-8" />}
-            </div>
-          )}
+        <div className="relative h-full w-full overflow-visible">
+          <div
+            className="absolute inset-0 overflow-hidden bg-slate-200"
+            style={{
+              clipPath: mask ? undefined : shapeClipPath(layer.shape),
+              maskImage: mask ? `url(${mask})` : undefined,
+              WebkitMaskImage: mask ? `url(${mask})` : undefined,
+              maskSize: '100% 100%',
+              WebkitMaskSize: '100% 100%',
+            }}
+          >
+            {source ? (
+              // Imported and pupil images may be remote; browser rendering handles their display while Canvas handles print CORS.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={source}
+                alt=""
+                draggable={false}
+                className="h-full w-full"
+                style={{ objectFit: layer.imageFit, transform: `scale(${layer.imageZoom}) translate(${layer.imageOffsetX * 20}%, ${layer.imageOffsetY * 20}%)` }}
+              />
+            ) : (
+              <div className="grid h-full w-full place-items-center bg-slate-200 text-[5cqw] font-black text-slate-500">
+                {layer.kind === 'avatar' ? pupilInitials(data?.pupil) : <ImagePlus className="h-8 w-8" />}
+              </div>
+            )}
+          </div>
+          <ShapeBorder shape={layer.shape} width={layer.borderWidth} color={layer.borderColor} />
         </div>
       )}
       {selected && !layer.locked && (
@@ -294,7 +414,7 @@ function StudioLayer({
   );
 }
 
-export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoStudioProps) {
+export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose }: CustomPhotoStudioProps) {
   const { toast } = useToast();
   const pdfViewer = usePDFViewer();
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -310,6 +430,7 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
   const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('Active');
   const [output, setOutput] = useState<CustomPhotoOutputSettings>({
+    paperSize: 'a4',
     orientation: 'portrait',
     cardsPerPage: 2,
     marginMm: 8,
@@ -324,6 +445,16 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ completed: 0, total: 0 });
   const { effectiveTerm, academicYears } = useTermStatus();
+  const schoolInfo = useMemo<SchoolDocumentInfo>(() => ({
+    name: schoolSettings?.generalInfo?.name,
+    logo: schoolSettings?.generalInfo?.logo || schoolBadge,
+    motto: schoolSettings?.generalInfo?.motto,
+    phone: [schoolSettings?.contact?.phone, schoolSettings?.contact?.alternativePhone].filter(Boolean).join(' / '),
+    email: schoolSettings?.contact?.email,
+    website: schoolSettings?.contact?.website,
+    address: [schoolSettings?.address?.physical, schoolSettings?.address?.city, schoolSettings?.address?.country].filter(Boolean).join(', '),
+    postalAddress: schoolSettings?.address?.poBox || schoolSettings?.address?.postal,
+  }), [schoolBadge, schoolSettings]);
 
   const currentPage = template.pages.find((page) => page.id === activePageId) || template.pages[0];
   const selectedLayer = currentPage?.layers.find((layer) => layer.id === selectedLayerId) || null;
@@ -333,7 +464,7 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
     [pupils, selectedPupilIds],
   );
   const previewPupil = selectedPupils[0] || pupils.find((pupil) => pupil.status === 'Active') || pupils[0];
-  const previewData = previewPupil ? { pupil: previewPupil, fees: feesByPupil[previewPupil.id] } : undefined;
+  const previewData = previewPupil ? { pupil: previewPupil, fees: feesByPupil[previewPupil.id], school: schoolInfo } : undefined;
   const usesFees = templateUsesFees(template);
   const classOptions = useMemo(() => Array.from(new Map(
     pupils.filter((pupil) => pupil.classId).map((pupil) => [pupil.classId, pupil.className || pupil.classCode || 'Unnamed class']),
@@ -349,11 +480,13 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
   }, [classFilter, pupilSearch, pupils, statusFilter]);
   const allFilteredSelected = filteredPupils.length > 0 && filteredPupils.every((pupil) => selectedPupilIds.has(pupil.id));
   const estimatedPages = estimatePdfPageCount(selectedPupils.length, template.pages.length, output.cardsPerPage);
+  const marginXPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectWidth) * 100, 0, 45);
+  const marginYPercent = clamp(template.pageMarginMm / Math.max(1, template.aspectHeight) * 100, 0, 45);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(TEMPLATE_STORAGE_KEY);
-      if (stored) setSavedTemplates(JSON.parse(stored) as CustomPhotoTemplate[]);
+      if (stored) setSavedTemplates((JSON.parse(stored) as Partial<CustomPhotoTemplate>[]).map(normalizeCustomPhotoTemplate));
     } catch {
       // A malformed old local template should not prevent the editor from opening.
     }
@@ -387,6 +520,22 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
       layers: page.layers.map((layer) => layer.id === id ? { ...layer, ...changes } : layer),
     }));
   }, [updateCurrentPage]);
+
+  const applyPageFormat = (paperSize: PaperSize, orientation: CustomPhotoTemplate['pageOrientation']) => {
+    const dimensions = paperSize === 'custom'
+      ? (orientation === template.pageOrientation
+        ? { widthMm: template.aspectWidth, heightMm: template.aspectHeight }
+        : { widthMm: template.aspectHeight, heightMm: template.aspectWidth })
+      : getPaperDimensions(paperSize, orientation);
+    setTemplate((previous) => ({
+      ...previous,
+      paperSize,
+      pageOrientation: orientation,
+      aspectWidth: dimensions.widthMm,
+      aspectHeight: dimensions.heightMm,
+      updatedAt: new Date().toISOString(),
+    }));
+  };
 
   const addLayer = (layer: CustomPhotoLayer) => {
     updateCurrentPage((page) => ({ ...page, layers: [...page.layers, layer] }));
@@ -506,7 +655,7 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
   };
 
   const saveTemplate = () => {
-    const snapshot = { ...cloneTemplate(template), updatedAt: new Date().toISOString() };
+    const snapshot = normalizeCustomPhotoTemplate({ ...cloneTemplate(template), updatedAt: new Date().toISOString() });
     const next = [snapshot, ...savedTemplates.filter((item) => item.id !== snapshot.id)].slice(0, 12);
     try {
       localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(next));
@@ -520,7 +669,7 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
   const loadTemplate = (id: string) => {
     const stored = savedTemplates.find((item) => item.id === id);
     if (!stored) return;
-    const next = cloneTemplate(stored);
+    const next = normalizeCustomPhotoTemplate(cloneTemplate(stored));
     setTemplate(next);
     setActivePageId(next.pages[0].id);
     setSelectedLayerId(next.pages[0].layers[0]?.id || null);
@@ -561,8 +710,8 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
     setIsGenerating(true);
     setGenerationProgress({ completed: 0, total: estimatedPages });
     try {
-      await document.fonts?.ready;
-      const blob = await createCustomPhotoPdf(template, selectedPupils, feesByPupil, output, (completed, total) => {
+      await ensureDocXTemplateFontsLoaded(template);
+      const blob = await createCustomPhotoPdf(template, selectedPupils, feesByPupil, output, schoolInfo, (completed, total) => {
         setGenerationProgress({ completed, total });
       });
       const date = new Date().toISOString().slice(0, 10);
@@ -577,6 +726,7 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
 
   return (
     <>
+      <style>{DOCX_FONT_FACE_CSS}</style>
       <div className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-slate-100 text-slate-900" role="dialog" aria-modal="true" aria-label="DocX Custom Photo Studio">
         <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-white/80 bg-white/85 px-3 py-2 shadow-sm backdrop-blur-2xl sm:px-5">
           <Button variant="ghost" size="sm" onClick={onClose} className="rounded-full">
@@ -603,6 +753,13 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
         {stage === 'design' ? (
           <main className="grid min-h-0 flex-1 grid-cols-1 overflow-auto lg:grid-cols-[250px_minmax(460px,1fr)_300px] lg:overflow-hidden">
             <aside className="border-r border-slate-200 bg-white/75 p-3 lg:overflow-y-auto">
+              <div className="mb-4 rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-3">
+                <div className="mb-2 flex items-start gap-2">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-violet-700 shadow-sm"><ImageUp className="h-4 w-4" /></span>
+                  <div><p className="text-xs font-black text-violet-950">Start with your artwork</p><p className="mt-0.5 text-[10px] leading-4 text-violet-700">Import any JPG, PNG or WebP image as this page’s template background.</p></div>
+                </div>
+                <Button type="button" onClick={() => backgroundInputRef.current?.click()} className="h-9 w-full bg-violet-700 text-xs font-bold hover:bg-violet-800"><ImagePlus className="mr-1.5 h-4 w-4" />Import template image</Button>
+              </div>
               <div className="mb-3 flex items-center justify-between">
                 <div><p className="text-xs font-black text-slate-800">Pages</p><p className="text-[10px] text-slate-500">Each becomes a front, back, or follow-on page.</p></div>
                 <Button size="icon" variant="outline" onClick={addPage} className="h-8 w-8 rounded-lg"><Plus className="h-3.5 w-3.5" /></Button>
@@ -622,11 +779,32 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
               </div>
 
               <div className="my-4 h-px bg-slate-200" />
-              <div className="mb-2 flex items-center justify-between"><p className="text-xs font-black text-slate-800">Layers</p><Badge variant="secondary" className="text-[9px]">{currentPage?.layers.length || 0}</Badge></div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5"><p className="text-xs font-black text-slate-800">Layers</p><Badge variant="secondary" className="text-[9px]">{currentPage?.layers.length || 0}</Badge></div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><Button size="sm" className="h-8 rounded-lg bg-violet-700 px-2.5 text-[10px] font-bold hover:bg-violet-800"><Plus className="mr-1 h-3.5 w-3.5" />Add layer</Button></DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuLabel>Photos and artwork</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={() => addLayer(createImageLayer('avatar'))}><CircleUserRound className="mr-2 h-4 w-4" />Pupil photo</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => addLayer(createImageLayer('schoolLogo'))}><Building2 className="mr-2 h-4 w-4" />School badge</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => imageLayerInputRef.current?.click()}><FilePlus2 className="mr-2 h-4 w-4" />Imported photo or art</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => addLayer(createCustomTextLayer())}><Type className="mr-2 h-4 w-4" />Manual text box</DropdownMenuItem>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger><CircleUserRound className="mr-2 h-4 w-4" />Pupil information</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="max-h-72 overflow-y-auto">{DYNAMIC_FIELD_OPTIONS.filter((field) => field.group === 'pupil').map((field) => <DropdownMenuItem key={field.value} onSelect={() => addLayer(createTextLayer(field.value))}>{field.label}</DropdownMenuItem>)}</DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger><Building2 className="mr-2 h-4 w-4" />School information</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>{DYNAMIC_FIELD_OPTIONS.filter((field) => field.group === 'school').map((field) => <DropdownMenuItem key={field.value} onSelect={() => addLayer(createTextLayer(field.value))}>{field.label}</DropdownMenuItem>)}</DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <div className="space-y-1">
                 {[...(currentPage?.layers || [])].reverse().map((layer) => (
                   <button key={layer.id} type="button" onClick={() => setSelectedLayerId(layer.id)} className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left', selectedLayerId === layer.id ? 'bg-violet-100 text-violet-900' : 'text-slate-600 hover:bg-slate-100')}>
-                    {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5" /> : <Type className="h-3.5 w-3.5" />}
+                    {layer.kind === 'avatar' ? <CircleUserRound className="h-3.5 w-3.5" /> : layer.kind === 'schoolLogo' ? <Building2 className="h-3.5 w-3.5" /> : layer.kind === 'image' ? <FileImage className="h-3.5 w-3.5" /> : <Type className="h-3.5 w-3.5" />}
                     <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{layer.label}</span>
                     {layer.hidden && <EyeOff className="h-3 w-3" />}
                     {layer.locked && <Lock className="h-3 w-3" />}
@@ -643,14 +821,10 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
 
             <section className="flex min-h-[650px] min-w-0 flex-col bg-[radial-gradient(circle_at_top,#ede9fe_0%,#f8fafc_42%,#e2e8f0_100%)] lg:min-h-0">
               <div className="flex flex-wrap items-center justify-center gap-1.5 border-b border-white/70 bg-white/55 p-2 backdrop-blur-xl">
-                <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} className="h-8 rounded-full text-[10px]"><ImagePlus className="mr-1 h-3.5 w-3.5" />Background art</Button>
+                <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} className="h-8 rounded-full border-violet-200 bg-violet-50 text-[10px] text-violet-700"><ImageUp className="mr-1 h-3.5 w-3.5" />Import template</Button>
                 <Button size="sm" variant="outline" onClick={() => addLayer(createImageLayer('avatar'))} className="h-8 rounded-full text-[10px]"><CircleUserRound className="mr-1 h-3.5 w-3.5" />Pupil photo</Button>
-                {schoolBadge && <Button size="sm" variant="outline" onClick={() => addLayer({ ...createImageLayer('image', schoolBadge), label: 'School badge', shape: 'rectangle' })} className="h-8 rounded-full text-[10px]"><WandSparkles className="mr-1 h-3.5 w-3.5" />School badge</Button>}
-                <Select onValueChange={(value) => addLayer(createTextLayer(value as DynamicField))}>
-                  <SelectTrigger className="h-8 w-[150px] rounded-full bg-white text-[10px]"><Type className="mr-1 h-3.5 w-3.5" /><SelectValue placeholder="Pupil data" /></SelectTrigger>
-                  <SelectContent>{DYNAMIC_FIELD_OPTIONS.map((field) => <SelectItem key={field.value} value={field.value}>{field.label}</SelectItem>)}</SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" onClick={() => addLayer(createCustomTextLayer())} className="h-8 rounded-full text-[10px]"><Type className="mr-1 h-3.5 w-3.5" />Custom text</Button>
+                <Button size="sm" variant="outline" onClick={() => addLayer(createImageLayer('schoolLogo'))} className="h-8 rounded-full text-[10px]"><Building2 className="mr-1 h-3.5 w-3.5" />School badge</Button>
+                <Button size="sm" variant="outline" onClick={() => addLayer(createCustomTextLayer())} className="h-8 rounded-full text-[10px]"><Type className="mr-1 h-3.5 w-3.5" />Text box</Button>
                 <Button size="sm" variant="outline" onClick={() => imageLayerInputRef.current?.click()} className="h-8 rounded-full text-[10px]"><FilePlus2 className="mr-1 h-3.5 w-3.5" />Photo art</Button>
                 <input ref={backgroundInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importBackground(event.target.files?.[0]); event.target.value = ''; }} />
                 <input ref={imageLayerInputRef} type="file" accept="image/*" hidden onChange={(event) => { void importImageLayer(event.target.files?.[0]); event.target.value = ''; }} />
@@ -670,6 +844,14 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
                   {currentPage?.background && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={currentPage.background} alt="Imported page artwork" draggable={false} className={cn('pointer-events-none absolute inset-0 h-full w-full', currentPage.backgroundFit === 'cover' ? 'object-cover' : currentPage.backgroundFit === 'contain' ? 'object-contain' : 'object-fill')} />
+                  )}
+                  {template.pageMarginMm > 0 && (
+                    <div
+                      className="pointer-events-none absolute border border-dashed border-violet-500/65"
+                      style={{ left: `${marginXPercent}%`, right: `${marginXPercent}%`, top: `${marginYPercent}%`, bottom: `${marginYPercent}%` }}
+                    >
+                      <span className="absolute -top-4 left-0 rounded bg-violet-600/85 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wide text-white">Safe margin</span>
+                    </div>
                   )}
                   {currentPage?.layers.map((layer) => (
                     <StudioLayer
@@ -721,14 +903,25 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
                         <SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>{SHAPE_OPTIONS.map((shape) => <SelectItem key={shape.value} value={shape.value}>{shape.label}</SelectItem>)}</SelectContent>
                       </Select>
+                      <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Photo fit</span><Select value={selectedLayer.imageFit} onValueChange={(value) => updateLayer(selectedLayer.id, { imageFit: value as CustomPhotoLayer['imageFit'] })}><SelectTrigger className="h-8 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Fill frame (crop)</SelectItem><SelectItem value="contain">Fit whole photo</SelectItem></SelectContent></Select></label>
                       <div><div className="mb-1.5 flex justify-between text-[10px] font-semibold text-slate-500"><span>Crop zoom</span><span>{selectedLayer.imageZoom.toFixed(2)}×</span></div><Slider value={[selectedLayer.imageZoom]} min={1} max={3} step={0.01} onValueChange={([value]) => updateLayer(selectedLayer.id, { imageZoom: value })} /></div>
                       <div className="grid grid-cols-2 gap-2">
                         <NumberInput label="Crop X" value={selectedLayer.imageOffsetX * 100} min={-100} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetX: value / 100 })} />
                         <NumberInput label="Crop Y" value={selectedLayer.imageOffsetY * 100} min={-100} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { imageOffsetY: value / 100 })} />
                       </div>
-                      <div><div className="mb-1.5 flex justify-between text-[10px] font-semibold text-slate-500"><span>Feather edge</span><span>{selectedLayer.feather}%</span></div><Slider value={[selectedLayer.feather]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { feather: value })} /></div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                        <div className="mb-1.5 flex justify-between text-[10px] font-semibold text-slate-600"><span>Feather around shape</span><span>{selectedLayer.feather}%</span></div>
+                        <Slider value={[selectedLayer.feather]} min={0} max={100} step={1} onValueChange={([value]) => updateLayer(selectedLayer.id, { feather: value })} />
+                        <p className="mt-2 text-[9px] leading-3.5 text-slate-500">Softens the actual circle, oval, rounded or polygon edge.</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <NumberInput label="Top side" value={selectedLayer.featherTop || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherTop: value })} />
+                          <NumberInput label="Right side" value={selectedLayer.featherRight || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherRight: value })} />
+                          <NumberInput label="Bottom side" value={selectedLayer.featherBottom || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherBottom: value })} />
+                          <NumberInput label="Left side" value={selectedLayer.featherLeft || 0} min={0} max={100} suffix="%" onChange={(value) => updateLayer(selectedLayer.id, { featherLeft: value })} />
+                        </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-2"><NumberInput label="Border" value={selectedLayer.borderWidth} min={0} max={30} suffix="px" onChange={(value) => updateLayer(selectedLayer.id, { borderWidth: value })} /><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Border colour</span><Input type="color" value={selectedLayer.borderColor} onChange={(event) => updateLayer(selectedLayer.id, { borderColor: event.target.value })} className="h-8 bg-white p-1" /></label></div>
-                      <Button variant="ghost" size="sm" className="h-8 w-full text-[10px]" onClick={() => updateLayer(selectedLayer.id, { imageZoom: 1, imageOffsetX: 0, imageOffsetY: 0, rotation: 0, feather: 0 })}><RotateCcw className="mr-1 h-3 w-3" />Reset photo treatment</Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-full text-[10px]" onClick={() => updateLayer(selectedLayer.id, { imageZoom: 1, imageOffsetX: 0, imageOffsetY: 0, rotation: 0, feather: 0, featherTop: 0, featherRight: 0, featherBottom: 0, featherLeft: 0 })}><RotateCcw className="mr-1 h-3 w-3" />Reset photo treatment</Button>
                     </div>
                   ) : (
                     <div className="space-y-3 rounded-xl border border-slate-200 p-3">
@@ -739,10 +932,10 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
                           <SelectContent>{DYNAMIC_FIELD_OPTIONS.map((field) => <SelectItem key={field.value} value={field.value}>{field.label}</SelectItem>)}</SelectContent>
                         </Select>
                       ) : (
-                        <Input value={selectedLayer.text || ''} onChange={(event) => updateLayer(selectedLayer.id, { text: event.target.value })} className="h-8 bg-white text-xs" />
+                        <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Type text directly</span><Textarea value={selectedLayer.text || ''} onChange={(event) => updateLayer(selectedLayer.id, { text: event.target.value })} rows={4} placeholder="Type the text that should appear on this document…" className="min-h-20 resize-y bg-white text-xs" /></label>
                       )}
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Font</span><Select value={selectedLayer.fontFamily} onValueChange={(value) => updateLayer(selectedLayer.id, { fontFamily: value })}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent>{FONT_OPTIONS.map((font) => <SelectItem key={font} value={font}>{font}</SelectItem>)}</SelectContent></Select></label>
+                      <FontPicker value={selectedLayer.fontFamily} onChange={(value) => updateLayer(selectedLayer.id, { fontFamily: value })} />
+                      <div className="grid grid-cols-3 gap-2">
                         <NumberInput label="Size" value={selectedLayer.fontSize} min={8} max={200} suffix="px" onChange={(value) => updateLayer(selectedLayer.id, { fontSize: value })} />
                         <NumberInput label="Weight" value={selectedLayer.fontWeight} min={100} max={900} step={100} onChange={(value) => updateLayer(selectedLayer.id, { fontWeight: value })} />
                         <NumberInput label="Line height" value={selectedLayer.lineHeight} min={0.7} max={2.5} step={0.05} onChange={(value) => updateLayer(selectedLayer.id, { lineHeight: value })} />
@@ -759,7 +952,15 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                 <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Page setup</p>
                 <Input value={template.name} onChange={(event) => setTemplate((previous) => ({ ...previous, name: event.target.value }))} className="mb-2 h-8 bg-white text-xs font-bold" aria-label="Template name" />
-                <div className="grid grid-cols-2 gap-2"><NumberInput label="Aspect width" value={template.aspectWidth} min={1} max={20} onChange={(value) => setTemplate((previous) => ({ ...previous, aspectWidth: value }))} /><NumberInput label="Aspect height" value={template.aspectHeight} min={1} max={20} onChange={(value) => setTemplate((previous) => ({ ...previous, aspectHeight: value }))} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Document size</span><Select value={template.paperSize} onValueChange={(value) => applyPageFormat(value as PaperSize, template.pageOrientation)}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.map((size) => <SelectItem key={size.value} value={size.value}>{size.label}{size.value !== 'custom' ? ` · ${size.widthMm} × ${size.heightMm} mm` : ''}</SelectItem>)}</SelectContent></Select></label>
+                  <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Orientation</span><Select value={template.pageOrientation} onValueChange={(value) => applyPageFormat(template.paperSize, value as CustomPhotoTemplate['pageOrientation'])}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent></Select></label>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <NumberInput label="Safe margin" value={template.pageMarginMm} min={0} max={50} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, pageMarginMm: value }))} />
+                  <div className="rounded-lg border border-violet-100 bg-violet-50 px-2 py-1.5"><p className="text-[9px] font-semibold text-violet-500">Canvas</p><p className="mt-1 text-[10px] font-black text-violet-800">{template.aspectWidth} × {template.aspectHeight} mm</p></div>
+                </div>
+                {template.paperSize === 'custom' && <div className="mt-2 grid grid-cols-2 gap-2"><NumberInput label="Custom width" value={template.aspectWidth} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectWidth: value }))} /><NumberInput label="Custom height" value={template.aspectHeight} min={20} max={1000} suffix="mm" onChange={(value) => setTemplate((previous) => ({ ...previous, aspectHeight: value }))} /></div>}
                 <div className="mt-2 grid grid-cols-2 gap-2"><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Background fit</span><Select value={currentPage?.backgroundFit} onValueChange={(value) => updateCurrentPage((page) => ({ ...page, backgroundFit: value as CustomPhotoPage['backgroundFit'] }))}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cover">Cover</SelectItem><SelectItem value="contain">Contain</SelectItem><SelectItem value="stretch">Stretch</SelectItem></SelectContent></Select></label><label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page colour</span><Input type="color" value={currentPage?.backgroundColor || '#ffffff'} onChange={(event) => updateCurrentPage((page) => ({ ...page, backgroundColor: event.target.value }))} className="h-8 bg-white p-1" /></label></div>
               </div>
               {savedTemplates.length > 0 && <div className="mt-3"><p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">Saved on this device</p><Select onValueChange={loadTemplate}><SelectTrigger className="h-8 bg-white text-[10px]"><SelectValue placeholder="Open saved template" /></SelectTrigger><SelectContent>{savedTemplates.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select></div>}
@@ -785,9 +986,10 @@ export function CustomPhotoStudio({ pupils, schoolBadge, onClose }: CustomPhotoS
             </section>
 
             <aside className="space-y-3 overflow-y-auto rounded-2xl border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur-xl">
-              <div><p className="text-sm font-black text-slate-900">Collage & page output</p><p className="text-[10px] text-slate-500">Control how many personalised designs appear on every A4 sheet.</p></div>
+              <div><p className="text-sm font-black text-slate-900">Collage & page output</p><p className="text-[10px] text-slate-500">Choose the print sheet and how many personalised designs appear on it.</p></div>
               <div className="grid grid-cols-2 gap-2">
-                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page orientation</span><Select value={output.orientation} onValueChange={(value) => setOutput((previous) => ({ ...previous, orientation: value as CustomPhotoOutputSettings['orientation'] }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">A4 portrait</SelectItem><SelectItem value="landscape">A4 landscape</SelectItem></SelectContent></Select></label>
+                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Print sheet size</span><Select value={output.paperSize} onValueChange={(value) => setOutput((previous) => ({ ...previous, paperSize: value as PaperSize }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{PAPER_SIZE_OPTIONS.filter((size) => size.value !== 'custom').map((size) => <SelectItem key={size.value} value={size.value}>{size.label}</SelectItem>)}</SelectContent></Select></label>
+                <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Page orientation</span><Select value={output.orientation} onValueChange={(value) => setOutput((previous) => ({ ...previous, orientation: value as CustomPhotoOutputSettings['orientation'] }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="portrait">Portrait</SelectItem><SelectItem value="landscape">Landscape</SelectItem></SelectContent></Select></label>
                 <label className="space-y-1 text-[10px] font-semibold text-slate-500"><span>Designs per sheet</span><Select value={String(output.cardsPerPage)} onValueChange={(value) => setOutput((previous) => ({ ...previous, cardsPerPage: Number(value) }))}><SelectTrigger className="h-9 bg-white text-xs"><SelectValue /></SelectTrigger><SelectContent>{[1, 2, 3, 4, 6, 8, 9, 12].map((count) => <SelectItem key={count} value={String(count)}>{count} per page</SelectItem>)}</SelectContent></Select></label>
                 <NumberInput label="Page margin" value={output.marginMm} min={0} max={30} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, marginMm: value }))} />
                 <NumberInput label="Gap" value={output.gapMm} min={0} max={20} suffix="mm" onChange={(value) => setOutput((previous) => ({ ...previous, gapMm: value }))} />

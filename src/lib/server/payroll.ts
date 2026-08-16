@@ -9,6 +9,7 @@ import {
   getPayrollDueStatus,
   getSalaryDatesBetween,
 } from "@/lib/payroll/salary-schedule";
+import { summarizePayrollSpend } from "@/lib/payroll/payroll-accounting";
 import type { SalaryComponent, SalarySchedule } from "@/types/payroll";
 
 export const PAYROLL_COLLECTIONS = {
@@ -24,6 +25,28 @@ export const PAYROLL_COLLECTIONS = {
 const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a valid YYYY-MM-DD date.");
+export const payrollAccountingRangeSchema = z
+  .object({ startDate: dateString, endDate: dateString })
+  .superRefine((value, context) => {
+    if (value.endDate < value.startDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "End date must be on or after the start date.",
+      });
+      return;
+    }
+    const span =
+      new Date(`${value.endDate}T12:00:00Z`).getTime() -
+      new Date(`${value.startDate}T12:00:00Z`).getTime();
+    if (span > 3_660 * 24 * 60 * 60 * 1000) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "Choose an accounting period of ten years or less.",
+      });
+    }
+  });
 const amount = z.coerce
   .number()
   .finite()
@@ -39,6 +62,11 @@ const scheduleSchema = z
     excludedMonths: z
       .array(z.string().regex(/^\d{4}-\d{2}$/))
       .max(120)
+      .optional()
+      .default([]),
+    excludedMonthNumbers: z
+      .array(z.coerce.number().int().min(1).max(12))
+      .max(12)
       .optional()
       .default([]),
     timezone: z.literal("Africa/Kampala").default("Africa/Kampala"),
@@ -154,6 +182,31 @@ function toJson(value: unknown): any {
       ]),
     );
   }
+  return value;
+}
+
+/**
+ * Firestore rejects undefined values. Optional payroll fields must be absent
+ * from a document rather than present with an undefined value.
+ */
+function omitUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => omitUndefined(item)) as T;
+  }
+
+  if (
+    value &&
+    typeof value === "object" &&
+    !(value instanceof Timestamp) &&
+    !(value instanceof Date)
+  ) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, omitUndefined(item)]),
+    ) as T;
+  }
+
   return value;
 }
 
@@ -334,7 +387,7 @@ export async function createSalaryProfile(
       updatedAt: now,
     });
     componentRecords.forEach(({ ref }, index) =>
-      transaction.set(ref, componentValues[index]),
+      transaction.set(ref, omitUndefined(componentValues[index])),
     );
     transaction.set(
       db.collection(PAYROLL_COLLECTIONS.history).doc(),
@@ -402,6 +455,50 @@ export async function getPayrollOverview(db: Firestore) {
     };
   });
   return { today, rows };
+}
+
+export async function getPayrollAccounting(
+  db: Firestore,
+  input: z.infer<typeof payrollAccountingRangeSchema>,
+) {
+  const range = payrollAccountingRangeSchema.parse(input);
+  const paymentsSnapshot = await db
+    .collection(PAYROLL_COLLECTIONS.payments)
+    .where("paymentDate", ">=", range.startDate)
+    .where("paymentDate", "<=", range.endDate)
+    .orderBy("paymentDate", "desc")
+    .get();
+  const staffRefs = [
+    ...new Set(
+      paymentsSnapshot.docs
+        .map((item) => String(item.data().staffId || ""))
+        .filter(Boolean),
+    ),
+  ].map((staffId) => db.collection(PAYROLL_COLLECTIONS.staff).doc(staffId));
+  const staffSnapshot = staffRefs.length ? await db.getAll(...staffRefs) : [];
+  const staffNames = new Map(
+    staffSnapshot.map((item) => {
+      const staff = item.data() || {};
+      const name =
+        `${String(staff.firstName || "")} ${String(staff.lastName || "")}`.trim();
+      return [item.id, name || "Unknown staff member"];
+    }),
+  );
+  const payments = paymentsSnapshot.docs.map((item) => {
+    const payment = item.data();
+    return {
+      id: item.id,
+      staffId: String(payment.staffId || ""),
+      amount: Number(payment.amount || 0),
+      paymentDate: String(payment.paymentDate || ""),
+      method: String(payment.method || "other"),
+    };
+  });
+
+  return {
+    range,
+    ...summarizePayrollSpend(payments, staffNames),
+  };
 }
 
 export async function getStaffPayroll(db: Firestore, staffId: string) {
