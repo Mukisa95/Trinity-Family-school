@@ -314,6 +314,20 @@ export function getLayerPreviewStyle(appearance: LayerAppearance, mode: 'text' |
       textShadow: shadows,
     };
   }
+  if (mode === 'frame') {
+    const frameFilters = [
+      appearance.shadow.enabled && appearance.shadow.kind === 'outer'
+        ? `drop-shadow(${appearance.shadow.offsetX}px ${appearance.shadow.offsetY}px ${appearance.shadow.blur}px ${rgba(appearance.shadow.color, appearance.shadow.opacity)})`
+        : undefined,
+      appearance.bevel.enabled && appearance.bevel.depth > 0
+        ? `drop-shadow(${(Math.cos((appearance.bevel.angle - 90) * Math.PI / 180) * appearance.bevel.depth * -0.35).toFixed(1)}px ${(Math.sin((appearance.bevel.angle - 90) * Math.PI / 180) * appearance.bevel.depth * -0.35).toFixed(1)}px ${appearance.bevel.softness}px ${rgba(appearance.bevel.highlightColor, appearance.bevel.opacity)})`
+        : undefined,
+      appearance.bevel.enabled && appearance.bevel.depth > 0
+        ? `drop-shadow(${(Math.cos((appearance.bevel.angle - 90) * Math.PI / 180) * appearance.bevel.depth * 0.35).toFixed(1)}px ${(Math.sin((appearance.bevel.angle - 90) * Math.PI / 180) * appearance.bevel.depth * 0.35).toFixed(1)}px ${appearance.bevel.softness}px ${rgba(appearance.bevel.shadowColor, appearance.bevel.opacity)})`
+        : undefined,
+    ].filter(Boolean).join(' ') || undefined;
+    return { filter: frameFilters };
+  }
   return {
     background: mode === 'shape' ? paintToCss(appearance.fill) : undefined,
     boxShadow: shadows,

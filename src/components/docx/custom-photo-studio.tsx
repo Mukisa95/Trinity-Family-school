@@ -373,7 +373,7 @@ function StudioLayer({
       onPointerDown={onPointerDown}
       className={cn(
         'absolute touch-none select-none overflow-visible outline-none',
-        selected && 'ring-2 ring-violet-500 ring-offset-1',
+        selected && layer.kind === 'text' && 'ring-2 ring-violet-500 ring-offset-1',
         layer.locked ? 'cursor-not-allowed' : 'cursor-move',
       )}
       style={{
@@ -384,7 +384,17 @@ function StudioLayer({
         transform: layer.kind === 'text' || layer.kind === 'shape' ? `rotate(${layer.rotation}deg)` : undefined,
         opacity: layer.opacity,
       }}
-    >
+      >
+      {selected && layer.kind !== 'text' && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10"
+          style={{
+            clipPath: shapeClipPath(layer.shape),
+            boxShadow: 'inset 0 0 0 2px rgb(139 92 246)',
+          }}
+        />
+      )}
       {layer.kind === 'text' ? (
         <div
           className="flex h-full w-full items-center overflow-hidden px-[1.5%]"
