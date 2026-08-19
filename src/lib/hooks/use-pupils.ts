@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query';
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { PupilsService } from '../services/pupils.service';
+import {
+  PupilsService,
+  type PupilPerformancePatch,
+} from '../services/pupils.service';
 import type { Pupil } from '@/types';
 
 // Query keys
@@ -613,6 +616,21 @@ export function useUpdatePupil() {
           updatedAt: new Date().toISOString(),
         } as Pupil);
       }
+    },
+  });
+}
+
+export function useUpdatePupilPerformanceBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (patches: PupilPerformancePatch[]) =>
+      PupilsService.updatePupilPerformanceBatch(patches),
+    onSuccess: result => {
+      applyPupilChangesToQueryCaches(
+        queryClient,
+        result.pupils.map(pupil => ({ type: 'modified' as const, pupil })),
+      );
     },
   });
 }

@@ -7,7 +7,7 @@ import { RefreshCw, CheckCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDo
 import { useToast } from '@/hooks/use-toast';
 import { AcademicYear, Term } from '@/types';
 import Link from 'next/link';
-import { useActivePupils, useUpdatePupil } from '@/lib/hooks/use-pupils';
+import { useActivePupils, useUpdatePupilPerformanceBatch } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
@@ -42,10 +42,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SubjectCommentType, SubjectStatus } from '@/types';
 import { SUBJECT_COMMENT_TYPES, SUBJECT_STATUS_OPTIONS } from '@/lib/constants/subject-comments';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import type {
+  PupilPerformancePatch,
+  PupilPerformanceStatus,
+} from '@/lib/services/pupils.service';
 
 
 // Performance status options
@@ -80,9 +93,15 @@ const buildTiedSubjectStatuses = (status: string): Record<SubjectCommentType, Su
   }, {} as Record<SubjectCommentType, SubjectStatus>);
 };
 
+const hasOwn = <T extends object>(value: T, key: PropertyKey) =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
 export default function RemarkReportPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
-  const [updatedPupils, setUpdatedPupils] = useState<Record<string, string>>({});
+  // Pupil -> term -> pending overall performance status.
+  const [updatedPupils, setUpdatedPupils] = useState<
+    Record<string, Record<string, PupilPerformanceStatus>>
+  >({});
   const [expandedPupils, setExpandedPupils] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
@@ -100,7 +119,12 @@ export default function RemarkReportPage() {
   };
   const [manualTieOverrides, setManualTieOverrides] = useState<Record<string, boolean | undefined>>({});
   // Term-scoped subject statuses: pupilId -> termId -> subject -> status
-  const [updatedSubjectStatuses, setUpdatedSubjectStatuses] = useState<Record<string, Record<string, Record<SubjectCommentType, SubjectStatus | undefined>>>>({});
+  const [updatedSubjectStatuses, setUpdatedSubjectStatuses] = useState<
+    Record<
+      string,
+      Record<string, Partial<Record<SubjectCommentType, SubjectStatus | null>>>
+    >
+  >({});
   const [autoTiedSubjects, setAutoTiedSubjects] = useState<Record<string, Record<string, Record<SubjectCommentType, boolean>>>>({});
   const [autoTieBackups, setAutoTieBackups] = useState<Record<string, Record<string, Record<SubjectCommentType, SubjectStatus | undefined>>>>({});
   const [batchProgress, setBatchProgress] = useState<{
@@ -120,6 +144,11 @@ export default function RemarkReportPage() {
 
   // Track whether a batch save is in progress to prevent double-clicks
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isBatchSubjectEditorOpen, setIsBatchSubjectEditorOpen] = useState(false);
+  const [subjectSelectionModePupils, setSubjectSelectionModePupils] = useState<Set<string>>(new Set());
+  const [selectedSubjectsByPupil, setSelectedSubjectsByPupil] = useState<
+    Record<string, SubjectCommentType[]>
+  >({});
 
 
   // PDF Viewer hook
@@ -137,6 +166,21 @@ export default function RemarkReportPage() {
     if (showPayCode) count++;
     return count;
   }, [selectedStatusFilter, showPayCode]);
+
+  const pendingPupilCount = useMemo(() => {
+    const pupilIds = new Set<string>();
+
+    Object.entries(updatedPupils).forEach(([pupilId, terms]) => {
+      if (Object.keys(terms).length > 0) pupilIds.add(pupilId);
+    });
+    Object.entries(updatedSubjectStatuses).forEach(([pupilId, terms]) => {
+      if (Object.values(terms).some(statuses => Object.keys(statuses).length > 0)) {
+        pupilIds.add(pupilId);
+      }
+    });
+
+    return pupilIds.size;
+  }, [updatedPupils, updatedSubjectStatuses]);
 
   // Use existing hooks
   const { data: allClasses = [], isLoading: classesLoading } = useClasses();
@@ -177,7 +221,7 @@ export default function RemarkReportPage() {
 
   // Use the new term status system
   const { effectiveTerm, isRecessMode, periodMessage } = useTermStatus();
-  const updatePupilMutation = useUpdatePupil();
+  const updatePupilPerformanceBatchMutation = useUpdatePupilPerformanceBatch();
 
   // Selected term for filtering - defaults to effective term
   const [selectedTermId, setSelectedTermId] = useState<string>('');
@@ -194,6 +238,12 @@ export default function RemarkReportPage() {
     }
   }, [effectiveTerm, selectedTermId]);
 
+  React.useEffect(() => {
+    setIsBatchSubjectEditorOpen(false);
+    setSubjectSelectionModePupils(new Set());
+    setSelectedSubjectsByPupil({});
+  }, [selectedClass, selectedTermId]);
+
   // Filter pupils by selected class and search term (only nursery classes)
   const filteredPupils = useMemo(() => {
     // Filter pupils to only those in nursery classes
@@ -208,7 +258,12 @@ export default function RemarkReportPage() {
 
     // Filter by selected status
     if (selectedStatusFilter && selectedStatusFilter !== 'all') {
-      pupils = pupils.filter((pupil: Pupil) => pupil.performanceStatus === selectedStatusFilter);
+      pupils = pupils.filter((pupil: Pupil) => {
+        const status = selectedTermId
+          ? pupil.termPerformanceStatuses?.[selectedTermId] || pupil.performanceStatus
+          : pupil.performanceStatus;
+        return status === selectedStatusFilter;
+      });
     }
 
     // Filter by search term (case-insensitive)
@@ -268,7 +323,7 @@ export default function RemarkReportPage() {
     }
 
     return pupils;
-  }, [allPupils, selectedClass, selectedStatusFilter, searchTerm, sortBy, sortOrder]);
+  }, [allPupils, allClasses, selectedClass, selectedStatusFilter, searchTerm, sortBy, sortOrder, selectedTermId]);
 
   // Find class object for selected class
   const selectedClassData = allClasses.find((c: Class) => c.id === selectedClass) || null;
@@ -286,7 +341,7 @@ export default function RemarkReportPage() {
   };
 
   const getPendingSubjectStatuses = (pupilId: string) => {
-    return ((selectedTermId && updatedSubjectStatuses[pupilId]?.[selectedTermId]) || {}) as Partial<Record<SubjectCommentType, SubjectStatus | undefined>>;
+    return ((selectedTermId && updatedSubjectStatuses[pupilId]?.[selectedTermId]) || {}) as Partial<Record<SubjectCommentType, SubjectStatus | null>>;
   };
 
   const getEffectiveSubjectStatuses = (pupilId: string) => ({
@@ -306,7 +361,7 @@ export default function RemarkReportPage() {
 
       SUBJECT_COMMENT_TYPES.forEach((subject) => {
         if (!autoTiedSubjects[pupilId]?.[selectedTermId]?.[subject.value]) {
-          nextTermBackups[subject.value] = effectiveStatuses[subject.value];
+          nextTermBackups[subject.value] = effectiveStatuses[subject.value] ?? undefined;
         }
       });
 
@@ -412,29 +467,45 @@ export default function RemarkReportPage() {
   };
 
   const handleStatusChange = (pupilId: string, status: string) => {
-    setUpdatedPupils(prev => ({ ...prev, [pupilId]: status }));
+    if (!selectedTermId) return;
 
-    if (!selectedTermId || !isTieEnabledForPupil(pupilId)) return;
+    setUpdatedPupils(prev => ({
+      ...prev,
+      [pupilId]: {
+        ...(prev[pupilId] || {}),
+        [selectedTermId]: status as PupilPerformanceStatus,
+      },
+    }));
+
+    if (!isTieEnabledForPupil(pupilId)) return;
 
     applyTieToPupil(pupilId, status);
   };
 
   const handleTieToggle = (pupilId: string, checked: boolean) => {
+    if (!selectedTermId) return;
+
+    const pupil = getPupilById(pupilId);
+    const currentPerformanceStatus = updatedPupils[pupilId]?.[selectedTermId]
+      || (selectedTermId ? pupil?.termPerformanceStatuses?.[selectedTermId] : pupil?.performanceStatus)
+      || pupil?.performanceStatus;
+
+    if (checked && !currentPerformanceStatus) {
+      toast({
+        title: 'Select a status first',
+        description: 'Set the pupil’s main performance status before tying subject statuses.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setManualTieOverrides(prev => ({
       ...prev,
       [pupilId]: checked === bulkTieEnabled ? undefined : checked
     }));
 
-    if (!selectedTermId) return;
-
-    const pupil = getPupilById(pupilId);
-    const currentPerformanceStatus = updatedPupils[pupilId]
-      || (selectedTermId ? pupil?.termPerformanceStatuses?.[selectedTermId] : pupil?.performanceStatus)
-      || pupil?.performanceStatus
-      || 'fair';
-
     if (checked) {
-      applyTieToPupil(pupilId, currentPerformanceStatus);
+      applyTieToPupil(pupilId, currentPerformanceStatus!);
     } else {
       removeTieFromPupil(pupilId);
     }
@@ -446,19 +517,35 @@ export default function RemarkReportPage() {
 
     if (!selectedTermId) return;
 
+    const blockedPupilIds: string[] = [];
+
     filteredPupils.forEach((pupil: Pupil) => {
       const effectiveTie = manualTieOverrides[pupil.id] ?? nextBulkTieEnabled;
-      const currentPerformanceStatus = updatedPupils[pupil.id]
+      const currentPerformanceStatus = updatedPupils[pupil.id]?.[selectedTermId]
         || (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus)
-        || pupil.performanceStatus
-        || 'fair';
+        || pupil.performanceStatus;
 
-      if (effectiveTie) {
+      if (effectiveTie && currentPerformanceStatus) {
         applyTieToPupil(pupil.id, currentPerformanceStatus);
       } else {
         removeTieFromPupil(pupil.id);
+        if (effectiveTie) blockedPupilIds.push(pupil.id);
       }
     });
+
+    if (blockedPupilIds.length > 0) {
+      setManualTieOverrides(prev => {
+        const next = { ...prev };
+        blockedPupilIds.forEach(pupilId => {
+          next[pupilId] = false;
+        });
+        return next;
+      });
+      toast({
+        title: 'Some pupils were not tied',
+        description: `${blockedPupilIds.length} pupil(s) need a main performance status first.`,
+      });
+    }
   };
 
   const togglePupilExpansion = (pupilId: string) => {
@@ -482,33 +569,116 @@ export default function RemarkReportPage() {
     }
   };
 
-  const handleSubjectStatusChange = (pupilId: string, subject: SubjectCommentType, status: SubjectStatus | undefined) => {
-    if (!selectedTermId) return; // Don't allow changes if no term is selected
+  const applySubjectStatusChanges = (
+    pupilIds: string[],
+    subjects: SubjectCommentType[],
+    status: SubjectStatus | null,
+  ) => {
+    if (!selectedTermId || pupilIds.length === 0 || subjects.length === 0) return;
 
-    setUpdatedSubjectStatuses(prev => ({
-      ...prev,
-      [pupilId]: {
-        ...(prev[pupilId] || {}),
-        [selectedTermId]: {
-          ...(prev[pupilId]?.[selectedTermId] || {}),
-          [subject]: status
-        }
-      }
-    }));
+    setUpdatedSubjectStatuses(prev => {
+      const next = { ...prev };
 
+      pupilIds.forEach(pupilId => {
+        const pupilTerms = { ...(next[pupilId] || {}) };
+        const termStatuses = { ...(pupilTerms[selectedTermId] || {}) };
+        subjects.forEach(subject => {
+          termStatuses[subject] = status;
+        });
+        pupilTerms[selectedTermId] = termStatuses;
+        next[pupilId] = pupilTerms;
+      });
+
+      return next;
+    });
+
+    // These are copied per-pupil values, not a lasting tie. A later edit to one
+    // subject or pupil therefore changes only that individual pending value.
     setAutoTiedSubjects(prev => {
-      const nextTermAutoSubjects = {
-        ...(prev[pupilId]?.[selectedTermId] || {})
-      };
-      delete nextTermAutoSubjects[subject];
+      const next = { ...prev };
 
-      return {
-        ...prev,
-        [pupilId]: {
-          ...(prev[pupilId] || {}),
-          [selectedTermId]: nextTermAutoSubjects
-        }
-      };
+      pupilIds.forEach(pupilId => {
+        const pupilTerms = { ...(next[pupilId] || {}) };
+        const termAutoSubjects = { ...(pupilTerms[selectedTermId] || {}) };
+        subjects.forEach(subject => {
+          delete termAutoSubjects[subject];
+        });
+        pupilTerms[selectedTermId] = termAutoSubjects;
+        next[pupilId] = pupilTerms;
+      });
+
+      return next;
+    });
+  };
+
+  const handleSubjectStatusChange = (
+    pupilId: string,
+    subject: SubjectCommentType,
+    status: SubjectStatus | null,
+  ) => {
+    applySubjectStatusChanges([pupilId], [subject], status);
+  };
+
+  const getEffectiveSubjectStatus = (
+    pupil: Pupil,
+    subject: SubjectCommentType,
+  ): SubjectStatus | null => {
+    const pendingStatuses = updatedSubjectStatuses[pupil.id]?.[selectedTermId] || {};
+    if (hasOwn(pendingStatuses, subject)) return pendingStatuses[subject] ?? null;
+    return pupil.termSubjectStatuses?.[selectedTermId]?.[subject] ?? null;
+  };
+
+  const getBatchSubjectStatus = (subject: SubjectCommentType) => {
+    if (filteredPupils.length === 0) return 'none';
+    const statuses = filteredPupils.map(pupil => getEffectiveSubjectStatus(pupil, subject));
+    const firstStatus = statuses[0];
+    return statuses.every(status => status === firstStatus)
+      ? firstStatus || 'none'
+      : 'mixed';
+  };
+
+  const toggleSubjectSelectionMode = (pupilId: string) => {
+    const isCurrentlySelecting = subjectSelectionModePupils.has(pupilId);
+    setSubjectSelectionModePupils(prev => {
+      const next = new Set(prev);
+      if (isCurrentlySelecting) next.delete(pupilId);
+      else next.add(pupilId);
+      return next;
+    });
+
+    if (isCurrentlySelecting) {
+      setSelectedSubjectsByPupil(current => {
+        const selections = { ...current };
+        delete selections[pupilId];
+        return selections;
+      });
+    }
+  };
+
+  const toggleSelectedSubject = (pupilId: string, subject: SubjectCommentType) => {
+    setSelectedSubjectsByPupil(prev => {
+      const selected = new Set(prev[pupilId] || []);
+      if (selected.has(subject)) selected.delete(subject);
+      else selected.add(subject);
+      return { ...prev, [pupilId]: Array.from(selected) };
+    });
+  };
+
+  const applyStatusToSelectedSubjects = (
+    pupilId: string,
+    status: SubjectStatus | null,
+  ) => {
+    const selectedSubjects = selectedSubjectsByPupil[pupilId] || [];
+    applySubjectStatusChanges([pupilId], selectedSubjects, status);
+    setSelectedSubjectsByPupil(prev => {
+      const next = { ...prev };
+      delete next[pupilId];
+      return next;
+    });
+    setSubjectSelectionModePupils(prev => {
+      const next = new Set(prev);
+      next.delete(pupilId);
+      return next;
     });
   };
 
@@ -700,7 +870,11 @@ export default function RemarkReportPage() {
       const allPupilsData = [];
       for (let i = 0; i < filteredPupils.length; i++) {
         const pupil = livePupilsMap[filteredPupils[i].id] || filteredPupils[i];
-        const performanceStatus = (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus) || pupil.performanceStatus || 'fair';
+        const performanceStatus =
+          (selectedTermId ? updatedPupils[pupil.id]?.[selectedTermId] : undefined) ||
+          (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus) ||
+          pupil.performanceStatus ||
+          'fair';
 
         // Update progress for data preparation
         setBatchProgress(prev => ({
@@ -1008,7 +1182,11 @@ export default function RemarkReportPage() {
       const allPupilsData = [];
       for (let i = 0; i < pupilsToPrint.length; i++) {
         const pupil = livePupilsMap[pupilsToPrint[i].id] || pupilsToPrint[i];
-        const performanceStatus = (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus) || pupil.performanceStatus || 'fair';
+        const performanceStatus =
+          (selectedTermId ? updatedPupils[pupil.id]?.[selectedTermId] : undefined) ||
+          (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus) ||
+          pupil.performanceStatus ||
+          'fair';
 
         setBatchProgress(prev => ({
           ...prev,
@@ -1148,121 +1326,140 @@ export default function RemarkReportPage() {
     setIsSaving(true);
 
     try {
-      // Snapshot the pending changes at save-time so UI edits during saving don't corrupt the batch
-      const pendingPupils = { ...updatedPupils };
-      const pendingSubjectStatuses = JSON.parse(JSON.stringify(updatedSubjectStatuses)) as typeof updatedSubjectStatuses;
+      // Clone every pending map while preserving explicit null deletion markers.
+      // JSON cloning previously removed unset fields before they could be saved.
+      const pendingPupils = Object.fromEntries(
+        Object.entries(updatedPupils).map(([pupilId, terms]) => [
+          pupilId,
+          { ...terms },
+        ]),
+      ) as typeof updatedPupils;
+      const pendingSubjectStatuses = Object.fromEntries(
+        Object.entries(updatedSubjectStatuses).map(([pupilId, terms]) => [
+          pupilId,
+          Object.fromEntries(
+            Object.entries(terms).map(([termId, statuses]) => [
+              termId,
+              { ...statuses },
+            ]),
+          ),
+        ]),
+      ) as typeof updatedSubjectStatuses;
 
-      const allPupilIds = Array.from(new Set([
-        ...Object.keys(pendingPupils),
-        ...Object.keys(pendingSubjectStatuses)
-      ]));
+      const allPupilIds = Array.from(
+        new Set([
+          ...Object.keys(pendingPupils),
+          ...Object.keys(pendingSubjectStatuses),
+        ]),
+      );
+      const patches = allPupilIds.reduce<PupilPerformancePatch[]>((acc, pupilId) => {
+        const termPerformanceStatuses = pendingPupils[pupilId] || {};
+        const termSubjectStatuses = Object.entries(
+          pendingSubjectStatuses[pupilId] || {},
+        ).reduce<NonNullable<PupilPerformancePatch['termSubjectStatuses']>>(
+          (terms, [termId, statuses]) => {
+            if (Object.keys(statuses).length > 0) terms[termId] = statuses;
+            return terms;
+          },
+          {},
+        );
 
-      if (allPupilIds.length === 0) {
-        setIsSaving(false);
-        return;
-      }
+        if (
+          Object.keys(termPerformanceStatuses).length > 0 ||
+          Object.keys(termSubjectStatuses).length > 0
+        ) {
+          acc.push({
+            id: pupilId,
+            ...(Object.keys(termPerformanceStatuses).length > 0 && {
+              termPerformanceStatuses,
+            }),
+            ...(Object.keys(termSubjectStatuses).length > 0 && {
+              termSubjectStatuses,
+            }),
+          });
+        }
 
-    const BATCH_SIZE = 5; // Save 5 pupils at a time to avoid Firestore stampede
-    const savedIds: string[] = [];
-    const failedIds: string[] = [];
+        return acc;
+      }, []);
 
-    for (let i = 0; i < allPupilIds.length; i += BATCH_SIZE) {
-      const batch = allPupilIds.slice(i, i + BATCH_SIZE);
+      if (patches.length === 0) return;
 
-      await Promise.all(batch.map(async (pupilId) => {
-        try {
-          const currentPupil = allPupils.find((p: Pupil) => p.id === pupilId);
-          if (!currentPupil) return;
+      const { savedIds, failedIds } =
+        await updatePupilPerformanceBatchMutation.mutateAsync(patches);
+      const savedIdSet = new Set(savedIds);
 
-          const updateData: any = {};
+      // Remove only values that still equal the save-time snapshot. This keeps
+      // any newer edit made while the request was in flight dirty and visible.
+      if (savedIds.length > 0) {
+        setUpdatedPupils(prev => {
+          const next = { ...prev };
 
-          // Performance status
-          if (pendingPupils[pupilId]) {
-            if (selectedTermId) {
-              const existingTermPerformanceStatuses = currentPupil.termPerformanceStatuses || {};
-              updateData.termPerformanceStatuses = {
-                ...existingTermPerformanceStatuses,
-                [selectedTermId]: pendingPupils[pupilId] as 'good' | 'fair' | 'weak' | 'young' | 'irregular'
-              };
-            } else {
-              updateData.performanceStatus = pendingPupils[pupilId] as 'good' | 'fair' | 'weak' | 'young' | 'irregular';
-            }
-          }
-
-          // Subject statuses
-          if (pendingSubjectStatuses[pupilId]) {
-            const existingTermStatuses = currentPupil.termSubjectStatuses || {};
-            const newTermStatuses = { ...existingTermStatuses };
-
-            Object.entries(pendingSubjectStatuses[pupilId]).forEach(([termId, subjectStatusMap]) => {
-              const existingStatusesForTerm = newTermStatuses[termId] || {};
-              const newStatusesForTerm = { ...existingStatusesForTerm };
-
-              Object.entries(subjectStatusMap as Record<string, any>).forEach(([subject, status]) => {
-                if (status === undefined) {
-                  delete newStatusesForTerm[subject as SubjectCommentType];
-                } else {
-                  newStatusesForTerm[subject as SubjectCommentType] = status as SubjectStatus;
-                }
-              });
-
-              if (Object.keys(newStatusesForTerm).length > 0) {
-                newTermStatuses[termId] = newStatusesForTerm;
-              } else {
-                delete newTermStatuses[termId];
-              }
+          savedIdSet.forEach(pupilId => {
+            const currentTerms = { ...(next[pupilId] || {}) };
+            Object.entries(pendingPupils[pupilId] || {}).forEach(([termId, status]) => {
+              if (currentTerms[termId] === status) delete currentTerms[termId];
             });
 
-            updateData.termSubjectStatuses = newTermStatuses;
-          }
+            if (Object.keys(currentTerms).length > 0) next[pupilId] = currentTerms;
+            else delete next[pupilId];
+          });
 
-          // Preserve otherNames
-          if (currentPupil.otherNames &&
-            !PERFORMANCE_STATUS_OPTIONS.some(opt => opt.value === currentPupil.otherNames)) {
-            updateData.otherNames = currentPupil.otherNames;
-          }
+          return next;
+        });
 
-          await updatePupilMutation.mutateAsync({ id: pupilId, data: updateData });
-          savedIds.push(pupilId);
-        } catch (err) {
-          console.error(`Failed to save pupil ${pupilId}:`, err);
-          failedIds.push(pupilId);
-        }
-      }));
-    }
+        setUpdatedSubjectStatuses(prev => {
+          const next = { ...prev };
 
-    // Granular cleanup — only remove pupils that were successfully saved
-    if (savedIds.length > 0) {
-      setUpdatedPupils(prev => {
-        const next = { ...prev };
-        savedIds.forEach(id => delete next[id]);
-        return next;
-      });
-      setUpdatedSubjectStatuses(prev => {
-        const next = { ...prev };
-        savedIds.forEach(id => delete next[id]);
-        return next;
-      });
-    }
+          savedIdSet.forEach(pupilId => {
+            const currentTerms = { ...(next[pupilId] || {}) };
 
-    if (failedIds.length === 0) {
-      toast({
-        title: 'Changes Saved',
-        description: `Updated ${savedIds.length} pupil(s) successfully.`,
-      });
-    } else if (savedIds.length > 0) {
-      toast({
-        title: 'Partially Saved',
-        description: `${savedIds.length} saved. ${failedIds.length} failed — please try saving again.`,
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Save Failed',
-        description: 'No changes were saved. Please check your connection and try again.',
-        variant: 'destructive',
-      });
-    }
+            Object.entries(pendingSubjectStatuses[pupilId] || {}).forEach(
+              ([termId, savedStatuses]) => {
+                const currentStatuses = { ...(currentTerms[termId] || {}) };
+
+                Object.entries(savedStatuses).forEach(([subject, status]) => {
+                  if (
+                    hasOwn(currentStatuses, subject) &&
+                    currentStatuses[subject as SubjectCommentType] === status
+                  ) {
+                    delete currentStatuses[subject as SubjectCommentType];
+                  }
+                });
+
+                if (Object.keys(currentStatuses).length > 0) {
+                  currentTerms[termId] = currentStatuses;
+                } else {
+                  delete currentTerms[termId];
+                }
+              },
+            );
+
+            if (Object.keys(currentTerms).length > 0) next[pupilId] = currentTerms;
+            else delete next[pupilId];
+          });
+
+          return next;
+        });
+      }
+
+      if (failedIds.length === 0) {
+        toast({
+          title: 'Changes Saved',
+          description: `Updated ${savedIds.length} pupil(s) successfully.`,
+        });
+      } else if (savedIds.length > 0) {
+        toast({
+          title: 'Partially Saved',
+          description: `${savedIds.length} saved. ${failedIds.length} failed — please try saving again.`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Save Failed',
+          description: 'No changes were saved. Please check your connection and try again.',
+          variant: 'destructive',
+        });
+      }
 
     } catch (err) {
       console.error('Critical error in handleSaveChanges:', err);
@@ -1302,7 +1499,7 @@ export default function RemarkReportPage() {
         backLabel="Back to dashboard"
         titleControls={
           <div className="flex items-center gap-1.5 lg:hidden">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isSaving}>
               <SelectTrigger className="h-[34px] min-w-[70px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
@@ -1315,7 +1512,7 @@ export default function RemarkReportPage() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+            <Select value={selectedTermId} onValueChange={setSelectedTermId} disabled={isSaving}>
               <SelectTrigger className="h-[34px] min-w-[65px] max-w-[85px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Term" />
               </SelectTrigger>
@@ -1331,7 +1528,7 @@ export default function RemarkReportPage() {
         }
         center={
           <>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isSaving}>
               <SelectTrigger className="h-[34px] min-w-[85px] max-w-[115px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
@@ -1344,7 +1541,7 @@ export default function RemarkReportPage() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedTermId} onValueChange={setSelectedTermId}>
+            <Select value={selectedTermId} onValueChange={setSelectedTermId} disabled={isSaving}>
               <SelectTrigger className="h-[34px] min-w-[75px] max-w-[95px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
                 <SelectValue placeholder="Term" />
               </SelectTrigger>
@@ -1395,7 +1592,7 @@ export default function RemarkReportPage() {
                     label="Print"
                     tone="slate"
                     icon={batchProgress.isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                    disabled={batchProgress.isGenerating}
+                    disabled={batchProgress.isGenerating || isSaving}
                     aria-label="Print Options"
                   />
                 </DropdownMenuTrigger>
@@ -1514,7 +1711,7 @@ export default function RemarkReportPage() {
         )}
 
         {/* Save Changes Button */}
-        {selectedClass && (Object.keys(updatedPupils).length > 0 || Object.keys(updatedSubjectStatuses).length > 0) && (
+        {selectedClass && pendingPupilCount > 0 && (
           <div className="mb-6">
             <Button
               onClick={handleSaveChanges}
@@ -1529,7 +1726,7 @@ export default function RemarkReportPage() {
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Save Changes ({(Object.keys(updatedPupils).length + Object.keys(updatedSubjectStatuses).length)})
+                  Save Changes ({pendingPupilCount})
                 </>
               )}
             </Button>
@@ -1545,7 +1742,22 @@ export default function RemarkReportPage() {
                   <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 sticky top-0 z-10 backdrop-blur-sm">
                     <tr>
                       <th className="w-12 px-3 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
-                        <span className="sr-only">Expand</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsBatchSubjectEditorOpen(true)}
+                          disabled={isSaving || !selectedTermId || filteredPupils.length === 0}
+                          className="h-11 w-11 rounded-full p-0 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900"
+                          aria-label={`Batch edit subject statuses for ${filteredPupils.length} visible pupils`}
+                          title="Batch edit subject statuses"
+                        >
+                          {isBatchSubjectEditorOpen ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
+                        </Button>
                       </th>
                       <th
                         className="px-6 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider cursor-pointer"
@@ -1576,7 +1788,8 @@ export default function RemarkReportPage() {
                         <button
                           type="button"
                           onClick={toggleBulkTie}
-                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                          disabled={isSaving || !selectedTermId}
+                          className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold uppercase tracking-wider text-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <span>Tie</span>
                           <span className={`rounded-full px-2 py-0.5 text-[10px] ${bulkTieEnabled ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -1592,14 +1805,15 @@ export default function RemarkReportPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredPupils.map((pupil: Pupil) => {
                       const isExpanded = expandedPupils.has(pupil.id);
-                      const currentPerformanceStatus = updatedPupils[pupil.id]
+                      const currentPerformanceStatus = updatedPupils[pupil.id]?.[selectedTermId]
                         || (selectedTermId ? pupil.termPerformanceStatuses?.[selectedTermId] : pupil.performanceStatus)
-                        || pupil.performanceStatus
-                        || 'fair';
+                        || pupil.performanceStatus;
                       const isTied = isTieEnabledForPupil(pupil.id);
                       // Get subject statuses for the selected term
                       const pupilSubjectStatuses = updatedSubjectStatuses[pupil.id]?.[selectedTermId] || {};
                       const currentSubjectStatuses = (pupil.termSubjectStatuses?.[selectedTermId] || {}) as any;
+                      const isSubjectSelectionMode = subjectSelectionModePupils.has(pupil.id);
+                      const selectedSubjects = selectedSubjectsByPupil[pupil.id] || [];
 
                       return (
                         <React.Fragment key={pupil.id}>
@@ -1662,6 +1876,7 @@ export default function RemarkReportPage() {
                                 <Select
                                   value={currentPerformanceStatus}
                                   onValueChange={(value) => handleStatusChange(pupil.id, value)}
+                                  disabled={isSaving || !selectedTermId}
                                 >
                                 <SelectTrigger className="w-full max-w-xs">
                                   <SelectValue placeholder="Select status" />
@@ -1680,6 +1895,7 @@ export default function RemarkReportPage() {
                                   <Switch
                                     checked={isTied}
                                     onCheckedChange={(checked) => handleTieToggle(pupil.id, checked)}
+                                    disabled={isSaving || !selectedTermId}
                                     aria-label={`Tie subject statuses to main status for ${formatPupilDisplayName(pupil)}`}
                                   />
                                   <span className="text-xs text-gray-600">
@@ -1693,7 +1909,7 @@ export default function RemarkReportPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    disabled={batchProgress.isGenerating}
+                                    disabled={batchProgress.isGenerating || isSaving}
                                     className="h-8 w-8 p-0 text-green-600 border-green-600 hover:bg-green-50"
                                     aria-label={`Choose a report to print for ${formatPupilDisplayName(pupil)}`}
                                     title="Choose Report"
@@ -1726,24 +1942,108 @@ export default function RemarkReportPage() {
                             <tr>
                               <td colSpan={6} className="px-6 py-4 bg-gray-50">
                                 <div className="space-y-4">
-                                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Subject-Based Statuses</h4>
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-gray-800">Subject-Based Statuses</h4>
+                                      <p className="mt-1 text-xs text-gray-600">
+                                        {isSubjectSelectionMode
+                                          ? 'Choose multiple subjects, then assign one status to the selection.'
+                                          : 'Edit one subject or select several for a one-time group change.'}
+                                      </p>
+                                    </div>
+
+                                    {selectedSubjects.length > 0 ? (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <Select
+                                          onValueChange={(value) => applyStatusToSelectedSubjects(
+                                            pupil.id,
+                                            value === 'none' ? null : (value as SubjectStatus),
+                                          )}
+                                          disabled={isSaving || !selectedTermId}
+                                        >
+                                          <SelectTrigger
+                                            className="h-11 min-w-[190px] border-indigo-300 bg-white text-indigo-800"
+                                            aria-label={`Set a status for ${selectedSubjects.length} selected subjects`}
+                                          >
+                                            <SelectValue placeholder={`Set status for ${selectedSubjects.length}`} />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Not set</SelectItem>
+                                            {SUBJECT_STATUS_OPTIONS.map(status => (
+                                              <SelectItem key={status.value} value={status.value}>
+                                                {status.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          onClick={() => toggleSubjectSelectionMode(pupil.id)}
+                                          disabled={isSaving}
+                                          className="h-11"
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        type="button"
+                                        variant={isSubjectSelectionMode ? 'ghost' : 'outline'}
+                                        onClick={() => toggleSubjectSelectionMode(pupil.id)}
+                                        disabled={isSaving || !selectedTermId}
+                                        className="h-11 min-w-[92px]"
+                                      >
+                                        {isSubjectSelectionMode ? 'Cancel' : 'Select'}
+                                      </Button>
+                                    )}
+                                  </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {SUBJECT_COMMENT_TYPES.map((subject) => {
-                                      const currentStatus = pupilSubjectStatuses[subject.value] ?? currentSubjectStatuses[subject.value];
-                                      const hasChange = pupilSubjectStatuses[subject.value] !== undefined;
+                                      const hasChange = hasOwn(pupilSubjectStatuses, subject.value);
+                                      const currentStatus = hasChange
+                                        ? pupilSubjectStatuses[subject.value]
+                                        : currentSubjectStatuses[subject.value];
+                                      const isSelected = selectedSubjects.includes(subject.value);
+                                      const checkboxId = `subject-select-${pupil.id}-${subject.value}`;
 
                                       return (
-                                        <div key={subject.value} className="space-y-1">
-                                          <Label className="text-xs font-medium text-gray-600">
-                                            {subject.label}
-                                          </Label>
+                                        <div
+                                          key={subject.value}
+                                          className={`space-y-2 rounded-xl border p-3 transition-colors ${
+                                            isSelected
+                                              ? 'border-indigo-400 bg-indigo-50/80'
+                                              : 'border-gray-200 bg-white'
+                                          }`}
+                                        >
+                                          <div className="flex min-h-6 items-center gap-2">
+                                            {isSubjectSelectionMode && (
+                                              <Checkbox
+                                                id={checkboxId}
+                                                checked={isSelected}
+                                                onCheckedChange={() => toggleSelectedSubject(pupil.id, subject.value)}
+                                                disabled={isSaving}
+                                                className="h-5 w-5"
+                                                aria-label={`Select ${subject.label}`}
+                                              />
+                                            )}
+                                            <Label
+                                              htmlFor={isSubjectSelectionMode ? checkboxId : undefined}
+                                              className={`text-xs font-medium text-gray-700 ${
+                                                isSubjectSelectionMode ? 'cursor-pointer' : ''
+                                              }`}
+                                            >
+                                              {subject.label}
+                                            </Label>
+                                          </div>
                                           <Select
                                             value={currentStatus || 'none'}
                                             onValueChange={(value) => handleSubjectStatusChange(
                                               pupil.id,
                                               subject.value,
-                                              value === 'none' ? undefined : (value as SubjectStatus)
+                                              value === 'none' ? null : (value as SubjectStatus)
                                             )}
+                                            disabled={isSaving || !selectedTermId}
                                           >
                                             <SelectTrigger className={`w-full ${hasChange ? 'ring-2 ring-blue-500' : ''}`}>
                                               <SelectValue placeholder="Not set" />
@@ -1788,6 +2088,86 @@ export default function RemarkReportPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={isBatchSubjectEditorOpen} onOpenChange={setIsBatchSubjectEditorOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader className="pr-10">
+            <div className="flex flex-wrap items-center gap-2">
+              <DialogTitle>Batch edit subject statuses</DialogTitle>
+              <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+                {filteredPupils.length} visible pupil{filteredPupils.length === 1 ? '' : 's'}
+              </Badge>
+            </div>
+            <DialogDescription>
+              Choose a status for any subject to stage that value separately for every visible pupil
+              {selectedClassData?.name ? ` in ${selectedClassData.name}` : ''}. Search and status filters determine who is included.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            These are ordinary individual pupil changes. They are not linked after applying, and they
+            are saved only when you use the page’s <span className="font-semibold">Save Changes</span> button.
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {SUBJECT_COMMENT_TYPES.map(subject => {
+              const batchStatus = getBatchSubjectStatus(subject.value);
+
+              return (
+                <div
+                  key={subject.value}
+                  className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+                >
+                  <Label
+                    htmlFor={`batch-subject-${subject.value}`}
+                    className="mb-2 block text-sm font-medium text-gray-800"
+                  >
+                    {subject.label}
+                  </Label>
+                  <Select
+                    value={batchStatus}
+                    onValueChange={(value) => applySubjectStatusChanges(
+                      filteredPupils.map(pupil => pupil.id),
+                      [subject.value],
+                      value === 'none' ? null : (value as SubjectStatus),
+                    )}
+                    disabled={isSaving || !selectedTermId || filteredPupils.length === 0}
+                  >
+                    <SelectTrigger
+                      id={`batch-subject-${subject.value}`}
+                      className="h-11 w-full"
+                      aria-label={`Batch status for ${subject.label}`}
+                    >
+                      <SelectValue placeholder="Choose status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {batchStatus === 'mixed' && (
+                        <SelectItem value="mixed" disabled>Mixed statuses</SelectItem>
+                      )}
+                      <SelectItem value="none">Not set</SelectItem>
+                      {SUBJECT_STATUS_OPTIONS.map(status => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setIsBatchSubjectEditorOpen(false)}
+              className="h-11 min-w-[110px] bg-indigo-600 hover:bg-indigo-700"
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* PDF Viewer */}
       <PDFViewer

@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ClassesService } from './classes.service';
-import type { Pupil } from '@/types';
+import type { Pupil, SubjectCommentType, SubjectStatus } from '@/types';
 import { HousesService } from './houses.service';
 import {
   getDocWithTimeout,
@@ -26,7 +26,10 @@ import {
   getDocsWithTimeout,
 } from '../utils/firestore-helpers';
 import { HistoryLogService } from './history-log.service';
-import { reservePupilsRevisionInTransaction } from './dashboard-cache-revisions.service';
+import {
+  reservePupilsRevisionInTransaction,
+  reservePupilsRevisionRangeInTransaction,
+} from './dashboard-cache-revisions.service';
 import { normalisePupils } from '../cache/pupil-cache';
 import { shouldDeletePhotoForStatusTransition } from '../pupil-photo-retention';
 
@@ -43,6 +46,23 @@ export type PupilCacheChange = {
 
 export type PupilUpdateResult = {
   photoDeleted: boolean;
+};
+
+export type PupilPerformanceStatus = NonNullable<Pupil['performanceStatus']>;
+
+export type PupilPerformancePatch = {
+  id: string;
+  termPerformanceStatuses?: Record<string, PupilPerformanceStatus>;
+  termSubjectStatuses?: Record<
+    string,
+    Partial<Record<SubjectCommentType, SubjectStatus | null>>
+  >;
+};
+
+export type PupilPerformanceBatchResult = {
+  pupils: Pupil[];
+  savedIds: string[];
+  failedIds: string[];
 };
 
 export class PupilsService {
@@ -400,6 +420,168 @@ export class PupilsService {
       console.error('Error updating pupil:', error);
       throw error;
     }
+  }
+
+  /**
+   * Save nursery performance changes in small, sequential transactions. Each
+   * transaction reserves one revision range and merges patches against the
+   * latest pupil documents, preventing stale cached maps from overwriting
+   * changes made by another browser.
+   */
+  static async updatePupilPerformanceBatch(
+    patches: PupilPerformancePatch[],
+  ): Promise<PupilPerformanceBatchResult> {
+    const uniquePatches = Array.from(
+      new Map(patches.map(patch => [patch.id, patch])).values(),
+    );
+    const result: PupilPerformanceBatchResult = {
+      pupils: [],
+      savedIds: [],
+      failedIds: [],
+    };
+    const BATCH_SIZE = 5;
+
+    for (let index = 0; index < uniquePatches.length; index += BATCH_SIZE) {
+      const chunk = uniquePatches.slice(index, index + BATCH_SIZE);
+
+      try {
+        const committed = await runTransaction(db, async transaction => {
+          const documentRefs = chunk.map(patch => doc(db, COLLECTION_NAME, patch.id));
+          const snapshots = await Promise.all(
+            documentRefs.map(documentRef => transaction.get(documentRef)),
+          );
+
+          snapshots.forEach((snapshot, snapshotIndex) => {
+            if (!snapshot.exists()) {
+              throw new Error(`Pupil ${chunk[snapshotIndex].id} was not found.`);
+            }
+          });
+
+          const revisionRange = await reservePupilsRevisionRangeInTransaction(
+            transaction,
+            chunk.length,
+          );
+          const changedAt = Timestamp.now();
+          const updatedAt = new Date().toISOString();
+
+          const pupils = chunk.map((patch, chunkIndex) => {
+            const snapshot = snapshots[chunkIndex];
+            const originalData = snapshot.data() as Omit<Pupil, 'id'>;
+            const updateData: Partial<Pupil> & {
+              updatedAt: string;
+              syncUpdatedAt: Timestamp;
+            } = {
+              updatedAt,
+              syncUpdatedAt: changedAt,
+            };
+
+            if (
+              patch.termPerformanceStatuses &&
+              Object.keys(patch.termPerformanceStatuses).length > 0
+            ) {
+              updateData.termPerformanceStatuses = {
+                ...(originalData.termPerformanceStatuses || {}),
+                ...patch.termPerformanceStatuses,
+              };
+            }
+
+            if (
+              patch.termSubjectStatuses &&
+              Object.keys(patch.termSubjectStatuses).length > 0
+            ) {
+              const nextTermSubjectStatuses = Object.entries(
+                originalData.termSubjectStatuses || {},
+              ).reduce<Record<string, Record<SubjectCommentType, SubjectStatus>>>(
+                (acc, [termId, statuses]) => {
+                  acc[termId] = { ...statuses };
+                  return acc;
+                },
+                {},
+              );
+
+              Object.entries(patch.termSubjectStatuses).forEach(
+                ([termId, subjectPatches]) => {
+                  const nextStatuses = {
+                    ...(nextTermSubjectStatuses[termId] || {}),
+                  };
+
+                  Object.entries(subjectPatches).forEach(([subject, status]) => {
+                    if (status === null) {
+                      delete nextStatuses[subject as SubjectCommentType];
+                    } else if (status !== undefined) {
+                      nextStatuses[subject as SubjectCommentType] = status;
+                    }
+                  });
+
+                  if (Object.keys(nextStatuses).length > 0) {
+                    nextTermSubjectStatuses[termId] = nextStatuses;
+                  } else {
+                    delete nextTermSubjectStatuses[termId];
+                  }
+                },
+              );
+
+              updateData.termSubjectStatuses = nextTermSubjectStatuses;
+            }
+
+            transaction.update(documentRefs[chunkIndex], updateData);
+            const revision = revisionRange.first + chunkIndex;
+            transaction.set(
+              doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')),
+              {
+                revision,
+                pupilId: patch.id,
+                operation: 'upsert',
+                changedAt,
+              },
+            );
+
+            return {
+              id: patch.id,
+              ...originalData,
+              ...updateData,
+            } as Pupil;
+          });
+
+          return pupils;
+        });
+
+        result.pupils.push(...committed);
+        result.savedIds.push(...committed.map(pupil => pupil.id));
+
+      } catch (error) {
+        console.error('Error updating pupil performance batch:', error);
+        result.failedIds.push(...chunk.map(patch => patch.id));
+      }
+    }
+
+    const patchesById = new Map(uniquePatches.map(patch => [patch.id, patch]));
+    await Promise.all(
+      result.pupils.map(pupil => {
+        const patch = patchesById.get(pupil.id);
+        const changedFields = [
+          ...(patch?.termPerformanceStatuses ? ['termPerformanceStatuses'] : []),
+          ...(patch?.termSubjectStatuses ? ['termSubjectStatuses'] : []),
+        ];
+
+        return HistoryLogService.log({
+          action: 'update',
+          entity: 'pupil',
+          recordId: pupil.id,
+          label:
+            `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() ||
+            pupil.admissionNumber ||
+            pupil.id,
+          changedFields,
+          meta: {
+            admissionNo: pupil.admissionNumber || '',
+            classId: pupil.classId || '',
+          },
+        });
+      }),
+    );
+
+    return result;
   }
 
   // Utility function to recursively clean undefined values from objects

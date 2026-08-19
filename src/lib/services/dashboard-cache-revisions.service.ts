@@ -66,6 +66,23 @@ export function bumpStaffRevisionInBatch(batch: WriteBatch) {
 export async function reservePupilsRevisionInTransaction(
   transaction: Transaction,
 ): Promise<number> {
+  const range = await reservePupilsRevisionRangeInTransaction(transaction, 1);
+  return range.first;
+}
+
+/**
+ * Reserve a contiguous range of ordered pupil revisions for a multi-pupil
+ * transaction. Updating the shared revision documents once per group avoids
+ * making every pupil in the group contend on the same two documents.
+ */
+export async function reservePupilsRevisionRangeInTransaction(
+  transaction: Transaction,
+  count: number,
+): Promise<{ first: number; last: number }> {
+  if (!Number.isInteger(count) || count < 1) {
+    throw new Error('Pupil revision range count must be a positive integer.');
+  }
+
   const [operational, legacySettings] = await Promise.all([
     transaction.get(dashboardRevisionDocumentRef('operational')),
     transaction.get(schoolSettingsDocumentRef()),
@@ -74,10 +91,11 @@ export async function reservePupilsRevisionInTransaction(
     Number(operational.data()?.pupils || 0),
     Number(legacySettings.data()?.dataRevisions?.pupils || 0),
   );
-  const next = current + 1;
+  const first = current + 1;
+  const last = current + count;
 
-  writeRevision(transaction, 'operational', { pupils: next });
-  return next;
+  writeRevision(transaction, 'operational', { pupils: last });
+  return { first, last };
 }
 
 /** Add an event revision bump to the same batch as its source mutation. */
