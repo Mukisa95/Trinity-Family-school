@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 import { useToast } from '@/hooks/use-toast';
+import { useFormValidation } from '@/lib/utils/form-validation';
 import {
     Card,
     CardContent,
@@ -69,11 +71,16 @@ const SMSTemplatesPage: React.FC = () => {
     const [formContent, setFormContent] = useState('');
     const charCount = formContent.length;
     const messageCount = Math.ceil(charCount / CHAR_LIMIT) || 1;
+    const formValidation = useFormValidation([
+        { id: 'tpl-name', label: 'Template name', value: formName, required: true, message: 'Enter a name for this SMS template.' },
+        { id: 'tpl-content', label: 'Message content', value: formContent, required: true, message: 'Enter the SMS message content.' },
+    ]);
 
     const openCreate = () => {
         setEditingTemplate(null);
         setFormName('');
         setFormContent('');
+        formValidation.resetValidation();
         setShowForm(true);
     };
 
@@ -81,25 +88,23 @@ const SMSTemplatesPage: React.FC = () => {
         setEditingTemplate(template);
         setFormName(template.name);
         setFormContent(template.content);
+        formValidation.resetValidation();
         setShowForm(true);
     };
 
     const handleSave = async () => {
-        if (!formName.trim() || !formContent.trim()) {
-            toast({ title: 'Validation Error', description: 'Name and content are required.', variant: 'destructive' });
-            return;
-        }
+        if (!formValidation.validateAll().isValid) return;
         try {
             if (editingTemplate) {
                 await updateTemplate({ id: editingTemplate.id, updates: { name: formName.trim(), content: formContent.trim() } });
                 toast({ title: '✅ Template Updated', description: `"${formName}" has been updated.` });
             } else {
-                await createTemplate({ name: formName.trim(), content: formContent.trim() });
+                await createTemplate({ name: formName.trim(), content: formContent.trim() } as Omit<SMSTemplate, 'id' | 'createdAt'>);
                 toast({ title: '✅ Template Created', description: `"${formName}" has been saved.` });
             }
             setShowForm(false);
         } catch (error) {
-            toast({ title: 'Error', description: 'Failed to save template.', variant: 'destructive' });
+            formValidation.setSubmissionError('The template could not be saved. Your message has been kept so you can try again.');
         }
     };
 
@@ -205,25 +210,30 @@ const SMSTemplatesPage: React.FC = () => {
                         <DialogTitle>{editingTemplate ? 'Edit Template' : 'New Template'}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-2">
+                        <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
                         <div className="space-y-2">
-                            <Label htmlFor="tpl-name">Template Name</Label>
+                            <Label htmlFor="tpl-name" className={formValidation.getFieldError('tpl-name') ? 'text-red-700' : undefined}>Template Name <span className="text-red-600">*</span></Label>
                             <Input
                                 id="tpl-name"
                                 placeholder="e.g. Fee Reminder, Meeting Notice…"
                                 value={formName}
-                                onChange={e => setFormName(e.target.value)}
+                                onChange={e => { setFormName(e.target.value); formValidation.handleFieldChange('tpl-name'); }}
+                                {...formValidation.getFieldProps('tpl-name')}
                             />
+                            <FieldError error={formValidation.getFieldError('tpl-name')} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="tpl-content">Message Content</Label>
+                            <Label htmlFor="tpl-content" className={formValidation.getFieldError('tpl-content') ? 'text-red-700' : undefined}>Message Content <span className="text-red-600">*</span></Label>
                             <Textarea
                                 id="tpl-content"
                                 placeholder="Type your SMS message here…"
                                 rows={6}
                                 value={formContent}
-                                onChange={e => setFormContent(e.target.value)}
+                                onChange={e => { setFormContent(e.target.value); formValidation.handleFieldChange('tpl-content'); }}
                                 className="resize-none"
+                                {...formValidation.getFieldProps('tpl-content')}
                             />
+                            <FieldError error={formValidation.getFieldError('tpl-content')} />
                             <div className="flex justify-between text-xs text-muted-foreground">
                                 <span className={charCount > CHAR_LIMIT ? 'text-amber-600 font-medium' : ''}>
                                     {charCount} characters

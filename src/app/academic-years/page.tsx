@@ -23,6 +23,8 @@ import { Suspense } from "react";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { cn } from "@/lib/utils";
 import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
+import { useFormValidation } from "@/lib/utils/form-validation";
 
 
 // --- Utility Functions (adapted from example) ---
@@ -233,6 +235,38 @@ export function AcademicYearsPageContent() {
 
   const [editingYearId, setEditingYearId] = React.useState<string | null>(null);
   const [editedTerms, setEditedTerms] = React.useState<Term[]>([]);
+  const termValidation = useFormValidation(editedTerms.flatMap((term, index) => {
+    const stableId = term.id || String(index + 1);
+    return [
+      {
+        id: `academic-term-${stableId}-start`,
+        label: `${term.name} start date`,
+        value: term.startDate,
+        required: true,
+        message: `Choose the start date for ${term.name}.`,
+        validate: (value: unknown) => {
+          const date = typeof value === 'string' ? parseStartOfDay(value) : new Date('invalid');
+          if (!isValid(date)) return `Choose a valid start date for ${term.name}.`;
+          const previous = editedTerms[index - 1];
+          if (previous?.endDate && parseEndOfDay(previous.endDate) >= date) return `${term.name} must start after ${previous.name} ends.`;
+          return undefined;
+        },
+      },
+      {
+        id: `academic-term-${stableId}-end`,
+        label: `${term.name} end date`,
+        value: term.endDate,
+        required: true,
+        message: `Choose the end date for ${term.name}.`,
+        validate: (value: unknown) => {
+          const end = typeof value === 'string' ? parseEndOfDay(value) : new Date('invalid');
+          if (!isValid(end)) return `Choose a valid end date for ${term.name}.`;
+          const start = term.startDate ? parseStartOfDay(term.startDate) : new Date('invalid');
+          return isValid(start) && end < start ? `${term.name} must end on or after its start date.` : undefined;
+        },
+      },
+    ];
+  }));
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
 
   // For auto-scrolling and "Return to Active Year" button
@@ -424,6 +458,7 @@ export function AcademicYearsPageContent() {
     }));
 
     setEditedTerms(termsForEditing);
+    termValidation.resetValidation();
   };
 
   const handleTermDateChange = (termIndex: number, field: 'startDate' | 'endDate', value: string) => {
@@ -431,42 +466,19 @@ export function AcademicYearsPageContent() {
       idx === termIndex ? { ...term, [field]: value } : term
     );
     setEditedTerms(updated);
+    const term = editedTerms[termIndex];
+    if (term) termValidation.handleFieldChange(`academic-term-${term.id || termIndex + 1}-${field === 'startDate' ? 'start' : 'end'}`);
   };
 
   const handleSaveTerms = async () => {
     if (!editingYearId || !editedTerms.length) return;
 
-    for (const term of editedTerms) {
-      if (!term.startDate || !term.endDate || typeof term.startDate !== 'string' || typeof term.endDate !== 'string') {
-        toast({ title: "Validation Error", description: "All terms must have start and end dates.", variant: "destructive" });
-        return;
-      }
-      const termStart = parseStartOfDay(term.startDate);
-      const termEnd = parseEndOfDay(term.endDate);
-
-      if (!isValid(termStart) || !isValid(termEnd)) {
-        toast({ title: "Validation Error", description: `Invalid date format for ${term.name}.`, variant: "destructive" });
-        return;
-      }
-      if (termEnd < termStart) {
-        toast({ title: "Validation Error", description: `End date for ${term.name} must be after its start date.`, variant: "destructive" });
-        return;
-      }
-    }
+    if (!termValidation.validateAll().isValid) return;
 
     const sortedEditedTerms = [...editedTerms]
       .filter(term => term.startDate && term.endDate &&
         typeof term.startDate === 'string' && typeof term.endDate === 'string')
       .sort((a, b) => compareAsc(parseISO(a.startDate), parseISO(b.startDate)));
-
-    for (let i = 0; i < sortedEditedTerms.length - 1; i++) {
-      const currentTermEnd = parseISO(sortedEditedTerms[i].endDate);
-      const nextTermStart = parseISO(sortedEditedTerms[i + 1].startDate);
-      if (currentTermEnd >= nextTermStart) {
-        toast({ title: "Validation Error", description: "Term dates cannot overlap.", variant: "destructive" });
-        return;
-      }
-    }
 
     try {
       const termsForSaving = sortedEditedTerms.map(term => ({
@@ -477,7 +489,7 @@ export function AcademicYearsPageContent() {
       const derivedBounds = getDerivedYearBounds(termsForSaving);
 
       if (!derivedBounds) {
-        toast({ title: "Validation Error", description: "Academic year dates could not be derived from the term dates.", variant: "destructive" });
+        termValidation.setSubmissionError("Academic year dates could not be derived from the term dates.");
         return;
       }
 
@@ -495,17 +507,14 @@ export function AcademicYearsPageContent() {
       setEditingYearId(null);
       setEditedTerms([]);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update term dates. Please try again.",
-        variant: "destructive"
-      });
+      termValidation.setSubmissionError("Failed to update term dates. Your dates have been preserved; please try again.");
     }
   };
 
   const handleCancelEdit = () => {
     setEditingYearId(null);
     setEditedTerms([]);
+    termValidation.resetValidation();
   };
 
   const toggleSortDirection = () => {
@@ -784,6 +793,7 @@ export function AcademicYearsPageContent() {
             <CardContent className="px-4 pb-4 space-y-2">
               {editingYearId === year.id ? (
                 <div className="space-y-2">
+                  <FormErrorSummary errors={termValidation.errors} submissionError={termValidation.submissionError} onSelectError={termValidation.focusField} />
                   {(() => {
                     // Calculate live holiday periods as user edits
                     const liveHolidays = getEditingHolidayPeriods(editedTerms);
@@ -815,20 +825,24 @@ export function AcademicYearsPageContent() {
 
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <Label htmlFor={`start-${term.id}`} className="text-xs text-muted-foreground">Start</Label>
+                                <Label htmlFor={`academic-term-${term.id || index + 1}-start`} className={`text-xs ${termValidation.getFieldError(`academic-term-${term.id || index + 1}-start`) ? 'text-red-700' : 'text-muted-foreground'}`}>Start <span className="text-red-600">*</span></Label>
                                 <DatePicker
                                   date={term.startDate && isValid(parseISO(term.startDate)) ? parseISO(term.startDate) : undefined}
                                   setDate={(d) => handleTermDateChange(index, 'startDate', d ? format(d, 'yyyy-MM-dd') : '')}
                                   placeholder="Start date"
+                                  triggerProps={{ id: `academic-term-${term.id || index + 1}-start`, ...termValidation.getFieldProps(`academic-term-${term.id || index + 1}-start`) }}
                                 />
+                                <FieldError error={termValidation.getFieldError(`academic-term-${term.id || index + 1}-start`)} />
                               </div>
                               <div>
-                                <Label htmlFor={`end-${term.id}`} className="text-xs text-muted-foreground">End</Label>
+                                <Label htmlFor={`academic-term-${term.id || index + 1}-end`} className={`text-xs ${termValidation.getFieldError(`academic-term-${term.id || index + 1}-end`) ? 'text-red-700' : 'text-muted-foreground'}`}>End <span className="text-red-600">*</span></Label>
                                 <DatePicker
                                   date={term.endDate && isValid(parseISO(term.endDate)) ? parseISO(term.endDate) : undefined}
                                   setDate={(d) => handleTermDateChange(index, 'endDate', d ? format(d, 'yyyy-MM-dd') : '')}
                                   placeholder="End date"
+                                  triggerProps={{ id: `academic-term-${term.id || index + 1}-end`, ...termValidation.getFieldProps(`academic-term-${term.id || index + 1}-end`) }}
                                 />
+                                <FieldError error={termValidation.getFieldError(`academic-term-${term.id || index + 1}-end`)} />
                               </div>
                             </div>
 

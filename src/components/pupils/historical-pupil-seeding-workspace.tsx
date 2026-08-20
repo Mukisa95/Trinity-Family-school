@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 type DraftHistoryRow = {
   id: string;
@@ -87,6 +89,21 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const [draft, setDraft] = React.useState<FormDraft>(initialDraft);
+  const validationFields = React.useMemo(() => [
+    createFieldValidation('seed-name', draft.firstName, 'Pupil name', true, {
+      message: 'Enter the pupil\u2019s known name.',
+    }),
+    createFieldValidation('seed-history', draft.history, 'Academic history', false, {
+      focusTargetId: draft.history[0]?.id ? `${draft.history[0].id}-year` : undefined,
+      validate: (value) => {
+        const rows = value as DraftHistoryRow[];
+        return new Set(rows.map((entry) => entry.academicYearId)).size === rows.length
+          ? undefined
+          : 'Choose each academic year only once.';
+      },
+    }),
+  ], [draft.firstName, draft.history]);
+  const formValidation = useFormValidation(validationFields);
 
   const sortedAcademicYears = React.useMemo(
     () => [...academicYears].sort((a, b) => Number(a.name) - Number(b.name)),
@@ -104,6 +121,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
 
   const resetAndCloseForm = () => {
     setDraft(initialDraft());
+    formValidation.resetValidation();
     setIsFormOpen(false);
   };
 
@@ -143,15 +161,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
       toast({ variant: 'destructive', title: 'Creation access required', description: 'Your account can view this workspace but cannot add historical pupils.' });
       return;
     }
-    if (!draft.firstName.trim()) {
-      toast({ variant: 'destructive', title: 'Pupil name is required', description: 'Enter at least the pupil’s known name to continue.' });
-      return;
-    }
-
-    if (new Set(draft.history.map((entry) => entry.academicYearId)).size !== draft.history.length) {
-      toast({ variant: 'destructive', title: 'Duplicate academic year', description: 'Each academic year can only appear once in a pupil’s history.' });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     const academicYearHistory: PupilAcademicYearHistoryEntry[] = draft.history.map((entry) => {
       const academicYear = sortedAcademicYears.find((year) => year.id === entry.academicYearId);
@@ -192,6 +202,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
       toast({ title: 'Historical pupil added', description: 'The pupil and their selected academic history are now available throughout the system.' });
       resetAndCloseForm();
     } catch (error) {
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'Please try again.');
       toast({
         variant: 'destructive',
         title: 'Could not add pupil',
@@ -268,14 +279,19 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
             <DialogDescription>All fields are optional apart from the pupil’s known name. Add academic years only where you have reliable information.</DialogDescription>
           </DialogHeader>
 
-          <form className="space-y-6" onSubmit={handleCreate}>
+          <form className="space-y-6" onSubmit={handleCreate} noValidate>
+            <FormErrorSummary
+              errors={formValidation.errors}
+              submissionError={formValidation.submissionError}
+              onSelectError={(fieldId) => void formValidation.focusField(fieldId)}
+            />
             <section className="space-y-4 rounded-xl border border-slate-200 p-4">
               <div>
                 <h2 className="font-semibold text-slate-900">Pupil details</h2>
                 <p className="mt-1 text-sm text-muted-foreground">Leave any unknown details blank.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2"><Label htmlFor="seed-name">Pupil name <span className="text-destructive">*</span></Label><Input id="seed-name" value={draft.firstName} onChange={(event) => setDraft((current) => ({ ...current, firstName: event.target.value }))} placeholder="Known first or full name" required /></div>
+                <div className="space-y-2"><Label htmlFor="seed-name" className={formValidation.getFieldError('seed-name') ? 'text-destructive' : undefined}>Pupil name <span className="text-destructive">*</span></Label><Input id="seed-name" value={draft.firstName} onChange={(event) => { setDraft((current) => ({ ...current, firstName: event.target.value })); formValidation.handleFieldChange('seed-name'); }} placeholder="Known first or full name" {...formValidation.getFieldProps('seed-name')} /><FieldError error={formValidation.getFieldError('seed-name')} /></div>
                 <div className="space-y-2"><Label htmlFor="seed-surname">Surname</Label><Input id="seed-surname" value={draft.lastName} onChange={(event) => setDraft((current) => ({ ...current, lastName: event.target.value }))} /></div>
                 <div className="space-y-2"><Label htmlFor="seed-other-names">Other names</Label><Input id="seed-other-names" value={draft.otherNames} onChange={(event) => setDraft((current) => ({ ...current, otherNames: event.target.value }))} /></div>
                 <div className="space-y-2"><Label htmlFor="seed-admission">Admission number</Label><Input id="seed-admission" value={draft.admissionNumber} onChange={(event) => setDraft((current) => ({ ...current, admissionNumber: event.target.value }))} /></div>
@@ -297,6 +313,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
                   <Plus className="h-4 w-4" /> Add year
                 </Button>
               </div>
+              <FieldError error={formValidation.getFieldError('seed-history')} />
 
               {academicYearsLoading || classesLoading ? (
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading academic years and classes…</div>
@@ -308,7 +325,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
                     const carriedStatus = draft.history.slice(0, index + 1).reduce<PupilStatus>((status, current) => current.status || status, 'Active');
                     return (
                       <div key={row.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-[1.05fr_1.2fr_1fr_1.2fr_auto] md:items-end">
-                        <div className="space-y-2"><Label>Academic year</Label><select className={selectClassName} value={row.academicYearId} onChange={(event) => updateHistoryRow(row.id, { academicYearId: event.target.value })}>{sortedAcademicYears.map((year) => <option key={year.id} value={year.id} disabled={draft.history.some((item) => item.id !== row.id && item.academicYearId === year.id)}>{year.name}</option>)}</select></div>
+                        <div className="space-y-2"><Label htmlFor={`${row.id}-year`}>Academic year</Label><select id={`${row.id}-year`} className={selectClassName} value={row.academicYearId} onChange={(event) => { updateHistoryRow(row.id, { academicYearId: event.target.value }); formValidation.handleFieldChange('seed-history'); }}>{sortedAcademicYears.map((year) => <option key={year.id} value={year.id} disabled={draft.history.some((item) => item.id !== row.id && item.academicYearId === year.id)}>{year.name}</option>)}</select></div>
                         <div className="space-y-2"><Label>Class attended</Label><select className={selectClassName} value={row.classId} onChange={(event) => updateHistoryRow(row.id, { classId: event.target.value })}><option value="">Not recorded</option>{classes.map((schoolClass) => <option key={schoolClass.id} value={schoolClass.id}>{schoolClass.code ? `${schoolClass.code} — ${schoolClass.name}` : schoolClass.name}</option>)}</select></div>
                         <div className="space-y-2"><Label>Status change</Label><select className={selectClassName} value={row.status} onChange={(event) => updateHistoryRow(row.id, { status: event.target.value as DraftHistoryRow['status'] })}><option value="">Carry forward</option>{statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}</select></div>
                         <div className="space-y-2"><Label>Notes</Label><Input value={row.notes} onChange={(event) => updateHistoryRow(row.id, { notes: event.target.value })} placeholder="Optional" /></div>

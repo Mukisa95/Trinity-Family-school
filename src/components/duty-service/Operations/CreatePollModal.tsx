@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2 } from 'lucide-react';
 import { useCreatePoll } from '@/lib/hooks/use-duty-service';
-import { useToast } from '@/hooks/use-toast';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import type { CreatePollData, PollType } from '@/types/duty-service';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -32,27 +33,27 @@ export function CreatePollModal({ trigger }: CreatePollModalProps) {
   });
 
   const createPoll = useCreatePoll();
-  const { toast } = useToast();
+  const formValidation = useFormValidation([
+    createFieldValidation('pollTitle', formData.title, 'Poll title', true, { message: 'Enter the poll title.' }),
+    createFieldValidation('pollStartDate', formData.startDate, 'Start date', true, { message: 'Choose the poll start date.' }),
+    createFieldValidation('pollEndDate', formData.endDate, 'End date', true, {
+      message: 'Choose the poll end date.',
+      validate: (value) => value && formData.startDate && String(value) < formData.startDate ? 'Choose an end date on or after the start date.' : undefined,
+    }),
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.startDate || !formData.endDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     try {
       await createPoll.mutateAsync({
         pollType: formData.pollType as PollType,
-        title: formData.title,
+        title: formData.title!,
         description: formData.description,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        startDate: formData.startDate!,
+        endDate: formData.endDate!,
         isActive: true,
       });
 
@@ -66,6 +67,7 @@ export function CreatePollModal({ trigger }: CreatePollModalProps) {
       });
     } catch (error) {
       console.error('Error creating poll:', error);
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'The poll could not be created. Please try again.');
     }
   };
 
@@ -94,7 +96,8 @@ export function CreatePollModal({ trigger }: CreatePollModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div className="space-y-2">
             <Label htmlFor="pollType">Poll Type *</Label>
             <Select
@@ -113,14 +116,15 @@ export function CreatePollModal({ trigger }: CreatePollModalProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title">Poll Title *</Label>
+            <Label htmlFor="pollTitle" className={formValidation.getFieldError('pollTitle') ? 'text-destructive' : undefined}>Poll Title *</Label>
             <Input
-              id="title"
+              id="pollTitle"
               value={formData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
+              onChange={(e) => { handleInputChange('title', e.target.value); formValidation.handleFieldChange('pollTitle'); }}
+              {...formValidation.getFieldProps('pollTitle')}
               placeholder="e.g., Best Staff Member of the Month"
-              required
             />
+            <FieldError error={formValidation.getFieldError('pollTitle')} />
           </div>
 
           <div className="space-y-2">
@@ -136,22 +140,26 @@ export function CreatePollModal({ trigger }: CreatePollModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Date *</Label>
+              <Label className={formValidation.getFieldError('pollStartDate') ? 'text-destructive' : undefined}>Start Date *</Label>
               <DatePicker
                 date={toDate(formData.startDate)}
-                setDate={(d) => handleInputChange('startDate', toStr(d))}
+                setDate={(d) => { handleInputChange('startDate', toStr(d)); formValidation.handleFieldChange('pollStartDate'); }}
+                triggerProps={formValidation.getFieldProps('pollStartDate')}
                 placeholder="Pick start date"
                 allowFuture
               />
+              <FieldError error={formValidation.getFieldError('pollStartDate')} />
             </div>
             <div className="space-y-2">
-              <Label>End Date *</Label>
+              <Label className={formValidation.getFieldError('pollEndDate') ? 'text-destructive' : undefined}>End Date *</Label>
               <DatePicker
                 date={toDate(formData.endDate)}
-                setDate={(d) => handleInputChange('endDate', toStr(d))}
+                setDate={(d) => { handleInputChange('endDate', toStr(d)); formValidation.handleFieldChange('pollEndDate'); }}
+                triggerProps={formValidation.getFieldProps('pollEndDate')}
                 placeholder="Pick end date"
                 allowFuture
               />
+              <FieldError error={formValidation.getFieldError('pollEndDate')} />
             </div>
           </div>
 

@@ -62,6 +62,8 @@ import type {
     Term,
     CreateInventoryTransactionData
 } from '@/types';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 
 const LOCATIONS: InventoryLocation[] = [
     'Main Store', 'Classroom', 'Laboratory', 'Library', 'Kitchen',
@@ -115,6 +117,17 @@ export function IssueReturnPanel({
     const markReturned = useMarkItemReturned();
 
     const selectedItem = items.find(i => i.id === selectedItemId);
+    const issueValidation = useFormValidation([
+        { id: 'issue-item', label: 'Inventory item', value: selectedItemId, required: true, message: 'Choose the inventory item to issue.' },
+        {
+            id: 'issue-quantity',
+            label: 'Quantity',
+            value: issueQuantity,
+            required: true,
+            validate: value => selectedItem && Number(value) > selectedItem.quantity ? `Enter no more than the ${selectedItem.quantity} available item${selectedItem.quantity === 1 ? '' : 's'}.` : undefined,
+        },
+        { id: 'issuedTo', label: 'Issue to', value: issuedTo, required: true, message: 'Enter the person or department receiving the item.' },
+    ]);
 
     const resetIssueForm = () => {
         setSelectedItemId('');
@@ -136,15 +149,7 @@ export function IssueReturnPanel({
 
     const handleIssueItem = async () => {
         try {
-            if (!selectedItemId || !issuedTo || !academicYear || !term) {
-                toast.error('Please fill in all required fields');
-                return;
-            }
-
-            if (selectedItem && issueQuantity > selectedItem.quantity) {
-                toast.error(`Only ${selectedItem.quantity} items available`);
-                return;
-            }
+            if (!issueValidation.validateAll().isValid || !academicYear || !term) return;
 
             const transactionData: CreateInventoryTransactionData = {
                 itemId: selectedItemId,
@@ -156,8 +161,8 @@ export function IssueReturnPanel({
                 toLocation,
                 expectedReturnDate: expectedReturnDate || undefined,
                 notes: issueNotes || undefined,
-                processedBy: user?.name || user?.username || 'System',
-                processedByUserId: user?.uid,
+                processedBy: user?.username || 'System',
+                processedByUserId: user?.id,
                 processedByUsername: user?.username,
                 transactionDate: new Date().toISOString().split('T')[0],
                 academicYearId: academicYear.id,
@@ -174,7 +179,7 @@ export function IssueReturnPanel({
             setIssueDialogOpen(false);
             resetIssueForm();
         } catch (error: any) {
-            toast.error(error.message || 'Failed to issue item');
+            issueValidation.setSubmissionError(error.message || 'The item could not be issued. Your entries have been preserved.');
             console.error(error);
         }
     };
@@ -192,8 +197,8 @@ export function IssueReturnPanel({
                     issuedTo: selectedIssuedItem.issuedTo,
                     conditionAfter: returnCondition,
                     notes: returnNotes || undefined,
-                    processedBy: user?.name || user?.username || 'System',
-                    processedByUserId: user?.uid,
+                    processedBy: user?.username || 'System',
+                    processedByUserId: user?.id,
                     processedByUsername: user?.username,
                     transactionDate: new Date().toISOString().split('T')[0],
                     academicYearId: academicYear.id,
@@ -454,7 +459,7 @@ export function IssueReturnPanel({
             </Tabs>
 
             {/* Issue Dialog */}
-            <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
+            <Dialog open={issueDialogOpen} onOpenChange={(open) => { if (open) issueValidation.resetValidation(); setIssueDialogOpen(open); }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Issue Inventory Item</DialogTitle>
@@ -464,10 +469,11 @@ export function IssueReturnPanel({
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
+                        <FormErrorSummary errors={issueValidation.errors} submissionError={issueValidation.submissionError} onSelectError={issueValidation.focusField} />
                         <div>
-                            <Label htmlFor="item">Item *</Label>
-                            <Select value={selectedItemId} onValueChange={setSelectedItemId}>
-                                <SelectTrigger>
+                            <Label htmlFor="issue-item" className={issueValidation.getFieldError('issue-item') ? 'text-red-700' : undefined}>Item <span className="text-red-600">*</span></Label>
+                            <Select value={selectedItemId} onValueChange={(value) => { setSelectedItemId(value); issueValidation.handleFieldChange('issue-item'); }}>
+                                <SelectTrigger id="issue-item" {...issueValidation.getFieldProps('issue-item')}>
                                     <SelectValue placeholder="Select item to issue" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -478,19 +484,22 @@ export function IssueReturnPanel({
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <FieldError error={issueValidation.getFieldError('issue-item')} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="quantity">Quantity *</Label>
+                                <Label htmlFor="issue-quantity" className={issueValidation.getFieldError('issue-quantity') ? 'text-red-700' : undefined}>Quantity <span className="text-red-600">*</span></Label>
                                 <Input
-                                    id="quantity"
+                                    id="issue-quantity"
                                     type="number"
                                     min="1"
                                     max={selectedItem?.quantity || 1}
                                     value={issueQuantity}
-                                    onChange={(e) => setIssueQuantity(parseInt(e.target.value) || 1)}
+                                    onChange={(e) => { setIssueQuantity(parseInt(e.target.value) || 1); issueValidation.handleFieldChange('issue-quantity'); }}
+                                    {...issueValidation.getFieldProps('issue-quantity')}
                                 />
+                                <FieldError error={issueValidation.getFieldError('issue-quantity')} />
                             </div>
                             <div>
                                 <Label htmlFor="toLocation">Location</Label>
@@ -508,13 +517,15 @@ export function IssueReturnPanel({
                         </div>
 
                         <div>
-                            <Label htmlFor="issuedTo">Issue To *</Label>
+                            <Label htmlFor="issuedTo" className={issueValidation.getFieldError('issuedTo') ? 'text-red-700' : undefined}>Issue To <span className="text-red-600">*</span></Label>
                             <Input
                                 id="issuedTo"
                                 value={issuedTo}
-                                onChange={(e) => setIssuedTo(e.target.value)}
+                                onChange={(e) => { setIssuedTo(e.target.value); issueValidation.handleFieldChange('issuedTo'); }}
                                 placeholder="Name of person/department"
+                                {...issueValidation.getFieldProps('issuedTo')}
                             />
+                            <FieldError error={issueValidation.getFieldError('issuedTo')} />
                         </div>
 
                         <div>
@@ -564,7 +575,7 @@ export function IssueReturnPanel({
                         </Button>
                         <Button
                             onClick={handleIssueItem}
-                            disabled={recordTransaction.isPending || !selectedItemId || !issuedTo}
+                            disabled={recordTransaction.isPending}
                         >
                             {recordTransaction.isPending ? 'Processing...' : 'Issue Item'}
                         </Button>

@@ -15,6 +15,8 @@ import { SUBJECT_COMMENT_TYPES, SUBJECT_STATUS_OPTIONS } from '@/lib/constants/s
 import { useClasses } from '@/lib/hooks/use-classes';
 import { commentaryService } from '@/services/commentaryService';
 import { SubjectCommentType, SubjectStatus } from '@/types';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 
 interface CommentField {
   id: string;
@@ -55,6 +57,12 @@ export default function SeedSubjectsPage() {
   // ── Per-subject comment fields ──────────────────────────────────────
   const [commentMap, setCommentMap] = useState<SubjectCommentsMap>(buildInitialSubjectMap);
   const [saving, setSaving] = useState(false);
+  const hasAnyComment = SUBJECT_COMMENT_TYPES.some(subject =>
+    commentMap[subject.value].some(field => field.text.trim()),
+  );
+  const formValidation = useFormValidation([
+    { id: 'subject-comments', label: 'Subject comments', value: hasAnyComment ? ['comment'] : [], required: true, message: 'Enter at least one subject comment before saving.' },
+  ]);
 
   // ── Helpers ────────────────────────────────────────────────────────
   function toggleClass(id: string, checked: boolean) {
@@ -94,6 +102,7 @@ export default function SeedSubjectsPage() {
       ...prev,
       [subject]: prev[subject].map((f) => (f.id === fieldId ? { ...f, text } : f)),
     }));
+    formValidation.handleFieldChange('subject-comments');
   }
 
   // ── Save all ───────────────────────────────────────────────────────
@@ -108,10 +117,7 @@ export default function SeedSubjectsPage() {
       }
     }
 
-    if (toSave.length === 0) {
-      toast({ title: 'No comments to save', description: 'Please enter at least one comment before saving.', variant: 'destructive' });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     // Determine class targets: if nothing selected → save as general (undefined classId)
     const classTargets: Array<string | undefined> =
@@ -176,6 +182,7 @@ export default function SeedSubjectsPage() {
           {saving ? 'Saving…' : 'Save All'}
         </Button>
       </div>
+      <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
 
       {/* ── Global settings ── */}
       <Card className="mb-6">
@@ -249,7 +256,8 @@ export default function SeedSubjectsPage() {
       </Card>
 
       {/* ── Per-subject comment cards ── */}
-      <div className="grid gap-4">
+      <div className="grid gap-4" data-validation-field="subject-comments">
+        <FieldError error={formValidation.getFieldError('subject-comments')} />
         {SUBJECT_COMMENT_TYPES.map((subject) => {
           const fields = commentMap[subject.value];
           return (

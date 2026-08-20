@@ -26,6 +26,7 @@ interface ModernDatePickerProps {
   maxDate?: Date;
   examMode?: boolean; // Special mode for exam scheduling
   excludeWeekends?: boolean;
+  triggerProps?: Omit<React.ComponentPropsWithoutRef<typeof Button>, 'children' | 'onClick' | 'variant' | 'disabled'>;
 }
 
 const getQuickSelectOptions = (examMode: boolean = false) => {
@@ -65,7 +66,8 @@ export function ModernDatePicker({
   minDate,
   maxDate,
   examMode = false,
-  excludeWeekends = false
+  excludeWeekends = false,
+  triggerProps,
 }: ModernDatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [showQuickSelect, setShowQuickSelect] = React.useState(false);
@@ -134,6 +136,7 @@ export function ModernDatePicker({
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
+            {...triggerProps}
             variant="outline"
             disabled={disabled}
             className={cn(
@@ -143,7 +146,8 @@ export function ModernDatePicker({
               "focus:ring-2 focus:ring-primary/20 focus:border-primary",
               disabled && "opacity-50 cursor-not-allowed",
               examMode && "border-blue-200 hover:border-blue-400",
-              className
+              className,
+              triggerProps?.className,
             )}
           >
             <motion.div
@@ -314,4 +318,4 @@ export function ModernDatePicker({
       </AnimatePresence>
     </div>
   )
-} 
+}

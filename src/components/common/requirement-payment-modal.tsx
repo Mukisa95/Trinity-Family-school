@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatMoneyInput, parseFormattedMoney, formatCurrency } from '@/lib/utils';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface RequirementPaymentModalProps {
   isOpen: boolean;
@@ -31,10 +33,22 @@ export function RequirementPaymentModal({
   balance
 }: RequirementPaymentModalProps) {
   const [paymentAmount, setPaymentAmount] = useState('');
+  const formValidation = useFormValidation([
+    createFieldValidation('requirementPaymentAmount', paymentAmount, 'Payment amount', true, {
+      message: 'Enter the requirement payment amount.',
+      validate: (value) => {
+        const amount = parseFormattedMoney(String(value ?? ''));
+        if (amount <= 0) return 'Enter a payment amount greater than zero.';
+        if (amount > balance) return 'Enter an amount that does not exceed the remaining balance.';
+        return undefined;
+      },
+    }),
+  ]);
 
   const handlePaymentAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatMoneyInput(e.target.value);
     setPaymentAmount(formatted);
+    formValidation.handleFieldChange('requirementPaymentAmount');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -42,27 +56,22 @@ export function RequirementPaymentModal({
     
     const amount = parseFormattedMoney(paymentAmount);
     
-    if (amount <= 0) {
-      alert('Please enter a valid payment amount');
-      return;
-    }
-    
-    if (amount > balance) {
-      alert('Payment amount cannot exceed the remaining balance');
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     onSubmit(amount);
     setPaymentAmount('');
+    formValidation.resetValidation();
   };
 
   const handleClose = () => {
     setPaymentAmount('');
+    formValidation.resetValidation();
     onClose();
   };
 
   const handlePayFullBalance = () => {
     setPaymentAmount(balance.toString());
+    formValidation.handleFieldChange('requirementPaymentAmount');
   };
 
   return (
@@ -73,6 +82,7 @@ export function RequirementPaymentModal({
         </ModernDialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <FormErrorSummary errors={formValidation.errors} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Payment Summary */}
           <div className="bg-gray-50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
@@ -91,14 +101,15 @@ export function RequirementPaymentModal({
 
           {/* Payment Amount Input */}
           <div>
-            <Label htmlFor="paymentAmount">Payment Amount (UGX) *</Label>
+            <Label htmlFor="requirementPaymentAmount" className={formValidation.getFieldError('requirementPaymentAmount') ? 'text-destructive' : undefined}>Payment Amount (UGX) *</Label>
             <Input
-              id="paymentAmount"
+              id="requirementPaymentAmount"
               value={paymentAmount}
               onChange={handlePaymentAmountChange}
+              {...formValidation.getFieldProps('requirementPaymentAmount')}
               placeholder="Enter payment amount"
-              required
             />
+            <FieldError error={formValidation.getFieldError('requirementPaymentAmount')} />
             <p className="text-xs text-gray-500 mt-1">
               Maximum: {formatCurrency(balance)}
             </p>
@@ -129,4 +140,4 @@ export function RequirementPaymentModal({
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

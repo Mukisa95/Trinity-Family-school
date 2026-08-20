@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CreditCard, CheckCircle, AlertTriangle, Smartphone, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 
 interface WizaRechargeDialogProps {
   open: boolean;
@@ -35,19 +37,23 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [resultMsg, setResultMsg] = useState('');
+  const formValidation = useFormValidation([
+    { id: 'recharge-phone', label: 'Mobile money number', value: phone, required: true, message: 'Enter the mobile money number to charge.' },
+    {
+      id: 'recharge-amount',
+      label: 'Recharge amount',
+      value: amount,
+      required: true,
+      message: 'Enter a recharge amount of at least UGX 500.',
+      validate: value => Number(value) >= 500 ? undefined : 'Enter a recharge amount of at least UGX 500.',
+    },
+  ]);
 
   const QUICK_AMOUNTS = [5000, 10000, 20000, 50000, 100000];
 
   const handleRecharge = async () => {
-    if (!phone.trim()) {
-      toast({ title: 'Phone required', description: 'Enter your mobile money number.', variant: 'destructive' });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
     const numAmount = Number(amount);
-    if (!amount || isNaN(numAmount) || numAmount < 500) {
-      toast({ title: 'Invalid amount', description: 'Minimum recharge is UGX 500.', variant: 'destructive' });
-      return;
-    }
 
     setStatus('loading');
     setResultMsg('');
@@ -71,16 +77,19 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
       } else {
         setStatus('error');
         setResultMsg(data.error || 'Recharge failed. Please try again.');
+        formValidation.setSubmissionError(data.error || 'Recharge failed. Please try again.');
       }
     } catch (err) {
       setStatus('error');
       setResultMsg('Network error. Please check your connection and try again.');
+      formValidation.setSubmissionError('Network error. Please check your connection and try again.');
     }
   };
 
   const handleClose = () => {
     setStatus('idle');
     setResultMsg('');
+    formValidation.resetValidation();
     onClose();
   };
 
@@ -98,6 +107,7 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
           {/* Current balance */}
           {currentBalance !== null && currentBalance !== undefined && (
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
@@ -128,40 +138,44 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
             <>
               {/* Phone number */}
               <div className="space-y-1.5">
-                <Label htmlFor="recharge-phone">Mobile Money Number</Label>
+                <Label htmlFor="recharge-phone" className={formValidation.getFieldError('recharge-phone') ? 'text-red-700' : undefined}>Mobile Money Number <span className="text-red-600">*</span></Label>
                 <div className="relative">
                   <Smartphone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="recharge-phone"
                     placeholder="+256 700 000 000"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => { setPhone(e.target.value); formValidation.handleFieldChange('recharge-phone'); }}
                     className="pl-9"
                     disabled={status === 'loading'}
+                    {...formValidation.getFieldProps('recharge-phone')}
                   />
                 </div>
+                <FieldError error={formValidation.getFieldError('recharge-phone')} />
                 <p className="text-xs text-muted-foreground">MTN or Airtel Uganda number</p>
               </div>
 
               {/* Amount */}
               <div className="space-y-1.5">
-                <Label htmlFor="recharge-amount">Amount (UGX)</Label>
+                <Label htmlFor="recharge-amount" className={formValidation.getFieldError('recharge-amount') ? 'text-red-700' : undefined}>Amount (UGX) <span className="text-red-600">*</span></Label>
                 <Input
                   id="recharge-amount"
                   type="number"
                   placeholder="Enter amount"
                   value={amount}
-                  onChange={e => setAmount(e.target.value)}
+                  onChange={e => { setAmount(e.target.value); formValidation.handleFieldChange('recharge-amount'); }}
                   min={500}
                   disabled={status === 'loading'}
+                  {...formValidation.getFieldProps('recharge-amount')}
                 />
+                <FieldError error={formValidation.getFieldError('recharge-amount')} />
                 {/* Quick amount chips */}
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {QUICK_AMOUNTS.map(a => (
                     <button
                       key={a}
                       type="button"
-                      onClick={() => setAmount(String(a))}
+                      onClick={() => { setAmount(String(a)); formValidation.handleFieldChange('recharge-amount'); }}
                       className="rounded-full border px-3 py-0.5 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
                       disabled={status === 'loading'}
                     >
@@ -183,7 +197,7 @@ const WizaRechargeDialog: React.FC<WizaRechargeDialogProps> = ({
               <Button
                 className="w-full"
                 onClick={handleRecharge}
-                disabled={status === 'loading' || !phone || !amount}
+                disabled={status === 'loading'}
               >
                 {status === 'loading' ? (
                   <>

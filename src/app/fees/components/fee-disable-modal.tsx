@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { FeeStructure, AcademicYear } from "@/types"; // Removed Term as it's not used
 import { useToast } from "@/hooks/use-toast";
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 
 type DisableTypeOption = 'immediate_indefinite' | 'from_year_onwards' | 'year_range';
 
@@ -46,6 +48,25 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
   const [disableType, setDisableType] = React.useState<DisableTypeOption>('immediate_indefinite');
   const [selectedStartYearId, setSelectedStartYearId] = React.useState<string | undefined>(undefined);
   const [selectedEndYearId, setSelectedEndYearId] = React.useState<string | undefined>(undefined);
+  const validationFields = React.useMemo(() => [
+    createFieldValidation('disableReason', reason, 'Reason for Disabling', true, { message: 'Enter the reason for disabling this fee.' }),
+    createFieldValidation('selectedStartYearId', selectedStartYearId, 'Start Year', true, {
+      active: disableType === 'from_year_onwards' || disableType === 'year_range',
+      message: 'Choose the starting academic year.',
+    }),
+    createFieldValidation('selectedEndYearId', selectedEndYearId, 'End Year', true, {
+      active: disableType === 'year_range',
+      message: 'Choose the ending academic year.',
+      validate: () => {
+        const startYear = academicYears.find((year) => year.id === selectedStartYearId);
+        const endYear = academicYears.find((year) => year.id === selectedEndYearId);
+        return startYear && endYear && parseInt(endYear.name) < parseInt(startYear.name)
+          ? 'Choose an end year that is not before the start year.'
+          : undefined;
+      },
+    }),
+  ], [academicYears, disableType, reason, selectedEndYearId, selectedStartYearId]);
+  const formValidation = useFormValidation(validationFields);
 
   // Historical years must remain available for backdated fee disable records.
   const availableYearsForSelection = React.useMemo(() => {
@@ -73,26 +94,8 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
       toast({ variant: "destructive", title: "Error", description: "No fee item selected to disable." });
       return;
     }
-    if (!reason.trim()) {
-      toast({ variant: "destructive", title: "Reason Required", description: "Please provide a reason for disabling the fee item." });
-      return;
-    }
-    if (disableType === 'from_year_onwards' && !selectedStartYearId) {
-      toast({ variant: "destructive", title: "Missing Start Year", description: "Please select the year to disable from." });
-      return;
-    }
-    if (disableType === 'year_range' && (!selectedStartYearId || !selectedEndYearId)) {
-      toast({ variant: "destructive", title: "Missing Year Range", description: "Please select both start and end years for the range." });
-      return;
-    }
-    if (disableType === 'year_range' && selectedStartYearId && selectedEndYearId) {
-        const startYearObj = academicYears.find(ay => ay.id === selectedStartYearId);
-        const endYearObj = academicYears.find(ay => ay.id === selectedEndYearId);
-        if (startYearObj && endYearObj && parseInt(endYearObj.name) < parseInt(startYearObj.name)) {
-             toast({ variant: "destructive", title: "Invalid Year Range", description: "End year cannot be before start year." });
-            return;
-        }
-    }
+    const validation = formValidation.validateAll();
+    if (!validation.isValid) return;
     
     const effectiveDate = new Date().toISOString(); 
     onSubmit(
@@ -117,6 +120,7 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
           </ModernDialogDescription>
         </ModernDialogHeader>
         <div className="py-4 space-y-4">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div>
             <Label htmlFor="disableType" className="text-sm font-medium">Disable Type</Label>
             <RadioGroup
@@ -145,8 +149,8 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
               <h4 className="text-xs font-medium text-muted-foreground">Specify Start Year</h4>
               <div>
                 <Label htmlFor="selectedStartYearId">Start Disable From Year</Label>
-                <Select value={selectedStartYearId} onValueChange={setSelectedStartYearId}>
-                  <SelectTrigger id="selectedStartYearId">
+                <Select value={selectedStartYearId} onValueChange={(value) => { setSelectedStartYearId(value); formValidation.handleFieldChange('selectedStartYearId'); }}>
+                  <SelectTrigger id="selectedStartYearId" {...formValidation.getFieldProps('selectedStartYearId')}>
                     <SelectValue placeholder="Select start year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -156,6 +160,7 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
                      {availableYearsForSelection.length === 0 && <SelectItem value="no-years" disabled>No academic years available</SelectItem>}
                   </SelectContent>
                 </Select>
+                <FieldError error={formValidation.getFieldError('selectedStartYearId')} />
               </div>
             </div>
           )}
@@ -165,8 +170,8 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
               <h4 className="text-xs font-medium text-muted-foreground">Specify Year Range</h4>
               <div>
                 <Label htmlFor="selectedRangeStartYearId">Start Disable Year</Label>
-                <Select value={selectedStartYearId} onValueChange={setSelectedStartYearId}>
-                  <SelectTrigger id="selectedRangeStartYearId">
+                <Select value={selectedStartYearId} onValueChange={(value) => { setSelectedStartYearId(value); formValidation.handleFieldChange('selectedStartYearId'); }}>
+                  <SelectTrigger id="selectedRangeStartYearId" {...formValidation.getFieldProps('selectedStartYearId')}>
                     <SelectValue placeholder="Select start year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,15 +181,16 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
                      {availableYearsForSelection.length === 0 && <SelectItem value="no-years" disabled>No academic years available</SelectItem>}
                   </SelectContent>
                 </Select>
+                <FieldError error={formValidation.getFieldError('selectedStartYearId')} />
               </div>
               <div>
                 <Label htmlFor="selectedEndYearId">End Disable Year</Label>
                 <Select 
                   value={selectedEndYearId} 
-                  onValueChange={setSelectedEndYearId} 
+                  onValueChange={(value) => { setSelectedEndYearId(value); formValidation.handleFieldChange('selectedEndYearId'); }}
                   disabled={!selectedStartYearId}
                 >
-                  <SelectTrigger id="selectedEndYearId">
+                  <SelectTrigger id="selectedEndYearId" {...formValidation.getFieldProps('selectedEndYearId')}>
                     <SelectValue placeholder="Select end year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -196,6 +202,7 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
                     {availableYearsForSelection.length === 0 && <SelectItem value="no-years-end" disabled>Select start year first</SelectItem>}
                   </SelectContent>
                 </Select>
+                <FieldError error={formValidation.getFieldError('selectedEndYearId')} />
               </div>
             </div>
           )}
@@ -205,11 +212,13 @@ const FeeDisableModal: React.FC<FeeDisableModalProps> = ({
             <Textarea
               id="disableReason"
               value={reason}
-              onChange={(e) => setReason(e.target.value.toUpperCase())}
+              onChange={(e) => { setReason(e.target.value.toUpperCase()); formValidation.handleFieldChange('disableReason'); }}
+              {...formValidation.getFieldProps('disableReason')}
               placeholder="Enter reason..."
               className="mt-1"
               rows={3}
             />
+            <FieldError error={formValidation.getFieldError('disableReason')} />
           </div>
         </div>
         <ModernDialogFooter>

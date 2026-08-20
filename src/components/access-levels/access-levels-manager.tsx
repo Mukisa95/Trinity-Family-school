@@ -17,6 +17,8 @@ import { AccessLevel, CreateAccessLevelData, UpdateAccessLevelData, PREDEFINED_A
 import { GranularPermissionsEditor } from '@/components/users/granular-permissions-editor';
 import { MODULE_ACTIONS } from '@/types/permissions';
 import { ActionGuard } from '@/components/auth/action-guard';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 export function AccessLevelsManager({
   showHeader = true,
@@ -42,6 +44,10 @@ export function AccessLevelsManager({
     isDefault: false,
     modulePermissions: []
   });
+  const formValidation = useFormValidation([
+    createFieldValidation('accessLevelName', formData.name, 'Access level name', true, { message: 'Enter the access level name.' }),
+    createFieldValidation('accessLevelDescription', formData.description, 'Description', true, { message: 'Describe what this access level is for.' }),
+  ]);
 
   // Queries and mutations
   const { data: accessLevels, isLoading } = useAccessLevels();
@@ -58,6 +64,7 @@ export function AccessLevelsManager({
       modulePermissions: []
     });
     setSelectedPredefinedLevel('');
+    formValidation.resetValidation();
   };
 
   const handleCreateFromPredefined = () => {
@@ -69,20 +76,19 @@ export function AccessLevelsManager({
         name: predefinedLevel.name,
         description: predefinedLevel.description,
         isDefault: false,
-        modulePermissions: predefinedLevel.modulePermissions
+        modulePermissions: predefinedLevel.modulePermissions.map((module) => ({
+          ...module,
+          pages: module.pages.map((page) => ({
+            ...page,
+            actions: page.actions.map((action) => ({ ...action })),
+          })),
+        })) as CreateAccessLevelData['modulePermissions']
       });
     }
   };
 
   const handleCreateAccessLevel = async () => {
-    if (!formData.name || !formData.description) {
-      toast({
-        variant: "destructive",
-        title: "Missing Fields",
-        description: "Please fill in all required fields."
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     try {
       await createAccessLevelMutation.mutateAsync(formData);
@@ -93,6 +99,7 @@ export function AccessLevelsManager({
       setIsCreateDialogOpen(false);
       resetForm();
     } catch (error: any) {
+      formValidation.setSubmissionError(error.message || "Failed to create access level.");
       toast({
         variant: "destructive",
         title: "Error",
@@ -113,14 +120,8 @@ export function AccessLevelsManager({
   };
 
   const handleUpdateAccessLevel = async () => {
-    if (!editingLevel || !formData.name || !formData.description) {
-      toast({
-        variant: "destructive",
-        title: "Missing Fields",
-        description: "Please fill in all required fields."
-      });
-      return;
-    }
+    if (!editingLevel) return;
+    if (!formValidation.validateAll().isValid) return;
 
     try {
       const updateData: UpdateAccessLevelData = {
@@ -143,6 +144,7 @@ export function AccessLevelsManager({
       setEditingLevel(null);
       resetForm();
     } catch (error: any) {
+      formValidation.setSubmissionError(error.message || "Failed to update access level.");
       toast({
         variant: "destructive",
         title: "Error",
@@ -251,6 +253,7 @@ export function AccessLevelsManager({
                 </DialogHeader>
                 
                 <div className="space-y-6">
+                  <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
                   {/* Predefined Level Selection */}
                   <div className="space-y-2">
                     <Label>Start with Predefined Level (Optional)</Label>
@@ -281,13 +284,15 @@ export function AccessLevelsManager({
                   {/* Basic Information */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Name *</Label>
+                      <Label htmlFor="accessLevelName" className={formValidation.getFieldError('accessLevelName') ? 'text-destructive' : undefined}>Name *</Label>
                       <Input
-                        id="name"
+                        id="accessLevelName"
                         value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        onChange={(e) => { setFormData(prev => ({ ...prev, name: e.target.value })); formValidation.handleFieldChange('accessLevelName'); }}
+                        {...formValidation.getFieldProps('accessLevelName')}
                         placeholder="e.g., Teacher, Accountant"
                       />
+                      <FieldError error={formValidation.getFieldError('accessLevelName')} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="isDefault">Default Level</Label>
@@ -303,14 +308,16 @@ export function AccessLevelsManager({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description *</Label>
+                    <Label htmlFor="accessLevelDescription" className={formValidation.getFieldError('accessLevelDescription') ? 'text-destructive' : undefined}>Description *</Label>
                     <Textarea
-                      id="description"
+                      id="accessLevelDescription"
                       value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) => { setFormData(prev => ({ ...prev, description: e.target.value })); formValidation.handleFieldChange('accessLevelDescription'); }}
+                      {...formValidation.getFieldProps('accessLevelDescription')}
                       placeholder="Describe what this access level is for..."
                       rows={3}
                     />
+                    <FieldError error={formValidation.getFieldError('accessLevelDescription')} />
                   </div>
 
                   {/* Permissions Editor */}
@@ -422,16 +429,19 @@ export function AccessLevelsManager({
           </DialogHeader>
           
           <div className="space-y-6">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             {/* Basic Information */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Name *</Label>
+                <Label htmlFor="accessLevelName" className={formValidation.getFieldError('accessLevelName') ? 'text-destructive' : undefined}>Name *</Label>
                 <Input
-                  id="edit-name"
+                  id="accessLevelName"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => { setFormData(prev => ({ ...prev, name: e.target.value })); formValidation.handleFieldChange('accessLevelName'); }}
+                  {...formValidation.getFieldProps('accessLevelName')}
                   placeholder="e.g., Teacher, Accountant"
                 />
+                <FieldError error={formValidation.getFieldError('accessLevelName')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-isDefault">Default Level</Label>
@@ -447,14 +457,16 @@ export function AccessLevelsManager({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Description *</Label>
+              <Label htmlFor="accessLevelDescription" className={formValidation.getFieldError('accessLevelDescription') ? 'text-destructive' : undefined}>Description *</Label>
               <Textarea
-                id="edit-description"
+                id="accessLevelDescription"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => { setFormData(prev => ({ ...prev, description: e.target.value })); formValidation.handleFieldChange('accessLevelDescription'); }}
+                {...formValidation.getFieldProps('accessLevelDescription')}
                 placeholder="Describe what this access level is for..."
                 rows={3}
               />
+              <FieldError error={formValidation.getFieldError('accessLevelDescription')} />
             </div>
 
             {/* Permissions Editor */}

@@ -9,10 +9,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Loader2 } from 'lucide-react';
 import { useCreateDutyRota } from '@/lib/hooks/use-duty-service';
 import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
-import { useToast } from '@/hooks/use-toast';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import type { CreateDutyRotaData, DutyFrequency, TeamType } from '@/types/duty-service';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -42,7 +43,16 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
     isMarked: false,
   });
   const createDutyRota = useCreateDutyRota();
-  const { toast } = useToast();
+  const formValidation = useFormValidation([
+    createFieldValidation('dutyName', formData.dutyName, 'Duty name', true, { message: 'Enter the duty rota name.' }),
+    createFieldValidation('dutyStartDate', formData.startDate, 'Start date', true, { message: 'Choose the duty start date.' }),
+    createFieldValidation('dutyEndDate', formData.endDate, 'End date', true, {
+      message: 'Choose the duty end date.',
+      validate: (value) => value && formData.startDate && String(value) < formData.startDate ? 'Choose an end date on or after the start date.' : undefined,
+    }),
+    createFieldValidation('dutyAcademicYear', formData.academicYearId, 'Academic year', true, { message: 'Choose the academic year.' }),
+    createFieldValidation('dutyTeams', formData.teamsInvolved, 'Teams involved', true, { message: 'Choose at least one team.' }),
+  ]);
 
   // Update academicYearId when activeAcademicYear changes
   useEffect(() => {
@@ -57,34 +67,19 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.dutyName || !formData.academicYearId || !formData.startDate || !formData.endDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.teamsInvolved.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select at least one team",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     try {
       await createDutyRota.mutateAsync({
-        dutyName: formData.dutyName,
+        dutyName: formData.dutyName!,
         teamsInvolved: formData.teamsInvolved as TeamType[],
         frequency: formData.frequency as DutyFrequency,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        startDate: formData.startDate!,
+        endDate: formData.endDate!,
         allowances: formData.allowances!,
-        academicYearId: formData.academicYearId,
+        academicYearId: formData.academicYearId!,
         termId: formData.termId,
+        isActive: true,
       });
 
       setOpen(false);
@@ -105,6 +100,7 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
       });
     } catch (error) {
       console.error('Error creating duty rota:', error);
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'The duty rota could not be created. Please try again.');
     }
   };
 
@@ -143,6 +139,7 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
         ? prev.teamsInvolved.filter(t => t !== team)
         : [...(prev.teamsInvolved || []), team]
     }));
+    formValidation.handleFieldChange('dutyTeams');
   };
 
   const handleAllowanceChange = (team: TeamType, value: string) => {
@@ -173,17 +170,19 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="dutyName">Duty Name *</Label>
+              <Label htmlFor="dutyName" className={formValidation.getFieldError('dutyName') ? 'text-destructive' : undefined}>Duty Name *</Label>
               <Input
                 id="dutyName"
                 value={formData.dutyName}
-                onChange={(e) => handleInputChange('dutyName', e.target.value)}
+                onChange={(e) => { handleInputChange('dutyName', e.target.value); formValidation.handleFieldChange('dutyName'); }}
+                {...formValidation.getFieldProps('dutyName')}
                 placeholder="e.g., Staff Weekly Duty, Sanitary Duty"
-                required
               />
+              <FieldError error={formValidation.getFieldError('dutyName')} />
             </div>
 
             <div className="space-y-2">
@@ -209,24 +208,28 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Date *</Label>
+              <Label className={formValidation.getFieldError('dutyStartDate') ? 'text-destructive' : undefined}>Start Date *</Label>
               <DatePicker
                 date={toDate(formData.startDate)}
-                setDate={(d) => handleInputChange('startDate', toStr(d))}
+                setDate={(d) => { handleInputChange('startDate', toStr(d)); formValidation.handleFieldChange('dutyStartDate'); }}
+                triggerProps={formValidation.getFieldProps('dutyStartDate')}
                 placeholder="Pick start date"
                 allowFuture
                 disabled={formData.isMarked && (formData.frequency === 'weekly' || formData.frequency === 'daily' || formData.frequency === 'termly')}
               />
+              <FieldError error={formValidation.getFieldError('dutyStartDate')} />
             </div>
             <div className="space-y-2">
-              <Label>End Date *</Label>
+              <Label className={formValidation.getFieldError('dutyEndDate') ? 'text-destructive' : undefined}>End Date *</Label>
               <DatePicker
                 date={toDate(formData.endDate)}
-                setDate={(d) => handleInputChange('endDate', toStr(d))}
+                setDate={(d) => { handleInputChange('endDate', toStr(d)); formValidation.handleFieldChange('dutyEndDate'); }}
+                triggerProps={formValidation.getFieldProps('dutyEndDate')}
                 placeholder="Pick end date"
                 allowFuture
                 disabled={formData.isMarked && (formData.frequency === 'weekly' || formData.frequency === 'daily' || formData.frequency === 'termly')}
               />
+              <FieldError error={formValidation.getFieldError('dutyEndDate')} />
             </div>
           </div>
 
@@ -246,12 +249,12 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="academicYear">Academic Year *</Label>
+              <Label htmlFor="academicYear" className={formValidation.getFieldError('dutyAcademicYear') ? 'text-destructive' : undefined}>Academic Year *</Label>
               <Select
                 value={formData.academicYearId}
-                onValueChange={(value) => handleInputChange('academicYearId', value)}
+                onValueChange={(value) => { handleInputChange('academicYearId', value); formValidation.handleFieldChange('dutyAcademicYear'); }}
               >
-                <SelectTrigger>
+                <SelectTrigger {...formValidation.getFieldProps('dutyAcademicYear')}>
                   <SelectValue placeholder="Select academic year" />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,6 +265,7 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError error={formValidation.getFieldError('dutyAcademicYear')} />
             </div>
 
             <div className="space-y-2">
@@ -287,8 +291,8 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
 
           {/* Teams Selection */}
           <div className="space-y-4">
-            <Label>Teams Involved *</Label>
-            <div className="grid grid-cols-3 gap-4">
+            <Label className={formValidation.getFieldError('dutyTeams') ? 'text-destructive' : undefined}>Teams Involved *</Label>
+            <div id="dutyTeams" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('dutyTeams'))} aria-describedby={formValidation.getFieldError('dutyTeams') ? 'dutyTeams-error' : undefined} className="grid grid-cols-3 gap-4 rounded-md aria-invalid:border aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:p-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="staff"
@@ -314,6 +318,7 @@ export function CreateDutyRotaModal({ trigger }: CreateDutyRotaModalProps) {
                 <Label htmlFor="pupils">Pupils</Label>
               </div>
             </div>
+            <FieldError error={formValidation.getFieldError('dutyTeams')} />
           </div>
 
           {/* Allowances */}

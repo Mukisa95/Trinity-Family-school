@@ -18,7 +18,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
 import { useClasses } from '@/lib/hooks/use-classes';
-import { validateForm, highlightMissingFields, scrollToFirstMissingField, clearFieldHighlights, createFieldValidation } from '@/lib/utils/form-validation';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 import { useSubmissionState } from '@/lib/hooks/use-submission-state';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { BookMarked } from 'lucide-react';
@@ -74,6 +75,26 @@ export function RequirementModal({
 
   const { data: classes = [] } = useClasses();
   const { isSubmitting, submitWithState } = useSubmissionState();
+  const validationFields = React.useMemo(() => [
+    createFieldValidation('name', formData.name, 'Requirement Name', true, { message: 'Enter the requirement name.' }),
+    createFieldValidation('group', formData.group, 'Group or Category', true, { message: 'Choose the requirement category.' }),
+    createFieldValidation('price', formData.price, 'Price', true, {
+      message: 'Enter the requirement price.',
+      validate: (value) => typeof value === 'string' && parseFormattedMoney(value) > 0
+        ? undefined
+        : 'Enter a price greater than zero.',
+    }),
+    createFieldValidation('frequency', formData.frequency, 'Frequency', true, { message: 'Choose the requirement frequency.' }),
+    createFieldValidation('classIds', formData.classIds || [], 'Class Selection', true, {
+      active: formData.classType === 'specific',
+      message: 'Choose at least one class.',
+    }),
+    createFieldValidation('section', formData.section, 'Section Selection', true, {
+      active: formData.sectionType === 'specific',
+      message: 'Choose the applicable section.',
+    }),
+  ], [formData]);
+  const formValidation = useFormValidation(validationFields);
 
   useEffect(() => {
     if (selectedRequirement) {
@@ -112,6 +133,7 @@ export function RequirementModal({
       ...prev,
       [field]: value
     }));
+    formValidation.handleFieldChange(String(field));
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,6 +151,7 @@ export function RequirementModal({
       classType,
       classIds: classType === 'all' ? [] : prev.classIds
     }));
+    formValidation.handleFieldChange('classIds');
   };
 
   const handleClassSelection = (classId: string, checked: boolean) => {
@@ -138,6 +161,7 @@ export function RequirementModal({
         ? [...(prev.classIds || []), classId]
         : (prev.classIds || []).filter(id => id !== classId)
     }));
+    formValidation.handleFieldChange('classIds');
   };
 
   const handleSectionTypeChange = (sectionType: RequirementSectionType) => {
@@ -146,53 +170,14 @@ export function RequirementModal({
       sectionType,
       section: sectionType === 'all' ? undefined : prev.section
     }));
+    formValidation.handleFieldChange('section');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear any previous field highlights
-    const allFieldIds = ['name', 'group', 'price', 'frequency'];
-    clearFieldHighlights(allFieldIds);
-
-    // Define validation fields
-    const validationFields = [
-      createFieldValidation('name', formData.name.trim(), 'Requirement Name', true),
-      createFieldValidation('group', formData.group.trim(), 'Group/Category', true),
-      createFieldValidation('price', formData.price && parseFormattedMoney(formData.price) > 0 ? formData.price : '', 'Price', true),
-      createFieldValidation('frequency', formData.frequency, 'Frequency', true),
-    ];
-
-    // Add conditional validation for specific class selection
-    if (formData.classType === 'specific') {
-      validationFields.push(
-        createFieldValidation('classIds', formData.classIds && formData.classIds.length > 0 ? formData.classIds : [], 'Class Selection', true)
-      );
-    }
-
-    // Add conditional validation for specific section selection
-    if (formData.sectionType === 'specific') {
-      validationFields.push(
-        createFieldValidation('section', formData.section, 'Section Selection', true)
-      );
-    }
-
-    // Validate form
-    const validation = validateForm(validationFields);
-    
+    const validation = formValidation.validateAll();
     if (!validation.isValid) {
-      // Highlight missing fields
-      const missingFieldIds = validation.missingFields.map(field => field.id);
-      highlightMissingFields(missingFieldIds);
-      
-      // Scroll to first missing field
-      if (validation.firstMissingFieldId) {
-        scrollToFirstMissingField(validation.firstMissingFieldId);
-      }
-      
-      // Show error alert with specific missing fields
-      const missingFieldNames = validation.missingFields.map(field => field.label).join(', ');
-      alert(`Please fill in the following required fields: ${missingFieldNames}`);
       return;
     }
 
@@ -244,6 +229,7 @@ export function RequirementModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             {/* Basic Information */}
             <div className="lg:col-span-1 xl:col-span-2 space-y-3 md:space-y-4">
@@ -253,10 +239,12 @@ export function RequirementModal({
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value.toUpperCase())}
+                  {...formValidation.getFieldProps('name')}
                   placeholder="e.g., Mathematics Textbook"
                   className="text-sm md:text-base"
                   required
                 />
+                <FieldError error={formValidation.getFieldError('name')} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
@@ -266,7 +254,7 @@ export function RequirementModal({
                     value={formData.group} 
                     onValueChange={(value) => handleInputChange('group', value)}
                   >
-                    <SelectTrigger id="group" className="text-sm md:text-base">
+                    <SelectTrigger id="group" className="text-sm md:text-base" {...formValidation.getFieldProps('group')}>
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -277,6 +265,7 @@ export function RequirementModal({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError error={formValidation.getFieldError('group')} />
                 </div>
 
                 <div>
@@ -285,10 +274,12 @@ export function RequirementModal({
                     id="price"
                     value={formData.price}
                     onChange={handlePriceChange}
+                    {...formValidation.getFieldProps('price')}
                     placeholder="e.g., 25,000"
                     className="text-sm md:text-base"
                     required
                   />
+                  <FieldError error={formValidation.getFieldError('price')} />
                 </div>
 
                 <div>
@@ -315,7 +306,7 @@ export function RequirementModal({
                     value={formData.frequency} 
                     onValueChange={(value: RequirementFrequency) => handleInputChange('frequency', value)}
                   >
-                    <SelectTrigger id="frequency" className="text-sm md:text-base">
+                    <SelectTrigger id="frequency" className="text-sm md:text-base" {...formValidation.getFieldProps('frequency')}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -324,6 +315,7 @@ export function RequirementModal({
                       <SelectItem value="one-time" className="text-sm md:text-base">One Time</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FieldError error={formValidation.getFieldError('frequency')} />
                 </div>
 
                 <div className="md:col-span-1">
@@ -396,7 +388,7 @@ export function RequirementModal({
                 {formData.classType === 'specific' && (
                   <div className="mt-2 md:mt-3">
                     <Label className="text-xs md:text-sm">Select Classes:</Label>
-                    <ScrollArea className="h-24 md:h-32 border rounded-md p-2 md:p-3 mt-1 md:mt-2">
+                    <ScrollArea id="classIds" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('classIds'))} aria-describedby={formValidation.getFieldError('classIds') ? 'classIds-error' : undefined} className="h-24 md:h-32 border rounded-md p-2 md:p-3 mt-1 md:mt-2 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200">
                       <div className="space-y-1.5 md:space-y-2">
                         {classes.map((cls: Class) => (
                           <div key={cls.id} className="flex items-center space-x-2">
@@ -413,6 +405,7 @@ export function RequirementModal({
                         ))}
                       </div>
                     </ScrollArea>
+                    <FieldError error={formValidation.getFieldError('classIds')} />
                     {formData.classIds && formData.classIds.length > 0 && (
                       <p className="text-xs text-gray-500 mt-1">
                         {formData.classIds.length} class(es) selected
@@ -450,7 +443,7 @@ export function RequirementModal({
                       value={formData.section} 
                       onValueChange={(value: RequirementSection) => handleInputChange('section', value)}
                     >
-                      <SelectTrigger className="text-sm md:text-base">
+                      <SelectTrigger id="section" className="text-sm md:text-base" {...formValidation.getFieldProps('section')}>
                         <SelectValue placeholder="Select section" />
                       </SelectTrigger>
                       <SelectContent>
@@ -458,6 +451,7 @@ export function RequirementModal({
                         <SelectItem value="Boarding" className="text-sm md:text-base">Boarding Section</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('section')} />
                   </div>
                 )}
               </div>
@@ -481,4 +475,4 @@ export function RequirementModal({
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

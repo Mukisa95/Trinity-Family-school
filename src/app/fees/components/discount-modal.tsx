@@ -9,9 +9,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FeeStructure, AcademicYear } from "@/types";
-import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatMoneyInput, parseFormattedMoney } from "@/lib/utils";
 import { useAcademicYears } from "@/lib/hooks/use-academic-years";
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 
 interface DiscountModalProps {
   isOpen: boolean;
@@ -36,12 +37,20 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
   initialData,
   mode
 }) => {
-  const { toast } = useToast();
   const { data: academicYears = [] } = useAcademicYears();
   const [name, setName] = React.useState("");
   const [amount, setAmount] = React.useState<number | string>(""); // User enters positive
   const [description, setDescription] = React.useState("");
   const [linkedFeeIds, setLinkedFeeIds] = React.useState<string[]>([]);
+  const validationFields = React.useMemo(() => [
+    createFieldValidation('discountName', name, 'Discount Name', true, { message: 'Enter the discount name.' }),
+    createFieldValidation('discountAmount', amount, 'Discount Amount', true, {
+      message: 'Enter the discount amount.',
+      validate: (value) => parseFormattedMoney(String(value || '')) > 0 ? undefined : 'Enter an amount greater than zero.',
+    }),
+    createFieldValidation('linkedFeeIds', linkedFeeIds, 'Linked Fee Items', true, { message: 'Choose at least one fee item to link.' }),
+  ], [amount, linkedFeeIds, name]);
+  const formValidation = useFormValidation(validationFields);
 
   // Helper function to get term name for a fee item
   const getTermName = (feeItem: FeeStructure): string => {
@@ -75,15 +84,9 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
   }, [initialData, isOpen, mode]);
 
   const handleSubmit = (action: 'save' | 'create') => {
+    const validation = formValidation.validateAll();
+    if (!validation.isValid) return;
     const numericAmount = parseFormattedMoney(typeof amount === 'string' ? amount : amount.toString());
-    if (!name.trim() || numericAmount <= 0) {
-      toast({ variant: "destructive", title: "Validation Error", description: "Please fill all required fields (Name, Amount)." });
-      return;
-    }
-    if (linkedFeeIds.length === 0) {
-        toast({ variant: "destructive", title: "Validation Error", description: "Please link this discount to at least one fee item." });
-        return;
-    }
 
     onSubmit({
       name,
@@ -104,17 +107,20 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
         </ModernDialogHeader>
         <div className="flex-grow min-h-0 overflow-y-auto">
           <div className="grid gap-4 p-6">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             <div className="space-y-2">
               <Label htmlFor="discountName">Discount Name <span className="text-destructive">*</span></Label>
-              <Input id="discountName" value={name} onChange={(e) => setName(e.target.value.toUpperCase())} />
+              <Input id="discountName" value={name} onChange={(e) => { setName(e.target.value.toUpperCase()); formValidation.handleFieldChange('discountName'); }} {...formValidation.getFieldProps('discountName')} />
+              <FieldError error={formValidation.getFieldError('discountName')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="discountAmount">Discount Amount <span className="text-destructive">*</span></Label>
-              <Input id="discountAmount" type="text" value={typeof amount === 'string' ? amount : formatMoneyInput(amount.toString())} onChange={(e) => setAmount(formatMoneyInput(e.target.value))} placeholder="Enter positive value"/>
+              <Input id="discountAmount" type="text" value={typeof amount === 'string' ? amount : formatMoneyInput(amount.toString())} onChange={(e) => { setAmount(formatMoneyInput(e.target.value)); formValidation.handleFieldChange('discountAmount'); }} placeholder="Enter positive value" {...formValidation.getFieldProps('discountAmount')} />
+              <FieldError error={formValidation.getFieldError('discountAmount')} />
             </div>
              <div className="space-y-2">
               <Label>Linked Fee Items <span className="text-destructive">*</span></Label>
-              <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+              <ScrollArea id="linkedFeeIds" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('linkedFeeIds'))} aria-describedby={formValidation.getFieldError('linkedFeeIds') ? 'linkedFeeIds-error' : undefined} className="h-[200px] w-full rounded-md border p-4 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200">
                 <div className="space-y-4">
                   {feeItems.filter(item => item.status === 'active' && item.category !== 'Discount').map(item => (
                     <div key={item.id} className="flex items-start space-x-2">
@@ -127,6 +133,7 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
                           } else {
                             setLinkedFeeIds(prev => prev.filter(id => id !== item.id));
                           }
+                          formValidation.handleFieldChange('linkedFeeIds');
                         }}
                       />
                       <Label
@@ -142,6 +149,7 @@ const DiscountModal: React.FC<DiscountModalProps> = ({
                   )}
                 </div>
               </ScrollArea>
+              <FieldError error={formValidation.getFieldError('linkedFeeIds')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="discountDescription">Reason/Description</Label>

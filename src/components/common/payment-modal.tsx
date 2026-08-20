@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatMoneyInput, parseFormattedMoney, formatCurrency } from '@/lib/utils';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -32,10 +34,17 @@ export function PaymentModal({
   balance 
 }: PaymentModalProps) {
   const [paymentAmount, setPaymentAmount] = useState('');
+  const formValidation = useFormValidation([
+    createFieldValidation('paymentAmount', paymentAmount, 'Payment amount', true, {
+      message: 'Enter the payment amount.',
+      validate: (value) => parseFormattedMoney(String(value ?? '')) > 0 ? undefined : 'Enter a payment amount greater than zero.',
+    }),
+  ]);
 
   const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatMoneyInput(e.target.value);
     setPaymentAmount(formatted);
+    formValidation.handleFieldChange('paymentAmount');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -43,10 +52,7 @@ export function PaymentModal({
     
     const amount = parseFormattedMoney(paymentAmount);
     
-    if (amount <= 0) {
-      alert('Please enter a valid payment amount');
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
     
     if (amount > balance) {
       if (!window.confirm(`Payment amount (${formatCurrency(amount)}) exceeds balance (${formatCurrency(balance)}). Continue?`)) {
@@ -56,20 +62,29 @@ export function PaymentModal({
 
     onSubmit(amount);
     setPaymentAmount('');
+    formValidation.resetValidation();
   };
 
   const handleQuickPayment = (amount: number) => {
     setPaymentAmount(amount.toString());
+    formValidation.handleFieldChange('paymentAmount');
+  };
+
+  const handleClose = () => {
+    setPaymentAmount('');
+    formValidation.resetValidation();
+    onClose();
   };
 
   return (
-    <ModernDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+    <ModernDialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <ModernDialogContent size="md">
         <ModernDialogHeader>
           <ModernDialogTitle>Make Payment</ModernDialogTitle>
         </ModernDialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <FormErrorSummary errors={formValidation.errors} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Payment Summary */}
           <Card>
             <CardHeader>
@@ -93,14 +108,15 @@ export function PaymentModal({
 
           {/* Payment Amount */}
           <div>
-            <Label htmlFor="paymentAmount">Payment Amount (UGX) *</Label>
+            <Label htmlFor="paymentAmount" className={formValidation.getFieldError('paymentAmount') ? 'text-destructive' : undefined}>Payment Amount (UGX) *</Label>
             <Input
               id="paymentAmount"
               value={paymentAmount}
               onChange={handlePaymentChange}
+              {...formValidation.getFieldProps('paymentAmount')}
               placeholder="Enter payment amount"
-              required
             />
+            <FieldError error={formValidation.getFieldError('paymentAmount')} />
           </div>
 
           {/* Quick Payment Options */}
@@ -162,7 +178,7 @@ export function PaymentModal({
           )}
 
           <ModernDialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+            <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button type="submit" className="w-full sm:w-auto">
@@ -173,4 +189,4 @@ export function PaymentModal({
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

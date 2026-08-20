@@ -43,6 +43,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useSubjects, useCreateSubject, useUpdateSubject, useDeleteSubject } from "@/lib/hooks/use-subjects";
 import { useToast } from "@/hooks/use-toast";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
+import { createFieldValidation, useFormValidation } from "@/lib/utils/form-validation";
 
 interface SubjectManagementProps {
   addTrigger: number;
@@ -64,6 +66,11 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
   const [name, setName] = React.useState("");
   const [code, setCode] = React.useState("");
   const [type, setType] = React.useState<Subject["type"]>("Core");
+  const formValidation = useFormValidation([
+    createFieldValidation('subjectName', name, 'Subject name', true, { message: 'Enter the subject name.' }),
+    createFieldValidation('subjectCode', code, 'Subject code', true, { message: 'Enter the subject code.' }),
+    createFieldValidation('subjectType', type, 'Subject type', true, { message: 'Choose the subject type.' }),
+  ]);
 
   // Listen to parent adding trigger
   React.useEffect(() => {
@@ -77,6 +84,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
     setCode("");
     setType("Core");
     setEditingSubject(null);
+    formValidation.resetValidation();
   };
 
   const handleAddSubject = () => {
@@ -111,14 +119,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !code.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     const subjectData = {
       name: name.trim(),
@@ -146,6 +147,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
       setIsDialogOpen(false);
       resetForm();
     } catch (error) {
+      formValidation.setSubmissionError(`Failed to ${editingSubject ? 'update' : 'create'} subject. Please try again.`);
       toast({
         variant: "destructive",
         title: "Error",
@@ -255,6 +257,9 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
               {editingSubject ? "Update the subject details below." : "Fill in the details for the new subject."}
             </ModernDialogDescription>
           </ModernDialogHeader>
+          <div className="px-2">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
+          </div>
           
           {/* Academic Context Banner */}
           <div className={`mx-1 sm:mx-2 mt-1 sm:mt-2 p-1 border rounded-md text-[0.6rem] ${editingSubject ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
@@ -277,29 +282,33 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
               {/* Compact 3-column layout */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                 <div>
-                  <Label htmlFor="name" className="text-[0.6rem]">Subject Name <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="subjectName" className={`text-[0.6rem] ${formValidation.getFieldError('subjectName') ? 'text-destructive' : ''}`}>Subject Name <span className="text-destructive">*</span></Label>
                   <Input 
-                    id="name" 
+                    id="subjectName"
                     value={name} 
-                    onChange={(e) => setName(e.target.value.toUpperCase())} 
+                    onChange={(e) => { setName(e.target.value.toUpperCase()); formValidation.handleFieldChange('subjectName'); }}
+                    {...formValidation.getFieldProps('subjectName')}
                     placeholder="e.g., MATHEMATICS"
                     className="h-6 text-[0.65rem]" 
                   />
+                  <FieldError error={formValidation.getFieldError('subjectName')} className="text-[0.6rem]" />
                 </div>
                 <div>
-                  <Label htmlFor="code" className="text-[0.6rem]">Subject Code <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="subjectCode" className={`text-[0.6rem] ${formValidation.getFieldError('subjectCode') ? 'text-destructive' : ''}`}>Subject Code <span className="text-destructive">*</span></Label>
                   <Input 
-                    id="code" 
+                    id="subjectCode"
                     value={code} 
-                    onChange={(e) => setCode(e.target.value.toUpperCase())} 
+                    onChange={(e) => { setCode(e.target.value.toUpperCase()); formValidation.handleFieldChange('subjectCode'); }}
+                    {...formValidation.getFieldProps('subjectCode')}
                     placeholder="e.g., MATH"
                     className="h-6 text-[0.65rem]" 
                   />
+                  <FieldError error={formValidation.getFieldError('subjectCode')} className="text-[0.6rem]" />
                 </div>
                 <div>
                   <Label htmlFor="type" className="text-[0.6rem]">Subject Type <span className="text-destructive">*</span></Label>
-                  <Select value={type} onValueChange={(value) => setType(value as Subject["type"])}>
-                    <SelectTrigger className="h-6 text-[0.65rem]">
+                  <Select value={type} onValueChange={(value) => { setType(value as Subject["type"]); formValidation.handleFieldChange('subjectType'); }}>
+                    <SelectTrigger className="h-6 text-[0.65rem]" {...formValidation.getFieldProps('subjectType')}>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent position="popper" className="text-[0.65rem]">
@@ -308,6 +317,7 @@ export function SubjectManagement({ addTrigger }: SubjectManagementProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError error={formValidation.getFieldError('subjectType')} className="text-[0.6rem]" />
                 </div>
               </div>
             </div>

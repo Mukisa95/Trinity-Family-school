@@ -34,6 +34,8 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface SMSSettingsModalProps {
   open: boolean;
@@ -62,6 +64,12 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
   const [activeTab, setActiveTab] = useState('credentials');
 
   const { toast } = useToast();
+  const formValidation = useFormValidation([
+    createFieldValidation('wiza-username', credentials.username, 'Email or username', true, { message: 'Enter the Wiza SMS email or username.' }),
+    createFieldValidation('wiza-password', credentials.password, 'Password', true, { message: 'Enter the Wiza SMS password.' }),
+  ], {
+    scrollBehavior: 'smooth',
+  });
 
   // Load current settings when modal opens
   useEffect(() => {
@@ -94,14 +102,7 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
   };
 
   const handleSave = async () => {
-    if (!credentials.username.trim()) {
-      toast({ title: 'Validation Error', description: 'Username / email is required.', variant: 'destructive' });
-      return;
-    }
-    if (!credentials.password.trim()) {
-      toast({ title: 'Validation Error', description: 'Password is required.', variant: 'destructive' });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     setSaving(true);
     try {
@@ -131,6 +132,7 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
         description: `Wiza SMS will now use account: ${data.username}`,
       });
     } catch (error) {
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'Could not save settings.');
       toast({
         title: 'Save Failed',
         description: error instanceof Error ? error.message : 'Could not save settings.',
@@ -200,6 +202,7 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
 
           {/* ─── Credentials Tab ─── */}
           <TabsContent value="credentials" className="space-y-5 pt-2">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
 
             {/* Current active account */}
             {loading ? (
@@ -253,23 +256,25 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
               <CardContent className="space-y-4">
 
                 <div className="space-y-2">
-                  <Label htmlFor="wiza-username" className="flex items-center gap-1.5">
+                  <Label htmlFor="wiza-username" className={`flex items-center gap-1.5 ${formValidation.getFieldError('wiza-username') ? 'text-destructive' : ''}`}>
                     <User className="h-3.5 w-3.5" />
-                    Email / Username
+                    Email / Username <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="wiza-username"
                     type="email"
                     placeholder="e.g. marbleodeke3@gmail.com"
                     value={credentials.username}
-                    onChange={e => setCredentials(prev => ({ ...prev, username: e.target.value }))}
+                    onChange={e => { setCredentials(prev => ({ ...prev, username: e.target.value })); formValidation.handleFieldChange('wiza-username'); }}
+                    {...formValidation.getFieldProps('wiza-username')}
                   />
+                  <FieldError error={formValidation.getFieldError('wiza-username')} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="wiza-password" className="flex items-center gap-1.5">
+                  <Label htmlFor="wiza-password" className={`flex items-center gap-1.5 ${formValidation.getFieldError('wiza-password') ? 'text-destructive' : ''}`}>
                     <Lock className="h-3.5 w-3.5" />
-                    Password
+                    Password <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <Input
@@ -277,7 +282,8 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Enter your Wiza SMS password"
                       value={credentials.password}
-                      onChange={e => setCredentials(prev => ({ ...prev, password: e.target.value }))}
+                      onChange={e => { setCredentials(prev => ({ ...prev, password: e.target.value })); formValidation.handleFieldChange('wiza-password'); }}
+                      {...formValidation.getFieldProps('wiza-password')}
                     />
                     <Button
                       type="button"
@@ -289,6 +295,7 @@ const SMSSettingsModal: React.FC<SMSSettingsModalProps> = ({ open, onOpenChange 
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  <FieldError error={formValidation.getFieldError('wiza-password')} />
                 </div>
 
                 <div className="space-y-2">
