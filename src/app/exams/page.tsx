@@ -66,6 +66,7 @@ import { ExamsService } from "@/lib/services/exams.service";
 import { ExamLeaseService } from "@/lib/services/exam-lease.service";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { getAssessmentModeForClass, isNurseryClass } from "@/lib/exam-assessment";
+import { getActiveClassStreams, getPupilClassDisplay } from "@/lib/utils/class-streams";
 
 import { DEFAULT_GRADING_SCALE, EXAM_NATURES, OTHER_EXAM_TYPE_ID } from "@/lib/constants"; // Ensure OTHER_EXAM_TYPE_ID is exported
 import { format, parseISO, isValid, startOfDay, getYear as getYearFromDateFns, isWithinInterval } from "date-fns";
@@ -387,6 +388,7 @@ export default function ExamsPage() {
   const [examNature, setExamNature] = React.useState<ExamNature>("");
 
   const [selectedClassIdsForm, setSelectedClassIdsForm] = React.useState<string[]>([]);
+  const [streamSelectionsByClass, setStreamSelectionsByClass] = React.useState<Record<string, string[]>>({});
   // React mutation state becomes visible on the next render. This ref closes
   // the small gap where a rapid second tap could start another creation.
   const examSubmitInFlightRef = React.useRef(false);
@@ -506,6 +508,45 @@ export default function ExamsPage() {
     return perClassExamNatures[classId] || examNature;
   }, [editingExam, isAddingSet, perClassExamNatures, examNature]);
 
+  React.useEffect(() => {
+    setStreamSelectionsByClass(current => {
+      let changed = false;
+      const next = { ...current };
+      selectedClassIdsForm.forEach(classId => {
+        const schoolClass = allClasses.find(candidate => candidate.id === classId);
+        const activeStreams = getActiveClassStreams(schoolClass, academicYearId || activeAcademicYear?.id);
+        const validIds = new Set(activeStreams.map(stream => stream.id));
+        const hasExistingSelection = Object.prototype.hasOwnProperty.call(next, classId);
+        const currentSelection = (next[classId] || []).filter(id => validIds.has(id));
+        const preferred = editingExam?.classId === classId && editingExam.streamScope?.streamIds?.length
+          ? editingExam.streamScope.streamIds.filter(id => validIds.has(id))
+          : hasExistingSelection ? currentSelection : activeStreams.map(stream => stream.id);
+        if (JSON.stringify(next[classId] || []) !== JSON.stringify(preferred)) {
+          next[classId] = preferred;
+          changed = true;
+        }
+      });
+      Object.keys(next).forEach(classId => {
+        if (!selectedClassIdsForm.includes(classId)) {
+          delete next[classId];
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+  }, [academicYearId, activeAcademicYear?.id, allClasses, editingExam, selectedClassIdsForm]);
+
+  const getScopedActivePupils = React.useCallback((classId: string) => {
+    const schoolClass = allClasses.find(candidate => candidate.id === classId);
+    const activeStreams = getActiveClassStreams(schoolClass, academicYearId || activeAcademicYear?.id);
+    const selectedStreamIds = new Set(streamSelectionsByClass[classId] || activeStreams.map(stream => stream.id));
+    return pupils.filter(pupil =>
+      pupil.classId === classId &&
+      pupil.status === 'Active' &&
+      (activeStreams.length === 0 || (!!pupil.streamId && selectedStreamIds.has(pupil.streamId))),
+    );
+  }, [academicYearId, activeAcademicYear?.id, allClasses, pupils, streamSelectionsByClass]);
+
   const examValidationFields = React.useMemo(() => {
     const selectedClassIds = Array.from(new Set(selectedClassIdsForm));
     const includesMarksBasedClass = selectedClassIds.some((classId) => {
@@ -558,6 +599,8 @@ export default function ExamsPage() {
         const nature = getExamNatureForClass(classId);
         const schoolClass = allClasses.find((candidate) => candidate.id === classId);
         const classLabel = schoolClass?.name || schoolClass?.code || 'Selected class';
+        const activeStreams = getActiveClassStreams(schoolClass, academicYearId || activeAcademicYear?.id);
+        const streamSelection = streamSelectionsByClass[classId] || [];
         return [
           createFieldValidation(`classNature_${classId}`, nature, `${classLabel} Exam Nature`, true, {
             active: selectedClassIds.length > 1 && !editingExam && !isAddingSet,
@@ -568,12 +611,30 @@ export default function ExamsPage() {
             message: `Choose at least one subject for ${classLabel}.`,
             focusTargetId: `classSubjects_${classId}`,
           }),
+          createFieldValidation(`classStreams_${classId}`, streamSelection, `${classLabel} Streams`, true, {
+            active: activeStreams.length > 0,
+            message: `Choose at least one stream for ${classLabel}.`,
+            focusTargetId: `classStreams_${classId}`,
+            validate: () => {
+              if (!activeStreams.length) return undefined;
+              const unassigned = pupils.filter(pupil =>
+                pupil.classId === classId &&
+                pupil.status === 'Active' &&
+                (!pupil.streamId || activeStreams.some(stream => stream.id === pupil.streamId) === false)
+              );
+              return unassigned.length
+                ? `${unassigned.length} active pupil${unassigned.length === 1 ? '' : 's'} need a valid stream assignment before this exam can be scheduled.`
+                : undefined;
+            },
+          }),
         ];
       }),
     ];
   }, [
     allClasses,
     assessmentName,
+    academicYearId,
+    activeAcademicYear?.id,
     customExamTypeName,
     editingExam,
     endDate,
@@ -585,8 +646,10 @@ export default function ExamsPage() {
     maxMarks,
     passingMarks,
     perClassSelectedSubjects,
+    pupils,
     selectedClassIdsForm,
     startDate,
+    streamSelectionsByClass,
   ]);
   const examFormValidation = useFormValidation(examValidationFields);
 
@@ -707,6 +770,7 @@ export default function ExamsPage() {
     setCustomExamTypeName("");
     setExamNature("");
     setSelectedClassIdsForm([]);
+    setStreamSelectionsByClass({});
     setPerClassExamNatures({});
     setPerClassSelectedSubjects({});
     setStartDate(undefined);
@@ -768,6 +832,7 @@ export default function ExamsPage() {
     setCustomExamTypeName(baseExam.customExamTypeName || "");
     setExamNature(baseExam.examNature || "");
     setSelectedClassIdsForm([baseExam.classId]);
+    setStreamSelectionsByClass(baseExam.streamScope ? { [baseExam.classId]: baseExam.streamScope.streamIds } : {});
     setPerClassExamNatures({ [baseExam.classId]: baseExam.examNature || "" });
     setMaxMarks(baseExam.maxMarks);
     setPassingMarks(baseExam.passingMarks);
@@ -821,6 +886,7 @@ export default function ExamsPage() {
     setCustomExamTypeName(examToEdit.customExamTypeName || "");
     setExamNature(examToEdit.examNature || "");
     setSelectedClassIdsForm([examToEdit.classId]);
+    setStreamSelectionsByClass(examToEdit.streamScope ? { [examToEdit.classId]: examToEdit.streamScope.streamIds } : {});
     setPerClassExamNatures({ [examToEdit.classId]: examToEdit.examNature || "" });
 
     const currentPerClassSubjects: Record<string, string[]> = {};
@@ -1143,6 +1209,19 @@ export default function ExamsPage() {
         const newExamsData = selectedClassIds.map((classId) => {
           const classExamNature = perClassNatures[classId];
           const targetClass = allClasses.find(schoolClass => schoolClass.id === classId);
+          const activeStreams = getActiveClassStreams(targetClass, academicYearId);
+          const requestedStreamIds = streamSelectionsByClass[classId] || activeStreams.map(stream => stream.id);
+          const selectedStreams = activeStreams.filter(stream => requestedStreamIds.includes(stream.id));
+          const streamScope = activeStreams.length > 0 ? {
+            mode: selectedStreams.length === activeStreams.length ? 'all' as const : 'selected' as const,
+            streamIds: selectedStreams.map(stream => stream.id),
+            streams: selectedStreams.map(stream => ({
+              id: stream.id,
+              name: stream.name,
+              code: stream.code,
+            })),
+            academicYearId,
+          } : undefined;
           // Generate unique examResultId for each exam
           const examResultId = `er-${currentBatchId}-${classId}`;
 
@@ -1171,6 +1250,7 @@ export default function ExamsPage() {
             status: determinedStatus,
             instructions,
             examResultId: examResultId, // Add examResultId to each exam
+            streamScope,
           };
         });
 
@@ -1184,9 +1264,11 @@ export default function ExamsPage() {
           // already fetches active-only pupils from the database.
           // Also respect any pupils the creator manually excluded via the Snapshot Preview.
           const excludedForThisClass = excludedPupilIds[examData.classId] || [];
+          const selectedStreamIds = new Set(examData.streamScope?.streamIds || []);
           const pupilsInClass = pupils.filter(
             p => p.classId === examData.classId &&
                  p.status === 'Active' &&
+                 (!examData.streamScope || (!!p.streamId && selectedStreamIds.has(p.streamId))) &&
                  !excludedForThisClass.includes(p.id)
           );
 
@@ -1207,6 +1289,9 @@ export default function ExamsPage() {
               pupilId: p.id,
               name: formatPupilDisplayName(p),
               admissionNumber: p.admissionNumber,
+              streamId: p.streamId,
+              streamName: p.streamName,
+              streamCode: p.streamCode,
             }));
 
             classSnapshotData = {
@@ -1218,22 +1303,29 @@ export default function ExamsPage() {
               classTeacherName: targetClass.classTeacherName,
               subjectsTaught: classSubjectsTaught,
               pupilsInClassAtExamCreation: pupilsInClassSnapshot,
+              streamScope: examData.streamScope,
             };
           }
 
-          const pupilSnapshots = pupilsInClass.map(p => ({
-            pupilId: p.id,
-            name: formatPupilDisplayName(p),
-            admissionNumber: p.admissionNumber,
-            classNameAtExam: targetClass?.name || 'N/A',
-            classCodeAtExam: targetClass?.code || undefined,
-            section: p.section,
-            status: p.status,
-            gender: p.gender,
-            dateOfBirth: p.dateOfBirth, // Include date of birth in snapshot
-            ageAtExam: examData.startDate && p.dateOfBirth ?
-              safeParseDateString(examData.startDate)?.getFullYear()! - safeParseDateString(p.dateOfBirth)?.getFullYear()! : undefined
-          }));
+          const pupilSnapshots = pupilsInClass.map(p => {
+            const classDisplay = getPupilClassDisplay(p, targetClass);
+            return {
+              pupilId: p.id,
+              name: formatPupilDisplayName(p),
+              admissionNumber: p.admissionNumber,
+              classNameAtExam: classDisplay.name || 'N/A',
+              classCodeAtExam: classDisplay.code || undefined,
+              streamIdAtExam: p.streamId,
+              streamNameAtExam: p.streamName,
+              streamCodeAtExam: p.streamCode,
+              section: p.section,
+              status: p.status,
+              gender: p.gender,
+              dateOfBirth: p.dateOfBirth, // Include date of birth in snapshot
+              ageAtExam: examData.startDate && p.dateOfBirth ?
+                safeParseDateString(examData.startDate)?.getFullYear()! - safeParseDateString(p.dateOfBirth)?.getFullYear()! : undefined
+            };
+          });
 
           let subjectSnapshots: ExamRecordSubjectInfo[] = [];
           if (examData.examNature === 'Set based' && targetClass) {
@@ -3795,6 +3887,88 @@ export default function ExamsPage() {
                       )}
                     </div>
 
+                    {!isAddingSet && !editingExam && selectedClassIdsForm.some(classId => getActiveClassStreams(allClasses.find(schoolClass => schoolClass.id === classId), academicYearId).length > 0) && (
+                      <div className="pt-3 border-t border-slate-100 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <Layers className="h-4 w-4 text-indigo-500 mt-0.5" />
+                          <div>
+                            <Label className="text-sm font-medium text-slate-700">Stream scope</Label>
+                            <p className="text-xs text-slate-500 mt-0.5">Choose which streams will sit this exam. All active streams are selected by default.</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                          {selectedClassIdsForm.map(classId => {
+                            const selectedClass = allClasses.find(schoolClass => schoolClass.id === classId);
+                            const activeStreams = getActiveClassStreams(selectedClass, academicYearId);
+                            if (activeStreams.length === 0) return null;
+                            const selectedStreamIds = streamSelectionsByClass[classId] || activeStreams.map(stream => stream.id);
+                            const allSelected = selectedStreamIds.length === activeStreams.length;
+
+                            return (
+                              <div
+                                key={`stream-scope-${classId}`}
+                                id={`classStreams_${classId}`}
+                                tabIndex={-1}
+                                className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                              >
+                                <div className="flex items-center justify-between gap-3 mb-2.5">
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-800">{selectedClass?.name}</p>
+                                    <p className="text-xs text-slate-500">{selectedStreamIds.length} of {activeStreams.length} streams</p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    onClick={() => {
+                                      setStreamSelectionsByClass(previous => ({
+                                        ...previous,
+                                        [classId]: allSelected ? [] : activeStreams.map(stream => stream.id),
+                                      }));
+                                      examFormValidation.handleFieldChange(`classStreams_${classId}`);
+                                    }}
+                                  >
+                                    {allSelected ? 'Clear all' : 'Select all'}
+                                  </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  {activeStreams.map(stream => {
+                                    const checked = selectedStreamIds.includes(stream.id);
+                                    const pupilCount = pupils.filter(pupil => pupil.classId === classId && pupil.status === 'Active' && pupil.streamId === stream.id).length;
+                                    return (
+                                      <label key={stream.id} className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 cursor-pointer hover:border-indigo-300">
+                                        <span className="flex items-center gap-2.5">
+                                          <Checkbox
+                                            checked={checked}
+                                            onCheckedChange={(value) => {
+                                              setStreamSelectionsByClass(previous => {
+                                                const current = previous[classId] || activeStreams.map(item => item.id);
+                                                return {
+                                                  ...previous,
+                                                  [classId]: value
+                                                    ? Array.from(new Set([...current, stream.id]))
+                                                    : current.filter(streamId => streamId !== stream.id),
+                                                };
+                                              });
+                                              examFormValidation.handleFieldChange(`classStreams_${classId}`);
+                                            }}
+                                          />
+                                          <span className="text-sm font-medium text-slate-700">{stream.name} <span className="text-slate-400">({stream.code})</span></span>
+                                        </span>
+                                        <Badge variant="secondary" className="font-normal">{pupilCount} pupils</Badge>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                <FieldError error={examFormValidation.getFieldError(`classStreams_${classId}`)} />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {!isAddingSet && pupilsLoading && (
                       <div className="flex items-center p-2.5 mb-2 bg-blue-50 rounded-lg border border-blue-100">
                         <Loader2 className="h-4 w-4 animate-spin mr-2 text-blue-500" />
@@ -3817,7 +3991,7 @@ export default function ExamsPage() {
                                 <div className="bg-slate-100 px-3 py-2 border-b border-slate-200 flex items-center justify-between">
                                   <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
                                   {!pupilsLoading && (() => {
-                                    const activePupilsInClass = pupils.filter(p => p.classId === classId && p.status === 'Active');
+                                    const activePupilsInClass = getScopedActivePupils(classId);
                                     const excludedCount = (excludedPupilIds[classId] || []).length;
                                     return (
                                       <button
@@ -3895,7 +4069,7 @@ export default function ExamsPage() {
                           </div>
                           {!pupilsLoading && selectedClassIdsForm.length === 1 && (() => {
                             const cId = selectedClassIdsForm[0];
-                            const activePupilsInClass = pupils.filter(p => p.classId === cId && p.status === 'Active');
+                            const activePupilsInClass = getScopedActivePupils(cId);
                             const excludedCount = (excludedPupilIds[cId] || []).length;
                             return (
                               <button
@@ -3967,7 +4141,7 @@ export default function ExamsPage() {
                           <Camera className="h-3.5 w-3.5" />
                           <span>View Snapshot</span>
                           {(excludedPupilIds[selectedClassIdsForm[0]] || []).length > 0 && (() => {
-                            const activePupilsInClass = pupils.filter(p => p.classId === selectedClassIdsForm[0] && p.status === 'Active');
+                            const activePupilsInClass = getScopedActivePupils(selectedClassIdsForm[0]);
                             const excl = (excludedPupilIds[selectedClassIdsForm[0]] || []).length;
                             return <span className="ml-1 bg-white/30 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{activePupilsInClass.length - excl}/{activePupilsInClass.length}</span>;
                           })()}
@@ -4065,7 +4239,7 @@ export default function ExamsPage() {
                   <Users className="h-4 w-4" />
                   Pupils
                   {(() => {
-                    const activePupils = pupils.filter(p => p.classId === snapshotPreviewClassId && p.status === 'Active');
+                    const activePupils = getScopedActivePupils(snapshotPreviewClassId);
                     const excluded = excludedPupilIds[snapshotPreviewClassId] || [];
                     return (
                       <span className={`ml-1 text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -4104,8 +4278,7 @@ export default function ExamsPage() {
 
                 {/* ---- PUPILS TAB ---- */}
                 {snapshotPreviewTab === 'pupils' && (() => {
-                  const activePupilsInClass = pupils
-                    .filter(p => p.classId === snapshotPreviewClassId && p.status === 'Active')
+                  const activePupilsInClass = getScopedActivePupils(snapshotPreviewClassId)
                     .sort((a, b) => formatPupilDisplayName(a).localeCompare(formatPupilDisplayName(b)));
                   const excluded = excludedPupilIds[snapshotPreviewClassId] || [];
                   const includedCount = activePupilsInClass.length - excluded.length;

@@ -127,6 +127,12 @@ export type PromotionHistoryEntry = {
   processedBy?: string;
   academicYearId?: string; // For graduation tracking
   graduationYear?: number; // For graduation entries
+  fromStreamId?: string;
+  fromStreamName?: string;
+  fromStreamCode?: string;
+  toStreamId?: string;
+  toStreamName?: string;
+  toStreamCode?: string;
 };
 
 // Promotion Batch Types (for tracking bulk promotions/demotions)
@@ -166,6 +172,9 @@ export type PupilAcademicYearHistoryEntry = {
   classId?: string;
   className?: string;
   classCode?: string;
+  streamId?: string;
+  streamName?: string;
+  streamCode?: string;
   startDate: string;
   endDate: string;
   status?: PupilStatus;
@@ -260,6 +269,14 @@ export interface Pupil {
   classId: string;
   className?: string; // Denormalized for easier display
   classCode?: string; // Denormalized
+  /** Current class-stream assignment. The base class remains identified by classId. */
+  streamId?: string;
+  streamName?: string;
+  streamCode?: string;
+  streamClassId?: string;
+  streamAcademicYearId?: string;
+  streamAssignedAt?: string;
+  streamAssignedBy?: string;
   photo?: string; // URL or base64 string
   section: 'Day' | 'Boarding' | '';
   status: PupilStatus;
@@ -359,6 +376,25 @@ export type SubjectAssignment = {
   teacherId?: string; // Legacy support for older DB records
 };
 
+export type ClassStream = {
+  id: string;
+  name: string;
+  code: string;
+  createdAt: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
+export type ClassStreamConfiguration = {
+  academicYearId: string;
+  activeStreamIds: string[];
+  enabled: boolean;
+  version: number;
+  configuredAt: string;
+  configuredBy?: string;
+};
+
 export type Class = {
   id: string;
   name: string;
@@ -371,6 +407,9 @@ export type Class = {
   assistantClassCaptainId?: string;
   subjectAssignments: SubjectAssignment[];
   subjects?: Subject[];
+  /** Stream definitions are inert until a yearly configuration is enabled. */
+  streams?: ClassStream[];
+  streamConfigurations?: ClassStreamConfiguration[];
   createdAt: string;
 };
 
@@ -538,6 +577,7 @@ export interface Exam {
   assessmentMode?: ExamAssessmentMode;
 
   classId: string;
+  streamScope?: ExamStreamScope;
   subjectIds?: string[];
 
   academicYearId?: string;
@@ -562,6 +602,19 @@ export interface Exam {
 export type CreateExamData = Omit<Exam, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateExamData = Partial<Omit<Exam, 'id' | 'createdAt'>>;
 
+export interface ExamStreamSnapshot {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface ExamStreamScope {
+  mode: 'all' | 'selected';
+  streamIds: string[];
+  streams: ExamStreamSnapshot[];
+  academicYearId?: string;
+}
+
 // Fee Structure types
 export type CreateFeeStructureData = Omit<FeeStructure, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateFeeStructureData = Partial<Omit<FeeStructure, 'id' | 'createdAt'>>;
@@ -580,6 +633,9 @@ export interface ExamRecordPupilInfo {
   admissionNumber: string;
   classNameAtExam: string;
   classCodeAtExam?: string;
+  streamIdAtExam?: string;
+  streamNameAtExam?: string;
+  streamCodeAtExam?: string;
   ageAtExam?: number;
   dateOfBirth?: string; // Add date of birth for age calculation
   section?: 'Day' | 'Boarding' | '';
@@ -616,6 +672,7 @@ export interface ExamClassInfoSnapshot {
   level?: ClassLevel;
   classTeacherId?: string;
   classTeacherName?: string;
+  streamScope?: ExamStreamScope;
   subjectsTaught: Array<{
     subjectId: string;
     subjectName: string;
@@ -627,6 +684,9 @@ export interface ExamClassInfoSnapshot {
     pupilId: string;
     name: string;
     admissionNumber: string;
+    streamId?: string;
+    streamName?: string;
+    streamCode?: string;
   }>;
 }
 
@@ -2201,6 +2261,9 @@ export interface PupilTermSnapshot {
 
   // Core snapshot data - these are the key fields that get locked when terms end
   classId: string;
+  streamId?: string;
+  streamName?: string;
+  streamCode?: string;
   section: string;
   admissionNumber: string;  // NEW: Preserve admission number as it was during the term
   dateOfBirth?: string;     // NEW: Preserve date of birth (in case it gets corrected later)

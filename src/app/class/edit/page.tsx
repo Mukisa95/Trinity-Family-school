@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowLeft, Save, School, Users, Book, Crown, Award, GraduationCap, Loader2, Sparkles, Info, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, School, Users, Book, Crown, Award, GraduationCap, Loader2, Sparkles, Info, ChevronDown, GitBranch, Plus, Trash2, LockKeyhole } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import type { Class, ClassLevel, Staff, Subject, SubjectAssignment } from "@/types";
+import type { Class, ClassLevel, ClassStream, Staff, Subject, SubjectAssignment } from "@/types";
 import { CLASS_LEVELS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useClassDetail } from "@/lib/hooks/use-class-detail";
@@ -31,6 +31,7 @@ import { useUpdateClass } from "@/lib/hooks/use-classes";
 import { useStaff } from "@/lib/hooks/use-staff";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { usePupils } from "@/lib/hooks/use-pupils";
+import { assertUniqueStreams, normaliseStreamValue } from "@/lib/utils/class-streams";
 
 function EditClassContent() {
   const router = useRouter();
@@ -72,6 +73,8 @@ function EditClassContent() {
   const [selectedSubjectIds, setSelectedSubjectIds] = React.useState<string[]>([]);
   const [subjectTeacherAssignments, setSubjectTeacherAssignments] = React.useState<Record<string, string[]>>({});
   const [expandedSubjects, setExpandedSubjects] = React.useState<Set<string>>(new Set());
+  const [streams, setStreams] = React.useState<ClassStream[]>([]);
+  const [streamError, setStreamError] = React.useState("");
 
   // Initialize form when class data loads
   React.useEffect(() => {
@@ -83,6 +86,7 @@ function EditClassContent() {
       setClassTeacherId(classDetail.classTeacherId);
       setClassCaptainId(classDetail.classCaptainId || "");
       setAssistantClassCaptainId(classDetail.assistantClassCaptainId || "");
+      setStreams(classDetail.streams || []);
 
       const initialAssignments: Record<string, string[]> = {};
       const initialSelectedSubjects: string[] = [];
@@ -100,6 +104,45 @@ function EditClassContent() {
       setSubjectTeacherAssignments(initialAssignments);
     }
   }, [classDetail]);
+
+  const assignedStreamIds = React.useMemo(
+    () => new Set(
+      pupils
+        .filter(pupil => pupil.classId === classId && pupil.streamId)
+        .map(pupil => pupil.streamId as string),
+    ),
+    [classId, pupils],
+  );
+
+  const addStream = () => {
+    setStreamError("");
+    setStreams(current => [
+      ...current,
+      {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `stream-${Date.now()}-${current.length}`,
+        name: '',
+        code: '',
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+  };
+
+  const updateStream = (streamId: string, field: 'name' | 'code', value: string) => {
+    setStreamError("");
+    setStreams(current => current.map(stream => (
+      stream.id === streamId
+        ? { ...stream, [field]: value, updatedAt: new Date().toISOString() }
+        : stream
+    )));
+  };
+
+  const removeStream = (streamId: string) => {
+    if (assignedStreamIds.has(streamId)) return;
+    setStreamError("");
+    setStreams(current => current.filter(stream => stream.id !== streamId));
+  };
 
   const handleSubjectToggle = (subjectId: string) => {
     const isSelected = selectedSubjectIds.includes(subjectId);
@@ -157,6 +200,20 @@ function EditClassContent() {
       return;
     }
 
+    try {
+      assertUniqueStreams(streams);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Check the stream names and codes.';
+      setStreamError(message);
+      requestAnimationFrame(() => {
+        const summary = document.getElementById('stream-error-summary');
+        summary?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        summary?.focus();
+      });
+      toast({ variant: "destructive", title: "Check Class Streams", description: message });
+      return;
+    }
+
     const teacher = teachingStaff.find(s => s.id === classTeacherId);
     const classTeacherName = teacher ? `${teacher.firstName} ${teacher.lastName}` : undefined;
 
@@ -175,6 +232,11 @@ function EditClassContent() {
       classCaptainId: classCaptainId || undefined,
       assistantClassCaptainId: assistantClassCaptainId || undefined,
       subjectAssignments: finalSubjectAssignments,
+      streams: streams.map(stream => ({
+        ...stream,
+        name: normaliseStreamValue(stream.name),
+        code: normaliseStreamValue(stream.code).toUpperCase(),
+      })),
     };
 
     try {
@@ -695,6 +757,117 @@ function EditClassContent() {
               })}
             </div>
           </ScrollArea>
+        </CardContent>
+      </Card>
+
+      <Card id="class-streams-card" className="overflow-hidden rounded-2xl border-2 border-cyan-200/80 shadow-lg">
+        <CardHeader className="border-b border-cyan-100 bg-gradient-to-r from-cyan-50 via-sky-50 to-indigo-50">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-cyan-600 p-2 text-white shadow-sm">
+                <GitBranch className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Class Streams</CardTitle>
+                <CardDescription className="mt-1 max-w-2xl">
+                  Create stream names and codes here. They remain inactive and do not change any pupil until assignments are completed from Class Details.
+                </CardDescription>
+              </div>
+            </div>
+            <Button type="button" variant="outline" onClick={addStream} className="h-11 shrink-0 border-cyan-300 bg-white text-cyan-800 hover:bg-cyan-50">
+              <Plus className="mr-2 h-4 w-4" /> Add Stream
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          {streamError ? (
+            <Alert id="stream-error-summary" variant="destructive" role="alert" tabIndex={-1}>
+              <AlertDescription>{streamError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {streams.length === 0 ? (
+            <button
+              type="button"
+              onClick={addStream}
+              className="flex min-h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-cyan-200 bg-cyan-50/40 px-4 text-center transition-colors hover:border-cyan-400 hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+            >
+              <GitBranch className="mb-2 h-6 w-6 text-cyan-600" />
+              <span className="font-semibold text-cyan-950">No streams created</span>
+              <span className="mt-1 text-sm text-cyan-800">Add the first stream without affecting the current pupil roster.</span>
+            </button>
+          ) : (
+            <div className="space-y-3">
+              {streams.map((stream, index) => {
+                const isAssigned = assignedStreamIds.has(stream.id);
+                return (
+                  <div key={stream.id} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-[2rem_1fr_12rem_3rem] sm:items-end">
+                    <div className="flex h-10 w-8 items-center justify-center rounded-lg bg-cyan-50 text-sm font-bold text-cyan-800" aria-hidden="true">
+                      {index + 1}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`stream-name-${stream.id}`}>Stream name</Label>
+                      <Input
+                        id={`stream-name-${stream.id}`}
+                        value={stream.name}
+                        onChange={event => updateStream(stream.id, 'name', event.target.value)}
+                        placeholder="e.g., East"
+                        disabled={isAssigned}
+                        aria-invalid={Boolean(streamError)}
+                        aria-describedby={[
+                          isAssigned ? `stream-lock-${stream.id}` : '',
+                          streamError ? 'stream-error-summary' : '',
+                        ].filter(Boolean).join(' ') || undefined}
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`stream-code-${stream.id}`}>Stream code</Label>
+                      <Input
+                        id={`stream-code-${stream.id}`}
+                        value={stream.code}
+                        onChange={event => updateStream(stream.id, 'code', event.target.value.toUpperCase())}
+                        placeholder="e.g., E"
+                        maxLength={12}
+                        disabled={isAssigned}
+                        aria-invalid={Boolean(streamError)}
+                        aria-describedby={[
+                          isAssigned ? `stream-lock-${stream.id}` : '',
+                          streamError ? 'stream-error-summary' : '',
+                        ].filter(Boolean).join(' ') || undefined}
+                        className="h-11"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeStream(stream.id)}
+                      disabled={isAssigned}
+                      aria-label={isAssigned ? `${stream.name || 'Stream'} is assigned and cannot be removed` : `Remove ${stream.name || 'stream'}`}
+                      className="h-11 w-11 border-rose-200 text-rose-700 hover:bg-rose-50"
+                    >
+                      {isAssigned ? <LockKeyhole className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                    {isAssigned ? (
+                      <p id={`stream-lock-${stream.id}`} className="text-xs text-slate-500 sm:col-start-2 sm:col-span-3">
+                        This stream is already assigned to pupils. Its identity is locked to protect current and historical records.
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {streams.length > 0 ? (
+            <Alert className="border-cyan-200 bg-cyan-50/70">
+              <Info className="h-4 w-4 text-cyan-700" />
+              <AlertDescription className="text-cyan-950">
+                Saving creates only the stream definitions. Open <strong>Stream Setup</strong> from Class Details when you are ready to assign pupils.
+              </AlertDescription>
+            </Alert>
+          ) : null}
         </CardContent>
       </Card>
 

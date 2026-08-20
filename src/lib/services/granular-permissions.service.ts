@@ -114,6 +114,7 @@ export class GranularPermissionService {
       'create_structure', 'edit_structure', 'record_payment', 'collect_fees',
       'create_exam', 'edit_exam', 'create_staff', 'edit_staff', 'create_class',
       'edit_class', 'assign_teachers', 'assign_subjects',
+      'manage_streams',
       // Timetable edit actions
       'edit_timetable', 'manage_periods'
     ];

@@ -53,7 +53,8 @@ import {
   Check,
   FileText,
   List,
-  Grid3X3
+  Grid3X3,
+  GitBranch
 } from 'lucide-react';
 import {
   ModernDialog,
@@ -71,6 +72,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { PupilRequirementsModal } from "@/components/class/pupil-requirements-modal";
 import { ClassRequirementsOverviewModal } from "@/components/class/class-requirements-overview-modal";
+import { getActiveClassStreams } from '@/lib/utils/class-streams';
 
 // Searchable Pupil Selector Component
 function SearchablePupilSelector({
@@ -441,10 +443,10 @@ function PupilCard({
                 {pupil.firstName} {pupil.lastName}
               </Link>
               {classDetail?.classCaptainId === pupil.id && (
-                <Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Class Captain" />
+                <span title="Class Captain"><Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" /></span>
               )}
               {classDetail?.assistantClassCaptainId === pupil.id && (
-                <Award className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Assistant Class Captain" />
+                <span title="Assistant Class Captain"><Award className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" /></span>
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -535,10 +537,10 @@ function PupilListRow({
                 {pupil.firstName} {pupil.lastName}
               </Link>
               {classDetail?.classCaptainId === pupil.id && (
-                <Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Class Captain" />
+                <span title="Class Captain"><Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" /></span>
               )}
               {classDetail?.assistantClassCaptainId === pupil.id && (
-                <Award className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" title="Assistant Class Captain" />
+                <span title="Assistant Class Captain"><Award className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" /></span>
               )}
             </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -568,6 +570,62 @@ function PupilListRow({
         )}
       </td>
     </tr>
+  );
+}
+
+function PupilRosterTable({
+  pupils,
+  classDetail,
+  photosLoading,
+  onOpenRequirements,
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  pupils: Pupil[];
+  classDetail: Class;
+  photosLoading: boolean;
+  onOpenRequirements: (pupilId: string) => void;
+  sortBy: 'name' | 'section' | 'gender' | 'age';
+  sortOrder: 'asc' | 'desc';
+  onSort: (field: 'name' | 'section' | 'gender' | 'age') => void;
+}) {
+  const header = (field: 'name' | 'section' | 'gender' | 'age', label: string) => (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className="flex items-center gap-1 rounded-lg px-2 py-1 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <span>{label}</span>
+      {sortBy === field ? <span className="font-bold text-primary">{sortOrder === 'asc' ? '↑' : '↓'}</span> : null}
+    </button>
+  );
+
+  return (
+    <table className="w-full text-sm">
+      <thead className="sticky top-0 z-10 border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 backdrop-blur-sm">
+        <tr>
+          <th className="w-1/2 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('name', 'Pupil Details')}</th>
+          <th className="w-20 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('section', 'Section')}</th>
+          <th className="w-16 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('gender', 'Gender')}</th>
+          <th className="w-12 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">{header('age', 'Age')}</th>
+          <th className="w-24 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+            <span className="flex items-center gap-1 px-2 py-1"><FileText className="h-3 w-3" /> Requirements</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-border/30">
+        {pupils.map(pupil => (
+          <PupilListRow
+            key={pupil.id}
+            pupil={pupil}
+            classDetail={classDetail}
+            isLoadingPhoto={photosLoading && !pupil.photo}
+            onOpenRequirements={onOpenRequirements}
+          />
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -981,6 +1039,32 @@ function ClassDetailContent() {
     });
   }, [sortedPupils, filters]);
 
+  const handlePupilSort = React.useCallback((field: 'name' | 'section' | 'gender' | 'age') => {
+    if (sortBy === field) setSortOrder(current => current === 'asc' ? 'desc' : 'asc');
+    else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  }, [sortBy]);
+
+  const pupilStreamGroups = React.useMemo(() => {
+    const configuredStreams = getActiveClassStreams(classDetail, activeAcademicYear?.id);
+    if (!configuredStreams.length) {
+      return [{ id: 'all', name: '', code: '', pupils: filteredPupils, isUnassigned: false }];
+    }
+    const configuredIds = new Set(configuredStreams.map(stream => stream.id));
+    const groups = configuredStreams.map(stream => ({
+      id: stream.id,
+      name: stream.name,
+      code: stream.code,
+      pupils: filteredPupils.filter(pupil => pupil.streamId === stream.id && (!pupil.streamClassId || pupil.streamClassId === classDetail?.id)),
+      isUnassigned: false,
+    }));
+    const unassigned = filteredPupils.filter(pupil => !pupil.streamId || !configuredIds.has(pupil.streamId) || (pupil.streamClassId && pupil.streamClassId !== classDetail?.id));
+    if (unassigned.length) groups.push({ id: 'unassigned', name: 'Unassigned', code: '', pupils: unassigned, isUnassigned: true });
+    return groups.filter(group => group.pupils.length > 0);
+  }, [activeAcademicYear?.id, classDetail, filteredPupils]);
+
   // Count pending pupils in this class
   const pendingPupilsCount = React.useMemo(() => {
     if (!pupilsInClassWithPhotos.length || !classId) return 0;
@@ -1145,6 +1229,13 @@ function ClassDetailContent() {
                 href={`/classes/pending?classId=${classDetail.id}`}
               />
             )}
+            <GlassActionButton
+              label="Streams"
+              icon={<GitBranch className="h-4 w-4" />}
+              tone="slate"
+              href={`/classes/${classDetail.id}/streams`}
+              aria-label="Open Stream Setup"
+            />
             <GlassActionButton
               label={viewMode === 'tiles' ? "List" : "Tiles"}
               icon={viewMode === 'tiles' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
@@ -1454,7 +1545,7 @@ function ClassDetailContent() {
         )}>
           <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm">
             <CardContent className="p-0">
-              {pupilsInClass.length === 0 && pupilsLoading ? (
+              {pupilsInClass.length === 0 && allPupilsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
                   <span className="text-sm text-muted-foreground">Loading pupils...</span>
@@ -1479,103 +1570,20 @@ function ClassDetailContent() {
                   {/* Desktop List View - Show on large screens when viewMode is list */}
                   {viewMode === 'list' && (
                     <div className="hidden lg:block">
-                      <div className="overflow-x-auto max-h-[calc(100vh-13.5rem)]">
-                        <table className="w-full text-sm">
-                          <thead className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/30 sticky top-0 z-10 backdrop-blur-sm">
-                            <tr>
-                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-1/2">
-                                <button
-                                  onClick={() => {
-                                    if (sortBy === 'name') {
-                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                    } else {
-                                      setSortBy('name');
-                                      setSortOrder('asc');
-                                    }
-                                  }}
-                                  className="flex items-center space-x-2 hover:text-primary transition-all duration-200 hover:scale-105 rounded-lg px-2 py-1 hover:bg-primary/10"
-                                >
-                                  <span>Pupil Details</span>
-                                  <div className="w-1 h-1 bg-primary/40 rounded-full"></div>
-                                  {sortBy === 'name' && (
-                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                                  )}
-                                </button>
-                              </th>
-                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-20">
-                                <button
-                                  onClick={() => {
-                                    if (sortBy === 'section') {
-                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                    } else {
-                                      setSortBy('section');
-                                      setSortOrder('asc');
-                                    }
-                                  }}
-                                  className="hover:text-primary transition-all duration-200 hover:scale-105 flex items-center space-x-1 rounded-lg px-2 py-1 hover:bg-primary/10"
-                                >
-                                  <span>Section</span>
-                                  {sortBy === 'section' && (
-                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                                  )}
-                                </button>
-                              </th>
-                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-16">
-                                <button
-                                  onClick={() => {
-                                    if (sortBy === 'gender') {
-                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                    } else {
-                                      setSortBy('gender');
-                                      setSortOrder('asc');
-                                    }
-                                  }}
-                                  className="hover:text-primary transition-all duration-200 hover:scale-105 flex items-center space-x-1 rounded-lg px-2 py-1 hover:bg-primary/10"
-                                >
-                                  <span>Gender</span>
-                                  {sortBy === 'gender' && (
-                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                                  )}
-                                </button>
-                              </th>
-                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-12">
-                                <button
-                                  onClick={() => {
-                                    if (sortBy === 'age') {
-                                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                                    } else {
-                                      setSortBy('age');
-                                      setSortOrder('asc');
-                                    }
-                                  }}
-                                  className="hover:text-primary transition-all duration-200 hover:scale-105 flex items-center space-x-1 rounded-lg px-2 py-1 hover:bg-primary/10"
-                                >
-                                  <span>Age</span>
-                                  {sortBy === 'age' && (
-                                    <span className="text-primary font-bold">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-                                  )}
-                                </button>
-                              </th>
-                              <th className="px-3 py-3 text-left font-semibold text-xs text-foreground uppercase tracking-wider w-24">
-                                <span className="flex items-center space-x-1 rounded-lg px-2 py-1">
-                                  <FileText className="w-3 h-3" />
-                                  <span>Requirements</span>
-                                </span>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border/30">
-                            {filteredPupils.map((pupil) => (
-                              <PupilListRow
-                                key={pupil.id}
-                                pupil={pupil}
-                                classDetail={classDetail}
-                                isLoadingPhoto={photosLoading && !pupil.photo}
-                                onOpenRequirements={handleOpenRequirements}
-                              />
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="max-h-[calc(100vh-13.5rem)] space-y-4 overflow-y-auto p-3">
+                        {pupilStreamGroups.map(group => (
+                          <section key={group.id} className={`overflow-hidden rounded-xl border ${group.isUnassigned ? 'border-amber-300 bg-amber-50/30' : 'border-cyan-200 bg-white'}`}>
+                            {group.name ? (
+                              <div className={`flex items-center justify-between border-b px-4 py-2 ${group.isUnassigned ? 'border-amber-200 bg-amber-100/70 text-amber-950' : 'border-cyan-200 bg-cyan-50 text-cyan-950'}`}>
+                                <div className="flex items-center gap-2"><GitBranch className="h-4 w-4" /><h3 className="font-bold">{group.name}{group.code ? ` (${group.code})` : ''}</h3></div>
+                                <Badge variant="outline" className="bg-white tabular-nums">{group.pupils.length} pupils</Badge>
+                              </div>
+                            ) : null}
+                            <div className="overflow-x-auto">
+                              <PupilRosterTable pupils={group.pupils} classDetail={classDetail} photosLoading={photosLoading} onOpenRequirements={handleOpenRequirements} sortBy={sortBy} sortOrder={sortOrder} onSort={handlePupilSort} />
+                            </div>
+                          </section>
+                        ))}
                       </div>
                       {/* Enhanced footer with better organization */}
                       <div className="px-3 py-3 bg-gradient-to-r from-primary/10 via-primary/5 to-muted/10 border-t-2 border-primary/20 backdrop-blur-sm rounded-b-lg">
@@ -1608,17 +1616,20 @@ function ClassDetailContent() {
 
                   {/* Tiles View - Show on small screens OR when viewMode is tiles on large screens */}
                   {(viewMode === 'tiles' || window.innerWidth < 1024) && (
-                    <div className="p-4 lg:p-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredPupils.map((pupil) => (
-                          <PupilCard
-                            key={pupil.id}
-                            pupil={pupil}
-                            classDetail={classDetail}
-                            isLoadingPhoto={photosLoading && !pupil.photo}
-                          />
-                        ))}
-                      </div>
+                    <div className="space-y-5 p-4 lg:p-6">
+                      {pupilStreamGroups.map(group => (
+                        <section key={group.id} className="space-y-3">
+                          {group.name ? (
+                            <div className={`flex items-center justify-between rounded-xl border px-3 py-2 ${group.isUnassigned ? 'border-amber-300 bg-amber-50 text-amber-950' : 'border-cyan-200 bg-cyan-50 text-cyan-950'}`}>
+                              <div className="flex items-center gap-2"><GitBranch className="h-4 w-4" /><h3 className="font-bold">{group.name}{group.code ? ` (${group.code})` : ''}</h3></div>
+                              <Badge variant="outline" className="bg-white">{group.pupils.length}</Badge>
+                            </div>
+                          ) : null}
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {group.pupils.map(pupil => <PupilCard key={pupil.id} pupil={pupil} classDetail={classDetail} isLoadingPhoto={photosLoading && !pupil.photo} />)}
+                          </div>
+                        </section>
+                      ))}
                     </div>
                   )}
                 </>
