@@ -1054,7 +1054,11 @@ const PrintAssessmentOptionsDialog = ({
   );
 };
 
-export default function ViewResultsView() {
+interface ViewResultsViewProps {
+  analysisMode?: boolean;
+}
+
+export default function ViewResultsView({ analysisMode = false }: ViewResultsViewProps) {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1084,7 +1088,6 @@ export default function ViewResultsView() {
     division: 'all'
   });
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [showAnalysis, setShowAnalysis] = useState(false);
   const [selectedPupilIdForPopup, setSelectedPupilIdForPopup] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showProgressiveExamModal, setShowProgressiveExamModal] = useState(false);
@@ -3994,6 +3997,21 @@ export default function ViewResultsView() {
 
   const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
 
+  if (analysisMode) {
+    const resultsHref = `/exams/${examId}/view-results${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`;
+    return (
+      <PerformanceAnalysisPage
+        processedResults={processedResults}
+        subjectSnaps={subjectSnaps || []}
+        examDetails={examDetails}
+        className={classSnap?.code || classSnap?.name || 'Class'}
+        academicYearName={academicInfo.academicYearName}
+        termName={academicInfo.termName}
+        resultsHref={resultsHref}
+      />
+    );
+  }
+
   return (
     <div
       className={`min-h-screen transition-[transform,opacity] duration-200 ease-out motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none ${isSwitchingExam ? 'pointer-events-none opacity-70' : 'opacity-100'}`}
@@ -4111,7 +4129,7 @@ export default function ViewResultsView() {
                   label="Analysis"
                   icon={<TrendingUp className="h-4 w-4" />}
                   tone="purple"
-                  onClick={() => setShowAnalysis(true)}
+                  href={`/exams/${examId}/view-results/analysis${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`}
                 />
               )}
             </GlassActionDock>
@@ -5571,15 +5589,6 @@ export default function ViewResultsView() {
         </DialogContent>
       </Dialog>
 
-      {/* Performance Analysis Modal */}
-      <PerformanceAnalysisModal
-        isOpen={showAnalysis}
-        onClose={() => setShowAnalysis(false)}
-        processedResults={processedResults}
-        subjectSnaps={subjectSnaps || []}
-        examDetails={examDetails}
-      />
-
       {/* Individual Pupil Performance Popup */}
       <Dialog open={!!selectedPupilIdForPopup} onOpenChange={(open) => !open && setSelectedPupilIdForPopup(null)}>
         <DialogContent className="max-w-md rounded-2xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 p-6 backdrop-blur-sm shadow-2xl">
@@ -5711,16 +5720,26 @@ export default function ViewResultsView() {
   );
 }
 
-// Performance Analysis Modal Component
-interface PerformanceAnalysisModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  processedResults: any[];
+// Full-page performance analysis view
+interface PerformanceAnalysisPageProps {
+  processedResults: PupilResultData[];
   subjectSnaps: any[];
   examDetails: any;
+  className: string;
+  academicYearName: string;
+  termName: string;
+  resultsHref: string;
 }
 
-function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSnaps, examDetails }: PerformanceAnalysisModalProps) {
+function PerformanceAnalysisPage({
+  processedResults,
+  subjectSnaps,
+  examDetails,
+  className,
+  academicYearName,
+  termName,
+  resultsHref,
+}: PerformanceAnalysisPageProps) {
   const [expandedDivisions, setExpandedDivisions] = useState<string[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
@@ -5841,28 +5860,21 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
     return 'bg-red-100 text-red-800 border-red-300';
   };
 
-  if (!isOpen) return null;
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Performance Analysis
-              </DialogTitle>
-              <DialogDescription className="text-base mt-1">
-                {examDetails?.name} - Comprehensive Performance Insights
-              </DialogDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </DialogHeader>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-purple-50/50">
+      <GlassPageTopBar
+        title="Performance Analysis"
+        subtitle={`${examDetails?.name || 'Exam'} | ${className} | ${academicYearName} - ${termName}`}
+        backHref={resultsHref}
+        className="mb-2"
+        meta={
+          <span className="rounded-full border border-purple-200/70 bg-purple-50/90 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+            {processedResults.length} pupils
+          </span>
+        }
+      />
 
-        <div className="space-y-4 mt-2">
+      <main className="mx-auto max-w-7xl space-y-4 px-3 pb-8 sm:px-4 lg:px-6">
           {/* Overall Statistics Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -5899,19 +5911,23 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Top Performer */}
               <Card className="bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border border-amber-300">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-yellow-600" />
-                      <div>
-                        <p className="text-xs font-medium text-amber-700">Top Performer</p>
-                        <p className="text-sm font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
-                        <p className="text-xs text-amber-600">{overallStats.topPerformer.pupilInfo?.admissionNumber}</p>
-                      </div>
+                <CardContent className="p-2.5 sm:p-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 ring-1 ring-amber-200">
+                      <Trophy className="h-5 w-5 text-yellow-600" aria-hidden="true" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-amber-900">{overallStats.topPerformer.totalMarks}</p>
-                      <p className="text-xs text-amber-700">marks</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <p className="shrink-0 text-xs font-medium text-amber-700">Top Performer</p>
+                        <p className="truncate text-sm font-bold text-amber-900">{overallStats.topPerformer.pupilInfo?.name}</p>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold tabular-nums text-amber-900">
+                        <span>{overallStats.topPerformer.totalMarks} marks</span>
+                        <span aria-hidden="true" className="text-amber-400">•</span>
+                        <span>Agg {overallStats.topPerformer.totalAggregates}</span>
+                        <span aria-hidden="true" className="text-amber-400">•</span>
+                        <span>Div {overallStats.topPerformer.division}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -5919,19 +5935,23 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
 
               {/* Worst Performer */}
               <Card className="bg-gradient-to-r from-red-50 via-pink-50 to-gray-50 border border-red-300">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingDown className="h-5 w-5 text-red-600" />
-                      <div>
-                        <p className="text-xs font-medium text-red-700">Worst Performer</p>
-                        <p className="text-sm font-bold text-red-900">{overallStats.worstPerformer.pupilInfo?.name}</p>
-                        <p className="text-xs text-red-600">{overallStats.worstPerformer.pupilInfo?.admissionNumber}</p>
-                      </div>
+                <CardContent className="p-2.5 sm:p-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 ring-1 ring-red-200">
+                      <TrendingDown className="h-5 w-5 text-red-600" aria-hidden="true" />
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-red-900">{overallStats.worstPerformer.totalMarks}</p>
-                      <p className="text-xs text-red-700">marks</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <p className="shrink-0 text-xs font-medium text-red-700">Worst Performer</p>
+                        <p className="truncate text-sm font-bold text-red-900">{overallStats.worstPerformer.pupilInfo?.name}</p>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold tabular-nums text-red-900">
+                        <span>{overallStats.worstPerformer.totalMarks} marks</span>
+                        <span aria-hidden="true" className="text-red-400">•</span>
+                        <span>Agg {overallStats.worstPerformer.totalAggregates}</span>
+                        <span aria-hidden="true" className="text-red-400">•</span>
+                        <span>Div {overallStats.worstPerformer.division}</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -5940,51 +5960,57 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
           )}
 
           {/* Division Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <Card className="overflow-hidden border-purple-200/80 bg-white/90 shadow-sm">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg">
                 <PieChart className="h-5 w-5 text-purple-600" />
                 Class Division Breakdown
               </CardTitle>
-              <CardDescription>Performance distribution by division</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Performance distribution by division</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Division Cards - Dynamic Width */}
-                <div className="flex flex-wrap gap-3">
-                  {divisionAnalysis.map((div) => (
+            <CardContent className="p-3 pt-1 sm:p-4 sm:pt-1">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                {divisionAnalysis.map((div) => {
+                  const isExpanded = expandedDivisions.includes(div.division);
+                  return (
                     <div
                       key={div.division}
-                      className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 flex-1 min-w-[200px] max-w-[300px]"
+                      className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none ${
+                        isExpanded
+                          ? 'border-purple-300 shadow-md'
+                          : 'border-slate-200 shadow-sm hover:border-purple-200 hover:shadow-md'
+                      }`}
                     >
-                      <div
-                        className="cursor-pointer hover:shadow-md transition-all p-3"
+                      <button
+                        type="button"
+                        className="relative flex h-11 w-full cursor-pointer items-center overflow-hidden bg-slate-100 px-3 text-left outline-none transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset"
                         onClick={() => {
                           setExpandedDivisions(prev =>
-                            prev.includes(div.division)
+                            isExpanded
                               ? prev.filter(d => d !== div.division)
                               : [...prev, div.division]
                           );
                         }}
+                        aria-expanded={isExpanded}
+                        aria-label={`Division ${div.division}: ${div.count} pupils, ${div.percentage} percent. ${isExpanded ? 'Collapse pupil details' : 'Expand pupil details'}.`}
                       >
-                        <div className="text-center">
-                          <Badge className={`${getDivisionColor(div.division)} px-3 py-1 text-sm font-bold mb-2 w-full`}>
+                        <span
+                          className={`absolute inset-y-0 left-0 ${getDivisionColor(div.division)}`}
+                          style={{ width: `${div.percentage}%` }}
+                          aria-hidden="true"
+                        />
+                        <span className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/35 to-white/90" aria-hidden="true" />
+                        <span className="relative flex w-full items-center justify-between gap-2">
+                          <span className="rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-xs font-black text-slate-900 shadow-sm">
                             Div {div.division}
-                          </Badge>
-                          <div className="text-xl font-bold text-gray-900">{div.count}</div>
-                          <div className="text-xs text-gray-500 mb-2">pupils</div>
-                          <div className="text-sm font-semibold text-gray-700">{div.percentage}%</div>
-                          <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
-                            <div
-                              className={`h-1 rounded-full ${getDivisionColor(div.division)}`}
-                              style={{ width: `${div.percentage}%` }}
-                            />
-                          </div>
-                          {expandedDivisions.includes(div.division) ? <ChevronUp className="h-4 w-4 mx-auto mt-2" /> : <ChevronDown className="h-4 w-4 mx-auto mt-2" />}
-                        </div>
-                      </div>
+                          </span>
+                          <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-slate-800">
+                            <strong className="text-sm text-slate-950">{div.count}</strong> pupils · {div.percentage}%
+                          </span>
+                        </span>
+                      </button>
 
-                      {expandedDivisions.includes(div.division) && (
+                      {isExpanded && (
                         <div className="p-2 border-t border-purple-200 bg-white">
                           <div className="space-y-1">
                             {(() => {
@@ -6028,51 +6054,62 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
           {/* Subject-wise Grade Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <Card className="overflow-hidden border-blue-200/80 bg-white/90 shadow-sm">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900 sm:text-lg">
                 <BarChart3 className="h-5 w-5 text-blue-600" />
                 Subject Performance Analysis
               </CardTitle>
-              <CardDescription>Performance analysis sorted by average marks (best to worst)</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Performance analysis sorted by average marks (best to worst)</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <CardContent className="p-3 pt-1 sm:p-4 sm:pt-1">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {subjectGradeAnalysis
                   .sort((a, b) => parseFloat(b.averageMarks) - parseFloat(a.averageMarks))
-                  .map((subject) => (
-                    <div key={subject.code} className="border border-gray-200 rounded-lg p-3 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all">
+                  .map((subject) => {
+                    const isExpanded = expandedSubjects.includes(subject.code);
+                    return (
                       <div
-                        className="cursor-pointer"
-                        onClick={() => {
-                          setExpandedSubjects(prev =>
-                            prev.includes(subject.code)
-                              ? prev.filter(s => s !== subject.code)
-                              : [...prev, subject.code]
-                          );
-                        }}
+                        key={subject.code}
+                        className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none ${
+                          isExpanded
+                            ? 'border-blue-300 shadow-md'
+                            : 'border-slate-200 shadow-sm hover:border-blue-200 hover:shadow-md'
+                        }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-bold text-gray-900">{subject.subject}</div>
-                          {expandedSubjects.includes(subject.code) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </div>
-                        <p className="text-xs text-gray-500">{subject.code}</p>
-                        <div className="mt-2 text-center">
-                          <p className="text-2xl font-bold text-blue-900">{subject.averageMarks}</p>
-                          <p className="text-xs text-gray-500">avg marks</p>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1 text-center">{subject.totalPupils} pupils</p>
-                      </div>
+                        <button
+                          type="button"
+                          className="flex h-11 w-full cursor-pointer items-center justify-between gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 px-3 text-left outline-none transition-colors hover:from-blue-100 hover:to-indigo-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                          onClick={() => {
+                            setExpandedSubjects(prev =>
+                              isExpanded
+                                ? prev.filter(s => s !== subject.code)
+                                : [...prev, subject.code]
+                            );
+                          }}
+                          aria-expanded={isExpanded}
+                          aria-label={`${subject.subject}, code ${subject.code}: average ${subject.averageMarks} marks across ${subject.totalPupils} pupils. ${isExpanded ? 'Collapse grade details' : 'Expand grade details'}.`}
+                        >
+                          <span className="rounded-md border border-blue-200 bg-white/90 px-2 py-1 text-xs font-black text-blue-950 shadow-sm">
+                            {subject.code}
+                          </span>
+                          <span className="ml-auto whitespace-nowrap text-xs font-semibold tabular-nums text-slate-700">
+                            <strong className="text-sm text-blue-950">{subject.averageMarks}</strong> avg · {subject.totalPupils} pupils
+                          </span>
+                          {isExpanded
+                            ? <ChevronUp className="h-4 w-4 shrink-0 text-blue-700" aria-hidden="true" />
+                            : <ChevronDown className="h-4 w-4 shrink-0 text-blue-700" aria-hidden="true" />}
+                        </button>
 
-                      {expandedSubjects.includes(subject.code) && (
-                        <div className="mt-2 pt-2 border-t border-blue-200">
+                        {isExpanded && (
+                          <div className="border-t border-blue-200 bg-blue-50/30 p-2">
                           <div className="space-y-3">
                             {subject.gradeDistribution.map((gradeData) => {
                               const gradeKey = `${subject.code}-${gradeData.grade}`;
@@ -6129,21 +6166,15 @@ function PerformanceAnalysisModal({ isOpen, onClose, processedResults, subjectSn
                               );
                             })}
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        <DialogFooter className="mt-6">
-          <Button onClick={onClose} className="bg-purple-600 hover:bg-purple-700">
-            Close Analysis
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </main>
+    </div>
   );
-} 
+}
