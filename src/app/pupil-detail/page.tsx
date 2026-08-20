@@ -88,6 +88,7 @@ import { DatePicker } from '@/components/common/date-picker';
 import { format } from 'date-fns';
 import PLEResultsCard from '@/components/ple/PLEResultsCard';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { usePrint } from '@/lib/contexts/print-context';
@@ -495,10 +496,11 @@ function PupilDetailContent() {
   const pupilWithClass = React.useMemo(() => {
     if (!pupil) return null;
     const classData = classes.find(c => c.id === pupil.classId);
+    const classDisplay = getPupilClassDisplay(pupil, classData);
     return {
       ...pupil,
-      className: classData?.name || pupil.className,
-      classCode: classData?.code || pupil.classCode,
+      className: classDisplay.name,
+      classCode: classDisplay.code,
     };
   }, [pupil, classes]);
 

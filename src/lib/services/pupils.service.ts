@@ -31,6 +31,7 @@ import {
   reservePupilsRevisionRangeInTransaction,
 } from './dashboard-cache-revisions.service';
 import { normalisePupils } from '../cache/pupil-cache';
+import { applyPupilClassIdentity } from '../utils/class-streams';
 import { shouldDeletePhotoForStatusTransition } from '../pupil-photo-retention';
 
 const COLLECTION_NAME = 'pupils';
@@ -46,6 +47,7 @@ export type PupilCacheChange = {
 
 export type PupilUpdateResult = {
   photoDeleted: boolean;
+  streamCleared: boolean;
 };
 
 export type PupilPerformanceStatus = NonNullable<Pupil['performanceStatus']>;
@@ -218,8 +220,7 @@ export class PupilsService {
         if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
           if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+            applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           } else {
             console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${pupil.firstName} ${pupil.lastName}`);
@@ -353,7 +354,7 @@ export class PupilsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = this.cleanUndefinedValues(updateData);
 
-      const { originalPupil, photoDeleted } = await runTransaction(db, async transaction => {
+      const { originalPupil, photoDeleted, streamCleared } = await runTransaction(db, async transaction => {
         const original = await transaction.get(docRef);
         if (!original.exists()) throw new Error(`Pupil ${id} was not found.`);
         const originalData = original.data();
@@ -362,9 +363,26 @@ export class PupilsService {
           previousPupil.status,
           pupilData.status,
         ) && Object.prototype.hasOwnProperty.call(originalData, 'photo');
-        const transactionUpdate = deletePhoto
-          ? { ...cleanedData, photo: deleteField() }
-          : cleanedData;
+        const classChanged = typeof pupilData.classId === 'string' && pupilData.classId !== previousPupil.classId;
+        const targetStreamWasExplicitlyProvided = Boolean(
+          pupilData.streamId &&
+          pupilData.streamClassId &&
+          pupilData.streamClassId === pupilData.classId,
+        );
+        const clearStream = classChanged && !targetStreamWasExplicitlyProvided;
+        const transactionUpdate = {
+          ...cleanedData,
+          ...(deletePhoto && { photo: deleteField() }),
+          ...(clearStream && {
+            streamId: deleteField(),
+            streamName: deleteField(),
+            streamCode: deleteField(),
+            streamClassId: deleteField(),
+            streamAcademicYearId: deleteField(),
+            streamAssignedAt: deleteField(),
+            streamAssignedBy: deleteField(),
+          }),
+        };
         const revision = await reservePupilsRevisionInTransaction(transaction);
         transaction.update(docRef, transactionUpdate);
         transaction.set(doc(db, CACHE_CHANGES_COLLECTION, String(revision).padStart(16, '0')), {
@@ -373,7 +391,7 @@ export class PupilsService {
           operation: 'upsert',
           changedAt: Timestamp.now(),
         });
-        return { originalPupil: previousPupil, photoDeleted: deletePhoto };
+        return { originalPupil: previousPupil, photoDeleted: deletePhoto, streamCleared: clearStream };
       });
       const changedFields = Object.keys(cleanedData)
         .filter(key => key !== 'syncUpdatedAt' && key !== 'updatedAt');
@@ -415,7 +433,7 @@ export class PupilsService {
           console.warn('Cache invalidation failed for pupil update:', cacheError);
         }
       }
-      return { photoDeleted };
+      return { photoDeleted, streamCleared };
     } catch (error) {
       console.error('Error updating pupil:', error);
       throw error;
@@ -681,8 +699,7 @@ export class PupilsService {
         if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
           if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+            applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           } else {
             console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${pupil.firstName} ${pupil.lastName}`);
@@ -838,8 +855,7 @@ export class PupilsService {
             try {
               const classData = await ClassesService.getById(pupil.classId);
               if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
+                applyPupilClassIdentity(pupil, classData);
               }
             } catch (classError) {
               console.warn('Error fetching class data for pupil:', classError);
@@ -900,8 +916,7 @@ export class PupilsService {
         try {
           const classData = await ClassesService.getById(pupilData.classId);
           if (classData) {
-            pupilData.className = classData.name;
-            pupilData.classCode = classData.code;
+            applyPupilClassIdentity(pupilData, classData);
           }
         } catch (classError) {
           console.warn('Error fetching class data for pupil:', classError);
@@ -965,8 +980,7 @@ export class PupilsService {
       pupils.forEach(pupil => {
         if (pupil.classId && classesMap.has(pupil.classId)) {
           const classData = classesMap.get(pupil.classId)!;
-          pupil.className = classData.name;
-          pupil.classCode = classData.code;
+          applyPupilClassIdentity(pupil, classData as any);
         }
       });
 
@@ -1007,8 +1021,7 @@ export class PupilsService {
         if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
           if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+            applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           }
         }
@@ -1063,8 +1076,7 @@ export class PupilsService {
         if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
           if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+            applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           }
         }
@@ -1102,8 +1114,7 @@ export class PupilsService {
             try {
               const classData = await ClassesService.getById(pupil.classId);
               if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
+                applyPupilClassIdentity(pupil, classData);
               }
             } catch (classError) {
               console.warn('Error fetching class data for pupil:', classError);
@@ -1152,8 +1163,7 @@ export class PupilsService {
           if (classData) {
             // All pupils are from the same class, so populate all at once
             pupils.forEach(pupil => {
-              pupil.className = classData.name;
-              pupil.classCode = classData.code;
+              applyPupilClassIdentity(pupil, classData);
             });
             const endTime = performance.now();
             console.log(`✅ BATCH POPULATION: Populated ${pupils.length} pupils with class data in ${(endTime - startTime).toFixed(2)}ms`);
@@ -1202,8 +1212,7 @@ export class PupilsService {
             try {
               const classData = await ClassesService.getById(pupil.classId);
               if (classData) {
-                pupil.className = classData.name;
-                pupil.classCode = classData.code;
+                applyPupilClassIdentity(pupil, classData);
               }
             } catch (classError) {
               console.warn('Error fetching class data for pupil:', classError);
@@ -1259,8 +1268,7 @@ export class PupilsService {
         if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
           if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+            applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           }
         }
@@ -1323,8 +1331,7 @@ export class PupilsService {
         if (pupil.classId) {
           const classData = classesMap.get(pupil.classId);
           if (classData) {
-            pupil.className = classData.name;
-            pupil.classCode = classData.code;
+            applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           }
         }
@@ -1388,8 +1395,7 @@ export class PupilsService {
           if (pupil.classId) {
             const classData = classesMap.get(pupil.classId);
             if (classData) {
-              pupil.className = classData.name;
-              pupil.classCode = classData.code;
+              applyPupilClassIdentity(pupil, classData);
             }
           }
         });

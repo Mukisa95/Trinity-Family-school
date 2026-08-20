@@ -133,6 +133,7 @@ import {
   isNurseryCommentary,
   NURSERY_COMMENTARY_OPTIONS,
 } from '@/lib/exam-assessment';
+import { filterExamPupilsByStream } from '@/lib/utils/class-streams';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -1071,6 +1072,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   // Keep results switching in-place rather than remounting this page through navigation.
   const routeExamId = params.examId as string;
   const routeClassId = searchParams.get('classId');
+  const routeStreamId = searchParams.get('streamId');
   const [examId, setExamId] = useState(routeExamId);
   const [classId, setClassId] = useState<string | null>(routeClassId);
   const [isSwitchingExam, setIsSwitchingExam] = useState(false);
@@ -1093,6 +1095,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   const [showProgressiveExamModal, setShowProgressiveExamModal] = useState(false);
   const [selectedProgressiveExam, setSelectedProgressiveExam] = useState<string | null>(null);
   const [progressiveExams, setProgressiveExams] = useState<any[]>([]);
+  const [streamChooserOpen, setStreamChooserOpen] = useState(false);
 
   // Results release state
   const [selectedPupils, setSelectedPupils] = useState<string[]>([]);
@@ -1141,12 +1144,13 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     setShowPrintModal(true);
     setHasHandledAutoOpenPrint(true);
 
-    const nextUrl = classId
-      ? `/exams/${examId}/view-results?classId=${classId}`
-      : `/exams/${examId}/view-results`;
+    const nextParams = new URLSearchParams();
+    if (classId) nextParams.set('classId', classId);
+    if (routeStreamId) nextParams.set('streamId', routeStreamId);
+    const nextUrl = `/exams/${examId}/view-results${nextParams.size > 0 ? `?${nextParams.toString()}` : ''}`;
 
     router.replace(nextUrl);
-  }, [shouldAutoOpenPrint, hasHandledAutoOpenPrint, classId, examId, router]);
+  }, [shouldAutoOpenPrint, hasHandledAutoOpenPrint, classId, examId, routeStreamId, router]);
 
   // TRANS report type selection state
   const [showTransTypeModal, setShowTransTypeModal] = useState(false);
@@ -1333,7 +1337,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   }, [examDetails?.id, examId, examResultData?.examId, isSwitchingExam]);
 
   // Enhance pupil snapshots with dateOfBirth from actual pupils data
-  const pupilSnaps = useMemo(() => {
+  const allPupilSnaps = useMemo(() => {
     const snaps = examResultData?.pupilSnapshots || [];
     return snaps.map(snap => {
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
@@ -1345,6 +1349,37 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       };
     });
   }, [examResultData, allPupils]);
+
+  const examStreams = useMemo(
+    () => examDetails?.streamScope?.streams || classSnap?.streamScope?.streams || [],
+    [classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
+  );
+  const selectedStreamId = useMemo(() => {
+    if (routeStreamId === 'all') return 'all';
+    if (routeStreamId && examStreams.some(stream => stream.id === routeStreamId)) return routeStreamId;
+    return examStreams.length === 1 ? examStreams[0].id : 'all';
+  }, [examStreams, routeStreamId]);
+  const pupilSnaps = useMemo(
+    () => filterExamPupilsByStream(allPupilSnaps, selectedStreamId),
+    [allPupilSnaps, selectedStreamId],
+  );
+
+  useEffect(() => {
+    if (examStreams.length <= 1) {
+      setStreamChooserOpen(false);
+      return;
+    }
+    const routeIsValid = routeStreamId === 'all' || examStreams.some(stream => stream.id === routeStreamId);
+    setStreamChooserOpen(!routeIsValid);
+  }, [examId, examStreams, routeStreamId]);
+
+  const selectStreamScope = useCallback((streamId: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set('streamId', streamId);
+    if (classId || examDetails?.classId) nextParams.set('classId', classId || examDetails!.classId);
+    router.replace(`/exams/${examId}/view-results?${nextParams.toString()}`);
+    setStreamChooserOpen(false);
+  }, [classId, examDetails, examId, router, searchParams]);
 
   // Clean subject names to remove any trailing '&' from database
   const subjectSnaps = useMemo(() => {
@@ -3998,7 +4033,10 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
 
   if (analysisMode) {
-    const resultsHref = `/exams/${examId}/view-results${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`;
+    const resultsParams = new URLSearchParams();
+    if (classId) resultsParams.set('classId', classId);
+    resultsParams.set('streamId', selectedStreamId);
+    const resultsHref = `/exams/${examId}/view-results?${resultsParams.toString()}`;
     return (
       <PerformanceAnalysisPage
         processedResults={processedResults}
@@ -4025,15 +4063,55 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       }}
       aria-busy={isSwitchingExam}
     >
+        <Dialog
+          open={streamChooserOpen}
+          onOpenChange={setStreamChooserOpen}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Choose results to view</DialogTitle>
+              <DialogDescription>
+                This exam includes more than one stream. Load one stream or combine all streams in the same results view.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2 py-2">
+              <Button type="button" variant="outline" className="h-11 justify-between" onClick={() => selectStreamScope('all')}>
+                <span>All streams</span>
+                <Badge variant="secondary">{allPupilSnaps.length} pupils</Badge>
+              </Button>
+              {examStreams.map(stream => {
+                const count = filterExamPupilsByStream(allPupilSnaps, stream.id).length;
+                return (
+                  <Button key={stream.id} type="button" variant="outline" className="h-11 justify-between" onClick={() => selectStreamScope(stream.id)}>
+                    <span>{stream.name} <span className="text-muted-foreground">({stream.code})</span></span>
+                    <Badge variant="secondary">{count} pupils</Badge>
+                  </Button>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <GlassPageTopBar
           title={examDetails?.name || 'Loading...'}
           subtitle={`${classSnap?.code || classSnap?.name || 'Loading...'} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
           backHref="/exams"
           className="mb-1.5"
           meta={
-            <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-              {filteredAndSortedResults.length} of {processedResults.length} pupils
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                {filteredAndSortedResults.length} of {processedResults.length} pupils
+              </span>
+              {examStreams.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStreamChooserOpen(true)}
+                  className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
+                >
+                  {selectedStreamId === 'all' ? 'All streams' : examStreams.find(stream => stream.id === selectedStreamId)?.name}
+                </button>
+              )}
+            </div>
           }
           center={
             <GlassPageSearchInput
@@ -4097,7 +4175,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 label="Edit"
                 icon={<Edit3 className="h-4 w-4" />}
                 tone="orange"
-                href={`/exams/${examId}/record-results?classId=${classId}`}
+                href={`/exams/${examId}/record-results?classId=${classId}&streamId=${selectedStreamId}`}
               />
               <GlassActionButton
                 label={viewMode === 'table' ? 'Cards' : 'Table'}
@@ -4129,7 +4207,10 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                   label="Analysis"
                   icon={<TrendingUp className="h-4 w-4" />}
                   tone="purple"
-                  href={`/exams/${examId}/view-results/analysis${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`}
+                  href={`/exams/${examId}/view-results/analysis?${new URLSearchParams({
+                    ...(classId ? { classId } : {}),
+                    streamId: selectedStreamId,
+                  }).toString()}`}
                 />
               )}
             </GlassActionDock>

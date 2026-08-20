@@ -66,6 +66,7 @@ import {
   NURSERY_COMMENTARY_OPTIONS,
   type NurseryCommentary,
 } from '@/lib/exam-assessment';
+import { filterExamPupilsByStream } from '@/lib/utils/class-streams';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -408,6 +409,7 @@ export default function RecordResultsView() {
 
   const routeExamId = params?.examId as string;
   const routeClassId = searchParams?.get('classId');
+  const routeStreamId = searchParams?.get('streamId');
   const [examId, setExamId] = useState(routeExamId);
   const [classId, setClassId] = useState<string | null>(routeClassId);
   const [isSwitchingExam, setIsSwitchingExam] = useState(false);
@@ -426,6 +428,7 @@ export default function RecordResultsView() {
   const [overrideSaveDialogOpen, setOverrideSaveDialogOpen] = useState(false);
   const [overrideSaveAcknowledged, setOverrideSaveAcknowledged] = useState(false);
   const [remoteUpdateWhileEditing, setRemoteUpdateWhileEditing] = useState(false);
+  const [streamChooserOpen, setStreamChooserOpen] = useState(false);
   const localDraftDirtyRef = useRef(false);
   
   const [gradingScaleItems, setGradingScaleItems] = useState<GradingScaleItem[]>(
@@ -581,7 +584,7 @@ export default function RecordResultsView() {
   );
   
   // Enhance pupil snapshots with dateOfBirth from actual pupils data
-  const pupilSnaps = useMemo(() => {
+  const allPupilSnaps = useMemo(() => {
     const snaps = examResultData?.pupilSnapshots || [];
     return snaps.map(snap => {
       // Find the actual pupil to get their dateOfBirth if not in snapshot
@@ -593,6 +596,37 @@ export default function RecordResultsView() {
       };
     });
   }, [examResultData, allPupils]);
+
+  const examStreams = useMemo(
+    () => examDetails?.streamScope?.streams || classSnap?.streamScope?.streams || [],
+    [classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
+  );
+  const selectedStreamId = useMemo(() => {
+    if (routeStreamId === 'all') return 'all';
+    if (routeStreamId && examStreams.some(stream => stream.id === routeStreamId)) return routeStreamId;
+    return examStreams.length === 1 ? examStreams[0].id : 'all';
+  }, [examStreams, routeStreamId]);
+  const pupilSnaps = useMemo(
+    () => filterExamPupilsByStream(allPupilSnaps, selectedStreamId),
+    [allPupilSnaps, selectedStreamId],
+  );
+
+  useEffect(() => {
+    if (examStreams.length <= 1) {
+      setStreamChooserOpen(false);
+      return;
+    }
+    const routeIsValid = routeStreamId === 'all' || examStreams.some(stream => stream.id === routeStreamId);
+    setStreamChooserOpen(!routeIsValid);
+  }, [examId, examStreams, routeStreamId]);
+
+  const selectStreamScope = useCallback((streamId: string) => {
+    const nextParams = new URLSearchParams(searchParams?.toString() || '');
+    nextParams.set('streamId', streamId);
+    if (classId || examDetails?.classId) nextParams.set('classId', classId || examDetails!.classId);
+    router.replace(`/exams/${examId}/record-results?${nextParams.toString()}`);
+    setStreamChooserOpen(false);
+  }, [classId, examDetails, examId, router, searchParams]);
   
   // Clean subject names to remove any trailing '&' from database
   const subjectSnaps = useMemo(() => {
@@ -943,7 +977,9 @@ export default function RecordResultsView() {
     }
     setIsSubmitting(true);
     try {
-      const updatedResultsPayload: Record<string, Record<string, PupilSubjectResult>> = {};
+      const updatedResultsPayload: Record<string, Record<string, PupilSubjectResult>> = {
+        ...(examResultData.results || {}),
+      };
       pupilSnaps.forEach(pupil => {
         updatedResultsPayload[pupil.pupilId] = {};
         subjectSnaps.forEach(subjectSnapshot => {
@@ -1015,9 +1051,9 @@ export default function RecordResultsView() {
   const viewResultsHref = useMemo(() => {
     const targetClassId = classId || examDetails?.classId;
     return examId && targetClassId
-      ? `/exams/${examId}/view-results?classId=${targetClassId}`
+      ? `/exams/${examId}/view-results?classId=${targetClassId}&streamId=${selectedStreamId}`
       : null;
-  }, [classId, examDetails?.classId, examId]);
+  }, [classId, examDetails?.classId, examId, selectedStreamId]);
 
   const performExamSwitch = useCallback((targetExamId: string, targetClassId: string) => {
     if (targetExamId === examId) return;
@@ -1723,6 +1759,35 @@ export default function RecordResultsView() {
       }}
       aria-busy={isSwitchingExam}
     >
+      <Dialog
+        open={streamChooserOpen}
+        onOpenChange={setStreamChooserOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose pupils to record</DialogTitle>
+            <DialogDescription>
+              This exam includes more than one stream. Load one stream for focused entry, or load all streams together.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <Button type="button" variant="outline" className="h-11 justify-between" onClick={() => selectStreamScope('all')}>
+              <span>All streams</span>
+              <Badge variant="secondary">{allPupilSnaps.length} pupils</Badge>
+            </Button>
+            {examStreams.map(stream => {
+              const count = filterExamPupilsByStream(allPupilSnaps, stream.id).length;
+              return (
+                <Button key={stream.id} type="button" variant="outline" className="h-11 justify-between" onClick={() => selectStreamScope(stream.id)}>
+                  <span>{stream.name} <span className="text-muted-foreground">({stream.code})</span></span>
+                  <Badge variant="secondary">{count} pupils</Badge>
+                </Button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <GlassPageTopBar
           title={examDetails?.name || getHeaderContent().title}
           subtitle={`${classSnap?.code || classSnap?.name || 'N/A'} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
@@ -1747,6 +1812,14 @@ export default function RecordResultsView() {
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
             Unsaved changes
           </span>
+        ) : examStreams.length > 1 ? (
+          <button
+            type="button"
+            onClick={() => setStreamChooserOpen(true)}
+            className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
+          >
+            {selectedStreamId === 'all' ? 'All streams' : examStreams.find(stream => stream.id === selectedStreamId)?.name}
+          </button>
         ) : undefined}
         center={
           <GlassPageSearchInput

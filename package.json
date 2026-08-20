@@ -40,6 +40,7 @@
     "test:payroll-accounting": "node --import tsx --test tests/payroll-accounting.test.ts",
     "test:payroll-contract": "node scripts/check-payroll-contract.js",
     "test:form-validation": "node --import tsx --test tests/form-validation.test.ts",
+    "test:class-streams": "node --import tsx --test tests/class-streams.test.ts",
     "test:form-validation-contract": "node scripts/check-form-validation-contract.js",
     "test:remark-report-comments": "node --import tsx --test tests/subject-comment-availability.test.ts",
     "test:firebase-usage-contract": "node scripts/check-firebase-usage-contract.js",

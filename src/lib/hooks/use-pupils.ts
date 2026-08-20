@@ -581,12 +581,24 @@ export function useUpdatePupil() {
       const existingPupil = detailSnapshot || listSnapshot?.find(pupil => pupil.id === id);
 
       if (existingPupil) {
-        patchPupilQueryCaches(queryClient, {
+        const optimisticPupil = {
           ...existingPupil,
           ...data,
           id,
           updatedAt: new Date().toISOString(),
-        } as Pupil);
+        } as Pupil;
+        const classChanged = typeof data.classId === 'string' && data.classId !== existingPupil.classId;
+        const targetStreamWasExplicitlyProvided = Boolean(data.streamId && data.streamClassId === data.classId);
+        if (classChanged && !targetStreamWasExplicitlyProvided) {
+          delete optimisticPupil.streamId;
+          delete optimisticPupil.streamName;
+          delete optimisticPupil.streamCode;
+          delete optimisticPupil.streamClassId;
+          delete optimisticPupil.streamAcademicYearId;
+          delete optimisticPupil.streamAssignedAt;
+          delete optimisticPupil.streamAssignedBy;
+        }
+        patchPupilQueryCaches(queryClient, optimisticPupil);
       }
 
       return { snapshots, detailSnapshot };
@@ -608,13 +620,23 @@ export function useUpdatePupil() {
         queryClient.getQueryData<Pupil[]>(pupilsKeys.lists())?.find(pupil => pupil.id === id);
 
       if (existingPupil) {
-        patchPupilQueryCaches(queryClient, {
+        const updatedPupil = {
           ...existingPupil,
           ...data,
           ...(result.photoDeleted && { photo: '' }),
           id,
           updatedAt: new Date().toISOString(),
-        } as Pupil);
+        } as Pupil;
+        if (result.streamCleared) {
+          delete updatedPupil.streamId;
+          delete updatedPupil.streamName;
+          delete updatedPupil.streamCode;
+          delete updatedPupil.streamClassId;
+          delete updatedPupil.streamAcademicYearId;
+          delete updatedPupil.streamAssignedAt;
+          delete updatedPupil.streamAssignedBy;
+        }
+        patchPupilQueryCaches(queryClient, updatedPupil);
       }
     },
   });

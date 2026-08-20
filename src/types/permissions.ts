@@ -302,6 +302,7 @@ export const MODULE_ACTIONS = {
           { id: 'view_details', name: 'View details', description: 'Can view class details' },
           { id: 'view_pupils', name: 'View pupils', description: 'Can see pupils in class' },
           { id: 'manage_subjects', name: 'Manage subjects', description: 'Can manage class subjects' },
+          { id: 'manage_streams', name: 'Manage streams', description: 'Can configure streams and assign pupils' },
           { id: 'view_statistics', name: 'View statistics', description: 'Can view class statistics' }
         ]
       }
@@ -806,7 +807,7 @@ const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'pupils', pageId: 'enrollment_trends', pattern: /^\/enrollment-trends\/class\/[^/]+$/ },
   { moduleId: 'promotion', pageId: 'promote', pattern: /^\/pupils\/promotion-history\/[^/]+$/ },
   { moduleId: 'attendance', pageId: 'record', pattern: /^\/attendance\/(record|view|excluded-days)$/ },
-  { moduleId: 'classes', pageId: 'detail', pattern: /^\/(class-detail|class\/edit|classes\/(graduates|history)\/[^/]+|classes\/pending)$/ },
+  { moduleId: 'classes', pageId: 'detail', pattern: /^\/(class-detail|class\/edit|classes\/[^/]+\/streams|classes\/(graduates|history)\/[^/]+|classes\/pending)$/ },
   { moduleId: 'requirements', pageId: 'tracking', pattern: /^\/(class-requirements|requirement-tracking)$/ },
   { moduleId: 'boarding', pageId: 'overview', pattern: /^\/boarding(?:\/list)?$/ },
   { moduleId: 'boarding', pageId: 'dormitories', pattern: /^\/boarding\/dormitory(?:\/[^/]+)?$/ },
