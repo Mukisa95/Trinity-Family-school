@@ -19,6 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { AdditionalIdentifier } from '@/types';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 
 interface AddIdCodeModalProps {
   isOpen: boolean;
@@ -35,7 +37,11 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
   const [idType, setIdType] = useState<IdType | ''>('');
   const [customIdName, setCustomIdName] = useState('');
   const [idValue, setIdValue] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const formValidation = useFormValidation([
+    { id: 'idType', label: 'ID type', value: idType, required: true, message: 'Choose the type of identification code.' },
+    { id: 'customIdName', label: 'Custom ID type', value: customIdName, required: true, active: idType === 'Other', message: 'Enter a name for the custom ID type.' },
+    { id: 'idValue', label: 'ID value', value: idValue, required: true, message: 'Enter the ID value or code.' },
+  ]);
 
   const isEditing = !!existingIdentifier;
 
@@ -57,24 +63,12 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
         setCustomIdName('');
         setIdValue('');
       }
-      setError(null);
+      formValidation.resetValidation();
     }
   }, [isOpen, existingIdentifier]);
 
   const handleSave = () => {
-    setError(null);
-    if (!idType) {
-      setError('Please select an ID type.');
-      return;
-    }
-    if (idType === 'Other' && !customIdName.trim()) {
-      setError('Please enter a name for the custom ID type.');
-      return;
-    }
-    if (!idValue.trim()) {
-      setError('Please enter the ID value/code.');
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     const finalIdType = idType === 'Other' ? customIdName.trim() : idType;
 
@@ -87,7 +81,7 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
   };
   
   const handleModalClose = () => {
-    setError(null);
+    formValidation.resetValidation();
     onClose();
   };
 
@@ -98,15 +92,16 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
           <ModernDialogTitle>{isEditing ? 'Edit ID Code' : 'Add New ID Code'}</ModernDialogTitle>
         </ModernDialogHeader>
         <div className="grid gap-4 py-4">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
           <div className="space-y-2">
-            <Label htmlFor="idType">
-              ID Type
+            <Label htmlFor="idType" className={formValidation.getFieldError('idType') ? 'text-red-700' : undefined}>
+              ID Type <span className="text-red-600">*</span>
             </Label>
             <Select
               value={idType}
-              onValueChange={(value) => setIdType(value as IdType | '')}
+              onValueChange={(value) => { setIdType(value as IdType | ''); formValidation.handleFieldChange('idType'); }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="idType" {...formValidation.getFieldProps('idType')}>
                 <SelectValue placeholder="Select ID type" />
               </SelectTrigger>
               <SelectContent>
@@ -117,36 +112,38 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
                 ))}
               </SelectContent>
             </Select>
+            <FieldError error={formValidation.getFieldError('idType')} />
           </div>
 
           {idType === 'Other' && (
             <div className="space-y-2">
-              <Label htmlFor="customIdName">
-                Custom Type
+              <Label htmlFor="customIdName" className={formValidation.getFieldError('customIdName') ? 'text-red-700' : undefined}>
+                Custom Type <span className="text-red-600">*</span>
               </Label>
               <Input
                 id="customIdName"
                 value={customIdName}
-                onChange={(e) => setCustomIdName(e.target.value.toUpperCase())}
+                onChange={(e) => { setCustomIdName(e.target.value.toUpperCase()); formValidation.handleFieldChange('customIdName'); }}
                 placeholder="e.g., School Specific ID"
+                {...formValidation.getFieldProps('customIdName')}
               />
+              <FieldError error={formValidation.getFieldError('customIdName')} />
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="idValue">
-              ID Value
+            <Label htmlFor="idValue" className={formValidation.getFieldError('idValue') ? 'text-red-700' : undefined}>
+              ID Value <span className="text-red-600">*</span>
             </Label>
             <Input
               id="idValue"
               value={idValue}
-              onChange={(e) => setIdValue(e.target.value.toUpperCase())}
+              onChange={(e) => { setIdValue(e.target.value.toUpperCase()); formValidation.handleFieldChange('idValue'); }}
               placeholder="Enter the ID code/number"
+              {...formValidation.getFieldProps('idValue')}
             />
+            <FieldError error={formValidation.getFieldError('idValue')} />
           </div>
-          {error && (
-            <p className="text-sm text-red-500 text-center">{error}</p>
-          )}
         </div>
         <ModernDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
           <Button variant="outline" onClick={handleModalClose} className="w-full sm:w-auto">Cancel</Button>
@@ -155,4 +152,4 @@ export function AddIdCodeModal({ isOpen, onClose, onSave, existingIdentifier }: 
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

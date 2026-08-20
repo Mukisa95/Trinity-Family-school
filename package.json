@@ -39,6 +39,8 @@
     "test:payroll-schedule": "node --import tsx --test tests/payroll-schedule.test.ts",
     "test:payroll-accounting": "node --import tsx --test tests/payroll-accounting.test.ts",
     "test:payroll-contract": "node scripts/check-payroll-contract.js",
+    "test:form-validation": "node --import tsx --test tests/form-validation.test.ts",
+    "test:form-validation-contract": "node scripts/check-form-validation-contract.js",
     "test:firebase-usage-contract": "node scripts/check-firebase-usage-contract.js",
     "test:firestore-subscriptions": "node --import tsx --test tests/firestore-subscription-registry.test.ts",
     "migrate": "tsx src/scripts/migrate-data.ts",

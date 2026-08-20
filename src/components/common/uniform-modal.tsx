@@ -19,7 +19,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
-import { validateForm, highlightMissingFields, scrollToFirstMissingField, clearFieldHighlights, createFieldValidation } from '@/lib/utils/form-validation';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 import { useSubmissionState } from '@/lib/hooks/use-submission-state';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Shirt } from 'lucide-react';
@@ -76,6 +77,26 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
     description: ''
   });
 
+  const validationFields = React.useMemo(() => [
+    createFieldValidation('name', formData.name, 'Uniform Name', true, { message: 'Enter the uniform name.' }),
+    createFieldValidation('price', formData.price, 'Price', true, {
+      message: 'Enter the uniform price.',
+      validate: (value) => typeof value === 'string' && parseFormattedMoney(value) > 0
+        ? undefined
+        : 'Enter a price greater than zero.',
+    }),
+    createFieldValidation('group', formData.group, 'Uniform Group', true, { message: 'Choose the uniform group.' }),
+    createFieldValidation('classIds', formData.classIds || [], 'Class Selection', true, {
+      active: formData.classType === 'specific',
+      message: 'Choose at least one class.',
+    }),
+    createFieldValidation('section', formData.section, 'Section Selection', true, {
+      active: formData.sectionType === 'specific',
+      message: 'Choose the applicable section.',
+    }),
+  ], [formData]);
+  const formValidation = useFormValidation(validationFields);
+
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
@@ -99,6 +120,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
       ...prev,
       [field]: value
     }));
+    formValidation.handleFieldChange(String(field));
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,52 +135,14 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
         ? [...(prev.classIds || []), classId]
         : (prev.classIds || []).filter(id => id !== classId)
     }));
+    formValidation.handleFieldChange('classIds');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear any previous field highlights
-    const allFieldIds = ['name', 'price', 'group'];
-    clearFieldHighlights(allFieldIds);
-
-    // Define validation fields
-    const validationFields = [
-      createFieldValidation('name', formData.name.trim(), 'Uniform Name', true),
-      createFieldValidation('price', formData.price && parseFormattedMoney(formData.price) > 0 ? formData.price : '', 'Price', true),
-      createFieldValidation('group', formData.group, 'Uniform Group', true),
-    ];
-
-    // Add conditional validation for specific class selection
-    if (formData.classType === 'specific') {
-      validationFields.push(
-        createFieldValidation('classIds', formData.classIds && formData.classIds.length > 0 ? formData.classIds : [], 'Class Selection', true)
-      );
-    }
-
-    // Add conditional validation for specific section selection
-    if (formData.sectionType === 'specific') {
-      validationFields.push(
-        createFieldValidation('section', formData.section, 'Section Selection', true)
-      );
-    }
-
-    // Validate form
-    const validation = validateForm(validationFields);
-    
+    const validation = formValidation.validateAll();
     if (!validation.isValid) {
-      // Highlight missing fields
-      const missingFieldIds = validation.missingFields.map(field => field.id);
-      highlightMissingFields(missingFieldIds);
-      
-      // Scroll to first missing field
-      if (validation.firstMissingFieldId) {
-        scrollToFirstMissingField(validation.firstMissingFieldId);
-      }
-      
-      // Show error alert with specific missing fields
-      const missingFieldNames = validation.missingFields.map(field => field.label).join(', ');
-      alert(`Please fill in the following required fields: ${missingFieldNames}`);
       return;
     }
 
@@ -212,6 +196,11 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+          <FormErrorSummary
+            errors={formValidation.errors}
+            submissionError={formValidation.submissionError}
+            onSelectError={(fieldId) => void formValidation.focusField(fieldId)}
+          />
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             {/* Basic Information */}
             <div className="lg:col-span-1 xl:col-span-2 space-y-3 md:space-y-4">
@@ -222,10 +211,12 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value.toUpperCase())}
+                    {...formValidation.getFieldProps('name')}
                     placeholder="e.g., School Shirt, Tie, Blazer"
                     className="text-sm md:text-base"
                     required
                   />
+                  <FieldError error={formValidation.getFieldError('name')} />
                 </div>
 
                 <div>
@@ -234,17 +225,19 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                     id="price"
                     value={formData.price}
                     onChange={handlePriceChange}
+                    {...formValidation.getFieldProps('price')}
                     placeholder="e.g., 25,000"
                     className="text-sm md:text-base"
                     required
                   />
+                  <FieldError error={formValidation.getFieldError('price')} />
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="group" className="text-xs md:text-sm font-medium">Uniform Group *</Label>
                 <Select value={formData.group} onValueChange={(value) => handleInputChange('group', value)}>
-                  <SelectTrigger id="group" className="text-sm md:text-base">
+                  <SelectTrigger id="group" className="text-sm md:text-base" {...formValidation.getFieldProps('group')}>
                     <SelectValue placeholder="Select uniform group" />
                   </SelectTrigger>
                   <SelectContent>
@@ -255,6 +248,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError error={formValidation.getFieldError('group')} />
               </div>
 
               <div>
@@ -316,7 +310,13 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                 {formData.classType === 'specific' && (
                   <div className="mt-2 md:mt-3">
                     <Label className="text-xs md:text-sm">Select Classes:</Label>
-                    <ScrollArea className="h-24 md:h-32 border rounded-md p-2 md:p-3 mt-1 md:mt-2">
+                    <ScrollArea
+                      id="classIds"
+                      tabIndex={-1}
+                      aria-invalid={Boolean(formValidation.getFieldError('classIds'))}
+                      aria-describedby={formValidation.getFieldError('classIds') ? 'classIds-error' : undefined}
+                      className="h-24 md:h-32 border rounded-md p-2 md:p-3 mt-1 md:mt-2 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200"
+                    >
                       <div className="space-y-1.5 md:space-y-2">
                         {classes.map((cls) => (
                           <div key={cls.id} className="flex items-center space-x-2">
@@ -336,6 +336,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                         ))}
                       </div>
                     </ScrollArea>
+                    <FieldError error={formValidation.getFieldError('classIds')} />
                     {selectedClasses.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {selectedClasses.map((cls) => (
@@ -373,7 +374,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                       value={formData.section} 
                       onValueChange={(value: UniformSection) => handleInputChange('section', value)}
                     >
-                      <SelectTrigger className="text-sm md:text-base">
+                      <SelectTrigger id="section" className="text-sm md:text-base" {...formValidation.getFieldProps('section')}>
                         <SelectValue placeholder="Select section" />
                       </SelectTrigger>
                       <SelectContent>
@@ -381,6 +382,7 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
                         <SelectItem value="Boarding" className="text-sm md:text-base">Boarding Section</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('section')} />
                   </div>
                 )}
               </div>
@@ -404,4 +406,4 @@ export function UniformModal({ isOpen, onClose, onSubmit, initialData, mode }: U
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

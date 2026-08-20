@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Loader2 } from 'lucide-react';
 import { useCreatePrefectoralPost } from '@/lib/hooks/use-duty-service';
-import { useToast } from '@/hooks/use-toast';
 import type { CreatePrefectoralPostData, PositionOfHonour } from '@/types/duty-service';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface CreatePrefectoralPostModalProps {
   trigger?: React.ReactNode;
@@ -25,23 +26,19 @@ export function CreatePrefectoralPostModal({ trigger }: CreatePrefectoralPostMod
     allowance: undefined,
   });
   const createPrefectoralPost = useCreatePrefectoralPost();
-  const { toast } = useToast();
+  const formValidation = useFormValidation([
+    createFieldValidation('postName', formData.postName, 'Post name', true, { message: 'Enter the prefectoral post name.' }),
+    createFieldValidation('positionOfHonour', formData.positionOfHonour, 'Position of honour', true, { message: 'Choose the position of honour.' }),
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.postName) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     try {
       await createPrefectoralPost.mutateAsync({
-        postName: formData.postName,
+        postName: formData.postName!,
         positionOfHonour: formData.positionOfHonour as PositionOfHonour,
         allowance: formData.allowance,
         isActive: true,
@@ -55,6 +52,7 @@ export function CreatePrefectoralPostModal({ trigger }: CreatePrefectoralPostMod
       });
     } catch (error) {
       console.error('Error creating prefectoral post:', error);
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'The post could not be created. Please try again.');
     }
   };
 
@@ -83,26 +81,28 @@ export function CreatePrefectoralPostModal({ trigger }: CreatePrefectoralPostMod
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="postName">Post Name *</Label>
+              <Label htmlFor="postName" className={formValidation.getFieldError('postName') ? 'text-destructive' : undefined}>Post Name *</Label>
               <Input
                 id="postName"
                 value={formData.postName}
-                onChange={(e) => handleInputChange('postName', e.target.value)}
+                onChange={(e) => { handleInputChange('postName', e.target.value); formValidation.handleFieldChange('postName'); }}
+                {...formValidation.getFieldProps('postName')}
                 placeholder="e.g., Head Prefect, Sanitary Prefect"
-                required
               />
+              <FieldError error={formValidation.getFieldError('postName')} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="positionOfHonour">Position of Honour *</Label>
               <Select
                 value={formData.positionOfHonour?.toString()}
-                onValueChange={(value) => handleInputChange('positionOfHonour', parseInt(value))}
+                onValueChange={(value) => { handleInputChange('positionOfHonour', parseInt(value)); formValidation.handleFieldChange('positionOfHonour'); }}
               >
-                <SelectTrigger>
+                <SelectTrigger {...formValidation.getFieldProps('positionOfHonour')}>
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
@@ -113,6 +113,7 @@ export function CreatePrefectoralPostModal({ trigger }: CreatePrefectoralPostMod
                   <SelectItem value="5">5 - Fifth Rank</SelectItem>
                 </SelectContent>
               </Select>
+              <FieldError error={formValidation.getFieldError('positionOfHonour')} />
             </div>
           </div>
 

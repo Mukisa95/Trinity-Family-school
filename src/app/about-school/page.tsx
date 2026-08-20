@@ -28,6 +28,8 @@ import { useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { useTerms } from "@/lib/hooks/use-terms";
 import { useTermStatus } from "@/lib/hooks/use-term-status";
 import { isTermEnded } from "@/lib/utils/academic-year-utils";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
+import { useFormValidation } from "@/lib/utils/form-validation";
 
 // Helper to display N/A for empty values in view mode
 const displayValue = (value: string | undefined | null, prefix = "", suffix = "") => {
@@ -139,9 +141,22 @@ export default function AboutSchoolPage() {
     motto: "",
     themeColor: "#3b82f6",
   });
+  const houseValidation = useFormValidation([
+    { id: 'houseName', label: 'House name', value: houseForm.name, required: true, message: 'Enter the school house name.' },
+    {
+      id: 'houseColorText',
+      focusTargetId: 'houseColorText',
+      label: 'Theme color',
+      value: houseForm.themeColor,
+      required: true,
+      message: 'Enter the house theme color.',
+      validate: value => /^#[0-9A-Fa-f]{6}$/.test(String(value)) ? undefined : 'Enter a valid six-digit HEX color such as #FF0000.',
+    },
+  ]);
   const resetHouseForm = () => {
     setEditingHouse(null);
     setHouseForm({ name: "", motto: "", themeColor: "#3b82f6" });
+    houseValidation.resetValidation();
   };
   const openCreateHouse = () => {
     resetHouseForm();
@@ -446,10 +461,9 @@ export default function AboutSchoolPage() {
       });
       return;
     }
-    
+
     setIsGeneratingIcons(true);
     setIconGenerationResults(null);
-    
     try {
       const formData = new FormData();
       formData.append('icon', appIconFile);
@@ -1169,15 +1183,18 @@ export default function AboutSchoolPage() {
           <DialogHeader>
             <DialogTitle>{editingHouse ? 'Edit House' : 'Create House'}</DialogTitle>
           </DialogHeader>
+          <FormErrorSummary errors={houseValidation.errors} submissionError={houseValidation.submissionError} onSelectError={houseValidation.focusField} />
           <div className="space-y-3">
             <div>
-              <Label htmlFor="houseName">House Name</Label>
+              <Label htmlFor="houseName" className={houseValidation.getFieldError('houseName') ? 'text-red-700' : undefined}>House Name <span className="text-red-600">*</span></Label>
               <Input
                 id="houseName"
                 value={houseForm.name}
-                onChange={(e) => setHouseForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) => { setHouseForm((p) => ({ ...p, name: e.target.value })); houseValidation.handleFieldChange('houseName'); }}
                 placeholder="e.g., Red House"
+                {...houseValidation.getFieldProps('houseName')}
               />
+              <FieldError error={houseValidation.getFieldError('houseName')} />
             </div>
             <div>
               <Label htmlFor="houseMotto">Motto</Label>
@@ -1189,21 +1206,24 @@ export default function AboutSchoolPage() {
               />
             </div>
             <div>
-              <Label htmlFor="houseColor">Theme Color</Label>
+              <Label htmlFor="houseColorText" className={houseValidation.getFieldError('houseColorText') ? 'text-red-700' : undefined}>Theme Color <span className="text-red-600">*</span></Label>
               <div className="flex items-center gap-3">
                 <Input
                   id="houseColor"
                   type="color"
                   value={houseForm.themeColor}
-                  onChange={(e) => setHouseForm((p) => ({ ...p, themeColor: e.target.value }))}
+                  onChange={(e) => { setHouseForm((p) => ({ ...p, themeColor: e.target.value })); houseValidation.handleFieldChange('houseColorText'); }}
                   className="h-10 w-14 p-1"
                 />
                 <Input
+                  id="houseColorText"
                   value={houseForm.themeColor}
-                  onChange={(e) => setHouseForm((p) => ({ ...p, themeColor: e.target.value }))}
+                  onChange={(e) => { setHouseForm((p) => ({ ...p, themeColor: e.target.value })); houseValidation.handleFieldChange('houseColorText'); }}
                   placeholder="#3b82f6"
+                  {...houseValidation.getFieldProps('houseColorText')}
                 />
               </div>
+              <FieldError error={houseValidation.getFieldError('houseColorText')} />
             </div>
           </div>
           <DialogFooter className="justify-end gap-2">
@@ -1213,14 +1233,7 @@ export default function AboutSchoolPage() {
             <Button
               onClick={async () => {
                 try {
-                  if (!houseForm.name.trim()) {
-                    toast({ variant: "destructive", title: "House name is required" });
-                    return;
-                  }
-                  if (!/^#[0-9A-Fa-f]{6}$/.test(houseForm.themeColor)) {
-                    toast({ variant: "destructive", title: "Provide a valid HEX color like #FF0000" });
-                    return;
-                  }
+                  if (!houseValidation.validateAll().isValid) return;
                   if (editingHouse) {
                     await HousesService.update(editingHouse.id, {
                       name: houseForm.name.trim(),
@@ -1240,7 +1253,7 @@ export default function AboutSchoolPage() {
                   resetHouseForm();
                   await loadHouses();
                 } catch (err) {
-                  toast({ variant: "destructive", title: "Failed to save house" });
+                  houseValidation.setSubmissionError("The house could not be saved. Your entries have been preserved.");
                 }
               }}
             >
@@ -1253,5 +1266,3 @@ export default function AboutSchoolPage() {
     </div>
   );
 }
-
-    

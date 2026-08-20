@@ -12,10 +12,11 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useAssignMemberToDuty, useDutyRotas, usePrefectoralPosts, usePostAssignments } from '@/lib/hooks/use-duty-service';
 import { useStaff } from '@/lib/hooks/use-staff';
 import { usePupils } from '@/lib/hooks/use-pupils';
-import { useToast } from '@/hooks/use-toast';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import type { CreateDutyAssignmentData, TeamType } from '@/types/duty-service';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -43,7 +44,15 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
   const { data: prefectoralPosts = [] } = usePrefectoralPosts();
   const { data: postAssignments = [] } = usePostAssignments();
   const assignMemberToDuty = useAssignMemberToDuty();
-  const { toast } = useToast();
+  const formValidation = useFormValidation([
+    createFieldValidation('assignmentRota', formData.rotaId, 'Duty rota', true, { message: 'Choose the duty rota.' }),
+    createFieldValidation('assignmentMember', formData.memberId, 'Member', true, { message: 'Choose the member to assign.' }),
+    createFieldValidation('assignmentStartDate', formData.startDate, 'Start date', true, { message: 'Choose the assignment start date.' }),
+    createFieldValidation('assignmentEndDate', formData.endDate, 'End date', true, {
+      message: 'Choose the assignment end date.',
+      validate: (value) => value && formData.startDate && String(value) < formData.startDate ? 'Choose an end date on or after the start date.' : undefined,
+    }),
+  ]);
 
   // Filter active staff and pupils
   const activeStaff = staff.filter(s => s.status === 'active');
@@ -61,23 +70,16 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.rotaId || !formData.memberId || !formData.startDate || !formData.endDate) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     try {
       await assignMemberToDuty.mutateAsync({
-        rotaId: formData.rotaId,
-        memberId: formData.memberId,
+        rotaId: formData.rotaId!,
+        memberId: formData.memberId!,
         memberType: formData.memberType as TeamType,
         isSupervisor: formData.isSupervisor || false,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        startDate: formData.startDate!,
+        endDate: formData.endDate!,
         isActive: true,
         service: formData.service || undefined,
       });
@@ -94,6 +96,7 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
       });
     } catch (error) {
       console.error('Error assigning member to duty:', error);
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'The member could not be assigned. Please try again.');
     }
   };
 
@@ -122,15 +125,16 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div className="space-y-2">
-            <Label htmlFor="rotaId">Duty Rota *</Label>
+            <Label htmlFor="rotaId" className={formValidation.getFieldError('assignmentRota') ? 'text-destructive' : undefined}>Duty Rota *</Label>
             <Select
               value={formData.rotaId}
-              onValueChange={(value) => handleInputChange('rotaId', value)}
+              onValueChange={(value) => { handleInputChange('rotaId', value); formValidation.handleFieldChange('assignmentRota'); }}
               disabled={!!rotaId}
             >
-              <SelectTrigger>
+              <SelectTrigger {...formValidation.getFieldProps('assignmentRota')}>
                 <SelectValue placeholder="Select duty rota" />
               </SelectTrigger>
               <SelectContent>
@@ -141,6 +145,7 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
                 ))}
               </SelectContent>
             </Select>
+            <FieldError error={formValidation.getFieldError('assignmentRota')} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -166,13 +171,13 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="memberId">Select Member *</Label>
+              <Label htmlFor="memberId" className={formValidation.getFieldError('assignmentMember') ? 'text-destructive' : undefined}>Select Member *</Label>
               <Select
                 value={formData.memberId}
-                onValueChange={(value) => handleInputChange('memberId', value)}
+                onValueChange={(value) => { handleInputChange('memberId', value); formValidation.handleFieldChange('assignmentMember'); }}
                 disabled={!formData.memberType}
               >
-                <SelectTrigger>
+                <SelectTrigger {...formValidation.getFieldProps('assignmentMember')}>
                   <SelectValue placeholder={`Select ${formData.memberType || 'member'}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,27 +202,32 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError error={formValidation.getFieldError('assignmentMember')} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Date *</Label>
+              <Label className={formValidation.getFieldError('assignmentStartDate') ? 'text-destructive' : undefined}>Start Date *</Label>
               <DatePicker
                 date={toDate(formData.startDate)}
-                setDate={(d) => handleInputChange('startDate', toStr(d))}
+                setDate={(d) => { handleInputChange('startDate', toStr(d)); formValidation.handleFieldChange('assignmentStartDate'); }}
+                triggerProps={formValidation.getFieldProps('assignmentStartDate')}
                 placeholder="Pick start date"
                 allowFuture
               />
+              <FieldError error={formValidation.getFieldError('assignmentStartDate')} />
             </div>
             <div className="space-y-2">
-              <Label>End Date *</Label>
+              <Label className={formValidation.getFieldError('assignmentEndDate') ? 'text-destructive' : undefined}>End Date *</Label>
               <DatePicker
                 date={toDate(formData.endDate)}
-                setDate={(d) => handleInputChange('endDate', toStr(d))}
+                setDate={(d) => { handleInputChange('endDate', toStr(d)); formValidation.handleFieldChange('assignmentEndDate'); }}
+                triggerProps={formValidation.getFieldProps('assignmentEndDate')}
                 placeholder="Pick end date"
                 allowFuture
               />
+              <FieldError error={formValidation.getFieldError('assignmentEndDate')} />
             </div>
           </div>
 

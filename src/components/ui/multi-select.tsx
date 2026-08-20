@@ -34,6 +34,7 @@ interface MultiSelectProps {
   className?: string;
   disabled?: boolean;
   maxItems?: number;
+  triggerProps?: Omit<React.ComponentPropsWithoutRef<typeof Button>, 'children' | 'onClick' | 'disabled' | 'variant'>;
 }
 
 export function MultiSelect({
@@ -46,6 +47,7 @@ export function MultiSelect({
   className,
   disabled = false,
   maxItems,
+  triggerProps,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -77,10 +79,11 @@ export function MultiSelect({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            {...triggerProps}
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between h-auto min-h-10 p-2"
+            className={cn("w-full justify-between h-auto min-h-10 p-2", triggerProps?.className)}
             disabled={disabled}
           >
             <div className="flex flex-wrap gap-1 flex-1">

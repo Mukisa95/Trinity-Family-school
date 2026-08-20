@@ -18,6 +18,8 @@ import { useStaff } from "@/lib/hooks/use-staff";
 import type { Class, Dormitory, Pupil, Staff } from "@/types";
 import { Bed, Pencil, Plus, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
+import { useFormValidation } from "@/lib/utils/form-validation";
 
 export default function DormitoriesPage() {
   const qc = useQueryClient();
@@ -63,6 +65,10 @@ export default function DormitoriesPage() {
     patronStaffIds: [],
     inChargePupilIds: [],
   });
+  const formValidation = useFormValidation([
+    { id: 'dormitory-name', label: 'Dormitory name', value: editState.name, required: true, message: 'Enter the dormitory name.' },
+    { id: 'dormitory-gender', label: 'Dormitory gender', value: editState.gender, required: true, message: 'Choose whether this is a boys or girls dormitory.' },
+  ]);
 
   const filteredPupilsForLeaders = useMemo(() => {
     const g = editing?.gender;
@@ -89,21 +95,20 @@ export default function DormitoriesPage() {
       inChargePupilIds: [],
     });
     setEditing(null);
+    formValidation.resetValidation();
   };
 
   const createMutation = useMutation({
     mutationFn: async () => {
       const payload = {
         name: editState.name.trim(),
-        gender: (editState.gender || 'Male') as 'Male' | 'Female',
+        gender: editState.gender as 'Male' | 'Female',
         classIds: editState.classIds,
         bedCapacity: Number(editState.bedCapacity || 0),
         patronStaffIds: editState.patronStaffIds,
         inChargePupilIds: editState.inChargePupilIds,
         assignedPupilIds: [] as string[],
       };
-      if (!payload.name) throw new Error('Name is required');
-      if (!payload.gender) throw new Error('Gender is required');
       if (isNaN(payload.bedCapacity)) throw new Error('Bed capacity must be a number');
       await DormitoriesService.create(payload as any);
     },
@@ -112,6 +117,7 @@ export default function DormitoriesPage() {
       setOpen(false);
       resetForm();
     },
+    onError: (error: Error) => formValidation.setSubmissionError(error.message || 'The dormitory could not be created. Your entries have been preserved.'),
   });
 
   const updateMutation = useMutation({
@@ -119,7 +125,7 @@ export default function DormitoriesPage() {
       if (!editing) return;
       const payload = {
         name: editState.name.trim(),
-        gender: (editState.gender || 'Male') as 'Male' | 'Female',
+        gender: editState.gender as 'Male' | 'Female',
         classIds: editState.classIds,
         bedCapacity: Number(editState.bedCapacity || 0),
         patronStaffIds: editState.patronStaffIds,
@@ -132,6 +138,7 @@ export default function DormitoriesPage() {
       setOpen(false);
       resetForm();
     },
+    onError: (error: Error) => formValidation.setSubmissionError(error.message || 'The dormitory could not be updated. Your entries have been preserved.'),
   });
 
   const removeMutation = useMutation({
@@ -142,6 +149,12 @@ export default function DormitoriesPage() {
   const handleOpenCreate = () => {
     resetForm();
     setOpen(true);
+  };
+
+  const handleSaveDormitory = () => {
+    if (!formValidation.validateAll().isValid) return;
+    if (editing) updateMutation.mutate();
+    else createMutation.mutate();
   };
   const handleOpenEdit = (d: Dormitory) => {
     setEditing(d);
@@ -183,7 +196,7 @@ export default function DormitoriesPage() {
               label={editing ? 'Edit' : 'Create'}
               icon={<Plus className="h-4 w-4" />}
               tone="orange"
-              onClick={() => setOpen(true)}
+              onClick={handleOpenCreate}
             />
           </GlassActionDock>
         }
@@ -225,15 +238,17 @@ export default function DormitoriesPage() {
                 <DialogHeader>
                   <DialogTitle className="text-lg">{editing ? 'Edit Dormitory' : 'Create Dormitory'}</DialogTitle>
                 </DialogHeader>
+                <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input id="name" value={editState.name} onChange={(e) => setEditState(s => ({ ...s, name: e.target.value }))} />
+                    <Label htmlFor="dormitory-name" className={formValidation.getFieldError('dormitory-name') ? 'text-red-700' : undefined}>Name <span className="text-red-600">*</span></Label>
+                    <Input id="dormitory-name" value={editState.name} onChange={(e) => { setEditState(s => ({ ...s, name: e.target.value })); formValidation.handleFieldChange('dormitory-name'); }} {...formValidation.getFieldProps('dormitory-name')} />
+                    <FieldError error={formValidation.getFieldError('dormitory-name')} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Gender</Label>
-                <Select value={editState.gender} onValueChange={(v) => setEditState(s => ({ ...s, gender: v as any }))}>
-                      <SelectTrigger className="bg-white/70 backdrop-blur">
+                    <Label htmlFor="dormitory-gender" className={formValidation.getFieldError('dormitory-gender') ? 'text-red-700' : undefined}>Gender <span className="text-red-600">*</span></Label>
+                <Select value={editState.gender} onValueChange={(v) => { setEditState(s => ({ ...s, gender: v as any })); formValidation.handleFieldChange('dormitory-gender'); }}>
+                      <SelectTrigger id="dormitory-gender" className="bg-white/70 backdrop-blur" {...formValidation.getFieldProps('dormitory-gender')}>
                     <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -241,6 +256,7 @@ export default function DormitoriesPage() {
                     <SelectItem value="Female">Girls Dormitory</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('dormitory-gender')} />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label>Class(es)</Label>
@@ -282,13 +298,13 @@ export default function DormitoriesPage() {
                 </div>
                 <DialogFooter>
                   <Button
-                    onClick={() => (editing ? updateMutation.mutate() : createMutation.mutate())}
-                    disabled={createMutation.isLoading || updateMutation.isLoading}
+                    onClick={handleSaveDormitory}
+                    disabled={createMutation.isPending || updateMutation.isPending}
                     className="rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow-md hover:from-indigo-700 hover:to-fuchsia-700"
                   >
                     {editing
-                      ? (updateMutation.isLoading ? 'Saving…' : 'Save Changes')
-                      : (createMutation.isLoading ? 'Creating…' : 'Create')}
+                      ? (updateMutation.isPending ? 'Saving…' : 'Save Changes')
+                      : (createMutation.isPending ? 'Creating…' : 'Create')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -359,4 +375,3 @@ export default function DormitoriesPage() {
     </div>
   );
 }
-

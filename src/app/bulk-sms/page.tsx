@@ -43,6 +43,8 @@ import { SMSScheduleListDialog } from '@/components/BulkSMS/SMSScheduleListDialo
 import { useAuth } from '@/lib/contexts/auth-context';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 import { useSMSTemplates } from '@/lib/hooks/use-sms-templates';
 import { useWizaSMSAccount } from '@/lib/hooks/use-wiza-sms-account';
 import { SMSService } from '@/lib/services/sms.service';
@@ -441,6 +443,16 @@ const BulkSMS: React.FC = () => {
   // Raw numbers remain available to scheduling; immediate sending is filtered
   // from recipientReviewItems in the confirmation dialog.
   const allRecipients = recipientReviewItems.map((recipient) => recipient.phone);
+  const sendValidation = useFormValidation([
+    { id: 'bulk-recipients', label: 'Recipients', value: allRecipients, required: true, message: 'Select at least one recipient or add a phone number.' },
+    { id: 'bulk-message', label: 'Message', value: message, required: true, message: 'Enter the SMS message to send.' },
+  ]);
+  const manualNumberValidation = useFormValidation([
+    { id: 'manual-phone', label: 'Phone number', value: newNumber, required: true, message: 'Enter the phone number to add.' },
+  ]);
+  useEffect(() => {
+    sendValidation.handleFieldChange('bulk-recipients');
+  }, [allRecipients.length]);
   const characterCountColor = getCharacterCountColor(characterCount);
 
   // Filter pupils for individual selection
@@ -494,25 +506,17 @@ const BulkSMS: React.FC = () => {
   };
 
   const handleAddNumber = () => {
-    if (newNumber.trim() && !manualNumbers.includes(newNumber.trim())) {
+    if (!manualNumberValidation.validateAll().isValid) return;
+    if (!manualNumbers.includes(newNumber.trim())) {
       setManualNumbers(prev => [...prev, newNumber.trim()]);
       setNewNumber('');
+      manualNumberValidation.resetValidation();
       toast({
         title: 'Number Added',
         description: `${newNumber.trim()} has been added to recipients`,
       });
     } else if (manualNumbers.includes(newNumber.trim())) {
-      toast({
-        title: 'Duplicate Number',
-        description: 'This number is already in the list',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Invalid Number',
-        description: 'Please enter a valid phone number',
-        variant: 'destructive',
-      });
+      manualNumberValidation.setSubmissionError('This phone number is already in the recipient list.');
     }
   };
 
@@ -547,23 +551,7 @@ const BulkSMS: React.FC = () => {
   };
 
   const handleSendSMS = async () => {
-    if (!message.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please enter a message',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (allRecipients.length === 0) {
-      toast({
-        title: 'Error',
-        description: 'Please select at least one recipient',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (!sendValidation.validateAll().isValid) return;
 
     setPendingSmsData({
       message: message.trim(),
@@ -613,33 +601,25 @@ const BulkSMS: React.FC = () => {
           title: 'SMS Sent Successfully',
           description: response.message,
         });
+        // Reset only after a confirmed successful send.
+        setMessage('');
+        setSelectedClasses([]);
+        setSelectedGuardians([]);
+        setSelectedSections([]);
+        setSelectedGenders([]);
+        setSelectedPupilIds([]);
+        setManualNumbers([]);
+        setRecipients([]);
+        sendValidation.resetValidation();
       } else {
-        toast({
-          title: 'SMS Sending Failed',
-          description: response.message,
-          variant: 'destructive',
-        });
+        sendValidation.setSubmissionError(response.message || 'The SMS message could not be sent. Your message and recipients have been preserved.');
       }
-
-      // Reset form
-      setMessage('');
-      setSelectedClasses([]);
-      setSelectedGuardians([]);
-      setSelectedSections([]);
-      setSelectedGenders([]);
-      setSelectedPupilIds([]);
-      setManualNumbers([]);
-      setRecipients([]);
 
       // Force refresh account data after sending (critical operation)
       await forceRefreshAccountData();
     } catch (error) {
       console.error('SMS sending error:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to send SMS messages',
-        variant: 'destructive',
-      });
+      sendValidation.setSubmissionError(error instanceof Error ? error.message : 'Failed to send SMS messages. Your message and recipients have been preserved.');
     } finally {
       setLoading(false);
       setPendingSmsData(null);
@@ -657,6 +637,7 @@ const BulkSMS: React.FC = () => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
       setMessage(template.content);
+      sendValidation.handleFieldChange('bulk-message');
       toast({
         title: 'Template Selected',
         description: `Template "${template.name}" has been loaded`,
@@ -794,6 +775,7 @@ const BulkSMS: React.FC = () => {
         open={showScheduleList}
         onClose={() => setShowScheduleList(false)}
       />
+      <FormErrorSummary errors={sendValidation.errors} submissionError={sendValidation.submissionError} onSelectError={sendValidation.focusField} />
 
       <div
         className={`grid grid-cols-1 gap-6 lg:items-start ${
@@ -804,15 +786,18 @@ const BulkSMS: React.FC = () => {
       >
         {/* Recipients Selection Card */}
         <Card className="h-fit min-w-0 pt-6">
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4" data-validation-field="bulk-recipients">
+              <FieldError error={sendValidation.getFieldError('bulk-recipients')} />
+              <FormErrorSummary errors={manualNumberValidation.errors} submissionError={manualNumberValidation.submissionError} onSelectError={manualNumberValidation.focusField} />
               {/* Classes Selection */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center gap-4">
                   <div className="flex gap-1.5 flex-1 max-w-[180px]">
                     <Input
+                      id="manual-phone"
                       placeholder="Add phone..."
                       value={newNumber}
-                      onChange={(e) => setNewNumber(e.target.value)}
+                      onChange={(e) => { setNewNumber(e.target.value); manualNumberValidation.handleFieldChange('manual-phone'); }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -820,6 +805,7 @@ const BulkSMS: React.FC = () => {
                         }
                       }}
                       className="h-8 text-xs flex-1"
+                      {...manualNumberValidation.getFieldProps('manual-phone')}
                     />
                     <Button
                       onClick={handleAddNumber}
@@ -830,6 +816,7 @@ const BulkSMS: React.FC = () => {
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  <FieldError error={manualNumberValidation.getFieldError('manual-phone')} />
                   <Button
                     variant="outline"
                     size="sm"
@@ -1033,12 +1020,15 @@ const BulkSMS: React.FC = () => {
             <CardContent className="space-y-5">
               <div className="space-y-4">
                 <Textarea
+                  id="bulk-message"
                   ref={messageTextareaRef}
                   placeholder="Type your message here..."
                   value={message}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => { setMessage(e.target.value); sendValidation.handleFieldChange('bulk-message'); }}
                   className="resize-none overflow-hidden"
+                  {...sendValidation.getFieldProps('bulk-message')}
                 />
+                <FieldError error={sendValidation.getFieldError('bulk-message')} />
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center justify-between text-sm px-1 text-gray-500">
                     <div className="flex items-center gap-2">
@@ -1095,7 +1085,7 @@ const BulkSMS: React.FC = () => {
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                   <Button
                     onClick={handleSendSMS}
-                    disabled={loading || !message.trim() || allRecipients.length === 0}
+                    disabled={loading}
                     size="sm"
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white rounded-full px-4 h-9"
                   >

@@ -21,6 +21,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Plus, CreditCard } from 'lucide-react';
 import type { AdditionalIdentifier } from '@/types';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 
 interface ManageIdCodesModalProps {
   isOpen: boolean;
@@ -55,7 +57,11 @@ export function ManageIdCodesModal({
     customIdName: '',
     idValue: ''
   });
-  const [error, setError] = useState<string | null>(null);
+  const formValidation = useFormValidation([
+    { id: 'managedIdType', label: 'ID type', value: formData.idType, required: true, message: 'Choose the type of identification code.' },
+    { id: 'managedCustomIdName', label: 'Custom ID type name', value: formData.customIdName, required: true, active: formData.idType === 'Other', message: 'Enter a name for the custom ID type.' },
+    { id: 'managedIdValue', label: 'ID value', value: formData.idValue, required: true, message: 'Enter the ID value or code.' },
+  ]);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,7 +78,7 @@ export function ManageIdCodesModal({
       customIdName: '',
       idValue: ''
     });
-    setError(null);
+    formValidation.resetValidation();
   };
 
   const handleAddNew = () => {
@@ -92,7 +98,7 @@ export function ManageIdCodesModal({
     });
     setEditingIndex(index);
     setIsFormOpen(true);
-    setError(null);
+    formValidation.resetValidation();
   };
 
   const handleDelete = (index: number) => {
@@ -103,20 +109,7 @@ export function ManageIdCodesModal({
   };
 
   const handleFormSave = () => {
-    setError(null);
-    
-    if (!formData.idType) {
-      setError('Please select an ID type.');
-      return;
-    }
-    if (formData.idType === 'Other' && !formData.customIdName.trim()) {
-      setError('Please enter a name for the custom ID type.');
-      return;
-    }
-    if (!formData.idValue.trim()) {
-      setError('Please enter the ID value/code.');
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     const finalIdType = formData.idType === 'Other' ? formData.customIdName.trim() : formData.idType;
     
@@ -128,7 +121,7 @@ export function ManageIdCodesModal({
     );
 
     if (isDuplicate) {
-      setError('An ID code with this type and value already exists.');
+      formValidation.setSubmissionError('An ID code with this type and value already exists.');
       return;
     }
 
@@ -243,15 +236,16 @@ export function ManageIdCodesModal({
               <h3 className="text-sm font-medium text-gray-900">
                 {editingIndex !== null ? 'Edit ID Code' : 'Add New ID Code'}
               </h3>
+              <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
               
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="idType">ID Type</Label>
+                  <Label htmlFor="managedIdType" className={formValidation.getFieldError('managedIdType') ? 'text-red-700' : undefined}>ID Type <span className="text-red-600">*</span></Label>
                   <Select
                     value={formData.idType}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, idType: value as IdType | '' }))}
+                    onValueChange={(value) => { setFormData(prev => ({ ...prev, idType: value as IdType | '' })); formValidation.handleFieldChange('managedIdType'); }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="managedIdType" {...formValidation.getFieldProps('managedIdType')}>
                       <SelectValue placeholder="Select ID type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -262,33 +256,34 @@ export function ManageIdCodesModal({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError error={formValidation.getFieldError('managedIdType')} />
                 </div>
 
                 {formData.idType === 'Other' && (
                   <div className="space-y-2">
-                    <Label htmlFor="customIdName">Custom Type Name</Label>
+                    <Label htmlFor="managedCustomIdName" className={formValidation.getFieldError('managedCustomIdName') ? 'text-red-700' : undefined}>Custom Type Name <span className="text-red-600">*</span></Label>
                     <Input
-                      id="customIdName"
+                      id="managedCustomIdName"
                       value={formData.customIdName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, customIdName: e.target.value.toUpperCase() }))}
+                      onChange={(e) => { setFormData(prev => ({ ...prev, customIdName: e.target.value.toUpperCase() })); formValidation.handleFieldChange('managedCustomIdName'); }}
                       placeholder="e.g., School Specific ID"
+                      {...formValidation.getFieldProps('managedCustomIdName')}
                     />
+                    <FieldError error={formValidation.getFieldError('managedCustomIdName')} />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="idValue">ID Value</Label>
+                  <Label htmlFor="managedIdValue" className={formValidation.getFieldError('managedIdValue') ? 'text-red-700' : undefined}>ID Value <span className="text-red-600">*</span></Label>
                   <Input
-                    id="idValue"
+                    id="managedIdValue"
                     value={formData.idValue}
-                    onChange={(e) => setFormData(prev => ({ ...prev, idValue: e.target.value.toUpperCase() }))}
+                    onChange={(e) => { setFormData(prev => ({ ...prev, idValue: e.target.value.toUpperCase() })); formValidation.handleFieldChange('managedIdValue'); }}
                     placeholder="Enter the ID code/number"
+                    {...formValidation.getFieldProps('managedIdValue')}
                   />
+                  <FieldError error={formValidation.getFieldError('managedIdValue')} />
                 </div>
-
-                {error && (
-                  <p className="text-sm text-red-500">{error}</p>
-                )}
 
                 <div className="flex gap-2">
                   <Button
@@ -326,4 +321,4 @@ export function ManageIdCodesModal({
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

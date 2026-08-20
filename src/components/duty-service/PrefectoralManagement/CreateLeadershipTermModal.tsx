@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Loader2 } from 'lucide-react';
 import { useCreateLeadershipTerm, useLeadershipTerms } from '@/lib/hooks/use-duty-service';
 import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
-import { useToast } from '@/hooks/use-toast';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import type { CreateLeadershipTermData } from '@/types/duty-service';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -39,7 +40,14 @@ export function CreateLeadershipTermModal({ trigger }: CreateLeadershipTermModal
     });
 
     const createLeadershipTerm = useCreateLeadershipTerm();
-    const { toast } = useToast();
+    const formValidation = useFormValidation([
+        createFieldValidation('termName', formData.termName, 'Term name', true, { message: 'Enter the leadership term name.' }),
+        createFieldValidation('leadershipStartDate', formData.startDate, 'Start date', true, { message: 'Choose the leadership term start date.' }),
+        createFieldValidation('leadershipEndDate', formData.endDate, 'End date', formData.endDateType === 'mark', {
+            active: formData.endDateType === 'mark',
+            message: 'Choose the marked term end date.',
+        }),
+    ]);
 
     useEffect(() => {
         if (activeAcademicYear?.id && !formData.academicYearId) {
@@ -53,28 +61,12 @@ export function CreateLeadershipTermModal({ trigger }: CreateLeadershipTermModal
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.termName || !formData.startDate || !formData.endDateType) {
-            toast({
-                title: "Validation Error",
-                description: "Please fill in all required fields",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        if (formData.endDateType === 'mark' && !formData.endDate) {
-            toast({
-                title: "Validation Error",
-                description: "Please select an end date for a marked term",
-                variant: "destructive",
-            });
-            return;
-        }
+        if (!formValidation.validateAll().isValid) return;
 
         try {
             await createLeadershipTerm.mutateAsync({
-                termName: formData.termName,
-                startDate: formData.startDate,
+                termName: formData.termName!,
+                startDate: formData.startDate!,
                 endDateType: formData.endDateType as 'open' | 'mark',
                 endDate: formData.endDateType === 'open' ? undefined : formData.endDate,
                 academicYearId: formData.academicYearId,
@@ -91,6 +83,7 @@ export function CreateLeadershipTermModal({ trigger }: CreateLeadershipTermModal
             });
         } catch (error) {
             console.error('Error creating leadership term:', error);
+            formValidation.setSubmissionError(error instanceof Error ? error.message : 'The leadership term could not be created. Please try again.');
         }
     };
 
@@ -121,16 +114,18 @@ export function CreateLeadershipTermModal({ trigger }: CreateLeadershipTermModal
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                    <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
                     <div className="space-y-2">
-                        <Label htmlFor="termName">Term Name *</Label>
+                        <Label htmlFor="termName" className={formValidation.getFieldError('termName') ? 'text-destructive' : undefined}>Term Name *</Label>
                         <Input
                             id="termName"
                             value={formData.termName}
-                            onChange={(e) => handleInputChange('termName', e.target.value)}
+                            onChange={(e) => { handleInputChange('termName', e.target.value); formValidation.handleFieldChange('termName'); }}
+                            {...formValidation.getFieldProps('termName')}
                             placeholder="e.g., 2025 - 2026 Term, First Term Cohort"
-                            required
                         />
+                        <FieldError error={formValidation.getFieldError('termName')} />
                     </div>
 
                     <div className="space-y-2">
@@ -155,12 +150,14 @@ export function CreateLeadershipTermModal({ trigger }: CreateLeadershipTermModal
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Start Date *</Label>
+                            <Label className={formValidation.getFieldError('leadershipStartDate') ? 'text-destructive' : undefined}>Start Date *</Label>
                             <DatePicker
                                 date={toDate(formData.startDate)}
-                                setDate={(d) => handleInputChange('startDate', toStr(d))}
+                                setDate={(d) => { handleInputChange('startDate', toStr(d)); formValidation.handleFieldChange('leadershipStartDate'); }}
+                                triggerProps={formValidation.getFieldProps('leadershipStartDate')}
                                 placeholder="Pick start date"
                             />
+                            <FieldError error={formValidation.getFieldError('leadershipStartDate')} />
                         </div>
 
                         <div className="space-y-2">
@@ -184,13 +181,15 @@ export function CreateLeadershipTermModal({ trigger }: CreateLeadershipTermModal
 
                     {formData.endDateType === 'mark' && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                            <Label>End Date *</Label>
+                            <Label className={formValidation.getFieldError('leadershipEndDate') ? 'text-destructive' : undefined}>End Date *</Label>
                             <DatePicker
                                 date={toDate(formData.endDate)}
-                                setDate={(d) => handleInputChange('endDate', toStr(d))}
+                                setDate={(d) => { handleInputChange('endDate', toStr(d)); formValidation.handleFieldChange('leadershipEndDate'); }}
+                                triggerProps={formValidation.getFieldProps('leadershipEndDate')}
                                 placeholder="Pick end date"
                                 allowFuture
                             />
+                            <FieldError error={formValidation.getFieldError('leadershipEndDate')} />
                         </div>
                     )}
 

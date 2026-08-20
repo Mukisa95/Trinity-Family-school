@@ -33,7 +33,8 @@ import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { sampleSchoolSettings } from "@/lib/sample-data";
 import { PhotoUploadCrop } from "@/components/ui/photo-upload-crop";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { validateForm, highlightMissingFields, scrollToFirstMissingField, clearFieldHighlights, createFieldValidation } from "@/lib/utils/form-validation";
+import { createFieldValidation, useFormValidation } from "@/lib/utils/form-validation";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
 import { parseLocalDate, formatDateForStorage } from "@/lib/utils/date-utils";
 
 const initialGuardianState: Omit<Guardian, 'id'> = {
@@ -92,6 +93,25 @@ function EditPupilContent() {
   const [registrationDate, setRegistrationDate] = React.useState<Date | undefined>(new Date());
 
   const nationalityOptions: ComboboxOption[] = NATIONALITIES.map(nat => ({ value: nat, label: nat }));
+
+  const validationFields = React.useMemo(() => {
+    const primaryGuardian = guardians[0];
+    return [
+      createFieldValidation('lastName', lastName, 'Surname', true, { message: 'Enter the pupil surname.' }),
+      createFieldValidation('firstName', firstName, 'First Name', true, { message: 'Enter the pupil first name.' }),
+      createFieldValidation('admissionNumber', admissionNumber, 'Admission Number', true, { message: 'Enter the admission number.' }),
+      createFieldValidation('gender', gender, 'Gender', true, { message: 'Choose the pupil gender.' }),
+      createFieldValidation('dateOfBirth', dateOfBirth, 'Date of Birth', true, { message: 'Choose the pupil date of birth.' }),
+      createFieldValidation('classId', classId, 'Class', true, { message: 'Choose the pupil class.' }),
+      createFieldValidation('section', section, 'Section', true, { message: 'Choose the pupil section.' }),
+      createFieldValidation('status', status, 'Status', true, { message: 'Choose the pupil status.' }),
+      createFieldValidation('guardian_relationship_0', primaryGuardian?.relationship, 'Guardian Relationship', true, { message: 'Choose the primary guardian relationship.' }),
+      createFieldValidation('guardian_firstName_0', primaryGuardian?.firstName, 'Guardian First Name', true, { message: 'Enter the primary guardian first name.' }),
+      createFieldValidation('guardian_lastName_0', primaryGuardian?.lastName, 'Guardian Surname', true, { message: 'Enter the primary guardian surname.' }),
+      createFieldValidation('guardian_phone_0', primaryGuardian?.phone, 'Guardian Phone', true, { message: 'Enter the primary guardian phone number.' }),
+    ];
+  }, [admissionNumber, classId, dateOfBirth, firstName, gender, guardians, lastName, section, status]);
+  const formValidation = useFormValidation(validationFields);
 
   // Load existing pupil data when pupil is fetched
   React.useEffect(() => {
@@ -199,56 +219,8 @@ function EditPupilContent() {
       return;
     }
 
-    // Clear any previous field highlights
-    const allFieldIds = [
-      'lastName', 'firstName', 'admissionNumber', 'gender', 'dateOfBirth', 'classId', 'section', 'status',
-      'guardian_relationship_0', 'guardian_firstName_0', 'guardian_lastName_0', 'guardian_phone_0'
-    ];
-    clearFieldHighlights(allFieldIds);
-
-    // Define validation fields
-    const validationFields = [
-      createFieldValidation('firstName', firstName, 'First Name', true),
-      createFieldValidation('lastName', lastName, 'Surname', true),
-      createFieldValidation('admissionNumber', admissionNumber, 'Admission Number', true),
-      createFieldValidation('gender', gender, 'Gender', true),
-      createFieldValidation('dateOfBirth', dateOfBirth, 'Date of Birth', true),
-      createFieldValidation('classId', classId, 'Class', true),
-      createFieldValidation('section', section, 'Section', true),
-      createFieldValidation('status', status, 'Status', true),
-    ];
-
-    // Add guardian validation fields
-    if (guardians.length > 0) {
-      const primaryGuardian = guardians[0];
-      validationFields.push(
-        createFieldValidation('guardian_relationship_0', primaryGuardian.relationship, 'Guardian Relationship', true),
-        createFieldValidation('guardian_firstName_0', primaryGuardian.firstName, 'Guardian First Name', true),
-        createFieldValidation('guardian_lastName_0', primaryGuardian.lastName, 'Guardian Surname', true),
-        createFieldValidation('guardian_phone_0', primaryGuardian.phone, 'Guardian Phone', true)
-      );
-    }
-
-    // Validate form
-    const validation = validateForm(validationFields);
-    
+    const validation = formValidation.validateAll();
     if (!validation.isValid) {
-      // Highlight missing fields
-      const missingFieldIds = validation.missingFields.map(field => field.id);
-      highlightMissingFields(missingFieldIds);
-      
-      // Scroll to first missing field
-      if (validation.firstMissingFieldId) {
-        scrollToFirstMissingField(validation.firstMissingFieldId);
-      }
-      
-      // Show error toast with specific missing fields
-      const missingFieldNames = validation.missingFields.map(field => field.label).join(', ');
-      toast({ 
-        variant: "destructive", 
-        title: "Missing Required Fields", 
-        description: `Please fill in the following required fields: ${missingFieldNames}` 
-      });
       return;
     }
 
@@ -369,6 +341,12 @@ function EditPupilContent() {
           </div>
         </div>
 
+        <FormErrorSummary
+          errors={formValidation.errors}
+          submissionError={formValidation.submissionError}
+          onSelectError={(fieldId) => void formValidation.focusField(fieldId)}
+        />
+
         {/* Form Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Photo and Basic Info */}
@@ -404,10 +382,12 @@ function EditPupilContent() {
                     <Input
                       id="lastName"
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value.toUpperCase())}
+                      onChange={(e) => { setLastName(e.target.value.toUpperCase()); formValidation.handleFieldChange('lastName'); }}
+                      {...formValidation.getFieldProps('lastName')}
                       placeholder="Enter surname"
                       className="mt-1"
                     />
+                    <FieldError error={formValidation.getFieldError('lastName')} />
                   </div>
                   
                   <div>
@@ -415,10 +395,12 @@ function EditPupilContent() {
                     <Input
                       id="firstName"
                       value={firstName}
-                      onChange={(e) => setFirstName(e.target.value.toUpperCase())}
+                      onChange={(e) => { setFirstName(e.target.value.toUpperCase()); formValidation.handleFieldChange('firstName'); }}
+                      {...formValidation.getFieldProps('firstName')}
                       placeholder="Enter first name"
                       className="mt-1"
                     />
+                    <FieldError error={formValidation.getFieldError('firstName')} />
                   </div>
                   
                   <div>
@@ -437,16 +419,18 @@ function EditPupilContent() {
                     <Input
                       id="admissionNumber"
                       value={admissionNumber}
-                      onChange={(e) => setAdmissionNumber(e.target.value.toUpperCase())}
+                      onChange={(e) => { setAdmissionNumber(e.target.value.toUpperCase()); formValidation.handleFieldChange('admissionNumber'); }}
+                      {...formValidation.getFieldProps('admissionNumber')}
                       placeholder="Enter admission number"
                       className="mt-1"
                     />
+                    <FieldError error={formValidation.getFieldError('admissionNumber')} />
                   </div>
 
                   <div>
                     <Label htmlFor="gender" className="text-sm font-medium">Gender *</Label>
-                    <Select value={gender} onValueChange={(value) => setGender(value as Pupil['gender'])}>
-                      <SelectTrigger id="gender" className="mt-1">
+                    <Select value={gender} onValueChange={(value) => { setGender(value as Pupil['gender']); formValidation.handleFieldChange('gender'); }}>
+                      <SelectTrigger id="gender" className="mt-1" {...formValidation.getFieldProps('gender')}>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -455,18 +439,21 @@ function EditPupilContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('gender')} />
                   </div>
 
                   <div>
                     <Label htmlFor="dateOfBirth" className="text-sm font-medium">Date of Birth *</Label>
                                          <ModernDatePicker
                        date={dateOfBirth}
-                       setDate={setDateOfBirth}
+                       setDate={(value) => { setDateOfBirth(value); formValidation.handleFieldChange('dateOfBirth'); }}
                        className="mt-1 w-full"
                        placeholder="Select date of birth"
                        maxDate={new Date()}
                        showQuickSelects={false}
+                       triggerProps={{ id: 'dateOfBirth', ...formValidation.getFieldProps('dateOfBirth') }}
                      />
+                    <FieldError error={formValidation.getFieldError('dateOfBirth')} />
                   </div>
 
                   <div>
@@ -539,8 +526,8 @@ function EditPupilContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="classId" className="text-sm font-medium">Class *</Label>
-                    <Select value={classId} onValueChange={setClassId}>
-                      <SelectTrigger id="classId" className="mt-1">
+                    <Select value={classId} onValueChange={(value) => { setClassId(value); formValidation.handleFieldChange('classId'); }}>
+                      <SelectTrigger id="classId" className="mt-1" {...formValidation.getFieldProps('classId')}>
                         <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
@@ -551,12 +538,13 @@ function EditPupilContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('classId')} />
                   </div>
 
                   <div>
                     <Label htmlFor="section" className="text-sm font-medium">Section *</Label>
-                    <Select value={section} onValueChange={(value) => setSection(value as Pupil['section'])}>
-                      <SelectTrigger id="section" className="mt-1">
+                    <Select value={section} onValueChange={(value) => { setSection(value as Pupil['section']); formValidation.handleFieldChange('section'); }}>
+                      <SelectTrigger id="section" className="mt-1" {...formValidation.getFieldProps('section')}>
                         <SelectValue placeholder="Select section" />
                       </SelectTrigger>
                       <SelectContent>
@@ -565,12 +553,13 @@ function EditPupilContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('section')} />
                   </div>
 
                   <div>
                     <Label htmlFor="status" className="text-sm font-medium">Status *</Label>
-                    <Select value={status} onValueChange={(value) => setStatus(value as Pupil['status'])}>
-                      <SelectTrigger id="status" className="mt-1">
+                    <Select value={status} onValueChange={(value) => { setStatus(value as Pupil['status']); formValidation.handleFieldChange('status'); }}>
+                      <SelectTrigger id="status" className="mt-1" {...formValidation.getFieldProps('status')}>
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -579,6 +568,7 @@ function EditPupilContent() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('status')} />
                   </div>
 
                   <div>
@@ -651,9 +641,9 @@ function EditPupilContent() {
                           <Label className="text-sm font-medium">Relationship *</Label>
                           <Select
                             value={guardian.relationship}
-                            onValueChange={(value) => handleGuardianChange(index, 'relationship', value)}
+                            onValueChange={(value) => { handleGuardianChange(index, 'relationship', value); if (index === 0) formValidation.handleFieldChange('guardian_relationship_0'); }}
                           >
-                            <SelectTrigger id={`guardian_relationship_${index}`} className="mt-1">
+                            <SelectTrigger id={`guardian_relationship_${index}`} className="mt-1" {...(index === 0 ? formValidation.getFieldProps('guardian_relationship_0') : {})}>
                               <SelectValue placeholder="Select relationship" />
                             </SelectTrigger>
                             <SelectContent>
@@ -662,6 +652,7 @@ function EditPupilContent() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_relationship_0')} /> : null}
                         </div>
 
                         <div>
@@ -669,10 +660,12 @@ function EditPupilContent() {
                           <Input
                             id={`guardian_firstName_${index}`}
                             value={guardian.firstName}
-                            onChange={(e) => handleGuardianChange(index, 'firstName', e.target.value.toUpperCase())}
+                            onChange={(e) => { handleGuardianChange(index, 'firstName', e.target.value.toUpperCase()); if (index === 0) formValidation.handleFieldChange('guardian_firstName_0'); }}
+                            {...(index === 0 ? formValidation.getFieldProps('guardian_firstName_0') : {})}
                             placeholder="Enter first name"
                             className="mt-1"
                           />
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_firstName_0')} /> : null}
                         </div>
 
                         <div>
@@ -680,10 +673,12 @@ function EditPupilContent() {
                           <Input
                             id={`guardian_lastName_${index}`}
                             value={guardian.lastName}
-                            onChange={(e) => handleGuardianChange(index, 'lastName', e.target.value.toUpperCase())}
+                            onChange={(e) => { handleGuardianChange(index, 'lastName', e.target.value.toUpperCase()); if (index === 0) formValidation.handleFieldChange('guardian_lastName_0'); }}
+                            {...(index === 0 ? formValidation.getFieldProps('guardian_lastName_0') : {})}
                             placeholder="Enter surname"
                             className="mt-1"
                           />
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_lastName_0')} /> : null}
                         </div>
 
                         <div>
@@ -691,9 +686,11 @@ function EditPupilContent() {
                           <PhoneInput
                             id={`guardian_phone_${index}`}
                             value={guardian.phone}
-                            onChange={(value) => handleGuardianChange(index, 'phone', value)}
+                            onChange={(value) => { handleGuardianChange(index, 'phone', value); if (index === 0) formValidation.handleFieldChange('guardian_phone_0'); }}
+                            {...(index === 0 ? formValidation.getFieldProps('guardian_phone_0') : {})}
                             className="mt-1"
                           />
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_phone_0')} /> : null}
                         </div>
                       </div>
                       
@@ -929,4 +926,4 @@ export default function EditPupilPage() {
       <EditPupilContent />
     </Suspense>
   );
-} 
+}

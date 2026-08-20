@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { CurrencyCircleDollar } from '@phosphor-icons/react';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface SelectedFee {
   feeId: string;
@@ -22,7 +24,6 @@ interface PaymentModalProps {
 export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalProps) {
   const [amount, setAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState<{ amount?: string }>({});
 
   const balance = fee.balance;
   const maxPayment = balance;
@@ -44,25 +45,25 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
     
     return undefined;
   };
+  const formValidation = useFormValidation([
+    createFieldValidation('paymentAmount', amount, 'Payment amount', true, {
+      message: 'Enter the payment amount.',
+      validate: (value) => validateAmount(String(value ?? '')),
+    }),
+  ]);
 
   const handleAmountChange = (value: string) => {
     const formatted = formatMoneyInput(value);
     setAmount(formatted);
-    const error = validateAmount(formatted);
-    setErrors(prev => ({ ...prev, amount: error }));
+    formValidation.handleFieldChange('paymentAmount');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const amountError = validateAmount(amount);
-    if (amountError) {
-      setErrors({ amount: amountError });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     setIsProcessing(true);
-    setErrors({});
 
     try {
       await onSubmit({ amount: parseFormattedMoney(amount) });
@@ -70,7 +71,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
       // Don't call onClose() here - parent component handles it
     } catch (error) {
       console.error('Payment submission error:', error);
-      // Error handling is done in the parent component
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'The payment could not be recorded. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -79,7 +80,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
   const handleClose = () => {
     if (!isProcessing) {
       setAmount('');
-      setErrors({});
+      formValidation.resetValidation();
       onClose();
     }
   };
@@ -128,24 +129,24 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
 
           {/* Payment Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             <div>
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="paymentAmount" className={`block text-sm font-medium mb-2 ${formValidation.getFieldError('paymentAmount') ? 'text-red-700' : 'text-gray-700'}`}>
                 Payment Amount (UGX)
               </label>
               <input
                 type="text"
-                id="amount"
+                id="paymentAmount"
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="Enter amount"
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  errors.amount ? 'border-red-300' : 'border-gray-300'
+                {...formValidation.getFieldProps('paymentAmount')}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
+                  formValidation.getFieldError('paymentAmount') ? 'border-red-600' : 'border-gray-300'
                 }`}
                 disabled={isProcessing}
               />
-              {errors.amount && (
-                <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
-              )}
+              <FieldError error={formValidation.getFieldError('paymentAmount')} />
             </div>
 
             {/* Suggested Amounts */}
@@ -174,7 +175,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
             )}
 
             {/* Payment Type Indicator */}
-            {amount && !errors.amount && (
+            {amount && !formValidation.getFieldError('paymentAmount') && (
               <div className="bg-gray-50 rounded-lg p-3">
                 <div className="text-sm">
                   <span className="text-gray-600">Payment Type: </span>
@@ -205,7 +206,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
               </Button>
               <Button
                 type="submit"
-                disabled={isProcessing || !!errors.amount || !amount}
+                disabled={isProcessing || Boolean(formValidation.getFieldError('paymentAmount')) || !amount}
                 className="min-w-[120px] rounded-full"
               >
                 {isProcessing ? (
@@ -223,4 +224,4 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
       </DialogContent>
     </Dialog>
   );
-} 
+}

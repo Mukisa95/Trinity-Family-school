@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Users, Send, X, AlertCircle } from 'lucide-react';
 import { SMSService, SMSRequest } from '@/lib/services/sms.service';
 import { toast } from '@/hooks/use-toast';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 import type { Pupil } from '@/types';
 
 interface BulkSMSModalProps {
@@ -62,16 +64,12 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
     
     return phoneNumbers;
   }, [pupils, parentSelection]);
+  const formValidation = useFormValidation([
+    { id: 'message', label: 'Message', value: message, required: true, message: 'Enter the message to send.' },
+  ]);
 
   const handleSend = async () => {
-    if (!message.trim()) {
-      toast({
-        title: 'Message Required',
-        description: 'Please enter a message to send.',
-        variant: 'destructive'
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     if (recipients.length === 0) {
       toast({
@@ -105,19 +103,11 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
         onClose();
         setMessage('');
       } else {
-        toast({
-          title: 'SMS Send Failed',
-          description: response.message || 'Failed to send SMS messages.',
-          variant: 'destructive'
-        });
+        formValidation.setSubmissionError(response.message || 'Failed to send SMS messages.');
       }
     } catch (error) {
       console.error('Error sending SMS:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while sending SMS messages.',
-        variant: 'destructive'
-      });
+      formValidation.setSubmissionError('An error occurred while sending SMS messages. Your message has been preserved.');
     } finally {
       setIsSending(false);
     }
@@ -140,6 +130,7 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
         </DialogHeader>
 
         <div className="space-y-3 py-4">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
           {/* Info Card - Compact */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-2.5">
             <div className="flex items-center gap-2">
@@ -237,18 +228,20 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
 
           {/* Message Composition - Compact */}
           <div className="space-y-1.5">
-            <Label htmlFor="message" className="text-xs font-medium text-gray-700">
-              Message
+            <Label htmlFor="message" className={`text-xs font-medium ${formValidation.getFieldError('message') ? 'text-red-700' : 'text-gray-700'}`}>
+              Message <span className="text-red-600">*</span>
             </Label>
             <Textarea
               id="message"
               placeholder="Type your message... (e.g., Dear parent, regarding your child's fees...)"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={(e) => { setMessage(e.target.value); formValidation.handleFieldChange('message'); }}
               rows={5}
               className="resize-none text-sm"
               disabled={isSending}
+              {...formValidation.getFieldProps('message')}
             />
+            <FieldError error={formValidation.getFieldError('message')} />
             <div className="flex items-center justify-between text-[10px] text-gray-500">
               <span>{message.length} chars</span>
               <span>~{Math.ceil(message.length / 160)} SMS</span>
@@ -273,7 +266,7 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
           </Button>
           <Button 
             onClick={handleSend} 
-            disabled={isSending || !message.trim() || recipients.length === 0}
+            disabled={isSending || recipients.length === 0}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             size="sm"
           >
@@ -294,4 +287,3 @@ export function BulkSMSModal({ isOpen, onClose, pupils, currentUser }: BulkSMSMo
     </Dialog>
   );
 }
-

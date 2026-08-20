@@ -1,5 +1,7 @@
 // Access Level System Types
 
+import type { ModulePermissions } from './index';
+
 export interface AccessLevel {
   id: string;
   name: string;

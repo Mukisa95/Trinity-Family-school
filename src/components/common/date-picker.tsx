@@ -22,6 +22,7 @@ interface DatePickerProps {
   allowFuture?: boolean
   label?: string
   isCompact?: boolean
+  triggerProps?: React.ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 export function DatePicker({
@@ -35,6 +36,7 @@ export function DatePicker({
   allowFuture = false,
   label,
   isCompact = false,
+  triggerProps,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   const [pendingDate, setPendingDate] = React.useState<Date | undefined>(date)
@@ -80,11 +82,13 @@ export function DatePicker({
     >
       <PopoverTrigger asChild>
         <button
+          {...triggerProps}
           disabled={disabled}
           className={cn(
-            "flex items-center gap-2 w-full border border-gray-200 bg-white shadow-sm hover:border-sky-300 hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-left",
+            "flex items-center gap-2 w-full border border-gray-200 bg-white shadow-sm hover:border-sky-300 hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed text-left aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200",
             isCompact ? "px-2.5 py-1.5 h-8 rounded-lg" : "px-3 py-2.5 min-h-[52px] rounded-xl",
-            className
+            className,
+            triggerProps?.className
           )}
           type="button"
         >

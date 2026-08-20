@@ -28,6 +28,8 @@ import {
   usePayrollOverview,
 } from "@/lib/hooks/use-payroll";
 import { useStaff } from "@/lib/hooks/use-staff";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
+import { createFieldValidation, useFormValidation } from "@/lib/utils/form-validation";
 
 type ScheduleDraft = {
   unit: "once" | "day" | "week" | "month" | "year";
@@ -344,6 +346,13 @@ export default function NewSalaryPage() {
     useState<ScheduleDraft>(newSchedule());
   const [allowances, setAllowances] = useState<AllowanceDraft[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const formValidation = useFormValidation([
+    createFieldValidation('payrollStaff', staffId, 'Staff member', true, { message: 'Choose the staff member.' }),
+    createFieldValidation('baseAmount', baseAmount, 'Base salary', true, {
+      message: 'Enter the base salary.',
+      validate: (value) => Number(value) > 0 ? undefined : 'Enter a base salary greater than zero.',
+    }),
+  ]);
   const canCreate = canPerformAction("payroll", "setup", "create_salary");
   const profiles = new Set(
     (payroll?.rows ?? [])
@@ -373,10 +382,7 @@ export default function NewSalaryPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!staffId || !baseAmount || Number(baseAmount) <= 0) {
-      setError("Choose a staff member and enter a valid base salary.");
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
     try {
       await createProfile.mutateAsync({
         staffId,
@@ -398,11 +404,9 @@ export default function NewSalaryPage() {
       });
       router.push(`/payroll/staff/${staffId}`);
     } catch (submissionError) {
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "Unable to create the salary profile.",
-      );
+      const message = submissionError instanceof Error ? submissionError.message : "Unable to create the salary profile.";
+      setError(message);
+      formValidation.setSubmissionError(message);
     }
   };
 
@@ -424,6 +428,7 @@ export default function NewSalaryPage() {
         onSubmit={submit}
         className="mx-auto max-w-4xl space-y-4 px-4 pb-12 pt-4 sm:px-6"
       >
+        <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
         <Card>
           <CardHeader>
             <CardTitle>1. Choose staff member</CardTitle>
@@ -432,9 +437,9 @@ export default function NewSalaryPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Label htmlFor="staff">Staff member</Label>
-            <Select value={staffId} onValueChange={setStaffId}>
-              <SelectTrigger id="staff" className="mt-1">
+            <Label htmlFor="payrollStaff" className={formValidation.getFieldError('payrollStaff') ? 'text-destructive' : undefined}>Staff member <span className="text-destructive">*</span></Label>
+            <Select value={staffId} onValueChange={(value) => { setStaffId(value); formValidation.handleFieldChange('payrollStaff'); }}>
+              <SelectTrigger id="payrollStaff" className="mt-1" {...formValidation.getFieldProps('payrollStaff')}>
                 <SelectValue placeholder="Choose a staff member" />
               </SelectTrigger>
               <SelectContent>
@@ -445,6 +450,7 @@ export default function NewSalaryPage() {
                 ))}
               </SelectContent>
             </Select>
+            <FieldError error={formValidation.getFieldError('payrollStaff')} />
           </CardContent>
         </Card>
         <Card>
@@ -456,7 +462,7 @@ export default function NewSalaryPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="baseAmount">Salary amount (UGX)</Label>
+              <Label htmlFor="baseAmount" className={formValidation.getFieldError('baseAmount') ? 'text-destructive' : undefined}>Salary amount (UGX) <span className="text-destructive">*</span></Label>
               <Input
                 id="baseAmount"
                 className="mt-1"
@@ -465,8 +471,10 @@ export default function NewSalaryPage() {
                 inputMode="numeric"
                 placeholder="e.g. 1200000"
                 value={baseAmount}
-                onChange={(event) => setBaseAmount(event.target.value)}
+                onChange={(event) => { setBaseAmount(event.target.value); formValidation.handleFieldChange('baseAmount'); }}
+                {...formValidation.getFieldProps('baseAmount')}
               />
+              <FieldError error={formValidation.getFieldError('baseAmount')} />
             </div>
             <ScheduleFields
               title="Base salary schedule"

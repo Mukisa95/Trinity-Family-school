@@ -16,7 +16,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
-import { validateForm, highlightMissingFields, scrollToFirstMissingField, clearFieldHighlights, createFieldValidation } from '@/lib/utils/form-validation';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 import type { 
   RequirementTrackingFormData, 
   RequirementPaymentStatus, 
@@ -79,6 +80,7 @@ export function RequirementTrackingModal({
       ...prev,
       [field]: value
     }));
+    formValidation.handleFieldChange(String(field));
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,6 +94,7 @@ export function RequirementTrackingModal({
       selectionMode: mode,
       requirementId: mode === 'full' ? eligibleRequirements.map(r => r.id) : ''
     }));
+    formValidation.handleFieldChange('requirementId');
   };
 
   const handleRequirementSelection = (requirementId: string, checked: boolean) => {
@@ -111,6 +114,7 @@ export function RequirementTrackingModal({
         };
       });
     }
+    formValidation.handleFieldChange('requirementId');
   };
 
   const getTotalAmount = () => {
@@ -124,51 +128,32 @@ export function RequirementTrackingModal({
     return requirement?.price || 0;
   };
 
+  const validationFields = React.useMemo(() => {
+    const totalAmount = Array.isArray(formData.requirementId)
+      ? formData.requirementId.reduce((total, id) => total + (eligibleRequirements.find((requirement) => requirement.id === id)?.price || 0), 0)
+      : eligibleRequirements.find((requirement) => requirement.id === formData.requirementId)?.price || 0;
+    return [
+      createFieldValidation('requirementId', formData.requirementId, 'Requirement Selection', true, { message: 'Choose at least one requirement.' }),
+      createFieldValidation('paidAmount', formData.paidAmount, 'Payment Amount', true, {
+        message: 'Enter the payment amount.',
+        validate: (value) => {
+          const amount = parseFormattedMoney(String(value || ''));
+          if (!Number.isFinite(amount) || amount < 0) return 'Enter a valid payment amount.';
+          if (amount > totalAmount) return 'Enter an amount that does not exceed the requirement total.';
+          return undefined;
+        },
+      }),
+      createFieldValidation('paymentStatus', formData.paymentStatus, 'Payment Status', true, { message: 'Choose the payment status.' }),
+      createFieldValidation('releaseStatus', formData.releaseStatus, 'Release Status', true, { message: 'Choose the release status.' }),
+    ];
+  }, [eligibleRequirements, formData]);
+  const formValidation = useFormValidation(validationFields);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear any previous field highlights
-    const allFieldIds = ['requirementId', 'paidAmount', 'paymentStatus', 'releaseStatus'];
-    clearFieldHighlights(allFieldIds);
-
-    // Define validation fields
-    const validationFields = [
-      createFieldValidation('requirementId', 
-        Array.isArray(formData.requirementId) 
-          ? (formData.requirementId.length > 0 ? formData.requirementId : [])
-          : (formData.requirementId ? formData.requirementId : ''), 
-        'Requirement Selection', true),
-      createFieldValidation('paidAmount', 
-        formData.paidAmount && parseFormattedMoney(formData.paidAmount) >= 0 ? formData.paidAmount : '', 
-        'Payment Amount', true),
-      createFieldValidation('paymentStatus', formData.paymentStatus, 'Payment Status', true),
-      createFieldValidation('releaseStatus', formData.releaseStatus, 'Release Status', true),
-    ];
-
-    // Validate form
-    const validation = validateForm(validationFields);
-    
+    const validation = formValidation.validateAll();
     if (!validation.isValid) {
-      // Highlight missing fields
-      const missingFieldIds = validation.missingFields.map(field => field.id);
-      highlightMissingFields(missingFieldIds);
-      
-      // Scroll to first missing field
-      if (validation.firstMissingFieldId) {
-        scrollToFirstMissingField(validation.firstMissingFieldId);
-      }
-      
-      // Show error alert with specific missing fields
-      const missingFieldNames = validation.missingFields.map(field => field.label).join(', ');
-      alert(`Please fill in the following required fields: ${missingFieldNames}`);
-      return;
-    }
-
-    const totalAmount = getTotalAmount();
-    const paidAmount = parseFormattedMoney(formData.paidAmount);
-    
-    if (paidAmount > totalAmount) {
-      alert('Payment amount cannot exceed the total requirement amount');
       return;
     }
 
@@ -185,6 +170,7 @@ export function RequirementTrackingModal({
         </ModernDialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Selection Mode */}
           <div>
             <Label>Selection Mode *</Label>
@@ -236,7 +222,7 @@ export function RequirementTrackingModal({
                 value={formData.requirementId as string} 
                 onValueChange={(value) => handleInputChange('requirementId', value)}
               >
-                <SelectTrigger id="requirementId" className="mt-2">
+                <SelectTrigger id="requirementId" className="mt-2" {...formValidation.getFieldProps('requirementId')}>
                   <SelectValue placeholder="Select a requirement" />
                 </SelectTrigger>
                 <SelectContent>
@@ -249,7 +235,7 @@ export function RequirementTrackingModal({
               </Select>
             ) : (
               <div className="mt-2">
-                <ScrollArea className="h-32 border rounded-md p-3">
+                <ScrollArea id="requirementId" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('requirementId'))} aria-describedby={formValidation.getFieldError('requirementId') ? 'requirementId-error' : undefined} className="h-32 border rounded-md p-3 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200">
                   <div className="space-y-2">
                     {eligibleRequirements.map((requirement) => (
                       <div key={requirement.id} className="flex items-center space-x-2">
@@ -277,6 +263,7 @@ export function RequirementTrackingModal({
                 )}
               </div>
             )}
+            <FieldError error={formValidation.getFieldError('requirementId')} />
           </div>
 
           {/* Payment Amount */}
@@ -286,9 +273,11 @@ export function RequirementTrackingModal({
               id="paidAmount"
               value={formData.paidAmount}
               onChange={handlePriceChange}
+              {...formValidation.getFieldProps('paidAmount')}
               placeholder="e.g., 25,000"
               required
             />
+            <FieldError error={formValidation.getFieldError('paidAmount')} />
             {getTotalAmount() > 0 && (
               <p className="text-xs text-gray-500 mt-1">
                 Total requirement amount: UGX {getTotalAmount().toLocaleString()}
@@ -303,7 +292,7 @@ export function RequirementTrackingModal({
               value={formData.paymentStatus} 
               onValueChange={(value: RequirementPaymentStatus) => handleInputChange('paymentStatus', value)}
             >
-              <SelectTrigger id="paymentStatus">
+              <SelectTrigger id="paymentStatus" {...formValidation.getFieldProps('paymentStatus')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -312,6 +301,7 @@ export function RequirementTrackingModal({
                 <SelectItem value="paid">Fully Paid</SelectItem>
               </SelectContent>
             </Select>
+            <FieldError error={formValidation.getFieldError('paymentStatus')} />
           </div>
 
           {/* Release Status */}
@@ -321,7 +311,7 @@ export function RequirementTrackingModal({
               value={formData.releaseStatus} 
               onValueChange={(value: RequirementReleaseStatus) => handleInputChange('releaseStatus', value)}
             >
-              <SelectTrigger id="releaseStatus">
+              <SelectTrigger id="releaseStatus" {...formValidation.getFieldProps('releaseStatus')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -329,6 +319,7 @@ export function RequirementTrackingModal({
                 <SelectItem value="released">Released</SelectItem>
               </SelectContent>
             </Select>
+            <FieldError error={formValidation.getFieldError('releaseStatus')} />
           </div>
 
           <ModernDialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -343,4 +334,4 @@ export function RequirementTrackingModal({
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

@@ -27,6 +27,8 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { generateEmployeeID } from "@/lib/utils/employee-id-generator";
 import type { Staff } from '@/types';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 type StaffFormData = {
   firstName: string;
@@ -119,6 +121,26 @@ export default function StaffForm() {
   // Submission state management
   const { isSubmitting, submitWithState } = useSubmissionState();
   const [staffData, setStaffData] = useState<StaffFormData>(initialStaffData);
+  const formValidation = useFormValidation([
+    createFieldValidation('firstName', staffData.firstName, 'First name', true, { message: 'Enter the staff member\u2019s first name.' }),
+    createFieldValidation('lastName', staffData.lastName, 'Last name', true, { message: 'Enter the staff member\u2019s last name.' }),
+    createFieldValidation('gender', staffData.gender, 'Gender', true, { message: 'Choose the staff member\u2019s gender.' }),
+    createFieldValidation('dateOfBirth', staffData.dateOfBirth, 'Date of birth', true, { message: 'Choose the staff member\u2019s date of birth.' }),
+    createFieldValidation('nationalId', staffData.nationalId, 'National ID', true, { message: 'Enter the staff member\u2019s National ID.' }),
+    createFieldValidation('email', staffData.email, 'Email address', true, {
+      message: 'Enter the staff member\u2019s email address.',
+      validate: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value)) ? undefined : 'Enter a valid email address.',
+    }),
+    createFieldValidation('contactNumber', staffData.contactNumber, 'Phone number', true, { message: 'Enter the staff member\u2019s phone number.' }),
+    createFieldValidation('address', staffData.address, 'Address', true, { message: 'Enter the staff member\u2019s address.' }),
+    createFieldValidation('city', staffData.city, 'City', true, { message: 'Enter the staff member\u2019s city.' }),
+    createFieldValidation('country', staffData.country, 'Country', true, { message: 'Choose the staff member\u2019s country.' }),
+    createFieldValidation('joinDate', staffData.joinDate, 'Join date', true, { message: 'Choose the staff member\u2019s join date.' }),
+    createFieldValidation('department', staffData.department, 'Department', true, { message: 'Choose at least one department.' }),
+    createFieldValidation('role', staffData.role, 'Role', true, { message: 'Choose at least one role.' }),
+    createFieldValidation('status', staffData.status, 'Status', true, { message: 'Choose the staff member\u2019s status.' }),
+    createFieldValidation('contractType', staffData.contractType, 'Contract type', true, { message: 'Choose the contract type.' }),
+  ]);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCropper, setShowCropper] = useState(false);
@@ -329,6 +351,7 @@ export default function StaffForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    if (!formValidation.validateAll().isValid) return;
 
     const isEditing = !!id;
     
@@ -357,6 +380,7 @@ export default function StaffForm() {
         onError: (error) => {
           console.error('Error submitting staff form:', error);
           setError('Failed to submit staff form. Please try again.');
+          formValidation.setSubmissionError('Failed to submit staff form. Please try again.');
         }
       }
     );
@@ -376,7 +400,7 @@ export default function StaffForm() {
     const name = fieldName as string;
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={name} className={labelClassName}>
+        <Label htmlFor={name} className={`${labelClassName} ${required && formValidation.getFieldError(name) ? 'text-destructive' : ''}`}>
           {label} {required && <span className="text-destructive">*</span>}
         </Label>
         <Input
@@ -384,11 +408,12 @@ export default function StaffForm() {
           type={type}
           name={name}
           value={value || ""}
-          onChange={handleInputChange}
-          required={required}
+          onChange={(event) => { handleInputChange(event); if (required) formValidation.handleFieldChange(name); }}
+          {...(required ? formValidation.getFieldProps(name) : {})}
           disabled={disabled}
           className={inputClassName}
         />
+        {required && <FieldError error={formValidation.getFieldError(name)} />}
       </div>
     );
   };
@@ -404,7 +429,7 @@ export default function StaffForm() {
     
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={name} className={labelClassName}>
+        <Label htmlFor={name} className={`${labelClassName} ${required && formValidation.getFieldError(name) ? 'text-destructive' : ''}`}>
           {label} {required && <span className="text-destructive">*</span>}
         </Label>
         <Select 
@@ -414,9 +439,10 @@ export default function StaffForm() {
               ...prev,
               [name]: newValue
             }));
+            if (required) formValidation.handleFieldChange(name);
           }}
         >
-          <SelectTrigger id={name} className="rounded-2xl border-2 border-input/80 bg-background/50 px-3.5 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:border-primary/80 transition-all duration-200 hover:border-input">
+          <SelectTrigger id={name} className="rounded-2xl border-2 border-input/80 bg-background/50 px-3.5 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:border-primary/80 transition-all duration-200 hover:border-input" {...(required ? formValidation.getFieldProps(name) : {})}>
             <SelectValue placeholder={`Select ${label}`} />
           </SelectTrigger>
           <SelectContent>
@@ -427,6 +453,7 @@ export default function StaffForm() {
             ))}
           </SelectContent>
         </Select>
+        {required && <FieldError error={formValidation.getFieldError(name)} />}
       </div>
     );
   };
@@ -440,18 +467,19 @@ export default function StaffForm() {
     const name = fieldName as string;
     return (
       <div className="space-y-1.5">
-        <Label htmlFor={name} className={labelClassName}>
+        <Label htmlFor={name} className={`${labelClassName} ${required && formValidation.getFieldError(name) ? 'text-destructive' : ''}`}>
           {label} {required && <span className="text-destructive">*</span>}
         </Label>
         <textarea
           id={name}
           name={name}
           value={value || ""}
-          onChange={handleInputChange}
+          onChange={(event) => { handleInputChange(event); if (required) formValidation.handleFieldChange(name); }}
+          {...(required ? formValidation.getFieldProps(name) : {})}
           rows={3}
           className={inputClassName}
-          required={required}
         />
+        {required && <FieldError error={formValidation.getFieldError(name)} />}
       </div>
     );
   };
@@ -500,7 +528,8 @@ export default function StaffForm() {
       />
       <div className="max-w-4xl mx-auto px-4 pb-12">
       
-      <form onSubmit={handleSubmit} className="space-y-3 pb-6">
+      <form onSubmit={handleSubmit} className="space-y-3 pb-6" noValidate>
+        <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
         {/* Photo Upload & Employee ID Section */}
         {renderSection("Profile Photo & Employee ID", (
           <div className="flex items-start space-x-6">
@@ -624,7 +653,7 @@ export default function StaffForm() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {renderInput("Email", "email", staffData.email, true, "email")}
             <div className="space-y-1.5">
-              <Label htmlFor="contactNumber" className={labelClassName}>
+              <Label htmlFor="contactNumber" className={`${labelClassName} ${formValidation.getFieldError('contactNumber') ? 'text-destructive' : ''}`}>
                 Phone Number <span className="text-destructive">*</span>
               </Label>
               <PhoneInput
@@ -636,9 +665,12 @@ export default function StaffForm() {
                     ...prev,
                     contactNumber: value
                   }));
+                  formValidation.handleFieldChange('contactNumber');
                 }}
+                {...formValidation.getFieldProps('contactNumber')}
                 className={inputClassName}
               />
+              <FieldError error={formValidation.getFieldError('contactNumber')} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="alternativePhone" className={labelClassName}>
@@ -672,7 +704,7 @@ export default function StaffForm() {
             
             <div className="space-y-2">
               <div className="space-y-1.5">
-                <Label className={labelClassName}>
+                <Label className={`${labelClassName} ${formValidation.getFieldError('department') ? 'text-destructive' : ''}`}>
                   Department <span className="text-destructive">*</span>
                 </Label>
                 <MultiSelect
@@ -684,14 +716,18 @@ export default function StaffForm() {
                       department: selected,
                       role: [] // Reset roles when departments change
                     }));
+                    formValidation.handleFieldChange('department');
+                    formValidation.handleFieldChange('role');
                   }}
+                  triggerProps={formValidation.getFieldProps('department')}
                   placeholder="Select departments..."
                   searchPlaceholder="Search departments..."
                 />
+                <FieldError error={formValidation.getFieldError('department')} />
               </div>
               
               <div className="space-y-2">
-                <Label className={labelClassName}>
+                <Label className={`${labelClassName} ${formValidation.getFieldError('role') ? 'text-destructive' : ''}`}>
                   Role <span className="text-destructive">*</span>
                 </Label>
                 <MultiSelect
@@ -702,11 +738,14 @@ export default function StaffForm() {
                       ...prev,
                       role: selected
                     }));
+                    formValidation.handleFieldChange('role');
                   }}
+                  triggerProps={formValidation.getFieldProps('role')}
                   placeholder="Select roles..."
                   searchPlaceholder="Search roles..."
                   disabled={!staffData.department || staffData.department.length === 0}
                 />
+                <FieldError error={formValidation.getFieldError('role')} />
               </div>
             </div>
             
@@ -1034,4 +1073,4 @@ export default function StaffForm() {
       </div>
     </div>
   );
-} 
+}

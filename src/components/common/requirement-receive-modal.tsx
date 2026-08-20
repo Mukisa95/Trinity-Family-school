@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Package, AlertCircle, Plus, Minus } from 'lucide-react';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface RequirementReceiveModalProps {
   isOpen: boolean;
@@ -33,11 +35,23 @@ export function RequirementReceiveModal({
   const [quantity, setQuantity] = useState('');
 
   const remainingToReceive = Math.max(0, totalRequired - currentReceived);
+  const formValidation = useFormValidation([
+    createFieldValidation('requirementQuantity', quantity, 'Quantity to receive', true, {
+      message: 'Enter the quantity to receive.',
+      validate: (value) => {
+        const parsed = Number.parseInt(String(value ?? ''), 10);
+        if (!Number.isFinite(parsed) || parsed <= 0) return 'Enter a quantity greater than zero.';
+        if (hasQuantities && parsed > remainingToReceive) return `Enter a quantity no greater than ${remainingToReceive}.`;
+        return undefined;
+      },
+    }),
+  ]);
 
   useEffect(() => {
     if (isOpen) {
       // Default to remaining quantity if there are quantities, otherwise 1
       setQuantity(hasQuantities ? remainingToReceive.toString() : '1');
+      formValidation.resetValidation();
     }
   }, [isOpen, remainingToReceive, hasQuantities]);
 
@@ -46,6 +60,7 @@ export function RequirementReceiveModal({
     // Allow empty string for clearing
     if (value === '') {
       setQuantity('');
+      formValidation.handleFieldChange('requirementQuantity');
       return;
     }
     // Only allow positive integers
@@ -57,6 +72,7 @@ export function RequirementReceiveModal({
         setQuantity(numValue.toString());
       }
     }
+    formValidation.handleFieldChange('requirementQuantity');
   };
 
   const handleIncrement = () => {
@@ -67,12 +83,14 @@ export function RequirementReceiveModal({
     } else {
       setQuantity((current + 1).toString());
     }
+    formValidation.handleFieldChange('requirementQuantity');
   };
 
   const handleDecrement = () => {
     const current = parseInt(quantity) || 0;
     if (current > 0) {
       setQuantity((current - 1).toString());
+      formValidation.handleFieldChange('requirementQuantity');
     }
   };
 
@@ -82,6 +100,7 @@ export function RequirementReceiveModal({
     } else {
       setQuantity('1');
     }
+    formValidation.handleFieldChange('requirementQuantity');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -89,27 +108,20 @@ export function RequirementReceiveModal({
     
     const quantityNum = parseInt(quantity) || 0;
     
-    if (quantityNum <= 0) {
-      alert('Please enter a valid quantity');
-      return;
-    }
-    
-    if (hasQuantities && quantityNum > remainingToReceive) {
-      alert(`Quantity cannot exceed remaining items (${remainingToReceive})`);
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     onSubmit(quantityNum);
     setQuantity('');
+    formValidation.resetValidation();
   };
 
   const handleClose = () => {
     setQuantity('');
+    formValidation.resetValidation();
     onClose();
   };
 
   const quantityNum = parseInt(quantity) || 0;
-  const isValid = quantityNum > 0 && (!hasQuantities || quantityNum <= remainingToReceive);
 
   return (
     <ModernDialog open={isOpen} onOpenChange={handleClose}>
@@ -122,6 +134,7 @@ export function RequirementReceiveModal({
         </ModernDialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <FormErrorSummary errors={formValidation.errors} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Summary */}
           {hasQuantities && (
             <div className="bg-gray-50 p-4 rounded-lg space-y-2">
@@ -142,7 +155,7 @@ export function RequirementReceiveModal({
 
           {/* Quantity Input */}
           <div>
-            <Label htmlFor="quantity">
+            <Label htmlFor="requirementQuantity" className={formValidation.getFieldError('requirementQuantity') ? 'text-destructive' : undefined}>
               {hasQuantities ? 'Quantity to Receive' : 'Mark as Received'}
             </Label>
             {hasQuantities ? (
@@ -159,14 +172,14 @@ export function RequirementReceiveModal({
                 </Button>
                 
                 <Input
-                  id="quantity"
+                  id="requirementQuantity"
                   type="number"
                   value={quantity}
                   onChange={handleQuantityChange}
                   min="0"
                   max={remainingToReceive}
                   className="text-center text-lg font-semibold"
-                  required
+                  {...formValidation.getFieldProps('requirementQuantity')}
                 />
                 
                 <Button
@@ -182,15 +195,16 @@ export function RequirementReceiveModal({
               </div>
             ) : (
               <Input
-                id="quantity"
+                id="requirementQuantity"
                 type="number"
                 value={quantity}
                 onChange={handleQuantityChange}
                 min="1"
                 className="mt-2"
-                required
+                {...formValidation.getFieldProps('requirementQuantity')}
               />
             )}
+            <FieldError error={formValidation.getFieldError('requirementQuantity')} />
             
             {hasQuantities && (
               <p className="text-xs text-gray-500 mt-1">
@@ -228,7 +242,6 @@ export function RequirementReceiveModal({
             <Button 
               type="submit" 
               className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-              disabled={!isValid}
             >
               <Package className="w-4 h-4 mr-2" />
               Record Receipt
@@ -239,4 +252,3 @@ export function RequirementReceiveModal({
     </ModernDialog>
   );
 }
-

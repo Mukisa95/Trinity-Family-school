@@ -73,6 +73,8 @@ import type {
     AcademicYear,
     Term
 } from '@/types';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { useFormValidation } from '@/lib/utils/form-validation';
 
 // Constants
 const CATEGORIES: InventoryCategory[] = [
@@ -150,6 +152,9 @@ export function ItemManagement({
     const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [formData, setFormData] = useState<Partial<CreateInventoryItemData>>(emptyFormData);
+    const formValidation = useFormValidation([
+        { id: 'name', label: 'Item name', value: formData.name, required: true, message: 'Enter the inventory item name.' },
+    ]);
 
     // Mutations
     const createItem = useCreateInventoryItem();
@@ -158,21 +163,19 @@ export function ItemManagement({
 
     const handleInputChange = (field: keyof CreateInventoryItemData, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        formValidation.handleFieldChange(String(field));
     };
 
     const handleAddItem = async () => {
         try {
-            if (!formData.name?.trim()) {
-                toast.error('Item name is required');
-                return;
-            }
+            if (!formValidation.validateAll().isValid) return;
 
             await createItem.mutateAsync(formData as CreateInventoryItemData);
             toast.success('Item added successfully');
             setIsAddDialogOpen(false);
             setFormData(emptyFormData);
         } catch (error) {
-            toast.error('Failed to add item');
+            formValidation.setSubmissionError('The item could not be added. Your entries have been preserved.');
             console.error(error);
         }
     };
@@ -180,6 +183,7 @@ export function ItemManagement({
     const handleEditItem = async () => {
         try {
             if (!selectedItem) return;
+            if (!formValidation.validateAll().isValid) return;
 
             await updateItem.mutateAsync({
                 id: selectedItem.id,
@@ -190,7 +194,7 @@ export function ItemManagement({
             setSelectedItem(null);
             setFormData(emptyFormData);
         } catch (error) {
-            toast.error('Failed to update item');
+            formValidation.setSubmissionError('The item could not be updated. Your entries have been preserved.');
             console.error(error);
         }
     };
@@ -229,6 +233,7 @@ export function ItemManagement({
             supplierName: item.supplierName,
             isActive: item.isActive
         });
+        formValidation.resetValidation();
         setIsEditDialogOpen(true);
     };
 
@@ -240,15 +245,18 @@ export function ItemManagement({
     // Item Form Component
     const ItemForm = ({ isEdit = false }: { isEdit?: boolean }) => (
         <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
             <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                    <Label htmlFor="name">Item Name *</Label>
+                    <Label htmlFor="name" className={formValidation.getFieldError('name') ? 'text-red-700' : undefined}>Item Name <span className="text-red-600">*</span></Label>
                     <Input
                         id="name"
                         value={formData.name || ''}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         placeholder="e.g., Student Desk"
+                        {...formValidation.getFieldProps('name')}
                     />
+                    <FieldError error={formValidation.getFieldError('name')} />
                 </div>
 
                 <div>
@@ -531,7 +539,7 @@ export function ItemManagement({
                         {items.length} item{items.length !== 1 ? 's' : ''} found
                     </p>
                 </div>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <Dialog open={isAddDialogOpen} onOpenChange={(open) => { if (open) formValidation.resetValidation(); setIsAddDialogOpen(open); }}>
                     <DialogTrigger asChild>
                         <Button className="gap-2">
                             <Plus className="h-4 w-4" />
@@ -569,7 +577,7 @@ export function ItemManagement({
                                 : 'No inventory items yet. Add your first item to get started.'}
                         </p>
                         {!hasActiveFilters && (
-                            <Button className="mt-4" onClick={() => setIsAddDialogOpen(true)}>
+                            <Button className="mt-4" onClick={() => { formValidation.resetValidation(); setIsAddDialogOpen(true); }}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add First Item
                             </Button>

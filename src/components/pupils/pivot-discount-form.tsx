@@ -8,8 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FeeStructure, AcademicYear } from "@/types";
-import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatMoneyInput, parseFormattedMoney } from "@/lib/utils";
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
 
 interface PivotDiscountFormProps {
   targetFeeId: string;
@@ -40,13 +41,21 @@ export function PivotDiscountForm({
   onCancel,
   isSaving = false,
 }: PivotDiscountFormProps) {
-  const { toast } = useToast();
   const [name, setName] = React.useState("");
   const [amount, setAmount] = React.useState<number | string>("");
   const [description, setDescription] = React.useState("");
   const [linkedFeeIds, setLinkedFeeIds] = React.useState<string[]>(
     targetFeeId ? [targetFeeId] : []
   );
+  const validationFields = React.useMemo(() => [
+    createFieldValidation('pivotDiscountName', name, 'Discount Name', true, { message: 'Enter the discount name.' }),
+    createFieldValidation('pivotDiscountAmount', amount, 'Discount Amount', true, {
+      message: 'Enter the discount amount.',
+      validate: (value) => parseFormattedMoney(String(value || '')) > 0 ? undefined : 'Enter an amount greater than zero.',
+    }),
+    createFieldValidation('pivotLinkedFeeIds', linkedFeeIds, 'Linked Fee Items', true, { message: 'Choose at least one fee item to link.' }),
+  ], [amount, linkedFeeIds, name]);
+  const formValidation = useFormValidation(validationFields);
 
   // Auto-fill target fee check on mount / change
   React.useEffect(() => {
@@ -69,22 +78,7 @@ export function PivotDiscountForm({
     const numericAmount = parseFormattedMoney(
       typeof amount === "string" ? amount : amount.toString()
     );
-    if (!name.trim() || numericAmount <= 0) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please fill in the Discount Name and a valid positive Discount Amount.",
-      });
-      return null;
-    }
-    if (linkedFeeIds.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please link this discount to at least one fee item.",
-      });
-      return null;
-    }
+    if (!formValidation.validateAll().isValid) return null;
     return {
       name: name.toUpperCase().trim(),
       amount: numericAmount,
@@ -109,6 +103,7 @@ export function PivotDiscountForm({
 
   return (
     <div className="border border-indigo-100 rounded-lg bg-indigo-50/20 p-4 space-y-4">
+      <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
       <div className="flex items-center justify-between border-b pb-2 border-indigo-50">
         <h4 className="text-sm font-semibold text-indigo-900">
           Create Pivot Discount (Custom)
@@ -126,10 +121,12 @@ export function PivotDiscountForm({
           <Input
             id="pivotDiscountName"
             value={name}
-            onChange={(e) => setName(e.target.value.toUpperCase())}
+            onChange={(e) => { setName(e.target.value.toUpperCase()); formValidation.handleFieldChange('pivotDiscountName'); }}
+            {...formValidation.getFieldProps('pivotDiscountName')}
             placeholder="e.g. SPECIAL SIBLING DISCOUNT"
             className="h-9 text-xs"
           />
+          <FieldError error={formValidation.getFieldError('pivotDiscountName')} />
         </div>
 
         <div className="space-y-1.5">
@@ -144,10 +141,12 @@ export function PivotDiscountForm({
                 ? amount
                 : formatMoneyInput(amount.toString())
             }
-            onChange={(e) => setAmount(formatMoneyInput(e.target.value))}
+            onChange={(e) => { setAmount(formatMoneyInput(e.target.value)); formValidation.handleFieldChange('pivotDiscountAmount'); }}
+            {...formValidation.getFieldProps('pivotDiscountAmount')}
             placeholder="Enter discount amount"
             className="h-9 text-xs"
           />
+          <FieldError error={formValidation.getFieldError('pivotDiscountAmount')} />
         </div>
       </div>
 
@@ -155,7 +154,7 @@ export function PivotDiscountForm({
         <Label className="text-xs font-semibold">
           Linked Fee Items <span className="text-destructive">*</span>
         </Label>
-        <ScrollArea className="h-[120px] w-full rounded-md border bg-white p-2.5">
+        <ScrollArea id="pivotLinkedFeeIds" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('pivotLinkedFeeIds'))} aria-describedby={formValidation.getFieldError('pivotLinkedFeeIds') ? 'pivotLinkedFeeIds-error' : undefined} className="h-[120px] w-full rounded-md border bg-white p-2.5 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200">
           <div className="space-y-2">
             {feeItems
               .filter(
@@ -174,6 +173,7 @@ export function PivotDiscountForm({
                           prev.filter((id) => id !== item.id)
                         );
                       }
+                      formValidation.handleFieldChange('pivotLinkedFeeIds');
                     }}
                   />
                   <Label
@@ -193,6 +193,7 @@ export function PivotDiscountForm({
             )}
           </div>
         </ScrollArea>
+        <FieldError error={formValidation.getFieldError('pivotLinkedFeeIds')} />
       </div>
 
       <div className="space-y-1.5">

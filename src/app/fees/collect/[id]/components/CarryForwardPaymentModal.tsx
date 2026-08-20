@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { CurrencyCircleDollar, Calculator, Target } from '@phosphor-icons/react';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface CarryForwardItem {
   name: string;
@@ -46,7 +48,6 @@ export function CarryForwardPaymentModal({
   const [paymentType, setPaymentType] = useState<'general' | 'item-specific'>('general');
   const [selectedItem, setSelectedItem] = useState<CarryForwardItem | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState<{ amount?: string; item?: string }>({});
 
   const balance = fee.balance;
   const hasMultipleItems = fee.feeBreakdown && fee.feeBreakdown.length > 1;
@@ -75,49 +76,42 @@ export function CarryForwardPaymentModal({
     return undefined;
   };
 
-  const validateSelection = (): string | undefined => {
-    if (paymentType === 'item-specific' && !selectedItem) {
-      return 'Please select an item for specific payment';
-    }
-    return undefined;
-  };
+  const formValidation = useFormValidation([
+    createFieldValidation('carryPaymentItem', selectedItem, 'Carry-forward item', paymentType === 'item-specific', {
+      active: paymentType === 'item-specific',
+      message: 'Choose the carry-forward item to pay.',
+    }),
+    createFieldValidation('carryPaymentAmount', amount, 'Payment amount', true, {
+      message: 'Enter the payment amount.',
+      validate: (value) => validateAmount(String(value ?? '')),
+    }),
+  ]);
 
   const handleAmountChange = (value: string) => {
     const formatted = formatMoneyInput(value);
     setAmount(formatted);
-    const error = validateAmount(formatted);
-    setErrors(prev => ({ ...prev, amount: error }));
+    formValidation.handleFieldChange('carryPaymentAmount');
   };
 
   const handlePaymentTypeChange = (type: 'general' | 'item-specific') => {
     setPaymentType(type);
     setSelectedItem(null);
     setAmount('');
-    setErrors({});
+    formValidation.resetValidation();
   };
 
   const handleItemSelect = (item: CarryForwardItem) => {
     setSelectedItem(item);
     setAmount('');
-    setErrors(prev => ({ ...prev, item: undefined }));
+    formValidation.handleFieldChange('carryPaymentItem');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const amountError = validateAmount(amount);
-    const selectionError = validateSelection();
-    
-    if (amountError || selectionError) {
-      setErrors({ 
-        amount: amountError, 
-        item: selectionError 
-      });
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     setIsProcessing(true);
-    setErrors({});
 
     try {
       await onSubmit({ 
@@ -131,6 +125,7 @@ export function CarryForwardPaymentModal({
       // Don't call onClose() here - parent component handles it
     } catch (error) {
       console.error('Payment submission error:', error);
+      formValidation.setSubmissionError(error instanceof Error ? error.message : 'The payment could not be recorded. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -141,7 +136,7 @@ export function CarryForwardPaymentModal({
       setAmount('');
       setPaymentType('general');
       setSelectedItem(null);
-      setErrors({});
+      formValidation.resetValidation();
       onClose();
     }
   };
@@ -181,6 +176,7 @@ export function CarryForwardPaymentModal({
         </DialogHeader>
         
         <div className="py-4 space-y-6">
+          <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           {/* Fee Information */}
           <div className="bg-indigo-50 rounded-lg p-4">
             <h3 className="font-medium text-indigo-900 mb-2">{fee.name}</h3>
@@ -235,8 +231,8 @@ export function CarryForwardPaymentModal({
 
           {/* Item Selection for Item-Specific Payment */}
           {paymentType === 'item-specific' && fee.feeBreakdown && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+            <div id="carryPaymentItem" tabIndex={-1} aria-invalid={Boolean(formValidation.getFieldError('carryPaymentItem'))} aria-describedby={formValidation.getFieldError('carryPaymentItem') ? 'carryPaymentItem-error' : undefined} className="rounded-md aria-invalid:border aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:p-2">
+              <label className={`block text-sm font-medium mb-3 ${formValidation.getFieldError('carryPaymentItem') ? 'text-red-700' : 'text-gray-700'}`}>
                 Select Item to Pay:
               </label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -266,32 +262,29 @@ export function CarryForwardPaymentModal({
                   </button>
                 ))}
               </div>
-              {errors.item && (
-                <p className="mt-1 text-sm text-red-600">{errors.item}</p>
-              )}
+              <FieldError error={formValidation.getFieldError('carryPaymentItem')} />
             </div>
           )}
 
           {/* Payment Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="carryPaymentAmount" className={`block text-sm font-medium mb-2 ${formValidation.getFieldError('carryPaymentAmount') ? 'text-red-700' : 'text-gray-700'}`}>
                 Payment Amount (UGX)
               </label>
               <input
                 type="text"
-                id="amount"
+                id="carryPaymentAmount"
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="Enter amount"
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  errors.amount ? 'border-red-300' : 'border-gray-300'
+                {...formValidation.getFieldProps('carryPaymentAmount')}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
+                  formValidation.getFieldError('carryPaymentAmount') ? 'border-red-600' : 'border-gray-300'
                 }`}
                 disabled={isProcessing}
               />
-              {errors.amount && (
-                <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
-              )}
+              <FieldError error={formValidation.getFieldError('carryPaymentAmount')} />
             </div>
 
             {/* Suggested Amounts */}
@@ -320,7 +313,7 @@ export function CarryForwardPaymentModal({
             )}
 
             {/* Distribution Preview for General Payment */}
-            {paymentType === 'general' && distributionPreview && amount && !errors.amount && (
+            {paymentType === 'general' && distributionPreview && amount && !formValidation.getFieldError('carryPaymentAmount') && (
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 mb-3">Payment Distribution Preview:</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -337,7 +330,7 @@ export function CarryForwardPaymentModal({
             )}
 
             {/* Payment Type Indicator */}
-            {amount && !errors.amount && (
+            {amount && !formValidation.getFieldError('carryPaymentAmount') && (
               <div className="bg-gray-50 rounded-lg p-3">
                 <div className="text-sm">
                   <span className="text-gray-600">Payment Type: </span>
@@ -366,7 +359,7 @@ export function CarryForwardPaymentModal({
               </Button>
               <Button
                 type="submit"
-                disabled={isProcessing || !!errors.amount || !!errors.item || !amount}
+                disabled={isProcessing || Boolean(formValidation.getFieldError('carryPaymentAmount')) || Boolean(formValidation.getFieldError('carryPaymentItem')) || !amount}
                 className="min-w-[120px] rounded-full"
               >
                 {isProcessing ? (
@@ -384,4 +377,4 @@ export function CarryForwardPaymentModal({
       </DialogContent>
     </Dialog>
   );
-} 
+}

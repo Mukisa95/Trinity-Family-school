@@ -69,6 +69,8 @@ import { BulkParentAccountCreator } from "@/components/users/bulk-parent-account
 import { format } from "date-fns";
 import { MODULE_ACTIONS } from "@/types/permissions";
 import { useAuth } from "@/lib/contexts/auth-context";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
+import { useFormValidation } from "@/lib/utils/form-validation";
 
 type PermissionSummaryItem = {
   title: string;
@@ -159,6 +161,12 @@ export default function UsersPage() {
   }>({
     isActive: true
   });
+  const accountValidation = useFormValidation([
+    { id: 'staff-select', label: 'Staff member', value: staffFormData.staffId, required: true, active: activeTab === 'staff', message: 'Choose the staff member who needs an account.' },
+    { id: 'username', label: 'Username', value: staffFormData.username, required: true, active: activeTab === 'staff', message: 'Enter a username for the staff account.' },
+    { id: 'password', label: 'Password', value: staffFormData.password, required: true, active: activeTab === 'staff', message: 'Enter an initial password for the staff account.' },
+    { id: 'parent-pupil', label: 'Pupil', value: parentFormData.pupilId, required: true, active: activeTab === 'parent', message: 'Choose the pupil whose parent account should be created.' },
+  ]);
 
   // Initialize edit form when editing user changes
   React.useEffect(() => {
@@ -217,6 +225,7 @@ export default function UsersPage() {
         email: selectedStaff.email,
         username: `${selectedStaff.firstName.toLowerCase()}.${selectedStaff.lastName.toLowerCase()}`.replace(/\s+/g, '')
       }));
+      accountValidation.handleFieldChange('staff-select');
     }
   };
 
@@ -276,10 +285,7 @@ export default function UsersPage() {
   };
 
   const handleCreateStaffAccount = async () => {
-    if (!staffFormData.staffId || !staffFormData.username || !staffFormData.password) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in all required fields." });
-      return;
-    }
+    if (!accountValidation.validateAll().isValid) return;
 
     try {
       let granularPermissions = staffFormData.granularPermissions;
@@ -310,15 +316,12 @@ export default function UsersPage() {
       setIsCreateDialogOpen(false);
       resetStaffForm();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to create staff account." });
+      accountValidation.setSubmissionError(error.message || "Failed to create staff account. Your entries have been preserved.");
     }
   };
 
   const handleCreateParentAccount = async () => {
-    if (!parentFormData.pupilId) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Please select a pupil." });
-      return;
-    }
+    if (!accountValidation.validateAll().isValid) return;
 
     const selectedPupil = pupils.find(p => p.id === parentFormData.pupilId);
     if (!selectedPupil) return;
@@ -340,7 +343,7 @@ export default function UsersPage() {
       setIsCreateDialogOpen(false);
       resetParentForm();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to create parent account." });
+      accountValidation.setSubmissionError(error.message || "Failed to create parent account. Your selection has been preserved.");
     }
   };
 
@@ -748,7 +751,7 @@ export default function UsersPage() {
               label="User"
               icon={<PlusCircle className="h-4 w-4" />}
               tone="blue"
-              onClick={() => setIsCreateDialogOpen(true)}
+              onClick={() => { accountValidation.resetValidation(); setIsCreateDialogOpen(true); }}
               title="Create User Account"
             />
           </GlassActionDock>
@@ -1124,6 +1127,7 @@ export default function UsersPage() {
               Apply filters to narrow down the list of users.
             </ModernDialogDescription>
           </ModernDialogHeader>
+          <FormErrorSummary className="mx-2 mt-2" errors={accountValidation.errors} submissionError={accountValidation.submissionError} onSelectError={accountValidation.focusField} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {/* Permission Level Filter */}
@@ -1228,9 +1232,9 @@ export default function UsersPage() {
             <TabsContent value="staff" className="space-y-4">
               <div className="grid gap-4">
                 <div>
-                  <Label htmlFor="staff-select">Select Staff Member *</Label>
+                  <Label htmlFor="staff-select" className={accountValidation.getFieldError('staff-select') ? 'text-red-700' : undefined}>Select Staff Member <span className="text-red-600">*</span></Label>
                   <Select value={staffFormData.staffId} onValueChange={handleStaffSelection}>
-                    <SelectTrigger>
+                    <SelectTrigger id="staff-select" {...accountValidation.getFieldProps('staff-select')}>
                       <SelectValue placeholder="Choose a staff member" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1241,27 +1245,31 @@ export default function UsersPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <FieldError error={accountValidation.getFieldError('staff-select')} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="username">Username *</Label>
+                    <Label htmlFor="username" className={accountValidation.getFieldError('username') ? 'text-red-700' : undefined}>Username <span className="text-red-600">*</span></Label>
                     <Input
                       id="username"
                       value={staffFormData.username}
-                      onChange={(e) => setStaffFormData(prev => ({ ...prev, username: e.target.value.toUpperCase() }))}
+                      onChange={(e) => { setStaffFormData(prev => ({ ...prev, username: e.target.value.toUpperCase() })); accountValidation.handleFieldChange('username'); }}
                       placeholder="Enter username"
+                      {...accountValidation.getFieldProps('username')}
                     />
+                    <FieldError error={accountValidation.getFieldError('username')} />
                   </div>
                   <div>
-                    <Label htmlFor="password">Password *</Label>
+                    <Label htmlFor="password" className={accountValidation.getFieldError('password') ? 'text-red-700' : undefined}>Password <span className="text-red-600">*</span></Label>
                     <div className="relative">
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         value={staffFormData.password}
-                        onChange={(e) => setStaffFormData(prev => ({ ...prev, password: e.target.value }))}
+                        onChange={(e) => { setStaffFormData(prev => ({ ...prev, password: e.target.value })); accountValidation.handleFieldChange('password'); }}
                         placeholder="Enter password"
+                        {...accountValidation.getFieldProps('password')}
                       />
                       <Button
                         type="button"
@@ -1273,6 +1281,7 @@ export default function UsersPage() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
+                    <FieldError error={accountValidation.getFieldError('password')} />
                   </div>
                 </div>
 
@@ -1357,13 +1366,17 @@ export default function UsersPage() {
 
             <TabsContent value="parent" className="space-y-4">
               <div className="space-y-4">
-                <FilteredPupilSelector
-                  availablePupils={availablePupils}
-                  selectedPupilId={parentFormData.pupilId}
-                  onSelect={(pupil) => 
-                    setParentFormData(prev => ({ ...prev, pupilId: pupil?.id || "" }))
-                  }
-                />
+                <div data-validation-field="parent-pupil">
+                  <FilteredPupilSelector
+                    availablePupils={availablePupils}
+                    selectedPupilId={parentFormData.pupilId}
+                    onSelect={(pupil) => {
+                      setParentFormData(prev => ({ ...prev, pupilId: pupil?.id || "" }));
+                      accountValidation.handleFieldChange('parent-pupil');
+                    }}
+                  />
+                  <FieldError error={accountValidation.getFieldError('parent-pupil')} />
+                </div>
 
                 {parentFormData.pupilId && (
                   <div className="p-4 bg-muted rounded-lg">

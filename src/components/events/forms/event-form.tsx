@@ -61,6 +61,8 @@ import type {
 import { useCreateExamFromEvent, useAcademicYearsForEvents } from '@/lib/hooks/use-events-fixed';
 import { getComputedEventStatus } from '@/lib/utils/event-status-utils';
 import { Switch } from '@/components/ui/switch';
+import { FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 const EVENT_TYPES: EventType[] = ['Academic', 'Co-curricular', 'Administrative', 'Holiday'];
 const EVENT_STATUSES: EventStatus[] = ['Draft', 'Scheduled', 'Ongoing', 'Completed', 'Cancelled'];
@@ -141,6 +143,50 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
   const [newTag, setNewTag] = useState('');
   const [newAudience, setNewAudience] = useState('');
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const validationFields = useMemo(() => [
+    createFieldValidation('title', formData.title, 'Event title', true, { message: 'Enter the event title.' }),
+    createFieldValidation('dates', selectedDates, 'Event dates', formData.isAllDay === true, {
+      active: formData.isAllDay === true,
+      message: 'Choose at least one event date.',
+    }),
+    createFieldValidation('startDate', formData.startDate, 'Start date', !formData.isAllDay, {
+      active: !formData.isAllDay,
+      message: 'Choose the event start date.',
+    }),
+    createFieldValidation('endDate', formData.endDate, 'End date', !formData.isAllDay, {
+      active: !formData.isAllDay,
+      message: 'Choose the event end date.',
+      validate: (value) => value && formData.startDate && String(value) < formData.startDate ? 'Choose an end date on or after the start date.' : undefined,
+    }),
+    createFieldValidation('startTime', formData.startTime, 'Start time', !formData.isAllDay && !isExamMode, {
+      active: !formData.isAllDay && !isExamMode,
+      message: 'Choose the event start time.',
+    }),
+    createFieldValidation('endTime', formData.endTime, 'End time', !formData.isAllDay && !isExamMode, {
+      active: !formData.isAllDay && !isExamMode,
+      message: 'Choose the event end time.',
+      validate: (value) => formData.startDate === formData.endDate && value && formData.startTime && String(value) <= formData.startTime ? 'Choose an end time after the start time.' : undefined,
+    }),
+    createFieldValidation('targetAudience', formData.targetAudience, 'Target audience', !isExamMode, {
+      active: !isExamMode,
+      message: 'Choose at least one target audience.',
+    }),
+    createFieldValidation('examClasses', examData.selectedClassIds, 'Exam classes', isExamMode, {
+      active: isExamMode,
+      message: 'Choose at least one class for the exam.',
+    }),
+    createFieldValidation('examSubjects', Object.values(examData.perClassSelectedSubjects).flat(), 'Exam subjects', isExamMode && examData.examNature === 'Subject based', {
+      active: isExamMode && examData.examNature === 'Subject based',
+      message: 'Choose subjects for the subject-based exam.',
+    }),
+    createFieldValidation('examMarks', examData.maxMarks, 'Marks configuration', false, {
+      active: isExamMode,
+      focusTargetId: 'maxMarks',
+      validate: () => examData.maxMarks > 0 && examData.passingMarks >= 0 && examData.passingMarks <= examData.maxMarks ? undefined : 'Enter a passing mark between zero and the maximum marks.',
+    }),
+  ], [examData.examNature, examData.maxMarks, examData.passingMarks, examData.perClassSelectedSubjects, examData.selectedClassIds, formData.endDate, formData.endTime, formData.isAllDay, formData.startDate, formData.startTime, formData.targetAudience, formData.title, isExamMode, selectedDates]);
+  const formValidation = useFormValidation(validationFields);
+  const fieldError = (fieldId: string) => formValidation.getFieldError(fieldId)?.message || errors[fieldId];
 
   // Reset form when event changes
   useEffect(() => {
@@ -194,6 +240,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       setSelectedDates([]);
     }
     setErrors({});
+    formValidation.resetValidation();
   }, [event, activeAcademicYear]);
 
   // Update exam mode when isExamEvent changes
@@ -266,6 +313,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
     if (errors[key]) {
       setErrors(prev => ({ ...prev, [key]: '' }));
     }
+    formValidation.handleFieldChange(String(key));
   };
 
   const toggleArrayItem = (key: 'classIds' | 'subjectIds' | 'targetAudience' | 'tags', value: string) => {
@@ -299,53 +347,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.title?.trim()) {
-      newErrors.title = 'Title is required';
-    }
-
-    if (formData.isAllDay) {
-      if (selectedDates.length === 0) {
-        newErrors.dates = 'Please select at least one date';
-      }
-    } else {
-      if (!formData.startDate) {
-        newErrors.startDate = 'Start date is required';
-      }
-
-      if (!formData.endDate) {
-        newErrors.endDate = 'End date is required';
-      }
-
-      if (formData.startDate && formData.endDate && formData.startDate > formData.endDate) {
-        newErrors.endDate = 'End date must be after start date';
-      }
-    }
-
-    // For exam mode, we don't require start/end times if not specified
-    if (!formData.isAllDay && !isExamMode) {
-      if (!formData.startTime) {
-        newErrors.startTime = 'Start time is required for timed events';
-      }
-      if (!formData.endTime) {
-        newErrors.endTime = 'End time is required for timed events';
-      }
-      if (formData.startDate === formData.endDate && formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
-        newErrors.endTime = 'End time must be after start time';
-      }
-    }
-
-    // For exam mode, we don't require target audience since exams have their own audience (selected classes)
-    if (!isExamMode && !formData.targetAudience?.length) {
-      newErrors.targetAudience = 'At least one target audience is required';
-    }
-
-    console.log('Form validation errors:', newErrors);
-    console.log('Form data:', formData);
-
+    const result = formValidation.validateAll();
+    const newErrors = Object.fromEntries(result.errors.map((fieldError) => [fieldError.id, fieldError.message]));
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return result.isValid;
   };
 
 
@@ -360,9 +365,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
   const handleSubmit = async () => {
     console.log('handleSubmit called, isExamMode:', isExamMode, 'event:', event);
-    console.log('Form validation - validateForm():', validateForm(), 'validateExamForm():', validateExamForm());
-
-    if (!validateForm() || !validateExamForm()) {
+    if (!validateForm()) {
       console.log('Validation failed, returning early');
       return;
     }
@@ -399,6 +402,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
         setErrors({
           submit: error instanceof Error ? error.message : 'Failed to create exam. Please try again.'
         });
+        formValidation.setSubmissionError(error instanceof Error ? error.message : 'Failed to create exam. Please try again.');
         return;
       }
     }
@@ -493,6 +497,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
   const updateExamData = (key: keyof typeof examData, value: any) => {
     setExamData(prev => ({ ...prev, [key]: value }));
+    const fieldId = key === 'selectedClassIds' ? 'examClasses' : key === 'perClassSelectedSubjects' ? 'examSubjects' : key === 'maxMarks' || key === 'passingMarks' ? 'examMarks' : String(key);
+    formValidation.handleFieldChange(fieldId);
   };
 
   const handleClassSelection = (classId: string, checked: boolean) => {
@@ -520,35 +526,6 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       ...examData.perClassSelectedSubjects,
       [classId]: newSubjects
     });
-  };
-
-  const validateExamForm = (): boolean => {
-    if (!isExamMode) return true;
-
-    const newErrors: Record<string, string> = {};
-
-    if (examData.selectedClassIds.length === 0) {
-      newErrors.examClasses = 'Please select at least one class for the exam';
-    }
-
-    if (examData.examNature === 'Subject based') {
-      const hasSubjects = examData.selectedClassIds.some(classId =>
-        examData.perClassSelectedSubjects[classId]?.length > 0
-      );
-      if (!hasSubjects) {
-        newErrors.examSubjects = 'Please select subjects for Subject-based exams';
-      }
-    }
-
-    if (examData.maxMarks <= 0 || examData.passingMarks < 0 || examData.passingMarks > examData.maxMarks) {
-      newErrors.examMarks = 'Invalid marks configuration';
-    }
-
-    console.log('Exam validation errors:', newErrors);
-    console.log('Exam data:', examData);
-
-    setErrors(prev => ({ ...prev, ...newErrors }));
-    return Object.keys(newErrors).length === 0;
   };
 
   // Render exam-specific fields
@@ -606,7 +583,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             </div>
 
             <div>
-              <Label htmlFor="maxMarks">Maximum Marks *</Label>
+              <Label htmlFor="maxMarks" className={fieldError('examMarks') ? 'text-destructive' : undefined}>Maximum Marks *</Label>
               <Input
                 id="maxMarks"
                 type="number"
@@ -614,8 +591,10 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 onChange={(e) => updateExamData('maxMarks', parseInt(e.target.value) || 0)}
                 placeholder="100"
                 min="1"
+                {...formValidation.getFieldProps('examMarks')}
               />
             </div>
+            {fieldError('examMarks') && <p id="examMarks-error" role="alert" className="text-sm text-red-600 md:col-span-2">{fieldError('examMarks')}</p>}
 
             <div>
               <Label htmlFor="passingMarks">Passing Marks *</Label>
@@ -652,7 +631,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             Target Classes *
           </h3>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div id="examClasses" tabIndex={-1} aria-invalid={Boolean(fieldError('examClasses'))} aria-describedby={fieldError('examClasses') ? 'examClasses-error' : undefined} className="grid grid-cols-2 md:grid-cols-3 gap-3 rounded-md aria-invalid:border aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:p-2">
             {classes.map((cls) => (
               <div key={cls.id} className="flex items-center space-x-2 p-2 border rounded">
                 <Checkbox
@@ -667,8 +646,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             ))}
           </div>
 
-          {errors.examClasses && (
-            <p className="text-sm text-red-500">{errors.examClasses}</p>
+          {fieldError('examClasses') && (
+            <p id="examClasses-error" role="alert" className="text-sm text-red-500">{fieldError('examClasses')}</p>
           )}
         </div>
 
@@ -676,7 +655,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
         {examData.examNature === 'Subject based' && examData.selectedClassIds.length > 0 && (
           <>
             <Separator />
-            <div className="space-y-4">
+            <div id="examSubjects" tabIndex={-1} aria-invalid={Boolean(fieldError('examSubjects'))} aria-describedby={fieldError('examSubjects') ? 'examSubjects-error' : undefined} className="space-y-4 rounded-md aria-invalid:border aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:p-2">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <BookOpen className="h-5 w-5" />
                 Subject Selection *
@@ -714,8 +693,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 );
               })}
 
-              {errors.examSubjects && (
-                <p className="text-sm text-red-500">{errors.examSubjects}</p>
+              {fieldError('examSubjects') && (
+                <p id="examSubjects-error" role="alert" className="text-sm text-red-500">{fieldError('examSubjects')}</p>
               )}
             </div>
           </>
@@ -772,6 +751,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
         <ScrollArea className="h-[75vh] pr-4">
           <div className="space-y-5 py-4">
+            <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             {/* Mode Alert */}
             {isExamMode && (
               <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl">
@@ -796,20 +776,21 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-3">
-                  <Label htmlFor="title" className="text-sm font-medium">
+                  <Label htmlFor="title" className={`text-sm font-medium ${fieldError('title') ? 'text-destructive' : ''}`}>
                     {isExamMode ? 'Exam Name' : 'Event Title'} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="title"
                     value={formData.title || ''}
                     onChange={(e) => updateFormData('title', e.target.value)}
+                    {...formValidation.getFieldProps('title')}
                     placeholder={isExamMode ? "e.g., Mathematics End Term Exam" : "e.g., Annual Science Fair"}
-                    className={`mt-1 ${errors.title ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500'}`}
+                    className={`mt-1 ${fieldError('title') ? 'border-red-500 focus:border-red-500' : 'border-slate-300 focus:border-blue-500'}`}
                   />
-                  {errors.title && (
-                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                  {fieldError('title') && (
+                    <p id="title-error" role="alert" className="text-xs text-red-500 mt-1 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errors.title}
+                      {fieldError('title')}
                     </p>
                   )}
                 </div>
@@ -933,12 +914,12 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 {formData.isAllDay && !isExamMode ? (
                   <div className="lg:col-span-2 space-y-4">
                     <Label className="text-sm font-medium text-slate-700">Select Event Dates <span className="text-red-500">*</span></Label>
-                    <div className="bg-gradient-to-br from-slate-50 to-white ring-1 ring-slate-200/60 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-8">
+                    <div id="dates" tabIndex={-1} aria-invalid={Boolean(fieldError('dates'))} aria-describedby={fieldError('dates') ? 'dates-error' : undefined} className="bg-gradient-to-br from-slate-50 to-white ring-1 ring-slate-200/60 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-8 aria-invalid:ring-red-600 aria-invalid:bg-red-50/70">
                       <div className="flex-1 bg-white p-4 rounded-xl shadow-sm ring-1 ring-slate-200/60 self-start max-w-sm mx-auto w-full flex items-center justify-center min-h-[360px]">
                         <CalendarComponent
                           mode="multiple"
                           selected={selectedDates}
-                          onSelect={(dates: Date[] | undefined) => { if (dates) setSelectedDates(dates); }}
+                          onSelect={(dates: Date[] | undefined) => { if (dates) { setSelectedDates(dates); formValidation.handleFieldChange('dates'); } }}
                           className="mx-auto"
                         />
                       </div>
@@ -974,45 +955,47 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         </ScrollArea>
                       </div>
                     </div>
-                    {errors.dates && (
-                      <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                    {fieldError('dates') && (
+                      <p id="dates-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 mt-1">
                         <AlertCircle className="h-3 w-3" />
-                        {errors.dates}
+                        {fieldError('dates')}
                       </p>
                     )}
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="startDate" className="text-sm font-medium">
+                      <Label htmlFor="startDate" className={`text-sm font-medium ${fieldError('startDate') ? 'text-destructive' : ''}`}>
                         Start Date <span className="text-red-500">*</span>
                       </Label>
                       <DatePicker
                         date={formData.startDate ? new Date(formData.startDate) : undefined}
                         setDate={(d) => updateFormData('startDate', d ? format(d, 'yyyy-MM-dd') : '')}
+                        triggerProps={formValidation.getFieldProps('startDate')}
                         placeholder="Pick start date"
                       />
-                      {errors.startDate && (
-                        <p className="text-xs text-red-500 flex items-center gap-1">
+                      {fieldError('startDate') && (
+                        <p id="startDate-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          {errors.startDate}
+                          {fieldError('startDate')}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="endDate" className="text-sm font-medium">
+                      <Label htmlFor="endDate" className={`text-sm font-medium ${fieldError('endDate') ? 'text-destructive' : ''}`}>
                         End Date <span className="text-red-500">*</span>
                       </Label>
                       <DatePicker
                         date={formData.endDate ? new Date(formData.endDate) : undefined}
                         setDate={(d) => updateFormData('endDate', d ? format(d, 'yyyy-MM-dd') : '')}
+                        triggerProps={formValidation.getFieldProps('endDate')}
                         placeholder="Pick end date"
                       />
-                      {errors.endDate && (
-                        <p className="text-xs text-red-500 flex items-center gap-1">
+                      {fieldError('endDate') && (
+                        <p id="endDate-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          {errors.endDate}
+                          {fieldError('endDate')}
                         </p>
                       )}
                     </div>
@@ -1022,7 +1005,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                 {!formData.isAllDay && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="startTime" className="text-sm font-medium">
+                      <Label htmlFor="startTime" className={`text-sm font-medium ${fieldError('startTime') ? 'text-destructive' : ''}`}>
                         Start Time <span className="text-red-500">*</span>
                       </Label>
                       <Input
@@ -1030,18 +1013,19 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         type="time"
                         value={formData.startTime || ''}
                         onChange={(e) => updateFormData('startTime', e.target.value)}
-                        className={`border-slate-300 focus:border-blue-500 ${errors.startTime ? 'border-red-500 focus:border-red-500' : ''}`}
+                        {...formValidation.getFieldProps('startTime')}
+                        className={`border-slate-300 focus:border-blue-500 ${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.startTime && (
-                        <p className="text-xs text-red-500 flex items-center gap-1">
+                      {fieldError('startTime') && (
+                        <p id="startTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          {errors.startTime}
+                          {fieldError('startTime')}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="endTime" className="text-sm font-medium">
+                      <Label htmlFor="endTime" className={`text-sm font-medium ${fieldError('endTime') ? 'text-destructive' : ''}`}>
                         End Time <span className="text-red-500">*</span>
                       </Label>
                       <Input
@@ -1049,12 +1033,13 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         type="time"
                         value={formData.endTime || ''}
                         onChange={(e) => updateFormData('endTime', e.target.value)}
-                        className={`border-slate-300 focus:border-blue-500 ${errors.endTime ? 'border-red-500 focus:border-red-500' : ''}`}
+                        {...formValidation.getFieldProps('endTime')}
+                        className={`border-slate-300 focus:border-blue-500 ${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
-                      {errors.endTime && (
-                        <p className="text-xs text-red-500 flex items-center gap-1">
+                      {fieldError('endTime') && (
+                        <p id="endTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
-                          {errors.endTime}
+                          {fieldError('endTime')}
                         </p>
                       )}
                     </div>
@@ -1173,7 +1158,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
             {!isExamMode && (
               <>
                 <Separator />
-                <div className="space-y-4">
+                <div id="targetAudience" tabIndex={-1} aria-invalid={Boolean(fieldError('targetAudience'))} aria-describedby={fieldError('targetAudience') ? 'targetAudience-error' : undefined} className="space-y-4 rounded-md aria-invalid:border aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:p-3">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Users className="h-5 w-5" />
                     Target Audience *
@@ -1280,8 +1265,8 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                       </div>
                     )}
 
-                    {errors.targetAudience && (
-                      <p className="text-sm text-red-500">{errors.targetAudience}</p>
+                    {fieldError('targetAudience') && (
+                      <p id="targetAudience-error" role="alert" className="text-sm text-red-500">{fieldError('targetAudience')}</p>
                     )}
                   </div>
                 </div>
@@ -1434,4 +1419,4 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

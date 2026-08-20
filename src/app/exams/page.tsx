@@ -82,6 +82,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { createFieldValidation, useFormValidation } from "@/lib/utils/form-validation";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
 
 // Safe date parsing utility
 const safeParseDateString = (dateString: string | undefined | null): Date | null => {
@@ -503,6 +505,90 @@ export default function ExamsPage() {
 
     return perClassExamNatures[classId] || examNature;
   }, [editingExam, isAddingSet, perClassExamNatures, examNature]);
+
+  const examValidationFields = React.useMemo(() => {
+    const selectedClassIds = Array.from(new Set(selectedClassIdsForm));
+    const includesMarksBasedClass = selectedClassIds.some((classId) => {
+      const schoolClass = allClasses.find((candidate) => candidate.id === classId);
+      return schoolClass ? !isNurseryClass(schoolClass) : false;
+    });
+    const isCATExam = examTypeId === 'et_cat';
+
+    return [
+      createFieldValidation('assessmentName', assessmentName, 'Assessment Name', true, {
+        active: isCATExam,
+        message: 'Enter the assessment name.',
+      }),
+      createFieldValidation('examName', examName, 'Exam Name', true, { message: 'Enter the exam name.' }),
+      createFieldValidation('examTypeId', examTypeId, 'Exam Type', true, { message: 'Choose the exam type.' }),
+      createFieldValidation('customExamTypeName', customExamTypeName, 'Custom Type Name', true, {
+        active: examTypeId === OTHER_EXAM_TYPE_ID && !isAddingSet,
+        message: 'Enter a name for the custom exam type.',
+      }),
+      createFieldValidation('examNature', examNature, 'Exam Nature', true, { message: 'Choose the exam nature.' }),
+      createFieldValidation('startDate', startDate, 'Start Date', true, { message: 'Choose the exam start date.' }),
+      createFieldValidation('endDate', endDate, 'End Date', true, {
+        message: 'Choose the exam end date.',
+        validate: (value) => value instanceof Date && startDate && value < startDate
+          ? 'Choose an end date that is on or after the start date.'
+          : undefined,
+      }),
+      createFieldValidation('targetClasses', selectedClassIds, 'Target Classes', true, {
+        message: 'Choose at least one target class.',
+      }),
+      createFieldValidation('maxMarks', maxMarks, 'Maximum Marks', true, {
+        active: includesMarksBasedClass,
+        message: 'Enter the maximum marks.',
+        validate: (value) => Number.isFinite(Number(value)) && Number(value) > 0
+          ? undefined
+          : 'Enter maximum marks greater than zero.',
+      }),
+      createFieldValidation('passingMarks', passingMarks, 'Passing Marks', true, {
+        active: includesMarksBasedClass,
+        message: 'Enter the passing marks.',
+        validate: (value) => {
+          const passing = Number(value);
+          const maximum = Number(maxMarks);
+          return Number.isFinite(passing) && passing >= 0 && passing <= maximum
+            ? undefined
+            : 'Enter passing marks between zero and the maximum marks.';
+        },
+      }),
+      ...selectedClassIds.flatMap((classId) => {
+        const nature = getExamNatureForClass(classId);
+        const schoolClass = allClasses.find((candidate) => candidate.id === classId);
+        const classLabel = schoolClass?.name || schoolClass?.code || 'Selected class';
+        return [
+          createFieldValidation(`classNature_${classId}`, nature, `${classLabel} Exam Nature`, true, {
+            active: selectedClassIds.length > 1 && !editingExam && !isAddingSet,
+            message: `Choose the exam nature for ${classLabel}.`,
+          }),
+          createFieldValidation(`classSubjects_${classId}`, perClassSelectedSubjects[classId] || [], `${classLabel} Subjects`, true, {
+            active: nature === 'Subject based',
+            message: `Choose at least one subject for ${classLabel}.`,
+            focusTargetId: `classSubjects_${classId}`,
+          }),
+        ];
+      }),
+    ];
+  }, [
+    allClasses,
+    assessmentName,
+    customExamTypeName,
+    editingExam,
+    endDate,
+    examName,
+    examNature,
+    examTypeId,
+    getExamNatureForClass,
+    isAddingSet,
+    maxMarks,
+    passingMarks,
+    perClassSelectedSubjects,
+    selectedClassIdsForm,
+    startDate,
+  ]);
+  const examFormValidation = useFormValidation(examValidationFields);
 
   const availableSubjectsForSelection = React.useMemo(() => {
     if (examNature !== 'Subject based' || selectedClassIdsForm.length === 0) {
@@ -988,39 +1074,24 @@ export default function ExamsPage() {
       .filter((schoolClass): schoolClass is Class => Boolean(schoolClass));
     const includesMarksBasedClass = selectedClasses.some(schoolClass => !isNurseryClass(schoolClass));
 
-    if (!examTypeId || !startDate || !endDate || selectedClassIds.length === 0 || (includesMarksBasedClass && (!maxMarks || passingMarks === '')) || !academicYearId || !termId || !examNature || (isCATExam && (!assessmentName || !examName)) || (!isCATExam && !examName)) {
-      toast({ variant: "destructive", title: "Missing Fields", description: "Please fill all required fields (*)." });
+    const validation = examFormValidation.validateAll();
+    if (!validation.isValid) {
       return;
     }
-    if (examTypeId === OTHER_EXAM_TYPE_ID && !customExamTypeName.trim()) {
-      toast({ variant: "destructive", title: "Missing Custom Name", description: "Please provide a name for the 'Other' exam type." });
+    if (!academicYearId || !termId) {
+      examFormValidation.setSubmissionError('The active academic year or term could not be determined. Refresh the page and try again.');
       return;
     }
+    // The shared validator guarantees these values. This guard also narrows
+    // the types for the payload construction below.
+    if (!startDate || !endDate) return;
     const perClassNatures = selectedClassIds.reduce<Record<string, ExamNature>>((acc, classId) => {
       acc[classId] = getExamNatureForClass(classId);
       return acc;
     }, {});
 
-    if (selectedClassIds.some(classId => !perClassNatures[classId])) {
-      toast({ variant: "destructive", title: "Missing Exam Nature", description: "Please choose the exam nature for each selected class." });
-      return;
-    }
-
-    if (selectedClassIds.some(classId => perClassNatures[classId] === 'Subject based' && (!perClassSelectedSubjects[classId] || perClassSelectedSubjects[classId].length === 0))) {
-      toast({ variant: "destructive", title: "Missing Subjects", description: "Each subject-based class needs at least one selected subject." });
-      return;
-    }
-
     const marks = includesMarksBasedClass ? Number(maxMarks) : 100;
     const pMarks = includesMarksBasedClass ? Number(passingMarks) : 0;
-    if (includesMarksBasedClass && (isNaN(marks) || marks <= 0 || isNaN(pMarks) || pMarks < 0 || pMarks > marks)) {
-      toast({ variant: "destructive", title: "Invalid Marks", description: "Max marks must be positive. Passing marks must be between 0 and max marks." });
-      return;
-    }
-    if (endDate < startDate) {
-      toast({ variant: "destructive", title: "Invalid Dates", description: "End date cannot be before start date." });
-      return;
-    }
 
     let determinedStatus: ExamStatus;
     const today = startOfDay(new Date());
@@ -1264,7 +1335,7 @@ export default function ExamsPage() {
               academicYearId: academicYearId!,
               termId: termId!,
               examTypeId: examTypeId,
-              examNature: examNature,
+              examNature: examNature as Exclude<ExamNature, ''>,
               selectedClassIds,
               perClassSelectedSubjects: perClassSelectedSubjects,
               maxMarks: marks,
@@ -1635,7 +1706,7 @@ export default function ExamsPage() {
               onClick={openBatchManager}
               label="Batches"
               icon={<Layers className="w-4 h-4" />}
-              tone="indigo"
+              tone="violet"
               title="Consolidate or expand exam batches"
             />
 
@@ -3544,6 +3615,12 @@ export default function ExamsPage() {
               {/* --- SCROLLABLE BODY --- */}
               <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-5">
 
+                <FormErrorSummary
+                  errors={examFormValidation.errors}
+                  submissionError={examFormValidation.submissionError}
+                  onSelectError={(fieldId) => void examFormValidation.focusField(fieldId)}
+                />
+
                 {/* SECTION 1: Basic Information */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center gap-2">
@@ -3558,11 +3635,13 @@ export default function ExamsPage() {
                         <Input
                           id="assessmentName"
                           value={assessmentName}
-                          onChange={(e) => setAssessmentName(e.target.value.toUpperCase())}
+                          onChange={(e) => { setAssessmentName(e.target.value.toUpperCase()); examFormValidation.handleFieldChange('assessmentName'); }}
+                          {...examFormValidation.getFieldProps('assessmentName')}
                           placeholder="e.g., WEEKLY TEST, MONTHLY ASSESSMENT"
                           className="mt-1.5"
                           disabled={isAddingSet}
                         />
+                        <FieldError error={examFormValidation.getFieldError('assessmentName')} />
                       </div>
                     )}
 
@@ -3572,24 +3651,28 @@ export default function ExamsPage() {
                         <Input
                           id="examName"
                           value={examName}
-                          onChange={(e) => setExamName(e.target.value.toUpperCase())}
+                          onChange={(e) => { setExamName(e.target.value.toUpperCase()); examFormValidation.handleFieldChange('examName'); }}
+                          {...examFormValidation.getFieldProps('examName')}
                           placeholder="e.g., MIDTERM, PRACTICAL"
                           className="mt-1.5"
                         />
+                        <FieldError error={examFormValidation.getFieldError('examName')} />
                       </div>
                       <div className="sm:col-span-3">
                         <Label htmlFor="examTypeId" className="text-sm font-medium text-slate-700">Exam Type <span className="text-rose-500">*</span></Label>
                         <Select value={examTypeId} onValueChange={(val) => {
                           setExamTypeId(val);
+                          examFormValidation.handleFieldChange('examTypeId');
                           if (val !== OTHER_EXAM_TYPE_ID) setCustomExamTypeName("");
                           if (val === 'et_cat' && !isAddingSet) { setSetNumber("SET 1"); setAssessmentName(""); setExamName(""); }
                           else if (val !== 'et_cat') { setAssessmentName(""); setSetNumber(""); }
                         }} disabled={isAddingSet}>
-                          <SelectTrigger id="examTypeId" className="mt-1.5"><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectTrigger id="examTypeId" className="mt-1.5" {...examFormValidation.getFieldProps('examTypeId')}><SelectValue placeholder="Select type" /></SelectTrigger>
                           <SelectContent position="popper">
                             {sampleExamTypes.map(type => <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        <FieldError error={examFormValidation.getFieldError('examTypeId')} />
                       </div>
                       <div className="sm:col-span-3">
                         <Label htmlFor="examNature" className="text-sm font-medium text-slate-700">
@@ -3598,6 +3681,7 @@ export default function ExamsPage() {
                         <Select value={examNature} onValueChange={(val) => {
                           const nextNature = val as ExamNature;
                           setExamNature(nextNature);
+                          examFormValidation.handleFieldChange('examNature');
 
                           if (!editingExam && selectedClassIdsForm.length > 1) {
                             setPerClassExamNatures(prev => {
@@ -3613,11 +3697,12 @@ export default function ExamsPage() {
                             }
                           }
                         }} disabled={isAddingSet}>
-                          <SelectTrigger id="examNature" className="mt-1.5"><SelectValue placeholder="Select nature" /></SelectTrigger>
+                          <SelectTrigger id="examNature" className="mt-1.5" {...examFormValidation.getFieldProps('examNature')}><SelectValue placeholder="Select nature" /></SelectTrigger>
                           <SelectContent position="popper">
                             {EXAM_NATURES.map(nature => <SelectItem key={nature} value={nature}>{nature}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        <FieldError error={examFormValidation.getFieldError('examNature')} />
                       </div>
                     </div>
                     {selectedClassIdsForm.length > 1 && !editingExam && (
@@ -3633,7 +3718,8 @@ export default function ExamsPage() {
                     {examTypeId === OTHER_EXAM_TYPE_ID && !isAddingSet && (
                       <div>
                         <Label htmlFor="customExamTypeName" className="text-sm font-medium text-slate-700">Custom Type Name <span className="text-rose-500">*</span></Label>
-                        <Input id="customExamTypeName" value={customExamTypeName} onChange={(e) => setCustomExamTypeName(e.target.value.toUpperCase())} placeholder="e.g., QUIZ, ORAL" className="mt-1.5" />
+                        <Input id="customExamTypeName" value={customExamTypeName} onChange={(e) => { setCustomExamTypeName(e.target.value.toUpperCase()); examFormValidation.handleFieldChange('customExamTypeName'); }} placeholder="e.g., QUIZ, ORAL" className="mt-1.5" {...examFormValidation.getFieldProps('customExamTypeName')} />
+                        <FieldError error={examFormValidation.getFieldError('customExamTypeName')} />
                       </div>
                     )}
                   </div>
@@ -3650,14 +3736,16 @@ export default function ExamsPage() {
                       <div className={isAddingSet ? "sm:col-span-6" : "sm:col-span-4"}>
                         <Label className="text-sm font-medium text-slate-700">Start Date <span className="text-rose-500">*</span></Label>
                         <div className="mt-1.5">
-                          <ModernDatePicker date={startDate} setDate={setStartDate} placeholder="Select start date" showQuickSelects={true} minDate={getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} />
+                          <ModernDatePicker date={startDate} setDate={(value) => { setStartDate(value); examFormValidation.handleFieldChange('startDate'); }} placeholder="Select start date" showQuickSelects={true} minDate={getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} triggerProps={{ id: 'startDate', ...examFormValidation.getFieldProps('startDate') }} />
                         </div>
+                        <FieldError error={examFormValidation.getFieldError('startDate')} />
                       </div>
                       <div className={isAddingSet ? "sm:col-span-6" : "sm:col-span-4"}>
                         <Label className="text-sm font-medium text-slate-700">End Date <span className="text-rose-500">*</span></Label>
                         <div className="mt-1.5">
-                          <ModernDatePicker date={endDate} setDate={setEndDate} placeholder="Select end date" showQuickSelects={true} minDate={startDate || getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} />
+                          <ModernDatePicker date={endDate} setDate={(value) => { setEndDate(value); examFormValidation.handleFieldChange('endDate'); }} placeholder="Select end date" showQuickSelects={true} minDate={startDate || getCurrentTermDateRange().minDate} maxDate={getCurrentTermDateRange().maxDate} examMode={true} excludeWeekends={false} triggerProps={{ id: 'endDate', ...examFormValidation.getFieldProps('endDate') }} />
                         </div>
+                        <FieldError error={examFormValidation.getFieldError('endDate')} />
                       </div>
                       {!isAddingSet && (
                         <div className="sm:col-span-4">
@@ -3674,6 +3762,7 @@ export default function ExamsPage() {
                                onChange={(selected) => {
                                  const uniqueSelected = Array.from(new Set(selected));
                                  setSelectedClassIdsForm(uniqueSelected);
+                                 examFormValidation.handleFieldChange('targetClasses');
                                  if (uniqueSelected.length < selectedClassIdsForm.length) {
                                    const removedClasses = selectedClassIdsForm.filter(id => !uniqueSelected.includes(id));
                                   setPerClassExamNatures(prev => {
@@ -3692,7 +3781,9 @@ export default function ExamsPage() {
                               searchPlaceholder="Search classes..."
                               disabled={!!editingExam || allClasses.length === 0}
                               className="w-full"
+                              triggerProps={{ id: 'targetClasses', ...examFormValidation.getFieldProps('targetClasses') }}
                             />
+                            <FieldError error={examFormValidation.getFieldError('targetClasses')} />
                             {allClasses.length === 0 && <p className="text-xs text-slate-500 mt-2">No classes available.</p>}
                             {selectedClassIdsForm.some(classId => isNurseryClass(allClasses.find(schoolClass => schoolClass.id === classId))) && (
                               <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
@@ -3747,20 +3838,27 @@ export default function ExamsPage() {
                                 <div className="p-3 space-y-3">
                                   <div>
                                     <Label className="text-xs font-medium text-slate-600">Exam Nature</Label>
-                                    <Select value={classNature} onValueChange={(value) => handlePerClassExamNatureChange(classId, value as ExamNature)}>
-                                      <SelectTrigger className="mt-1.5">
+                                    <Select value={classNature} onValueChange={(value) => { handlePerClassExamNatureChange(classId, value as ExamNature); examFormValidation.handleFieldChange(`classNature_${classId}`); }}>
+                                      <SelectTrigger id={`classNature_${classId}`} className="mt-1.5" {...examFormValidation.getFieldProps(`classNature_${classId}`)}>
                                         <SelectValue placeholder="Select nature" />
                                       </SelectTrigger>
                                       <SelectContent position="popper">
                                         {EXAM_NATURES.map(nature => <SelectItem key={`${classId}-${nature}`} value={nature}>{nature}</SelectItem>)}
                                       </SelectContent>
                                     </Select>
+                                    <FieldError error={examFormValidation.getFieldError(`classNature_${classId}`)} />
                                   </div>
 
                                   {classNature === 'Subject based' && (
                                     <div>
                                       <Label className="text-xs font-medium text-slate-600">Subjects</Label>
-                                      <div className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5">
+                                      <div
+                                        id={`classSubjects_${classId}`}
+                                        tabIndex={-1}
+                                        aria-invalid={Boolean(examFormValidation.getFieldError(`classSubjects_${classId}`))}
+                                        aria-describedby={examFormValidation.getFieldError(`classSubjects_${classId}`) ? `classSubjects_${classId}-error` : undefined}
+                                        className="mt-1.5 max-h-40 overflow-y-auto space-y-1.5 rounded-md aria-invalid:border-2 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200"
+                                      >
                                         {subjectsInThisClass.length === 0 ? (
                                           <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
                                         ) : (
@@ -3769,7 +3867,7 @@ export default function ExamsPage() {
                                               <Checkbox
                                                 id={`class-${classId}-subj-${sub.id}`}
                                                 checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
-                                                onCheckedChange={(checked) => handlePerClassSubjectIdChange(classId, sub.id, checked)}
+                                                onCheckedChange={(checked) => { handlePerClassSubjectIdChange(classId, sub.id, checked); examFormValidation.handleFieldChange(`classSubjects_${classId}`); }}
                                                 className="h-4 w-4"
                                               />
                                               <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
@@ -3777,6 +3875,7 @@ export default function ExamsPage() {
                                           ))
                                         )}
                                       </div>
+                                      <FieldError error={examFormValidation.getFieldError(`classSubjects_${classId}`)} />
                                     </div>
                                   )}
                                 </div>
@@ -3823,7 +3922,13 @@ export default function ExamsPage() {
                                 <div className="bg-slate-100 px-3 py-2 border-b border-slate-200">
                                   <h5 className="text-sm font-semibold text-slate-800">{currentClass?.name || classId} <span className="text-slate-400 font-normal text-xs">({currentClass?.code})</span></h5>
                                 </div>
-                                <div className="p-3 max-h-40 overflow-y-auto space-y-1.5">
+                                <div
+                                  id={`classSubjects_${classId}`}
+                                  tabIndex={-1}
+                                  aria-invalid={Boolean(examFormValidation.getFieldError(`classSubjects_${classId}`))}
+                                  aria-describedby={examFormValidation.getFieldError(`classSubjects_${classId}`) ? `classSubjects_${classId}-error` : undefined}
+                                  className="p-3 max-h-40 overflow-y-auto space-y-1.5 aria-invalid:border-2 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-2 aria-invalid:ring-red-200"
+                                >
                                   {subjectsInThisClass.length === 0 ? (
                                     <p className="text-sm text-slate-400 italic text-center py-2">No subjects assigned.</p>
                                   ) : (
@@ -3832,7 +3937,7 @@ export default function ExamsPage() {
                                         <Checkbox
                                           id={`class-${classId}-subj-${sub.id}`}
                                           checked={(perClassSelectedSubjects[classId] || []).includes(sub.id)}
-                                          onCheckedChange={(checked) => handlePerClassSubjectIdChange(classId, sub.id, checked)}
+                                          onCheckedChange={(checked) => { handlePerClassSubjectIdChange(classId, sub.id, checked); examFormValidation.handleFieldChange(`classSubjects_${classId}`); }}
                                           className="h-4 w-4"
                                         />
                                         <span className="text-sm text-slate-700">{sub.name} <span className="text-slate-400 text-xs">({sub.code})</span></span>
@@ -3840,6 +3945,7 @@ export default function ExamsPage() {
                                     ))
                                   )}
                                 </div>
+                                <FieldError error={examFormValidation.getFieldError(`classSubjects_${classId}`)} className="px-3 pb-3" />
                               </div>
                             );
                           })}

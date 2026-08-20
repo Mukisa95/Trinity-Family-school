@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ModernDialog, ModernDialogContent, ModernDialogHeader, ModernDialogTitle } from '@/components/ui/modern-dialog';
 import { MessageSquare, Plus } from 'lucide-react';
+import { FieldError, FormErrorSummary } from '@/components/ui/form-feedback';
+import { createFieldValidation, useFormValidation } from '@/lib/utils/form-validation';
 
 interface AddCommentModalProps {
   isOpen: boolean;
@@ -26,14 +28,16 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
     type: 'classTeacher',
     comment: ''
   });
+  const formValidation = useFormValidation([
+    createFieldValidation('comment', formData.comment, 'Comment text', true, {
+      message: 'Enter the comment template text.',
+    }),
+  ]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.comment.trim()) {
-      alert('Please enter a comment');
-      return;
-    }
+    if (!formValidation.validateAll().isValid) return;
 
     onAdd(formData);
     
@@ -43,6 +47,7 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
       type: 'classTeacher',
       comment: ''
     });
+    formValidation.resetValidation();
     
     onClose();
   };
@@ -54,6 +59,7 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
       type: 'classTeacher',
       comment: ''
     });
+    formValidation.resetValidation();
     onClose();
   };
 
@@ -67,7 +73,8 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
           </ModernDialogTitle>
         </ModernDialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <FormErrorSummary errors={formValidation.errors} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Performance Status</Label>
@@ -106,15 +113,17 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="comment">Comment Text</Label>
+            <Label htmlFor="comment" className={formValidation.getFieldError('comment') ? 'text-destructive' : undefined}>Comment Text <span className="text-destructive">*</span></Label>
             <Textarea
               id="comment"
               placeholder="Enter the comment template text..."
               value={formData.comment}
-              onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+              onChange={(e) => { setFormData({ ...formData, comment: e.target.value }); formValidation.handleFieldChange('comment'); }}
+              {...formValidation.getFieldProps('comment')}
               rows={4}
               className="resize-none"
             />
+            <FieldError error={formValidation.getFieldError('comment')} />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
@@ -137,4 +146,4 @@ export function AddCommentModal({ isOpen, onClose, onAdd, defaultStatus = 'good'
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

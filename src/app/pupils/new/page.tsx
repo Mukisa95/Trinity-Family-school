@@ -32,7 +32,8 @@ import { generateAdmissionNumber } from "@/lib/utils/admission-number";
 import { sampleSchoolSettings } from "@/lib/sample-data";
 import { PhotoUploadCrop } from "@/components/ui/photo-upload-crop";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { validateForm, highlightMissingFields, scrollToFirstMissingField, clearFieldHighlights, createFieldValidation } from "@/lib/utils/form-validation";
+import { createFieldValidation, useFormValidation } from "@/lib/utils/form-validation";
+import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
 import { useSubmissionState } from "@/lib/hooks/use-submission-state";
 import { LoadingButton } from "@/components/ui/loading-button";
 import jsPDF from 'jspdf';
@@ -110,6 +111,28 @@ function NewPupilContent() {
   const [isNameSearching, setIsNameSearching] = React.useState(false);
 
   const nationalityOptions: ComboboxOption[] = NATIONALITIES.map(nat => ({ value: nat, label: nat }));
+
+  const validationFields = React.useMemo(() => {
+    const primaryGuardian = guardians[0];
+    return [
+      createFieldValidation('lastName', lastName, 'Surname', true, { message: 'Enter the pupil surname.' }),
+      createFieldValidation('firstName', firstName, 'First Name', true, { message: 'Enter the pupil first name.' }),
+      createFieldValidation('gender', gender, 'Gender', true, { message: 'Choose the pupil gender.' }),
+      createFieldValidation('dateOfBirth', dateOfBirth, 'Date of Birth', true, { message: 'Choose the pupil date of birth.' }),
+      createFieldValidation('classId', classId, 'Class', true, { message: 'Choose the pupil class.' }),
+      createFieldValidation('section', section, 'Section', true, { message: 'Choose the pupil section.' }),
+      createFieldValidation('status', status, 'Status', true, { message: 'Choose the pupil status.' }),
+      createFieldValidation('admissionNumber', admissionNumber, 'Admission Number', true, {
+        message: 'Choose the required personal details so the admission number can be generated.',
+        focusTargetId: 'gender',
+      }),
+      createFieldValidation('guardian_relationship_0', primaryGuardian?.relationship, 'Guardian Relationship', true, { message: 'Choose the primary guardian relationship.' }),
+      createFieldValidation('guardian_firstName_0', primaryGuardian?.firstName, 'Guardian First Name', true, { message: 'Enter the primary guardian first name.' }),
+      createFieldValidation('guardian_lastName_0', primaryGuardian?.lastName, 'Guardian Surname', true, { message: 'Enter the primary guardian surname.' }),
+      createFieldValidation('guardian_phone_0', primaryGuardian?.phone, 'Guardian Phone', true, { message: 'Enter the primary guardian phone number.' }),
+    ];
+  }, [admissionNumber, classId, dateOfBirth, firstName, gender, guardians, lastName, section, status]);
+  const formValidation = useFormValidation(validationFields);
 
   // Handle first name search for duplicate detection
   React.useEffect(() => {
@@ -563,60 +586,7 @@ function NewPupilContent() {
   };
 
   const validateFormData = () => {
-    // Clear any previous field highlights
-    const allFieldIds = [
-      'lastName', 'firstName', 'admissionNumber', 'gender', 'dateOfBirth', 'classId', 'section', 'status',
-      'guardian_relationship_0', 'guardian_firstName_0', 'guardian_lastName_0', 'guardian_phone_0'
-    ];
-    clearFieldHighlights(allFieldIds);
-
-    // Define validation fields
-    const validationFields = [
-      createFieldValidation('lastName', lastName, 'Surname', true),
-      createFieldValidation('firstName', firstName, 'First Name', true),
-      createFieldValidation('admissionNumber', admissionNumber, 'Admission Number', true),
-      createFieldValidation('gender', gender, 'Gender', true),
-      createFieldValidation('dateOfBirth', dateOfBirth, 'Date of Birth', true),
-      createFieldValidation('classId', classId, 'Class', true),
-      createFieldValidation('section', section, 'Section', true),
-      createFieldValidation('status', status, 'Status', true),
-    ];
-
-    // Add guardian validation fields
-    if (guardians.length > 0) {
-      const primaryGuardian = guardians[0];
-      validationFields.push(
-        createFieldValidation('guardian_relationship_0', primaryGuardian.relationship, 'Guardian Relationship', true),
-        createFieldValidation('guardian_firstName_0', primaryGuardian.firstName, 'Guardian First Name', true),
-        createFieldValidation('guardian_lastName_0', primaryGuardian.lastName, 'Guardian Surname', true),
-        createFieldValidation('guardian_phone_0', primaryGuardian.phone, 'Guardian Phone', true)
-      );
-    }
-
-    // Validate form
-    const validation = validateForm(validationFields);
-    
-    if (!validation.isValid) {
-      // Highlight missing fields
-      const missingFieldIds = validation.missingFields.map(field => field.id);
-      highlightMissingFields(missingFieldIds);
-      
-      // Scroll to first missing field
-      if (validation.firstMissingFieldId) {
-        scrollToFirstMissingField(validation.firstMissingFieldId);
-      }
-      
-      // Show error toast with specific missing fields
-      const missingFieldNames = validation.missingFields.map(field => field.label).join(', ');
-      toast({ 
-        variant: "destructive", 
-        title: "Missing Required Fields", 
-        description: `Please fill in the following required fields: ${missingFieldNames}` 
-      });
-      return false;
-    }
-
-    return true;
+    return formValidation.validateAll().isValid;
   };
 
   const handleSubmit = async () => {
@@ -721,6 +691,12 @@ function NewPupilContent() {
 
       <div className="container mx-auto max-w-6xl px-4 pb-8">
 
+        <FormErrorSummary
+          errors={formValidation.errors}
+          submissionError={formValidation.submissionError}
+          onSelectError={(fieldId) => void formValidation.focusField(fieldId)}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Photo and Quick Info */}
           <div className="lg:col-span-1 space-y-6 order-last lg:order-first">
@@ -812,10 +788,12 @@ function NewPupilContent() {
                     <Input
                       id="lastName"
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value.toUpperCase())}
+                      onChange={(e) => { setLastName(e.target.value.toUpperCase()); formValidation.handleFieldChange('lastName'); }}
+                      {...formValidation.getFieldProps('lastName')}
                       className="mt-1"
                       placeholder="Enter surname"
                     />
+                    <FieldError error={formValidation.getFieldError('lastName')} />
                   </div>
                   <div className="relative" ref={nameSearchRef}>
                     <Label htmlFor="firstName" className="text-sm font-medium">
@@ -825,7 +803,11 @@ function NewPupilContent() {
                       <Input
                         id="firstName"
                         value={firstName}
-                        onChange={(e) => setFirstName(e.target.value.toUpperCase())}
+                        onChange={(e) => { setFirstName(e.target.value.toUpperCase()); formValidation.handleFieldChange('firstName'); }}
+                        onBlur={() => formValidation.validateField('firstName')}
+                        aria-invalid={Boolean(formValidation.getFieldError('firstName'))}
+                        aria-describedby={formValidation.getFieldError('firstName') ? 'firstName-error' : undefined}
+                        data-validation-control="firstName"
                         onFocus={() => {
                           if (nameSearchResults.length > 0) {
                             setShowNameResults(true);
@@ -844,6 +826,7 @@ function NewPupilContent() {
                         )}
                       </div>
                     </div>
+                    <FieldError error={formValidation.getFieldError('firstName')} />
 
                     {/* Duplicate Detection Dropdown */}
                     {showNameResults && nameSearchResults.length > 0 && (
@@ -929,14 +912,15 @@ function NewPupilContent() {
                     <Label htmlFor="gender" className="text-sm font-medium">
                       Gender <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={gender} onValueChange={(val) => setGender(val as Pupil['gender'])}>
-                      <SelectTrigger id="gender" className="mt-1">
+                    <Select value={gender} onValueChange={(val) => { setGender(val as Pupil['gender']); formValidation.handleFieldChange('gender'); }}>
+                      <SelectTrigger id="gender" className="mt-1" {...formValidation.getFieldProps('gender')}>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
                         {GENDERS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('gender')} />
                   </div>
                   <div>
                     <Label htmlFor="dateOfBirth" className="text-sm font-medium">
@@ -945,12 +929,14 @@ function NewPupilContent() {
                     <div className="mt-1">
                       <ModernDatePicker 
                         date={dateOfBirth} 
-                        setDate={setDateOfBirth}
+                        setDate={(value) => { setDateOfBirth(value); formValidation.handleFieldChange('dateOfBirth'); }}
                         placeholder="Select date of birth"
                         maxDate={new Date()}
                         showQuickSelects={false}
+                        triggerProps={{ id: 'dateOfBirth', ...formValidation.getFieldProps('dateOfBirth') }}
                       />
                     </div>
+                    <FieldError error={formValidation.getFieldError('dateOfBirth')} />
                   </div>
                   <div>
                     <Label htmlFor="placeOfBirth" className="text-sm font-medium">Place of Birth</Label>
@@ -1014,40 +1000,43 @@ function NewPupilContent() {
                     <Label htmlFor="classId" className="text-sm font-medium">
                       Class <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={classId} onValueChange={setClassId}>
-                      <SelectTrigger id="classId" className="mt-1">
+                    <Select value={classId} onValueChange={(value) => { setClassId(value); formValidation.handleFieldChange('classId'); }}>
+                      <SelectTrigger id="classId" className="mt-1" {...formValidation.getFieldProps('classId')}>
                         <SelectValue placeholder="Select class" />
                       </SelectTrigger>
                       <SelectContent>
                         {classes.map(c => <SelectItem key={c.id} value={c.id}>{c.name} ({c.code})</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('classId')} />
                   </div>
                   <div>
                     <Label htmlFor="section" className="text-sm font-medium">
                       Section <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={section} onValueChange={(val) => setSection(val as Pupil['section'])}>
-                      <SelectTrigger id="section" className="mt-1">
+                    <Select value={section} onValueChange={(val) => { setSection(val as Pupil['section']); formValidation.handleFieldChange('section'); }}>
+                      <SelectTrigger id="section" className="mt-1" {...formValidation.getFieldProps('section')}>
                         <SelectValue placeholder="Select section" />
                       </SelectTrigger>
                       <SelectContent>
                         {PUPIL_SECTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('section')} />
                   </div>
                   <div>
                     <Label htmlFor="status" className="text-sm font-medium">
                       Status <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={status} onValueChange={(val) => setStatus(val as Pupil['status'])}>
-                      <SelectTrigger id="status" className="mt-1">
+                    <Select value={status} onValueChange={(val) => { setStatus(val as Pupil['status']); formValidation.handleFieldChange('status'); }}>
+                      <SelectTrigger id="status" className="mt-1" {...formValidation.getFieldProps('status')}>
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
                         {PUPIL_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <FieldError error={formValidation.getFieldError('status')} />
                   </div>
 
                   <div>
@@ -1113,15 +1102,20 @@ function NewPupilContent() {
                           </Label>
                           <Select
                             value={guardian.relationship}
-                            onValueChange={(val) => handleGuardianChange(index, 'relationship', val)}
+                            onValueChange={(val) => { handleGuardianChange(index, 'relationship', val); if (index === 0) formValidation.handleFieldChange('guardian_relationship_0'); }}
                           >
-                            <SelectTrigger id={`guardian_relationship_${index}`} className="mt-1">
+                            <SelectTrigger
+                              id={`guardian_relationship_${index}`}
+                              className="mt-1"
+                              {...(index === 0 ? formValidation.getFieldProps('guardian_relationship_0') : {})}
+                            >
                               <SelectValue placeholder="Select relationship" />
                             </SelectTrigger>
                             <SelectContent>
                               {GUARDIAN_RELATIONSHIPS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                             </SelectContent>
                           </Select>
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_relationship_0')} /> : null}
                         </div>
                         <div>
                           <Label htmlFor={ `guardian_firstName_${index}` } className="text-sm font-medium">
@@ -1130,10 +1124,12 @@ function NewPupilContent() {
                           <Input
                             id={`guardian_firstName_${index}`}
                             value={guardian.firstName}
-                            onChange={(e) => handleGuardianChange(index, 'firstName', e.target.value.toUpperCase())}
+                            onChange={(e) => { handleGuardianChange(index, 'firstName', e.target.value.toUpperCase()); if (index === 0) formValidation.handleFieldChange('guardian_firstName_0'); }}
+                            {...(index === 0 ? formValidation.getFieldProps('guardian_firstName_0') : {})}
                             className="mt-1"
                             placeholder="Enter first name"
                           />
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_firstName_0')} /> : null}
                         </div>
                         <div>
                           <Label htmlFor={ `guardian_lastName_${index}` } className="text-sm font-medium">
@@ -1142,10 +1138,12 @@ function NewPupilContent() {
                           <Input
                             id={`guardian_lastName_${index}`}
                             value={guardian.lastName}
-                            onChange={(e) => handleGuardianChange(index, 'lastName', e.target.value.toUpperCase())}
+                            onChange={(e) => { handleGuardianChange(index, 'lastName', e.target.value.toUpperCase()); if (index === 0) formValidation.handleFieldChange('guardian_lastName_0'); }}
+                            {...(index === 0 ? formValidation.getFieldProps('guardian_lastName_0') : {})}
                             className="mt-1"
                             placeholder="Enter surname"
                           />
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_lastName_0')} /> : null}
                         </div>
                         <div>
                           <Label htmlFor={ `guardian_phone_${index}` } className="text-sm font-medium">
@@ -1155,7 +1153,8 @@ function NewPupilContent() {
                             <PhoneInput
                               id={`guardian_phone_${index}`}
                               value={guardian.phone}
-                              onChange={(value) => handleGuardianChange(index, 'phone', value)}
+                              onChange={(value) => { handleGuardianChange(index, 'phone', value); if (index === 0) formValidation.handleFieldChange('guardian_phone_0'); }}
+                              {...(index === 0 ? formValidation.getFieldProps('guardian_phone_0') : {})}
                               className="flex-grow"
                             />
                             <Button
@@ -1169,6 +1168,7 @@ function NewPupilContent() {
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
+                          {index === 0 ? <FieldError error={formValidation.getFieldError('guardian_phone_0')} /> : null}
                         </div>
                       </div>
                       
