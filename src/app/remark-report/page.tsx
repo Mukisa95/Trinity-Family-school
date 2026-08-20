@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Class, Pupil } from '@/types';
-import { RefreshCw, CheckCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Printer, FileText, List, MessageSquare, Clock, Loader2, Filter, Settings } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Class, CommentTemplate, Pupil } from '@/types';
+import { RefreshCw, CheckCircle, Download, Search, ArrowUpDown, ArrowUp, ArrowDown, Printer, FileText, List, MessageSquare, Clock, Loader2, Filter, Settings, AlertTriangle, Plus, Trash2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AcademicYear, Term } from '@/types';
 import Link from 'next/link';
@@ -25,6 +25,7 @@ import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -54,6 +55,11 @@ import {
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SubjectCommentType, SubjectStatus } from '@/types';
 import { SUBJECT_COMMENT_TYPES, SUBJECT_STATUS_OPTIONS } from '@/lib/constants/subject-comments';
+import {
+  getApplicableSubjectComments,
+  getCanonicalTermTemplateId,
+  getTermAliases,
+} from '@/lib/utils/subject-comment-availability';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type {
   PupilPerformancePatch,
@@ -95,6 +101,12 @@ const buildTiedSubjectStatuses = (status: string): Record<SubjectCommentType, Su
 
 const hasOwn = <T extends object>(value: T, key: PropertyKey) =>
   Object.prototype.hasOwnProperty.call(value, key);
+
+type DeferredSubjectAssignment = {
+  missing: Array<{ subject: SubjectCommentType; status: SubjectStatus }>;
+  index: number;
+  onAllowed: () => void;
+};
 
 export default function RemarkReportPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
@@ -149,6 +161,23 @@ export default function RemarkReportPage() {
   const [selectedSubjectsByPupil, setSelectedSubjectsByPupil] = useState<
     Record<string, SubjectCommentType[]>
   >({});
+  const [coveragePupilId, setCoveragePupilId] = useState<string | null>(null);
+  const [commentGuardOpen, setCommentGuardOpen] = useState(false);
+  const [newSubjectComments, setNewSubjectComments] = useState<string[]>(['']);
+  const [isAddingSubjectComments, setIsAddingSubjectComments] = useState(false);
+  const [commentGuardError, setCommentGuardError] = useState<string | null>(null);
+  const deferredSubjectAssignmentRef = useRef<DeferredSubjectAssignment | null>(null);
+
+  const [autoSaveState, setAutoSaveState] = useState<'idle' | 'waiting' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | null>(null);
+  const [autoSaveFailureCount, setAutoSaveFailureCount] = useState(0);
+  const updatedPupilsRef = useRef(updatedPupils);
+  const updatedSubjectStatusesRef = useRef(updatedSubjectStatuses);
+  const autoSaveTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const autoSaveQueueRef = useRef(new Set<string>());
+  const autoSaveFailedPupilsRef = useRef(new Set<string>());
+  const autoSaveRunningRef = useRef(false);
+  const autoSaveWorkerPromiseRef = useRef<Promise<void> | null>(null);
 
 
   // PDF Viewer hook
@@ -159,6 +188,7 @@ export default function RemarkReportPage() {
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -230,6 +260,37 @@ export default function RemarkReportPage() {
   const effectiveTermData = React.useMemo(() => getEffectiveTermForDataDisplay(academicYears), [academicYears]);
   const currentAcademicYear = effectiveTermData?.academicYear ?? null;
   const availableTerms = currentAcademicYear?.terms || [];
+  const selectedTerm = availableTerms.find((term: Term) => term.id === selectedTermId);
+  const selectedTermAliases = useMemo(
+    () => getTermAliases(selectedTermId, selectedTerm?.name),
+    [selectedTermId, selectedTerm?.name],
+  );
+  const canonicalSelectedTermId = useMemo(
+    () => getCanonicalTermTemplateId(selectedTermId, selectedTerm?.name),
+    [selectedTermId, selectedTerm?.name],
+  );
+  const {
+    data: activeCommentTemplates = [],
+    isLoading: commentsLoading,
+    isError: commentsLoadError,
+  } = useQuery({
+    queryKey: ['comment-templates', 'active'],
+    queryFn: () => commentaryService.getAllActiveTemplates(),
+    staleTime: 60_000,
+  });
+  const activeCommentTemplatesRef = useRef(activeCommentTemplates);
+
+  useEffect(() => {
+    activeCommentTemplatesRef.current = activeCommentTemplates;
+  }, [activeCommentTemplates]);
+
+  useEffect(() => {
+    updatedPupilsRef.current = updatedPupils;
+  }, [updatedPupils]);
+
+  useEffect(() => {
+    updatedSubjectStatusesRef.current = updatedSubjectStatuses;
+  }, [updatedSubjectStatuses]);
 
   // Set default term when effective term becomes available
   React.useEffect(() => {
@@ -328,6 +389,172 @@ export default function RemarkReportPage() {
   // Find class object for selected class
   const selectedClassData = allClasses.find((c: Class) => c.id === selectedClass) || null;
 
+  const buildPendingSnapshot = (pupilIds: string[]) => {
+    const pendingPupils = Object.fromEntries(
+      pupilIds
+        .filter(pupilId => updatedPupilsRef.current[pupilId])
+        .map(pupilId => [pupilId, { ...updatedPupilsRef.current[pupilId] }]),
+    ) as typeof updatedPupils;
+    const pendingSubjectStatuses = Object.fromEntries(
+      pupilIds
+        .filter(pupilId => updatedSubjectStatusesRef.current[pupilId])
+        .map(pupilId => [
+          pupilId,
+          Object.fromEntries(
+            Object.entries(updatedSubjectStatusesRef.current[pupilId]).map(([termId, statuses]) => [
+              termId,
+              { ...statuses },
+            ]),
+          ),
+        ]),
+    ) as typeof updatedSubjectStatuses;
+
+    const patches = pupilIds.reduce<PupilPerformancePatch[]>((acc, pupilId) => {
+      const termPerformanceStatuses = pendingPupils[pupilId] || {};
+      const termSubjectStatuses = Object.entries(
+        pendingSubjectStatuses[pupilId] || {},
+      ).reduce<NonNullable<PupilPerformancePatch['termSubjectStatuses']>>(
+        (terms, [termId, statuses]) => {
+          if (Object.keys(statuses).length > 0) terms[termId] = statuses;
+          return terms;
+        },
+        {},
+      );
+
+      if (Object.keys(termPerformanceStatuses).length > 0 || Object.keys(termSubjectStatuses).length > 0) {
+        acc.push({
+          id: pupilId,
+          ...(Object.keys(termPerformanceStatuses).length > 0 && { termPerformanceStatuses }),
+          ...(Object.keys(termSubjectStatuses).length > 0 && { termSubjectStatuses }),
+        });
+      }
+      return acc;
+    }, []);
+
+    return { pendingPupils, pendingSubjectStatuses, patches };
+  };
+
+  const clearSavedSnapshots = (
+    savedIds: string[],
+    pendingPupils: typeof updatedPupils,
+    pendingSubjectStatuses: typeof updatedSubjectStatuses,
+  ) => {
+    if (savedIds.length === 0) return;
+    const savedIdSet = new Set(savedIds);
+
+    setUpdatedPupils(prev => {
+      const next = { ...prev };
+      savedIdSet.forEach(pupilId => {
+        const currentTerms = { ...(next[pupilId] || {}) };
+        Object.entries(pendingPupils[pupilId] || {}).forEach(([termId, status]) => {
+          if (currentTerms[termId] === status) delete currentTerms[termId];
+        });
+        if (Object.keys(currentTerms).length > 0) next[pupilId] = currentTerms;
+        else delete next[pupilId];
+      });
+      updatedPupilsRef.current = next;
+      return next;
+    });
+
+    setUpdatedSubjectStatuses(prev => {
+      const next = { ...prev };
+      savedIdSet.forEach(pupilId => {
+        const currentTerms = { ...(next[pupilId] || {}) };
+        Object.entries(pendingSubjectStatuses[pupilId] || {}).forEach(([termId, savedStatuses]) => {
+          const currentStatuses = { ...(currentTerms[termId] || {}) };
+          Object.entries(savedStatuses).forEach(([subject, status]) => {
+            if (
+              hasOwn(currentStatuses, subject)
+              && currentStatuses[subject as SubjectCommentType] === status
+            ) {
+              delete currentStatuses[subject as SubjectCommentType];
+            }
+          });
+          if (Object.keys(currentStatuses).length > 0) currentTerms[termId] = currentStatuses;
+          else delete currentTerms[termId];
+        });
+        if (Object.keys(currentTerms).length > 0) next[pupilId] = currentTerms;
+        else delete next[pupilId];
+      });
+      updatedSubjectStatusesRef.current = next;
+      return next;
+    });
+  };
+
+  const savePendingPupilIds = async (pupilIds: string[]) => {
+    const uniqueIds = Array.from(new Set(pupilIds));
+    const snapshot = buildPendingSnapshot(uniqueIds);
+    if (snapshot.patches.length === 0) {
+      return { savedIds: [] as string[], failedIds: [] as string[] };
+    }
+
+    const result = await updatePupilPerformanceBatchMutation.mutateAsync(snapshot.patches);
+    clearSavedSnapshots(result.savedIds, snapshot.pendingPupils, snapshot.pendingSubjectStatuses);
+    return { savedIds: result.savedIds, failedIds: result.failedIds };
+  };
+
+  const processAutoSaveQueue = () => {
+    if (autoSaveRunningRef.current) return autoSaveWorkerPromiseRef.current;
+
+    autoSaveRunningRef.current = true;
+    const worker = (async () => {
+      setAutoSaveState('saving');
+
+      while (autoSaveQueueRef.current.size > 0) {
+        const pupilIds = Array.from(autoSaveQueueRef.current).slice(0, 5);
+        pupilIds.forEach(pupilId => autoSaveQueueRef.current.delete(pupilId));
+
+        try {
+          const result = await savePendingPupilIds(pupilIds);
+          result.savedIds.forEach(pupilId => autoSaveFailedPupilsRef.current.delete(pupilId));
+          result.failedIds.forEach(pupilId => autoSaveFailedPupilsRef.current.add(pupilId));
+          if (result.savedIds.length > 0) setLastAutoSavedAt(new Date());
+        } catch (error) {
+          console.error('Progressive performance autosave failed:', error);
+          pupilIds.forEach(pupilId => autoSaveFailedPupilsRef.current.add(pupilId));
+        }
+      }
+
+      setAutoSaveFailureCount(autoSaveFailedPupilsRef.current.size);
+      setAutoSaveState(
+        autoSaveFailedPupilsRef.current.size > 0
+          ? 'error'
+          : autoSaveTimersRef.current.size > 0 || autoSaveQueueRef.current.size > 0
+            ? 'waiting'
+            : 'saved',
+      );
+    })().finally(() => {
+      autoSaveRunningRef.current = false;
+      autoSaveWorkerPromiseRef.current = null;
+      // A timer can add work between the worker's last queue check and this
+      // finally block. Start a fresh worker so that edit is never stranded.
+      if (autoSaveQueueRef.current.size > 0) {
+        setTimeout(() => void processAutoSaveQueue(), 0);
+      }
+    });
+
+    autoSaveWorkerPromiseRef.current = worker;
+    return worker;
+  };
+
+  const schedulePupilAutoSave = (pupilIds: string[]) => {
+    pupilIds.forEach(pupilId => {
+      const existingTimer = autoSaveTimersRef.current.get(pupilId);
+      if (existingTimer) clearTimeout(existingTimer);
+      autoSaveFailedPupilsRef.current.delete(pupilId);
+
+      const timer = setTimeout(() => {
+        autoSaveTimersRef.current.delete(pupilId);
+        autoSaveQueueRef.current.add(pupilId);
+        // Allow timers created by the same bulk action to join one transaction.
+        setTimeout(() => void processAutoSaveQueue(), 25);
+      }, 900);
+      autoSaveTimersRef.current.set(pupilId, timer);
+    });
+    setAutoSaveFailureCount(autoSaveFailedPupilsRef.current.size);
+    setAutoSaveState('waiting');
+  };
+
   // Handlers
   const isTieEnabledForPupil = (pupilId: string) => {
     return manualTieOverrides[pupilId] ?? bulkTieEnabled;
@@ -349,7 +576,134 @@ export default function RemarkReportPage() {
     ...getPendingSubjectStatuses(pupilId),
   });
 
-  const applyTieToPupil = (pupilId: string, performanceStatus: string) => {
+  const getSubjectCoverage = (pupilId: string) => {
+    const statuses = getEffectiveSubjectStatuses(pupilId);
+    const completed = SUBJECT_COMMENT_TYPES.filter(subject => Boolean(statuses[subject.value]));
+    const missing = SUBJECT_COMMENT_TYPES.filter(subject => !statuses[subject.value]);
+    return { completed: completed.length, total: SUBJECT_COMMENT_TYPES.length, missing };
+  };
+
+  const coveragePupil = coveragePupilId ? getPupilById(coveragePupilId) : undefined;
+
+  const getSubjectCommentCount = (
+    subject: SubjectCommentType,
+    status: SubjectStatus,
+    templates = activeCommentTemplatesRef.current,
+  ) => getApplicableSubjectComments(
+    templates,
+    subject,
+    status,
+    selectedClass,
+    selectedTermAliases,
+  ).length;
+
+  const guardSubjectAssignments = (
+    requirements: Array<{ subject: SubjectCommentType; status: SubjectStatus }>,
+    onAllowed: () => void,
+  ) => {
+    if (commentsLoading) {
+      toast({
+        title: 'Checking subject comments',
+        description: 'Please wait a moment while available comments are checked.',
+      });
+      return;
+    }
+    if (commentsLoadError) {
+      toast({
+        title: 'Comments could not be checked',
+        description: 'Subject statuses are blocked until the comment box can be loaded. Please refresh and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const uniqueRequirements = Array.from(
+      new Map(requirements.map(item => [`${item.subject}:${item.status}`, item])).values(),
+    );
+    const missing = uniqueRequirements.filter(
+      item => getSubjectCommentCount(item.subject, item.status) === 0,
+    );
+
+    if (missing.length === 0) {
+      onAllowed();
+      return;
+    }
+
+    deferredSubjectAssignmentRef.current = { missing, index: 0, onAllowed };
+    setNewSubjectComments(['']);
+    setCommentGuardError(null);
+    setCommentGuardOpen(true);
+  };
+
+  const closeCommentGuard = () => {
+    deferredSubjectAssignmentRef.current = null;
+    setCommentGuardOpen(false);
+    setCommentGuardError(null);
+    setNewSubjectComments(['']);
+  };
+
+  const handleAddMissingSubjectComments = async () => {
+    const deferred = deferredSubjectAssignmentRef.current;
+    const currentRequirement = deferred?.missing[deferred.index];
+    if (!deferred || !currentRequirement) return;
+
+    const comments = newSubjectComments.map(comment => comment.trim()).filter(Boolean);
+    if (comments.length === 0) {
+      setCommentGuardError('Enter at least one comment before assigning this status.');
+      return;
+    }
+
+    setIsAddingSubjectComments(true);
+    setCommentGuardError(null);
+    try {
+      const templates = comments.map(comment => ({
+          type: 'subject' as const,
+          subject: currentRequirement.subject,
+          subjectStatus: currentRequirement.status,
+          comment,
+          isActive: true,
+          classId: selectedClass || undefined,
+          applicableTerms: [canonicalSelectedTermId],
+      }));
+      const createdIds = await commentaryService.addCommentTemplates(templates);
+      const created = templates.map((template, index) => ({
+          ...template,
+          id: createdIds[index],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+      } as CommentTemplate));
+
+      const nextTemplates = [...activeCommentTemplatesRef.current, ...created];
+      activeCommentTemplatesRef.current = nextTemplates;
+      queryClient.setQueryData<CommentTemplate[]>(['comment-templates', 'active'], nextTemplates);
+
+      const nextIndex = deferred.index + 1;
+      if (nextIndex < deferred.missing.length) {
+        deferredSubjectAssignmentRef.current = { ...deferred, index: nextIndex };
+        setNewSubjectComments(['']);
+        toast({
+          title: 'Comments added',
+          description: 'One more subject status needs comments before the changes can be applied.',
+        });
+      } else {
+        deferredSubjectAssignmentRef.current = null;
+        setCommentGuardOpen(false);
+        setNewSubjectComments(['']);
+        deferred.onAllowed();
+        toast({
+          title: 'Comments added and status applied',
+          description: `${comments.length} comment${comments.length === 1 ? '' : 's'} added to the comment box.`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to add subject comments from performance report:', error);
+      setCommentGuardError('The comments could not be saved. Check your connection and try again.');
+    } finally {
+      setIsAddingSubjectComments(false);
+    }
+  };
+
+  const applyTieToPupilUnchecked = (pupilId: string, performanceStatus: string) => {
     if (!selectedTermId) return;
 
     const autoStatuses = buildTiedSubjectStatuses(performanceStatus);
@@ -397,6 +751,15 @@ export default function RemarkReportPage() {
         } as Record<SubjectCommentType, boolean>)
       }
     }));
+    schedulePupilAutoSave([pupilId]);
+  };
+
+  const applyTieToPupil = (pupilId: string, performanceStatus: string) => {
+    const subjectStatus = getDefaultSubjectStatusForPerformance(performanceStatus);
+    guardSubjectAssignments(
+      SUBJECT_COMMENT_TYPES.map(subject => ({ subject: subject.value, status: subjectStatus })),
+      () => applyTieToPupilUnchecked(pupilId, performanceStatus),
+    );
   };
 
   const removeTieFromPupil = (pupilId: string) => {
@@ -464,6 +827,7 @@ export default function RemarkReportPage() {
         }
       };
     });
+    schedulePupilAutoSave([pupilId]);
   };
 
   const handleStatusChange = (pupilId: string, status: string) => {
@@ -476,6 +840,7 @@ export default function RemarkReportPage() {
         [selectedTermId]: status as PupilPerformanceStatus,
       },
     }));
+    schedulePupilAutoSave([pupilId]);
 
     if (!isTieEnabledForPupil(pupilId)) return;
 
@@ -499,25 +864,33 @@ export default function RemarkReportPage() {
       return;
     }
 
-    setManualTieOverrides(prev => ({
-      ...prev,
-      [pupilId]: checked === bulkTieEnabled ? undefined : checked
-    }));
-
     if (checked) {
-      applyTieToPupil(pupilId, currentPerformanceStatus!);
+      const subjectStatus = getDefaultSubjectStatusForPerformance(currentPerformanceStatus!);
+      guardSubjectAssignments(
+        SUBJECT_COMMENT_TYPES.map(subject => ({ subject: subject.value, status: subjectStatus })),
+        () => {
+          setManualTieOverrides(prev => ({
+            ...prev,
+            [pupilId]: checked === bulkTieEnabled ? undefined : checked,
+          }));
+          applyTieToPupilUnchecked(pupilId, currentPerformanceStatus!);
+        },
+      );
     } else {
+      setManualTieOverrides(prev => ({
+        ...prev,
+        [pupilId]: checked === bulkTieEnabled ? undefined : checked,
+      }));
       removeTieFromPupil(pupilId);
     }
   };
 
   const toggleBulkTie = () => {
     const nextBulkTieEnabled = !bulkTieEnabled;
-    setBulkTieEnabledPersisted(nextBulkTieEnabled);
-
     if (!selectedTermId) return;
 
     const blockedPupilIds: string[] = [];
+    const pupilsToTie: Array<{ pupilId: string; performanceStatus: string }> = [];
 
     filteredPupils.forEach((pupil: Pupil) => {
       const effectiveTie = manualTieOverrides[pupil.id] ?? nextBulkTieEnabled;
@@ -526,26 +899,47 @@ export default function RemarkReportPage() {
         || pupil.performanceStatus;
 
       if (effectiveTie && currentPerformanceStatus) {
-        applyTieToPupil(pupil.id, currentPerformanceStatus);
+        pupilsToTie.push({ pupilId: pupil.id, performanceStatus: currentPerformanceStatus });
       } else {
-        removeTieFromPupil(pupil.id);
         if (effectiveTie) blockedPupilIds.push(pupil.id);
       }
     });
 
-    if (blockedPupilIds.length > 0) {
-      setManualTieOverrides(prev => {
-        const next = { ...prev };
-        blockedPupilIds.forEach(pupilId => {
-          next[pupilId] = false;
+    const applyBulkTieChange = () => {
+      setBulkTieEnabledPersisted(nextBulkTieEnabled);
+      if (nextBulkTieEnabled) {
+        pupilsToTie.forEach(item => applyTieToPupilUnchecked(item.pupilId, item.performanceStatus));
+      } else {
+        filteredPupils.forEach((pupil: Pupil) => removeTieFromPupil(pupil.id));
+      }
+
+      if (blockedPupilIds.length > 0) {
+        setManualTieOverrides(prev => {
+          const next = { ...prev };
+          blockedPupilIds.forEach(pupilId => {
+            next[pupilId] = false;
+          });
+          return next;
         });
-        return next;
-      });
-      toast({
-        title: 'Some pupils were not tied',
-        description: `${blockedPupilIds.length} pupil(s) need a main performance status first.`,
-      });
+        toast({
+          title: 'Some pupils were not tied',
+          description: `${blockedPupilIds.length} pupil(s) need a main performance status first.`,
+        });
+      }
+    };
+
+    if (!nextBulkTieEnabled) {
+      applyBulkTieChange();
+      return;
     }
+
+    guardSubjectAssignments(
+      pupilsToTie.flatMap(item => {
+        const status = getDefaultSubjectStatusForPerformance(item.performanceStatus);
+        return SUBJECT_COMMENT_TYPES.map(subject => ({ subject: subject.value, status }));
+      }),
+      applyBulkTieChange,
+    );
   };
 
   const togglePupilExpansion = (pupilId: string) => {
@@ -569,7 +963,7 @@ export default function RemarkReportPage() {
     }
   };
 
-  const applySubjectStatusChanges = (
+  const applySubjectStatusChangesUnchecked = (
     pupilIds: string[],
     subjects: SubjectCommentType[],
     status: SubjectStatus | null,
@@ -609,6 +1003,23 @@ export default function RemarkReportPage() {
 
       return next;
     });
+    schedulePupilAutoSave(pupilIds);
+  };
+
+  const applySubjectStatusChanges = (
+    pupilIds: string[],
+    subjects: SubjectCommentType[],
+    status: SubjectStatus | null,
+  ) => {
+    if (status === null) {
+      applySubjectStatusChangesUnchecked(pupilIds, subjects, status);
+      return;
+    }
+
+    guardSubjectAssignments(
+      subjects.map(subject => ({ subject, status })),
+      () => applySubjectStatusChangesUnchecked(pupilIds, subjects, status),
+    );
   };
 
   const handleSubjectStatusChange = (
@@ -1326,121 +1737,30 @@ export default function RemarkReportPage() {
     setIsSaving(true);
 
     try {
-      // Clone every pending map while preserving explicit null deletion markers.
-      // JSON cloning previously removed unset fields before they could be saved.
-      const pendingPupils = Object.fromEntries(
-        Object.entries(updatedPupils).map(([pupilId, terms]) => [
-          pupilId,
-          { ...terms },
-        ]),
-      ) as typeof updatedPupils;
-      const pendingSubjectStatuses = Object.fromEntries(
-        Object.entries(updatedSubjectStatuses).map(([pupilId, terms]) => [
-          pupilId,
-          Object.fromEntries(
-            Object.entries(terms).map(([termId, statuses]) => [
-              termId,
-              { ...statuses },
-            ]),
-          ),
-        ]),
-      ) as typeof updatedSubjectStatuses;
+      autoSaveTimersRef.current.forEach(timer => clearTimeout(timer));
+      autoSaveTimersRef.current.clear();
+      autoSaveQueueRef.current.clear();
+      if (autoSaveWorkerPromiseRef.current) await autoSaveWorkerPromiseRef.current;
 
-      const allPupilIds = Array.from(
-        new Set([
-          ...Object.keys(pendingPupils),
-          ...Object.keys(pendingSubjectStatuses),
-        ]),
-      );
-      const patches = allPupilIds.reduce<PupilPerformancePatch[]>((acc, pupilId) => {
-        const termPerformanceStatuses = pendingPupils[pupilId] || {};
-        const termSubjectStatuses = Object.entries(
-          pendingSubjectStatuses[pupilId] || {},
-        ).reduce<NonNullable<PupilPerformancePatch['termSubjectStatuses']>>(
-          (terms, [termId, statuses]) => {
-            if (Object.keys(statuses).length > 0) terms[termId] = statuses;
-            return terms;
-          },
-          {},
-        );
-
-        if (
-          Object.keys(termPerformanceStatuses).length > 0 ||
-          Object.keys(termSubjectStatuses).length > 0
-        ) {
-          acc.push({
-            id: pupilId,
-            ...(Object.keys(termPerformanceStatuses).length > 0 && {
-              termPerformanceStatuses,
-            }),
-            ...(Object.keys(termSubjectStatuses).length > 0 && {
-              termSubjectStatuses,
-            }),
-          });
-        }
-
-        return acc;
-      }, []);
-
-      if (patches.length === 0) return;
-
-      const { savedIds, failedIds } =
-        await updatePupilPerformanceBatchMutation.mutateAsync(patches);
-      const savedIdSet = new Set(savedIds);
-
-      // Remove only values that still equal the save-time snapshot. This keeps
-      // any newer edit made while the request was in flight dirty and visible.
-      if (savedIds.length > 0) {
-        setUpdatedPupils(prev => {
-          const next = { ...prev };
-
-          savedIdSet.forEach(pupilId => {
-            const currentTerms = { ...(next[pupilId] || {}) };
-            Object.entries(pendingPupils[pupilId] || {}).forEach(([termId, status]) => {
-              if (currentTerms[termId] === status) delete currentTerms[termId];
-            });
-
-            if (Object.keys(currentTerms).length > 0) next[pupilId] = currentTerms;
-            else delete next[pupilId];
-          });
-
-          return next;
+      const allPupilIds = Array.from(new Set([
+        ...Object.keys(updatedPupilsRef.current),
+        ...Object.keys(updatedSubjectStatusesRef.current),
+      ]));
+      if (allPupilIds.length === 0) {
+        setAutoSaveState('saved');
+        toast({
+          title: 'Changes already saved',
+          description: 'The automatic save completed before the manual save was needed.',
         });
-
-        setUpdatedSubjectStatuses(prev => {
-          const next = { ...prev };
-
-          savedIdSet.forEach(pupilId => {
-            const currentTerms = { ...(next[pupilId] || {}) };
-
-            Object.entries(pendingSubjectStatuses[pupilId] || {}).forEach(
-              ([termId, savedStatuses]) => {
-                const currentStatuses = { ...(currentTerms[termId] || {}) };
-
-                Object.entries(savedStatuses).forEach(([subject, status]) => {
-                  if (
-                    hasOwn(currentStatuses, subject) &&
-                    currentStatuses[subject as SubjectCommentType] === status
-                  ) {
-                    delete currentStatuses[subject as SubjectCommentType];
-                  }
-                });
-
-                if (Object.keys(currentStatuses).length > 0) {
-                  currentTerms[termId] = currentStatuses;
-                } else {
-                  delete currentTerms[termId];
-                }
-              },
-            );
-
-            if (Object.keys(currentTerms).length > 0) next[pupilId] = currentTerms;
-            else delete next[pupilId];
-          });
-
-          return next;
-        });
+        return;
       }
+      const { savedIds, failedIds } = await savePendingPupilIds(allPupilIds);
+
+      savedIds.forEach(pupilId => autoSaveFailedPupilsRef.current.delete(pupilId));
+      failedIds.forEach(pupilId => autoSaveFailedPupilsRef.current.add(pupilId));
+      setAutoSaveFailureCount(autoSaveFailedPupilsRef.current.size);
+      setAutoSaveState(failedIds.length > 0 ? 'error' : 'saved');
+      if (savedIds.length > 0) setLastAutoSavedAt(new Date());
 
       if (failedIds.length === 0) {
         toast({
@@ -1472,6 +1792,37 @@ export default function RemarkReportPage() {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    const flushWhenHidden = () => {
+      if (document.visibilityState !== 'hidden') return;
+      autoSaveTimersRef.current.forEach(timer => clearTimeout(timer));
+      autoSaveTimersRef.current.clear();
+      const dirtyPupilIds = new Set([
+        ...Object.keys(updatedPupilsRef.current),
+        ...Object.keys(updatedSubjectStatusesRef.current),
+      ]);
+      dirtyPupilIds.forEach(pupilId => autoSaveQueueRef.current.add(pupilId));
+      void processAutoSaveQueue();
+    };
+
+    document.addEventListener('visibilitychange', flushWhenHidden);
+    return () => {
+      document.removeEventListener('visibilitychange', flushWhenHidden);
+      autoSaveTimersRef.current.forEach(timer => clearTimeout(timer));
+      autoSaveTimersRef.current.clear();
+    };
+  }, []);
+
+  const currentDeferredAssignment = deferredSubjectAssignmentRef.current;
+  const currentMissingCommentRequirement = currentDeferredAssignment
+    ?.missing[currentDeferredAssignment.index];
+  const currentMissingCommentSubject = SUBJECT_COMMENT_TYPES.find(
+    subject => subject.value === currentMissingCommentRequirement?.subject,
+  );
+  const currentMissingCommentStatus = SUBJECT_STATUS_OPTIONS.find(
+    status => status.value === currentMissingCommentRequirement?.status,
+  );
 
   if (classesLoading || pupilsLoading || academicYearsLoading || settingsLoading) {
     return (
@@ -1710,26 +2061,60 @@ export default function RemarkReportPage() {
           </div>
         )}
 
-        {/* Save Changes Button */}
-        {selectedClass && pendingPupilCount > 0 && (
-          <div className="mb-6">
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
+        {/* Progressive save status and manual retry */}
+        {selectedClass && (
+          <div
+            className={`mb-6 flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+              autoSaveState === 'error'
+                ? 'border-red-300 bg-red-50 text-red-900'
+                : 'border-indigo-200 bg-indigo-50/80 text-indigo-950'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-start gap-3">
+              {autoSaveState === 'saving' || autoSaveState === 'waiting' ? (
+                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-indigo-600" />
+              ) : autoSaveState === 'error' ? (
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
               ) : (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Save Changes ({pendingPupilCount})
-                </>
+                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
               )}
-            </Button>
+              <div>
+                <p className="text-sm font-semibold">
+                  {autoSaveState === 'saving' && 'Saving changes automatically…'}
+                  {autoSaveState === 'waiting' && 'Changes queued for automatic saving'}
+                  {autoSaveState === 'error' && `${autoSaveFailureCount || pendingPupilCount} pupil change(s) still need saving`}
+                  {(autoSaveState === 'idle' || autoSaveState === 'saved') && 'Automatic saving is active'}
+                </p>
+                <p className="mt-0.5 text-xs opacity-80">
+                  {autoSaveState === 'error'
+                    ? 'Your edits are still on this page. Use Retry remaining changes after checking the connection.'
+                    : pendingPupilCount > 0
+                      ? `${pendingPupilCount} pupil change(s) are currently pending.`
+                      : lastAutoSavedAt
+                        ? `All changes saved at ${lastAutoSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
+                        : 'Each pupil is saved shortly after you finish editing.'}
+                </p>
+              </div>
+            </div>
+
+            {pendingPupilCount > 0 && (
+              <Button
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className="h-11 shrink-0 bg-indigo-600 hover:bg-indigo-700"
+              >
+                {isSaving ? (
+                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />Saving remaining…</>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    {autoSaveState === 'error' ? 'Retry remaining' : 'Save now'} ({pendingPupilCount})
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 
@@ -1814,6 +2199,7 @@ export default function RemarkReportPage() {
                       const currentSubjectStatuses = (pupil.termSubjectStatuses?.[selectedTermId] || {}) as any;
                       const isSubjectSelectionMode = subjectSelectionModePupils.has(pupil.id);
                       const selectedSubjects = selectedSubjectsByPupil[pupil.id] || [];
+                      const subjectCoverage = getSubjectCoverage(pupil.id);
 
                       return (
                         <React.Fragment key={pupil.id}>
@@ -1854,23 +2240,34 @@ export default function RemarkReportPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge
-                                variant="secondary"
-                                className={`text-xs ${(() => {
-                                  const currentPerfStatus = selectedTermId ? (pupil.termPerformanceStatuses?.[selectedTermId] || pupil.performanceStatus) : pupil.performanceStatus;
-                                  return currentPerfStatus && PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerfStatus)
-                                    ? PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerfStatus)?.color
-                                    : 'bg-gray-100 text-gray-800';
-                                })()
+                              <div className="flex flex-col items-start gap-2">
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-xs ${currentPerformanceStatus && PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)
+                                    ? PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)?.color
+                                    : 'bg-gray-100 text-gray-800'
                                   }`}
-                              >
-                                {(() => {
-                                  const currentPerfStatus = selectedTermId ? (pupil.termPerformanceStatuses?.[selectedTermId] || pupil.performanceStatus) : pupil.performanceStatus;
-                                  return currentPerfStatus && PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerfStatus)
-                                    ? PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerfStatus)?.label
-                                    : 'Not set';
-                                })()}
-                              </Badge>
+                                >
+                                  {currentPerformanceStatus && PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)
+                                    ? PERFORMANCE_STATUS_OPTIONS.find(opt => opt.value === currentPerformanceStatus)?.label
+                                    : 'Not set'}
+                                </Badge>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCoveragePupilId(pupil.id)}
+                                  disabled={!selectedTermId}
+                                  className={`h-9 min-w-[96px] justify-center px-3 text-xs font-semibold tabular-nums ${
+                                    subjectCoverage.completed === subjectCoverage.total
+                                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                      : 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                                  }`}
+                                  aria-label={`${subjectCoverage.completed} of ${subjectCoverage.total} subjects have statuses for ${formatPupilDisplayName(pupil)}. Open missing subjects.`}
+                                >
+                                  {subjectCoverage.completed}/{subjectCoverage.total} subjects
+                                </Button>
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <Select
@@ -1969,11 +2366,16 @@ export default function RemarkReportPage() {
                                           </SelectTrigger>
                                           <SelectContent>
                                             <SelectItem value="none">Not set</SelectItem>
-                                            {SUBJECT_STATUS_OPTIONS.map(status => (
-                                              <SelectItem key={status.value} value={status.value}>
-                                                {status.label}
-                                              </SelectItem>
-                                            ))}
+                                            {SUBJECT_STATUS_OPTIONS.map(status => {
+                                              const missingCommentCount = selectedSubjects.filter(
+                                                subject => getSubjectCommentCount(subject, status.value) === 0,
+                                              ).length;
+                                              return (
+                                                <SelectItem key={status.value} value={status.value}>
+                                                  {status.label} · {missingCommentCount === 0 ? 'comments ready' : `${missingCommentCount} need comments`}
+                                                </SelectItem>
+                                              );
+                                            })}
                                           </SelectContent>
                                         </Select>
                                         <Button
@@ -2050,11 +2452,14 @@ export default function RemarkReportPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                               <SelectItem value="none">Not set</SelectItem>
-                                              {SUBJECT_STATUS_OPTIONS.map((status) => (
-                                                <SelectItem key={status.value} value={status.value}>
-                                                  {status.label}
-                                                </SelectItem>
-                                              ))}
+                                              {SUBJECT_STATUS_OPTIONS.map((status) => {
+                                                const commentCount = getSubjectCommentCount(subject.value, status.value);
+                                                return (
+                                                  <SelectItem key={status.value} value={status.value}>
+                                                    {status.label} · {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? '' : 's'}` : 'add comments'}
+                                                  </SelectItem>
+                                                );
+                                              })}
                                             </SelectContent>
                                           </Select>
                                         </div>
@@ -2106,7 +2511,7 @@ export default function RemarkReportPage() {
 
           <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
             These are ordinary individual pupil changes. They are not linked after applying, and they
-            are saved only when you use the page’s <span className="font-semibold">Save Changes</span> button.
+            are progressively saved for each pupil shortly after you make them.
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -2145,11 +2550,14 @@ export default function RemarkReportPage() {
                         <SelectItem value="mixed" disabled>Mixed statuses</SelectItem>
                       )}
                       <SelectItem value="none">Not set</SelectItem>
-                      {SUBJECT_STATUS_OPTIONS.map(status => (
-                        <SelectItem key={status.value} value={status.value}>
-                          {status.label}
-                        </SelectItem>
-                      ))}
+                      {SUBJECT_STATUS_OPTIONS.map(status => {
+                        const commentCount = getSubjectCommentCount(subject.value, status.value);
+                        return (
+                          <SelectItem key={status.value} value={status.value}>
+                            {status.label} · {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? '' : 's'}` : 'add comments'}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2164,6 +2572,212 @@ export default function RemarkReportPage() {
               className="h-11 min-w-[110px] bg-indigo-600 hover:bg-indigo-700"
             >
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(coveragePupilId)}
+        onOpenChange={(open) => {
+          if (!open) setCoveragePupilId(null);
+        }}
+      >
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader className="pr-10">
+            <DialogTitle>Subject status coverage</DialogTitle>
+            <DialogDescription>
+              {coveragePupil
+                ? `Review and complete missing subject statuses for ${formatPupilDisplayName(coveragePupil)}.`
+                : 'Review missing subject statuses.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {coveragePupil && (() => {
+            const coverage = getSubjectCoverage(coveragePupil.id);
+            return (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-indigo-950">
+                        {coverage.completed} of {coverage.total} subjects complete
+                      </p>
+                      <p className="mt-1 text-xs text-indigo-800">
+                        Changes made here use the same progressive autosave as the main table.
+                      </p>
+                    </div>
+                    <Badge className="bg-indigo-600 text-white tabular-nums">
+                      {coverage.completed}/{coverage.total}
+                    </Badge>
+                  </div>
+                  <Progress value={(coverage.completed / coverage.total) * 100} className="mt-3 h-2" />
+                </div>
+
+                {coverage.missing.length === 0 ? (
+                  <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+                    <CheckCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div>
+                      <p className="font-semibold">All subjects have statuses</p>
+                      <p className="mt-1 text-sm">This pupil’s subject status coverage is complete.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-amber-900">
+                      <AlertTriangle className="h-5 w-5" />
+                      <p className="text-sm font-semibold">
+                        {coverage.missing.length} subject{coverage.missing.length === 1 ? '' : 's'} still need a status
+                      </p>
+                    </div>
+                    {coverage.missing.map(subject => (
+                      <div
+                        key={subject.value}
+                        className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{subject.label}</p>
+                          <p className="mt-1 text-xs text-gray-500">Choose a status to add it now.</p>
+                        </div>
+                        <Select
+                          onValueChange={(value) => handleSubjectStatusChange(
+                            coveragePupil.id,
+                            subject.value,
+                            value as SubjectStatus,
+                          )}
+                          disabled={isSaving || !selectedTermId}
+                        >
+                          <SelectTrigger
+                            className="h-11 w-full sm:w-[220px]"
+                            aria-label={`Choose status for ${subject.label}`}
+                          >
+                            <SelectValue placeholder="Choose status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SUBJECT_STATUS_OPTIONS.map(status => {
+                              const commentCount = getSubjectCommentCount(subject.value, status.value);
+                              return (
+                                <SelectItem key={status.value} value={status.value}>
+                                  {status.label} · {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? '' : 's'}` : 'add comments'}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" className="h-11" onClick={() => setCoveragePupilId(null)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={commentGuardOpen}
+        onOpenChange={(open) => {
+          if (!open && !isAddingSubjectComments) closeCommentGuard();
+        }}
+      >
+        <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
+          <DialogHeader className="pr-10">
+            <div className="flex items-center gap-2 text-amber-800">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <DialogTitle>Comments required before assigning status</DialogTitle>
+            </div>
+            <DialogDescription>
+              <span className="font-medium text-gray-800">{currentMissingCommentSubject?.label}</span>
+              {' '}does not have any active{' '}
+              <span className="font-medium text-gray-800">{currentMissingCommentStatus?.label}</span>
+              {' '}comments for {selectedClassData?.name || 'this class'} and {selectedTerm?.name || 'this term'}.
+              Add one or more comments below; they will also be available in the main comment box.
+            </DialogDescription>
+          </DialogHeader>
+
+          {currentDeferredAssignment && currentDeferredAssignment.missing.length > 1 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Missing comment set {currentDeferredAssignment.index + 1} of {currentDeferredAssignment.missing.length}.
+              The status change will be applied after all missing comment sets are added.
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {newSubjectComments.map((comment, index) => (
+              <div key={index} className="rounded-xl border border-gray-200 bg-gray-50/70 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <Label htmlFor={`new-subject-comment-${index}`} className="text-sm font-medium">
+                    Comment {index + 1}
+                  </Label>
+                  {newSubjectComments.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNewSubjectComments(current => current.filter((_, itemIndex) => itemIndex !== index))}
+                      disabled={isAddingSubjectComments}
+                      className="h-9 text-red-700 hover:bg-red-50 hover:text-red-800"
+                      aria-label={`Remove comment ${index + 1}`}
+                    >
+                      <Trash2 className="mr-1.5 h-4 w-4" />Remove
+                    </Button>
+                  )}
+                </div>
+                <Textarea
+                  id={`new-subject-comment-${index}`}
+                  value={comment}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setNewSubjectComments(current => current.map((item, itemIndex) => itemIndex === index ? value : item));
+                    if (value.trim()) setCommentGuardError(null);
+                  }}
+                  disabled={isAddingSubjectComments}
+                  rows={3}
+                  className={commentGuardError ? 'border-red-500 ring-1 ring-red-200' : ''}
+                  aria-invalid={Boolean(commentGuardError)}
+                  aria-describedby={commentGuardError ? 'subject-comment-guard-error' : undefined}
+                  placeholder="Enter a comment that can be used on the pupil report"
+                />
+              </div>
+            ))}
+
+            {commentGuardError && (
+              <div id="subject-comment-guard-error" role="alert" className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{commentGuardError}</span>
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setNewSubjectComments(current => [...current, ''])}
+              disabled={isAddingSubjectComments}
+              className="h-11 w-full border-dashed"
+            >
+              <Plus className="mr-2 h-4 w-4" />Add another comment
+            </Button>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={closeCommentGuard} disabled={isAddingSubjectComments} className="h-11">
+              Cancel status change
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAddMissingSubjectComments}
+              disabled={isAddingSubjectComments}
+              className="h-11 bg-indigo-600 hover:bg-indigo-700"
+            >
+              {isAddingSubjectComments
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving comments…</>
+                : <><Save className="mr-2 h-4 w-4" />Save comments and continue</>}
             </Button>
           </DialogFooter>
         </DialogContent>
