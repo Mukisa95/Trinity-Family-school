@@ -188,6 +188,38 @@ export const commentaryService = {
     }
   },
 
+  // Add a set of comments atomically. This is used by the performance report's
+  // missing-comment recovery flow so a retry cannot duplicate a partially
+  // saved group of comments.
+  async addCommentTemplates(
+    templates: Array<Omit<CommentTemplate, 'id' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<string[]> {
+    if (templates.length === 0) return [];
+
+    try {
+      const now = Timestamp.now();
+      const batch = writeBatch(db);
+      const references = templates.map(() => doc(collection(db, COLLECTION_NAME)));
+
+      templates.forEach((template, index) => {
+        const cleanTemplate = Object.fromEntries(
+          Object.entries(template).filter(([_, value]) => value !== undefined),
+        );
+        batch.set(references[index], {
+          ...cleanTemplate,
+          createdAt: now,
+          updatedAt: now,
+        });
+      });
+
+      await batch.commit();
+      return references.map(reference => reference.id);
+    } catch (error) {
+      console.error('Error adding comment templates:', error);
+      throw new Error('Failed to add comment templates');
+    }
+  },
+
   // Update comment template
   async updateCommentTemplate(id: string, updates: Partial<Omit<CommentTemplate, 'id' | 'createdAt'>>): Promise<void> {
     try {
