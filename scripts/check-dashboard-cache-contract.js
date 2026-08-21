@@ -32,12 +32,14 @@ const staffCache = read('src/lib/cache/staff-cache.ts');
 const staffService = read('src/lib/services/staff.service.ts');
 const pupilsService = read('src/lib/services/pupils.service.ts');
 const pupilCache = read('src/lib/cache/pupil-cache.ts');
+const pupilCacheChanges = read('src/lib/cache/pupil-cache-changes.ts');
 const revisionService = read('src/lib/services/dashboard-cache-revisions.service.ts');
 const revisionDocuments = read('src/lib/services/dashboard-revision-documents.ts');
 const schoolSettingsService = read('src/lib/services/school-settings.service.ts');
 const schoolSettingsCache = read('src/lib/cache/school-settings-cache.ts');
 const adminPupilRevision = read('src/lib/server/pupil-cache-revisions.admin.ts');
 const pupilApi = read('src/app/api/pupils/[id]/route.ts');
+const classStreamsApi = read('src/app/api/classes/[classId]/streams/route.ts');
 const schoolPayAssignment = read('src/app/api/schoolpay/inbox/[id]/assign/route.ts');
 const teacherNames = read('src/lib/hooks/use-teacher-names.ts');
 const staffNames = read('src/lib/utils/staff-names.ts');
@@ -81,7 +83,10 @@ assert(
   pupilBootstrap.includes("revisionsQuery.data?.pupils") &&
     pupilBootstrap.includes('getCacheChanges') &&
     pupilBootstrap.includes('getPupilsByIdsForCache') &&
-    pupilBootstrap.includes('changes.length !== expectedChanges') &&
+    pupilBootstrap.includes('hasCompletePupilCacheChangeRange') &&
+    pupilBootstrap.includes('flatMap(getPupilCacheChangeIds)') &&
+    pupilCacheChanges.includes('change.revisionSpan ?? 1') &&
+    pupilCacheChanges.includes('change.revision !== cursor + span') &&
     pupilCache.includes("role === 'Parent'") &&
     pupilsService.includes("const CACHE_CHANGES_COLLECTION = 'pupilCacheChanges'") &&
     pupilsService.includes('reservePupilsRevisionInTransaction') &&
@@ -106,6 +111,13 @@ assert(
     pupilApi.includes('updatePupilWithCacheRevision') &&
     schoolPayAssignment.includes('updatePupilWithCacheRevision'),
   'Admin-owned pupil mutations must publish the same ordered cache delta.',
+);
+assert(
+  classStreamsApi.includes('revisionSpan: changedPupils.length') &&
+    classStreamsApi.includes('pupilIds: changedPupils.map') &&
+    classStreamsApi.includes('resourceExhausted ? 503') &&
+    classStreamsApi.includes('No stream assignments were saved'),
+  'Class stream assignment must publish one compact pupil delta and expose quota exhaustion as a retryable server error.',
 );
 assert(
   settingsHook.includes('schoolSettingsMetaDocumentRef') &&

@@ -33,17 +33,12 @@ import {
 import { normalisePupils } from '../cache/pupil-cache';
 import { applyPupilClassIdentity } from '../utils/class-streams';
 import { shouldDeletePhotoForStatusTransition } from '../pupil-photo-retention';
+import type { PupilCacheChange } from '../cache/pupil-cache-changes';
+
+export type { PupilCacheChange } from '../cache/pupil-cache-changes';
 
 const COLLECTION_NAME = 'pupils';
 const CACHE_CHANGES_COLLECTION = 'pupilCacheChanges';
-
-export type PupilCacheChange = {
-  id: string;
-  revision: number;
-  pupilId: string;
-  operation: 'upsert' | 'delete';
-  changedAt?: unknown;
-};
 
 export type PupilUpdateResult = {
   photoDeleted: boolean;

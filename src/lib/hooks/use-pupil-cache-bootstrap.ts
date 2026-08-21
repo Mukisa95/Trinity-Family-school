@@ -4,9 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Pupil } from '@/types';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { PupilsService, type PupilCacheChange } from '@/lib/services/pupils.service';
+import { PupilsService } from '@/lib/services/pupils.service';
 import { pupilsKeys } from './use-pupils';
 import { useDashboardDataRevisions } from './use-school-settings';
+import {
+  getPupilCacheChangeIds,
+  hasCompletePupilCacheChangeRange,
+  type PupilCacheChange,
+} from '@/lib/cache/pupil-cache-changes';
 import {
   getPupilCacheScope,
   normalisePupils,
@@ -21,7 +26,9 @@ function applyChanges(
 ): Pupil[] {
   const byId = new Map(current.map(pupil => [pupil.id, pupil]));
   changes.forEach(change => {
-    if (change.operation === 'delete') byId.delete(change.pupilId);
+    if (change.operation === 'delete') {
+      getPupilCacheChangeIds(change).forEach(pupilId => byId.delete(pupilId));
+    }
   });
   changedPupils.forEach(pupil => byId.set(pupil.id, pupil));
   return normalisePupils(Array.from(byId.values()));
@@ -111,8 +118,7 @@ export function usePupilCacheBootstrap() {
         }
 
         const changes = await PupilsService.getCacheChanges(persisted.revision, revision);
-        const expectedChanges = revision - persisted.revision;
-        if (changes.length !== expectedChanges) {
+        if (!hasCompletePupilCacheChangeRange(changes, persisted.revision, revision)) {
           // A legacy/direct write did not publish a usable delta. Rebase once
           // instead of silently preserving a stale pupil snapshot.
           return PupilsService.getAllForCache();
@@ -121,7 +127,7 @@ export function usePupilCacheBootstrap() {
         const changedIds = Array.from(new Set(
           changes
             .filter(change => change.operation !== 'delete')
-            .map(change => change.pupilId),
+            .flatMap(getPupilCacheChangeIds),
         ));
         const changedPupils = await PupilsService.getPupilsByIdsForCache(changedIds);
         return applyChanges(persisted.data, changes, changedPupils);

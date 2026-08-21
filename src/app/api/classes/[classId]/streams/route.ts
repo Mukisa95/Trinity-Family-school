@@ -11,6 +11,17 @@ export const dynamic = 'force-dynamic';
 
 const MAX_TRANSACTION_PUPILS = 200;
 
+function isFirestoreResourceExhausted(error: unknown): boolean {
+  const code = error && typeof error === 'object' && 'code' in error
+    ? (error as { code?: unknown }).code
+    : undefined;
+  const message = error instanceof Error ? error.message : String(error || '');
+  return code === 8
+    || code === '8'
+    || code === 'resource-exhausted'
+    || /RESOURCE_EXHAUSTED|quota exceeded/i.test(message);
+}
+
 type StreamAssignmentRequest = {
   academicYearId: string;
   activeStreamIds: string[];
@@ -175,7 +186,7 @@ export async function PUT(
       transaction.update(classRef, { streamConfigurations: nextConfigurations });
       transaction.set(referenceRef, { classes: Number(referenceSnapshot.data()?.classes || 0) + 1 }, { merge: true });
 
-      changedPupils.forEach((pupil, index) => {
+      changedPupils.forEach(pupil => {
         const pupilRef = adminDb.collection('pupils').doc(pupil.id);
         const stream = body.enabled ? streamById.get(assignmentMap.get(pupil.id) || '') || null : null;
         const update: UpdateData<DocumentData> = stream
@@ -206,14 +217,19 @@ export async function PUT(
         const history = updateAcademicYearHistory(pupil.academicYearHistory, body.academicYearId, stream);
         if (history) update.academicYearHistory = history;
         transaction.update(pupilRef, update);
-        const revision = currentPupilRevision + index + 1;
-        transaction.set(
-          adminDb.collection('pupilCacheChanges').doc(String(revision).padStart(16, '0')),
-          { revision, pupilId: pupil.id, operation: 'upsert', changedAt: Timestamp.now() },
-        );
       });
 
       if (changedPupils.length > 0) {
+        transaction.set(
+          adminDb.collection('pupilCacheChanges').doc(String(lastPupilRevision).padStart(16, '0')),
+          {
+            revision: lastPupilRevision,
+            revisionSpan: changedPupils.length,
+            pupilIds: changedPupils.map(pupil => pupil.id),
+            operation: 'upsert',
+            changedAt: Timestamp.now(),
+          },
+        );
         transaction.set(operationalRef, { pupils: lastPupilRevision }, { merge: true });
       }
       transaction.set(legacySettingsRef, {
@@ -243,13 +259,17 @@ export async function PUT(
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    const status = ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
+    const resourceExhausted = isFirestoreResourceExhausted(error);
+    const status = resourceExhausted ? 503
+      : ['AUTH_REQUIRED', 'APP_AUTH_REQUIRED'].includes(message) ? 401
       : message === 'ACCOUNT_INACTIVE' ? 403
         : message === 'CLASS_NOT_FOUND' ? 404
           : message === 'STREAM_SETUP_STALE' ? 409
             : message === 'CLASS_TOO_LARGE' ? 413
               : message === 'Unknown error' ? 500 : 400;
-    const publicMessage = message === 'STREAM_SETUP_STALE'
+    const publicMessage = resourceExhausted
+      ? 'The database quota is temporarily exhausted. No stream assignments were saved. Try again later or ask an administrator to check Firestore usage.'
+      : message === 'STREAM_SETUP_STALE'
       ? 'Stream setup changed on another device. Refresh before saving.'
       : message === 'CLASS_TOO_LARGE'
         ? 'This class is too large for one safe stream transaction. Contact support.'
