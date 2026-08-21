@@ -807,7 +807,7 @@ const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'pupils', pageId: 'enrollment_trends', pattern: /^\/enrollment-trends\/class\/[^/]+$/ },
   { moduleId: 'promotion', pageId: 'promote', pattern: /^\/pupils\/promotion-history\/[^/]+$/ },
   { moduleId: 'attendance', pageId: 'record', pattern: /^\/attendance\/(record|view|excluded-days)$/ },
-  { moduleId: 'classes', pageId: 'detail', pattern: /^\/(class-detail|class\/edit|classes\/[^/]+\/streams|classes\/(graduates|history)\/[^/]+|classes\/pending)$/ },
+  { moduleId: 'classes', pageId: 'detail', pattern: /^\/(class-detail|classes\/[^/]+\/streams|classes\/(graduates|history)\/[^/]+|classes\/pending)$/ },
   { moduleId: 'requirements', pageId: 'tracking', pattern: /^\/(class-requirements|requirement-tracking)$/ },
   { moduleId: 'boarding', pageId: 'overview', pattern: /^\/boarding(?:\/list)?$/ },
   { moduleId: 'boarding', pageId: 'dormitories', pattern: /^\/boarding\/dormitory(?:\/[^/]+)?$/ },

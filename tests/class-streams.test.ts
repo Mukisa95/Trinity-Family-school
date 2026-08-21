@@ -5,6 +5,7 @@ import {
   assertUniqueStreams,
   filterExamPupilsByStream,
   getActiveClassStreams,
+  getClassStreamPupilStats,
   getPupilClassDisplay,
 } from '../src/lib/utils/class-streams';
 
@@ -94,6 +95,27 @@ test('persisted pupil labels are not given the stream suffix twice', () => {
 test('active streams follow the academic-year configuration order', () => {
   assert.deepEqual(getActiveClassStreams(schoolClass, 'year-2026').map(stream => stream.id), ['east', 'west']);
   assert.deepEqual(getActiveClassStreams(schoolClass, 'missing'), []);
+});
+
+test('class overview stream stats require every active pupil to be distributed', () => {
+  const partialStats = getClassStreamPupilStats(schoolClass, [
+    { classId: schoolClass.id, status: 'Active', streamId: 'east', streamClassId: schoolClass.id },
+    { classId: schoolClass.id, status: 'Active' },
+  ], 'year-2026');
+  assert.equal(partialStats.isDistributed, false);
+  assert.equal(partialStats.total, 2);
+
+  const completeStats = getClassStreamPupilStats(schoolClass, [
+    { classId: schoolClass.id, status: 'Active', streamId: 'east', streamClassId: schoolClass.id },
+    { classId: schoolClass.id, status: 'Active', streamId: 'west', streamClassId: schoolClass.id },
+    { classId: schoolClass.id, status: 'Active', streamId: 'west', streamClassId: schoolClass.id },
+  ], 'year-2026');
+  assert.equal(completeStats.isDistributed, true);
+  assert.deepEqual(completeStats.streams.map(stream => [stream.name, stream.pupilCount]), [
+    ['East', 1],
+    ['West', 2],
+  ]);
+  assert.equal(completeStats.total, 3);
 });
 
 test('stream names and codes are unique without regard to case', () => {

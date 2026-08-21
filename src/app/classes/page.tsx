@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Book, Users, GraduationCap, Baby, School, Crown, Award, Clock, ChevronDown, Save, History, User } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Edit, Trash2, Book, Users, GraduationCap, Baby, School, Crown, Award, Clock, ChevronDown, Save, History, User, GitBranch } from "lucide-react";
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Class, ClassLevel, Staff, Subject, SubjectAssignment } from "@/types";
+import type { Class, ClassLevel, Pupil, Staff, Subject, SubjectAssignment } from "@/types";
 import { CLASS_LEVELS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,6 +50,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { useTermStatus } from "@/lib/hooks/use-term-status";
 import { RecessStatusBanner } from "@/components/common/recess-status-banner";
+import { getClassStreamPupilStats } from "@/lib/utils/class-streams";
 
 // Searchable Pupil Selector Component
 function SearchablePupilSelector({
@@ -413,16 +414,25 @@ export default function ClassesPage() {
   const [expandedSubjects, setExpandedSubjects] = React.useState<Set<string>>(new Set());
   const [isSubjectAssignmentsOpen, setIsSubjectAssignmentsOpen] = React.useState(false);
 
-  // Calculate pupil counts by class
-  const pupilCountsByClass = React.useMemo(() => {
-    const counts: Record<string, number> = {};
+  // Group active pupils once so class cards can calculate stream statistics
+  // without repeatedly scanning the full school roster.
+  const activePupilsByClass = React.useMemo(() => {
+    const grouped: Record<string, Pupil[]> = {};
     pupils.forEach(pupil => {
       if (pupil.classId && pupil.status === 'Active') {
-        counts[pupil.classId] = (counts[pupil.classId] || 0) + 1;
+        if (!grouped[pupil.classId]) grouped[pupil.classId] = [];
+        grouped[pupil.classId].push(pupil);
       }
     });
-    return counts;
+    return grouped;
   }, [pupils]);
+
+  const pupilCountsByClass = React.useMemo(
+    () => Object.fromEntries(
+      Object.entries(activePupilsByClass).map(([classId, classPupils]) => [classId, classPupils.length]),
+    ),
+    [activePupilsByClass],
+  );
 
   // Group classes by level
   const classesByLevel = React.useMemo(() => {
@@ -604,6 +614,11 @@ export default function ClassesPage() {
     const teacher = staffList.find((s: Staff) => s.id === classItem.classTeacherId);
     const LevelIcon = LEVEL_ICONS[classItem.level] || Book;
     const pupilCount = pupilCountsByClass[classItem.id] || 0;
+    const streamStats = getClassStreamPupilStats(
+      classItem,
+      activePupilsByClass[classItem.id] || [],
+      effectiveTerm.academicYear?.id,
+    );
     
     // Check if this class has any graduated pupils
     const hasGraduates = React.useMemo(() => {
@@ -670,14 +685,39 @@ export default function ClassesPage() {
         </CardHeader>
         <CardContent className="pt-0 pb-2 px-3">
           <div className="space-y-1.5">
-            {/* Pupil Count */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
-                <Users className="h-3 w-3 text-gray-600" />
-                <span className="text-xs font-medium text-gray-900">
-                  {pupilCount} pupil{pupilCount !== 1 ? 's' : ''}
-                </span>
-              </div>
+            {/* Pupil Count / Stream Breakdown */}
+            <div className="flex items-start justify-between gap-2">
+              {!streamStats.isDistributed ? (
+                <div className="flex items-center space-x-1">
+                  <Users className="h-3 w-3 text-gray-600" />
+                  <span className="text-xs font-medium text-gray-900">
+                    {pupilCount} pupil{pupilCount !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              ) : (
+                <div className="min-w-0 flex-1 rounded-md border border-white/80 bg-white/55 px-2 py-1.5" role="group" aria-label={`${classItem.name} pupil totals by stream`}>
+                  <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-gray-700">
+                    <GitBranch className="h-3 w-3 shrink-0" aria-hidden="true" />
+                    <span>Pupils by stream</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {streamStats.streams.map(stream => (
+                      <span
+                        key={stream.id}
+                        className="inline-flex min-w-0 items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] text-gray-700"
+                        title={`${stream.name} (${stream.code}): ${stream.pupilCount} pupils`}
+                      >
+                        <span className="max-w-24 truncate">{stream.name}</span>
+                        <strong className="tabular-nums text-gray-950">{stream.pupilCount}</strong>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between border-t border-gray-200 pt-1 text-xs font-semibold text-gray-900">
+                    <span>Total pupils</span>
+                    <span className="tabular-nums">{streamStats.total}</span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center space-x-1">
                 <Book className="h-3 w-3 text-gray-600" />
                 <span className="text-xs text-gray-600">

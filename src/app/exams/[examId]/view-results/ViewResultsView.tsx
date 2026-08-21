@@ -4621,11 +4621,13 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               </div>
             ) : (
               // Compact Table View for Desktop with Column Sorting
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
+              <Table
+                containerClassName="max-h-[62vh] overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                containerProps={{ tabIndex: 0, role: 'region', 'aria-label': 'Exam results table' }}
+              >
+                  <TableHeader className="sticky top-0 z-30 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.12)]">
                     <TableRow className="bg-gradient-to-r from-gray-50 to-blue-50">
-                      <TableHead className="text-xs font-medium text-gray-600 uppercase tracking-wider sticky left-0 bg-gradient-to-r from-gray-50 to-blue-50 shadow-sm py-2 px-1 w-12">
+                      <TableHead className="sticky left-0 z-40 w-12 bg-gradient-to-r from-gray-50 to-blue-50 px-1 py-2 text-xs font-medium uppercase tracking-wider text-gray-600 shadow-sm">
                         <div
                           className="flex flex-col items-center gap-1"
                           onClick={(e) => e.stopPropagation()}
@@ -4669,7 +4671,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                         </div>
                       </TableHead>
                       <TableHead
-                        className="text-xs font-medium text-gray-600 uppercase tracking-wider sticky left-8 bg-gradient-to-r from-gray-50 to-blue-50 shadow-sm cursor-pointer hover:bg-blue-100 transition-colors py-2 px-2"
+                        className="sticky left-8 z-40 cursor-pointer bg-gradient-to-r from-gray-50 to-blue-50 px-2 py-2 text-xs font-medium uppercase tracking-wider text-gray-600 shadow-sm transition-colors hover:bg-blue-100"
                         onClick={() => handleSort('name')}
                       >
                         <div className="flex items-center gap-1">
@@ -4836,8 +4838,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       );
                     })}
                   </TableBody>
-                </Table>
-              </div>
+              </Table>
             )}
           </div>
         </div>

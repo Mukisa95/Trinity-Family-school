@@ -1423,8 +1423,13 @@ export default function RecordResultsView() {
     const currentSubject = examSubjects[activeSubjectIndex];
     
     return (
-      <div className="flex flex-col">
-        <div className="flex justify-between items-center p-2 bg-blue-50 border-b sticky top-0 z-20">
+      <div
+        className="flex max-h-[62vh] flex-col overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+        role="region"
+        aria-label="Record results table for the selected subject"
+        tabIndex={0}
+      >
+        <div className="sticky top-0 z-30 flex min-h-11 items-center justify-between border-b bg-blue-50 p-2 shadow-sm">
           <Button variant="ghost" size="sm" onClick={prevSubject} className="h-7 px-2">
             <ChevronLeft className="h-3 w-3" />
           </Button>
@@ -1437,7 +1442,7 @@ export default function RecordResultsView() {
         </div>
         
         <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-9 z-10">
+          <thead className="sticky top-11 z-20 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.1)]">
             <tr>
               <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">
                 <button 
@@ -1558,11 +1563,16 @@ export default function RecordResultsView() {
 
   const renderDesktopTable = () => {
     return (
-      <div className="overflow-x-auto">
+      <div
+        className="max-h-[62vh] overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+        role="region"
+        aria-label="Record results table"
+        tabIndex={0}
+      >
         <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0 z-20">
+          <thead className="sticky top-0 z-30 bg-gray-50 shadow-[0_2px_8px_rgba(15,23,42,0.1)]">
             <tr>
-              <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10 border-r">
+              <th className="sticky left-0 z-40 border-r bg-gray-50 px-2 py-1 text-left text-xs font-medium uppercase text-gray-500">
                 <button 
                   onClick={() => handleSort('name')}
                   className="flex items-center gap-1 hover:text-gray-700"

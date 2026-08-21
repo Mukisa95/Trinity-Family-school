@@ -20,6 +20,17 @@ export type PupilClassDisplay = {
   hasStream: boolean;
 };
 
+export type ClassStreamPupilStats = {
+  total: number;
+  isDistributed: boolean;
+  streams: Array<{
+    id: string;
+    name: string;
+    code: string;
+    pupilCount: number;
+  }>;
+};
+
 export function normaliseStreamValue(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
@@ -110,6 +121,45 @@ export function getActiveClassStreams(
   return configuration.activeStreamIds
     .map(streamId => byId.get(streamId))
     .filter((stream): stream is ClassStream => Boolean(stream));
+}
+
+/**
+ * Build the stream breakdown used by class overview cards. The breakdown is
+ * only considered ready when every active pupil belongs to one of the streams
+ * enabled for the selected academic year, preventing partial setup from being
+ * presented as complete statistics.
+ */
+export function getClassStreamPupilStats(
+  schoolClass: Pick<ClassIdentity, 'id' | 'streams' | 'streamConfigurations'>,
+  pupils: Array<Pick<Pupil, 'classId' | 'status' | 'streamId' | 'streamClassId'>>,
+  academicYearId?: string,
+): ClassStreamPupilStats {
+  const activePupils = pupils.filter(pupil => (
+    pupil.classId === schoolClass.id && pupil.status === 'Active'
+  ));
+  const activeStreams = getActiveClassStreams(schoolClass, academicYearId);
+  const activeStreamIds = new Set(activeStreams.map(stream => stream.id));
+  const isDistributed = activePupils.length > 0
+    && activeStreams.length > 0
+    && activePupils.every(pupil => Boolean(
+      pupil.streamId
+      && activeStreamIds.has(pupil.streamId)
+      && (!pupil.streamClassId || pupil.streamClassId === schoolClass.id),
+    ));
+
+  return {
+    total: activePupils.length,
+    isDistributed,
+    streams: activeStreams.map(stream => ({
+      id: stream.id,
+      name: stream.name,
+      code: stream.code,
+      pupilCount: activePupils.filter(pupil => (
+        pupil.streamId === stream.id
+        && (!pupil.streamClassId || pupil.streamClassId === schoolClass.id)
+      )).length,
+    })),
+  };
 }
 
 export function getExamPupilStreamId(pupil: ExamRecordPupilInfo): string | undefined {

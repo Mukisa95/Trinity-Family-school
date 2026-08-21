@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GlassPageTopBar } from '@/components/common/glass-page-top-bar';
 
 function updateClassConfiguration(
   schoolClass: Class,
@@ -267,9 +268,9 @@ export default function ClassStreamSetupPage() {
     return (
       <div className="mx-auto max-w-3xl p-4 sm:p-6">
         <Card className="border-2 border-cyan-200">
-          <CardHeader><CardTitle>No streams created</CardTitle><CardDescription>Create stream names and codes on the Class Edit page first.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>No streams created</CardTitle><CardDescription>Create stream names and codes from the Edit dialog on Class Details first.</CardDescription></CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button asChild><Link href={`/class/edit?id=${encodeURIComponent(classId)}`}>Open Class Edit</Link></Button>
+            <Button asChild><Link href={`/class-detail?id=${encodeURIComponent(classId)}&edit=1`}>Open Class Edit</Link></Button>
             <Button asChild variant="outline"><Link href={`/class-detail?id=${encodeURIComponent(classId)}`}>Back to Class Details</Link></Button>
           </CardContent>
         </Card>
@@ -279,24 +280,30 @@ export default function ClassStreamSetupPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-4 p-3 pb-24 sm:p-5 lg:p-6">
-      <header className="rounded-2xl border border-cyan-100 bg-gradient-to-r from-cyan-700 via-sky-700 to-indigo-700 p-4 text-white shadow-lg sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0 text-white hover:bg-white/15 hover:text-white">
-              <Link href={`/class-detail?id=${encodeURIComponent(classId)}`} aria-label="Back to class details"><ArrowLeft className="h-5 w-5" /></Link>
-            </Button>
-            <div>
-              <div className="mb-1 flex items-center gap-2"><GitBranch className="h-5 w-5" /><span className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">Stream Setup</span></div>
-              <h1 className="text-2xl font-black sm:text-3xl">{schoolClass.name}</h1>
-              <p className="mt-1 text-sm text-cyan-50">Assign every active pupil for {activeAcademicYear?.name || 'the active academic year'}.</p>
-            </div>
-          </div>
-          <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
-            <div className="text-xs text-cyan-100">Assignment progress</div>
-            <div className="mt-0.5 text-xl font-black tabular-nums">{assignedCount}/{activePupils.length}</div>
-          </div>
-        </div>
-      </header>
+      <GlassPageTopBar
+        eyebrow={
+          <span className="inline-flex items-center gap-1.5">
+            <GitBranch className="h-3.5 w-3.5" aria-hidden="true" />
+            Stream Setup
+          </span>
+        }
+        title={schoolClass.name}
+        subtitle={`Assign every active pupil for ${activeAcademicYear?.name || 'the active academic year'}.`}
+        backHref={`/class-detail?id=${encodeURIComponent(classId)}`}
+        backLabel="Back to class details"
+        meta={
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800"
+            aria-label={`Assignment progress ${assignedCount} of ${activePupils.length}`}
+            title={`Assignment progress: ${assignedCount}/${activePupils.length}`}
+          >
+            <span className="hidden sm:inline">Assigned</span>
+            <strong className="tabular-nums text-cyan-950">{assignedCount}/{activePupils.length}</strong>
+          </span>
+        }
+        className="mx-0 mb-0 sm:mx-0"
+        contentClassName="px-3 py-2 sm:px-4 lg:px-5"
+      />
 
       {errors.length ? (
         <Alert id="stream-error-summary" variant="destructive" tabIndex={-1} role="alert" className="scroll-mt-4">
@@ -402,16 +409,34 @@ export default function ClassStreamSetupPage() {
         </Card>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-3 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:px-6">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-          <p className="hidden text-sm text-slate-600 sm:block">{activeStreamIds.length} active stream{activeStreamIds.length === 1 ? '' : 's'} · {assignedCount} pupils assigned</p>
-          <div className="ml-auto flex gap-2">
-            <Button asChild variant="outline" className="h-11"><Link href={`/class-detail?id=${encodeURIComponent(classId)}`}>Cancel</Link></Button>
-            <Button onClick={save} disabled={isSaving || activePupils.length === 0} className="h-11 bg-cyan-700 px-5 hover:bg-cyan-800">
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Stream Setup
-            </Button>
-          </div>
-        </div>
+      <div
+        className="fixed z-40 flex items-center gap-3"
+        style={{
+          bottom: 'max(1rem, env(safe-area-inset-bottom))',
+          right: 'max(1rem, env(safe-area-inset-right))',
+        }}
+        aria-label="Stream setup actions"
+      >
+        <Button
+          asChild
+          variant="outline"
+          className="flex h-16 w-16 flex-col gap-1 rounded-full border-slate-300 bg-white/95 p-0 text-slate-700 shadow-[0_10px_28px_rgba(15,23,42,0.18)] backdrop-blur transition-[background-color,border-color,box-shadow] hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-slate-500"
+        >
+          <Link href={`/class-detail?id=${encodeURIComponent(classId)}`} aria-label="Cancel stream setup and return to class details">
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            <span className="text-[10px] font-bold leading-none">Cancel</span>
+          </Link>
+        </Button>
+        <Button
+          type="button"
+          onClick={save}
+          disabled={isSaving || activePupils.length === 0}
+          aria-label={isSaving ? 'Saving stream setup' : 'Save stream setup'}
+          className="flex h-16 w-16 flex-col gap-1 rounded-full bg-cyan-700 p-0 text-white shadow-[0_12px_30px_rgba(14,116,144,0.35)] transition-[background-color,box-shadow] hover:bg-cyan-800 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 disabled:shadow-none"
+        >
+          {isSaving ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <Save className="h-5 w-5" aria-hidden="true" />}
+          <span className="text-[10px] font-bold leading-none">{isSaving ? 'Saving' : 'Save'}</span>
+        </Button>
       </div>
     </main>
   );
