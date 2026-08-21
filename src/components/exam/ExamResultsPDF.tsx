@@ -8,6 +8,12 @@ declare module 'jspdf' {
   }
 }
 
+export interface AnalysisPDFSections {
+  aggregate: boolean;
+  divisions: boolean;
+  subjectGrades: boolean;
+}
+
 interface ExamResultsPDFProps {
   examDetails: {
     name: string;
@@ -64,6 +70,8 @@ interface ExamResultsPDFProps {
     showBestPupil?: boolean;
     showNeedsImprovement?: boolean;
     showAggregateAnalysis?: boolean;
+    analysisOnly?: boolean;
+    analysisSections?: AnalysisPDFSections;
   };
   gradingScale?: Array<{
     minMark: number;
@@ -79,6 +87,235 @@ const calculateDivision = (aggregates: number): string => {
   if (aggregates >= 25 && aggregates <= 28) return 'III';
   if (aggregates >= 29 && aggregates <= 32) return 'IV';
   return 'U';
+};
+
+type AnalysisPupilResult = ExamResultsPDFProps['processedResults'][number];
+type AnalysisSubject = ExamResultsPDFProps['subjectSnaps'][number];
+
+const ANALYSIS_DIVISIONS = ['I', 'II', 'III', 'IV', 'U', 'X'];
+const ANALYSIS_GRADES = ['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'];
+
+const calculateSubjectAverage = (
+  subjectCode: string,
+  processedResults: AnalysisPupilResult[],
+) => {
+  const marks = processedResults
+    .map((pupil) => pupil.results[subjectCode]?.marks)
+    .filter((mark): mark is number => typeof mark === 'number' && Number.isFinite(mark));
+
+  return marks.length > 0
+    ? marks.reduce((total, mark) => total + mark, 0) / marks.length
+    : -1;
+};
+
+const orderSubjectsByPerformance = (
+  subjects: AnalysisSubject[],
+  processedResults: AnalysisPupilResult[],
+) => [...subjects].sort((first, second) =>
+  calculateSubjectAverage(second.code, processedResults)
+  - calculateSubjectAverage(first.code, processedResults)
+  || first.code.localeCompare(second.code)
+);
+
+const drawAnalysisPageHeader = (
+  doc: jsPDF,
+  title: string,
+  subtitle: string,
+) => {
+  const pageWidth = doc.internal.pageSize.width;
+
+  doc.setFillColor(30, 58, 138);
+  doc.rect(0, 0, pageWidth, 25, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(title, pageWidth / 2, 10, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(219, 234, 254);
+  doc.text(subtitle, pageWidth / 2, 18, { align: 'center' });
+};
+
+const addDivisionAnalysisPages = (
+  doc: jsPDF,
+  processedResults: AnalysisPupilResult[],
+  subjectSnaps: AnalysisSubject[],
+  examName: string,
+  className: string,
+) => {
+  ANALYSIS_DIVISIONS.forEach((division) => {
+    const pupils = processedResults
+      .filter((result) => (result.division || 'U') === division)
+      .sort((first, second) =>
+        first.position - second.position
+        || second.totalMarks - first.totalMarks
+        || first.pupilInfo.name.localeCompare(second.pupilInfo.name)
+      );
+
+    if (pupils.length === 0) return;
+
+    doc.addPage();
+    const headers = ['POS', 'PUPIL', ...subjectSnaps.map((subject) => subject.code), 'TOTAL', 'AGG', 'DIV'];
+    const body = pupils.map((pupil) => [
+      pupil.position.toString(),
+      pupil.pupilInfo.name,
+      ...subjectSnaps.map((subject) => {
+        const result = pupil.results[subject.code];
+        if (!result) return '-';
+        return result.grade ? `${result.marks} ${result.grade}` : result.marks.toString();
+      }),
+      pupil.totalMarks.toString(),
+      pupil.totalAggregates.toString(),
+      pupil.division,
+    ]);
+    const subjectFontSize = subjectSnaps.length > 8 ? 6 : subjectSnaps.length > 5 ? 7 : 8;
+    const title = division === 'U'
+      ? 'UNGRADED PUPILS - DIVISION GROUPING'
+      : `DIVISION ${division} - PUPIL PERFORMANCE`;
+    const subtitle = `${examName} - ${className} - ${pupils.length} pupil${pupils.length === 1 ? '' : 's'}`;
+
+    autoTable(doc, {
+      startY: 31,
+      head: [headers],
+      body,
+      theme: 'grid',
+      showHead: 'everyPage',
+      margin: { top: 31, right: 9, bottom: 14, left: 9 },
+      rowPageBreak: 'avoid',
+      headStyles: {
+        fillColor: [30, 64, 175],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: subjectFontSize,
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 1.7,
+      },
+      bodyStyles: {
+        fontSize: subjectFontSize,
+        textColor: [15, 23, 42],
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 1.6,
+        lineColor: [148, 163, 184],
+        lineWidth: 0.25,
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 11, fontStyle: 'bold' },
+        1: { cellWidth: 42, halign: 'left', fontStyle: 'bold' },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index >= headers.length - 3) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [239, 246, 255];
+        }
+      },
+      didDrawPage: () => drawAnalysisPageHeader(doc, title, subtitle),
+    });
+  });
+};
+
+const addGradeSubjectAnalysisPages = (
+  doc: jsPDF,
+  processedResults: AnalysisPupilResult[],
+  subjectSnaps: AnalysisSubject[],
+  examName: string,
+  className: string,
+) => {
+  const subjectsPerPage = 5;
+
+  ANALYSIS_GRADES.forEach((grade) => {
+    const rankedBySubject = subjectSnaps.map((subject) => ({
+      subject,
+      pupils: processedResults
+        .filter((pupil) => pupil.results[subject.code]?.grade === grade)
+        .sort((first, second) => {
+          const firstMark = first.results[subject.code]?.marks ?? -1;
+          const secondMark = second.results[subject.code]?.marks ?? -1;
+          return secondMark - firstMark || first.pupilInfo.name.localeCompare(second.pupilInfo.name);
+        }),
+    }));
+
+    if (!rankedBySubject.some(({ pupils }) => pupils.length > 0)) return;
+
+    for (let start = 0; start < rankedBySubject.length; start += subjectsPerPage) {
+      const subjectGroup = rankedBySubject.slice(start, start + subjectsPerPage);
+      const maxRows = Math.max(...subjectGroup.map(({ pupils }) => pupils.length));
+      const groupNumber = Math.floor(start / subjectsPerPage) + 1;
+      const groupCount = Math.ceil(rankedBySubject.length / subjectsPerPage);
+      const titleSuffix = groupCount > 1 ? ` (${groupNumber}/${groupCount})` : '';
+      const title = `GRADE ${grade} - SUBJECT PERFORMANCE${titleSuffix}`;
+      const subtitle = `${examName} - ${className} - pupils ranked independently within each subject`;
+      const pageWidth = doc.internal.pageSize.width;
+      const rankWidth = 12;
+      const subjectWidth = (pageWidth - 18 - rankWidth) / subjectGroup.length;
+
+      const body = Array.from({ length: maxRows }, (_, rowIndex) => [
+        (rowIndex + 1).toString(),
+        ...subjectGroup.map(({ subject, pupils }) => {
+          const pupil = pupils[rowIndex];
+          if (!pupil) return '';
+          const marks = pupil.results[subject.code]?.marks;
+          return `${pupil.pupilInfo.name}\n${marks} marks`;
+        }),
+      ]);
+
+      doc.addPage();
+      autoTable(doc, {
+        startY: 31,
+        head: [[
+          'RANK',
+          ...subjectGroup.map(({ subject, pupils }) => `${subject.code}\n${pupils.length} pupil${pupils.length === 1 ? '' : 's'}`),
+        ]],
+        body,
+        theme: 'grid',
+        showHead: 'everyPage',
+        margin: { top: 31, right: 9, bottom: 14, left: 9 },
+        rowPageBreak: 'avoid',
+        headStyles: {
+          fillColor: [67, 56, 202],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          halign: 'center',
+          valign: 'middle',
+          cellPadding: 2,
+        },
+        bodyStyles: {
+          fontSize: 7.5,
+          textColor: [15, 23, 42],
+          halign: 'left',
+          valign: 'middle',
+          cellPadding: 1.8,
+          lineColor: [148, 163, 184],
+          lineWidth: 0.25,
+          minCellHeight: 8,
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: rankWidth, halign: 'center', fontStyle: 'bold', fillColor: [238, 242, 255] },
+          ...Object.fromEntries(subjectGroup.map((_, index) => [index + 1, { cellWidth: subjectWidth }])),
+        },
+        didDrawPage: () => drawAnalysisPageHeader(doc, title, subtitle),
+      });
+    }
+  });
+};
+
+const addAnalysisPageFooters = (doc: jsPDF) => {
+  const pageCount = doc.getNumberOfPages();
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+    doc.setPage(pageNumber);
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated ${new Date().toLocaleString()}`, 10, pageHeight - 6);
+    doc.text(`Page ${pageNumber} of ${pageCount}`, pageWidth - 10, pageHeight - 6, { align: 'right' });
+  }
 };
 
 export const generateExamPDF = (props: ExamResultsPDFProps) => {
@@ -102,12 +339,18 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     showBestPupil: true,
     showNeedsImprovement: true,
     showAggregateAnalysis: true,
+    analysisOnly: false,
+    analysisSections: {
+      aggregate: true,
+      divisions: true,
+      subjectGrades: true,
+    },
   };
   
   console.log('📊 ExamResultsPDF - options.showAggregateAnalysis:', options.showAggregateAnalysis);
   
   // Modern color scheme
-  const colors = {
+  const colors: Record<string, [number, number, number]> = {
     primary: [30, 58, 138],      // Deep blue
     secondary: [59, 130, 246],   // Bright blue
     accent: [16, 185, 129],      // Green
@@ -130,9 +373,19 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const margin = 12;
+    const analysisSections = options.analysisSections || {
+      aggregate: true,
+      divisions: true,
+      subjectGrades: true,
+    };
+    const orderedAnalysisSubjects = orderSubjectsByPerformance(subjectSnaps, processedResults);
+
+    if (options.analysisOnly && !Object.values(analysisSections).some(Boolean)) {
+      throw new Error('Select at least one analysis section before generating the PDF.');
+    }
 
     // ========== AGGREGATE ANALYSIS PAGE (FIRST PAGE IF ENABLED) ==========
-    if (options.showAggregateAnalysis) {
+    if (options.showAggregateAnalysis && (!options.analysisOnly || analysisSections.aggregate)) {
       console.log('✅✅✅ Adding Aggregate Analysis as first page');
       
       // School Header
@@ -213,7 +466,10 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       const aggregateTableRows = divisions.length * 2; // AGG and PUPILS rows for each division
       
       // Estimate space needed for Major Subject Analysis table
-      const majorSubjectsList = majorSubjects || [];
+      const majorSubjectSet = new Set(majorSubjects || []);
+      const majorSubjectsList = orderedAnalysisSubjects
+        .filter((subject) => majorSubjectSet.has(subject.code))
+        .map((subject) => subject.code);
       const subjectTableRows = majorSubjectsList.length + 1; // +1 for header
       const subjectTableTitleHeight = 7;
       const spacingBetweenTables = 8;
@@ -469,9 +725,38 @@ export const generateExamPDF = (props: ExamResultsPDFProps) => {
       if (finalY > maxTableEndY) {
         console.warn('Subject table exceeded page height. Adjusting calculations...');
       }
-      
-      // Add new page for the assessment table
-      doc.addPage();
+
+      if (!options.analysisOnly) {
+        // Add new page for the assessment table.
+        doc.addPage();
+      }
+    }
+
+    if (options.analysisOnly) {
+      if (analysisSections.divisions) {
+        addDivisionAnalysisPages(
+          doc,
+          processedResults,
+          orderedAnalysisSubjects,
+          examDetails.name,
+          classSnap.name,
+        );
+      }
+      if (analysisSections.subjectGrades) {
+        addGradeSubjectAnalysisPages(
+          doc,
+          processedResults,
+          orderedAnalysisSubjects,
+          examDetails.name,
+          classSnap.name,
+        );
+      }
+      if (!analysisSections.aggregate) {
+        // jsPDF starts with one page; remove that unused page when the overview is excluded.
+        doc.deletePage(1);
+      }
+      addAnalysisPageFooters(doc);
+      return doc.output('blob');
     }
 
     // ========== MODERN HEADER DESIGN ==========

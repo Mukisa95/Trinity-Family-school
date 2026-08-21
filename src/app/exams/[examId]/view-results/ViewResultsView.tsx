@@ -80,7 +80,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { generateExamPDF } from '@/components/exam/ExamResultsPDF';
+import { generateExamPDF, type AnalysisPDFSections } from '@/components/exam/ExamResultsPDF';
 import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/components/exam/ComprehensiveReactPDF';
 import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
 import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
@@ -2684,6 +2684,83 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     }
   }, [examDetails, classSnap, subjectSnaps, processedResults, schoolSettings, examResultData, toast, updateProgress, pdfViewer, isNurseryExam]);
 
+  const generateAnalysisPDF = useCallback(async (analysisSections: AnalysisPDFSections) => {
+    if (!examDetails || !classSnap || !subjectSnaps.length || !processedResults.length) {
+      toast({
+        title: 'Unable to create analysis PDF',
+        description: processedResults.length === 0
+          ? 'There are no pupil results to analyse.'
+          : 'Some required exam information is missing.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationStatus('Creating analysis PDF...');
+
+    try {
+      const savedMajorSubjects = examResultData?.majorSubjects || [];
+      const majorSubjects = savedMajorSubjects.length > 0
+        ? savedMajorSubjects
+        : (subjectSnaps.length > 4 ? subjectSnaps.slice(0, 4).map(subject => subject.code) : subjectSnaps.map(subject => subject.code));
+      const gradingScale = examResultData?.gradingScale && Array.isArray(examResultData.gradingScale) && examResultData.gradingScale.length > 0
+        ? examResultData.gradingScale.map(item => ({
+            minMark: item.minMark,
+            maxMark: item.maxMark || (item.minMark === 0 ? 29 : item.minMark - 1),
+            grade: item.grade,
+            aggregates: item.aggregates || 9,
+          }))
+        : DEFAULT_GRADING_SCALE.map(item => ({
+            minMark: item.minMark,
+            maxMark: item.maxMark,
+            grade: item.grade,
+            aggregates: item.aggregates || 9,
+          }));
+      const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, processedResults, majorSubjects);
+      const blob = await generateExamPDF({
+        ...adaptedData,
+        schoolSettings,
+        gradingScale,
+        printOptions: {
+          showPin: false,
+          showIndexNumber: false,
+          showLinNumber: false,
+          showMarks: true,
+          showAgg: true,
+          showTotal: true,
+          showDiv: true,
+          orientation: 'landscape',
+          fillMarks: true,
+          fillAgg: true,
+          fillTotal: true,
+          fillDiv: true,
+          showMajorSubjects: true,
+          showBestPupil: false,
+          showNeedsImprovement: false,
+          showAggregateAnalysis: true,
+          analysisOnly: true,
+          analysisSections,
+        },
+      });
+
+      const classFileName = (classSnap.name || classSnap.code || 'class').replace(/\s+/g, '_');
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${classFileName}_performance_analysis.pdf`;
+      pdfViewer.openPDFFromBlob(blob, fileName, 'Performance Analysis PDF');
+      toast({ title: 'Analysis PDF ready', description: 'The selected performance analysis sections are ready to view or print.' });
+    } catch (error) {
+      console.error('Error generating performance analysis PDF:', error);
+      toast({
+        title: 'Analysis PDF failed',
+        description: 'The PDF could not be created. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+      setGenerationStatus('');
+    }
+  }, [classSnap, examDetails, examResultData, pdfViewer, processedResults, schoolSettings, subjectSnaps, toast]);
+
   const handleReportOne = useCallback(async () => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
       toast({ title: "Error", description: pdfTargetResults.length === 0 ? 'No pupils match the current filter / selection — please adjust filters before printing.' : 'Missing required data for batch reports generation' });
@@ -4038,15 +4115,28 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     resultsParams.set('streamId', selectedStreamId);
     const resultsHref = `/exams/${examId}/view-results?${resultsParams.toString()}`;
     return (
-      <PerformanceAnalysisPage
-        processedResults={processedResults}
-        subjectSnaps={subjectSnaps || []}
-        examDetails={examDetails}
-        className={classSnap?.code || classSnap?.name || 'Class'}
-        academicYearName={academicInfo.academicYearName}
-        termName={academicInfo.termName}
-        resultsHref={resultsHref}
-      />
+      <>
+        <PerformanceAnalysisPage
+          processedResults={processedResults}
+          subjectSnaps={subjectSnaps || []}
+          examDetails={examDetails}
+          className={classSnap?.code || classSnap?.name || 'Class'}
+          academicYearName={academicInfo.academicYearName}
+          termName={academicInfo.termName}
+          resultsHref={resultsHref}
+          onPrintAnalysis={generateAnalysisPDF}
+          isGeneratingPDF={isGenerating}
+        />
+        <PDFViewer
+          isOpen={pdfViewer.isOpen}
+          onClose={pdfViewer.closePDF}
+          pdfBlob={pdfViewer.pdfBlob}
+          fileName={pdfViewer.fileName}
+          title={pdfViewer.title}
+          showDownload={true}
+          showPrint={true}
+        />
+      </>
     );
   }
 
@@ -5811,6 +5901,8 @@ interface PerformanceAnalysisPageProps {
   academicYearName: string;
   termName: string;
   resultsHref: string;
+  onPrintAnalysis: (sections: AnalysisPDFSections) => void;
+  isGeneratingPDF: boolean;
 }
 
 function PerformanceAnalysisPage({
@@ -5821,10 +5913,36 @@ function PerformanceAnalysisPage({
   academicYearName,
   termName,
   resultsHref,
+  onPrintAnalysis,
+  isGeneratingPDF,
 }: PerformanceAnalysisPageProps) {
   const [expandedDivisions, setExpandedDivisions] = useState<string[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
+  const [showPrintSections, setShowPrintSections] = useState(false);
+  const [printSections, setPrintSections] = useState<AnalysisPDFSections>({
+    aggregate: true,
+    divisions: true,
+    subjectGrades: true,
+  });
+  const selectedPrintSectionCount = Object.values(printSections).filter(Boolean).length;
+
+  const orderedSubjectSnaps = useMemo(() => {
+    const getAverage = (subjectCode: string) => {
+      const marks = processedResults
+        .map((pupil) => pupil.results[subjectCode]?.marks)
+        .filter((mark): mark is number => typeof mark === 'number' && Number.isFinite(mark));
+
+      return marks.length > 0
+        ? marks.reduce((total, mark) => total + mark, 0) / marks.length
+        : -1;
+    };
+
+    return [...subjectSnaps].sort((first, second) =>
+      getAverage(second.code) - getAverage(first.code)
+      || first.code.localeCompare(second.code)
+    );
+  }, [processedResults, subjectSnaps]);
 
   // Division Analysis
   const divisionAnalysis = useMemo(() => {
@@ -5849,13 +5967,15 @@ function PerformanceAnalysisPage({
 
   // Subject-wise Grade Analysis
   const subjectGradeAnalysis = useMemo(() => {
-    return subjectSnaps.map(subject => {
+    return orderedSubjectSnaps.map(subject => {
       const grades = ['D1', 'D2', 'C3', 'C4', 'C5', 'C6', 'P7', 'P8', 'F9'];
       const gradeDistribution = grades.map(grade => {
-        const pupils = processedResults.filter(r => {
-          const subjectResult = r.results[subject.code];
-          return subjectResult?.grade === grade;
-        });
+        const pupils = processedResults
+          .filter(r => r.results[subject.code]?.grade === grade)
+          .sort((first, second) =>
+            (second.results[subject.code]?.marks ?? -1) - (first.results[subject.code]?.marks ?? -1)
+            || first.pupilInfo.name.localeCompare(second.pupilInfo.name)
+          );
 
         return {
           grade,
@@ -5884,7 +6004,7 @@ function PerformanceAnalysisPage({
         averageMarks: averageMarks.toFixed(1)
       };
     });
-  }, [processedResults, subjectSnaps]);
+  }, [orderedSubjectSnaps, processedResults]);
 
   // Overall Statistics
   const overallStats = useMemo(() => {
@@ -5949,45 +6069,154 @@ function PerformanceAnalysisPage({
         subtitle={`${examDetails?.name || 'Exam'} | ${className} | ${academicYearName} - ${termName}`}
         backHref={resultsHref}
         className="mb-2"
-        meta={
-          <span className="rounded-full border border-purple-200/70 bg-purple-50/90 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
-            {processedResults.length} pupils
-          </span>
+        actions={
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setShowPrintSections(true)}
+            disabled={isGeneratingPDF}
+            className="h-9 w-full gap-2 rounded-full bg-indigo-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:w-auto"
+            aria-label={isGeneratingPDF ? 'Creating performance analysis PDF' : 'Print performance analysis PDF'}
+          >
+            {isGeneratingPDF
+              ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              : <Printer className="h-4 w-4" aria-hidden="true" />}
+            <span aria-live="polite">{isGeneratingPDF ? 'Creating PDF...' : 'Print Analysis'}</span>
+          </Button>
+        }
+        below={
+          <div
+            className="grid grid-cols-2 gap-1.5 rounded-xl border border-white/70 bg-white/55 p-1.5 shadow-sm ring-1 ring-indigo-100/60 sm:grid-cols-4"
+            aria-label="Overall performance statistics"
+          >
+            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-blue-50/85 px-2.5 py-1.5">
+              <span className="shrink-0 text-sm font-black tabular-nums text-blue-900">{overallStats.totalPupils}</span>
+              <span className="truncate text-xs font-semibold text-blue-700">Total Pupils</span>
+            </div>
+            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-emerald-50/85 px-2.5 py-1.5">
+              <span className="shrink-0 text-sm font-black tabular-nums text-emerald-900">{overallStats.passRate}%</span>
+              <span className="truncate text-xs font-semibold text-emerald-700">Pass Rate (I-IV)</span>
+            </div>
+            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-purple-50/85 px-2.5 py-1.5">
+              <span className="shrink-0 text-sm font-black tabular-nums text-purple-900">{overallStats.averageMarks}</span>
+              <span className="truncate text-xs font-semibold text-purple-700">Avg. Marks</span>
+            </div>
+            <div className="flex min-w-0 items-center gap-2 rounded-lg bg-amber-50/85 px-2.5 py-1.5">
+              <span className="shrink-0 text-sm font-black tabular-nums text-amber-900">{overallStats.averageAggregates}</span>
+              <span className="truncate text-xs font-semibold text-amber-700">Avg. Aggregates</span>
+            </div>
+          </div>
         }
       />
 
-      <main className="mx-auto max-w-7xl space-y-4 px-3 pb-8 sm:px-4 lg:px-6">
-          {/* Overall Statistics Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold text-blue-900">{overallStats.totalPupils}</div>
-                <div className="text-xs text-blue-700">Total Pupils</div>
-              </CardContent>
-            </Card>
+      <Dialog open={showPrintSections} onOpenChange={setShowPrintSections}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg">
+          <DialogHeader className="border-b border-slate-100 px-5 pb-4 pt-5 text-left sm:px-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
+              <Printer className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+              Choose analysis sections
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              Select any combination to include in the performance analysis PDF.
+            </DialogDescription>
+          </DialogHeader>
 
-            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold text-green-900">{overallStats.passRate}%</div>
-                <div className="text-xs text-green-700">Pass Rate (I-IV)</div>
-              </CardContent>
-            </Card>
+          <div className="space-y-2.5 px-5 py-4 sm:px-6">
+            <Label
+              htmlFor="analysis-section-aggregate"
+              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+            >
+              <Checkbox
+                id="analysis-section-aggregate"
+                checked={printSections.aggregate}
+                onCheckedChange={(checked) => setPrintSections((current) => ({
+                  ...current,
+                  aggregate: checked === true,
+                }))}
+                className="mt-0.5"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-slate-900">Aggregate overview</span>
+                <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">
+                  The main page with aggregate distribution and the major-subject summary.
+                </span>
+              </span>
+            </Label>
 
-            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold text-purple-900">{overallStats.averageMarks}</div>
-                <div className="text-xs text-purple-700">Avg. Marks</div>
-              </CardContent>
-            </Card>
+            <Label
+              htmlFor="analysis-section-divisions"
+              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+            >
+              <Checkbox
+                id="analysis-section-divisions"
+                checked={printSections.divisions}
+                onCheckedChange={(checked) => setPrintSections((current) => ({
+                  ...current,
+                  divisions: checked === true,
+                }))}
+                className="mt-0.5"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-slate-900">Division grouping tables</span>
+                <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">
+                  Separate assessment-style pupil tables for each class division.
+                </span>
+              </span>
+            </Label>
 
-            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-              <CardContent className="p-3 text-center">
-                <div className="text-2xl font-bold text-amber-900">{overallStats.averageAggregates}</div>
-                <div className="text-xs text-amber-700">Avg. Aggregates</div>
-              </CardContent>
-            </Card>
+            <Label
+              htmlFor="analysis-section-subject-grades"
+              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+            >
+              <Checkbox
+                id="analysis-section-subject-grades"
+                checked={printSections.subjectGrades}
+                onCheckedChange={(checked) => setPrintSections((current) => ({
+                  ...current,
+                  subjectGrades: checked === true,
+                }))}
+                className="mt-0.5"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-slate-900">Subject and grade rankings</span>
+                <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">
+                  D1-F9 tables with pupils ranked independently within each subject.
+                </span>
+              </span>
+            </Label>
+
+            <p className="pt-1 text-xs font-semibold text-slate-600" aria-live="polite">
+              {selectedPrintSectionCount} of 3 sections selected
+            </p>
           </div>
 
+          <DialogFooter className="border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPrintSections(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={selectedPrintSectionCount === 0 || isGeneratingPDF}
+              onClick={() => {
+                setShowPrintSections(false);
+                onPrintAnalysis(printSections);
+              }}
+              className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700"
+            >
+              {isGeneratingPDF
+                ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                : <Printer className="h-4 w-4" aria-hidden="true" />}
+              {isGeneratingPDF ? 'Creating PDF...' : 'Create PDF'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <main className="mx-auto max-w-7xl space-y-4 px-3 pb-8 sm:px-4 lg:px-6">
           {/* Top and Bottom Performers */}
           {overallStats.topPerformer && overallStats.worstPerformer && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -6109,7 +6338,7 @@ function PerformanceAnalysisPage({
                                       </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-1">
-                                      {subjectSnaps?.slice(0, 4).map(subject => {
+                                      {orderedSubjectSnaps.slice(0, 4).map(subject => {
                                         const subjectResult = pupilResult?.results[subject.code];
                                         const marks = subjectResult?.marks !== undefined ? subjectResult.marks : '-';
                                         const grade = subjectResult?.grade;
@@ -6153,9 +6382,7 @@ function PerformanceAnalysisPage({
             </CardHeader>
             <CardContent className="p-3 pt-1 sm:p-4 sm:pt-1">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                {subjectGradeAnalysis
-                  .sort((a, b) => parseFloat(b.averageMarks) - parseFloat(a.averageMarks))
-                  .map((subject) => {
+                {subjectGradeAnalysis.map((subject) => {
                     const isExpanded = expandedSubjects.includes(subject.code);
                     return (
                       <div
