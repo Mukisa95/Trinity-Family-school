@@ -13,7 +13,6 @@ import {
   Save,
   Search,
   ShieldCheck,
-  Users,
 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { useClassDetail } from '@/lib/hooks/use-class-detail';
@@ -79,7 +78,29 @@ export default function ClassStreamSetupPage() {
   const [search, setSearch] = React.useState('');
   const [errors, setErrors] = React.useState<string[]>([]);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [topbarHeight, setTopbarHeight] = React.useState(64);
   const initialisedForRef = React.useRef('');
+
+  React.useEffect(() => {
+    if (classLoading || pupilsLoading || academicYearLoading) return;
+
+    const topbar = document.querySelector<HTMLElement>('.stream-setup-topbar');
+    if (!topbar) return;
+
+    const syncTopbarHeight = () => {
+      setTopbarHeight(Math.ceil(topbar.getBoundingClientRect().height));
+    };
+
+    syncTopbarHeight();
+    const observer = new ResizeObserver(syncTopbarHeight);
+    observer.observe(topbar);
+    window.addEventListener('resize', syncTopbarHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', syncTopbarHeight);
+    };
+  }, [academicYearLoading, classLoading, pupilsLoading]);
 
   const currentConfiguration = React.useMemo(
     () => schoolClass?.streamConfigurations?.find(configuration => configuration.academicYearId === activeAcademicYear?.id),
@@ -279,7 +300,7 @@ export default function ClassStreamSetupPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-3 pb-24 sm:p-5 lg:p-6">
+    <main className="w-full max-w-none space-y-4 px-0 pb-24 pt-0">
       <GlassPageTopBar
         eyebrow={
           <span className="inline-flex items-center gap-1.5">
@@ -301,7 +322,7 @@ export default function ClassStreamSetupPage() {
             <strong className="tabular-nums text-cyan-950">{assignedCount}/{activePupils.length}</strong>
           </span>
         }
-        className="mx-0 mb-0 sm:mx-0"
+        className="stream-setup-topbar mb-0"
         contentClassName="px-3 py-2 sm:px-4 lg:px-5"
       />
 
@@ -340,34 +361,27 @@ export default function ClassStreamSetupPage() {
           </Card>
         </aside>
 
-        <Card className="min-w-0 overflow-hidden border-slate-200 shadow-sm">
-          <CardHeader className="border-b bg-slate-50/80 pb-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg"><Users className="h-5 w-5 text-cyan-700" /> Pupil assignments</CardTitle>
-                <CardDescription className="mt-1">
-                  {activeStreams.length === 2
-                    ? 'Choose pupils for one stream; every unchecked pupil automatically goes to the other.'
-                    : activeStreams.length > 2
-                      ? 'Choose one stream for every pupil before saving.'
-                      : 'All active pupils will be assigned to the selected stream.'}
-                </CardDescription>
-              </div>
-              <div className="relative w-full sm:w-72">
+        <Card className="min-w-0 overflow-visible border-slate-200 shadow-sm">
+          <CardHeader
+            className="sticky z-20 rounded-t-lg border-b border-slate-200 bg-slate-50/95 p-2 shadow-sm backdrop-blur-md sm:p-3"
+            style={{ top: `${topbarHeight}px` }}
+          >
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+              {activeStreams.length === 2 ? (
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50/90 px-2 py-1.5 lg:flex-nowrap">
+                  <Label htmlFor="focus-stream" className="shrink-0 text-xs font-semibold text-cyan-950 sm:text-sm">Choose pupils for</Label>
+                  <Select value={focusStreamId} onValueChange={setFocusStreamId}>
+                    <SelectTrigger id="focus-stream" className="h-9 w-44 shrink-0 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>{activeStreams.map(stream => <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>)}</SelectContent>
+                  </Select>
+                  <span className="min-w-0 text-xs text-cyan-900 lg:truncate">The remainder go to <strong>{activeStreams.find(stream => stream.id !== focusStreamId)?.name}</strong>.</span>
+                </div>
+              ) : null}
+              <div className="relative w-full shrink-0 lg:w-56 xl:w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input aria-label="Search pupils" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search pupils…" className="h-11 bg-white pl-9" />
+                <Input aria-label="Search pupils" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search pupils…" className="h-9 bg-white pl-9" />
               </div>
             </div>
-            {activeStreams.length === 2 ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 p-2">
-                <Label htmlFor="focus-stream" className="px-1 text-sm text-cyan-950">Choose pupils for</Label>
-                <Select value={focusStreamId} onValueChange={setFocusStreamId}>
-                  <SelectTrigger id="focus-stream" className="h-10 w-48 bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{activeStreams.map(stream => <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>)}</SelectContent>
-                </Select>
-                <span className="text-xs text-cyan-900">The remainder go to {activeStreams.find(stream => stream.id !== focusStreamId)?.name}.</span>
-              </div>
-            ) : null}
           </CardHeader>
           <CardContent className="p-0">
             {activePupils.length === 0 ? (
