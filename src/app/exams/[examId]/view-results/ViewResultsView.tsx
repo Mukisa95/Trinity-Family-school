@@ -35,7 +35,8 @@ import {
   Award,
   Target,
   TrendingDown,
-  Check
+  Check,
+  GitBranch,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -133,7 +134,12 @@ import {
   isNurseryCommentary,
   NURSERY_COMMENTARY_OPTIONS,
 } from '@/lib/exam-assessment';
-import { filterExamPupilsByStream } from '@/lib/utils/class-streams';
+import {
+  deriveExamStreams,
+  enrichExamPupilStreamIdentity,
+  filterExamPupilsByStream,
+  joinClassAndStream,
+} from '@/lib/utils/class-streams';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -1248,6 +1254,10 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
   }, [academicYears, exams, examId, selectedExam]);
 
   const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
+  const examClass = useMemo(
+    () => allClasses.find(schoolClass => schoolClass.id === (classSnap?.classId || classId || examDetails?.classId)),
+    [allClasses, classId, classSnap?.classId, examDetails?.classId],
+  );
   const isNurseryExam = useMemo(
     () => isNurseryAssessment(examDetails, examResultData, classSnap),
     [classSnap, examDetails, examResultData]
@@ -1341,18 +1351,23 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     const snaps = examResultData?.pupilSnapshots || [];
     return snaps.map(snap => {
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
-      return {
+      return enrichExamPupilStreamIdentity({
         ...snap,
         dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth,
         ageAtExam: snap.ageAtExam,
         schoolPayCode: getSchoolPayCode(actualPupil)
-      };
+      }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId);
     });
-  }, [examResultData, allPupils]);
+  }, [allPupils, examClass, examDetails?.academicYearId, examResultData]);
 
   const examStreams = useMemo(
-    () => examDetails?.streamScope?.streams || classSnap?.streamScope?.streams || [],
-    [classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
+    () => deriveExamStreams(
+      examDetails?.streamScope?.streams?.length
+        ? examDetails.streamScope.streams
+        : classSnap?.streamScope?.streams,
+      allPupilSnaps,
+    ),
+    [allPupilSnaps, classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
   );
   const selectedStreamId = useMemo(() => {
     if (routeStreamId === 'all') return 'all';
@@ -1363,6 +1378,16 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     () => filterExamPupilsByStream(allPupilSnaps, selectedStreamId),
     [allPupilSnaps, selectedStreamId],
   );
+  const selectedExamStream = useMemo(
+    () => examStreams.find(stream => stream.id === selectedStreamId),
+    [examStreams, selectedStreamId],
+  );
+  const scopedClassLabel = useMemo(() => {
+    const base = classSnap?.code || classSnap?.name || 'Class';
+    if (!examStreams.length) return base;
+    if (selectedStreamId === 'all') return `${base} · All streams`;
+    return joinClassAndStream(base, selectedExamStream?.code || selectedExamStream?.name);
+  }, [classSnap?.code, classSnap?.name, examStreams.length, selectedExamStream, selectedStreamId]);
 
   useEffect(() => {
     if (examStreams.length <= 1) {
@@ -4120,7 +4145,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           processedResults={processedResults}
           subjectSnaps={subjectSnaps || []}
           examDetails={examDetails}
-          className={classSnap?.code || classSnap?.name || 'Class'}
+          className={scopedClassLabel}
           academicYearName={academicInfo.academicYearName}
           termName={academicInfo.termName}
           resultsHref={resultsHref}
@@ -4184,7 +4209,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
         <GlassPageTopBar
           title={examDetails?.name || 'Loading...'}
-          subtitle={`${classSnap?.code || classSnap?.name || 'Loading...'} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
+          subtitle={`${scopedClassLabel} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
           backHref="/exams"
           className="mb-1.5"
           meta={
@@ -4193,13 +4218,21 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 {filteredAndSortedResults.length} of {processedResults.length} pupils
               </span>
               {examStreams.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setStreamChooserOpen(true)}
-                  className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
-                >
-                  {selectedStreamId === 'all' ? 'All streams' : examStreams.find(stream => stream.id === selectedStreamId)?.name}
-                </button>
+                <Select value={selectedStreamId} onValueChange={selectStreamScope}>
+                  <SelectTrigger
+                    aria-label="Choose stream results to view"
+                    className="h-7 w-[132px] rounded-full border-indigo-200 bg-indigo-50 px-2 text-[10px] font-semibold text-indigo-700 shadow-none hover:bg-indigo-100"
+                  >
+                    <GitBranch className="mr-1 h-3 w-3 shrink-0" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All streams</SelectItem>
+                    {examStreams.map(stream => (
+                      <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
           }
@@ -4619,8 +4652,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                         <h3 className="font-bold text-gray-900 text-xs leading-tight truncate">
                           {result.pupilInfo?.name}
                         </h3>
-                        <p className="text-xs text-gray-600 font-medium">
-                          {result.pupilInfo?.admissionNumber}
+                        <p className="text-xs text-gray-600 font-medium" title={result.pupilInfo?.classNameAtExam}>
+                          {result.pupilInfo?.admissionNumber} · {result.pupilInfo?.classCodeAtExam || result.pupilInfo?.classNameAtExam}
                         </p>
                       </div>
 
@@ -4865,8 +4898,8 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                               <span className="text-xs font-medium text-blue-600 whitespace-nowrap">
                                 {result.pupilInfo?.name}
                               </span>
-                              <span className="text-xs text-gray-500">
-                                {result.pupilInfo?.admissionNumber}
+                              <span className="text-xs text-gray-500" title={result.pupilInfo?.classNameAtExam}>
+                                {result.pupilInfo?.admissionNumber} · {result.pupilInfo?.classCodeAtExam || result.pupilInfo?.classNameAtExam}
                               </span>
                             </div>
                           </TableCell>
@@ -5776,7 +5809,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       {selectedPupilData.pupilInfo.name}
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                      Admission: {selectedPupilData.pupilInfo.admissionNumber} | Class: {classSnap?.code || classSnap?.name || 'N/A'}
+                      Admission: {selectedPupilData.pupilInfo.admissionNumber} | Class: {selectedPupilData.pupilInfo.classCodeAtExam || selectedPupilData.pupilInfo.classNameAtExam || scopedClassLabel}
                     </DialogDescription>
                   </div>
                 </div>

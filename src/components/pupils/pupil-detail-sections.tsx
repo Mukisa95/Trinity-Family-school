@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { RMQRCode } from '@/components/ui/rmqr-code';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
 interface DetailItemProps {
   icon?: React.ReactNode;
@@ -68,11 +69,7 @@ const formatDate = (dateString: string | undefined | null) => {
 };
 
 export function InformationSection({ pupil, classes }: { pupil: any; classes: any[] }) {
-  const getClassName = (classId: string | undefined) => {
-    if (!classId) return "N/A";
-    const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : "N/A";
-  };
+  const classDisplay = getPupilClassDisplay(pupil, classes.find(c => c.id === pupil.classId));
 
   const emergencyContactGuardian = pupil?.emergencyContactGuardianId
     ? pupil.guardians.find((g: any) => g.id === pupil.emergencyContactGuardianId)
@@ -109,7 +106,7 @@ export function InformationSection({ pupil, classes }: { pupil: any; classes: an
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
           <DetailItem label="Admission Number" value={pupil.admissionNumber} highlight />
-          <DetailItem label="Class" value={getClassName(pupil.classId)} />
+          <DetailItem label="Class" value={classDisplay.name || 'N/A'} />
           <DetailItem label="Section" value={pupil.section} />
           <DetailItem label="Status" value={pupil.status} />
         </CardContent>

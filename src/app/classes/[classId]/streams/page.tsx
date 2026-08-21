@@ -16,13 +16,12 @@ import {
 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { useClassDetail } from '@/lib/hooks/use-class-detail';
-import { usePupils } from '@/lib/hooks/use-pupils';
-import { pupilsKeys } from '@/lib/hooks/use-pupils';
+import { applyPupilChangesToQueryCaches, usePupils } from '@/lib/hooks/use-pupils';
 import { classesKeys } from '@/lib/hooks/use-classes';
 import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useToast } from '@/hooks/use-toast';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
-import type { Class, ClassStream, ClassStreamConfiguration, Pupil } from '@/types';
+import type { Class, ClassStream, ClassStreamConfiguration } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -240,7 +239,7 @@ export default function ClassStreamSetupPage() {
       if (!response.ok) throw new Error(payload.error || 'Unable to save stream setup.');
 
       const definitionById = new Map(definitions.map(stream => [stream.id, stream]));
-      queryClient.setQueriesData<Pupil[]>({ queryKey: pupilsKeys.all }, current => current?.map(pupil => {
+      const updatedPupils = activePupils.map(pupil => {
         if (pupil.classId !== classId || pupil.status !== 'Active') return pupil;
         const stream = definitionById.get(assignments[pupil.id]);
         if (!stream) return pupil;
@@ -261,12 +260,20 @@ export default function ClassStreamSetupPage() {
           className: display.name,
           classCode: display.code,
         };
-      }));
-      queryClient.setQueriesData<Class[]>({ queryKey: classesKeys.all }, current => current?.map(item => (
-        item.id === classId
-          ? updateClassConfiguration(item, activeAcademicYear.id, activeStreamIds, payload.version)
-          : item
-      )));
+      });
+      applyPupilChangesToQueryCaches(
+        queryClient,
+        updatedPupils.map(updatedPupil => ({ type: 'modified' as const, pupil: updatedPupil })),
+      );
+      queryClient.setQueriesData<Class[]>({ queryKey: classesKeys.lists() }, current => (
+        Array.isArray(current)
+          ? current.map(item => (
+              item.id === classId
+                ? updateClassConfiguration(item, activeAcademicYear.id, activeStreamIds, payload.version)
+                : item
+            ))
+          : current
+      ));
       toast({ title: 'Stream setup saved', description: `${activePupils.length} pupils are assigned across ${activeStreamIds.length} stream${activeStreamIds.length === 1 ? '' : 's'}.` });
       router.push(`/class-detail?id=${encodeURIComponent(classId)}`);
     } catch (error) {

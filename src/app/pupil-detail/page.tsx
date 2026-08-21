@@ -1004,7 +1004,7 @@ function PupilDetailContent() {
       const qrData = {
         id: pupil.admissionNumber || '',
         name: `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim(),
-        class: getClassName(pupil.classId, classes),
+        class: pupilWithClass?.className || getClassName(pupil.classId, classes),
         section: pupil.section || ''
       };
 
@@ -1410,7 +1410,7 @@ function PupilDetailContent() {
 
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>CLASS:</Text>
-                    <Text style={styles.value}>{getClassName(pupil.classId, classes)}</Text>
+                    <Text style={styles.value}>{pupilWithClass?.className || getClassName(pupil.classId, classes)}</Text>
                   </View>
 
                   <View style={styles.infoRow}>
@@ -1842,7 +1842,7 @@ function PupilDetailContent() {
 
               <View style={styles.row}>
                 <Text style={styles.label}>Class:</Text>
-                <Text style={styles.value}>{getClassName(pupil.classId, classes)}</Text>
+                <Text style={styles.value}>{pupilWithClass?.className || getClassName(pupil.classId, classes)}</Text>
               </View>
 
               <View style={styles.row}>
@@ -2081,7 +2081,7 @@ function PupilDetailContent() {
       const payCode = getSchoolPayCode(pupil) || 'Not Generated';
       const schoolName = schoolSettings?.generalInfo?.name || "Trinity Family Nursery and Primary School";
       const schoolLogo = schoolSettings?.generalInfo?.logo;
-      const className = getClassName(pupil.classId, classes);
+      const className = pupilWithClass?.className || getClassName(pupil.classId, classes);
       const pupilName = formatPupilDisplayName(pupil);
 
       const qrCodeDataURL = await QRCode.toDataURL(paymentLink, {
@@ -3561,7 +3561,7 @@ function PupilDetailContent() {
     <>
       <GlassPageTopBar
         title={`${formatPupilDisplayName(pupil)}'s Profile`}
-        subtitle={`${getClassCode(pupil?.classId, classes)} • ${pupil?.section || 'N/A'} • ${pupil?.admissionNumber || 'N/A'}`}
+        subtitle={`${pupilWithClass?.classCode || getClassCode(pupil?.classId, classes)} • ${pupil?.section || 'N/A'} • ${pupil?.admissionNumber || 'N/A'}`}
         meta={
           <Badge variant="outline" className={`text-xs border shadow-sm ${
             pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300' :
@@ -4046,11 +4046,11 @@ function PupilDetailContent() {
                   {pupil.classId ? (
                     <Link href={`/class-detail?id=${pupil.classId}`}>
                       <Badge variant="outline" className="text-xs hover:bg-primary hover:text-primary-foreground cursor-pointer transition-colors">
-                        {getClassNameMemo(pupil.classId)}
+                        {pupilWithClass?.className || getClassNameMemo(pupil.classId)}
                       </Badge>
                     </Link>
                   ) : (
-                    <Badge variant="outline" className="text-xs">{getClassNameMemo(pupil.classId)}</Badge>
+                    <Badge variant="outline" className="text-xs">{pupilWithClass?.className || getClassNameMemo(pupil.classId)}</Badge>
                   )}
                 </div>
               </CardContent>
@@ -5090,7 +5090,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="text-primary hover:underline font-medium cursor-pointer text-right">
-                            {getClassNameMemo(pupil.classId)}
+                            {pupilWithClass?.className || getClassNameMemo(pupil.classId)}
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -5107,7 +5107,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
-                      getClassNameMemo(pupil.classId)
+                      pupilWithClass?.className || getClassNameMemo(pupil.classId)
                     )
                   }
                   isEditMode={isEditMode}
@@ -5696,7 +5696,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={pupil.classId || ''}>Keep Current Class ({getClassNameMemo(pupil.classId)})</SelectItem>
+                    <SelectItem value={pupil.classId || ''}>Keep Current Class ({pupilWithClass?.className || getClassNameMemo(pupil.classId)})</SelectItem>
                     {classes
                       .filter(cls => cls.id !== pupil.classId)
                       .map(cls => (
@@ -5786,7 +5786,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
               </Select>
             </div>
             <div className="text-sm text-muted-foreground">
-              <p>Current Class: <span className="font-medium text-foreground">{getClassNameMemo(pupil.classId)}</span></p>
+              <p>Current Class: <span className="font-medium text-foreground">{pupilWithClass?.className || getClassNameMemo(pupil.classId)}</span></p>
               {selectedNewClassId && selectedNewClassId !== pupil.classId && (
                 <p className="mt-1">New Class: <span className="font-medium text-primary">{getClassNameMemo(selectedNewClassId)}</span></p>
               )}

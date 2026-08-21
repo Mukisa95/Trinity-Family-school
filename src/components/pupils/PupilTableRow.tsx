@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Pupil, Class } from '@/types';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
 interface PupilTableRowProps {
   pupil: Pupil;
@@ -39,6 +40,7 @@ export function PupilTableRow({
 }: PupilTableRowProps) {
   const pupilHouse = getPupilHouse(pupil);
   const siblings = getSiblings(pupil);
+  const classDisplay = getPupilClassDisplay(pupil, classes.find(schoolClass => schoolClass.id === pupil.classId));
 
   if (isLoading) {
     return (
@@ -142,7 +144,7 @@ export function PupilTableRow({
       <td className="px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex flex-col gap-1">
           <span className="text-xs sm:text-sm font-medium text-gray-900">
-            {getClassName(pupil.classId)}
+            {classDisplay.name || getClassName(pupil.classId)}
           </span>
           <span className={`text-xs px-1.5 py-0.5 rounded-full ${
             pupil.section === 'Boarding' 
@@ -207,4 +209,4 @@ export function PupilTableRow({
       </td>
     </tr>
   );
-} 
+}

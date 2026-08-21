@@ -53,6 +53,7 @@ import { RMQRCode } from "@/components/ui/rmqr-code";
 import { usePupilPLEResults } from '@/lib/hooks/use-ple-results';
 import PLEResultsCard from '@/components/ple/PLEResultsCard';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
 // Import the new swipeable components
 import { SwipeablePupilDetail } from '@/components/pupils/swipeable-pupil-detail';
@@ -100,6 +101,10 @@ function SwipeablePupilDetailContent() {
 
   // State for section management
   const [activeSection, setActiveSection] = React.useState(0);
+  const pupilClassDisplay = React.useMemo(
+    () => pupil ? getPupilClassDisplay(pupil, classes.find(schoolClass => schoolClass.id === pupil.classId)) : null,
+    [classes, pupil],
+  );
 
   // Handle section change
   const handleSectionChange = (sectionIndex: number) => {
@@ -220,7 +225,7 @@ function SwipeablePupilDetailContent() {
                   <Badge variant="outline">{pupil.status}</Badge>
                   <Badge variant="outline">{pupil.section}</Badge>
                   <Badge variant="outline">
-                    {classes.find(c => c.id === pupil.classId)?.name || 'N/A'}
+                    {pupilClassDisplay?.name || 'N/A'}
                   </Badge>
                 </div>
               </div>

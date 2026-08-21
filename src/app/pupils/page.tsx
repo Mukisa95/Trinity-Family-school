@@ -63,6 +63,7 @@ import { PupilPhotoDetail } from '@/components/ui/pupil-photo-detail';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { getSchoolPayCode } from '@/lib/utils/schoolpay';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
 // Define interfaces
 interface ColumnSelection {
@@ -934,6 +935,11 @@ function PupilsContent() {
     const cls = classes.find(c => c.id === classId);
     return cls ? cls.name : "N/A";
   };
+
+  const getPupilClass = (pupil: Pupil) => getPupilClassDisplay(
+    pupil,
+    classes.find(schoolClass => schoolClass.id === pupil.classId),
+  );
 
   const confirmStatusChange = async () => {
     if (!statusChangeModal.pupil) return;
@@ -2940,7 +2946,7 @@ function PupilsContent() {
 
             <View style={styles.pupilBlock}>
               <Text style={styles.pupilName}>{formatPupilDisplayName(pupil)}</Text>
-              <Text style={styles.classText}>Class: {getClassName(pupil.classId)}</Text>
+              <Text style={styles.classText}>Class: {getPupilClass(pupil).name || getClassName(pupil.classId)}</Text>
             </View>
 
             <Text style={styles.payCodeLabel}>PAY CODE</Text>
@@ -3485,7 +3491,7 @@ function PupilsContent() {
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <button className={`text-xs text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
-                                          {classes.find(c => c.id === pupil.classId)?.code || classes.find(c => c.id === pupil.classId)?.name || 'N/A'}
+                                          {getPupilClass(pupil).code || getPupilClass(pupil).name || 'N/A'}
                                         </button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="start" className="w-48">
@@ -3610,7 +3616,7 @@ function PupilsContent() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <button className={`text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:underline transition-colors font-medium text-left`}>
-                                    {classes.find(c => c.id === pupil.classId)?.code || classes.find(c => c.id === pupil.classId)?.name || 'N/A'}
+                                    {getPupilClass(pupil).code || getPupilClass(pupil).name || 'N/A'}
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-48">

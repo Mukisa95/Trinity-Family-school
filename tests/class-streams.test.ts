@@ -3,6 +3,8 @@ import test from 'node:test';
 import type { Class, ExamRecordPupilInfo, Pupil } from '../src/types/index';
 import {
   assertUniqueStreams,
+  deriveExamStreams,
+  enrichExamPupilStreamIdentity,
   filterExamPupilsByStream,
   getActiveClassStreams,
   getClassStreamPupilStats,
@@ -132,4 +134,54 @@ test('exam pupil filtering uses immutable exam snapshot stream ids', () => {
   ];
   assert.deepEqual(filterExamPupilsByStream(snapshots, 'east').map(item => item.pupilId), ['1']);
   assert.equal(filterExamPupilsByStream(snapshots, 'all').length, 2);
+});
+
+test('legacy exam pupils inherit a current stream only while still in the exam class', () => {
+  const snapshot: ExamRecordPupilInfo = {
+    pupilId: pupil.id,
+    name: 'Ada A',
+    admissionNumber: pupil.admissionNumber,
+    classNameAtExam: schoolClass.name,
+    classCodeAtExam: schoolClass.code,
+  };
+  const enriched = enrichExamPupilStreamIdentity(snapshot, {
+    ...pupil,
+    className: schoolClass.name,
+    classCode: schoolClass.code,
+    streamId: 'east',
+    streamName: 'East',
+    streamCode: 'E',
+    streamClassId: schoolClass.id,
+    streamAcademicYearId: 'year-2026',
+  }, schoolClass, 'year-2026');
+
+  assert.equal(enriched.streamIdAtExam, 'east');
+  assert.equal(enriched.classNameAtExam, 'Primary One East');
+  assert.equal(enriched.classCodeAtExam, 'P.1 E');
+  assert.equal(enrichExamPupilStreamIdentity(snapshot, {
+    ...pupil,
+    classId: 'another-class',
+    streamId: 'east',
+    streamName: 'East',
+    streamCode: 'E',
+  }, schoolClass).streamIdAtExam, undefined);
+  assert.equal(enrichExamPupilStreamIdentity(snapshot, {
+    ...pupil,
+    streamId: 'east',
+    streamName: 'East',
+    streamCode: 'E',
+    streamClassId: schoolClass.id,
+    streamAcademicYearId: 'year-2026',
+  }, schoolClass, 'year-2025').streamIdAtExam, undefined);
+});
+
+test('exam stream choices are recovered from pupil snapshots without duplicating declared streams', () => {
+  const snapshots: ExamRecordPupilInfo[] = [
+    { pupilId: '1', name: 'Ada', admissionNumber: 'A', classNameAtExam: 'P1 East', streamIdAtExam: 'east', streamNameAtExam: 'East', streamCodeAtExam: 'E' },
+    { pupilId: '2', name: 'Ben', admissionNumber: 'B', classNameAtExam: 'P1 West', streamIdAtExam: 'west', streamNameAtExam: 'West', streamCodeAtExam: 'W' },
+  ];
+  assert.deepEqual(deriveExamStreams([{ id: 'east', name: 'East', code: 'E' }], snapshots), [
+    { id: 'east', name: 'East', code: 'E' },
+    { id: 'west', name: 'West', code: 'W' },
+  ]);
 });

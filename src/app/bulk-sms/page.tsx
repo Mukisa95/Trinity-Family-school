@@ -53,6 +53,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Pupil, Class } from '@/types';
 import type { SMSRecipientReviewItem } from '@/lib/utils/sms-recipient-deduplication';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
 interface Recipient {
   name: string;
@@ -976,7 +977,7 @@ const BulkSMS: React.FC = () => {
                               <span className="flex-1 text-sm">{pupil.firstName} {pupil.lastName}</span>
                               <div className="flex flex-col items-end">
                                 <span className="text-sm text-gray-500">
-                                  {classes.find(c => c.id === pupil.classId)?.code || pupil.classId}
+                                  {getPupilClassDisplay(pupil, classes.find(c => c.id === pupil.classId)).code || pupil.classId}
                                 </span>
                                 {pupil.gender && pupil.section && (
                                   <span className="text-xs text-gray-400">

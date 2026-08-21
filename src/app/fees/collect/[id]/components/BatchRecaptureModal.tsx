@@ -16,6 +16,7 @@ import { Camera, Check, X, Spinner } from '@phosphor-icons/react';
 import type { AcademicYear, Pupil } from '@/types';
 import { isTermEnded } from '@/lib/utils/academic-year-utils';
 import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
+import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
 interface BatchRecaptureModalProps {
     isOpen: boolean;
@@ -498,7 +499,7 @@ export function BatchRecaptureModal({
                                                 {pupil.firstName} {pupil.lastName}
                                             </div>
                                             <div className="text-xs text-gray-500">
-                                                {pupil.admissionNumber} • {classes.find(c => c.id === pupil.classId)?.code || pupil.className} • {pupil.section}
+                                                {pupil.admissionNumber} • {getPupilClassDisplay(pupil, classes.find(c => c.id === pupil.classId)).code || pupil.className} • {pupil.section}
                                             </div>
                                         </div>
                                     </div>

@@ -3,6 +3,7 @@ import type {
   ClassStream,
   ClassStreamConfiguration,
   ExamRecordPupilInfo,
+  ExamStreamSnapshot,
   Pupil,
 } from '@/types';
 
@@ -164,6 +165,87 @@ export function getClassStreamPupilStats(
 
 export function getExamPupilStreamId(pupil: ExamRecordPupilInfo): string | undefined {
   return pupil.streamIdAtExam;
+}
+
+type CurrentExamPupilIdentity = PupilStreamIdentity & Pick<Pupil, 'id' | 'streamAcademicYearId'>;
+
+function appendStreamOnce(baseValue: string, streamValue?: string): string {
+  const base = normaliseStreamValue(baseValue || '');
+  const stream = normaliseStreamValue(streamValue || '');
+  if (!stream || !base) return joinClassAndStream(base, stream);
+  const normalisedBase = base.toLocaleLowerCase();
+  const normalisedStream = stream.toLocaleLowerCase();
+  if (normalisedBase === normalisedStream || normalisedBase.endsWith(` ${normalisedStream}`)) return base;
+  return joinClassAndStream(base, stream);
+}
+
+/**
+ * Prefer the immutable stream identity captured when the exam was scheduled.
+ * Older exam records did not contain those fields, so they may safely fall
+ * back to the pupil's current assignment when the pupil is still in the same
+ * class. This keeps legacy cross-stream exams usable without rewriting them.
+ */
+export function enrichExamPupilStreamIdentity<T extends ExamRecordPupilInfo>(
+  snapshot: T,
+  currentPupil?: CurrentExamPupilIdentity | null,
+  schoolClass?: Pick<ClassIdentity, 'id' | 'name' | 'code'> | null,
+  examAcademicYearId?: string,
+): T {
+  const snapshotHasStream = Boolean(snapshot.streamIdAtExam);
+  const currentAssignmentIsUsable = Boolean(
+    !snapshotHasStream
+    && currentPupil
+    && schoolClass
+    && currentPupil.classId === schoolClass.id
+    && (!examAcademicYearId || currentPupil.streamAcademicYearId === examAcademicYearId)
+    && hasCurrentStreamAssignment(currentPupil),
+  );
+
+  if (!snapshotHasStream && !currentAssignmentIsUsable) return snapshot;
+
+  const streamId = snapshot.streamIdAtExam || currentPupil?.streamId;
+  const streamName = snapshot.streamNameAtExam || currentPupil?.streamName;
+  const streamCode = snapshot.streamCodeAtExam || currentPupil?.streamCode;
+  const currentDisplay = currentPupil && schoolClass
+    ? getPupilClassDisplay(currentPupil, schoolClass)
+    : null;
+  const baseName = schoolClass?.name || snapshot.classNameAtExam || currentPupil?.className || '';
+  const baseCode = schoolClass?.code || snapshot.classCodeAtExam || currentPupil?.classCode || '';
+
+  return {
+    ...snapshot,
+    streamIdAtExam: streamId,
+    streamNameAtExam: streamName,
+    streamCodeAtExam: streamCode,
+    classNameAtExam: snapshotHasStream
+      ? appendStreamOnce(snapshot.classNameAtExam || baseName, streamName)
+      : (currentDisplay?.name || appendStreamOnce(baseName, streamName)),
+    classCodeAtExam: snapshotHasStream
+      ? appendStreamOnce(snapshot.classCodeAtExam || baseCode, streamCode)
+      : (currentDisplay?.code || appendStreamOnce(baseCode, streamCode)),
+  };
+}
+
+/** Build the selectable stream list from declared scope plus pupil snapshots. */
+export function deriveExamStreams(
+  declaredStreams: ExamStreamSnapshot[] | null | undefined,
+  pupils: ExamRecordPupilInfo[],
+): ExamStreamSnapshot[] {
+  const streams = new Map<string, ExamStreamSnapshot>();
+  (declaredStreams || []).forEach(stream => {
+    if (stream.id) streams.set(stream.id, stream);
+  });
+  pupils.forEach(pupil => {
+    const id = pupil.streamIdAtExam;
+    if (!id) return;
+    const current = streams.get(id);
+    streams.set(id, {
+      id,
+      name: current?.name || pupil.streamNameAtExam || pupil.streamCodeAtExam || id,
+      code: current?.code || pupil.streamCodeAtExam || pupil.streamNameAtExam || id,
+    });
+  });
+  return [...streams.values()];
 }
 
 export function filterExamPupilsByStream<T extends ExamRecordPupilInfo>(

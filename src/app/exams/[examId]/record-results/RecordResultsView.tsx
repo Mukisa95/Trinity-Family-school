@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { X, ArrowLeft, Settings, Loader2, ChevronDown, Save, BookOpen, ChevronRight, ChevronLeft, Search, ArrowUpDown, AlertTriangle, BellRing, Users, Grid3X3, Check, Eye } from 'lucide-react';
+import { X, ArrowLeft, Settings, Loader2, ChevronDown, Save, BookOpen, ChevronRight, ChevronLeft, Search, ArrowUpDown, AlertTriangle, BellRing, Users, Grid3X3, Check, Eye, GitBranch } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,7 +66,12 @@ import {
   NURSERY_COMMENTARY_OPTIONS,
   type NurseryCommentary,
 } from '@/lib/exam-assessment';
-import { filterExamPupilsByStream } from '@/lib/utils/class-streams';
+import {
+  deriveExamStreams,
+  enrichExamPupilStreamIdentity,
+  filterExamPupilsByStream,
+  joinClassAndStream,
+} from '@/lib/utils/class-streams';
 
 // Utility functions
 const getGradeColor = (grade: string): string => {
@@ -578,6 +583,10 @@ export default function RecordResultsView() {
   }, [allClasses, classId, examDetails, exams]);
   
   const classSnap = useMemo(() => examResultData?.classSnapshot, [examResultData]);
+  const examClass = useMemo(
+    () => allClasses.find(schoolClass => schoolClass.id === (classSnap?.classId || classId || examDetails?.classId)),
+    [allClasses, classId, classSnap?.classId, examDetails?.classId],
+  );
   const isNurseryExam = useMemo(
     () => isNurseryAssessment(examDetails, examResultData, classSnap),
     [classSnap, examDetails, examResultData]
@@ -589,17 +598,22 @@ export default function RecordResultsView() {
     return snaps.map(snap => {
       // Find the actual pupil to get their dateOfBirth if not in snapshot
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
-      return {
+      return enrichExamPupilStreamIdentity({
         ...snap,
         dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth, // Use snapshot first, fallback to actual pupil
         ageAtExam: snap.ageAtExam // Keep the ageAtExam from snapshot
-      };
+      }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId);
     });
-  }, [examResultData, allPupils]);
+  }, [allPupils, examClass, examDetails?.academicYearId, examResultData]);
 
   const examStreams = useMemo(
-    () => examDetails?.streamScope?.streams || classSnap?.streamScope?.streams || [],
-    [classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
+    () => deriveExamStreams(
+      examDetails?.streamScope?.streams?.length
+        ? examDetails.streamScope.streams
+        : classSnap?.streamScope?.streams,
+      allPupilSnaps,
+    ),
+    [allPupilSnaps, classSnap?.streamScope?.streams, examDetails?.streamScope?.streams],
   );
   const selectedStreamId = useMemo(() => {
     if (routeStreamId === 'all') return 'all';
@@ -610,6 +624,16 @@ export default function RecordResultsView() {
     () => filterExamPupilsByStream(allPupilSnaps, selectedStreamId),
     [allPupilSnaps, selectedStreamId],
   );
+  const selectedExamStream = useMemo(
+    () => examStreams.find(stream => stream.id === selectedStreamId),
+    [examStreams, selectedStreamId],
+  );
+  const scopedClassLabel = useMemo(() => {
+    const base = classSnap?.code || classSnap?.name || 'Class';
+    if (!examStreams.length) return base;
+    if (selectedStreamId === 'all') return `${base} · All streams`;
+    return joinClassAndStream(base, selectedExamStream?.code || selectedExamStream?.name);
+  }, [classSnap?.code, classSnap?.name, examStreams.length, selectedExamStream, selectedStreamId]);
 
   useEffect(() => {
     if (examStreams.length <= 1) {
@@ -1482,8 +1506,8 @@ export default function RecordResultsView() {
                     <div className="text-xs font-medium text-gray-900">
                       {pupil.name}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {pupil.admissionNumber}
+                    <div className="text-xs text-gray-500" title={pupil.classNameAtExam}>
+                      {pupil.admissionNumber} · {pupil.classCodeAtExam || pupil.classNameAtExam}
                     </div>
                   </td>
                   <td className="px-2 py-1 whitespace-nowrap text-center">
@@ -1625,8 +1649,8 @@ export default function RecordResultsView() {
                   <div className="text-xs font-medium text-gray-900">
                     {pupil.name}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {pupil.admissionNumber}
+                  <div className="text-xs text-gray-500" title={pupil.classNameAtExam}>
+                    {pupil.admissionNumber} · {pupil.classCodeAtExam || pupil.classNameAtExam}
                   </div>
                 </td>
                 {examSubjects.map(subject => {
@@ -1800,7 +1824,7 @@ export default function RecordResultsView() {
 
       <GlassPageTopBar
           title={examDetails?.name || getHeaderContent().title}
-          subtitle={`${classSnap?.code || classSnap?.name || 'N/A'} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
+          subtitle={`${scopedClassLabel} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
         leading={
           <button
             type="button"
@@ -1814,22 +1838,33 @@ export default function RecordResultsView() {
         }
         className="mb-1.5"
         meta={
-          <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-            {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-full border border-blue-200/60 bg-blue-50/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              {filteredAndSortedPupils.length} of {pupilSnaps.length} pupils
+            </span>
+            {examStreams.length > 1 && (
+              <Select value={selectedStreamId} onValueChange={selectStreamScope}>
+                <SelectTrigger
+                  aria-label="Choose stream pupils to record"
+                  className="h-7 w-[132px] rounded-full border-indigo-200 bg-indigo-50 px-2 text-[10px] font-semibold text-indigo-700 shadow-none hover:bg-indigo-100"
+                >
+                  <GitBranch className="mr-1 h-3 w-3 shrink-0" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All streams</SelectItem>
+                  {examStreams.map(stream => (
+                    <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         }
         badges={hasUnsavedChanges ? (
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
             Unsaved changes
           </span>
-        ) : examStreams.length > 1 ? (
-          <button
-            type="button"
-            onClick={() => setStreamChooserOpen(true)}
-            className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100"
-          >
-            {selectedStreamId === 'all' ? 'All streams' : examStreams.find(stream => stream.id === selectedStreamId)?.name}
-          </button>
         ) : undefined}
         center={
           <GlassPageSearchInput
