@@ -14,6 +14,47 @@ export interface AnalysisPDFSections {
   subjectGrades: boolean;
 }
 
+export interface CrossAnalysisMetrics {
+  aggregates: boolean;
+  divisions: boolean;
+  totalMarks: boolean;
+  subjectMarks: boolean;
+}
+
+export interface CrossAnalysisExam {
+  id: string;
+  name: string;
+  startDate: string;
+  termName?: string;
+  pupils: Array<{
+    pupilId: string;
+    name: string;
+    admissionNumber?: string;
+  }>;
+  subjects: Array<{
+    code: string;
+    name: string;
+  }>;
+  results: Record<string, {
+    position?: number;
+    totalMarks?: number;
+    totalAggregates?: number;
+    division?: string;
+    subjects: Record<string, {
+      marks?: number;
+      grade?: string;
+    }>;
+  }>;
+}
+
+export interface CrossAnalysisPDFProps {
+  schoolName?: string;
+  className: string;
+  academicYearName: string;
+  exams: CrossAnalysisExam[];
+  metrics: CrossAnalysisMetrics;
+}
+
 interface ExamResultsPDFProps {
   examDetails: {
     name: string;
@@ -257,7 +298,7 @@ const addGradeSubjectAnalysisPages = (
           const pupil = pupils[rowIndex];
           if (!pupil) return '';
           const marks = pupil.results[subject.code]?.marks;
-          return `${pupil.pupilInfo.name}\n${marks} marks`;
+          return `${pupil.pupilInfo.name} - ${marks}`;
         }),
       ]);
 
@@ -283,14 +324,14 @@ const addGradeSubjectAnalysisPages = (
           cellPadding: 2,
         },
         bodyStyles: {
-          fontSize: 7.5,
+          fontSize: 7,
           textColor: [15, 23, 42],
           halign: 'left',
           valign: 'middle',
-          cellPadding: 1.8,
+          cellPadding: 1.2,
           lineColor: [148, 163, 184],
           lineWidth: 0.25,
-          minCellHeight: 8,
+          minCellHeight: 6,
         },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
@@ -316,6 +357,254 @@ const addAnalysisPageFooters = (doc: jsPDF) => {
     doc.text(`Generated ${new Date().toLocaleString()}`, 10, pageHeight - 6);
     doc.text(`Page ${pageNumber} of ${pageCount}`, pageWidth - 10, pageHeight - 6, { align: 'right' });
   }
+};
+
+type CrossAnalysisExamIndex = {
+  exam: CrossAnalysisExam;
+  pupilResults: Map<string, Required<Pick<CrossAnalysisExam['results'][string], 'position' | 'totalMarks' | 'totalAggregates' | 'division'>> & CrossAnalysisExam['results'][string]>;
+  subjectPositions: Map<string, Map<string, number>>;
+};
+
+const asFiniteNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+const getCrossAnalysisIndex = (exam: CrossAnalysisExam): CrossAnalysisExamIndex => {
+  const pupilResults = new Map<string, Required<Pick<CrossAnalysisExam['results'][string], 'position' | 'totalMarks' | 'totalAggregates' | 'division'>> & CrossAnalysisExam['results'][string]>();
+  const sortedPupils = exam.pupils
+    .map((pupil) => ({ pupil, result: exam.results[pupil.pupilId] }))
+    .sort((first, second) => {
+      const firstTotal = asFiniteNumber(first.result?.totalMarks) ?? -1;
+      const secondTotal = asFiniteNumber(second.result?.totalMarks) ?? -1;
+      return secondTotal - firstTotal || first.pupil.name.localeCompare(second.pupil.name);
+    });
+
+  sortedPupils.forEach(({ pupil, result }, index) => {
+    const totalMarks = asFiniteNumber(result?.totalMarks) ?? 0;
+    const totalAggregates = asFiniteNumber(result?.totalAggregates) ?? 0;
+    pupilResults.set(pupil.pupilId, {
+      position: asFiniteNumber(result?.position) ?? index + 1,
+      totalMarks,
+      totalAggregates,
+      division: result?.division || calculateDivision(totalAggregates),
+      subjects: result?.subjects || {},
+    });
+  });
+
+  const subjectPositions = new Map<string, Map<string, number>>();
+  exam.subjects.forEach((subject) => {
+    const ranked = exam.pupils
+      .map((pupil) => ({
+        pupil,
+        marks: asFiniteNumber(exam.results[pupil.pupilId]?.subjects?.[subject.code]?.marks),
+      }))
+      .filter((entry): entry is { pupil: CrossAnalysisExam['pupils'][number]; marks: number } => entry.marks !== undefined)
+      .sort((first, second) => second.marks - first.marks || first.pupil.name.localeCompare(second.pupil.name));
+    subjectPositions.set(subject.code, new Map(ranked.map((entry, index) => [entry.pupil.pupilId, index + 1])));
+  });
+
+  return { exam, pupilResults, subjectPositions };
+};
+
+const getCrossExamDateLabel = (exam: CrossAnalysisExam) => {
+  const date = exam.startDate ? new Date(exam.startDate) : null;
+  return date && !Number.isNaN(date.valueOf())
+    ? date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' })
+    : 'No date';
+};
+
+const drawCrossAnalysisHeader = (
+  doc: jsPDF,
+  title: string,
+  subtitle: string,
+  schoolName?: string,
+) => {
+  const pageWidth = doc.internal.pageSize.width;
+  const hasSchoolName = Boolean(schoolName) && (doc as any).internal.getCurrentPageInfo().pageNumber === 1;
+  const headerHeight = hasSchoolName ? 30 : 25;
+
+  doc.setFillColor(30, 58, 138);
+  doc.rect(0, 0, pageWidth, headerHeight, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  if (hasSchoolName) {
+    doc.setFontSize(11);
+    doc.text(schoolName!, pageWidth / 2, 8, { align: 'center' });
+    doc.setFontSize(12);
+    doc.text(title, pageWidth / 2, 17, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(219, 234, 254);
+    doc.text(subtitle, pageWidth / 2, 24, { align: 'center' });
+    return;
+  }
+
+  doc.setFontSize(12);
+  doc.text(title, pageWidth / 2, 10, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(219, 234, 254);
+  doc.text(subtitle, pageWidth / 2, 18, { align: 'center' });
+};
+
+/**
+ * Creates a cross-exam report. The first chronological exam establishes the
+ * pupil order; every selected exam retains its own saved or calculated rank.
+ */
+export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
+  if (props.exams.length < 2) {
+    throw new Error('Select at least two exams for a cross analysis.');
+  }
+
+  const exams = [...props.exams].sort((first, second) =>
+    new Date(first.startDate).valueOf() - new Date(second.startDate).valueOf()
+    || first.name.localeCompare(second.name)
+  );
+  const indexes = exams.map(getCrossAnalysisIndex);
+  const firstIndex = indexes[0];
+  const orderedPupils = [...firstIndex.exam.pupils].sort((first, second) => {
+    const firstResult = firstIndex.pupilResults.get(first.pupilId);
+    const secondResult = firstIndex.pupilResults.get(second.pupilId);
+    return (firstResult?.position ?? Number.MAX_SAFE_INTEGER) - (secondResult?.position ?? Number.MAX_SAFE_INTEGER)
+      || (secondResult?.totalMarks ?? -1) - (firstResult?.totalMarks ?? -1)
+      || first.name.localeCompare(second.name);
+  });
+  const subjectsByCode = new Map<string, { code: string; name: string }>();
+  exams.forEach((exam) => exam.subjects.forEach((subject) => {
+    if (!subjectsByCode.has(subject.code)) subjectsByCode.set(subject.code, subject);
+  }));
+  const subjects = [...subjectsByCode.values()].sort((first, second) => {
+    const average = (code: string) => {
+      const marks = orderedPupils
+        .map((pupil) => asFiniteNumber(firstIndex.exam.results[pupil.pupilId]?.subjects?.[code]?.marks))
+        .filter((mark): mark is number => mark !== undefined);
+      return marks.length ? marks.reduce((total, mark) => total + mark, 0) / marks.length : -1;
+    };
+    return average(second.code) - average(first.code) || first.code.localeCompare(second.code);
+  });
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const title = 'CROSS EXAM ANALYSIS';
+  const subtitle = `${props.className} - ${props.academicYearName} - ${exams.length} exams in date order`;
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  const outerMargin = 8;
+  const headerEndY = 33;
+  const footerStartY = pageHeight - 14;
+  const pupilPanelWidth = 42;
+  const cardGap = 1.5;
+  const cardsStartX = outerMargin + pupilPanelWidth + cardGap;
+  const examCardWidth = (pageWidth - outerMargin - cardsStartX - cardGap * (indexes.length - 1)) / indexes.length;
+  const subjectLines = props.metrics.subjectMarks ? subjects.length : 0;
+  const examCardHeight = Math.max(15, 11 + subjectLines * 3.7);
+  const pupilCardHeight = Math.max(23, examCardHeight + 4);
+  const cardPalette: Array<[number, number, number]> = [
+    [30, 64, 175],
+    [67, 56, 202],
+    [8, 145, 178],
+    [5, 150, 105],
+    [180, 83, 9],
+  ];
+  let currentY = headerEndY;
+
+  const drawPageHeader = () => drawCrossAnalysisHeader(doc, title, subtitle, props.schoolName);
+  const addCardPage = () => {
+    doc.addPage();
+    currentY = headerEndY;
+    drawPageHeader();
+  };
+
+  const drawSubjectLine = (x: number, y: number, width: number, text: string) => {
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, y, width, 3.1, 0.55, 0.55, 'F');
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(4.6);
+    doc.text(text, x + 0.9, y + 2.15);
+  };
+
+  drawPageHeader();
+  orderedPupils.forEach((pupil) => {
+    if (currentY + pupilCardHeight > footerStartY) addCardPage();
+
+    const firstResult = firstIndex.pupilResults.get(pupil.pupilId);
+    doc.setDrawColor(196, 181, 253);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(outerMargin, currentY, pageWidth - outerMargin * 2, pupilCardHeight, 2, 2, 'FD');
+
+    doc.setFillColor(245, 243, 255);
+    doc.roundedRect(outerMargin + 0.4, currentY + 0.4, pupilPanelWidth - 0.8, pupilCardHeight - 0.8, 1.5, 1.5, 'F');
+    doc.setTextColor(76, 29, 149);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.8);
+    const pupilName = doc.splitTextToSize(pupil.name, pupilPanelWidth - 5).slice(0, 3);
+    doc.text(pupilName, outerMargin + 2.5, currentY + 5);
+    doc.setFillColor(109, 40, 217);
+    doc.roundedRect(outerMargin + 2.5, currentY + pupilCardHeight - 9, 17, 5.5, 1.2, 1.2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(5.6);
+    doc.text(`BASE P ${firstResult?.position ?? '-'}`, outerMargin + 11, currentY + pupilCardHeight - 5.2, { align: 'center' });
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.2);
+    doc.text('First exam sets the pupil order', outerMargin + 2.5, currentY + pupilCardHeight - 1.8);
+
+    indexes.forEach((index, indexNumber) => {
+      const x = cardsStartX + indexNumber * (examCardWidth + cardGap);
+      const y = currentY + 2;
+      const color = cardPalette[indexNumber % cardPalette.length];
+      const result = index.pupilResults.get(pupil.pupilId);
+      doc.setDrawColor(203, 213, 225);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(x, y, examCardWidth, examCardHeight, 1.2, 1.2, 'FD');
+      doc.setFillColor(...color);
+      doc.roundedRect(x, y, examCardWidth, 5.7, 1.2, 1.2, 'F');
+      doc.rect(x, y + 3.8, examCardWidth, 1.9, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.2);
+      const examName = doc.splitTextToSize(index.exam.name, examCardWidth - 3)[0] || 'Exam';
+      doc.text(examName, x + 1.4, y + 3.1);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(4.5);
+      doc.text(getCrossExamDateLabel(index.exam), x + examCardWidth - 1.4, y + 3.1, { align: 'right' });
+
+      if (!result) {
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(5.5);
+        doc.text('Not recorded', x + examCardWidth / 2, y + 12, { align: 'center' });
+        return;
+      }
+
+      const metrics = [
+        `P ${result.position}`,
+        ...(props.metrics.totalMarks ? [`T ${result.totalMarks}`] : []),
+        ...(props.metrics.aggregates ? [`A ${result.totalAggregates}`] : []),
+        ...(props.metrics.divisions ? [`D ${result.division}`] : []),
+      ];
+      doc.setTextColor(30, 41, 59);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(4.8);
+      doc.text(metrics.join(' '), x + 1.4, y + 9.3);
+
+      if (props.metrics.subjectMarks) {
+        subjects.forEach((subject, subjectIndex) => {
+          const subjectResult = result.subjects[subject.code];
+          const marks = asFiniteNumber(subjectResult?.marks);
+          const subjectPosition = index.subjectPositions.get(subject.code)?.get(pupil.pupilId);
+          const subjectValue = marks === undefined
+            ? `${subject.code} -`
+            : `${subject.code} ${marks} ${subjectResult?.grade || '-'}${subjectPosition ? `/${subjectPosition}` : ''}`;
+          drawSubjectLine(x + 1.3, y + 11 + subjectIndex * 3.7, examCardWidth - 2.6, subjectValue);
+        });
+      }
+    });
+
+    currentY += pupilCardHeight + 3;
+  });
+
+  addAnalysisPageFooters(doc);
+  return doc.output('blob');
 };
 
 export const generateExamPDF = (props: ExamResultsPDFProps) => {

@@ -81,7 +81,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { generateExamPDF, type AnalysisPDFSections } from '@/components/exam/ExamResultsPDF';
+import {
+  generateCrossAnalysisPDF as createCrossAnalysisPDF,
+  generateExamPDF,
+  type AnalysisPDFSections,
+  type CrossAnalysisExam,
+  type CrossAnalysisMetrics,
+} from '@/components/exam/ExamResultsPDF';
 import ComprehensiveReportsPDF, { generateComprehensiveReactPDF } from '@/components/exam/ComprehensiveReactPDF';
 import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQRCodesForBatch } from '@/components/exam/ModernBatchReportPDF';
 import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
@@ -175,6 +181,17 @@ interface PupilResultData {
   totalAggregates: number;
   division: string;
   position: number;
+}
+
+interface CrossAnalysisExamCandidate {
+  id: string;
+  name: string;
+  startDate: string;
+  academicYearId?: string;
+  termId?: string;
+  termName?: string;
+  examTypeName?: string;
+  batchId?: string;
 }
 
 interface Analytics {
@@ -2786,6 +2803,156 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     }
   }, [classSnap, examDetails, examResultData, pdfViewer, processedResults, schoolSettings, subjectSnaps, toast]);
 
+  const crossAnalysisExams = useMemo<CrossAnalysisExamCandidate[]>(() => {
+    if (!examDetails) return [];
+    const effectiveClassId = classSnap?.classId || classId || examDetails.classId;
+    const byId = new Map(exams.map((exam) => [exam.id, exam]));
+    if (!byId.has(examDetails.id)) byId.set(examDetails.id, examDetails);
+
+    return [...byId.values()]
+      .filter((exam) =>
+        exam.classId === effectiveClassId
+        && exam.academicYearId === examDetails.academicYearId
+      )
+      .map((exam) => ({
+        id: exam.id,
+        name: exam.name,
+        startDate: exam.startDate,
+        academicYearId: exam.academicYearId,
+        termId: exam.termId,
+        termName: getAcademicYearAndTerm(exam.academicYearId || '', exam.termId || '').termName,
+        examTypeName: exam.examTypeName,
+        batchId: exam.batchId,
+      }))
+      .sort((first, second) =>
+        new Date(first.startDate).valueOf() - new Date(second.startDate).valueOf()
+        || first.name.localeCompare(second.name)
+      );
+  }, [classId, classSnap?.classId, examDetails, exams, getAcademicYearAndTerm]);
+
+  const generateCrossAnalysisPDF = useCallback(async (
+    selectedExamIds: string[],
+    metrics: CrossAnalysisMetrics,
+  ) => {
+    if (!examDetails || !examResultData || selectedExamIds.length < 2) {
+      toast({
+        title: 'Unable to create cross analysis',
+        description: 'Choose at least two exams with saved results.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const selectedIds = [...new Set(selectedExamIds)].slice(0, 5);
+    if (!Object.values(metrics).some(Boolean)) {
+      toast({
+        title: 'Choose analysis data',
+        description: 'Select at least one data type to include in the cross analysis.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerationStatus('Loading selected exam results...');
+
+    try {
+      const loaded = await Promise.all(selectedIds.map(async (selectedId) => {
+        const definition = selectedId === examDetails.id
+          ? examDetails
+          : crossAnalysisExams.find((exam) => exam.id === selectedId);
+        const result = selectedId === examDetails.id
+          ? examResultData
+          : await ExamsService.getExamResultByExamId(selectedId);
+        if (!definition || !result) {
+          throw new Error(`Saved results were not found for a selected exam.`);
+        }
+        return { definition, result };
+      }));
+
+      setGenerationStatus('Organising cross-analysis data...');
+      const crossExams: CrossAnalysisExam[] = loaded.map(({ definition, result }) => {
+        const subjects = (result.subjectSnapshots || []).map((subject) => ({
+          code: subject.code,
+          name: cleanSubjectName(subject.name),
+        }));
+        const subjectsByCode = new Map((result.subjectSnapshots || []).map((subject) => [subject.code, subject]));
+        const majorSubjects = new Set(result.majorSubjects || []);
+        const pupils = (result.pupilSnapshots || []).map((pupil) => ({
+          pupilId: pupil.pupilId,
+          name: pupil.name,
+          admissionNumber: pupil.admissionNumber,
+        }));
+        const results = Object.fromEntries(pupils.map((pupil) => {
+          const rawPupilResult = (result.results?.[pupil.pupilId] || {}) as Record<string, any>;
+          const normalisedSubjects = Object.fromEntries(subjects.map((subject) => {
+            const subjectSnapshot = subjectsByCode.get(subject.code);
+            const rawSubjectResult = subjectSnapshot ? rawPupilResult[subjectSnapshot.subjectId] : undefined;
+            const wasMissed = rawSubjectResult?.status === 'missed';
+            return [subject.code, {
+              marks: !wasMissed && typeof rawSubjectResult?.marks === 'number' ? rawSubjectResult.marks : undefined,
+              grade: wasMissed ? 'MISSED' : rawSubjectResult?.grade,
+              aggregates: typeof rawSubjectResult?.aggregates === 'number' ? rawSubjectResult.aggregates : 0,
+            }];
+          }));
+          const calculatedTotal = Object.values(normalisedSubjects).reduce(
+            (sum: number, subject: any) => sum + (subject.marks || 0),
+            0,
+          );
+          const calculatedAggregates = Object.entries(normalisedSubjects).reduce(
+            (sum: number, [code, subject]: [string, any]) => sum + (
+              majorSubjects.has(code) && typeof subject?.aggregates === 'number' ? subject.aggregates : 0
+            ),
+            0,
+          );
+          const totalAggregates = typeof rawPupilResult.totalAggregates === 'number'
+            ? rawPupilResult.totalAggregates
+            : calculatedAggregates;
+
+          return [pupil.pupilId, {
+            position: typeof rawPupilResult.position === 'number' ? rawPupilResult.position : undefined,
+            totalMarks: typeof rawPupilResult.totalMarks === 'number' ? rawPupilResult.totalMarks : calculatedTotal,
+            totalAggregates,
+            division: typeof rawPupilResult.division === 'string' ? rawPupilResult.division : calculateDivision(totalAggregates),
+            subjects: normalisedSubjects,
+          }];
+        }));
+
+        return {
+          id: definition.id,
+          name: definition.name,
+          startDate: definition.startDate,
+          termName: getAcademicYearAndTerm(definition.academicYearId || '', definition.termId || '').termName,
+          pupils,
+          subjects,
+          results,
+        };
+      });
+
+      setGenerationStatus('Creating cross analysis PDF...');
+      const blob = createCrossAnalysisPDF({
+        schoolName: schoolSettings?.generalInfo?.name,
+        className: classSnap?.code || classSnap?.name || 'Class',
+        academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
+        exams: crossExams,
+        metrics,
+      });
+      const fileName = `${(classSnap?.code || classSnap?.name || 'class').replace(/\s+/g, '_')}_cross_exam_analysis.pdf`;
+      pdfViewer.openPDFFromBlob(blob, fileName, 'Cross Exam Analysis PDF');
+      toast({ title: 'Cross analysis PDF ready', description: `${crossExams.length} exams were compared in date order.` });
+    } catch (error) {
+      console.error('Error generating cross analysis PDF:', error);
+      toast({
+        title: 'Cross analysis PDF failed',
+        description: error instanceof Error ? error.message : 'The PDF could not be created. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+      setGenerationStatus('');
+    }
+  }, [classSnap, crossAnalysisExams, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, schoolSettings, toast]);
+
   const handleReportOne = useCallback(async () => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
       toast({ title: "Error", description: pdfTargetResults.length === 0 ? 'No pupils match the current filter / selection — please adjust filters before printing.' : 'Missing required data for batch reports generation' });
@@ -4150,6 +4317,10 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           termName={academicInfo.termName}
           resultsHref={resultsHref}
           onPrintAnalysis={generateAnalysisPDF}
+          onPrintCrossAnalysis={generateCrossAnalysisPDF}
+          crossAnalysisExams={crossAnalysisExams}
+          currentExamId={examDetails?.id || examId}
+          currentTermId={examDetails?.termId || ''}
           isGeneratingPDF={isGenerating}
         />
         <PDFViewer
@@ -5935,6 +6106,10 @@ interface PerformanceAnalysisPageProps {
   termName: string;
   resultsHref: string;
   onPrintAnalysis: (sections: AnalysisPDFSections) => void;
+  onPrintCrossAnalysis: (examIds: string[], metrics: CrossAnalysisMetrics) => void;
+  crossAnalysisExams: CrossAnalysisExamCandidate[];
+  currentExamId: string;
+  currentTermId: string;
   isGeneratingPDF: boolean;
 }
 
@@ -5947,18 +6122,55 @@ function PerformanceAnalysisPage({
   termName,
   resultsHref,
   onPrintAnalysis,
+  onPrintCrossAnalysis,
+  crossAnalysisExams,
+  currentExamId,
+  currentTermId,
   isGeneratingPDF,
 }: PerformanceAnalysisPageProps) {
   const [expandedDivisions, setExpandedDivisions] = useState<string[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   const [expandedGrades, setExpandedGrades] = useState<string[]>([]);
+  const [showAnalysisPrintType, setShowAnalysisPrintType] = useState(false);
   const [showPrintSections, setShowPrintSections] = useState(false);
+  const [showCrossAnalysis, setShowCrossAnalysis] = useState(false);
+  const [showAllCrossTerms, setShowAllCrossTerms] = useState(false);
+  const [selectedCrossExamIds, setSelectedCrossExamIds] = useState<string[]>([currentExamId]);
   const [printSections, setPrintSections] = useState<AnalysisPDFSections>({
     aggregate: true,
     divisions: true,
     subjectGrades: true,
   });
+  const [crossMetrics, setCrossMetrics] = useState<CrossAnalysisMetrics>({
+    aggregates: true,
+    divisions: true,
+    totalMarks: true,
+    subjectMarks: true,
+  });
   const selectedPrintSectionCount = Object.values(printSections).filter(Boolean).length;
+  const selectedCrossMetricCount = Object.values(crossMetrics).filter(Boolean).length;
+  const visibleCrossAnalysisExams = useMemo(
+    () => crossAnalysisExams.filter((exam) => showAllCrossTerms || exam.termId === currentTermId),
+    [crossAnalysisExams, currentTermId, showAllCrossTerms],
+  );
+
+  useEffect(() => {
+    setSelectedCrossExamIds([currentExamId]);
+    setShowAllCrossTerms(false);
+  }, [currentExamId]);
+
+  const toggleCrossExam = (selectedExamId: string) => {
+    setSelectedCrossExamIds((current) => {
+      if (current.includes(selectedExamId)) return current.filter((id) => id !== selectedExamId);
+      if (current.length >= 5) return current;
+      return [...current, selectedExamId];
+    });
+  };
+
+  const formatCrossExamDate = (dateValue: string) => {
+    const parsed = new Date(dateValue);
+    return Number.isNaN(parsed.valueOf()) ? 'No date' : format(parsed, 'd MMM yyyy');
+  };
 
   const orderedSubjectSnaps = useMemo(() => {
     const getAverage = (subjectCode: string) => {
@@ -6106,7 +6318,7 @@ function PerformanceAnalysisPage({
           <Button
             type="button"
             size="sm"
-            onClick={() => setShowPrintSections(true)}
+            onClick={() => setShowAnalysisPrintType(true)}
             disabled={isGeneratingPDF}
             className="h-9 w-full gap-2 rounded-full bg-indigo-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:w-auto"
             aria-label={isGeneratingPDF ? 'Creating performance analysis PDF' : 'Print performance analysis PDF'}
@@ -6141,6 +6353,191 @@ function PerformanceAnalysisPage({
           </div>
         }
       />
+
+      <Dialog open={showAnalysisPrintType} onOpenChange={setShowAnalysisPrintType}>
+        <DialogContent className="border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg">
+          <DialogHeader className="border-b border-slate-100 px-5 pb-4 pt-5 text-left sm:px-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
+              <Printer className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+              Choose analysis type
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              Print the current exam on its own or compare it with up to four other exams from this class and academic year.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 px-5 py-4 sm:grid-cols-2 sm:px-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowAnalysisPrintType(false);
+                setShowPrintSections(true);
+              }}
+              className="h-auto min-h-32 items-start justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-indigo-300 hover:bg-indigo-50"
+            >
+              <span className="flex min-w-0 flex-col items-start gap-2">
+                <FileText className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+                <span className="text-sm font-bold text-slate-950">Self analysis</span>
+                <span className="text-xs font-normal leading-5 text-slate-600">
+                  Analyse this exam only, with the overview, division, and subject-ranking sections you choose.
+                </span>
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowAnalysisPrintType(false);
+                setShowCrossAnalysis(true);
+              }}
+              className="h-auto min-h-32 items-start justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-violet-300 hover:bg-violet-50"
+            >
+              <span className="flex min-w-0 flex-col items-start gap-2">
+                <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
+                <span className="text-sm font-bold text-slate-950">Cross analysis</span>
+                <span className="text-xs font-normal leading-5 text-slate-600">
+                  Compare up to five dated exam sets. Each exam keeps its own class and subject positions.
+                </span>
+              </span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCrossAnalysis} onOpenChange={setShowCrossAnalysis}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-violet-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
+          <DialogHeader className="border-b border-slate-100 px-5 pb-4 pt-5 text-left sm:px-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
+              <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
+              Cross exam analysis
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              Select two to five exams. The PDF orders exams by date and pupils by their performance in the first selected exam.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 px-5 py-4 sm:px-6">
+            <div className="flex items-start justify-between gap-3 rounded-xl border border-violet-100 bg-violet-50/70 p-3">
+              <div>
+                <p className="text-sm font-bold text-violet-950">Exam scope</p>
+                <p className="mt-0.5 text-xs leading-5 text-violet-800">
+                  The current term is shown first. Enable all terms to include other batches and terms from {academicYearName}.
+                </p>
+              </div>
+              <Label htmlFor="cross-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-violet-900">
+                <Checkbox
+                  id="cross-analysis-all-terms"
+                  checked={showAllCrossTerms}
+                  onCheckedChange={(checked) => setShowAllCrossTerms(checked === true)}
+                />
+                All terms
+              </Label>
+            </div>
+
+            <section aria-labelledby="cross-analysis-exams-title">
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <div>
+                  <h3 id="cross-analysis-exams-title" className="text-sm font-bold text-slate-900">Exam sets</h3>
+                  <p className="text-xs text-slate-600">The current exam is selected initially. Maximum five exams.</p>
+                </div>
+                <span className="shrink-0 text-xs font-bold tabular-nums text-violet-700" aria-live="polite">
+                  {selectedCrossExamIds.length}/5 selected
+                </span>
+              </div>
+              <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+                {visibleCrossAnalysisExams.length === 0 ? (
+                  <p className="p-4 text-center text-sm text-slate-600">No other saved exam definitions are available for this class and term.</p>
+                ) : visibleCrossAnalysisExams.map((exam) => {
+                  const selected = selectedCrossExamIds.includes(exam.id);
+                  const canSelect = selected || selectedCrossExamIds.length < 5;
+                  const examLabel = `${exam.name}, ${exam.termName || 'Unknown term'}, ${formatCrossExamDate(exam.startDate)}${exam.batchId ? `, batch ${exam.batchId}` : ''}`;
+                  return (
+                    <Label
+                      key={exam.id}
+                      htmlFor={`cross-analysis-exam-${exam.id}`}
+                      className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                        selected
+                          ? 'border-violet-300 bg-violet-50'
+                          : canSelect
+                            ? 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/50'
+                            : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60'
+                      }`}
+                    >
+                      <Checkbox
+                        id={`cross-analysis-exam-${exam.id}`}
+                        checked={selected}
+                        disabled={!canSelect}
+                        onCheckedChange={() => toggleCrossExam(exam.id)}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold text-slate-900">{exam.name}</span>
+                        <span className="mt-0.5 block text-xs font-normal text-slate-600">
+                          {exam.termName || 'Unknown term'} - {formatCrossExamDate(exam.startDate)}{exam.batchId ? ` - Batch ${exam.batchId}` : ''}
+                        </span>
+                      </span>
+                      {exam.id === currentExamId && <Badge variant="outline" className="shrink-0 border-violet-200 bg-white text-[10px] text-violet-700">Current</Badge>}
+                      <span className="sr-only">{examLabel}</span>
+                    </Label>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section aria-labelledby="cross-analysis-data-title">
+              <div className="mb-2">
+                <h3 id="cross-analysis-data-title" className="text-sm font-bold text-slate-900">Include in the PDF</h3>
+                <p className="text-xs text-slate-600">Every selected exam always shows its overall position.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {([
+                  ['aggregates', 'Aggregates', 'Compare each pupil’s aggregate total.'],
+                  ['divisions', 'Divisions', 'Compare the division awarded in every exam.'],
+                  ['totalMarks', 'Total marks', 'Compare each pupil’s total marks.'],
+                  ['subjectMarks', 'Subject marks', 'One table per subject with mark, grade, and subject position.'],
+                ] as const).map(([key, label, description]) => (
+                  <Label
+                    key={key}
+                    htmlFor={`cross-analysis-metric-${key}`}
+                    className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-violet-300 hover:bg-violet-50/60 has-[[data-state=checked]]:border-violet-400 has-[[data-state=checked]]:bg-violet-50"
+                  >
+                    <Checkbox
+                      id={`cross-analysis-metric-${key}`}
+                      checked={crossMetrics[key]}
+                      onCheckedChange={(checked) => setCrossMetrics((current) => ({ ...current, [key]: checked === true }))}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-slate-900">{label}</span>
+                      <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">{description}</span>
+                    </span>
+                  </Label>
+                ))}
+              </div>
+              <p className="pt-2 text-xs font-semibold text-slate-600" aria-live="polite">
+                {selectedCrossMetricCount} data type{selectedCrossMetricCount === 1 ? '' : 's'} selected
+              </p>
+            </section>
+          </div>
+
+          <DialogFooter className="border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
+            <Button type="button" variant="outline" onClick={() => setShowCrossAnalysis(false)}>Cancel</Button>
+            <Button
+              type="button"
+              disabled={selectedCrossExamIds.length < 2 || selectedCrossMetricCount === 0 || isGeneratingPDF}
+              onClick={() => {
+                setShowCrossAnalysis(false);
+                onPrintCrossAnalysis(selectedCrossExamIds, crossMetrics);
+              }}
+              className="gap-2 bg-violet-600 text-white hover:bg-violet-700"
+            >
+              {isGeneratingPDF
+                ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                : <Printer className="h-4 w-4" aria-hidden="true" />}
+              {isGeneratingPDF ? 'Creating PDF...' : `Create cross PDF (${selectedCrossExamIds.length}/5)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showPrintSections} onOpenChange={setShowPrintSections}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg">
