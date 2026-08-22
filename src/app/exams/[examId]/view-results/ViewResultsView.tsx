@@ -2878,7 +2878,19 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }));
         const subjectsByCode = new Map((result.subjectSnapshots || []).map((subject) => [subject.code, subject]));
         const majorSubjects = new Set(result.majorSubjects || []);
-        const pupils = (result.pupilSnapshots || []).map((pupil) => ({
+        const streamScopedSnapshots = filterExamPupilsByStream(
+          (result.pupilSnapshots || []).map((pupil) => {
+            const currentPupil = allPupils.find((candidate) => candidate.id === pupil.pupilId);
+            return enrichExamPupilStreamIdentity(
+              pupil,
+              currentPupil,
+              examClass,
+              definition.academicYearId || result.academicYearId || examDetails.academicYearId,
+            );
+          }),
+          selectedStreamId,
+        );
+        const pupils = streamScopedSnapshots.map((pupil) => ({
           pupilId: pupil.pupilId,
           name: pupil.name,
           admissionNumber: pupil.admissionNumber,
@@ -2932,14 +2944,17 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       setGenerationStatus('Creating cross analysis PDF...');
       const blob = createCrossAnalysisPDF({
         schoolName: schoolSettings?.generalInfo?.name,
-        className: classSnap?.code || classSnap?.name || 'Class',
+        className: scopedClassLabel,
         academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
         exams: crossExams,
         metrics,
       });
-      const fileName = `${(classSnap?.code || classSnap?.name || 'class').replace(/\s+/g, '_')}_cross_exam_analysis.pdf`;
+      const fileName = `${scopedClassLabel.replace(/\s+/g, '_')}_cross_exam_analysis.pdf`;
       pdfViewer.openPDFFromBlob(blob, fileName, 'Cross Exam Analysis PDF');
-      toast({ title: 'Cross analysis PDF ready', description: `${crossExams.length} exams were compared in date order.` });
+      toast({
+        title: 'Cross analysis PDF ready',
+        description: `${crossExams.length} exams were compared in date order for ${selectedStreamId === 'all' ? 'all streams' : scopedClassLabel}.`,
+      });
     } catch (error) {
       console.error('Error generating cross analysis PDF:', error);
       toast({
@@ -2951,7 +2966,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       setIsGenerating(false);
       setGenerationStatus('');
     }
-  }, [classSnap, crossAnalysisExams, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, schoolSettings, toast]);
+  }, [allPupils, crossAnalysisExams, examClass, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, schoolSettings, scopedClassLabel, selectedStreamId, toast]);
 
   const handleReportOne = useCallback(async () => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {

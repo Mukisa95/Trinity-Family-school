@@ -474,9 +474,12 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
   const cardsStartX = outerMargin + pupilPanelWidth + cardGap;
   const examCardWidth = (pageWidth - outerMargin - cardsStartX - cardGap * (indexes.length - 1)) / indexes.length;
   const subjectsPerLine = subjects.length <= 3 ? Math.max(subjects.length, 1) : 2;
-  const subjectLines = props.metrics.subjectMarks ? Math.ceil(subjects.length / subjectsPerLine) : 0;
+  const hasSubjectMarks = props.metrics.subjectMarks && subjects.length > 0;
+  const subjectLines = hasSubjectMarks ? Math.ceil(subjects.length / subjectsPerLine) : 0;
   const subjectRowHeight = 3.9;
-  const examCardHeight = Math.max(9, 6.6 + subjectLines * subjectRowHeight);
+  const examCardHeight = hasSubjectMarks
+    ? Math.max(9, 6.6 + subjectLines * subjectRowHeight)
+    : 13;
   const pupilCardHeight = Math.max(12, examCardHeight + 1.2);
   const columnHeaderHeight = 7.2;
   const cardPalette: Array<[number, number, number]> = [
@@ -594,7 +597,7 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
         doc.setTextColor(100, 116, 139);
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(5.5);
-        doc.text('Not recorded', x + examCardWidth / 2, y + 6, { align: 'center' });
+        doc.text('Not recorded', x + examCardWidth / 2, y + examCardHeight / 2 + 1, { align: 'center' });
         return;
       }
 
@@ -606,13 +609,22 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
       ];
       doc.setTextColor(51, 65, 85);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(4.6);
       const metricSlotWidth = (examCardWidth - 2.8) / metrics.length;
+      let metricFontSize = hasSubjectMarks ? 4.6 : 7.2;
+      while (metricFontSize > 4.8) {
+        doc.setFontSize(metricFontSize);
+        if (metrics.every((metric) => doc.getTextWidth(metric) <= metricSlotWidth - 0.8)) break;
+        metricFontSize -= 0.2;
+      }
+      doc.setFontSize(metricFontSize);
+      const metricY = hasSubjectMarks
+        ? y + 3.2
+        : y + examCardHeight / 2 + 0.9;
       metrics.forEach((metric, metricIndex) => {
-        doc.text(metric, x + 1.4 + metricSlotWidth * (metricIndex + 0.5), y + 3.2, { align: 'center' });
+        doc.text(metric, x + 1.4 + metricSlotWidth * (metricIndex + 0.5), metricY, { align: 'center' });
       });
 
-      if (props.metrics.subjectMarks) {
+      if (hasSubjectMarks) {
         subjects.forEach((subject, subjectIndex) => {
           const subjectResult = result.subjects[subject.code];
           const marks = asFiniteNumber(subjectResult?.marks);
