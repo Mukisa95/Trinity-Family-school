@@ -362,7 +362,6 @@ const addAnalysisPageFooters = (doc: jsPDF) => {
 type CrossAnalysisExamIndex = {
   exam: CrossAnalysisExam;
   pupilResults: Map<string, Required<Pick<CrossAnalysisExam['results'][string], 'position' | 'totalMarks' | 'totalAggregates' | 'division'>> & CrossAnalysisExam['results'][string]>;
-  subjectPositions: Map<string, Map<string, number>>;
 };
 
 const asFiniteNumber = (value: unknown): number | undefined =>
@@ -390,19 +389,7 @@ const getCrossAnalysisIndex = (exam: CrossAnalysisExam): CrossAnalysisExamIndex 
     });
   });
 
-  const subjectPositions = new Map<string, Map<string, number>>();
-  exam.subjects.forEach((subject) => {
-    const ranked = exam.pupils
-      .map((pupil) => ({
-        pupil,
-        marks: asFiniteNumber(exam.results[pupil.pupilId]?.subjects?.[subject.code]?.marks),
-      }))
-      .filter((entry): entry is { pupil: CrossAnalysisExam['pupils'][number]; marks: number } => entry.marks !== undefined)
-      .sort((first, second) => second.marks - first.marks || first.pupil.name.localeCompare(second.pupil.name));
-    subjectPositions.set(subject.code, new Map(ranked.map((entry, index) => [entry.pupil.pupilId, index + 1])));
-  });
-
-  return { exam, pupilResults, subjectPositions };
+  return { exam, pupilResults };
 };
 
 const getCrossExamDateLabel = (exam: CrossAnalysisExam) => {
@@ -494,9 +481,12 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
   const cardGap = 1.5;
   const cardsStartX = outerMargin + pupilPanelWidth + cardGap;
   const examCardWidth = (pageWidth - outerMargin - cardsStartX - cardGap * (indexes.length - 1)) / indexes.length;
-  const subjectLines = props.metrics.subjectMarks ? subjects.length : 0;
-  const examCardHeight = Math.max(15, 11 + subjectLines * 3.7);
+  const subjectsPerLine = subjects.length <= 3 ? Math.max(subjects.length, 1) : 2;
+  const subjectLines = props.metrics.subjectMarks ? Math.ceil(subjects.length / subjectsPerLine) : 0;
+  const subjectRowHeight = 4.4;
+  const examCardHeight = Math.max(9, 6.6 + subjectLines * subjectRowHeight);
   const pupilCardHeight = Math.max(23, examCardHeight + 4);
+  const columnHeaderHeight = 7.2;
   const cardPalette: Array<[number, number, number]> = [
     [30, 64, 175],
     [67, 56, 202],
@@ -504,25 +494,81 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     [5, 150, 105],
     [180, 83, 9],
   ];
-  let currentY = headerEndY;
+  let currentY = headerEndY + columnHeaderHeight + 2;
 
   const drawPageHeader = () => drawCrossAnalysisHeader(doc, title, subtitle, props.schoolName);
+  const drawExamColumnHeaders = () => {
+    const headerY = headerEndY + 0.8;
+    doc.setFillColor(237, 233, 254);
+    doc.roundedRect(outerMargin, headerY, pupilPanelWidth, columnHeaderHeight, 1.2, 1.2, 'F');
+    doc.setTextColor(76, 29, 149);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(4.8);
+    doc.text('PUPIL', outerMargin + 2, headerY + 3);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(3.8);
+    doc.text('Ordered by first exam position', outerMargin + 2, headerY + 5.2);
+
+    indexes.forEach((index, indexNumber) => {
+      const x = cardsStartX + indexNumber * (examCardWidth + cardGap);
+      const color = cardPalette[indexNumber % cardPalette.length];
+      doc.setFillColor(...color);
+      doc.roundedRect(x, headerY, examCardWidth, columnHeaderHeight, 1.2, 1.2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.2);
+      const examName = doc.splitTextToSize(index.exam.name, examCardWidth - 3)[0] || 'Exam';
+      doc.text(examName, x + 1.4, headerY + 3.1);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(4.4);
+      doc.text(getCrossExamDateLabel(index.exam), x + examCardWidth - 1.4, headerY + 5.35, { align: 'right' });
+    });
+  };
   const addCardPage = () => {
     doc.addPage();
-    currentY = headerEndY;
+    currentY = headerEndY + columnHeaderHeight + 2;
     drawPageHeader();
+    drawExamColumnHeaders();
   };
 
-  const drawSubjectLine = (x: number, y: number, width: number, text: string) => {
+  const getGradeColor = (grade?: string): [number, number, number] => {
+    if (grade?.startsWith('D')) return [5, 150, 105];
+    if (grade?.startsWith('C')) return [37, 99, 235];
+    if (grade?.startsWith('P')) return [217, 119, 6];
+    if (grade?.startsWith('F') || grade?.startsWith('U')) return [220, 38, 38];
+    return [109, 40, 217];
+  };
+
+  const drawSubjectCell = (
+    x: number,
+    y: number,
+    width: number,
+    subjectCode: string,
+    marks?: number,
+    grade?: string,
+  ) => {
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(x, y, width, 3.1, 0.55, 0.55, 'F');
+    doc.roundedRect(x, y, width, 3.8, 0.65, 0.65, 'F');
     doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(4.3);
+    doc.text(subjectCode, x + 0.9, y + 2.55);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(4.6);
-    doc.text(text, x + 0.9, y + 2.15);
+    doc.text(marks === undefined ? '-' : String(marks), x + 5.9, y + 2.55);
+
+    const gradeText = marks === undefined ? '-' : grade || '-';
+    const gradeWidth = Math.max(4.8, doc.getTextWidth(gradeText) + 2.1);
+    const [red, green, blue] = getGradeColor(grade);
+    doc.setFillColor(red, green, blue);
+    doc.roundedRect(x + width - gradeWidth - 0.7, y + 0.6, gradeWidth, 2.55, 0.8, 0.8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(3.8);
+    doc.text(gradeText, x + width - gradeWidth / 2 - 0.7, y + 2.35, { align: 'center' });
   };
 
   drawPageHeader();
+  drawExamColumnHeaders();
   orderedPupils.forEach((pupil) => {
     if (currentY + pupilCardHeight > footerStartY) addCardPage();
 
@@ -551,51 +597,49 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     indexes.forEach((index, indexNumber) => {
       const x = cardsStartX + indexNumber * (examCardWidth + cardGap);
       const y = currentY + 2;
-      const color = cardPalette[indexNumber % cardPalette.length];
       const result = index.pupilResults.get(pupil.pupilId);
       doc.setDrawColor(203, 213, 225);
       doc.setFillColor(255, 255, 255);
       doc.roundedRect(x, y, examCardWidth, examCardHeight, 1.2, 1.2, 'FD');
-      doc.setFillColor(...color);
-      doc.roundedRect(x, y, examCardWidth, 5.7, 1.2, 1.2, 'F');
-      doc.rect(x, y + 3.8, examCardWidth, 1.9, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(5.2);
-      const examName = doc.splitTextToSize(index.exam.name, examCardWidth - 3)[0] || 'Exam';
-      doc.text(examName, x + 1.4, y + 3.1);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(4.5);
-      doc.text(getCrossExamDateLabel(index.exam), x + examCardWidth - 1.4, y + 3.1, { align: 'right' });
 
       if (!result) {
         doc.setTextColor(100, 116, 139);
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(5.5);
-        doc.text('Not recorded', x + examCardWidth / 2, y + 12, { align: 'center' });
+        doc.text('Not recorded', x + examCardWidth / 2, y + 6, { align: 'center' });
         return;
       }
 
       const metrics = [
-        `P ${result.position}`,
-        ...(props.metrics.totalMarks ? [`T ${result.totalMarks}`] : []),
-        ...(props.metrics.aggregates ? [`A ${result.totalAggregates}`] : []),
-        ...(props.metrics.divisions ? [`D ${result.division}`] : []),
+        `POS ${result.position}`,
+        ...(props.metrics.totalMarks ? [`TOT ${result.totalMarks}`] : []),
+        ...(props.metrics.aggregates ? [`AGG ${result.totalAggregates}`] : []),
+        ...(props.metrics.divisions ? [`DIV ${result.division}`] : []),
       ];
-      doc.setTextColor(30, 41, 59);
+      doc.setTextColor(51, 65, 85);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(4.8);
-      doc.text(metrics.join(' '), x + 1.4, y + 9.3);
+      doc.setFontSize(4.6);
+      const metricSlotWidth = (examCardWidth - 2.8) / metrics.length;
+      metrics.forEach((metric, metricIndex) => {
+        doc.text(metric, x + 1.4 + metricSlotWidth * (metricIndex + 0.5), y + 3.2, { align: 'center' });
+      });
 
       if (props.metrics.subjectMarks) {
         subjects.forEach((subject, subjectIndex) => {
           const subjectResult = result.subjects[subject.code];
           const marks = asFiniteNumber(subjectResult?.marks);
-          const subjectPosition = index.subjectPositions.get(subject.code)?.get(pupil.pupilId);
-          const subjectValue = marks === undefined
-            ? `${subject.code} -`
-            : `${subject.code} ${marks} ${subjectResult?.grade || '-'}${subjectPosition ? `/${subjectPosition}` : ''}`;
-          drawSubjectLine(x + 1.3, y + 11 + subjectIndex * 3.7, examCardWidth - 2.6, subjectValue);
+          const row = Math.floor(subjectIndex / subjectsPerLine);
+          const column = subjectIndex % subjectsPerLine;
+          const subjectGap = 0.9;
+          const subjectWidth = (examCardWidth - 2.6 - subjectGap * (subjectsPerLine - 1)) / subjectsPerLine;
+          drawSubjectCell(
+            x + 1.3 + column * (subjectWidth + subjectGap),
+            y + 5.1 + row * subjectRowHeight,
+            subjectWidth,
+            subject.code,
+            marks,
+            subjectResult?.grade,
+          );
         });
       }
     });
