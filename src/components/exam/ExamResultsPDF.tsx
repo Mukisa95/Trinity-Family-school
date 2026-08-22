@@ -715,15 +715,64 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
     throw new Error('The selected subjects do not have saved results in the chosen sets.');
   }
 
+  const firstExam = exams[0];
+  const pupils = [...firstExam.pupils].sort((first, second) => {
+    const average = (pupilId: string) => {
+      const marks = selectedSubjects
+        .map((subject) => asFiniteNumber(firstExam.results[pupilId]?.subjects?.[subject.code]?.marks))
+        .filter((mark): mark is number => mark !== undefined);
+      return marks.length ? marks.reduce((total, mark) => total + mark, 0) / marks.length : -1;
+    };
+    return average(second.pupilId) - average(first.pupilId) || first.name.localeCompare(second.name);
+  });
+  const body = pupils.map((pupil) => [
+    pupil.name,
+    ...exams.flatMap((exam) => selectedSubjects.map((subject) => {
+      const result = exam.results[pupil.pupilId]?.subjects?.[subject.code];
+      const mark = asFiniteNumber(result?.marks);
+      return mark === undefined ? '-' : result?.grade ? `${mark} (${result.grade})` : String(mark);
+    })),
+  ]);
   const dataColumnCount = exams.length * selectedSubjects.length;
-  const orientation = dataColumnCount > 6 || exams.length > 3 ? 'landscape' : 'portrait';
+  const pupilColumnWidth = dataColumnCount > 6 ? 44 : 54;
+  const preferredTableFontSize = dataColumnCount > 10 ? 6.4 : dataColumnCount > 6 ? 6.8 : 7.5;
+  const minimumPortraitFontSize = 5.8;
+  const dataLabels = [
+    ...selectedSubjects.map((subject) => subject.code),
+    ...body.flatMap((row) => row.slice(1).map(String)),
+  ];
+  const findFittingFontSize = (probe: jsPDF, columnWidth: number, maximumSize: number) => {
+    let fontSize = maximumSize;
+    while (fontSize >= minimumPortraitFontSize) {
+      probe.setFont('helvetica', 'normal');
+      probe.setFontSize(fontSize);
+      const widestValue = Math.max(...dataLabels.map((value) => probe.getTextWidth(value)));
+      if (widestValue + 3.6 <= columnWidth) return Number(fontSize.toFixed(1));
+      fontSize -= 0.2;
+    }
+    return undefined;
+  };
+  const portraitProbe = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const portraitSubjectColumnWidth = (
+    portraitProbe.internal.pageSize.width - 20 - pupilColumnWidth
+  ) / dataColumnCount;
+  // A4 portrait remains the default. Landscape is used only after the actual
+  // code/mark/grade content cannot fit at the smallest legible table size.
+  const portraitTableFontSize = findFittingFontSize(
+    portraitProbe,
+    portraitSubjectColumnWidth,
+    preferredTableFontSize,
+  );
+  const orientation = portraitTableFontSize === undefined ? 'landscape' : 'portrait';
   const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.width;
-  const firstExam = exams[0];
+  const subjectColumnWidth = (pageWidth - 20 - pupilColumnWidth) / dataColumnCount;
+  const tableFontSize = orientation === 'portrait'
+    ? portraitTableFontSize
+    : findFittingFontSize(doc, subjectColumnWidth, preferredTableFontSize) ?? minimumPortraitFontSize;
   const setKey = exams
     .map((exam, index) => `Set ${index + 1} - ${exam.name} (${getCrossExamDateLabel(exam)})`)
     .join('   |   ');
-  const tableFontSize = dataColumnCount > 8 ? 6.2 : dataColumnCount > 6 ? 6.8 : 7.5;
 
   const title = exams.length === 1
     ? `SUBJECT SET ANALYSIS - ${exams[0].name}`
@@ -755,31 +804,11 @@ export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps)
     }
   };
 
-  const pupils = [...firstExam.pupils].sort((first, second) => {
-    const average = (pupilId: string) => {
-      const marks = selectedSubjects
-        .map((subject) => asFiniteNumber(firstExam.results[pupilId]?.subjects?.[subject.code]?.marks))
-        .filter((mark): mark is number => mark !== undefined);
-      return marks.length ? marks.reduce((total, mark) => total + mark, 0) / marks.length : -1;
-    };
-    return average(second.pupilId) - average(first.pupilId) || first.name.localeCompare(second.name);
-  });
   const groupedHeaders = [
     { content: 'PUPIL NAME', rowSpan: 2, styles: { valign: 'middle' } },
     ...exams.map((_, index) => ({ content: `SET ${index + 1}`, colSpan: selectedSubjects.length })),
   ];
   const subjectHeaders = selectedSubjects.map((subject) => subject.code);
-  const body = pupils.map((pupil) => [
-    pupil.name,
-    ...exams.flatMap((exam) => selectedSubjects.map((subject) => {
-      const result = exam.results[pupil.pupilId]?.subjects?.[subject.code];
-      const mark = asFiniteNumber(result?.marks);
-      return mark === undefined ? '-' : result?.grade ? `${mark} (${result.grade})` : String(mark);
-    })),
-  ]);
-  const pupilColumnWidth = dataColumnCount > 6 ? 44 : 54;
-  const subjectColumnWidth = (pageWidth - 20 - pupilColumnWidth) / dataColumnCount;
-
   autoTable(doc, {
     startY: tableStartY,
     head: [groupedHeaders, subjectHeaders],
