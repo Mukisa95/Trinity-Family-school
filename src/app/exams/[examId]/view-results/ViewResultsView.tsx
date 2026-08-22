@@ -83,6 +83,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   generateCrossAnalysisPDF as createCrossAnalysisPDF,
+  generateSubjectSetAnalysisPDF as createSubjectSetAnalysisPDF,
   generateExamPDF,
   type AnalysisPDFSections,
   type CrossAnalysisExam,
@@ -2968,6 +2969,135 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
     }
   }, [allPupils, crossAnalysisExams, examClass, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, schoolSettings, scopedClassLabel, selectedStreamId, toast]);
 
+  const generateSubjectSetAnalysisPDF = useCallback(async (
+    selectedExamIds: string[],
+    subjectCodes: string[],
+  ) => {
+    if (!examDetails || !examResultData || selectedExamIds.length === 0 || subjectCodes.length === 0) {
+      toast({
+        title: 'Unable to create subject analysis',
+        description: 'Choose at least one exam set and one subject with saved results.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const selectedIds = [...new Set(selectedExamIds)].slice(0, 5);
+    setIsGenerating(true);
+    setGenerationStatus('Loading selected exam results...');
+
+    try {
+      const loaded = await Promise.all(selectedIds.map(async (selectedId) => {
+        const definition = selectedId === examDetails.id
+          ? examDetails
+          : crossAnalysisExams.find((exam) => exam.id === selectedId);
+        const result = selectedId === examDetails.id
+          ? examResultData
+          : await ExamsService.getExamResultByExamId(selectedId);
+        if (!definition || !result) {
+          throw new Error('Saved results were not found for a selected exam.');
+        }
+        return { definition, result };
+      }));
+
+      setGenerationStatus('Organising subject-analysis data...');
+      const subjectSetExams: CrossAnalysisExam[] = loaded.map(({ definition, result }) => {
+        const subjects = (result.subjectSnapshots || []).map((subject) => ({
+          code: subject.code,
+          name: cleanSubjectName(subject.name),
+        }));
+        const subjectsByCode = new Map((result.subjectSnapshots || []).map((subject) => [subject.code, subject]));
+        const majorSubjects = new Set(result.majorSubjects || []);
+        const streamScopedSnapshots = filterExamPupilsByStream(
+          (result.pupilSnapshots || []).map((pupil) => {
+            const currentPupil = allPupils.find((candidate) => candidate.id === pupil.pupilId);
+            return enrichExamPupilStreamIdentity(
+              pupil,
+              currentPupil,
+              examClass,
+              definition.academicYearId || result.academicYearId || examDetails.academicYearId,
+            );
+          }),
+          selectedStreamId,
+        );
+        const pupils = streamScopedSnapshots.map((pupil) => ({
+          pupilId: pupil.pupilId,
+          name: pupil.name,
+          admissionNumber: pupil.admissionNumber,
+        }));
+        const results = Object.fromEntries(pupils.map((pupil) => {
+          const rawPupilResult = (result.results?.[pupil.pupilId] || {}) as Record<string, any>;
+          const normalisedSubjects = Object.fromEntries(subjects.map((subject) => {
+            const subjectSnapshot = subjectsByCode.get(subject.code);
+            const rawSubjectResult = subjectSnapshot ? rawPupilResult[subjectSnapshot.subjectId] : undefined;
+            const wasMissed = rawSubjectResult?.status === 'missed';
+            return [subject.code, {
+              marks: !wasMissed && typeof rawSubjectResult?.marks === 'number' ? rawSubjectResult.marks : undefined,
+              grade: wasMissed ? 'MISSED' : rawSubjectResult?.grade,
+              aggregates: typeof rawSubjectResult?.aggregates === 'number' ? rawSubjectResult.aggregates : 0,
+            }];
+          }));
+          const calculatedTotal = Object.values(normalisedSubjects).reduce(
+            (sum: number, subject: any) => sum + (subject.marks || 0),
+            0,
+          );
+          const calculatedAggregates = Object.entries(normalisedSubjects).reduce(
+            (sum: number, [code, subject]: [string, any]) => sum + (
+              majorSubjects.has(code) && typeof subject?.aggregates === 'number' ? subject.aggregates : 0
+            ),
+            0,
+          );
+          const totalAggregates = typeof rawPupilResult.totalAggregates === 'number'
+            ? rawPupilResult.totalAggregates
+            : calculatedAggregates;
+
+          return [pupil.pupilId, {
+            position: typeof rawPupilResult.position === 'number' ? rawPupilResult.position : undefined,
+            totalMarks: typeof rawPupilResult.totalMarks === 'number' ? rawPupilResult.totalMarks : calculatedTotal,
+            totalAggregates,
+            division: typeof rawPupilResult.division === 'string' ? rawPupilResult.division : calculateDivision(totalAggregates),
+            subjects: normalisedSubjects,
+          }];
+        }));
+
+        return {
+          id: definition.id,
+          name: definition.name,
+          startDate: definition.startDate,
+          termName: getAcademicYearAndTerm(definition.academicYearId || '', definition.termId || '').termName,
+          pupils,
+          subjects,
+          results,
+        };
+      });
+
+      setGenerationStatus('Creating subject analysis PDF...');
+      const blob = createSubjectSetAnalysisPDF({
+        schoolName: schoolSettings?.generalInfo?.name,
+        className: scopedClassLabel,
+        academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
+        exams: subjectSetExams,
+        subjectCodes,
+      });
+      const fileName = `${scopedClassLabel.replace(/\s+/g, '_')}_subject_set_analysis.pdf`;
+      pdfViewer.openPDFFromBlob(blob, fileName, 'Subject Set Analysis PDF');
+      toast({
+        title: 'Subject analysis PDF ready',
+        description: `${subjectCodes.length} subject${subjectCodes.length === 1 ? '' : 's'} across ${subjectSetExams.length} set${subjectSetExams.length === 1 ? '' : 's'} for ${selectedStreamId === 'all' ? 'all streams' : scopedClassLabel}.`,
+      });
+    } catch (error) {
+      console.error('Error generating subject analysis PDF:', error);
+      toast({
+        title: 'Subject analysis PDF failed',
+        description: error instanceof Error ? error.message : 'The PDF could not be created. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+      setGenerationStatus('');
+    }
+  }, [allPupils, crossAnalysisExams, examClass, examDetails, examResultData, getAcademicYearAndTerm, pdfViewer, schoolSettings, scopedClassLabel, selectedStreamId, toast]);
+
   const handleReportOne = useCallback(async () => {
     if (!examDetails || !classSnap || !subjectSnaps.length || !pdfTargetResults.length) {
       toast({ title: "Error", description: pdfTargetResults.length === 0 ? 'No pupils match the current filter / selection — please adjust filters before printing.' : 'Missing required data for batch reports generation' });
@@ -4333,6 +4463,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           resultsHref={resultsHref}
           onPrintAnalysis={generateAnalysisPDF}
           onPrintCrossAnalysis={generateCrossAnalysisPDF}
+          onPrintSubjectSetAnalysis={generateSubjectSetAnalysisPDF}
           crossAnalysisExams={crossAnalysisExams}
           currentExamId={examDetails?.id || examId}
           currentTermId={examDetails?.termId || ''}
@@ -6122,6 +6253,7 @@ interface PerformanceAnalysisPageProps {
   resultsHref: string;
   onPrintAnalysis: (sections: AnalysisPDFSections) => void;
   onPrintCrossAnalysis: (examIds: string[], metrics: CrossAnalysisMetrics) => void;
+  onPrintSubjectSetAnalysis: (examIds: string[], subjectCodes: string[]) => void;
   crossAnalysisExams: CrossAnalysisExamCandidate[];
   currentExamId: string;
   currentTermId: string;
@@ -6138,6 +6270,7 @@ function PerformanceAnalysisPage({
   resultsHref,
   onPrintAnalysis,
   onPrintCrossAnalysis,
+  onPrintSubjectSetAnalysis,
   crossAnalysisExams,
   currentExamId,
   currentTermId,
@@ -6149,8 +6282,12 @@ function PerformanceAnalysisPage({
   const [showAnalysisPrintType, setShowAnalysisPrintType] = useState(false);
   const [showPrintSections, setShowPrintSections] = useState(false);
   const [showCrossAnalysis, setShowCrossAnalysis] = useState(false);
+  const [showSubjectSetAnalysis, setShowSubjectSetAnalysis] = useState(false);
   const [showAllCrossTerms, setShowAllCrossTerms] = useState(false);
+  const [showAllSubjectSetTerms, setShowAllSubjectSetTerms] = useState(false);
   const [selectedCrossExamIds, setSelectedCrossExamIds] = useState<string[]>([currentExamId]);
+  const [selectedSubjectSetExamIds, setSelectedSubjectSetExamIds] = useState<string[]>([currentExamId]);
+  const [selectedSubjectCodes, setSelectedSubjectCodes] = useState<string[]>([]);
   const [printSections, setPrintSections] = useState<AnalysisPDFSections>({
     aggregate: true,
     divisions: true,
@@ -6168,10 +6305,17 @@ function PerformanceAnalysisPage({
     () => crossAnalysisExams.filter((exam) => showAllCrossTerms || exam.termId === currentTermId),
     [crossAnalysisExams, currentTermId, showAllCrossTerms],
   );
+  const visibleSubjectSetExams = useMemo(
+    () => crossAnalysisExams.filter((exam) => showAllSubjectSetTerms || exam.termId === currentTermId),
+    [crossAnalysisExams, currentTermId, showAllSubjectSetTerms],
+  );
 
   useEffect(() => {
     setSelectedCrossExamIds([currentExamId]);
+    setSelectedSubjectSetExamIds([currentExamId]);
+    setSelectedSubjectCodes([]);
     setShowAllCrossTerms(false);
+    setShowAllSubjectSetTerms(false);
   }, [currentExamId]);
 
   const toggleCrossExam = (selectedExamId: string) => {
@@ -6180,6 +6324,22 @@ function PerformanceAnalysisPage({
       if (current.length >= 5) return current;
       return [...current, selectedExamId];
     });
+  };
+
+  const toggleSubjectSetExam = (selectedExamId: string) => {
+    setSelectedSubjectSetExamIds((current) => {
+      if (current.includes(selectedExamId)) return current.filter((id) => id !== selectedExamId);
+      if (current.length >= 5) return current;
+      return [...current, selectedExamId];
+    });
+  };
+
+  const toggleSubjectCode = (subjectCode: string) => {
+    setSelectedSubjectCodes((current) =>
+      current.includes(subjectCode)
+        ? current.filter((code) => code !== subjectCode)
+        : [...current, subjectCode]
+    );
   };
 
   const formatCrossExamDate = (dateValue: string) => {
@@ -6370,14 +6530,14 @@ function PerformanceAnalysisPage({
       />
 
       <Dialog open={showAnalysisPrintType} onOpenChange={setShowAnalysisPrintType}>
-        <DialogContent className="border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg">
+        <DialogContent className="border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
           <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
               <Printer className="h-5 w-5 text-indigo-600" aria-hidden="true" />
               Choose analysis type
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-3 px-5 py-3 sm:grid-cols-2 sm:px-6">
+          <div className="grid gap-3 px-5 py-3 sm:grid-cols-3 sm:px-6">
             <Button
               type="button"
               variant="outline"
@@ -6404,6 +6564,20 @@ function PerformanceAnalysisPage({
               <span className="flex min-w-0 items-center gap-2.5">
                 <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
                 <span className="text-sm font-bold text-slate-950">Cross analysis</span>
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowAnalysisPrintType(false);
+                setShowSubjectSetAnalysis(true);
+              }}
+              className="h-20 items-center justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-emerald-300 hover:bg-emerald-50"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <BookOpen className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+                <span className="text-sm font-bold text-slate-950">Subject analysis</span>
               </span>
             </Button>
           </div>
@@ -6531,6 +6705,133 @@ function PerformanceAnalysisPage({
             </section>
           </div>
 
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSubjectSetAnalysis} onOpenChange={setShowSubjectSetAnalysis}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-emerald-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
+          <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
+              <BookOpen className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+              Subject analysis
+            </DialogTitle>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setShowSubjectSetAnalysis(false)}>Cancel</Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={selectedSubjectSetExamIds.length === 0 || selectedSubjectCodes.length === 0 || isGeneratingPDF}
+                onClick={() => {
+                  setShowSubjectSetAnalysis(false);
+                  onPrintSubjectSetAnalysis(selectedSubjectSetExamIds, selectedSubjectCodes);
+                }}
+                className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                {isGeneratingPDF
+                  ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  : <Printer className="h-4 w-4" aria-hidden="true" />}
+                {isGeneratingPDF
+                  ? 'Creating PDF...'
+                  : `Create subject PDF (${selectedSubjectCodes.length} subject${selectedSubjectCodes.length === 1 ? '' : 's'})`}
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 px-5 py-3 sm:px-6">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2">
+              <p className="text-xs font-bold text-emerald-950">Exam scope</p>
+              <Label htmlFor="subject-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-emerald-900">
+                <Checkbox
+                  id="subject-analysis-all-terms"
+                  checked={showAllSubjectSetTerms}
+                  onCheckedChange={(checked) => setShowAllSubjectSetTerms(checked === true)}
+                />
+                All terms
+              </Label>
+            </div>
+
+            <section aria-labelledby="subject-analysis-subjects-title">
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <h3 id="subject-analysis-subjects-title" className="text-sm font-bold text-slate-900">Subjects</h3>
+                <span className="text-xs font-bold tabular-nums text-emerald-700" aria-live="polite">
+                  {selectedSubjectCodes.length} selected
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {orderedSubjectSnaps.map((subject) => {
+                  const selected = selectedSubjectCodes.includes(subject.code);
+                  return (
+                    <Label
+                      key={subject.code}
+                      htmlFor={`subject-analysis-subject-${subject.code}`}
+                      className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                        selected
+                          ? 'border-emerald-300 bg-emerald-50'
+                          : 'border-slate-200 bg-slate-50/80 hover:border-emerald-200 hover:bg-emerald-50/60'
+                      }`}
+                    >
+                      <Checkbox
+                        id={`subject-analysis-subject-${subject.code}`}
+                        checked={selected}
+                        onCheckedChange={() => toggleSubjectCode(subject.code)}
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold text-slate-900">{subject.code}</span>
+                        <span className="block truncate text-[11px] font-medium text-slate-600">{cleanSubjectName(subject.name)}</span>
+                      </span>
+                    </Label>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section aria-labelledby="subject-analysis-sets-title">
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <div>
+                  <h3 id="subject-analysis-sets-title" className="text-sm font-bold text-slate-900">Exam sets</h3>
+                  <p className="text-xs text-slate-600">Choose one set for a single-exam table, or up to five sets for comparison.</p>
+                </div>
+                <span className="shrink-0 text-xs font-bold tabular-nums text-emerald-700" aria-live="polite">
+                  {selectedSubjectSetExamIds.length}/5 selected
+                </span>
+              </div>
+              <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+                {visibleSubjectSetExams.length === 0 ? (
+                  <p className="p-4 text-center text-sm text-slate-600">No saved exam definitions are available for this class and term.</p>
+                ) : visibleSubjectSetExams.map((exam) => {
+                  const selected = selectedSubjectSetExamIds.includes(exam.id);
+                  const canSelect = selected || selectedSubjectSetExamIds.length < 5;
+                  return (
+                    <Label
+                      key={exam.id}
+                      htmlFor={`subject-analysis-exam-${exam.id}`}
+                      className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                        selected
+                          ? 'border-emerald-300 bg-emerald-50'
+                          : canSelect
+                            ? 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'
+                            : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60'
+                      }`}
+                    >
+                      <Checkbox
+                        id={`subject-analysis-exam-${exam.id}`}
+                        checked={selected}
+                        disabled={!canSelect}
+                        onCheckedChange={() => toggleSubjectSetExam(exam.id)}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold text-slate-900">{exam.name}</span>
+                        <span className="mt-0.5 block text-xs font-normal text-slate-600">
+                          {exam.termName || 'Unknown term'} - {formatCrossExamDate(exam.startDate)}{exam.batchId ? ` - Batch ${exam.batchId}` : ''}
+                        </span>
+                      </span>
+                      {exam.id === currentExamId && <Badge variant="outline" className="shrink-0 border-emerald-200 bg-white text-[10px] text-emerald-700">Current</Badge>}
+                    </Label>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
         </DialogContent>
       </Dialog>
 

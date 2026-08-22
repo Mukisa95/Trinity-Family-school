@@ -55,6 +55,14 @@ export interface CrossAnalysisPDFProps {
   metrics: CrossAnalysisMetrics;
 }
 
+export interface SubjectSetAnalysisPDFProps {
+  schoolName?: string;
+  className: string;
+  academicYearName: string;
+  exams: CrossAnalysisExam[];
+  subjectCodes: string[];
+}
+
 interface ExamResultsPDFProps {
   examDetails: {
     name: string;
@@ -474,13 +482,20 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
   const cardGap = 1.5;
   const cardsStartX = outerMargin + pupilPanelWidth + cardGap;
   const examCardWidth = (pageWidth - outerMargin - cardsStartX - cardGap * (indexes.length - 1)) / indexes.length;
-  const subjectsPerLine = subjects.length <= 3 ? Math.max(subjects.length, 1) : 2;
+  // The result values are deliberately much larger than their labels. Three
+  // compact subject cells only remain readable when there are two wide exam
+  // columns, so use two cells per row for tighter three-to-five-exam layouts.
+  const subjectsPerLine = subjects.length <= 3 && indexes.length <= 2
+    ? Math.max(subjects.length, 1)
+    : 2;
   const hasSubjectMarks = props.metrics.subjectMarks && subjects.length > 0;
   const subjectLines = hasSubjectMarks ? Math.ceil(subjects.length / subjectsPerLine) : 0;
-  const subjectRowHeight = 3.9;
+  const subjectCellHeight = 6.4;
+  const subjectRowHeight = 6.9;
+  const metricBlockHeight = 5.1;
   const examCardHeight = hasSubjectMarks
-    ? Math.max(9, 6.6 + subjectLines * subjectRowHeight)
-    : 13;
+    ? Math.max(15, metricBlockHeight + 0.7 + subjectLines * subjectRowHeight)
+    : Math.max(18, metricBlockHeight + 8);
   const pupilCardHeight = Math.max(12, examCardHeight + 1.2);
   const columnHeaderHeight = 7.2;
   const cardPalette: Array<[number, number, number]> = [
@@ -550,23 +565,31 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     grade?: string,
   ) => {
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(x, y, width, 3.55, 0.65, 0.65, 'F');
+    doc.roundedRect(x, y, width, subjectCellHeight, 0.65, 0.65, 'F');
     doc.setTextColor(51, 65, 85);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(4.3);
-    doc.text(subjectCode, x + 0.9, y + 2.4);
-    doc.setFont('helvetica', 'normal');
-    doc.text(marks === undefined ? '-' : String(marks), x + 5.9, y + 2.4);
+    doc.setFontSize(width < 23 ? 5.2 : 6.6);
+    doc.text(subjectCode, x + 0.9, y + 4.05);
 
     const gradeText = marks === undefined ? '-' : grade || '-';
-    const gradeWidth = Math.max(4.8, doc.getTextWidth(gradeText) + 2.1);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    const gradeWidth = Math.max(7.2, doc.getTextWidth(gradeText) + 2.4);
     const [red, green, blue] = getGradeColor(grade);
     doc.setFillColor(red, green, blue);
-    doc.roundedRect(x + width - gradeWidth - 0.7, y + 0.5, gradeWidth, 2.4, 0.8, 0.8, 'F');
+    doc.roundedRect(x + width - gradeWidth - 0.7, y + 0.8, gradeWidth, 4.3, 1.1, 1.1, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(3.8);
-    doc.text(gradeText, x + width - gradeWidth / 2 - 0.7, y + 2.15, { align: 'center' });
+    doc.text(gradeText, x + width - gradeWidth / 2 - 0.7, y + 3.85, { align: 'center' });
+
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.6);
+    doc.text(
+      marks === undefined ? '-' : String(marks),
+      x + width - gradeWidth - 1.5,
+      y + 4.15,
+      { align: 'right' },
+    );
   };
 
   startCardPage();
@@ -602,27 +625,38 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
         return;
       }
 
+      const division = String(result.division || '-')
+        .trim()
+        .replace(/^(?:DIV(?:ISION)?|D)\.?\s*/i, '') || '-';
+      const aggregateAndDivision = [
+        ...(props.metrics.aggregates ? [`(${result.totalAggregates})`] : []),
+        ...(props.metrics.divisions ? [division] : []),
+      ].join(' ');
       const metrics = [
         `POS ${result.position}`,
         ...(props.metrics.totalMarks ? [`TOT ${result.totalMarks}`] : []),
-        ...(props.metrics.aggregates ? [`AGG ${result.totalAggregates}`] : []),
-        ...(props.metrics.divisions ? [`DIV ${result.division}`] : []),
+        ...(aggregateAndDivision ? [aggregateAndDivision] : []),
       ];
       doc.setTextColor(51, 65, 85);
       doc.setFont('helvetica', 'bold');
       const metricSlotWidth = (examCardWidth - 2.8) / metrics.length;
-      let metricFontSize = hasSubjectMarks ? 4.6 : 7.2;
+      const metricStartY = hasSubjectMarks
+        ? y + 3.7
+        : y + examCardHeight / 2 + 1.2;
+      let metricFontSize = 8.6;
       while (metricFontSize > 4.8) {
         doc.setFontSize(metricFontSize);
-        if (metrics.every((metric) => doc.getTextWidth(metric) <= metricSlotWidth - 0.8)) break;
+        if (metrics.every((metric) => doc.getTextWidth(metric) <= metricSlotWidth - 0.6)) break;
         metricFontSize -= 0.2;
       }
       doc.setFontSize(metricFontSize);
-      const metricY = hasSubjectMarks
-        ? y + 3.2
-        : y + examCardHeight / 2 + 0.9;
       metrics.forEach((metric, metricIndex) => {
-        doc.text(metric, x + 1.4 + metricSlotWidth * (metricIndex + 0.5), metricY, { align: 'center' });
+        doc.text(
+          metric,
+          x + 1.4 + metricSlotWidth * (metricIndex + 0.5),
+          metricStartY,
+          { align: 'center' },
+        );
       });
 
       if (hasSubjectMarks) {
@@ -631,11 +665,11 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
           const marks = asFiniteNumber(subjectResult?.marks);
           const row = Math.floor(subjectIndex / subjectsPerLine);
           const column = subjectIndex % subjectsPerLine;
-          const subjectGap = 0.9;
+          const subjectGap = 1.1;
           const subjectWidth = (examCardWidth - 2.6 - subjectGap * (subjectsPerLine - 1)) / subjectsPerLine;
           drawSubjectCell(
             x + 1.3 + column * (subjectWidth + subjectGap),
-            y + 5.1 + row * subjectRowHeight,
+            y + metricBlockHeight + 0.4 + row * subjectRowHeight,
             subjectWidth,
             subject.code,
             marks,
@@ -646,6 +680,138 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     });
 
     currentY += pupilCardHeight + 1;
+  });
+
+  addAnalysisPageFooters(doc);
+  return doc.output('blob');
+};
+
+/**
+ * Creates one compact table per selected subject. Pupil rows are ordered by
+ * the first selected set's mark for that subject, while every set remains a
+ * concise Set 1, Set 2, etc. column.
+ */
+export const generateSubjectSetAnalysisPDF = (props: SubjectSetAnalysisPDFProps) => {
+  if (props.exams.length === 0) {
+    throw new Error('Select at least one exam set for subject analysis.');
+  }
+  if (props.subjectCodes.length === 0) {
+    throw new Error('Select at least one subject for subject analysis.');
+  }
+
+  const exams = [...props.exams].sort((first, second) =>
+    new Date(first.startDate).valueOf() - new Date(second.startDate).valueOf()
+    || first.name.localeCompare(second.name)
+  );
+  const subjectsByCode = new Map<string, { code: string; name: string }>();
+  exams.forEach((exam) => exam.subjects.forEach((subject) => {
+    if (!subjectsByCode.has(subject.code)) subjectsByCode.set(subject.code, subject);
+  }));
+  const selectedSubjects = props.subjectCodes
+    .map((code) => subjectsByCode.get(code))
+    .filter((subject): subject is { code: string; name: string } => Boolean(subject));
+
+  if (selectedSubjects.length === 0) {
+    throw new Error('The selected subjects do not have saved results in the chosen sets.');
+  }
+
+  const dataColumnCount = exams.length * selectedSubjects.length;
+  const orientation = dataColumnCount > 6 || exams.length > 3 ? 'landscape' : 'portrait';
+  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.width;
+  const firstExam = exams[0];
+  const setKey = exams
+    .map((exam, index) => `Set ${index + 1} - ${exam.name} (${getCrossExamDateLabel(exam)})`)
+    .join('   |   ');
+  const tableFontSize = dataColumnCount > 8 ? 6.2 : dataColumnCount > 6 ? 6.8 : 7.5;
+
+  const title = exams.length === 1
+    ? `SUBJECT SET ANALYSIS - ${exams[0].name}`
+    : 'SUBJECT SET ANALYSIS';
+  const showSetKey = exams.length > 1;
+  const tableStartY = showSetKey ? 39 : 31;
+  const drawHeader = () => {
+    doc.setFillColor(30, 58, 138);
+    doc.rect(0, 0, pageWidth, 19, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    if (props.schoolName && (doc as any).internal.getCurrentPageInfo().pageNumber === 1) {
+      doc.setFontSize(8.5);
+      doc.text(props.schoolName, pageWidth / 2, 5.5, { align: 'center' });
+    }
+    doc.setFontSize(10);
+    doc.text(title, pageWidth / 2, props.schoolName ? 11.5 : 8, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(219, 234, 254);
+    doc.text(`${props.className} - ${props.academicYearName}`, pageWidth / 2, props.schoolName ? 16 : 13, { align: 'center' });
+
+    if (showSetKey) {
+      doc.setTextColor(30, 41, 59);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.4);
+      const lines = doc.splitTextToSize(`KEY: ${setKey}`, pageWidth - 20);
+      doc.text(lines, 10, 26.5);
+    }
+  };
+
+  const pupils = [...firstExam.pupils].sort((first, second) => {
+    const average = (pupilId: string) => {
+      const marks = selectedSubjects
+        .map((subject) => asFiniteNumber(firstExam.results[pupilId]?.subjects?.[subject.code]?.marks))
+        .filter((mark): mark is number => mark !== undefined);
+      return marks.length ? marks.reduce((total, mark) => total + mark, 0) / marks.length : -1;
+    };
+    return average(second.pupilId) - average(first.pupilId) || first.name.localeCompare(second.name);
+  });
+  const groupedHeaders = [
+    { content: 'PUPIL NAME', rowSpan: 2, styles: { valign: 'middle' } },
+    ...exams.map((_, index) => ({ content: `SET ${index + 1}`, colSpan: selectedSubjects.length })),
+  ];
+  const subjectHeaders = selectedSubjects.map((subject) => subject.code);
+  const body = pupils.map((pupil) => [
+    pupil.name,
+    ...exams.flatMap((exam) => selectedSubjects.map((subject) => {
+      const result = exam.results[pupil.pupilId]?.subjects?.[subject.code];
+      const mark = asFiniteNumber(result?.marks);
+      return mark === undefined ? '-' : result?.grade ? `${mark} (${result.grade})` : String(mark);
+    })),
+  ]);
+  const pupilColumnWidth = dataColumnCount > 6 ? 44 : 54;
+  const subjectColumnWidth = (pageWidth - 20 - pupilColumnWidth) / dataColumnCount;
+
+  autoTable(doc, {
+    startY: tableStartY,
+    head: [groupedHeaders, subjectHeaders],
+    body,
+    theme: 'grid',
+    showHead: 'everyPage',
+    margin: { top: tableStartY, right: 10, bottom: 14, left: 10 },
+    rowPageBreak: 'avoid',
+    headStyles: {
+      fillColor: [67, 56, 202],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: tableFontSize,
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 1.7,
+    },
+    bodyStyles: {
+      fontSize: tableFontSize,
+      textColor: [15, 23, 42],
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 1.5,
+      lineColor: [148, 163, 184],
+      lineWidth: 0.25,
+    },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: pupilColumnWidth, halign: 'left', fontStyle: 'bold' },
+      ...Object.fromEntries(Array.from({ length: dataColumnCount }, (_, index) => [index + 1, { cellWidth: subjectColumnWidth }])),
+    },
+    didDrawPage: drawHeader,
   });
 
   addAnalysisPageFooters(doc);
