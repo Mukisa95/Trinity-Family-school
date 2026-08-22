@@ -461,7 +461,8 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     return average(second.code) - average(first.code) || first.code.localeCompare(second.code);
   });
 
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const orientation = exams.length <= 3 ? 'portrait' : 'landscape';
+  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
   const title = 'CROSS EXAM ANALYSIS';
   const subtitle = `${props.className} - ${props.academicYearName} - ${exams.length} exams in date order`;
   const pageWidth = doc.internal.pageSize.width;
