@@ -406,31 +406,23 @@ const drawCrossAnalysisHeader = (
   schoolName?: string,
 ) => {
   const pageWidth = doc.internal.pageSize.width;
-  const hasSchoolName = Boolean(schoolName) && (doc as any).internal.getCurrentPageInfo().pageNumber === 1;
-  const headerHeight = hasSchoolName ? 30 : 25;
+  const isFirstPage = (doc as any).internal.getCurrentPageInfo().pageNumber === 1;
+  if (!isFirstPage) return;
 
   doc.setFillColor(30, 58, 138);
-  doc.rect(0, 0, pageWidth, headerHeight, 'F');
+  doc.rect(0, 0, pageWidth, 19, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  if (hasSchoolName) {
-    doc.setFontSize(11);
-    doc.text(schoolName!, pageWidth / 2, 8, { align: 'center' });
-    doc.setFontSize(12);
-    doc.text(title, pageWidth / 2, 17, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(219, 234, 254);
-    doc.text(subtitle, pageWidth / 2, 24, { align: 'center' });
-    return;
+  if (schoolName) {
+    doc.setFontSize(8.5);
+    doc.text(schoolName, pageWidth / 2, 5.5, { align: 'center' });
   }
-
-  doc.setFontSize(12);
-  doc.text(title, pageWidth / 2, 10, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text(title, pageWidth / 2, schoolName ? 11.5 : 8, { align: 'center' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(6.5);
   doc.setTextColor(219, 234, 254);
-  doc.text(subtitle, pageWidth / 2, 18, { align: 'center' });
+  doc.text(subtitle, pageWidth / 2, schoolName ? 16 : 13, { align: 'center' });
 };
 
 /**
@@ -474,18 +466,18 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
   const subtitle = `${props.className} - ${props.academicYearName} - ${exams.length} exams in date order`;
   const pageWidth = doc.internal.pageSize.width;
   const pageHeight = doc.internal.pageSize.height;
-  const outerMargin = 8;
-  const headerEndY = 33;
-  const footerStartY = pageHeight - 14;
+  const outerMargin = 10;
+  const firstPageTableTop = 20.5;
+  const footerStartY = pageHeight - outerMargin;
   const pupilPanelWidth = 42;
   const cardGap = 1.5;
   const cardsStartX = outerMargin + pupilPanelWidth + cardGap;
   const examCardWidth = (pageWidth - outerMargin - cardsStartX - cardGap * (indexes.length - 1)) / indexes.length;
   const subjectsPerLine = subjects.length <= 3 ? Math.max(subjects.length, 1) : 2;
   const subjectLines = props.metrics.subjectMarks ? Math.ceil(subjects.length / subjectsPerLine) : 0;
-  const subjectRowHeight = 4.4;
+  const subjectRowHeight = 3.9;
   const examCardHeight = Math.max(9, 6.6 + subjectLines * subjectRowHeight);
-  const pupilCardHeight = Math.max(23, examCardHeight + 4);
+  const pupilCardHeight = Math.max(12, examCardHeight + 1.2);
   const columnHeaderHeight = 7.2;
   const cardPalette: Array<[number, number, number]> = [
     [30, 64, 175],
@@ -494,11 +486,14 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     [5, 150, 105],
     [180, 83, 9],
   ];
-  let currentY = headerEndY + columnHeaderHeight + 2;
+  const getTableTop = () => (doc as any).internal.getCurrentPageInfo().pageNumber === 1
+    ? firstPageTableTop
+    : outerMargin;
+  let currentY = firstPageTableTop + columnHeaderHeight + 1.2;
 
   const drawPageHeader = () => drawCrossAnalysisHeader(doc, title, subtitle, props.schoolName);
   const drawExamColumnHeaders = () => {
-    const headerY = headerEndY + 0.8;
+    const headerY = getTableTop();
     doc.setFillColor(237, 233, 254);
     doc.roundedRect(outerMargin, headerY, pupilPanelWidth, columnHeaderHeight, 1.2, 1.2, 'F');
     doc.setTextColor(76, 29, 149);
@@ -524,11 +519,14 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
       doc.text(getCrossExamDateLabel(index.exam), x + examCardWidth - 1.4, headerY + 5.35, { align: 'right' });
     });
   };
-  const addCardPage = () => {
-    doc.addPage();
-    currentY = headerEndY + columnHeaderHeight + 2;
+  const startCardPage = () => {
     drawPageHeader();
     drawExamColumnHeaders();
+    currentY = getTableTop() + columnHeaderHeight + 1.2;
+  };
+  const addCardPage = () => {
+    doc.addPage();
+    startCardPage();
   };
 
   const getGradeColor = (grade?: string): [number, number, number] => {
@@ -548,55 +546,45 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
     grade?: string,
   ) => {
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(x, y, width, 3.8, 0.65, 0.65, 'F');
+    doc.roundedRect(x, y, width, 3.55, 0.65, 0.65, 'F');
     doc.setTextColor(51, 65, 85);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(4.3);
-    doc.text(subjectCode, x + 0.9, y + 2.55);
+    doc.text(subjectCode, x + 0.9, y + 2.4);
     doc.setFont('helvetica', 'normal');
-    doc.text(marks === undefined ? '-' : String(marks), x + 5.9, y + 2.55);
+    doc.text(marks === undefined ? '-' : String(marks), x + 5.9, y + 2.4);
 
     const gradeText = marks === undefined ? '-' : grade || '-';
     const gradeWidth = Math.max(4.8, doc.getTextWidth(gradeText) + 2.1);
     const [red, green, blue] = getGradeColor(grade);
     doc.setFillColor(red, green, blue);
-    doc.roundedRect(x + width - gradeWidth - 0.7, y + 0.6, gradeWidth, 2.55, 0.8, 0.8, 'F');
+    doc.roundedRect(x + width - gradeWidth - 0.7, y + 0.5, gradeWidth, 2.4, 0.8, 0.8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(3.8);
-    doc.text(gradeText, x + width - gradeWidth / 2 - 0.7, y + 2.35, { align: 'center' });
+    doc.text(gradeText, x + width - gradeWidth / 2 - 0.7, y + 2.15, { align: 'center' });
   };
 
-  drawPageHeader();
-  drawExamColumnHeaders();
+  startCardPage();
   orderedPupils.forEach((pupil) => {
     if (currentY + pupilCardHeight > footerStartY) addCardPage();
 
-    const firstResult = firstIndex.pupilResults.get(pupil.pupilId);
     doc.setDrawColor(196, 181, 253);
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(outerMargin, currentY, pageWidth - outerMargin * 2, pupilCardHeight, 2, 2, 'FD');
 
     doc.setFillColor(245, 243, 255);
-    doc.roundedRect(outerMargin + 0.4, currentY + 0.4, pupilPanelWidth - 0.8, pupilCardHeight - 0.8, 1.5, 1.5, 'F');
+    doc.roundedRect(outerMargin + 0.3, currentY + 0.3, pupilPanelWidth - 0.6, pupilCardHeight - 0.6, 1.5, 1.5, 'F');
     doc.setTextColor(76, 29, 149);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.8);
     const pupilName = doc.splitTextToSize(pupil.name, pupilPanelWidth - 5).slice(0, 3);
-    doc.text(pupilName, outerMargin + 2.5, currentY + 5);
-    doc.setFillColor(109, 40, 217);
-    doc.roundedRect(outerMargin + 2.5, currentY + pupilCardHeight - 9, 17, 5.5, 1.2, 1.2, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(5.6);
-    doc.text(`BASE P ${firstResult?.position ?? '-'}`, outerMargin + 11, currentY + pupilCardHeight - 5.2, { align: 'center' });
-    doc.setTextColor(100, 116, 139);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5.2);
-    doc.text('First exam sets the pupil order', outerMargin + 2.5, currentY + pupilCardHeight - 1.8);
+    const pupilNameY = currentY + Math.max(5, pupilCardHeight / 2 - (pupilName.length - 1) * 2.4);
+    doc.text(pupilName, outerMargin + 2.5, pupilNameY);
 
     indexes.forEach((index, indexNumber) => {
       const x = cardsStartX + indexNumber * (examCardWidth + cardGap);
-      const y = currentY + 2;
+      const y = currentY + 0.6;
       const result = index.pupilResults.get(pupil.pupilId);
       doc.setDrawColor(203, 213, 225);
       doc.setFillColor(255, 255, 255);
@@ -644,7 +632,7 @@ export const generateCrossAnalysisPDF = (props: CrossAnalysisPDFProps) => {
       }
     });
 
-    currentY += pupilCardHeight + 3;
+    currentY += pupilCardHeight + 1;
   });
 
   addAnalysisPageFooters(doc);
