@@ -6371,16 +6371,13 @@ function PerformanceAnalysisPage({
 
       <Dialog open={showAnalysisPrintType} onOpenChange={setShowAnalysisPrintType}>
         <DialogContent className="border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg">
-          <DialogHeader className="border-b border-slate-100 px-5 pb-4 pt-5 text-left sm:px-6">
+          <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
               <Printer className="h-5 w-5 text-indigo-600" aria-hidden="true" />
               Choose analysis type
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600">
-              Print the current exam on its own or compare it with up to four other exams from this class and academic year.
-            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 px-5 py-4 sm:grid-cols-2 sm:px-6">
+          <div className="grid gap-3 px-5 py-3 sm:grid-cols-2 sm:px-6">
             <Button
               type="button"
               variant="outline"
@@ -6388,14 +6385,11 @@ function PerformanceAnalysisPage({
                 setShowAnalysisPrintType(false);
                 setShowPrintSections(true);
               }}
-              className="h-auto min-h-32 items-start justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-indigo-300 hover:bg-indigo-50"
+              className="h-20 items-center justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-indigo-300 hover:bg-indigo-50"
             >
-              <span className="flex min-w-0 flex-col items-start gap-2">
+              <span className="flex min-w-0 items-center gap-2.5">
                 <FileText className="h-5 w-5 text-indigo-600" aria-hidden="true" />
                 <span className="text-sm font-bold text-slate-950">Self analysis</span>
-                <span className="text-xs font-normal leading-5 text-slate-600">
-                  Analyse this exam only, with the overview, division, and subject-ranking sections you choose.
-                </span>
               </span>
             </Button>
             <Button
@@ -6405,14 +6399,11 @@ function PerformanceAnalysisPage({
                 setShowAnalysisPrintType(false);
                 setShowCrossAnalysis(true);
               }}
-              className="h-auto min-h-32 items-start justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-violet-300 hover:bg-violet-50"
+              className="h-20 items-center justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-violet-300 hover:bg-violet-50"
             >
-              <span className="flex min-w-0 flex-col items-start gap-2">
+              <span className="flex min-w-0 items-center gap-2.5">
                 <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
                 <span className="text-sm font-bold text-slate-950">Cross analysis</span>
-                <span className="text-xs font-normal leading-5 text-slate-600">
-                  Compare up to five dated exam sets. Each exam keeps its own class and subject positions.
-                </span>
               </span>
             </Button>
           </div>
@@ -6421,24 +6412,34 @@ function PerformanceAnalysisPage({
 
       <Dialog open={showCrossAnalysis} onOpenChange={setShowCrossAnalysis}>
         <DialogContent className="max-h-[90vh] overflow-y-auto border-violet-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
-          <DialogHeader className="border-b border-slate-100 px-5 pb-4 pt-5 text-left sm:px-6">
+          <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
               <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
               Cross exam analysis
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600">
-              Select two to five exams. The PDF orders exams by date and pupils by their performance in the first selected exam.
-            </DialogDescription>
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setShowCrossAnalysis(false)}>Cancel</Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={selectedCrossExamIds.length < 2 || selectedCrossMetricCount === 0 || isGeneratingPDF}
+                onClick={() => {
+                  setShowCrossAnalysis(false);
+                  onPrintCrossAnalysis(selectedCrossExamIds, crossMetrics);
+                }}
+                className="gap-2 bg-violet-600 text-white hover:bg-violet-700"
+              >
+                {isGeneratingPDF
+                  ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                  : <Printer className="h-4 w-4" aria-hidden="true" />}
+                {isGeneratingPDF ? 'Creating PDF...' : `Create cross PDF (${selectedCrossExamIds.length}/5)`}
+              </Button>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-5 px-5 py-4 sm:px-6">
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-violet-100 bg-violet-50/70 p-3">
-              <div>
-                <p className="text-sm font-bold text-violet-950">Exam scope</p>
-                <p className="mt-0.5 text-xs leading-5 text-violet-800">
-                  The current term is shown first. Enable all terms to include other batches and terms from {academicYearName}.
-                </p>
-              </div>
+          <div className="space-y-3 px-5 py-3 sm:px-6">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-violet-100 bg-violet-50/70 px-3 py-2">
+              <p className="text-xs font-bold text-violet-950">Exam scope</p>
               <Label htmlFor="cross-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-violet-900">
                 <Checkbox
                   id="cross-analysis-all-terms"
@@ -6501,19 +6502,18 @@ function PerformanceAnalysisPage({
             <section aria-labelledby="cross-analysis-data-title">
               <div className="mb-2">
                 <h3 id="cross-analysis-data-title" className="text-sm font-bold text-slate-900">Include in the PDF</h3>
-                <p className="text-xs text-slate-600">Every selected exam always shows its overall position.</p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {([
-                  ['aggregates', 'Aggregates', 'Compare each pupil’s aggregate total.'],
-                  ['divisions', 'Divisions', 'Compare the division awarded in every exam.'],
-                  ['totalMarks', 'Total marks', 'Compare each pupil’s total marks.'],
-                  ['subjectMarks', 'Subject marks', 'One table per subject with mark, grade, and subject position.'],
-                ] as const).map(([key, label, description]) => (
+                  ['aggregates', 'Aggregates'],
+                  ['divisions', 'Divisions'],
+                  ['totalMarks', 'Total marks'],
+                  ['subjectMarks', 'Subject marks'],
+                ] as const).map(([key, label]) => (
                   <Label
                     key={key}
                     htmlFor={`cross-analysis-metric-${key}`}
-                    className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-violet-300 hover:bg-violet-50/60 has-[[data-state=checked]]:border-violet-400 has-[[data-state=checked]]:bg-violet-50"
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors hover:border-violet-300 hover:bg-violet-50/60 has-[[data-state=checked]]:border-violet-400 has-[[data-state=checked]]:bg-violet-50"
                   >
                     <Checkbox
                       id={`cross-analysis-metric-${key}`}
@@ -6521,10 +6521,7 @@ function PerformanceAnalysisPage({
                       onCheckedChange={(checked) => setCrossMetrics((current) => ({ ...current, [key]: checked === true }))}
                       className="mt-0.5"
                     />
-                    <span>
-                      <span className="block text-sm font-bold text-slate-900">{label}</span>
-                      <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">{description}</span>
-                    </span>
+                    <span className="text-sm font-bold text-slate-900">{label}</span>
                   </Label>
                 ))}
               </div>
@@ -6534,23 +6531,6 @@ function PerformanceAnalysisPage({
             </section>
           </div>
 
-          <DialogFooter className="border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
-            <Button type="button" variant="outline" onClick={() => setShowCrossAnalysis(false)}>Cancel</Button>
-            <Button
-              type="button"
-              disabled={selectedCrossExamIds.length < 2 || selectedCrossMetricCount === 0 || isGeneratingPDF}
-              onClick={() => {
-                setShowCrossAnalysis(false);
-                onPrintCrossAnalysis(selectedCrossExamIds, crossMetrics);
-              }}
-              className="gap-2 bg-violet-600 text-white hover:bg-violet-700"
-            >
-              {isGeneratingPDF
-                ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                : <Printer className="h-4 w-4" aria-hidden="true" />}
-              {isGeneratingPDF ? 'Creating PDF...' : `Create cross PDF (${selectedCrossExamIds.length}/5)`}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
