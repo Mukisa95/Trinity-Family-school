@@ -482,11 +482,21 @@ export function ThankYouCardStudio() {
     if (selectedPupils.length === 0) return;
     setIsPreparingPrint(true);
     try {
-      await document.fonts?.ready;
-      await waitForPrintableImages();
-      const pdfBlob = await createDuplexPdfBlob(pairs, schoolBadge);
       const dateStamp = new Date().toISOString().slice(0, 10);
-      pdfViewer.openPDFFromBlob(pdfBlob, `docx-thank-you-cards-${dateStamp}.pdf`, 'DocX Thank You Cards');
+      await pdfViewer.runPDFJob(
+        {
+          fileName: `docx-thank-you-cards-${dateStamp}.pdf`,
+          title: 'DocX Thank You Cards',
+          initialMessage: 'Preparing card artwork…',
+        },
+        async ({ updateProgress }) => {
+          await document.fonts?.ready;
+          updateProgress(18, 'Fonts ready. Loading card images…');
+          await waitForPrintableImages();
+          updateProgress(45, 'Creating duplex card pages…');
+          return createDuplexPdfBlob(pairs, schoolBadge);
+        },
+      );
     } catch (error) {
       console.error('Unable to prepare DocX print preview:', error);
       toast({

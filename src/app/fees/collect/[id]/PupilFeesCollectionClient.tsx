@@ -90,6 +90,7 @@ import { useActiveUniforms, useUniforms, useUniformsByFilter } from '@/lib/hooks
 import { useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
+import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 
 // Performance and Error Handling
 import { usePerformanceMonitor, useRenderTracker } from './utils/performance';
@@ -177,6 +178,7 @@ const TERM_TAB_NEON_STYLES = [
 ] as const;
 
 export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pupilId?: string }) {
+  const pdfViewer = usePDFViewer();
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1734,21 +1736,17 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         </Document>
       );
 
-      const blob = await ReactPDF.pdf(<PaymentIDCardPDF />).toBlob();
       const safeName = (pupil.firstName + "_" + pupil.lastName).replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
       const fileName = `${safeName}_Payment_ID.pdf`;
-      
-      const fileURL = URL.createObjectURL(blob);
-      const printWindow = window.open(fileURL, '_blank');
-      if (printWindow) {
-        printWindow.focus();
-      } else {
-        // Fallback to download if popup blocker prevents opening
-        const link = document.createElement('a');
-        link.href = fileURL;
-        link.download = fileName;
-        link.click();
-      }
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Payment ID Card', initialMessage: 'Rendering payment ID card…' },
+        async ({ updateProgress }) => {
+          updateProgress(25, 'Preparing payment identity and QR code…');
+          const blob = await ReactPDF.pdf(<PaymentIDCardPDF />).toBlob();
+          updateProgress(96, 'Finalizing payment ID card…');
+          return blob;
+        },
+      );
 
       toast({
         title: "Payment ID Generated",

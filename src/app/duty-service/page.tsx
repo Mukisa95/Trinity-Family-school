@@ -43,8 +43,10 @@ import { DutyAssignment, DutyRota } from '@/types/duty-service';
 import { generateDutyRotaPDF } from '@/lib/utils/pdf-generator';
 import { DutyServiceService } from '@/lib/services/duty-service.service';
 import { Toaster } from '@/components/ui/toaster';
+import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 
 export default function DutyServicePage() {
+  const pdfViewer = usePDFViewer();
   const [activeTab, setActiveTab] = useState('prefectoral');
   const [selectedRotaForTimeline, setSelectedRotaForTimeline] = useState<string | null>(null);
   const [selectedRotaForEdit, setSelectedRotaForEdit] = useState<DutyRota | null>(null);
@@ -87,17 +89,26 @@ export default function DutyServicePage() {
         const academicYearData = academicYears.find(ay => ay.id === rota.academicYearId);
         const termData = rota.termId ? academicYearData?.terms?.find(t => t.id === rota.termId) : null;
 
-        await generateDutyRotaPDF({
-          dutyRota: rota,
-          timeline: timelineData,
-          staff,
-          pupils,
-          academicYear: academicYearData,
-          term: termData || undefined
-        });
+        const fileName = `${rota.dutyName.replace(/[^a-zA-Z0-9]/g, '_')}_Duty_Rota_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+        await pdfViewer.runPDFJob(
+          { fileName, title: rota.dutyName, initialMessage: 'Rendering duty rota tables…' },
+          async ({ updateProgress }) => {
+            updateProgress(24, 'Preparing duty assignments…');
+            const blob = await generateDutyRotaPDF({
+              dutyRota: rota,
+              timeline: timelineData,
+              staff,
+              pupils,
+              academicYear: academicYearData,
+              term: termData || undefined,
+            });
+            updateProgress(96, 'Finalizing duty rota…');
+            return blob;
+          },
+        );
         toast({
           title: "PDF Generated Successfully",
-          description: `Duty rota "${rota.dutyName}" has been downloaded as PDF.`,
+          description: `Duty rota "${rota.dutyName}" is ready in the PDF workspace.`,
         });
       } else {
         toast({

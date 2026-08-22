@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AcademicYear, PaymentRecord, Pupil, UniformTracking } from '@/types';
 import { getCollectedUniformItemIds } from '../utils/uniformCollectionState';
+import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 
 // Extended PupilFee interface (matching the main component)
 interface PupilFee {
@@ -70,6 +71,7 @@ export function FeeCard({
   isUniformTrackingLoading = false,
   uniformTrackingError = null,
 }: FeeCardProps) {
+  const pdfViewer = usePDFViewer();
   const [isPaymentHistoryExpanded, setIsPaymentHistoryExpanded] = useState(false);
   const [isUniformTrackingExpanded, setIsUniformTrackingExpanded] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -283,18 +285,19 @@ export function FeeCard({
   const hasMorePayments = sortedPayments.length > 2;
 
   const handlePrintReceipt = async (payment: PaymentRecord) => {
-    // Create a clean, simple receipt PDF
-    const doc = new jsPDF({
-      unit: 'mm',
-      format: [80, 120], // Standard receipt size
-      orientation: 'portrait'
-    });
-
-    const currentDate = new Date().toLocaleString();
-    const paymentDate = new Date(payment.paymentDate).toLocaleDateString();
-
-    // Generate receipt number using actual payment data
     const receiptNumber = payment.id.slice(-8).toUpperCase();
+    const fileName = `receipt-${receiptNumber}-${pupil.firstName}-${pupil.lastName}.pdf`;
+    await pdfViewer.runPDFJob(
+      { fileName, title: `Receipt ${receiptNumber}`, initialMessage: 'Rendering payment receipt…' },
+      async ({ updateProgress }) => {
+        updateProgress(18, 'Preparing receipt details…');
+        const doc = new jsPDF({
+          unit: 'mm',
+          format: [80, 120],
+          orientation: 'portrait',
+        });
+        const currentDate = new Date().toLocaleString();
+        const paymentDate = new Date(payment.paymentDate).toLocaleDateString();
 
     // Set up styling
     doc.setFillColor(248, 250, 252);
@@ -430,9 +433,10 @@ export function FeeCard({
       doc.rect(2, 2, 76, 108);
     }
 
-    // Save the PDF
-    const fileName = `receipt-${receiptNumber}-${pupil.firstName}-${pupil.lastName}.pdf`;
-    doc.save(fileName);
+        updateProgress(96, 'Finalizing receipt…');
+        return doc.output('blob');
+      },
+    );
   };
 
   const handleSendSMS = (payment: PaymentRecord) => {

@@ -1973,12 +1973,18 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }
       };
 
-      const blob = await generateModernBatchReportPDF(modernBatchData);
-
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Report.pdf`;
       const title = 'Individual Pupil Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual pupil report…' },
+        async ({ signal, updateProgress }) => {
+          updateProgress(50, 'Rendering the pupil report…');
+          const blob = await generateModernBatchReportPDF(modernBatchData);
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgressForIndividual(100, 'Complete!');
 
@@ -2039,35 +2045,39 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         examDetails.termId || '',
       );
 
-      updateProgressForIndividual(65, 'Generating one half-page Mini Report...');
-      const blob = await generatePrimaryMiniReportPDF({
-        examDetails: {
-          name: examDetails.name,
-          examTypeName: examDetails.examTypeName || 'Exam',
-          startDate: examDetails.startDate,
-          endDate: examDetails.endDate,
-          academicYearId: examDetails.academicYearId,
-          termId: examDetails.termId,
-          academicYearName,
-          termName,
-        },
-        classSnap,
-        subjectSnaps: enhancedSubjectSnaps,
-        processedResults: resultsForReport,
-        schoolSettings,
-        majorSubjects: examResultData?.majorSubjects,
-        backgroundImage: '/images/Primary%20Mini%20BG.png',
-        onProgress: (completed, total) => updateProgressForIndividual(
-          65 + Math.round((completed / Math.max(total, 1)) * 30),
-          `Generating Mini Report (${completed}/${total})...`,
-        ),
-      });
-
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
-      pdfViewer.openPDFFromBlob(
-        blob,
-        `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Mini_Report.pdf`,
-        'Individual Pupil Mini Report',
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_Mini_Report.pdf`;
+      updateProgressForIndividual(65, 'Generating one half-page Mini Report...');
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Individual Pupil Mini Report', initialMessage: 'Generating the pupil Mini Report…' },
+        async ({ signal, updateProgress }) => {
+          const blob = await generatePrimaryMiniReportPDF({
+            examDetails: {
+              name: examDetails.name,
+              examTypeName: examDetails.examTypeName || 'Exam',
+              startDate: examDetails.startDate,
+              endDate: examDetails.endDate,
+              academicYearId: examDetails.academicYearId,
+              termId: examDetails.termId,
+              academicYearName,
+              termName,
+            },
+            classSnap,
+            subjectSnaps: enhancedSubjectSnaps,
+            processedResults: resultsForReport,
+            schoolSettings,
+            majorSubjects: examResultData?.majorSubjects,
+            backgroundImage: '/images/Primary%20Mini%20BG.png',
+            onProgress: (completed, total) => {
+              const progress = 65 + Math.round((completed / Math.max(total, 1)) * 30);
+              const message = `Generating Mini Report (${completed}/${total})...`;
+              updateProgressForIndividual(progress, message);
+              updateProgress(progress, message);
+            },
+          });
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
       );
       updateProgressForIndividual(100, 'Complete!');
       toast({ title: 'Success', description: 'Mini Report is ready for viewing.', duration: 1500 });
@@ -2238,14 +2248,20 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }
       };
 
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(transBatchData));
-
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual full report…' },
+        async ({ signal, updateProgress }) => {
+          updateProgress(50, 'Rendering the individual full report…');
+          const blob = await (selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(transBatchData));
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgressForIndividual(95, 'Finalizing document...');
 
@@ -2494,14 +2510,20 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
       updateProgressForIndividual(70, 'Generating TRANS progress report PDF...');
 
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(transBatchData));
-
       const pupilName = selectedPupilResult.pupilInfo.name || 'Pupil';
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilName.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual progress report…' },
+        async ({ signal, updateProgress }) => {
+          updateProgress(70, 'Rendering the individual progress report…');
+          const blob = await (selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(transBatchData));
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgressForIndividual(95, 'Finalizing document...');
 
@@ -2684,27 +2706,31 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
       updateProgress(65, 'Generating PDF document...');
 
-      // Generate a commentary table for nursery and keep the existing marks table for other classes.
-      const blob = isNurseryExam
-        ? generateNurseryAssessmentPDF({
-            examDetails,
-            classSnap,
-            subjectSnaps,
-            processedResults: pdfTargetResults,
-            schoolSettings,
-            printOptions: options,
-          })
-        : await generateExamPDF({
-            ...adaptedData,
-            schoolSettings,
-            printOptions: options,
-            gradingScale,
-          });
-
-      // Open in PDF viewer
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${isNurseryExam ? 'nursery_assessment' : 'results'}.pdf`;
       const title = isNurseryExam ? 'Nursery Assessment Report' : 'Exam Results';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering assessment pages…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(18, 'Preparing assessment tables…');
+          const blob = isNurseryExam
+            ? generateNurseryAssessmentPDF({
+                examDetails,
+                classSnap,
+                subjectSnaps,
+                processedResults: pdfTargetResults,
+                schoolSettings,
+                printOptions: options,
+              })
+            : await generateExamPDF({
+                ...adaptedData,
+                schoolSettings,
+                printOptions: options,
+                gradingScale,
+              });
+          updateWorkspaceProgress(96, 'Finalizing assessment report…');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -2761,35 +2787,41 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             aggregates: item.aggregates || 9,
           }));
       const adaptedData = adaptExamDataForPDF(examDetails, classSnap, subjectSnaps, processedResults, majorSubjects);
-      const blob = await generateExamPDF({
-        ...adaptedData,
-        schoolSettings,
-        gradingScale,
-        printOptions: {
-          showPin: false,
-          showIndexNumber: false,
-          showLinNumber: false,
-          showMarks: true,
-          showAgg: true,
-          showTotal: true,
-          showDiv: true,
-          orientation: 'landscape',
-          fillMarks: true,
-          fillAgg: true,
-          fillTotal: true,
-          fillDiv: true,
-          showMajorSubjects: true,
-          showBestPupil: false,
-          showNeedsImprovement: false,
-          showAggregateAnalysis: true,
-          analysisOnly: true,
-          analysisSections,
-        },
-      });
-
       const classFileName = (classSnap.name || classSnap.code || 'class').replace(/\s+/g, '_');
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${classFileName}_performance_analysis.pdf`;
-      pdfViewer.openPDFFromBlob(blob, fileName, 'Performance Analysis PDF');
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Performance Analysis PDF', initialMessage: 'Rendering selected analysis sections…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(16, 'Preparing performance analysis…');
+          const blob = await generateExamPDF({
+            ...adaptedData,
+            schoolSettings,
+            gradingScale,
+            printOptions: {
+              showPin: false,
+              showIndexNumber: false,
+              showLinNumber: false,
+              showMarks: true,
+              showAgg: true,
+              showTotal: true,
+              showDiv: true,
+              orientation: 'landscape',
+              fillMarks: true,
+              fillAgg: true,
+              fillTotal: true,
+              fillDiv: true,
+              showMajorSubjects: true,
+              showBestPupil: false,
+              showNeedsImprovement: false,
+              showAggregateAnalysis: true,
+              analysisOnly: true,
+              analysisSections,
+            },
+          });
+          updateWorkspaceProgress(96, 'Finalizing performance analysis…');
+          return blob;
+        },
+      );
       toast({ title: 'Analysis PDF ready', description: 'The selected performance analysis sections are ready to view or print.' });
     } catch (error) {
       console.error('Error generating performance analysis PDF:', error);
@@ -2943,15 +2975,20 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       });
 
       setGenerationStatus('Creating cross analysis PDF...');
-      const blob = createCrossAnalysisPDF({
-        schoolName: schoolSettings?.generalInfo?.name,
-        className: scopedClassLabel,
-        academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
-        exams: crossExams,
-        metrics,
-      });
       const fileName = `${scopedClassLabel.replace(/\s+/g, '_')}_cross_exam_analysis.pdf`;
-      pdfViewer.openPDFFromBlob(blob, fileName, 'Cross Exam Analysis PDF');
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Cross Exam Analysis PDF', initialMessage: 'Comparing selected exams…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(28, 'Building cross-exam tables…');
+          return createCrossAnalysisPDF({
+            schoolName: schoolSettings?.generalInfo?.name,
+            className: scopedClassLabel,
+            academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
+            exams: crossExams,
+            metrics,
+          });
+        },
+      );
       toast({
         title: 'Cross analysis PDF ready',
         description: `${crossExams.length} exams were compared in date order for ${selectedStreamId === 'all' ? 'all streams' : scopedClassLabel}.`,
@@ -3072,15 +3109,20 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       });
 
       setGenerationStatus('Creating subject analysis PDF...');
-      const blob = createSubjectSetAnalysisPDF({
-        schoolName: schoolSettings?.generalInfo?.name,
-        className: scopedClassLabel,
-        academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
-        exams: subjectSetExams,
-        subjectCodes,
-      });
       const fileName = `${scopedClassLabel.replace(/\s+/g, '_')}_subject_set_analysis.pdf`;
-      pdfViewer.openPDFFromBlob(blob, fileName, 'Subject Set Analysis PDF');
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Subject Set Analysis PDF', initialMessage: 'Preparing selected subjects…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(28, 'Building subject comparison tables…');
+          return createSubjectSetAnalysisPDF({
+            schoolName: schoolSettings?.generalInfo?.name,
+            className: scopedClassLabel,
+            academicYearName: getAcademicYearAndTerm(examDetails.academicYearId || '', examDetails.termId || '').academicYearName,
+            exams: subjectSetExams,
+            subjectCodes,
+          });
+        },
+      );
       toast({
         title: 'Subject analysis PDF ready',
         description: `${subjectCodes.length} subject${subjectCodes.length === 1 ? '' : 's'} across ${subjectSetExams.length} set${subjectSetExams.length === 1 ? '' : 's'} for ${selectedStreamId === 'all' ? 'all streams' : scopedClassLabel}.`,
@@ -3283,20 +3325,19 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
       updateProgress(85, 'Generating modern batch report PDF...');
 
-      // Generate the modern batch report PDF with progress tracking
-      const blob = await generateModernBatchReportPDF({
-        ...modernBatchData,
-        onProgress: (progress, status) => {
-          // Map internal progress (0-100) to our progress range (85-95)
-          const mappedProgress = 85 + Math.round(progress * 0.1); // 85-95 range
-          updateProgress(mappedProgress, status);
-        }
-      });
-
-      // Open in PDF viewer
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_Modern_Batch_Reports.pdf`;
       const title = 'Modern Batch Reports';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering modern pupil reports…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => generateModernBatchReportPDF({
+          ...modernBatchData,
+          onProgress: (progress: number, status: string) => {
+            const mappedProgress = 85 + Math.round(progress * 0.1);
+            updateProgress(mappedProgress, status);
+            updateWorkspaceProgress(progress, status);
+          },
+        } as any),
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -3667,14 +3708,23 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           updateProgress(mappedProgress, status);
         }
       };
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...reportDataWithProgress, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
-
-      // Open in PDF viewer
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Batch_Reports'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Batch Reports';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering full pupil reports…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => {
+          const workspaceReportData = {
+            ...reportDataWithProgress,
+            onProgress: (progress: number, status: string) => {
+              reportDataWithProgress.onProgress(progress, status);
+              updateWorkspaceProgress(progress, status);
+            },
+          };
+          return selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...workspaceReportData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(workspaceReportData as Parameters<typeof generateTransBatchReportPDF>[0]);
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -4011,14 +4061,23 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           updateProgress(mappedProgress, status);
         }
       };
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...reportDataWithProgress, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(reportDataWithProgress as Parameters<typeof generateTransBatchReportPDF>[0]));
-
-      // Open in PDF viewer
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Reports'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Bespoke Report' : 'TRANS Progress Reports';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering pupil progress reports…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => {
+          const workspaceReportData = {
+            ...reportDataWithProgress,
+            onProgress: (progress: number, status: string) => {
+              reportDataWithProgress.onProgress(progress, status);
+              updateWorkspaceProgress(progress, status);
+            },
+          };
+          return selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...workspaceReportData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(workspaceReportData as Parameters<typeof generateTransBatchReportPDF>[0]);
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -4162,34 +4221,35 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         examDetails?.termId || ''
       );
 
-      const blob = await generatePrimaryMiniReportPDF({
-        examDetails: {
-          name: examDetails.name,
-          examTypeName: examDetails.examTypeName || 'Exam',
-          startDate: examDetails.startDate,
-          endDate: examDetails.endDate,
-          academicYearId: examDetails.academicYearId,
-          termId: examDetails.termId,
-          academicYearName: academicYearName,
-          termName: termName,
-        },
-        classSnap,
-        subjectSnaps: enhancedSubjectSnaps,
-        processedResults: enhancedProcessedResults,
-        schoolSettings,
-        majorSubjects: examResultData?.majorSubjects,
-        backgroundImage: '/images/Primary%20Mini%20BG.png',
-        onProgress: (completed, total) => {
-          const reportProgress = 70 + Math.round((completed / Math.max(total, 1)) * 23);
-          updateProgress(reportProgress, `Generating primary mini reports (${completed}/${total})...`);
-        },
-      });
-
-      // Open in PDF viewer
-      updateProgress(95, 'Finalizing primary mini reports...');
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_primary_mini_reports.pdf`;
       const title = 'Primary Mini Reports';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering primary mini reports…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => generatePrimaryMiniReportPDF({
+          examDetails: {
+            name: examDetails.name,
+            examTypeName: examDetails.examTypeName || 'Exam',
+            startDate: examDetails.startDate,
+            endDate: examDetails.endDate,
+            academicYearId: examDetails.academicYearId,
+            termId: examDetails.termId,
+            academicYearName: academicYearName,
+            termName: termName,
+          },
+          classSnap,
+          subjectSnaps: enhancedSubjectSnaps,
+          processedResults: enhancedProcessedResults,
+          schoolSettings,
+          majorSubjects: examResultData?.majorSubjects,
+          backgroundImage: '/images/Primary%20Mini%20BG.png',
+          onProgress: (completed, total) => {
+            const reportProgress = 70 + Math.round((completed / Math.max(total, 1)) * 23);
+            updateProgress(reportProgress, `Generating primary mini reports (${completed}/${total})...`);
+            updateWorkspaceProgress(Math.round((completed / Math.max(total, 1)) * 100), `Generating primary mini reports (${completed}/${total})…`);
+          },
+        }),
+      );
+      updateProgress(95, 'Finalizing primary mini reports...');
 
       setGenerationProgress(100);
       setEta('Complete!');
@@ -4252,28 +4312,30 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       );
 
       updateProgress(65, 'Designing playful nursery mini reports...');
-      const blob = await generateNurseryMiniReportPDF({
-        examDetails: {
-          name: examDetails.name,
-          startDate: examDetails.startDate,
-          academicYearName,
-          termName,
-        },
-        classSnap,
-        subjectSnaps: enhancedSubjects,
-        processedResults: enhancedResults,
-        schoolSettings,
-        backgroundImage: '/images/Nursery%20Background.png',
-        includeTeacherComment: !omitNurseryTeacherComment,
-        onProgress: (completed, total) => {
-          const reportProgress = 65 + Math.round((completed / Math.max(total, 1)) * 28);
-          updateProgress(reportProgress, `Generating nursery reports (${completed}/${total})...`);
-        },
-      });
-
-      updateProgress(95, 'Finalizing nursery mini reports...');
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_nursery_mini_reports.pdf`;
-      pdfViewer.openPDFFromBlob(blob, fileName, 'Nursery Mini Reports');
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Nursery Mini Reports', initialMessage: 'Rendering nursery mini reports…' },
+        async ({ updateProgress: updateWorkspaceProgress }) => generateNurseryMiniReportPDF({
+          examDetails: {
+            name: examDetails.name,
+            startDate: examDetails.startDate,
+            academicYearName,
+            termName,
+          },
+          classSnap,
+          subjectSnaps: enhancedSubjects,
+          processedResults: enhancedResults,
+          schoolSettings,
+          backgroundImage: '/images/Nursery%20Background.png',
+          includeTeacherComment: !omitNurseryTeacherComment,
+          onProgress: (completed, total) => {
+            const reportProgress = 65 + Math.round((completed / Math.max(total, 1)) * 28);
+            updateProgress(reportProgress, `Generating nursery reports (${completed}/${total})...`);
+            updateWorkspaceProgress(Math.round((completed / Math.max(total, 1)) * 100), `Generating nursery reports (${completed}/${total})…`);
+          },
+        }),
+      );
+      updateProgress(95, 'Finalizing nursery mini reports...');
       setGenerationProgress(100);
       setEta('Complete!');
       toast({ title: 'Success', description: 'Nursery mini reports are ready for viewing.' });

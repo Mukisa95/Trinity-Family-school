@@ -3,6 +3,11 @@
 import { useState, useCallback } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import type { ReactElement } from 'react';
+import {
+  PDFGenerationContext,
+  PDFJobOptions,
+  useOptionalPDFWorkspace,
+} from '@/lib/pdf/pdf-workspace-context';
 
 interface UsePDFViewerReturn {
   isOpen: boolean;
@@ -10,12 +15,17 @@ interface UsePDFViewerReturn {
   isLoading: boolean;
   openPDF: (pdfDocument: ReactElement, fileName?: string, title?: string) => Promise<void>;
   openPDFFromBlob: (blob: Blob, fileName?: string, title?: string) => void;
+  runPDFJob: (
+    options: PDFJobOptions,
+    generator: (context: PDFGenerationContext) => Promise<Blob>,
+  ) => Promise<Blob>;
   closePDF: () => void;
   fileName: string;
   title: string;
 }
 
 export function usePDFViewer(): UsePDFViewerReturn {
+  const workspace = useOptionalPDFWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +37,27 @@ export function usePDFViewer(): UsePDFViewerReturn {
     fileName: string = 'document.pdf',
     title: string = 'PDF Viewer'
   ) => {
+    if (workspace) {
+      const job = workspace.runPDFJob(
+        {
+          fileName,
+          title,
+          initialMessage: 'Preparing document layout…',
+        },
+        async ({ signal, updateProgress }) => {
+          updateProgress(8, 'Loading PDF renderer…');
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          const asPdf = pdf(pdfDocument);
+          updateProgress(24, 'Rendering pages…');
+          const blob = await asPdf.toBlob();
+          updateProgress(96, 'Finalizing document…');
+          return blob;
+        },
+      );
+      await job.promise;
+      return;
+    }
+
     try {
       setIsLoading(true);
       setFileName(fileName);
@@ -52,13 +83,18 @@ export function usePDFViewer(): UsePDFViewerReturn {
       setIsLoading(false);
       throw error;
     }
-  }, []);
+  }, [workspace]);
 
   const openPDFFromBlob = useCallback((
     blob: Blob,
     fileName: string = 'document.pdf',
     title: string = 'PDF Viewer'
   ) => {
+    if (workspace) {
+      workspace.addPDFBlob(blob, { fileName, title });
+      return;
+    }
+
     if (!blob || blob.size === 0) {
       console.error('Invalid PDF blob');
       return;
@@ -69,9 +105,40 @@ export function usePDFViewer(): UsePDFViewerReturn {
     setPdfBlob(blob);
     setIsOpen(true);
     setIsLoading(false);
-  }, []);
+  }, [workspace]);
+
+  const runPDFJob = useCallback(async (
+    options: PDFJobOptions,
+    generator: (context: PDFGenerationContext) => Promise<Blob>,
+  ) => {
+    if (workspace) {
+      return workspace.runPDFJob(options, generator).promise;
+    }
+
+    setIsLoading(true);
+    setFileName(options.fileName || 'document.pdf');
+    setTitle(options.title || 'PDF Viewer');
+    setPdfBlob(null);
+    setIsOpen(true);
+    try {
+      const controller = new AbortController();
+      const blob = await generator({
+        signal: controller.signal,
+        updateProgress: () => undefined,
+      });
+      if (!blob || blob.size === 0) throw new Error('PDF blob is empty or invalid');
+      setPdfBlob(blob);
+      return blob;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [workspace]);
 
   const closePDF = useCallback(() => {
+    if (workspace) {
+      workspace.minimizeWorkspace();
+      return;
+    }
     setIsOpen(false);
     // Cleanup blob URL after a short delay to allow viewer to close
     setTimeout(() => {
@@ -79,17 +146,19 @@ export function usePDFViewer(): UsePDFViewerReturn {
         setPdfBlob(null);
       }
     }, 300);
-  }, [pdfBlob]);
+  }, [pdfBlob, workspace]);
+
+  const workspaceDocument = workspace?.activeDocument ?? null;
 
   return {
-    isOpen,
-    pdfBlob,
-    isLoading,
+    isOpen: workspace ? workspace.documents.length > 0 && workspace.mode === 'expanded' : isOpen,
+    pdfBlob: workspaceDocument?.blob ?? pdfBlob,
+    isLoading: workspaceDocument?.status === 'generating' || isLoading,
     openPDF,
     openPDFFromBlob,
+    runPDFJob,
     closePDF,
-    fileName,
-    title,
+    fileName: workspaceDocument?.fileName ?? fileName,
+    title: workspaceDocument?.title ?? title,
   };
 }
-

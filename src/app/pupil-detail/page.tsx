@@ -1506,13 +1506,18 @@ function PupilDetailContent() {
         </Document>
       );
 
-      // Generate PDF and open in viewer
-      const blob = await ReactPDF.pdf(<PupilIDCardPDFDocument />).toBlob();
       const safeName = formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
       const fileName = `${safeName}_ID_Card.pdf`;
       const title = 'Pupil ID Card';
-
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering the pupil ID card…' },
+        async ({ updateProgress }) => {
+          updateProgress(20, 'Preparing ID card layout…');
+          const blob = await ReactPDF.pdf(<PupilIDCardPDFDocument />).toBlob();
+          updateProgress(96, 'Finalizing ID card…');
+          return blob;
+        },
+      );
 
       toast({
         title: "ID Card Generated Successfully",
@@ -2034,13 +2039,18 @@ function PupilDetailContent() {
         </Document>
       );
 
-      // Generate PDF and open in viewer
-      const blob = await ReactPDF.pdf(<PupilDetailsPDFDocument />).toBlob();
       const safeName = formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
       const fileName = `${safeName}_Details.pdf`;
       const title = 'Pupil Information Details';
-
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Rendering pupil information…' },
+        async ({ updateProgress }) => {
+          updateProgress(20, 'Preparing pupil details layout…');
+          const blob = await ReactPDF.pdf(<PupilDetailsPDFDocument />).toBlob();
+          updateProgress(96, 'Finalizing pupil details…');
+          return blob;
+        },
+      );
 
       toast({
         title: "Details PDF Generated Successfully",
@@ -2247,10 +2257,17 @@ function PupilDetailContent() {
         </Document>
       );
 
-      const blob = await ReactPDF.pdf(<PaymentSlipDocument />).toBlob();
       const safeName = pupilName.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
       const fileName = `${safeName}_Payment_Slip.pdf`;
-      pdfViewer.openPDFFromBlob(blob, fileName, 'Payment Slip');
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Payment Slip', initialMessage: 'Rendering SchoolPay payment slip…' },
+        async ({ updateProgress }) => {
+          updateProgress(25, 'Preparing payment details and QR code…');
+          const blob = await ReactPDF.pdf(<PaymentSlipDocument />).toBlob();
+          updateProgress(96, 'Finalizing payment slip…');
+          return blob;
+        },
+      );
     } catch (error) {
       console.error('Error generating payment slip PDF:', error);
       toast({
@@ -2743,11 +2760,17 @@ function PupilDetailContent() {
         }
       };
 
-      const blob = await generateModernBatchReportPDF(modernBatchData);
-
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${formatPupilDisplayName(pupil).replace(/\s+/g, '_')}_Report.pdf`;
       const title = 'Individual Pupil Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual pupil report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(70, 'Rendering the pupil report…');
+          const blob = await generateModernBatchReportPDF(modernBatchData);
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -2823,33 +2846,37 @@ function PupilDetailContent() {
         examDetails.termId || '',
       );
 
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${formatPupilDisplayName(pupil).replace(/\s+/g, '_')}_Mini_Report.pdf`;
       updateProgress(65, 'Generating one half-page Mini Report...');
-      const blob = await generatePrimaryMiniReportPDF({
-        examDetails: {
-          name: examDetails.name,
-          examTypeName: examDetails.examTypeName || 'Exam',
-          startDate: examDetails.startDate,
-          academicYearName,
-          termName,
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Individual Pupil Mini Report', initialMessage: 'Generating the pupil Mini Report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          const blob = await generatePrimaryMiniReportPDF({
+            examDetails: {
+              name: examDetails.name,
+              examTypeName: examDetails.examTypeName || 'Exam',
+              startDate: examDetails.startDate,
+              academicYearName,
+              termName,
+            },
+            classSnap: classData
+              ? { name: classData.name, code: classData.code || classData.name }
+              : { name: 'Unknown Class', code: 'UNK' },
+            subjectSnaps,
+            processedResults: [singlePupilResult],
+            schoolSettings: schoolSettings || {},
+            majorSubjects: examResultData.majorSubjects || [],
+            backgroundImage: '/images/Primary%20Mini%20BG.png',
+            onProgress: (completed, total) => {
+              const progress = 65 + Math.round((completed / Math.max(total, 1)) * 30);
+              const message = `Generating Mini Report (${completed}/${total})...`;
+              updateProgress(progress, message);
+              updateWorkspaceProgress(progress, message);
+            },
+          });
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
         },
-        classSnap: classData
-          ? { name: classData.name, code: classData.code || classData.name }
-          : { name: 'Unknown Class', code: 'UNK' },
-        subjectSnaps,
-        processedResults: [singlePupilResult],
-        schoolSettings: schoolSettings || {},
-        majorSubjects: examResultData.majorSubjects || [],
-        backgroundImage: '/images/Primary%20Mini%20BG.png',
-        onProgress: (completed, total) => updateProgress(
-          65 + Math.round((completed / Math.max(total, 1)) * 30),
-          `Generating Mini Report (${completed}/${total})...`,
-        ),
-      });
-
-      pdfViewer.openPDFFromBlob(
-        blob,
-        `${examDetails.name.replace(/\s+/g, '_')}_${formatPupilDisplayName(pupil).replace(/\s+/g, '_')}_Mini_Report.pdf`,
-        'Individual Pupil Mini Report',
       );
       updateProgress(100, 'Complete!');
       toast({ title: 'Success', description: 'Mini Report is ready for viewing.', duration: 1500 });
@@ -3122,13 +3149,19 @@ function PupilDetailContent() {
         isProgressReport: false,
       };
 
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(transBatchData));
-
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${formatPupilDisplayName(pupil).replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual full report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(70, 'Rendering the individual full report…');
+          const blob = await (selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(transBatchData));
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -3476,13 +3509,19 @@ function PupilDetailContent() {
         }
       };
 
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(transBatchData));
-
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${formatPupilDisplayName(pupil).replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual progress report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(70, 'Rendering the individual progress report…');
+          const blob = await (selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(transBatchData));
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 

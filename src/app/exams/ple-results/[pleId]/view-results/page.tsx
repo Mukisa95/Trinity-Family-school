@@ -466,32 +466,36 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
       // PLE doesn't use grading scale - pass empty array to hide it
       const gradingScale: any[] = [];
 
-      // Generate the PDF with school settings
-      const blob = await generateExamPDF({
-        ...adaptedData,
-        schoolSettings: schoolSettings || {},
-        printOptions: {
-          showPin: true,
-          showMarks: false, // Hide marks column for PLE (no scores)
-          showAgg: true, // Show aggregates
-          showTotal: false, // Hide total marks column (no total score for PLE)
-          showDiv: true, // Show division
-          fillMarks: true, // Need to fill to show grades, but we'll handle marks=0 specially
-          fillAgg: true, // Fill aggregates
-          fillTotal: false, // Don't fill total
-          fillDiv: true, // Fill division
-          showMajorSubjects: true,
-          showBestPupil: false, // Hide best performance for PLE
-          showNeedsImprovement: false, // Hide worst performance for PLE
-          showAggregateAnalysis: true
-        },
-        gradingScale // Empty array to hide grading scale
-      });
-
-      // Open in PDF viewer
       const fileName = `PLE_Assessment_${pleRecord?.year || new Date().getFullYear()}.pdf`;
       const title = 'PLE Assessment Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: `Rendering results for ${validPupils.length} pupils…` },
+        async ({ updateProgress }) => {
+          updateProgress(20, 'Preparing PLE assessment tables…');
+          const blob = await generateExamPDF({
+            ...adaptedData,
+            schoolSettings: schoolSettings || {},
+            printOptions: {
+              showPin: true,
+              showMarks: false,
+              showAgg: true,
+              showTotal: false,
+              showDiv: true,
+              fillMarks: true,
+              fillAgg: true,
+              fillTotal: false,
+              fillDiv: true,
+              showMajorSubjects: true,
+              showBestPupil: false,
+              showNeedsImprovement: false,
+              showAggregateAnalysis: true,
+            },
+            gradingScale,
+          });
+          updateProgress(96, 'Finalizing PLE assessment…');
+          return blob;
+        },
+      );
 
       toast({
         title: "Assessment Report Generated",
@@ -629,29 +633,16 @@ Division: ${pupil.division}`;
         />
       );
 
-      const asPdf = pdf(doc);
-      const blob = await asPdf.toBlob();
-
-      // Create blob URL and open in new window for printing
       const fileName = `PLE_Batch_Certificates_${pleRecord?.year || new Date().getFullYear()}.pdf`;
-      const url = URL.createObjectURL(blob);
-
-      // Open PDF in new window and trigger print dialog
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.onload = () => {
-          printWindow.print();
-        };
-        // Fallback: if onload doesn't fire, try after a short delay
-        setTimeout(() => {
-          if (printWindow && !printWindow.closed) {
-            printWindow.print();
-          }
-        }, 500);
-      } else {
-        // Fallback: if popup blocked, open in PDF viewer
-        pdfViewer.openPDFFromBlob(blob, fileName, 'PLE Batch Certificates');
-      }
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'PLE Batch Certificates', initialMessage: `Rendering ${validPupils.length} certificates…` },
+        async ({ updateProgress }) => {
+          updateProgress(18, 'Preparing certificate pages…');
+          const blob = await pdf(doc).toBlob();
+          updateProgress(96, 'Finalizing certificates…');
+          return blob;
+        },
+      );
 
       toast({
         title: "Certificates Generated",
@@ -755,14 +746,17 @@ Division: ${pupil.division}`;
         />
       );
 
-      const asPdf = pdf(doc);
-      const blob = await asPdf.toBlob();
-
-      // Open in PDF viewer
       const fileName = `PLE_Certificate_${formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9]/g, '_')}_${pleRecord?.year || new Date().getFullYear()}.pdf`;
       const title = 'PLE Certificate';
-
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: `Rendering ${formatPupilDisplayName(pupil)}'s certificate…` },
+        async ({ updateProgress }) => {
+          updateProgress(24, 'Preparing certificate layout…');
+          const blob = await pdf(doc).toBlob();
+          updateProgress(96, 'Finalizing certificate…');
+          return blob;
+        },
+      );
 
       toast({
         title: "Certificate Generated",
@@ -1328,4 +1322,4 @@ Division: ${pupil.division}`;
       />
     </div>
   );
-} 
+}

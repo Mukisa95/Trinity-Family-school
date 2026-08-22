@@ -11,6 +11,8 @@ import { Analytics } from '@vercel/analytics/react';
 import { GlobalDataPreloader } from '@/components/providers/global-data-preloader';
 import { PrintProvider } from '@/lib/contexts/print-context';
 import { ServiceWorkerProvider } from '@/components/providers/service-worker-provider';
+import { PDFWorkspaceProvider } from '@/lib/pdf/pdf-workspace-context';
+import { PDFWorkspace } from '@/components/pdf/pdf-workspace';
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
@@ -166,14 +168,17 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <PrintProvider>
-              <ServiceWorkerProvider />
-              <GlobalDataPreloader />
-              <SyncProvider>
-                <AppLayout>
-                  {children}
-                </AppLayout>
-                <Toaster />
-              </SyncProvider>
+              <PDFWorkspaceProvider>
+                <ServiceWorkerProvider />
+                <GlobalDataPreloader />
+                <SyncProvider>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                  <Toaster />
+                </SyncProvider>
+                <PDFWorkspace />
+              </PDFWorkspaceProvider>
             </PrintProvider>
           </AuthProvider>
         </QueryProvider>

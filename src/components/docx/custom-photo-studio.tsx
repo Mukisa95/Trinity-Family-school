@@ -983,12 +983,19 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
     setIsGenerating(true);
     setGenerationProgress({ completed: 0, total: estimatedPages });
     try {
-      await ensureDocXTemplateFontsLoaded(template);
-      const blob = await createCustomPhotoPdf(template, selectedPupils, feesByPupil, exactOutputSettings, schoolInfo, (completed, total) => {
-        setGenerationProgress({ completed, total });
-      });
       const date = new Date().toISOString().slice(0, 10);
-      pdfViewer.openPDFFromBlob(blob, `docx-${template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${date}.pdf`, template.name);
+      const fileName = `docx-${template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${date}.pdf`;
+      await pdfViewer.runPDFJob(
+        { fileName, title: template.name, initialMessage: 'Preparing custom document assets…' },
+        async ({ updateProgress }) => {
+          await ensureDocXTemplateFontsLoaded(template);
+          updateProgress(12, 'Fonts ready. Rendering document pages…');
+          return createCustomPhotoPdf(template, selectedPupils, feesByPupil, exactOutputSettings, schoolInfo, (completed, total) => {
+            setGenerationProgress({ completed, total });
+            updateProgress(12 + Math.round((completed / Math.max(total, 1)) * 84), `Rendering page ${completed} of ${total}…`);
+          });
+        },
+      );
     } catch (error) {
       console.error('Custom DocX generation failed:', error);
       toast({ variant: 'destructive', title: 'Document could not be generated', description: error instanceof Error ? error.message : 'Please try again.' });

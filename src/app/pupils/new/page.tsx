@@ -41,6 +41,7 @@ import html2canvas from 'html2canvas';
 import { parseLocalDate, formatDateForStorage } from "@/lib/utils/date-utils";
 import { HousesService } from "@/lib/services/houses.service";
 import type { House } from "@/types";
+import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
 
 const initialGuardianState: Omit<Guardian, 'id'> = {
   relationship: '',
@@ -54,6 +55,7 @@ const initialGuardianState: Omit<Guardian, 'id'> = {
 };
 
 function NewPupilContent() {
+  const pdfViewer = usePDFViewer();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -303,6 +305,13 @@ function NewPupilContent() {
     document.body.appendChild(pdfContainer);
 
     try {
+      const safeFirstName = firstName || 'Pupil';
+      const safeLastName = lastName || '';
+      const fileName = `Pupil_Registration_${safeFirstName}_${safeLastName}.pdf`;
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Pupil Registration Form', initialMessage: 'Capturing registration details…' },
+        async ({ updateProgress }) => {
+        updateProgress(14, 'Capturing registration form layout…');
         const canvas = await html2canvas(pdfContainer, { scale: 2, useCORS: true, backgroundColor: null }); // Ensure canvas background is transparent or white from container
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -357,6 +366,7 @@ function NewPupilContent() {
             
             imageSegmentStartY += segmentHeightPx;
             pageIndex++;
+            updateProgress(35 + Math.min(58, pageIndex * 12), `Building PDF page ${pageIndex}…`);
 
             // Safety break for extremely long content, though html2canvas might limit this first
             if (pageIndex > 50) {
@@ -365,9 +375,10 @@ function NewPupilContent() {
             }
         }
         
-        const safeFirstName = firstName || 'Pupil';
-        const safeLastName = lastName || '';
-        pdf.save(`Pupil_Registration_${safeFirstName}_${safeLastName}.pdf`);
+        updateProgress(96, 'Finalizing registration form…');
+        return pdf.output('blob');
+        },
+      );
     } catch (error) {
       console.error("Error generating PDF:", error);
       toast({

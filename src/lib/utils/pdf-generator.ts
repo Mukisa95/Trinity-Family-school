@@ -243,7 +243,5 @@ export const generateDutyRotaPDF = async ({
   
   // Footer removed - table now extends to bottom of page
   
-  // Save the PDF
-  const fileName = `${dutyRota.dutyName.replace(/[^a-zA-Z0-9]/g, '_')}_Duty_Rota_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-  doc.save(fileName);
+  return doc.output('blob');
 };

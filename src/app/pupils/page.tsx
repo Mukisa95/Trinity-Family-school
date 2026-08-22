@@ -2997,9 +2997,20 @@ function PupilsContent() {
         </Document>
       );
 
-      const blob = await ReactPDF.pdf(<BatchPaymentSlipsDocument />).toBlob();
       const fileName = `pupils-payment-slips-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdfViewer.openPDFFromBlob(blob, fileName, 'Payment Slips');
+      await pdfViewer.runPDFJob(
+        {
+          fileName,
+          title: 'Payment Slips',
+          initialMessage: `Rendering ${pupilsWithPayCodes.length} payment slips…`,
+        },
+        async ({ updateProgress }) => {
+          updateProgress(18, 'Preparing payment slip pages…');
+          const blob = await ReactPDF.pdf(<BatchPaymentSlipsDocument />).toBlob();
+          updateProgress(96, 'Finalizing payment slips…');
+          return blob;
+        },
+      );
     } catch (error) {
       console.error('Error generating batch payment slips PDF:', error);
       toast({

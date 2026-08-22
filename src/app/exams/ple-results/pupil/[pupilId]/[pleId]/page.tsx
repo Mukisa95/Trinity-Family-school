@@ -166,14 +166,17 @@ Division: ${pupilResult.division}`;
         />
       );
 
-      const asPdf = pdf(doc);
-      const blob = await asPdf.toBlob();
-      
-      // Open in PDF viewer
       const fileName = `PLE_Certificate_${formatPupilDisplayName(pupilResult).replace(/[^a-zA-Z0-9]/g, '_')}_${pleRecord?.year || new Date().getFullYear()}.pdf`;
       const title = 'PLE Certificate';
-      
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: `Rendering ${formatPupilDisplayName(pupilResult)}'s certificate…` },
+        async ({ updateProgress }) => {
+          updateProgress(24, 'Preparing certificate layout…');
+          const blob = await pdf(doc).toBlob();
+          updateProgress(96, 'Finalizing certificate…');
+          return blob;
+        },
+      );
 
       toast({
         title: "Certificate Generated",
@@ -466,4 +469,4 @@ Division: ${pupilResult.division}`;
       />
     </div>
   );
-} 
+}

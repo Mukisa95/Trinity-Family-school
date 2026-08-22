@@ -4,6 +4,7 @@ import * as React from "react";
 import { format, parse } from "date-fns";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff } from "@/types";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
+import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
 
 const DAYS = [
     { id: 1, label: "MON" },
@@ -46,6 +47,7 @@ export function PrintableTimetable({
     onClose,
 }: PrintableTimetableProps) {
     const { data: schoolSettings } = useSchoolSettings();
+    const pdfViewer = usePDFViewer();
     const captureRef = React.useRef<HTMLDivElement>(null);
     const [status, setStatus] = React.useState<"idle" | "generating" | "done" | "error">("idle");
 
@@ -96,48 +98,54 @@ export function PrintableTimetable({
         if (!captureRef.current || status === "generating") return;
         setStatus("generating");
         try {
-            const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-                import("html2canvas"),
-                import("jspdf"),
-            ]);
+            const date = new Date().toISOString().slice(0, 10);
+            await pdfViewer.runPDFJob(
+                {
+                    fileName: `school-timetable-${date}.pdf`,
+                    title: 'School Timetable',
+                    initialMessage: 'Preparing timetable canvas…',
+                },
+                async ({ updateProgress }) => {
+                    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+                        import("html2canvas"),
+                        import("jspdf"),
+                    ]);
+                    updateProgress(18, 'Capturing timetable layout…');
+                    if (!captureRef.current) throw new Error('Timetable preview is no longer available.');
+                    const canvas = await html2canvas(captureRef.current, {
+                        scale: 1.5,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: "#ffffff",
+                        logging: false,
+                        width: RENDER_WIDTH,
+                        height: RENDER_HEIGHT,
+                    });
 
-            // Capture the off-screen div at 1.5× for high-quality, faster PDF rendering
-            const canvas = await html2canvas(captureRef.current, {
-                scale: 1.5,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: "#ffffff",
-                logging: false,
-                width: RENDER_WIDTH,
-                height: RENDER_HEIGHT,
-            });
-
-            // A4 landscape: 297 × 210 mm, 5 mm margins
-            const PAGE_W = 297;
-            const PAGE_H = 210;
-            const MARGIN = 5;
-            const availW = PAGE_W - MARGIN * 2;
-            const availH = PAGE_H - MARGIN * 2;
-
-            // Scale image to fill the available area, preserving aspect ratio
-            const canvasAspect = canvas.width / canvas.height;
-            const availAspect = availW / availH;
-            let imgW = availW;
-            let imgH = availW / canvasAspect;
-            if (imgH > availH) {
-                imgH = availH;
-                imgW = availH * canvasAspect;
-            }
-            const offsetX = MARGIN + (availW - imgW) / 2;
-            const offsetY = MARGIN + (availH - imgH) / 2;
-
-            const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-            pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", offsetX, offsetY, imgW, imgH);
-
-            // Open in new tab so user can print or download
-            const blob = pdf.output("blob");
-            const url = URL.createObjectURL(blob);
-            window.open(url, "_blank");
+                    // The capture is now independent of this overlay, so the app can be used
+                    // while the PDF is finalized in the persistent workspace.
+                    onClose();
+                    updateProgress(72, 'Building the landscape PDF page…');
+                    const PAGE_W = 297;
+                    const PAGE_H = 210;
+                    const MARGIN = 5;
+                    const availW = PAGE_W - MARGIN * 2;
+                    const availH = PAGE_H - MARGIN * 2;
+                    const canvasAspect = canvas.width / canvas.height;
+                    let imgW = availW;
+                    let imgH = availW / canvasAspect;
+                    if (imgH > availH) {
+                        imgH = availH;
+                        imgW = availH * canvasAspect;
+                    }
+                    const offsetX = MARGIN + (availW - imgW) / 2;
+                    const offsetY = MARGIN + (availH - imgH) / 2;
+                    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+                    pdf.addImage(canvas.toDataURL("image/jpeg", 0.98), "JPEG", offsetX, offsetY, imgW, imgH);
+                    updateProgress(96, 'Finalizing timetable…');
+                    return pdf.output("blob");
+                },
+            );
 
             setStatus("done");
         } catch (err) {

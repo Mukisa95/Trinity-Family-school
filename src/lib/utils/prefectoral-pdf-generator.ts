@@ -66,9 +66,7 @@ export const generatePrefectoralPDF = async ({
     await generateTreeViewPDF(doc, posts, assignments, viewType, getPupilName, getPupilClass, getPupilPhoto);
   }
 
-  // Save the PDF
-  const fileName = `Prefectoral_Body_${viewType}_${paperSize}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-  doc.save(fileName);
+  return doc.output('blob');
 };
 
 const generateListViewPDF = async (

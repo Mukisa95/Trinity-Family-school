@@ -12,6 +12,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { usePrint } from '@/lib/contexts/print-context';
+import { useOptionalPDFWorkspace } from '@/lib/pdf/pdf-workspace-context';
 
 interface PDFViewerProps {
   isOpen: boolean;
@@ -23,7 +24,18 @@ interface PDFViewerProps {
   showPrint?: boolean;
 }
 
-export function PDFViewer({
+export function PDFViewer(props: PDFViewerProps) {
+  const workspace = useOptionalPDFWorkspace();
+
+  // The global workspace owns presentation when installed. Keeping this
+  // compatibility wrapper lets existing pages migrate without rendering a
+  // second modal for the same document.
+  if (workspace) return null;
+
+  return <LegacyPDFViewer {...props} />;
+}
+
+function LegacyPDFViewer({
   isOpen,
   onClose,
   pdfBlob,

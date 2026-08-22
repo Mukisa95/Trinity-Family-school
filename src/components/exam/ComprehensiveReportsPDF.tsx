@@ -417,10 +417,10 @@ export const generateComprehensiveReportsPDF = (props: ComprehensiveReportsProps
       }
     });
 
-    // Save the PDF
-    doc.save(`${examDetails.name.replace(/\s+/g, '_')}_comprehensive_reports.pdf`);
+    // Return a blob so callers can route this legacy renderer through the shared PDF workspace.
+    return doc.output('blob');
   } catch (error) {
     console.error("Comprehensive reports PDF generation error:", error);
     throw error;
   }
-}; 
+};

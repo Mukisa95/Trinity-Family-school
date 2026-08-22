@@ -31,6 +31,7 @@ import { AssignPupilToPostModal } from './AssignPupilToPostModal';
 import { format } from 'date-fns';
 import { useDeletePrefectoralPost, useLeadershipTerms, useTerminateLeadershipTerm } from '@/lib/hooks/use-duty-service';
 import { generatePrefectoralPDF } from '@/lib/utils/prefectoral-pdf-generator';
+import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 
 interface PrefectoralManagementViewProps {
   posts: PrefectoralPost[];
@@ -444,6 +445,7 @@ export function PrefectoralManagementView({
   onPostClick,
   selectedTermId
 }: PrefectoralManagementViewProps) {
+  const pdfViewer = usePDFViewer();
   const [selectedPostForAssignment, setSelectedPostForAssignment] = useState<PrefectoralPost | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showPrintViewModal, setShowPrintViewModal] = useState(false);
@@ -485,15 +487,24 @@ export function PrefectoralManagementView({
   const handleSizeSelection = async (size: 'A3' | 'A4') => {
     setShowPrintSizeModal(false);
     try {
-      await generatePrefectoralPDF({
-        posts,
-        assignments,
-        viewType: selectedPrintView,
-        paperSize: size,
-        getPupilName,
-        getPupilClass,
-        getPupilPhoto
-      });
+      const fileName = `Prefectoral_Body_${selectedPrintView}_${size}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Prefectoral Body Hierarchy', initialMessage: 'Rendering prefectoral hierarchy…' },
+        async ({ updateProgress }) => {
+          updateProgress(24, 'Preparing posts and assignments…');
+          const blob = await generatePrefectoralPDF({
+            posts,
+            assignments,
+            viewType: selectedPrintView,
+            paperSize: size,
+            getPupilName,
+            getPupilClass,
+            getPupilPhoto,
+          });
+          updateProgress(96, 'Finalizing prefectoral document…');
+          return blob;
+        },
+      );
     } catch (error) {
       console.error('Error generating PDF:', error);
     }

@@ -696,11 +696,17 @@ export default function PupilResultsClient() {
         }
       };
 
-      const blob = await generateModernBatchReportPDF(modernBatchData);
-
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_Report.pdf`;
       const title = 'Individual Pupil Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual pupil report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(70, 'Rendering the pupil report…');
+          const blob = await generateModernBatchReportPDF(modernBatchData);
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -756,31 +762,35 @@ export default function PupilResultsClient() {
         examDetails.termId || '',
       );
 
+      const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_Mini_Report.pdf`;
       updateProgress(65, 'Generating one half-page Mini Report...');
-      const blob = await generatePrimaryMiniReportPDF({
-        examDetails: {
-          name: examDetails.name,
-          examTypeName: examDetails.examTypeName || 'Exam',
-          startDate: examDetails.startDate,
-          academicYearName,
-          termName,
+      await pdfViewer.runPDFJob(
+        { fileName, title: 'Individual Pupil Mini Report', initialMessage: 'Generating the pupil Mini Report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          const blob = await generatePrimaryMiniReportPDF({
+            examDetails: {
+              name: examDetails.name,
+              examTypeName: examDetails.examTypeName || 'Exam',
+              startDate: examDetails.startDate,
+              academicYearName,
+              termName,
+            },
+            classSnap,
+            subjectSnaps: enhancedSubjectSnaps,
+            processedResults: [singlePupilResult],
+            schoolSettings,
+            majorSubjects: examResultData?.majorSubjects || [],
+            backgroundImage: '/images/Primary%20Mini%20BG.png',
+            onProgress: (completed, total) => {
+              const progress = 65 + Math.round((completed / Math.max(total, 1)) * 30);
+              const message = `Generating Mini Report (${completed}/${total})...`;
+              updateProgress(progress, message);
+              updateWorkspaceProgress(progress, message);
+            },
+          });
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
         },
-        classSnap,
-        subjectSnaps: enhancedSubjectSnaps,
-        processedResults: [singlePupilResult],
-        schoolSettings,
-        majorSubjects: examResultData?.majorSubjects || [],
-        backgroundImage: '/images/Primary%20Mini%20BG.png',
-        onProgress: (completed, total) => updateProgress(
-          65 + Math.round((completed / Math.max(total, 1)) * 30),
-          `Generating Mini Report (${completed}/${total})...`,
-        ),
-      });
-
-      pdfViewer.openPDFFromBlob(
-        blob,
-        `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_Mini_Report.pdf`,
-        'Individual Pupil Mini Report',
       );
       updateProgress(100, 'Complete!');
       toast({ title: 'Success', description: 'Mini Report is ready for viewing.', duration: 1500 });
@@ -999,13 +1009,19 @@ export default function PupilResultsClient() {
         }
       };
 
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(transBatchData));
-
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Report'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual full report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(70, 'Rendering the individual full report…');
+          const blob = await (selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(transBatchData));
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
@@ -1284,13 +1300,19 @@ export default function PupilResultsClient() {
 
       updateProgress(70, 'Generating TRANS progress report PDF...');
 
-      const blob = await (selectedFullReportTemplate === 'full2'
-        ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
-        : generateTransBatchReportPDF(transBatchData));
-
       const fileName = `${examDetails.name.replace(/\s+/g, '_')}_${pupilDetails.name.replace(/\s+/g, '_')}_${selectedFullReportTemplate === 'full2' ? 'Bespoke_Report' : 'TRANS_Progress_Report'}.pdf`;
       const title = selectedFullReportTemplate === 'full2' ? 'Individual Pupil Bespoke Report' : 'Individual Pupil TRANS Progress Report';
-      pdfViewer.openPDFFromBlob(blob, fileName, title);
+      await pdfViewer.runPDFJob(
+        { fileName, title, initialMessage: 'Generating the individual progress report…' },
+        async ({ signal, updateProgress: updateWorkspaceProgress }) => {
+          updateWorkspaceProgress(70, 'Rendering the individual progress report…');
+          const blob = await (selectedFullReportTemplate === 'full2'
+            ? generateFullReport2PDF({ ...transBatchData, palette: fullReport2Palette } as Parameters<typeof generateFullReport2PDF>[0])
+            : generateTransBatchReportPDF(transBatchData));
+          if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+          return blob;
+        },
+      );
 
       updateProgress(95, 'Finalizing document...');
 
