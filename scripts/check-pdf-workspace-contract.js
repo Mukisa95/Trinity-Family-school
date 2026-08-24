@@ -44,6 +44,10 @@ requireText(documentViewer, 'aria-label="Page thumbnails"', 'the viewer must pro
 requireText(documentViewer, 'aria-label="Zoom out"', 'the viewer must provide zoom controls');
 requireText(documentViewer, 'aria-label="Fit page width"', 'the viewer must support fit-width mode');
 requireText(documentViewer, 'aria-label="Fit whole page"', 'the viewer must support fit-page mode');
+requireText(documentViewer, 'useState<FitMode>("custom")', 'the viewer must open at the explicit 100 percent zoom mode');
+requireText(documentViewer, 'aria-label="Continuous PDF pages"', 'the main viewer must expose every page in a continuous scroll');
+requireText(documentViewer, 'synchronizePageFromScroll', 'scrolling must synchronize the current page and thumbnail navigation');
+requireText(documentViewer, 'rootMargin: "1200px 0px"', 'continuous pages must render lazily to bound canvas memory');
 requireText(documentViewer, 'placeholder="Search this PDF"', 'the viewer must provide full-document search');
 requireText(documentViewer, 'Page {pageNumber} of {totalPages}', 'the viewer must expose the current and total page count');
 requireText(documentViewer, 'aria-label="Rotate page clockwise"', 'the viewer must support page rotation');

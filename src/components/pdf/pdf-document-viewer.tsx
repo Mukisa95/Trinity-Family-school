@@ -55,6 +55,8 @@ interface PageSize {
 const MIN_ZOOM = 25;
 const MAX_ZOOM = 300;
 const ZOOM_STEP = 10;
+const MIN_FIT_SCALE = 0.05;
+const VIEWPORT_PADDING = 24;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -78,7 +80,7 @@ function countOccurrences(source: string, query: string) {
   return count;
 }
 
-function useElementSize<T extends HTMLElement>() {
+function useElementSize<T extends HTMLElement>(active: boolean) {
   const ref = useRef<T>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
@@ -95,7 +97,7 @@ function useElementSize<T extends HTMLElement>() {
     const observer = new ResizeObserver(update);
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [active]);
 
   return { ref, size };
 }
@@ -129,10 +131,11 @@ function PDFPageCanvas({
       try {
         const page = await pdf.getPage(pageNumber);
         if (cancelled) return;
-        const baseViewport = page.getViewport({ scale: 1, rotation });
+        const effectiveRotation = (page.rotate + rotation) % 360;
+        const baseViewport = page.getViewport({ scale: 1, rotation: effectiveRotation });
         onPageSize?.({ width: baseViewport.width, height: baseViewport.height });
 
-        const viewport = page.getViewport({ scale, rotation });
+        const viewport = page.getViewport({ scale, rotation: effectiveRotation });
         const canvas = canvasRef.current;
         if (!canvas) return;
         const context = canvas.getContext("2d", { alpha: false });
@@ -181,6 +184,93 @@ function PDFPageCanvas({
         </div>
       )}
     </div>
+  );
+}
+
+function ContinuousPDFPage({
+  pdf,
+  pageNumber,
+  scale,
+  rotation,
+  pageSize,
+  fitMode,
+  viewportElement,
+  viewportHeight,
+  registerPageElement,
+  onPageSize,
+}: {
+  pdf: PDFDocumentProxy;
+  pageNumber: number;
+  scale: number;
+  rotation: number;
+  pageSize: PageSize;
+  fitMode: FitMode;
+  viewportElement: HTMLDivElement | null;
+  viewportHeight: number;
+  registerPageElement: (pageNumber: number, element: HTMLElement | null) => void;
+  onPageSize: (pageNumber: number, size: PageSize) => void;
+}) {
+  const hostRef = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(pageNumber <= 2);
+
+  const setHostRef = useCallback((element: HTMLElement | null) => {
+    hostRef.current = element;
+    registerPageElement(pageNumber, element);
+  }, [pageNumber, registerPageElement]);
+
+  const handlePageSize = useCallback((size: PageSize) => {
+    onPageSize(pageNumber, size);
+  }, [onPageSize, pageNumber]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host || !viewportElement) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setVisible(entry.isIntersecting);
+    }, {
+      root: viewportElement,
+      rootMargin: "1200px 0px",
+      threshold: 0,
+    });
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [viewportElement]);
+
+  const renderedWidth = Math.max(1, Math.round(pageSize.width * scale));
+  const renderedHeight = Math.max(1, Math.round(pageSize.height * scale));
+  const pageSlotHeight = fitMode === "page"
+    ? Math.max(renderedHeight, viewportHeight - VIEWPORT_PADDING * 2)
+    : renderedHeight;
+
+  return (
+    <section
+      ref={setHostRef}
+      data-pdf-page={pageNumber}
+      aria-label={`Page ${pageNumber}`}
+      className="flex shrink-0 items-center justify-center scroll-mt-6"
+      style={{ minHeight: Math.max(1, pageSlotHeight), width: renderedWidth }}
+    >
+      <div
+        className="relative flex items-center justify-center bg-white shadow-[0_18px_55px_-22px_rgba(15,23,42,0.45)]"
+        style={{ width: renderedWidth, height: renderedHeight }}
+      >
+        {visible ? (
+          <PDFPageCanvas
+            pdf={pdf}
+            pageNumber={pageNumber}
+            scale={scale}
+            rotation={rotation}
+            className="h-full w-full"
+            onPageSize={handlePageSize}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-slate-400" aria-label={`Page ${pageNumber} waiting to render`}>
+            <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none" />
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -285,10 +375,12 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
   const [pageNumber, setPageNumber] = useState(1);
   const [pageInput, setPageInput] = useState("1");
   const [zoom, setZoom] = useState(100);
-  const [fitMode, setFitMode] = useState<FitMode>("page");
+  const [fitMode, setFitMode] = useState<FitMode>("custom");
   const [rotation, setRotation] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [pageSize, setPageSize] = useState<PageSize>({ width: 595, height: 842 });
+  const [pageSizes, setPageSizes] = useState<Record<number, PageSize>>({
+    1: { width: 595, height: 842 },
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
@@ -298,7 +390,9 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
   const viewerRootRef = useRef<HTMLDivElement>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
   const searchRunRef = useRef(0);
-  const { ref: viewportRef, size: viewportSize } = useElementSize<HTMLDivElement>();
+  const pageNumberRef = useRef(1);
+  const pageElementsRef = useRef(new Map<number, HTMLElement>());
+  const { ref: viewportRef, size: viewportSize } = useElementSize<HTMLDivElement>(Boolean(pdf));
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -314,6 +408,12 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     setPdf(null);
     setPageNumber(1);
     setPageInput("1");
+    pageNumberRef.current = 1;
+    setZoom(100);
+    setFitMode("custom");
+    setRotation(0);
+    setPageSizes({ 1: { width: 595, height: 842 } });
+    pageElementsRef.current.clear();
 
     void (async () => {
       try {
@@ -333,6 +433,11 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
           await loadingTask.destroy();
           return;
         }
+        const firstPage = await documentProxy.getPage(1);
+        const firstViewport = firstPage.getViewport({ scale: 1 });
+        setPageSizes({
+          1: { width: firstViewport.width, height: firstViewport.height },
+        });
         setPdf(documentProxy);
         setLoading(false);
       } catch (error) {
@@ -352,22 +457,140 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
 
   const totalPages = pdf?.numPages ?? 0;
 
-  const setSafePage = useCallback((nextPage: number) => {
+  const updateCurrentPage = useCallback((nextPage: number) => {
     if (!totalPages) return;
     const safePage = clamp(Math.round(nextPage), 1, totalPages);
+    if (pageNumberRef.current === safePage) return;
+    pageNumberRef.current = safePage;
     setPageNumber(safePage);
     setPageInput(String(safePage));
   }, [totalPages]);
 
-  const computedScale = useMemo(() => {
+  const registerPageElement = useCallback((candidatePage: number, element: HTMLElement | null) => {
+    if (element) pageElementsRef.current.set(candidatePage, element);
+    else pageElementsRef.current.delete(candidatePage);
+  }, []);
+
+  const updatePageSize = useCallback((candidatePage: number, size: PageSize) => {
+    setPageSizes((current) => {
+      const existing = current[candidatePage];
+      if (existing && Math.abs(existing.width - size.width) < 0.5 && Math.abs(existing.height - size.height) < 0.5) {
+        return current;
+      }
+      return { ...current, [candidatePage]: size };
+    });
+  }, []);
+
+  const navigateToPage = useCallback((nextPage: number) => {
+    if (!totalPages) return;
+    const safePage = clamp(Math.round(nextPage), 1, totalPages);
+    pageNumberRef.current = safePage;
+    setPageNumber(safePage);
+    setPageInput(String(safePage));
+
+    window.requestAnimationFrame(() => {
+      const viewport = viewportRef.current;
+      const pageElement = pageElementsRef.current.get(safePage);
+      if (!viewport || !pageElement) return;
+      viewport.scrollTo({
+        top: Math.max(0, pageElement.offsetTop - VIEWPORT_PADDING),
+        behavior: "auto",
+      });
+    });
+  }, [totalPages, viewportRef]);
+
+  useEffect(() => {
+    if (!pdf) return;
+    let cancelled = false;
+
+    void (async () => {
+      const nextSizes: Record<number, PageSize> = {};
+      for (let candidatePage = 1; candidatePage <= pdf.numPages; candidatePage += 1) {
+        const page = await pdf.getPage(candidatePage);
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale: 1, rotation: (page.rotate + rotation) % 360 });
+        nextSizes[candidatePage] = { width: viewport.width, height: viewport.height };
+      }
+      if (!cancelled) setPageSizes(nextSizes);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pdf, rotation]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !pdf) return;
+    let animationFrame = 0;
+
+    const synchronizePageFromScroll = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const viewportRect = viewport.getBoundingClientRect();
+        let visiblePage = pageNumberRef.current;
+        let bestVisiblePixels = -1;
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        pageElementsRef.current.forEach((element, candidatePage) => {
+          const pageRect = element.getBoundingClientRect();
+          const visiblePixels = Math.max(
+            0,
+            Math.min(pageRect.bottom, viewportRect.bottom) - Math.max(pageRect.top, viewportRect.top),
+          );
+          const distance = Math.abs(
+            (pageRect.top + pageRect.bottom) / 2 - (viewportRect.top + viewportRect.height * 0.4),
+          );
+          if (visiblePixels > bestVisiblePixels || (visiblePixels === bestVisiblePixels && distance < bestDistance)) {
+            visiblePage = candidatePage;
+            bestVisiblePixels = visiblePixels;
+            bestDistance = distance;
+          }
+        });
+
+        updateCurrentPage(visiblePage);
+      });
+    };
+
+    viewport.addEventListener("scroll", synchronizePageFromScroll, { passive: true });
+    synchronizePageFromScroll();
+    return () => {
+      viewport.removeEventListener("scroll", synchronizePageFromScroll);
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [pdf, updateCurrentPage, viewportRef, viewportSize.height, viewportSize.width]);
+
+  const activePageSize = pageSizes[pageNumber] ?? pageSizes[1] ?? { width: 595, height: 842 };
+  const getScaleForPage = useCallback((size: PageSize) => {
     if (fitMode === "custom") return clamp(zoom, MIN_ZOOM, MAX_ZOOM) / 100;
-    const availableWidth = Math.max(viewportSize.width - 48, 160);
-    const availableHeight = Math.max(viewportSize.height - 48, 160);
-    if (fitMode === "width") return clamp(availableWidth / pageSize.width, 0.25, 3);
-    return clamp(Math.min(availableWidth / pageSize.width, availableHeight / pageSize.height), 0.25, 3);
-  }, [fitMode, pageSize.height, pageSize.width, viewportSize.height, viewportSize.width, zoom]);
+    if (viewportSize.width <= 0 || viewportSize.height <= 0) return 1;
+    const availableWidth = Math.max(viewportSize.width - VIEWPORT_PADDING * 2, 1);
+    const availableHeight = Math.max(viewportSize.height - VIEWPORT_PADDING * 2, 1);
+    if (fitMode === "width") return clamp(availableWidth / size.width, MIN_FIT_SCALE, 3);
+    return clamp(
+      Math.min(availableWidth / size.width, availableHeight / size.height),
+      MIN_FIT_SCALE,
+      3,
+    );
+  }, [fitMode, viewportSize.height, viewportSize.width, zoom]);
+
+  const computedScale = useMemo(
+    () => getScaleForPage(activePageSize),
+    [activePageSize, getScaleForPage],
+  );
 
   const displayedZoom = Math.round(computedScale * 100);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !pdf) return;
+    const animationFrame = window.requestAnimationFrame(() => {
+      const pageElement = pageElementsRef.current.get(pageNumberRef.current);
+      if (!pageElement) return;
+      viewport.scrollTop = Math.max(0, pageElement.offsetTop - VIEWPORT_PADDING);
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [fitMode, pdf, rotation, viewportRef, viewportSize.height, viewportSize.width, zoom]);
 
   const changeZoom = useCallback((direction: 1 | -1) => {
     setZoom(clamp(displayedZoom + direction * ZOOM_STEP, MIN_ZOOM, MAX_ZOOM));
@@ -405,11 +628,11 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
       setSearchHits(nextHits);
       const firstHit = nextHits[0];
       setActiveSearchHit(firstHit ? 0 : -1);
-      if (firstHit) setSafePage(firstHit.pageNumber);
+      if (firstHit) navigateToPage(firstHit.pageNumber);
     } finally {
       if (runId === searchRunRef.current) setSearching(false);
     }
-  }, [pdf, setSafePage]);
+  }, [navigateToPage, pdf]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => void runSearch(searchQuery), 280);
@@ -420,8 +643,8 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     if (!searchHits.length) return;
     const nextIndex = (activeSearchHit + direction + searchHits.length) % searchHits.length;
     setActiveSearchHit(nextIndex);
-    setSafePage(searchHits[nextIndex].pageNumber);
-  }, [activeSearchHit, searchHits, setSafePage]);
+    navigateToPage(searchHits[nextIndex].pageNumber);
+  }, [activeSearchHit, navigateToPage, searchHits]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -479,7 +702,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
 
   const commitPageInput = () => {
     const parsed = Number.parseInt(pageInput, 10);
-    if (Number.isFinite(parsed)) setSafePage(parsed);
+    if (Number.isFinite(parsed)) navigateToPage(parsed);
     else setPageInput(String(pageNumber));
   };
 
@@ -520,7 +743,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
 
           <div className="mx-1 h-8 w-px shrink-0 bg-slate-200" />
 
-          <button type="button" onClick={() => setSafePage(pageNumber - 1)} disabled={pageNumber <= 1} className={roundControlClass} aria-label="Previous page" title="Previous page">
+          <button type="button" onClick={() => navigateToPage(pageNumber - 1)} disabled={pageNumber <= 1} className={roundControlClass} aria-label="Previous page" title="Previous page">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 shadow-inner">
@@ -536,7 +759,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
             />
             <span className="whitespace-nowrap pr-1 text-xs font-medium text-slate-500">of {totalPages}</span>
           </div>
-          <button type="button" onClick={() => setSafePage(pageNumber + 1)} disabled={pageNumber >= totalPages} className={roundControlClass} aria-label="Next page" title="Next page">
+          <button type="button" onClick={() => navigateToPage(pageNumber + 1)} disabled={pageNumber >= totalPages} className={roundControlClass} aria-label="Next page" title="Next page">
             <ChevronRight className="h-5 w-5" />
           </button>
 
@@ -611,15 +834,29 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
             </div>
             <div className="space-y-2">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
-                <PDFThumbnail key={candidatePage} pdf={pdf} pageNumber={candidatePage} selected={candidatePage === pageNumber} onSelect={() => setSafePage(candidatePage)} />
+                <PDFThumbnail key={candidatePage} pdf={pdf} pageNumber={candidatePage} selected={candidatePage === pageNumber} onSelect={() => navigateToPage(candidatePage)} />
               ))}
             </div>
           </aside>
         )}
 
         <main ref={viewportRef} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
-          <div className={cn("flex min-h-full min-w-full", fitMode === "page" ? "items-center justify-center" : "items-start justify-center")}>
-            <PDFPageCanvas pdf={pdf} pageNumber={pageNumber} scale={computedScale} rotation={rotation} onPageSize={setPageSize} />
+          <div className="flex min-h-full w-max min-w-full flex-col items-center gap-6" aria-label="Continuous PDF pages">
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
+              <ContinuousPDFPage
+                key={candidatePage}
+                pdf={pdf}
+                pageNumber={candidatePage}
+                scale={getScaleForPage(pageSizes[candidatePage] ?? pageSizes[1] ?? activePageSize)}
+                rotation={rotation}
+                pageSize={pageSizes[candidatePage] ?? pageSizes[1] ?? activePageSize}
+                fitMode={fitMode}
+                viewportElement={viewportRef.current}
+                viewportHeight={viewportSize.height}
+                registerPageElement={registerPageElement}
+                onPageSize={updatePageSize}
+              />
+            ))}
           </div>
         </main>
       </div>
