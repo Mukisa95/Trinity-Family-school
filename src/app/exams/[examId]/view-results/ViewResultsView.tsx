@@ -27,7 +27,6 @@ import {
   List,
   ChevronUp,
   ChevronDown,
-  FileSpreadsheet,
   FileText as FileTextIcon,
   BarChart3,
   PieChart,
@@ -94,6 +93,7 @@ import { generateModernBatchReportPDF, generateTransBatchReportPDF, preGenerateQ
 import { generateFullReport2PDF } from '@/components/exam/FullReport2PDF';
 import { generatePrimaryMiniReportPDF } from '@/components/exam/PrimaryMiniReportPDF';
 import { FullReport2PaletteSelector } from '@/components/exam/FullReport2PaletteSelector';
+import { ReportCreationDialog, ReportCreationDialogFrame } from '@/components/exam/report-creation-dialog';
 import { generateNurseryAssessmentPDF } from '@/components/exam/NurseryAssessmentPDF';
 import { generateNurseryMiniReportPDF } from '@/components/exam/NurseryMiniReportPDF';
 import { PDFDownloadLink } from '@react-pdf/renderer';
@@ -470,250 +470,20 @@ const PromotionRankingDialog = ({
   );
 };
 
-// Add new PrintModal component
-const PrintModal = ({
-  isOpen,
-  onClose,
-  onPrintAssessment,
-  onPrintNurseryReport,
-  onPrintTrans,
-  onPrintFullReport2,
-  isGenerating,
-  generationStatus,
-  generationProgress,
-  eta,
-  isNursery,
-  omitNurseryTeacherComment,
-  onOmitNurseryTeacherCommentChange,
-  individualPupilName,
-  isIndividual = false,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onPrintAssessment: () => void;
-  onPrintNurseryReport: () => void;
-  onPrintTrans: () => void;
-  onPrintFullReport2: () => void;
-  isGenerating: boolean;
-  generationStatus: string;
-  generationProgress: number;
-  eta: string;
-  isNursery?: boolean;
-  omitNurseryTeacherComment: boolean;
-  onOmitNurseryTeacherCommentChange: (omit: boolean) => void;
-  individualPupilName?: string;
-  isIndividual?: boolean;
-}) => {
-  const isIndividualPrint = isIndividual || Boolean(individualPupilName);
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Printer className="h-5 w-5 text-blue-600" />
-            Print Reports{individualPupilName ? ` - ${individualPupilName}` : ''}
-          </DialogTitle>
-          <DialogDescription>
-            {isIndividualPrint ? 'Select a report to generate for this pupil' : 'Select the type of report to generate'}
-          </DialogDescription>
-        </DialogHeader>
-
-        {isGenerating ? (
-          <div className="py-4">
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4"></div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Generating Report</h3>
-              <p className="text-sm text-blue-600 font-medium mb-4">{generationStatus}</p>
-
-              {/* Compact Progress Bar */}
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-3 overflow-hidden border">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
-                  style={{ width: `${generationProgress}%` }}
-                />
-              </div>
-
-              {/* Progress and ETA */}
-              <div className="flex justify-between items-center mb-4 text-sm">
-                <span className="font-semibold text-gray-800">{generationProgress}% Complete</span>
-                <span className="text-blue-600 font-medium">{eta}</span>
-              </div>
-
-              {/* Compact Status Info */}
-              <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                <div className="flex justify-between items-center text-xs">
-                  <div>
-                    <span className="font-semibold text-gray-700">Step: </span>
-                    <span className="text-gray-600">
-                      {generationProgress < 20 ? 'Data Prep' :
-                        generationProgress < 50 ? 'Processing' :
-                          generationProgress < 80 ? 'PDF Gen' : 'Finalizing'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-gray-700">Status: </span>
-                    <span className="text-green-600">Active</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Compact Progress Steps */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className={`p-2 rounded border ${generationProgress >= 10 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 10 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                      {generationProgress >= 10 ? '✓' : '1'}
-                    </div>
-                    <span className="font-medium">Initialize</span>
-                  </div>
-                </div>
-
-                <div className={`p-2 rounded border ${generationProgress >= 30 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 30 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                      {generationProgress >= 30 ? '✓' : '2'}
-                    </div>
-                    <span className="font-medium">Process</span>
-                  </div>
-                </div>
-
-                <div className={`p-2 rounded border ${generationProgress >= 60 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 60 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                      {generationProgress >= 60 ? '✓' : '3'}
-                    </div>
-                    <span className="font-medium">Generate</span>
-                  </div>
-                </div>
-
-                <div className={`p-2 rounded border ${generationProgress >= 90 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${generationProgress >= 90 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                      {generationProgress >= 90 ? '✓' : '4'}
-                    </div>
-                    <span className="font-medium">Complete</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Compact Tip */}
-              <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                <div className="text-xs text-blue-800">
-                  <span className="font-semibold">💡</span> Report will download automatically when ready
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {!isIndividualPrint && <button
-              onClick={onPrintAssessment}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileSpreadsheet className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Assessment Report</h3>
-                  <p className="text-sm text-gray-600">Class-wide assessment summary</p>
-                </div>
-              </div>
-            </button>}
-
-            <button
-              onClick={onPrintNurseryReport}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <FileTextIcon className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Mini Report</h3>
-                  <p className="text-sm text-gray-600">
-                    {isIndividualPrint
-                      ? (isNursery ? 'Playful nursery report card for one pupil' : 'Professional half-page report card for one pupil')
-                      : (isNursery ? 'Playful nursery report cards (2 per page)' : 'Professional primary report cards (2 per page)')}
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {isNursery && !isIndividualPrint && (
-              <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
-                <Checkbox
-                  id="omit-nursery-teacher-comment"
-                  checked={omitNurseryTeacherComment}
-                  onCheckedChange={(checked) => onOmitNurseryTeacherCommentChange(checked === true)}
-                  className="mt-0.5"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="omit-nursery-teacher-comment" className="cursor-pointer text-sm font-medium text-gray-900">
-                    Leave class teacher&apos;s comment blank
-                  </Label>
-                  <p className="text-xs text-gray-600">
-                    Show two writing lines and place the signature on the second line.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!isNursery && <button
-              onClick={onPrintTrans}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <FileTextIcon className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Full Report</h3>
-                  <p className="text-sm text-gray-600">{isIndividualPrint ? 'Comprehensive report card for this pupil' : 'Individual pupil report cards (Comprehensive design)'}</p>
-                </div>
-              </div>
-            </button>}
-
-            {!isNursery && <button
-              onClick={onPrintFullReport2}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 rounded-lg">
-                  <FileTextIcon className="h-5 w-5 text-indigo-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Bespoke Report</h3>
-                  <p className="text-sm text-gray-600">{isIndividualPrint ? 'Fully customisable Trinity blue-and-gold report for this pupil' : 'Individual pupil report cards (fully customisable Trinity blue-and-gold design)'}</p>
-                </div>
-              </div>
-            </button>}
-          </div>
-        )}
-
-        {!isGenerating && (
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 // Print Assessment Options Dialog Component
 const PrintAssessmentOptionsDialog = ({
   isOpen,
   onClose,
+  onBack,
   onConfirm,
   gradingScale,
   reportType,
   isNursery,
+  scope,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void;
   onConfirm: (options: {
     showPin: boolean;
     showIndexNumber: boolean;
@@ -735,6 +505,7 @@ const PrintAssessmentOptionsDialog = ({
   gradingScale?: Array<{ minMark: number; maxMark: number; grade: string; aggregates: number }>;
   reportType?: 'table' | 'detailed';
   isNursery?: boolean;
+  scope: string;
 }) => {
   const [showPin, setShowPin] = useState(true);
   const [showIndexNumber, setShowIndexNumber] = useState(true);
@@ -778,21 +549,38 @@ const PrintAssessmentOptionsDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Printer className="h-5 w-5 text-blue-600" />
-            Print Assessment Options
-          </DialogTitle>
-          <DialogDescription>
-            {isNursery
-              ? 'Choose the pupil identifiers and nursery assessment columns to include.'
-              : 'Configure which columns to display and which data to include in the assessment report'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6 py-4">
+    <ReportCreationDialogFrame
+      open={isOpen}
+      onClose={onClose}
+      scope={scope}
+      step={2}
+      title="Configure assessment report"
+      description={isNursery
+        ? 'Choose the pupil identifiers and nursery assessment columns to include.'
+        : 'Choose which columns appear and which results are filled in on the assessment report.'}
+      icon={Printer}
+      maxWidthClassName="sm:max-w-3xl"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onBack || onClose}
+            className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
+          >
+            {onBack ? 'Back' : 'Cancel'}
+          </Button>
+          <Button
+            type="button"
+            onClick={handleConfirm}
+            className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+          >
+            Create PDF
+          </Button>
+        </>
+      }
+    >
+        <div className="space-y-6 py-1">
           {/* Column Visibility Section */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Column Visibility</h3>
@@ -1066,16 +854,7 @@ const PrintAssessmentOptionsDialog = ({
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm}>
-            Generate PDF
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </ReportCreationDialogFrame>
   );
 };
 
@@ -2103,6 +1882,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       return;
     }
     setSelectedFullReportTemplate(template);
+    setTransReportType(null);
     setShowIndividualPrintModal(false);
     setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, selectedPupilForPrint, processedResults, toast]);
@@ -3369,6 +3149,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       return;
     }
     setSelectedFullReportTemplate('standard');
+    setTransReportType(null);
     // Show type selection modal first
     setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
@@ -3379,16 +3160,13 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       return;
     }
     setSelectedFullReportTemplate('full2');
+    setTransReportType(null);
     setShowTransTypeModal(true);
   }, [examDetails, classSnap, subjectSnaps, processedResults, toast]);
 
   // Handle TRANS report type selection
   const handleTransTypeSelection = useCallback((type: 'grading' | 'progress') => {
     setTransReportType(type);
-    setShowTransTypeModal(false);
-
-    // Show configuration modal first
-    setShowReportConfigModal(true);
   }, []);
 
   // Load available comparison exams (same term, class, academic year)
@@ -5470,48 +5248,25 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         isLoading={releaseResultsMutation.isPending || releaseAllMutation.isPending}
       />
 
-      {/* Progressive Exam Selection Modal */}
-      <Dialog open={showProgressiveExamModal} onOpenChange={setShowProgressiveExamModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Progressive Assessment</DialogTitle>
-            <DialogDescription>
-              Choose an exam to display in the Progressive Assessment Records section of the report.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            <RadioGroup value={selectedProgressiveExam || ''} onValueChange={handleSelectProgressiveExam}>
-              {progressiveExams.map((exam) => (
-                <div key={exam.id} className="flex items-center space-x-2 mb-2 p-2 border rounded-md">
-                  <RadioGroupItem value={exam.id} id={exam.id} />
-                  <Label htmlFor={exam.id} className="flex-1 cursor-pointer">
-                    <div className="font-medium">{exam.name}</div>
-                    <div className="text-xs text-gray-500">
-                      {exam.examTypeName} | {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
-                    </div>
-                  </Label>
-                </div>
-              ))}
-              <div className="flex items-center space-x-2 mb-2 p-2 border rounded-md">
-                <RadioGroupItem value="none" id="none" />
-                <Label htmlFor="none" className="flex-1 cursor-pointer">
-                  <div className="font-medium">None</div>
-                  <div className="text-xs text-gray-500">Do not include progressive assessment records</div>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <DialogFooter className="sm:justify-between">
+      {/* Progressive assessment selection shares the report-creation visual language */}
+      <ReportCreationDialogFrame
+        open={showProgressiveExamModal}
+        onClose={() => setShowProgressiveExamModal(false)}
+        scope={`${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
+        step={2}
+        title="Choose progressive assessment"
+        description="Select an assessment to include in the Progressive Assessment Records section of the report."
+        icon={TrendingUp}
+        footer={
+          <>
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               onClick={() => {
                 setShowProgressiveExamModal(false);
-                // Continue without progressive assessment
                 generatePupilReports(null);
               }}
+              className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
             >
               Skip
             </Button>
@@ -5519,26 +5274,52 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
               type="button"
               onClick={handleConfirmProgressiveExam}
               disabled={!selectedProgressiveExam && selectedProgressiveExam !== 'none'}
+              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
             >
               Continue
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <RadioGroup value={selectedProgressiveExam || ''} onValueChange={handleSelectProgressiveExam} className="space-y-3">
+          {progressiveExams.map((exam) => (
+            <Label
+              key={exam.id}
+              htmlFor={`progressive-exam-${exam.id}`}
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70"
+            >
+              <RadioGroupItem value={exam.id} id={`progressive-exam-${exam.id}`} className="h-5 w-5 border-blue-300" />
+              <span className="min-w-0">
+                <span className="block text-base font-semibold text-slate-950">{exam.name}</span>
+                <span className="mt-1 block text-sm text-slate-600">
+                  {exam.examTypeName} · {new Date(exam.startDate).toLocaleDateString()} – {new Date(exam.endDate).toLocaleDateString()}
+                </span>
+              </span>
+            </Label>
+          ))}
+          <Label
+            htmlFor="progressive-exam-none"
+            className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70"
+          >
+            <RadioGroupItem value="none" id="progressive-exam-none" className="h-5 w-5 border-blue-300" />
+            <span>
+              <span className="block text-base font-semibold text-slate-950">Do not include progress records</span>
+              <span className="mt-1 block text-sm text-slate-600">Create the report without progressive assessment records.</span>
+            </span>
+          </Label>
+        </RadioGroup>
+      </ReportCreationDialogFrame>
 
       {/* Print Modal */}
-      <PrintModal
-        isOpen={showPrintModal}
+      <ReportCreationDialog
+        open={showPrintModal}
         onClose={() => setShowPrintModal(false)}
         onPrintAssessment={handleExportAssessment}
-        onPrintNurseryReport={handleNurseryReport}
-        onPrintTrans={handleTransReport}
-        onPrintFullReport2={handleFullReport2}
-        isGenerating={isGenerating}
-        generationStatus={generationStatus}
-        generationProgress={generationProgress}
-        eta={eta}
+        onPrintMini={handleNurseryReport}
+        onPrintFull={handleTransReport}
+        onPrintBespoke={handleFullReport2}
         isNursery={isNurseryExam}
+        scope={`${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
         omitNurseryTeacherComment={omitNurseryTeacherComment}
         onOmitNurseryTeacherCommentChange={setOmitNurseryTeacherComment}
       />
@@ -5547,6 +5328,11 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       <PrintAssessmentOptionsDialog
         isOpen={showPrintAssessmentOptionsDialog}
         onClose={() => setShowPrintAssessmentOptionsDialog(false)}
+        onBack={() => {
+          setShowPrintAssessmentOptionsDialog(false);
+          setShowPrintModal(true);
+        }}
+        scope={`${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}
         reportType={assessmentReportType}
         isNursery={isNurseryExam}
         onConfirm={(options) => {
@@ -5578,73 +5364,149 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         }
       />
 
-      {/* TRANS Report Type Selection Modal */}
-      <Dialog open={showTransTypeModal} onOpenChange={setShowTransTypeModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <FileTextIcon className="h-5 w-5 text-orange-600" />
-              Select Full Report Type
-            </DialogTitle>
-            <DialogDescription>
-              Choose between grading scale or progress assessment
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-4">
-            <button
-              onClick={() => handleTransTypeSelection('grading')}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
+      {/* Full report format — step 2 of the shared report-creation flow */}
+      <ReportCreationDialogFrame
+        open={showTransTypeModal}
+        onClose={() => {
+          setShowTransTypeModal(false);
+          setTransReportType(null);
+        }}
+        scope={`${selectedPupilForPrint
+          ? `${processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil'} · 1 pupil`
+          : `${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
+        step={1}
+        title="Choose a full-report format"
+        description="Choose how academic performance should be shown before selecting report details."
+        icon={FileTextIcon}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowTransTypeModal(false);
+                setTransReportType(null);
+                if (selectedPupilForPrint) {
+                  setShowIndividualPrintModal(true);
+                } else {
+                  setShowPrintModal(true);
+                }
+              }}
+              className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Grading Scale</h3>
-                  <p className="text-sm text-gray-600">Show grading scale on reports</p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleTransTypeSelection('progress')}
-              className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Progress Assessment</h3>
-                  <p className="text-sm text-gray-600">Compare with previous exam results</p>
-                </div>
-              </div>
-            </button>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTransTypeModal(false)}>
-              Cancel
+              Back
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!transReportType) return;
+                setShowTransTypeModal(false);
+                setShowReportConfigModal(true);
+              }}
+              disabled={!transReportType}
+              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+            >
+              Continue
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3" role="radiogroup" aria-label="Full report format">
+          {[
+            {
+              value: 'grading' as const,
+              title: 'Grading scale',
+              description: 'Show the grading scale alongside the pupil report.',
+              icon: BarChart3,
+              iconClassName: 'bg-blue-50 text-blue-700',
+            },
+            {
+              value: 'progress' as const,
+              title: 'Progress assessment',
+              description: 'Compare this result with one or two earlier exams.',
+              icon: TrendingUp,
+              iconClassName: 'bg-teal-50 text-teal-700',
+            },
+          ].map((option) => {
+            const selected = transReportType === option.value;
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => handleTransTypeSelection(option.value)}
+                className={`group flex min-h-24 w-full items-center gap-4 rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
+                  selected
+                    ? 'border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)]'
+                    : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99]'
+                }`}
+              >
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${option.iconClassName}`}>
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-semibold text-slate-950">{option.title}</span>
+                  <span className="mt-1 block text-sm leading-5 text-slate-600">{option.description}</span>
+                </span>
+                {selected ? (
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                ) : (
+                  <ChevronRight className="h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden="true" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-4 text-sm text-slate-600" aria-live="polite">
+          {transReportType
+            ? `Selected: ${transReportType === 'grading' ? 'Grading scale' : 'Progress assessment'}`
+            : 'Choose a full-report format to continue.'}
+        </p>
+      </ReportCreationDialogFrame>
 
       {/* Report Configuration Modal */}
-      <Dialog open={showReportConfigModal} onOpenChange={setShowReportConfigModal}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <FileTextIcon className="h-5 w-5 text-orange-600" />
-              Configure Report Elements
-            </DialogTitle>
-            <DialogDescription>
-              Choose which elements to show and whether to fill in the information
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
+      <ReportCreationDialogFrame
+        open={showReportConfigModal}
+        onClose={() => {
+          setShowReportConfigModal(false);
+          setTransReportType(null);
+        }}
+        scope={`${selectedPupilForPrint
+          ? `${processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil'} · 1 pupil`
+          : `${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
+        step={2}
+        title="Configure full report"
+        description="Choose which report elements appear and which information is filled in automatically."
+        icon={FileTextIcon}
+        maxWidthClassName="sm:max-w-3xl"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowReportConfigModal(false);
+                setShowTransTypeModal(true);
+              }}
+              className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              onClick={handleReportConfigComplete}
+              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+            >
+              {transReportType === 'progress' ? 'Choose exams' : 'Create PDF'}
+            </Button>
+          </>
+        }
+      >
+        <div className="py-1">
             {selectedFullReportTemplate === 'full2' && (
               <FullReport2PaletteSelector palette={fullReport2Palette} onPaletteChange={setFullReport2Palette} />
             )}
@@ -6007,171 +5869,177 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             </Table>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowReportConfigModal(false);
-              setTransReportType(null);
-            }}>
-              Cancel
+      </ReportCreationDialogFrame>
+
+      {/* Comparison exams — final selection step of the shared report-creation flow */}
+      <ReportCreationDialogFrame
+        open={showComparisonExamModal}
+        onClose={() => {
+          setShowComparisonExamModal(false);
+          setSelectedComparisonExams([]);
+          setComparisonExamNames({});
+          setTransReportType(null);
+        }}
+        scope={`${selectedPupilForPrint
+          ? `${processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil'} · 1 pupil`
+          : `${classSnap?.name || 'Exam class'} · ${pdfTargetResults.length} pupil${pdfTargetResults.length === 1 ? '' : 's'}`}`}
+        step={3}
+        title="Choose comparison exams"
+        description="Select up to two earlier exams from the same class, term, and academic year."
+        icon={TrendingUp}
+        maxWidthClassName="sm:max-w-xl"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setShowComparisonExamModal(false);
+                setShowReportConfigModal(true);
+              }}
+              className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
+            >
+              Back
             </Button>
-            <Button onClick={handleReportConfigComplete}>
-              Continue
+            <Button
+              type="button"
+              onClick={() => {
+                if (selectedComparisonExams.length === 0) {
+                  toast({ title: "Choose an exam", description: "Select at least one comparison exam before creating the PDF." });
+                  return;
+                }
+
+                setShowComparisonExamModal(false);
+                if (selectedPupilForPrint) {
+                  generateIndividualTransReportWithProgress(selectedComparisonExams, comparisonExamNames);
+                } else {
+                  generateTransReportWithProgress(selectedComparisonExams, comparisonExamNames);
+                }
+              }}
+              disabled={selectedComparisonExams.length === 0 || isLoadingComparisonExams}
+              className="min-h-11 rounded-full bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700"
+            >
+              Create PDF{selectedComparisonExams.length > 0 ? ` (${selectedComparisonExams.length}/2)` : ''}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        {isLoadingComparisonExams ? (
+          <div className="py-8 text-center">
+            <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-sm text-slate-600">Loading available exams...</p>
+          </div>
+        ) : availableComparisonExams.length === 0 ? (
+          <div className="py-8 text-center">
+            <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-amber-600" />
+            <p className="text-sm text-slate-600">No comparison exams were found for this class, term, and academic year.</p>
+          </div>
+        ) : (
+          <div className="space-y-3" role="group" aria-label="Comparison exams">
+            {availableComparisonExams.map((exam) => {
+              const isSelected = selectedComparisonExams.includes(exam.id);
+              const canSelect = selectedComparisonExams.length < 2 || isSelected;
 
-      {/* Comparison Exam Selection Modal */}
-      <Dialog open={showComparisonExamModal} onOpenChange={setShowComparisonExamModal}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Select Comparison Exams
-            </DialogTitle>
-            <DialogDescription>
-              Select up to 2 exams from the same term, class, and academic year to compare progress
-            </DialogDescription>
-          </DialogHeader>
-
-          {isLoadingComparisonExams ? (
-            <div className="py-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-2" />
-              <p className="text-sm text-gray-600">Loading available exams...</p>
-            </div>
-          ) : availableComparisonExams.length === 0 ? (
-            <div className="py-8 text-center">
-              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
-              <p className="text-sm text-gray-600">No comparison exams found for this term, class, and academic year.</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto py-4">
-              {availableComparisonExams.map((exam) => {
-                const isSelected = selectedComparisonExams.includes(exam.id);
-                const canSelect = selectedComparisonExams.length < 2 || isSelected;
-
-                return (
-                  <div
-                    key={exam.id}
-                    onClick={() => {
-                      if (!canSelect) return;
-                      if (isSelected) {
-                        setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
-                      } else if (selectedComparisonExams.length < 2) {
-                        setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
-                      } else {
-                        toast({
-                          title: "Limit Reached",
-                          description: "You can only select up to 2 comparison exams"
-                        });
-                      }
-                    }}
-                    className={`w-full p-3 border rounded-lg text-left transition-colors cursor-pointer ${isSelected
-                        ? 'border-blue-500 bg-blue-50'
-                        : canSelect
-                          ? 'border-gray-200 hover:bg-gray-50'
-                          : 'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed'
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked) => {
-                              if (checked && selectedComparisonExams.length < 2) {
-                                setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
-                              } else if (!checked) {
-                                setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
-                              }
-                            }}
-                            disabled={!canSelect}
-                            className="h-4 w-4"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{exam.name}</h3>
-                          <p className="text-sm text-gray-600">
-                            {exam.examTypeName || 'Exam'} • {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date'}
-                          </p>
-                        </div>
+              return (
+                <div
+                  key={exam.id}
+                  onClick={() => {
+                    if (!canSelect) return;
+                    if (isSelected) {
+                      setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
+                    } else {
+                      setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
+                    }
+                  }}
+                  className={`w-full rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
+                    isSelected
+                      ? 'border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)]'
+                      : canSelect
+                        ? 'cursor-pointer border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50'
+                        : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60'
+                  }`}
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  aria-disabled={!canSelect}
+                  tabIndex={canSelect ? 0 : -1}
+                  onKeyDown={(event) => {
+                    if (!canSelect || (event.key !== 'Enter' && event.key !== ' ')) return;
+                    event.preventDefault();
+                    if (isSelected) {
+                      setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
+                    } else {
+                      setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div onClick={(event) => event.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked && selectedComparisonExams.length < 2) {
+                              setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
+                            } else if (!checked) {
+                              setSelectedComparisonExams(selectedComparisonExams.filter(id => id !== exam.id));
+                            }
+                          }}
+                          disabled={!canSelect}
+                          className="h-5 w-5 border-blue-300"
+                        />
                       </div>
-                      {isSelected && (
-                        <div className="ml-2 text-blue-600">
-                          <Check className="h-5 w-5" />
-                        </div>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-base font-semibold text-slate-950">{exam.name}</h3>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {exam.examTypeName || 'Exam'} · {exam.startDate ? new Date(exam.startDate).toLocaleDateString() : 'No date'}
+                        </p>
+                      </div>
                     </div>
+                    {isSelected && (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {selectedComparisonExams.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <p className="text-sm font-medium text-blue-900">
+              {selectedComparisonExams.length} of 2 exams selected
+            </p>
+            <p className="mt-1 text-sm text-slate-600">Optional: use clearer labels in the progress section of the report.</p>
+            <div className="mt-3 space-y-3">
+              {selectedComparisonExams.map((examId, index) => {
+                const exam = availableComparisonExams.find(e => e.id === examId);
+                return (
+                  <div key={examId} className="space-y-1.5">
+                    <Label htmlFor={`comparison-exam-${examId}`} className="text-sm font-semibold text-slate-800">
+                      Exam {index + 1}
+                    </Label>
+                    <Input
+                      id={`comparison-exam-${examId}`}
+                      placeholder={exam?.name || 'Enter custom name'}
+                      value={comparisonExamNames[examId] || ''}
+                      onChange={(event) => {
+                        setComparisonExamNames({
+                          ...comparisonExamNames,
+                          [examId]: event.target.value,
+                        });
+                      }}
+                      className="min-h-11 border-slate-200 bg-white text-slate-950"
+                    />
                   </div>
                 );
               })}
             </div>
-          )}
-
-          {selectedComparisonExams.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800 mb-3">
-                  <span className="font-semibold">{selectedComparisonExams.length}</span> of 2 exams selected
-                </p>
-                <p className="text-xs text-blue-700 mb-2">Customize exam names (optional):</p>
-                <div className="space-y-2">
-                  {selectedComparisonExams.map((examId, index) => {
-                    const exam = availableComparisonExams.find(e => e.id === examId);
-                    return (
-                      <div key={examId} className="space-y-1">
-                        <label className="text-xs font-medium text-gray-700">
-                          Exam {index + 1}:
-                        </label>
-                        <Input
-                          placeholder={exam?.name || 'Enter custom name'}
-                          value={comparisonExamNames[examId] || ''}
-                          onChange={(e) => {
-                            setComparisonExamNames({
-                              ...comparisonExamNames,
-                              [examId]: e.target.value
-                            });
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowComparisonExamModal(false);
-              setSelectedComparisonExams([]);
-              setComparisonExamNames({});
-              setTransReportType(null);
-            }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (selectedComparisonExams.length > 0) {
-                  setShowComparisonExamModal(false);
-                  if (selectedPupilForPrint) {
-                    generateIndividualTransReportWithProgress(selectedComparisonExams, comparisonExamNames);
-                  } else {
-                    generateTransReportWithProgress(selectedComparisonExams, comparisonExamNames);
-                  }
-                } else {
-                  toast({ title: "Error", description: "Please select at least one comparison exam" });
-                }
-              }}
-              disabled={selectedComparisonExams.length === 0 || isLoadingComparisonExams}
-            >
-              Generate Report ({selectedComparisonExams.length}/2)
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        )}
+      </ReportCreationDialogFrame>
 
       {/* Individual Pupil Performance Popup */}
       <Dialog open={!!selectedPupilIdForPopup} onOpenChange={(open) => !open && setSelectedPupilIdForPopup(null)}>
@@ -6280,25 +6148,20 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       />
 
       {/* Individual Print Modal - shares the same option surface and PDF generators as batch printing */}
-      <PrintModal
-        isOpen={showIndividualPrintModal}
+      <ReportCreationDialog
+        open={showIndividualPrintModal}
         onClose={() => {
           setShowIndividualPrintModal(false);
-          setSelectedPupilForPrint(null);
         }}
         onPrintAssessment={handleIndividualReportOne}
-        onPrintNurseryReport={handleIndividualMiniReport}
-        onPrintTrans={handleIndividualFullReport}
-        onPrintFullReport2={handleIndividualFullReport2}
-        isGenerating={isGenerating}
-        generationStatus={generationStatus}
-        generationProgress={generationProgress}
-        eta={eta}
+        onPrintMini={handleIndividualMiniReport}
+        onPrintFull={handleIndividualFullReport}
+        onPrintBespoke={handleIndividualFullReport2}
         isNursery={isNurseryExam}
+        scope={`${selectedPupilForPrint ? processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name || 'Selected pupil' : 'Selected pupil'} · 1 pupil`}
         omitNurseryTeacherComment={omitNurseryTeacherComment}
         onOmitNurseryTeacherCommentChange={setOmitNurseryTeacherComment}
-        isIndividual={Boolean(selectedPupilForPrint)}
-        individualPupilName={selectedPupilForPrint ? processedResults.find(r => r.pupilInfo.pupilId === selectedPupilForPrint)?.pupilInfo?.name : undefined}
+        isIndividual
       />
     </div>
   );
@@ -6591,90 +6454,90 @@ function PerformanceAnalysisPage({
         }
       />
 
-      <Dialog open={showAnalysisPrintType} onOpenChange={setShowAnalysisPrintType}>
-        <DialogContent className="border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
-          <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
-            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
-              <Printer className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-              Choose analysis type
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 px-5 py-3 sm:grid-cols-3 sm:px-6">
-            <Button
+      <ReportCreationDialogFrame
+        open={showAnalysisPrintType}
+        onClose={() => setShowAnalysisPrintType(false)}
+        scope={`${examDetails?.name || 'Exam'} · ${className}`}
+        step={0}
+        flowSteps={["Analysis", "Sources", "Options", "Review"]}
+        title="Create analysis PDF"
+        description="Choose the analysis you want to create. Every option opens in the same guided print workspace."
+        icon={Printer}
+        maxWidthClassName="sm:max-w-3xl"
+        footer={
+          <Button type="button" variant="ghost" onClick={() => setShowAnalysisPrintType(false)} className="min-h-11 rounded-full px-5 font-semibold text-slate-700 hover:bg-slate-200/70">
+            Cancel
+          </Button>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-3" role="list" aria-label="Analysis PDF type">
+          {[
+            {
+              title: "Self analysis",
+              description: "Create the full performance analysis for this exam.",
+              icon: FileText,
+              iconClassName: "bg-blue-50 text-blue-700",
+              onClick: () => { setShowAnalysisPrintType(false); setShowPrintSections(true); },
+            },
+            {
+              title: "Cross analysis",
+              description: "Compare performance across selected exam sets.",
+              icon: GitBranch,
+              iconClassName: "bg-violet-50 text-violet-700",
+              onClick: () => { setShowAnalysisPrintType(false); setShowCrossAnalysis(true); },
+            },
+            {
+              title: "Subject analysis",
+              description: "Compare selected subjects across one or more exams.",
+              icon: BookOpen,
+              iconClassName: "bg-emerald-50 text-emerald-700",
+              onClick: () => { setShowAnalysisPrintType(false); setShowSubjectSetAnalysis(true); },
+            },
+          ].map(({ title, description, icon: Icon, iconClassName, onClick }) => (
+            <button
+              key={title}
               type="button"
-              variant="outline"
-              onClick={() => {
-                setShowAnalysisPrintType(false);
-                setShowPrintSections(true);
-              }}
-              className="h-20 items-center justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-indigo-300 hover:bg-indigo-50"
+              onClick={onClick}
+              className="group flex min-h-44 flex-col items-start rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
             >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <FileText className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-                <span className="text-sm font-bold text-slate-950">Self analysis</span>
+              <span className={`flex h-12 w-12 items-center justify-center rounded-full ${iconClassName}`}>
+                <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowAnalysisPrintType(false);
-                setShowCrossAnalysis(true);
-              }}
-              className="h-20 items-center justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-violet-300 hover:bg-violet-50"
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
-                <span className="text-sm font-bold text-slate-950">Cross analysis</span>
-              </span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowAnalysisPrintType(false);
-                setShowSubjectSetAnalysis(true);
-              }}
-              className="h-20 items-center justify-start whitespace-normal rounded-xl border-slate-200 p-4 text-left hover:border-emerald-300 hover:bg-emerald-50"
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <BookOpen className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-                <span className="text-sm font-bold text-slate-950">Subject analysis</span>
-              </span>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              <span className="mt-5 text-base font-bold text-slate-950">{title}</span>
+              <span className="mt-1 text-sm leading-5 text-slate-600">{description}</span>
+              <span className="mt-auto pt-4 text-sm font-bold text-blue-700">Configure</span>
+            </button>
+          ))}
+        </div>
+      </ReportCreationDialogFrame>
 
-      <Dialog open={showCrossAnalysis} onOpenChange={setShowCrossAnalysis}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-violet-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
-          <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
-            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
-              <GitBranch className="h-5 w-5 text-violet-600" aria-hidden="true" />
-              Cross exam analysis
-            </DialogTitle>
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setShowCrossAnalysis(false)}>Cancel</Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={selectedCrossExamIds.length < 2 || selectedCrossMetricCount === 0 || isGeneratingPDF}
-                onClick={() => {
-                  setShowCrossAnalysis(false);
-                  onPrintCrossAnalysis(selectedCrossExamIds, crossMetrics);
-                }}
-                className="gap-2 bg-violet-600 text-white hover:bg-violet-700"
-              >
-                {isGeneratingPDF
-                  ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                  : <Printer className="h-4 w-4" aria-hidden="true" />}
-                {isGeneratingPDF ? 'Creating PDF...' : `Create cross PDF (${selectedCrossExamIds.length}/5)`}
-              </Button>
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-3 px-5 py-3 sm:px-6">
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-violet-100 bg-violet-50/70 px-3 py-2">
+      <ReportCreationDialogFrame
+        open={showCrossAnalysis}
+        onClose={() => setShowCrossAnalysis(false)}
+        scope={`${examDetails?.name || 'Exam'} · ${className}`}
+        step={2}
+        flowSteps={["Analysis", "Sources", "Options", "Review"]}
+        title="Cross exam analysis"
+        description="Choose up to five exam sets and the data points to compare in one PDF."
+        icon={GitBranch}
+        maxWidthClassName="sm:max-w-2xl"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setShowCrossAnalysis(false)} className="min-h-11 rounded-full px-5 font-semibold text-slate-700 hover:bg-slate-200/70">Cancel</Button>
+            <Button
+              type="button"
+              disabled={selectedCrossExamIds.length < 2 || selectedCrossMetricCount === 0 || isGeneratingPDF}
+              onClick={() => { setShowCrossAnalysis(false); onPrintCrossAnalysis(selectedCrossExamIds, crossMetrics); }}
+              className="min-h-11 gap-2 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700"
+            >
+              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
+              {isGeneratingPDF ? 'Creating PDF...' : `Create PDF (${selectedCrossExamIds.length}/5)`}
+            </Button>
+          </>
+        }
+      >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3">
               <p className="text-xs font-bold text-violet-950">Exam scope</p>
               <Label htmlFor="cross-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-violet-900">
                 <Checkbox
@@ -6696,7 +6559,7 @@ function PerformanceAnalysisPage({
                   {selectedCrossExamIds.length}/5 selected
                 </span>
               </div>
-              <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+              <div className="max-h-72 space-y-2 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50/70 p-2">
                 {visibleCrossAnalysisExams.length === 0 ? (
                   <p className="p-4 text-center text-sm text-slate-600">No other saved exam definitions are available for this class and term.</p>
                 ) : visibleCrossAnalysisExams.map((exam) => {
@@ -6707,7 +6570,7 @@ function PerformanceAnalysisPage({
                     <Label
                       key={exam.id}
                       htmlFor={`cross-analysis-exam-${exam.id}`}
-                      className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                      className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition-colors ${
                         selected
                           ? 'border-violet-300 bg-violet-50'
                           : canSelect
@@ -6749,7 +6612,7 @@ function PerformanceAnalysisPage({
                   <Label
                     key={key}
                     htmlFor={`cross-analysis-metric-${key}`}
-                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors hover:border-violet-300 hover:bg-violet-50/60 has-[[data-state=checked]]:border-violet-400 has-[[data-state=checked]]:bg-violet-50"
+                    className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2 transition-colors hover:border-violet-300 hover:bg-violet-50/60 has-[[data-state=checked]]:border-violet-400 has-[[data-state=checked]]:bg-violet-50"
                   >
                     <Checkbox
                       id={`cross-analysis-metric-${key}`}
@@ -6766,41 +6629,35 @@ function PerformanceAnalysisPage({
               </p>
             </section>
           </div>
+      </ReportCreationDialogFrame>
 
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSubjectSetAnalysis} onOpenChange={setShowSubjectSetAnalysis}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-emerald-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-2xl">
-          <DialogHeader className="border-b border-slate-100 px-5 pb-3 pt-5 text-left sm:px-6">
-            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
-              <BookOpen className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              Subject analysis
-            </DialogTitle>
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setShowSubjectSetAnalysis(false)}>Cancel</Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={selectedSubjectSetExamIds.length === 0 || selectedSubjectCodes.length === 0 || isGeneratingPDF}
-                onClick={() => {
-                  setShowSubjectSetAnalysis(false);
-                  onPrintSubjectSetAnalysis(selectedSubjectSetExamIds, selectedSubjectCodes);
-                }}
-                className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                {isGeneratingPDF
-                  ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                  : <Printer className="h-4 w-4" aria-hidden="true" />}
-                {isGeneratingPDF
-                  ? 'Creating PDF...'
-                  : `Create subject PDF (${selectedSubjectCodes.length} subject${selectedSubjectCodes.length === 1 ? '' : 's'})`}
-              </Button>
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-3 px-5 py-3 sm:px-6">
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2">
+      <ReportCreationDialogFrame
+        open={showSubjectSetAnalysis}
+        onClose={() => setShowSubjectSetAnalysis(false)}
+        scope={`${examDetails?.name || 'Exam'} · ${className}`}
+        step={2}
+        flowSteps={["Analysis", "Sources", "Options", "Review"]}
+        title="Subject analysis"
+        description="Select the subjects and exam sets to include in a focused comparison PDF."
+        icon={BookOpen}
+        maxWidthClassName="sm:max-w-2xl"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setShowSubjectSetAnalysis(false)} className="min-h-11 rounded-full px-5 font-semibold text-slate-700 hover:bg-slate-200/70">Cancel</Button>
+            <Button
+              type="button"
+              disabled={selectedSubjectSetExamIds.length === 0 || selectedSubjectCodes.length === 0 || isGeneratingPDF}
+              onClick={() => { setShowSubjectSetAnalysis(false); onPrintSubjectSetAnalysis(selectedSubjectSetExamIds, selectedSubjectCodes); }}
+              className="min-h-11 gap-2 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700"
+            >
+              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
+              {isGeneratingPDF ? 'Creating PDF...' : `Create PDF (${selectedSubjectCodes.length} subject${selectedSubjectCodes.length === 1 ? '' : 's'})`}
+            </Button>
+          </>
+        }
+      >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
               <p className="text-xs font-bold text-emerald-950">Exam scope</p>
               <Label htmlFor="subject-analysis-all-terms" className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-emerald-900">
                 <Checkbox
@@ -6826,7 +6683,7 @@ function PerformanceAnalysisPage({
                     <Label
                       key={subject.code}
                       htmlFor={`subject-analysis-subject-${subject.code}`}
-                      className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                      className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 transition-colors ${
                         selected
                           ? 'border-emerald-300 bg-emerald-50'
                           : 'border-slate-200 bg-slate-50/80 hover:border-emerald-200 hover:bg-emerald-50/60'
@@ -6857,7 +6714,7 @@ function PerformanceAnalysisPage({
                   {selectedSubjectSetExamIds.length}/5 selected
                 </span>
               </div>
-              <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+              <div className="max-h-64 space-y-2 overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50/70 p-2">
                 {visibleSubjectSetExams.length === 0 ? (
                   <p className="p-4 text-center text-sm text-slate-600">No saved exam definitions are available for this class and term.</p>
                 ) : visibleSubjectSetExams.map((exam) => {
@@ -6867,7 +6724,7 @@ function PerformanceAnalysisPage({
                     <Label
                       key={exam.id}
                       htmlFor={`subject-analysis-exam-${exam.id}`}
-                      className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                      className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition-colors ${
                         selected
                           ? 'border-emerald-300 bg-emerald-50'
                           : canSelect
@@ -6894,25 +6751,37 @@ function PerformanceAnalysisPage({
               </div>
             </section>
           </div>
-        </DialogContent>
-      </Dialog>
+      </ReportCreationDialogFrame>
 
-      <Dialog open={showPrintSections} onOpenChange={setShowPrintSections}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-indigo-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl sm:max-w-lg">
-          <DialogHeader className="border-b border-slate-100 px-5 pb-4 pt-5 text-left sm:px-6">
-            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-950">
-              <Printer className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-              Choose analysis sections
-            </DialogTitle>
-            <DialogDescription className="text-sm text-slate-600">
-              Select any combination to include in the performance analysis PDF.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2.5 px-5 py-4 sm:px-6">
+      <ReportCreationDialogFrame
+        open={showPrintSections}
+        onClose={() => setShowPrintSections(false)}
+        scope={`${examDetails?.name || 'Exam'} · ${className}`}
+        step={1}
+        flowSteps={["Analysis", "Sections", "Review"]}
+        title="Choose analysis sections"
+        description="Select any combination to include in the performance analysis PDF."
+        icon={Printer}
+        maxWidthClassName="sm:max-w-lg"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setShowPrintSections(false)} className="min-h-11 rounded-full px-5 font-semibold text-slate-700 hover:bg-slate-200/70">Cancel</Button>
+            <Button
+              type="button"
+              disabled={selectedPrintSectionCount === 0 || isGeneratingPDF}
+              onClick={() => { setShowPrintSections(false); onPrintAnalysis(printSections); }}
+              className="min-h-11 gap-2 rounded-full bg-blue-600 px-6 font-semibold text-white shadow-sm hover:bg-blue-700"
+            >
+              {isGeneratingPDF ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Printer className="h-4 w-4" aria-hidden="true" />}
+              {isGeneratingPDF ? 'Creating PDF...' : 'Create PDF'}
+            </Button>
+          </>
+        }
+      >
+          <div className="space-y-3">
             <Label
               htmlFor="analysis-section-aggregate"
-              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
             >
               <Checkbox
                 id="analysis-section-aggregate"
@@ -6933,7 +6802,7 @@ function PerformanceAnalysisPage({
 
             <Label
               htmlFor="analysis-section-divisions"
-              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
             >
               <Checkbox
                 id="analysis-section-divisions"
@@ -6954,7 +6823,7 @@ function PerformanceAnalysisPage({
 
             <Label
               htmlFor="analysis-section-subject-grades"
-              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
             >
               <Checkbox
                 id="analysis-section-subject-grades"
@@ -6977,32 +6846,7 @@ function PerformanceAnalysisPage({
               {selectedPrintSectionCount} of 3 sections selected
             </p>
           </div>
-
-          <DialogFooter className="border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:px-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowPrintSections(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={selectedPrintSectionCount === 0 || isGeneratingPDF}
-              onClick={() => {
-                setShowPrintSections(false);
-                onPrintAnalysis(printSections);
-              }}
-              className="gap-2 bg-indigo-600 text-white hover:bg-indigo-700"
-            >
-              {isGeneratingPDF
-                ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                : <Printer className="h-4 w-4" aria-hidden="true" />}
-              {isGeneratingPDF ? 'Creating PDF...' : 'Create PDF'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </ReportCreationDialogFrame>
 
       <main className="mx-auto max-w-7xl space-y-4 px-3 pb-8 sm:px-4 lg:px-6">
           {/* Top and Bottom Performers */}
