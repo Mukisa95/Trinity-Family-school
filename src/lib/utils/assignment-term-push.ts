@@ -1,6 +1,10 @@
 import type { AcademicYear, PupilAssignedFee, Term, AssignmentStatusHistory } from '@/types';
 import { detectCurrentAcademicYear } from '@/lib/utils/academic-year-utils';
 import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
+import {
+  getAssignmentCoveredTermIds,
+  isAssignmentValidForContext,
+} from '@/lib/utils/fee-assignment-pipeline';
 
 export interface TermRef {
   yearId: string;
@@ -29,16 +33,6 @@ export interface AssignmentPushFetchOptions {
   customTargets: TermTarget[];
   currentTermRef: TermRef | null;
   assignmentTermRef: TermRef | null;
-}
-
-function isTermActiveAt(term: Term, referenceDate: Date): boolean {
-  const termStart = new Date(term.startDate);
-  const termEnd = new Date(term.endDate);
-  return referenceDate >= termStart && referenceDate <= termEnd;
-}
-
-function isTermEndedAt(term: Term, referenceDate: Date): boolean {
-  return referenceDate > new Date(term.endDate);
 }
 
 function sortTerms(terms: Term[]): Term[] {
@@ -82,16 +76,20 @@ export function isAcademicYearEnded(
 
 export function isAcademicYearClosedForTargeting(
   year: AcademicYear,
-  referenceDate: Date = new Date()
+  _referenceDate: Date = new Date()
 ): boolean {
-  return year.isLocked || isAcademicYearEnded(year, referenceDate);
+  // Date completion and financial locking are different states. Staff may
+  // need to finish assignments during recess, but a locked year stays closed.
+  return year.isLocked;
 }
 
 export function isTermClosedForTargeting(
-  term: Term,
-  referenceDate: Date = new Date()
+  _term: Term,
+  _referenceDate: Date = new Date()
 ): boolean {
-  return isTermEndedAt(term, referenceDate);
+  // Term has no explicit lock flag. Its parent academic-year lock is the
+  // authoritative protection; an end date alone must not block late posting.
+  return false;
 }
 
 export function validatePushTarget(
@@ -107,9 +105,7 @@ export function validatePushTarget(
   if (isAcademicYearClosedForTargeting(year, referenceDate)) {
     return {
       valid: false,
-      error: year.isLocked
-        ? 'Cannot target a locked academic year'
-        : 'Cannot target an ended academic year',
+      error: 'Cannot target a locked academic year',
     };
   }
 
@@ -117,10 +113,6 @@ export function validatePushTarget(
   if (!term) {
     return { valid: false, error: 'Term not found in the selected year' };
   }
-  if (isTermClosedForTargeting(term, referenceDate)) {
-    return { valid: false, error: 'Cannot target a closed or ended term' };
-  }
-
   return { valid: true };
 }
 
@@ -129,6 +121,10 @@ export function getOpenTermTargets(
   referenceDate: Date = new Date()
 ): TermTarget[] {
   const targets: TermTarget[] = [];
+  const effectiveYearId = getEffectiveTermForDataDisplay(
+    academicYears,
+    referenceDate,
+  ).academicYear?.id;
 
   const sortedYears = [...academicYears].sort(
     (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
@@ -136,9 +132,9 @@ export function getOpenTermTargets(
 
   for (const year of sortedYears) {
     if (isAcademicYearClosedForTargeting(year, referenceDate)) continue;
+    if (isAcademicYearEnded(year, referenceDate) && year.id !== effectiveYearId) continue;
 
     for (const term of sortTerms(year.terms || [])) {
-      if (isTermClosedForTargeting(term, referenceDate)) continue;
       targets.push({
         yearId: year.id,
         termId: term.id,
@@ -266,8 +262,6 @@ export function getAssignmentPushFetchOptions(
   academicYears: AcademicYear[],
   referenceDate: Date = new Date()
 ): AssignmentPushFetchOptions {
-  const customTargets = getOpenTermTargets(academicYears, referenceDate);
-
   const effective = getEffectiveTermForDataDisplay(academicYears, referenceDate);
   const currentTermRef: TermRef | null =
     effective.term && effective.academicYear
@@ -288,18 +282,32 @@ export function getAssignmentPushFetchOptions(
   let push: AssignmentPushFetchOption | null = null;
   let fetch: AssignmentPushFetchOption | null = null;
 
+  const customTargets = getOpenTermTargets(academicYears, referenceDate).filter(
+    (target) =>
+      !isAssignmentValidForContext(
+        assignment,
+        target.yearId,
+        target.termId,
+        academicYears,
+      ),
+  );
+
   if (currentTermRef && assignmentTermRef) {
     const sameTerm =
       currentTermRef.yearId === assignmentTermRef.yearId &&
       currentTermRef.termId === assignmentTermRef.termId;
 
-    const stillInCurrentTerm =
-      isTermActiveAt(currentTermRef.term, referenceDate) ||
-      (isTermActiveAt(assignmentTermRef.term, referenceDate) && sameTerm);
-
-    if (sameTerm && stillInCurrentTerm) {
+    if (sameTerm) {
       const nextRef = getNextTermInSameYear(currentTermRef);
-      if (nextRef) {
+      if (
+        nextRef &&
+        !isAssignmentValidForContext(
+          assignment,
+          nextRef.yearId,
+          nextRef.termId,
+          academicYears,
+        )
+      ) {
         const validation = validatePushTarget(
           nextRef.yearId,
           nextRef.termId,
@@ -314,13 +322,21 @@ export function getAssignmentPushFetchOptions(
               termId: nextRef.termId,
               label: formatTermTargetLabel(nextRef.year, nextRef.term),
             },
-            description: `Move this assignment to ${formatTermTargetLabel(nextRef.year, nextRef.term)}`,
+            description: `Extend this assignment to ${formatTermTargetLabel(nextRef.year, nextRef.term)}`,
           };
         }
       }
     }
 
-    if (compareTermRefs(assignmentTermRef, currentTermRef) < 0) {
+    if (
+      compareTermRefs(assignmentTermRef, currentTermRef) < 0 &&
+      !isAssignmentValidForContext(
+        assignment,
+        currentTermRef.yearId,
+        currentTermRef.termId,
+        academicYears,
+      )
+    ) {
       const validation = validatePushTarget(
         currentTermRef.yearId,
         currentTermRef.termId,
@@ -371,6 +387,15 @@ export function applyAssignmentToTerm(
 
   const targetYear = academicYears.find((y) => y.id === targetYearId)!;
   const targetTerm = targetYear.terms.find((t) => t.id === targetTermId)!;
+  const coveredTermIds = getAssignmentCoveredTermIds(assignment, academicYears);
+  const applicableTermIds = coveredTermIds === null
+    ? assignment.applicableTermIds
+    : [...new Set([...coveredTermIds, targetTermId])].sort((a, b) => {
+        const aRef = findTermRef(a, academicYears);
+        const bRef = findTermRef(b, academicYears);
+        if (!aRef || !bRef) return a.localeCompare(b);
+        return compareTermRefs(aRef, bRef);
+      });
 
   const statusHistoryEntry: AssignmentStatusHistory = {
     date: referenceDate.toISOString(),
@@ -380,8 +405,8 @@ export function applyAssignmentToTerm(
     processedBy,
     reason:
       action === 'custom'
-        ? `Moved to ${formatTermTargetLabel(targetYear, targetTerm)}`
-        : `${action === 'push' ? 'Pushed' : 'Fetched'} to ${formatTermTargetLabel(targetYear, targetTerm)}`,
+        ? `Extended to ${formatTermTargetLabel(targetYear, targetTerm)}`
+        : `${action === 'push' ? 'Pushed' : 'Fetched'} through ${formatTermTargetLabel(targetYear, targetTerm)}`,
     previousTimeSettings: {
       validityType: assignment.validityType,
       startAcademicYearId: assignment.startAcademicYearId,
@@ -393,11 +418,12 @@ export function applyAssignmentToTerm(
 
   return {
     ...assignment,
-    validityType: 'specific_terms',
-    startAcademicYearId: targetYearId,
+    validityType: coveredTermIds === null ? assignment.validityType : 'specific_terms',
+    startAcademicYearId: assignment.startAcademicYearId || targetYearId,
     endAcademicYearId: undefined,
-    termApplicability: 'specific_terms',
-    applicableTermIds: [targetTermId],
+    termApplicability: coveredTermIds === null ? assignment.termApplicability : 'specific_terms',
+    applicableTermIds,
+    excludedTermIds: (assignment.excludedTermIds || []).filter((id) => id !== targetTermId),
     statusHistory: [...(assignment.statusHistory || []), statusHistoryEntry],
   };
 }

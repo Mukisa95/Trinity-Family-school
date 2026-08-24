@@ -18,6 +18,10 @@ import { PaymentsService } from "@/lib/services/payments.service";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
 import { detectCurrentAcademicYear, getActiveOrMostRecentTerm } from "@/lib/utils/academic-year-utils";
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
+import {
+  isAssignmentValidForContext,
+  upsertPupilFeeAssignment,
+} from "@/lib/utils/fee-assignment-pipeline";
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import {
   Card,
@@ -153,50 +157,6 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     return false;
   }, [selectedYearId, activeAcademicYear, academicYears, selectedTermId]);
 
-  // Helper: determine if an assignment is active for the selected context
-  const isAssignmentActiveForContext = (
-    assignment: PupilAssignedFee,
-    selYearId: string | undefined,
-    selTermId: string | undefined,
-    years: AcademicYear[]
-  ): boolean => {
-    if (!assignment || assignment.status === "disabled") return false;
-
-    // Explicit exclusion check
-    if (selTermId && assignment.excludedTermIds?.includes(selTermId)) return false;
-
-    const termOk =
-      assignment.termApplicability === "all_terms" ||
-      (assignment.termApplicability === "specific_terms" &&
-        !!selTermId &&
-        (assignment.applicableTermIds || []).includes(selTermId));
-
-    switch (assignment.validityType) {
-      case "current_term":
-        return !!selTermId && termOk;
-      case "current_year":
-        return !!selYearId && termOk;
-      case "specific_year":
-        return !!selYearId && assignment.startAcademicYearId === selYearId && termOk;
-      case "year_range": {
-        if (!assignment.startAcademicYearId || !assignment.endAcademicYearId || !selYearId) return false;
-        const startYear = years.find(y => y.id === assignment.startAcademicYearId);
-        const endYear = years.find(y => y.id === assignment.endAcademicYearId);
-        const selYear = years.find(y => y.id === selYearId);
-        if (!startYear || !endYear || !selYear) return false;
-        const sd = new Date(startYear.startDate).getTime();
-        const ed = new Date(endYear.endDate).getTime();
-        const cd = new Date(selYear.startDate).getTime();
-        return cd >= sd && cd <= ed && termOk;
-      }
-      case "specific_terms":
-        return termOk;
-      case "indefinite":
-      default:
-        return termOk;
-    }
-  };
-
   // Use centralized date-based detection
   const getCurrentAcademicYear = (): AcademicYear | undefined => {
     return detectCurrentAcademicYear(academicYears) || activeAcademicYear;
@@ -266,7 +226,9 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
           const assignment = all.find(af =>
             af.feeStructureId === feeStructure.id &&
             af.status === "active" &&
-            isAssignmentActiveForContext(af, selectedYearId || undefined, selectedTermId || undefined, academicYears)
+            !!selectedYearId &&
+            !!selectedTermId &&
+            isAssignmentValidForContext(af, selectedYearId, selectedTermId, academicYears)
           );
           if (!assignment) return null;
           return { pupil, assignment };
@@ -640,7 +602,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
       const fetchAssignment = allFees.find((af) =>
         af.feeStructureId === feeStructure.id &&
         af.status === "active" &&
-        isAssignmentActiveForContext(af, modifyFetchYearId, modifyFetchTermId, academicYears)
+        isAssignmentValidForContext(af, modifyFetchYearId, modifyFetchTermId, academicYears)
       );
 
       if (!fetchAssignment) return false;
@@ -648,7 +610,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
       const targetIsActive = allFees.some((af) =>
         af.feeStructureId === feeStructure.id &&
         af.status === "active" &&
-        isAssignmentActiveForContext(af, modifyTargetYearId, modifyTargetTermId, academicYears)
+        isAssignmentValidForContext(af, modifyTargetYearId, modifyTargetTermId, academicYears)
       );
 
       if (modifyAction === "extend") {
@@ -686,7 +648,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
         let currentAssigned = [...(pupil.assignedFees || [])];
 
         if (modifyAction === "extend") {
-          currentAssigned.push({
+          const extension: PupilAssignedFee = {
             id: `assign-extend-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             feeStructureId: feeStructure.id,
             assignedAt: new Date().toISOString(),
@@ -705,13 +667,18 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                 processedBy: "System Admin",
               },
             ],
-          });
+          };
+          currentAssigned = upsertPupilFeeAssignment(
+            currentAssigned,
+            extension,
+            academicYears,
+          ).assignments;
         } else if (modifyAction === "constrain") {
           currentAssigned = currentAssigned.map((af) => {
             if (
               af.feeStructureId === feeStructure.id &&
               af.status === "active" &&
-              isAssignmentActiveForContext(af, modifyTargetYearId, modifyTargetTermId, academicYears)
+              isAssignmentValidForContext(af, modifyTargetYearId, modifyTargetTermId, academicYears)
             ) {
               let newTermIds: string[] = [];
               let newExcludedIds: string[] = [...(af.excludedTermIds || [])];
@@ -811,15 +778,37 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
       };
 
       const selectedPupils = pupils.filter(p => selectedPupilIds.has(p.id));
+      let createdCount = 0;
+      let mergedCount = 0;
+      let unchangedCount = 0;
       for (const pupil of selectedPupils) {
-        await PupilsService.updatePupil(pupil.id, {
-          assignedFees: [...(pupil.assignedFees || []), assignmentsToApply],
-        });
+        const result = upsertPupilFeeAssignment(
+          pupil.assignedFees,
+          {
+            ...assignmentsToApply,
+            id: `assign-${timestamp}-${pupil.id}`,
+          },
+          academicYears,
+        );
+
+        if (result.outcome === 'created') createdCount++;
+        else if (result.outcome === 'merged') mergedCount++;
+        else unchangedCount++;
+
+        if (result.outcome !== 'unchanged') {
+          await PupilsService.updatePupil(pupil.id, {
+            assignedFees: result.assignments,
+          });
+        }
       }
 
       toast({
-        title: "Assignments created",
-        description: `${selectedPupilIds.size} pupil(s) assigned to "${feeStructure.name}".`,
+        title: "Assignments updated",
+        description: [
+          createdCount ? `${createdCount} created` : '',
+          mergedCount ? `${mergedCount} extended/consolidated` : '',
+          unchangedCount ? `${unchangedCount} already covered` : '',
+        ].filter(Boolean).join(', ') + `. No overlapping records were added for "${feeStructure.name}".`,
       });
 
       setSelectedPupilIds(new Set());

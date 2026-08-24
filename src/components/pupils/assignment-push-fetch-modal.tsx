@@ -128,8 +128,8 @@ export function AssignmentPushFetchModal({
             Push / Fetch Assignment
           </ModernDialogTitle>
           <ModernDialogDescription>
-            Move <span className="font-medium text-foreground">{feeName}</span> to another term without
-            editing all time settings manually.
+            Extend <span className="font-medium text-foreground">{feeName}</span> to another term without
+            removing its existing term coverage.
           </ModernDialogDescription>
         </ModernDialogHeader>
 
@@ -289,7 +289,7 @@ export function AssignmentPushFetchModal({
                   })}
                   {options.customTargets.length === 0 && (
                     <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                      No open terms available for targeting.
+                      No additional terms are available for this unlocked academic period.
                     </p>
                   )}
                 </div>
@@ -299,7 +299,7 @@ export function AssignmentPushFetchModal({
             {!hasQuickActions && options.customTargets.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 No push or fetch actions are available for this assignment right now. All target terms may
-                be closed.
+                already be covered or belong to locked academic years.
               </p>
             )}
           </div>

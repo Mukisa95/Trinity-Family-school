@@ -10,6 +10,10 @@ import type {
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { FeesHolidayService } from '@/lib/services/fees-holiday.service';
 import { isFeeApplicableInYear } from '@/lib/utils/fee-applicability';
+import {
+  hasValidFeeAssignment,
+  isAssignmentValidForContext,
+} from '@/lib/utils/fee-assignment-pipeline';
 import type {
   PupilFee,
   PreviousTermBalance
@@ -25,84 +29,12 @@ export function isAssignmentCurrentlyValid(
   currentAcademicYear: AcademicYear,
   allAcademicYears: AcademicYear[]
 ): boolean {
-  // Check if assignment is active
-  if (assignment.status === 'disabled') {
-    console.log(`❌ Assignment rejected: status is disabled`);
-    return false;
-  }
-
-  // Check explicit term exclusions
-  if (assignment.excludedTermIds && assignment.excludedTermIds.includes(currentTermId)) {
-    console.log(`❌ Assignment rejected: explicitly excluded for term ${currentTermId}`);
-    return false;
-  }
-
-  // Check validity type
-  switch (assignment.validityType) {
-    case 'current_term':
-      const isCurrentTerm = assignment.applicableTermIds?.includes(currentTermId) ||
-        assignment.termApplicability === 'all_terms';
-      if (!isCurrentTerm) {
-        console.log(`❌ Assignment rejected: not valid for current term`);
-        return false;
-      }
-      break;
-
-    case 'current_year':
-      if (assignment.startAcademicYearId && assignment.startAcademicYearId !== currentAcademicYear.id) {
-        console.log(`❌ Assignment rejected: not valid for current academic year`);
-        return false;
-      }
-      break;
-
-    case 'specific_year':
-      if (assignment.startAcademicYearId !== currentAcademicYear.id) {
-        console.log(`❌ Assignment rejected: not valid for this specific year`);
-        return false;
-      }
-      break;
-
-    case 'year_range':
-      if (assignment.startAcademicYearId && assignment.endAcademicYearId) {
-        const startYear = allAcademicYears.find(y => y.id === assignment.startAcademicYearId);
-        const endYear = allAcademicYears.find(y => y.id === assignment.endAcademicYearId);
-        const currentYear = currentAcademicYear;
-
-        if (startYear && endYear) {
-          const startDate = new Date(startYear.startDate);
-          const endDate = new Date(endYear.endDate);
-          const currentDate = new Date(currentYear.startDate);
-
-          if (currentDate < startDate || currentDate > endDate) {
-            console.log(`❌ Assignment rejected: current year not in valid range`);
-            return false;
-          }
-        }
-      }
-      break;
-
-    case 'specific_terms':
-      if (assignment.applicableTermIds && !assignment.applicableTermIds.includes(currentTermId)) {
-        console.log(`❌ Assignment rejected: current term not in applicable terms`);
-        return false;
-      }
-      break;
-
-    case 'indefinite':
-    default:
-      // Always valid for indefinite assignments
-      break;
-  }
-
-  // Check term applicability
-  if (assignment.termApplicability === 'specific_terms') {
-    if (!assignment.applicableTermIds?.includes(currentTermId)) {
-      console.log(`❌ Assignment rejected: current term not in applicable terms list`);
-      return false;
-    }
-  }
-
-  return true;
+  return isAssignmentValidForContext(
+    assignment,
+    currentAcademicYear.id,
+    currentTermId,
+    allAcademicYears,
+  );
 }
 
 function findTermDetails(termId: string | undefined, academicYears: AcademicYear[]) {
@@ -175,18 +107,16 @@ export function filterApplicableFees(
   const filteredFees = feeStructures.filter(fee => {
     // EXCLUDE ASSIGNMENT FEES - they should only be included if specifically assigned to the pupil
     if (fee.isAssignmentFee) {
-      const assignedFee = pupil.assignedFees?.find(assignedFee =>
-        assignedFee.feeStructureId === fee.id
+      const hasValidAssignment = hasValidFeeAssignment(
+        pupil.assignedFees,
+        fee.id,
+        academicYear.id,
+        termId,
+        allAcademicYears,
       );
 
-      if (!assignedFee) {
+      if (!hasValidAssignment) {
         console.log(`❌ Assignment fee "${fee.name}" rejected: not assigned to this pupil`);
-        return false;
-      }
-
-      // Check if the assignment is currently valid
-      if (!isAssignmentCurrentlyValid(assignedFee, termId, academicYear, allAcademicYears)) {
-        console.log(`❌ Assignment fee "${fee.name}" rejected: assignment not currently valid`);
         return false;
       }
 

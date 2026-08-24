@@ -24,6 +24,7 @@ import {
   assessExistingSchoolPayPayments,
   type ExistingLocalPaymentMatch,
 } from '@/lib/utils/schoolpay-recovery';
+import { hasValidFeeAssignment } from '@/lib/utils/fee-assignment-pipeline';
 
 const SCHOOLPAY_GENERAL_FEE_ID = 'schoolpay-general';
 const SCHOOLPAY_SYNC_LOGS = 'schoolPaySyncLogs';
@@ -943,7 +944,13 @@ export class SchoolPayIntegrationService {
       if (fee.category === 'Discount' || (typeof fee.amount === 'number' && fee.amount < 0)) return false;
 
       if (fee.isAssignmentFee) {
-        const assigned = (pupil.assignedFees || []).some((assignedFee) => assignedFee.feeStructureId === fee.id);
+        const assigned = hasValidFeeAssignment(
+          pupil.assignedFees,
+          fee.id,
+          slot.year.id,
+          slot.term.id,
+          slot.allAcademicYears,
+        );
         if (!assigned) return false;
       }
 
@@ -1156,7 +1163,13 @@ export class SchoolPayIntegrationService {
           if (fee.category === 'Discount' || (fee.amount ?? 0) < 0) return false;
 
           if (fee.isAssignmentFee) {
-            const assigned = (pupil.assignedFees || []).some((assignedFee) => assignedFee.feeStructureId === fee.id);
+            const assigned = hasValidFeeAssignment(
+              pupil.assignedFees,
+              fee.id,
+              futureSlot.yearId,
+              futureSlot.termId,
+              slot.allAcademicYears,
+            );
             if (!assigned) return false;
           }
 

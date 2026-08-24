@@ -8,6 +8,7 @@ import {
   getAssignmentPushFetchOptions,
   type AssignmentTermMoveAction,
 } from '@/lib/utils/assignment-term-push';
+import { consolidatePupilFeeAssignments } from '@/lib/utils/fee-assignment-pipeline';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -125,7 +126,9 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
         status: fee.status || 'active' as AssignmentStatus, // Default to active if not set
         statusHistory: fee.statusHistory || []
       }));
-      setAssignedFees(updatedAssignedFees);
+      setAssignedFees(
+        consolidatePupilFeeAssignments(updatedAssignedFees, academicYears),
+      );
       setIsAddingNew(false);
       setAddMode('assign');
       setDirectFeeId('');
@@ -140,7 +143,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
       setPushFetchModalOpen(false);
       setPushFetchAssignmentId(null);
     }
-  }, [isOpen, pupil.assignedFees]);
+  }, [isOpen, pupil.assignedFees, academicYears]);
 
   const availableFees = useMemo(
     () =>
@@ -493,18 +496,23 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
 
     const feeStructure = allFeeStructures.find((f) => f.id === updated.feeStructureId);
     const verb =
-      action === 'push' ? 'Pushed' : action === 'fetch' ? 'Fetched' : 'Moved';
+      action === 'push' ? 'Pushed' : action === 'fetch' ? 'Fetched' : 'Extended';
 
     toast({
       title: `${verb} assignment`,
-      description: `${feeStructure?.name || 'Fee'} now applies to ${targetLabel}. Click Save Changes to persist.`,
+      description: `${feeStructure?.name || 'Fee'} now also applies to ${targetLabel}. Click Save Changes to persist.`,
     });
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave(assignedFees);
+      const consolidatedAssignments = consolidatePupilFeeAssignments(
+        assignedFees,
+        academicYears,
+      );
+      setAssignedFees(consolidatedAssignments);
+      await onSave(consolidatedAssignments);
       toast({
         title: "Assignments Updated",
         description: "Fee assignments have been updated successfully.",
@@ -1146,4 +1154,4 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
       </ModernDialog>
     </>
   );
-} 
+}
