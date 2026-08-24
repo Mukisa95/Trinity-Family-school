@@ -548,6 +548,47 @@ const PrintAssessmentOptionsDialog = ({
     onConfirm(options);
   };
 
+  const pupilInformationState = showPin && showIndexNumber && showLinNumber
+    ? true
+    : showPin || showIndexNumber || showLinNumber
+      ? "indeterminate"
+      : false;
+  const resultsDataState = isNursery
+    ? showMarks
+    : showMarks && showAgg && showTotal && showDiv
+      ? true
+      : showMarks || showAgg || showTotal || showDiv
+        ? "indeterminate"
+        : false;
+  const otherOptionValues = reportType === 'detailed'
+    ? [showMajorSubjects, showBestPupil, showNeedsImprovement]
+    : [showMajorSubjects, showBestPupil, showNeedsImprovement, showAggregateAnalysis];
+  const otherOptionsState = otherOptionValues.every(Boolean)
+    ? true
+    : otherOptionValues.some(Boolean)
+      ? "indeterminate"
+      : false;
+
+  const setPupilInformationVisibility = (visible: boolean) => {
+    setShowPin(visible);
+    setShowIndexNumber(visible);
+    setShowLinNumber(visible);
+  };
+  const setResultsDataVisibility = (visible: boolean) => {
+    setShowMarks(visible);
+    if (!isNursery) {
+      setShowAgg(visible);
+      setShowTotal(visible);
+      setShowDiv(visible);
+    }
+  };
+  const setOtherOptionsVisibility = (visible: boolean) => {
+    setShowMajorSubjects(visible);
+    setShowBestPupil(visible);
+    setShowNeedsImprovement(visible);
+    if (reportType !== 'detailed') setShowAggregateAnalysis(visible);
+  };
+
   return (
     <ReportCreationDialogFrame
       open={isOpen}
@@ -580,275 +621,105 @@ const PrintAssessmentOptionsDialog = ({
         </>
       }
     >
-        <div className="space-y-6 py-1">
-          {/* Column Visibility Section */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Column Visibility</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showPin"
-                    checked={showPin}
-                    onCheckedChange={(checked) => setShowPin(checked === true)}
-                  />
-                  <Label htmlFor="showPin" className="font-medium cursor-pointer">
-                    PIN (Admission Number)
-                  </Label>
-                </div>
+        <div className="space-y-4 py-0.5">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <section className="rounded-3xl border border-slate-200 bg-slate-50/70 p-3" aria-labelledby="pupil-information-title">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 id="pupil-information-title" className="text-sm font-bold text-slate-900">Pupil information</h3>
+                <Label htmlFor="toggle-pupil-information" className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                  All
+                  <Checkbox id="toggle-pupil-information" checked={pupilInformationState} onCheckedChange={(checked) => setPupilInformationVisibility(checked === true)} />
+                </Label>
               </div>
-
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showIndexNumber"
-                    checked={showIndexNumber}
-                    onCheckedChange={(checked) => setShowIndexNumber(checked === true)}
-                  />
-                  <Label htmlFor="showIndexNumber" className="font-medium cursor-pointer">
-                    Index Number
-                  </Label>
-                </div>
+              <div className="space-y-1.5">
+                {[
+                  ["showPin", "PIN", showPin, setShowPin],
+                  ["showIndexNumber", "Index number", showIndexNumber, setShowIndexNumber],
+                  ["showLinNumber", "LIN number", showLinNumber, setShowLinNumber],
+                ].map(([id, label, checked, setChecked]) => (
+                  <div key={id as string} className="flex min-h-9 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3">
+                    <Label htmlFor={id as string} className="cursor-pointer text-sm font-medium text-slate-800">{label as string}</Label>
+                    <Checkbox id={id as string} checked={checked as boolean} onCheckedChange={(value) => (setChecked as (next: boolean) => void)(value === true)} />
+                  </div>
+                ))}
               </div>
+            </section>
 
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showLinNumber"
-                    checked={showLinNumber}
-                    onCheckedChange={(checked) => setShowLinNumber(checked === true)}
-                  />
-                  <Label htmlFor="showLinNumber" className="font-medium cursor-pointer">
-                    LIN Number
-                  </Label>
-                </div>
+            <section className="rounded-3xl border border-slate-200 bg-slate-50/70 p-3" aria-labelledby="results-data-title">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 id="results-data-title" className="text-sm font-bold text-slate-900">Results data</h3>
+                <Label htmlFor="toggle-results-data" className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                  All
+                  <Checkbox id="toggle-results-data" checked={resultsDataState} onCheckedChange={(checked) => setResultsDataVisibility(checked === true)} />
+                </Label>
               </div>
-
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showMarks"
-                    checked={showMarks}
-                    onCheckedChange={(checked) => setShowMarks(checked === true)}
-                  />
-                  <Label htmlFor="showMarks" className="font-medium cursor-pointer">
-                    {isNursery ? 'Subject Assessments' : 'Marks'}
-                  </Label>
-                </div>
+              <div className="mb-1 grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <span>Column</span><span>Show</span><span>Fill</span>
               </div>
+              <div className="space-y-1.5">
+                {[
+                  ["marks", isNursery ? "Assessments" : "Marks", showMarks, setShowMarks, fillMarks, setFillMarks],
+                  ...(!isNursery ? [
+                    ["agg", "Aggregates", showAgg, setShowAgg, fillAgg, setFillAgg],
+                    ["total", "Total", showTotal, setShowTotal, fillTotal, setFillTotal],
+                    ["div", "Division", showDiv, setShowDiv, fillDiv, setFillDiv],
+                  ] : []),
+                ].map(([key, label, show, setShow, fill, setFill]) => (
+                  <div key={key as string} className="grid min-h-9 grid-cols-[1fr_auto_auto] items-center gap-x-3 rounded-2xl border border-slate-200 bg-white px-3">
+                    <Label htmlFor={`show-${key as string}`} className="cursor-pointer text-sm font-medium text-slate-800">{label as string}</Label>
+                    <Checkbox id={`show-${key as string}`} checked={show as boolean} onCheckedChange={(checked) => (setShow as (next: boolean) => void)(checked === true)} />
+                    <Checkbox aria-label={`Fill ${label as string}`} checked={fill as boolean} onCheckedChange={(checked) => (setFill as (next: boolean) => void)(checked === true)} disabled={!show} />
+                  </div>
+                ))}
+              </div>
+            </section>
 
-              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showAgg"
-                    checked={showAgg}
-                    onCheckedChange={(checked) => setShowAgg(checked === true)}
-                  />
-                  <Label htmlFor="showAgg" className="font-medium cursor-pointer">
-                    AGG (Aggregates)
+            {!isNursery && (
+              <section className="rounded-3xl border border-slate-200 bg-slate-50/70 p-3" aria-labelledby="other-options-title">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <h3 id="other-options-title" className="text-sm font-bold text-slate-900">Other</h3>
+                  <Label htmlFor="toggle-other-options" className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                    All
+                    <Checkbox id="toggle-other-options" checked={otherOptionsState} onCheckedChange={(checked) => setOtherOptionsVisibility(checked === true)} />
                   </Label>
                 </div>
-              </div>}
-
-              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showTotal"
-                    checked={showTotal}
-                    onCheckedChange={(checked) => setShowTotal(checked === true)}
-                  />
-                  <Label htmlFor="showTotal" className="font-medium cursor-pointer">
-                    Total
-                  </Label>
+                <div className="space-y-1.5">
+                  {[
+                    ["showMajorSubjects", "Major subjects legend", showMajorSubjects, setShowMajorSubjects],
+                    ["showBestPupil", "Best performer", showBestPupil, setShowBestPupil],
+                    ["showNeedsImprovement", "Needs improvement", showNeedsImprovement, setShowNeedsImprovement],
+                    ...(reportType !== 'detailed' ? [["showAggregateAnalysis", "Aggregate analysis", showAggregateAnalysis, setShowAggregateAnalysis]] : []),
+                  ].map(([id, label, checked, setChecked]) => (
+                    <div key={id as string} className="flex min-h-9 items-center justify-between rounded-2xl border border-slate-200 bg-white px-3">
+                      <Label htmlFor={id as string} className="cursor-pointer text-sm font-medium text-slate-800">{label as string}</Label>
+                      <Checkbox id={id as string} checked={checked as boolean} onCheckedChange={(value) => (setChecked as (next: boolean) => void)(value === true)} />
+                    </div>
+                  ))}
                 </div>
-              </div>}
-
-              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showDiv"
-                    checked={showDiv}
-                    onCheckedChange={(checked) => setShowDiv(checked === true)}
-                  />
-                  <Label htmlFor="showDiv" className="font-medium cursor-pointer">
-                    DIV (Division)
-                  </Label>
-                </div>
-              </div>}
-            </div>
+              </section>
+            )}
           </div>
 
           {reportType !== 'detailed' && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Page Orientation</h3>
-              <RadioGroup
-                value={orientation}
-                onValueChange={(value) => setOrientation(value as 'landscape' | 'portrait')}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-              >
-                <Label htmlFor="orientation-landscape" className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer">
-                  <RadioGroupItem id="orientation-landscape" value="landscape" />
-                  <span className="font-medium">Landscape</span>
-                </Label>
-                <Label htmlFor="orientation-portrait" className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer">
-                  <RadioGroupItem id="orientation-portrait" value="portrait" />
-                  <span className="font-medium">Portrait</span>
-                </Label>
-              </RadioGroup>
-            </div>
+            <RadioGroup value={orientation} onValueChange={(value) => setOrientation(value as 'landscape' | 'portrait')} className="grid grid-cols-2 gap-3">
+              <Label htmlFor="orientation-landscape" className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-blue-300 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50">
+                <RadioGroupItem id="orientation-landscape" value="landscape" /> Landscape
+              </Label>
+              <Label htmlFor="orientation-portrait" className="flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 hover:border-blue-300 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50">
+                <RadioGroupItem id="orientation-portrait" value="portrait" /> Portrait
+              </Label>
+            </RadioGroup>
           )}
 
-          {/* Data Fill Section */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Data Fill Options</h3>
-            <p className="text-xs text-gray-500 mb-3">
-              Choose which columns should be filled with data or left empty
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <Label htmlFor="fillMarks" className="font-medium cursor-pointer">
-                  {isNursery ? 'Fill Assessment Columns' : 'Fill Marks Column'}
-                </Label>
-                <Checkbox
-                  id="fillMarks"
-                  checked={fillMarks}
-                  onCheckedChange={(checked) => setFillMarks(checked === true)}
-                  disabled={!showMarks}
-                />
-              </div>
-
-              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
-                <Label htmlFor="fillAgg" className="font-medium cursor-pointer">
-                  Fill AGG Column
-                </Label>
-                <Checkbox
-                  id="fillAgg"
-                  checked={fillAgg}
-                  onCheckedChange={(checked) => setFillAgg(checked === true)}
-                  disabled={!showAgg}
-                />
-              </div>}
-
-              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
-                <Label htmlFor="fillTotal" className="font-medium cursor-pointer">
-                  Fill Total Column
-                </Label>
-                <Checkbox
-                  id="fillTotal"
-                  checked={fillTotal}
-                  onCheckedChange={(checked) => setFillTotal(checked === true)}
-                  disabled={!showTotal}
-                />
-              </div>}
-
-              {!isNursery && <div className="flex items-center justify-between p-3 border rounded-lg">
-                <Label htmlFor="fillDiv" className="font-medium cursor-pointer">
-                  Fill DIV Column
-                </Label>
-                <Checkbox
-                  id="fillDiv"
-                  checked={fillDiv}
-                  onCheckedChange={(checked) => setFillDiv(checked === true)}
-                  disabled={!showDiv}
-                />
-              </div>}
-            </div>
-          </div>
-
-          {/* Additional Display Options */}
-          {!isNursery && <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Additional Display Options</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showMajorSubjects"
-                    checked={showMajorSubjects}
-                    onCheckedChange={(checked) => setShowMajorSubjects(checked === true)}
-                  />
-                  <Label htmlFor="showMajorSubjects" className="font-medium cursor-pointer">
-                    Show Major Subjects Legend
-                  </Label>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showBestPupil"
-                    checked={showBestPupil}
-                    onCheckedChange={(checked) => setShowBestPupil(checked === true)}
-                  />
-                  <Label htmlFor="showBestPupil" className="font-medium cursor-pointer">
-                    Show Best Performing Pupil
-                  </Label>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="showNeedsImprovement"
-                    checked={showNeedsImprovement}
-                    onCheckedChange={(checked) => setShowNeedsImprovement(checked === true)}
-                  />
-                  <Label htmlFor="showNeedsImprovement" className="font-medium cursor-pointer">
-                    Show Needs Improvement
-                  </Label>
-                </div>
-              </div>
-
-              {reportType !== 'detailed' && (
-                <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id="showAggregateAnalysis"
-                      checked={showAggregateAnalysis}
-                      onCheckedChange={(checked) => setShowAggregateAnalysis(checked === true)}
-                    />
-                    <Label htmlFor="showAggregateAnalysis" className="font-medium cursor-pointer">
-                      Show Aggregate Analysis Table (First Page)
-                    </Label>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">New!</Badge>
-                </div>
-              )}
-            </div>
-          </div>}
-
-          {/* Grading Scale Preview */}
           {!isNursery && gradingScale && gradingScale.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Grading Scale (Will be included in PDF: First row = Marks Range, Second row = Grade)</h3>
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-center text-xs">Marks Range</TableHead>
-                      {gradingScale.slice(0, 9).map((_, i) => (
-                        <TableHead key={i} className="text-center text-xs"></TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {/* Row 1: All Marks Ranges */}
-                    <TableRow>
-                      {gradingScale.slice(0, 10).map((scale, i) => (
-                        <TableCell key={`range-${i}`} className="text-center text-xs">
-                          {scale.minMark === 0 ? `0-${scale.maxMark}` : `${scale.minMark}-${scale.maxMark}`}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                    {/* Row 2: All Grades */}
-                    <TableRow>
-                      {gradingScale.slice(0, 10).map((scale, i) => (
-                        <TableCell key={`grade-${i}`} className="text-center text-xs font-semibold text-blue-700">
-                          {scale.grade}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  </TableBody>
-                </Table>
+            <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+              <h3 className="shrink-0 text-sm font-bold text-slate-900">Grading scale</h3>
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
+                {gradingScale.slice(0, 10).map((scale, index) => (
+                  <span key={`${scale.grade}-${index}`} className="shrink-0 rounded-full border border-blue-100 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+                    {scale.minMark === 0 ? `0-${scale.maxMark}` : `${scale.minMark}-${scale.maxMark}`} · <span className="text-blue-700">{scale.grade}</span>
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -6461,38 +6332,33 @@ function PerformanceAnalysisPage({
           {[
             {
               title: "Self analysis",
-              description: "Create the full performance analysis for this exam.",
               icon: FileText,
               iconClassName: "bg-blue-50 text-blue-700",
               onClick: () => { setShowAnalysisPrintType(false); setShowPrintSections(true); },
             },
             {
               title: "Cross analysis",
-              description: "Compare performance across selected exam sets.",
               icon: GitBranch,
               iconClassName: "bg-violet-50 text-violet-700",
               onClick: () => { setShowAnalysisPrintType(false); setShowCrossAnalysis(true); },
             },
             {
               title: "Subject analysis",
-              description: "Compare selected subjects across one or more exams.",
               icon: BookOpen,
               iconClassName: "bg-emerald-50 text-emerald-700",
               onClick: () => { setShowAnalysisPrintType(false); setShowSubjectSetAnalysis(true); },
             },
-          ].map(({ title, description, icon: Icon, iconClassName, onClick }) => (
+          ].map(({ title, icon: Icon, iconClassName, onClick }) => (
             <button
               key={title}
               type="button"
               onClick={onClick}
-              className="group flex min-h-44 flex-col items-start rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
+              className="group flex min-h-20 items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition-[border-color,background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none"
             >
-              <span className={`flex h-12 w-12 items-center justify-center rounded-full ${iconClassName}`}>
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconClassName}`}>
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
-              <span className="mt-5 text-base font-bold text-slate-950">{title}</span>
-              <span className="mt-1 text-sm leading-5 text-slate-600">{description}</span>
-              <span className="mt-auto pt-4 text-sm font-bold text-blue-700">Configure</span>
+              <span className="text-sm font-bold text-slate-950">{title}</span>
             </button>
           ))}
         </div>
@@ -6765,10 +6631,10 @@ function PerformanceAnalysisPage({
           </>
         }
       >
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Label
               htmlFor="analysis-section-aggregate"
-              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
             >
               <Checkbox
                 id="analysis-section-aggregate"
@@ -6779,17 +6645,12 @@ function PerformanceAnalysisPage({
                 }))}
                 className="mt-0.5"
               />
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-slate-900">Aggregate overview</span>
-                <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">
-                  The main page with aggregate distribution and the major-subject summary.
-                </span>
-              </span>
+              <span className="min-w-0 text-sm font-bold text-slate-900">Aggregate overview</span>
             </Label>
 
             <Label
               htmlFor="analysis-section-divisions"
-              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
             >
               <Checkbox
                 id="analysis-section-divisions"
@@ -6800,17 +6661,12 @@ function PerformanceAnalysisPage({
                 }))}
                 className="mt-0.5"
               />
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-slate-900">Division grouping tables</span>
-                <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">
-                  Separate assessment-style pupil tables for each class division.
-                </span>
-              </span>
+              <span className="min-w-0 text-sm font-bold text-slate-900">Division tables</span>
             </Label>
 
             <Label
               htmlFor="analysis-section-subject-grades"
-              className="flex min-h-16 cursor-pointer items-start gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
+              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-3 transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 has-[[data-state=checked]]:border-indigo-400 has-[[data-state=checked]]:bg-indigo-50"
             >
               <Checkbox
                 id="analysis-section-subject-grades"
@@ -6821,12 +6677,7 @@ function PerformanceAnalysisPage({
                 }))}
                 className="mt-0.5"
               />
-              <span className="min-w-0">
-                <span className="block text-sm font-bold text-slate-900">Subject and grade rankings</span>
-                <span className="mt-0.5 block text-xs font-normal leading-5 text-slate-600">
-                  D1-F9 tables with pupils ranked independently within each subject.
-                </span>
-              </span>
+              <span className="min-w-0 text-sm font-bold text-slate-900">Subject rankings</span>
             </Label>
 
             <p className="pt-1 text-xs font-semibold text-slate-600" aria-live="polite">
