@@ -5281,30 +5281,26 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           </>
         }
       >
-        <RadioGroup value={selectedProgressiveExam || ''} onValueChange={handleSelectProgressiveExam} className="space-y-3">
+        <RadioGroup value={selectedProgressiveExam || ''} onValueChange={handleSelectProgressiveExam} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {progressiveExams.map((exam) => (
             <Label
               key={exam.id}
               htmlFor={`progressive-exam-${exam.id}`}
-              className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70"
+              className="flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70"
             >
               <RadioGroupItem value={exam.id} id={`progressive-exam-${exam.id}`} className="h-5 w-5 border-blue-300" />
               <span className="min-w-0">
-                <span className="block text-base font-semibold text-slate-950">{exam.name}</span>
-                <span className="mt-1 block text-sm text-slate-600">
-                  {exam.examTypeName} · {new Date(exam.startDate).toLocaleDateString()} – {new Date(exam.endDate).toLocaleDateString()}
-                </span>
+                <span className="block truncate text-base font-semibold text-slate-950">{exam.name}</span>
               </span>
             </Label>
           ))}
           <Label
             htmlFor="progressive-exam-none"
-            className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70"
+            className="flex min-h-16 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-blue-200 hover:bg-slate-50 has-[[data-state=checked]]:border-blue-600 has-[[data-state=checked]]:bg-blue-50/70"
           >
             <RadioGroupItem value="none" id="progressive-exam-none" className="h-5 w-5 border-blue-300" />
             <span>
-              <span className="block text-base font-semibold text-slate-950">Do not include progress records</span>
-              <span className="mt-1 block text-sm text-slate-600">Create the report without progressive assessment records.</span>
+              <span className="block text-base font-semibold text-slate-950">No progress records</span>
             </span>
           </Label>
         </RadioGroup>
@@ -5411,19 +5407,17 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
           </>
         }
       >
-        <div className="space-y-3" role="radiogroup" aria-label="Full report format">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Full report format">
           {[
             {
               value: 'grading' as const,
               title: 'Grading scale',
-              description: 'Show the grading scale alongside the pupil report.',
               icon: BarChart3,
               iconClassName: 'bg-blue-50 text-blue-700',
             },
             {
               value: 'progress' as const,
               title: 'Progress assessment',
-              description: 'Compare this result with one or two earlier exams.',
               icon: TrendingUp,
               iconClassName: 'bg-teal-50 text-teal-700',
             },
@@ -5437,18 +5431,17 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                 role="radio"
                 aria-checked={selected}
                 onClick={() => handleTransTypeSelection(option.value)}
-                className={`group flex min-h-24 w-full items-center gap-4 rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
+                className={`group flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ${
                   selected
                     ? 'border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)]'
                     : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99]'
                 }`}
               >
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${option.iconClassName}`}>
-                  <Icon className="h-5 w-5" aria-hidden="true" />
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${option.iconClassName}`}>
+                  <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-base font-semibold text-slate-950">{option.title}</span>
-                  <span className="mt-1 block text-sm leading-5 text-slate-600">{option.description}</span>
                 </span>
                 {selected ? (
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
@@ -5461,11 +5454,6 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             );
           })}
         </div>
-        <p className="mt-4 text-sm text-slate-600" aria-live="polite">
-          {transReportType
-            ? `Selected: ${transReportType === 'grading' ? 'Grading scale' : 'Progress assessment'}`
-            : 'Choose a full-report format to continue.'}
-        </p>
       </ReportCreationDialogFrame>
 
       {/* Report Configuration Modal */}
@@ -5935,7 +5923,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             <p className="text-sm text-slate-600">No comparison exams were found for this class, term, and academic year.</p>
           </div>
         ) : (
-          <div className="space-y-3" role="group" aria-label="Comparison exams">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="group" aria-label="Comparison exams">
             {availableComparisonExams.map((exam) => {
               const isSelected = selectedComparisonExams.includes(exam.id);
               const canSelect = selectedComparisonExams.length < 2 || isSelected;
@@ -5951,7 +5939,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                       setSelectedComparisonExams([...selectedComparisonExams, exam.id]);
                     }
                   }}
-                  className={`w-full rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
+                  className={`w-full rounded-2xl border p-3 text-left transition-[border-color,background-color,box-shadow] duration-200 ${
                     isSelected
                       ? 'border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)]'
                       : canSelect
@@ -6012,8 +6000,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
             <p className="text-sm font-medium text-blue-900">
               {selectedComparisonExams.length} of 2 exams selected
             </p>
-            <p className="mt-1 text-sm text-slate-600">Optional: use clearer labels in the progress section of the report.</p>
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {selectedComparisonExams.map((examId, index) => {
                 const exam = availableComparisonExams.find(e => e.id === examId);
                 return (
@@ -6031,7 +6018,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
                           [examId]: event.target.value,
                         });
                       }}
-                      className="min-h-11 border-slate-200 bg-white text-slate-950"
+                      className="min-h-10 rounded-full border-slate-200 bg-white px-4 text-slate-950"
                     />
                   </div>
                 );

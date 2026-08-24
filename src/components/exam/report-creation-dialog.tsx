@@ -77,16 +77,16 @@ export function ReportCreationDialogFrame({
       }}
     >
       <DialogContent className={cn(
-        "gap-0 overflow-hidden !rounded-[32px] !border-slate-200 !bg-white !p-0 !text-slate-950 shadow-[0_32px_90px_rgba(15,23,42,0.24)] dark:!border-slate-200 dark:!bg-white dark:!text-slate-950",
+        "w-[calc(100vw-2rem)] !max-w-none gap-0 overflow-hidden !rounded-[32px] !border-slate-200 !bg-white !p-0 !text-slate-950 shadow-[0_32px_90px_rgba(15,23,42,0.24)] sm:!w-[min(50rem,calc(100vw-3rem))] dark:!border-slate-200 dark:!bg-white dark:!text-slate-950",
         maxWidthClassName,
       )}>
-        <DialogHeader className="border-b border-slate-100 px-5 pb-5 pt-7 sm:px-8">
-          <div className="flex min-w-0 items-start gap-3 pr-8">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-4 ring-blue-50/80">
-              <Icon className="h-5 w-5" aria-hidden="true" />
+        <DialogHeader className="border-b border-slate-100 px-5 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3 pr-8">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-4 ring-blue-50/80">
+              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
             </div>
             <div className="min-w-0 space-y-1">
-              <DialogTitle className="text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
+              <DialogTitle className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">
                 {title}
               </DialogTitle>
               <DialogDescription className="truncate text-sm font-medium text-slate-600">
@@ -94,10 +94,10 @@ export function ReportCreationDialogFrame({
               </DialogDescription>
             </div>
           </div>
-          <p className="pt-2 text-sm leading-6 text-slate-600">{description}</p>
+          <p className="sr-only">{description}</p>
         </DialogHeader>
 
-        <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-4 sm:px-8">
+        <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-3 sm:px-6">
           <ol
             className="grid gap-2"
             style={{ gridTemplateColumns: `repeat(${flowSteps.length}, minmax(0, 1fr))` }}
@@ -111,20 +111,20 @@ export function ReportCreationDialogFrame({
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold",
                         isComplete || isCurrent
                           ? "border-blue-600 bg-blue-600 text-white"
                           : "border-slate-200 bg-white text-slate-500",
                       )}
                       aria-current={isCurrent ? "step" : undefined}
                     >
-                      {isComplete ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                      {isComplete ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : index + 1}
                     </span>
                     {index < flowSteps.length - 1 && (
                       <span className={cn("hidden h-px flex-1 sm:block", index < step ? "bg-blue-300" : "bg-slate-200")} />
                     )}
                   </div>
-                  <span className={cn("mt-1.5 block text-xs font-semibold", isCurrent ? "text-blue-700" : "text-slate-500")}>
+                  <span className={cn("mt-1 block text-[11px] font-semibold", isCurrent ? "text-blue-700" : "text-slate-500")}>
                     {flowStep}
                   </span>
                 </li>
@@ -133,11 +133,11 @@ export function ReportCreationDialogFrame({
           </ol>
         </div>
 
-        <div className={cn("max-h-[min(58dvh,35rem)] overflow-y-auto px-5 py-6 sm:px-8", bodyClassName)}>
+        <div className={cn("max-h-[min(56dvh,32rem)] overflow-y-auto px-5 py-4 sm:px-6", bodyClassName)}>
           {children}
         </div>
 
-        <DialogFooter className="mt-0 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:space-x-0 sm:px-8">
+        <DialogFooter className="mt-0 min-h-16 border-t border-slate-100 bg-slate-50/70 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:space-x-0 sm:px-6">
           {footer}
         </DialogFooter>
       </DialogContent>
@@ -165,7 +165,6 @@ export function ReportCreationDialog({
     const availableOptions: Array<{
       value: ReportKind;
       title: string;
-      description: string;
       icon: typeof FileText;
       iconClassName: string;
     }> = [];
@@ -174,7 +173,6 @@ export function ReportCreationDialog({
       availableOptions.push({
         value: "assessment",
         title: "Assessment report",
-        description: "A class-wide breakdown of attainment by subject.",
         icon: FileSpreadsheet,
         iconClassName: "bg-sky-50 text-sky-700",
       });
@@ -183,13 +181,6 @@ export function ReportCreationDialog({
     availableOptions.push({
       value: "mini",
       title: "Mini report",
-      description: isIndividualReport
-        ? isNursery
-          ? "A playful nursery report card for this pupil."
-          : "A concise, professional report card for this pupil."
-        : isNursery
-          ? "Playful nursery report cards, arranged two per page."
-          : "Concise, professional report cards, arranged two per page.",
       icon: FileText,
       iconClassName: "bg-teal-50 text-teal-700",
     });
@@ -199,18 +190,12 @@ export function ReportCreationDialog({
         {
           value: "full",
           title: "Full report",
-          description: isIndividualReport
-            ? "A comprehensive academic report card for this pupil."
-            : "Comprehensive academic report cards for the selected pupils.",
           icon: FileText,
           iconClassName: "bg-blue-50 text-blue-700",
         },
         {
           value: "bespoke",
           title: "Bespoke report",
-          description: isIndividualReport
-            ? "A fully customisable Trinity blue-and-gold report for this pupil."
-            : "A fully customisable Trinity blue-and-gold report design.",
           icon: FileText,
           iconClassName: "bg-indigo-50 text-indigo-700",
         },
@@ -248,7 +233,7 @@ export function ReportCreationDialog({
       scope={scope}
       step={0}
       title="Create pupil reports"
-      description="Select the report format that best suits this result set. You can adjust its details in the next step."
+      description="Choose a report format."
       footer={
         <>
           <Button
@@ -270,7 +255,7 @@ export function ReportCreationDialog({
         </>
       }
     >
-      <div className="space-y-3" role="radiogroup" aria-label="Report format">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Report format">
         {options.map((option) => {
           const Icon = option.icon;
           const selected = selectedReport === option.value;
@@ -282,19 +267,18 @@ export function ReportCreationDialog({
               aria-checked={selected}
               onClick={() => setSelectedReport(option.value)}
               className={cn(
-                "group flex min-h-24 w-full items-center gap-4 rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none",
+                "group flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-[border-color,background-color,box-shadow,transform] duration-200 motion-reduce:transition-none",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
                 selected
                   ? "border-blue-600 bg-blue-50/70 shadow-[0_8px_24px_rgba(37,99,235,0.10)]"
                   : "border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50 active:scale-[0.99]",
               )}
             >
-              <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", option.iconClassName)}>
-                <Icon className="h-5 w-5" aria-hidden="true" />
+              <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", option.iconClassName)}>
+                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-base font-semibold text-slate-950">{option.title}</span>
-                <span className="mt-1 block text-sm leading-5 text-slate-600">{option.description}</span>
               </span>
               {selected ? (
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white" aria-label="Selected">
@@ -316,22 +300,13 @@ export function ReportCreationDialog({
             onCheckedChange={(checked) => onOmitNurseryTeacherCommentChange(checked === true)}
             className="mt-0.5 h-5 w-5 border-blue-300"
           />
-          <div className="space-y-1">
+          <div>
             <Label htmlFor="omit-nursery-teacher-comment" className="cursor-pointer text-sm font-semibold text-slate-900">
               Leave the class teacher&apos;s comment blank
             </Label>
-            <p className="text-sm leading-5 text-slate-600">
-              The report will show two writing lines and place the signature on the second line.
-            </p>
           </div>
         </div>
       )}
-
-      <p className="mt-4 text-sm text-slate-600" aria-live="polite">
-        {selectedReport
-          ? `Selected: ${options.find((option) => option.value === selectedReport)?.title}`
-          : "Choose a report format to continue."}
-      </p>
     </ReportCreationDialogFrame>
   );
 }
