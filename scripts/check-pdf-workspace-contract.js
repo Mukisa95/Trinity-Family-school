@@ -38,6 +38,7 @@ requireText(workspace, 'previousStatuses.get(document.id) === "generating"', 'co
 requireText(workspace, 'mode === "minimized" && newlyCompleted.length > 0', 'completion notifications must only appear while minimized');
 requireText(workspace, 'Your PDF is ready', 'the minimized workspace must tell the user when generation completes');
 requireText(workspace, 'View PDF', 'the completion notification must restore the completed PDF');
+requireText(workspace, 'border-2 border-emerald-300 bg-white opacity-100', 'the completion notification must remain fully opaque and readable');
 requireText(workspace, '<PDFDocumentViewer', 'ready documents must use the application-owned PDF viewer');
 requireText(documentViewer, 'await import("pdfjs-dist")', 'the viewer must render PDFs through PDF.js');
 requireText(documentViewer, 'aria-label="Page thumbnails"', 'the viewer must provide page thumbnail navigation');
@@ -58,9 +59,12 @@ requireText(workspace, 'aria-label="Open PDF in browser"', 'the top bar must exp
 requireText(workspace, 'Exit full screen', 'the full-screen action must toggle back to the normal window');
 requireText(workspace, 'fixed inset-0', 'the PDF workspace must use the full small-screen viewport');
 requireText(workspace, 'More PDF actions', 'small screens must retain secondary top-bar actions in an overflow menu');
+requireText(workspace, 'z-[100] min-w-56', 'the download menu must render above the PDF workspace');
 requireText(documentViewer, 'w-[min(82vw,260px)]', 'the mobile thumbnail drawer must fit narrow screens');
+requireText(documentViewer, 'min-width: 1024px', 'thumbnails must remain hidden by default on small and medium screens');
 requireText(documentViewer, 'p-3 sm:p-6', 'the document surface must use narrow mobile gutters');
 requireText(documentViewer, 'touch-manipulation', 'small-screen PDF controls must be touch friendly');
+requireText(documentViewer, 'lg:min-w-[300px] lg:flex-1', 'desktop PDF search must share the primary toolbar row');
 if (documentViewer.includes('aria-label="Rotate page clockwise"')) {
   throw new Error('PDF workspace contract failed: the compact toolbar must not include a rotate control');
 }

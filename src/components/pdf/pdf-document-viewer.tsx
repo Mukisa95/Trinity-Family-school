@@ -434,7 +434,7 @@ export function PDFDocumentViewer({
   }, [blob]);
 
   useEffect(() => {
-    if (window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(true);
+    if (window.matchMedia("(min-width: 1024px)").matches) setSidebarOpen(true);
   }, []);
 
   useEffect(() => {
@@ -859,7 +859,7 @@ export function PDFDocumentViewer({
       {objectUrl && <iframe ref={printFrameRef} src={objectUrl} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
 
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white shadow-sm">
-        <div className="flex min-h-14 items-center gap-1.5 overflow-x-auto px-2 py-1.5 sm:min-h-12 sm:px-3">
+        <div className="flex min-h-14 flex-wrap items-center gap-1.5 px-2 py-1.5 sm:min-h-12 sm:px-3 lg:flex-nowrap lg:overflow-x-auto">
           <button type="button" onClick={() => setSidebarOpen((open) => !open)} className={cn(roundControlClass, sidebarOpen && "border-blue-300 bg-blue-50 text-blue-700")} aria-label={sidebarOpen ? "Hide page thumbnails" : "Show page thumbnails"} aria-pressed={sidebarOpen} title={sidebarOpen ? "Hide thumbnails" : "Show thumbnails"}>
             <PanelLeft className="h-4 w-4" />
           </button>
@@ -902,7 +902,7 @@ export function PDFDocumentViewer({
           </button>
         </div>
         {searchOpen && (
-          <div className="flex min-h-14 items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3">
+          <div className="order-last flex min-h-14 w-full items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3 lg:order-none lg:min-h-0 lg:min-w-[300px] lg:flex-1 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0">
             <div className="relative flex h-11 min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white pl-3 pr-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 sm:h-9">
               <Search className="h-4 w-4 shrink-0 text-slate-500" />
               <label htmlFor="pdf-search" className="sr-only">Search this PDF</label>
@@ -919,10 +919,10 @@ export function PDFDocumentViewer({
 
       <div className="relative flex min-h-0 flex-1">
         {sidebarOpen && (
-          <aside className="absolute inset-y-0 left-0 z-20 w-[min(82vw,260px)] overflow-y-auto border-r border-slate-200 bg-slate-50/95 py-3 shadow-xl backdrop-blur-sm md:static md:w-[184px] md:shadow-none" aria-label="Page thumbnails">
+          <aside className="absolute inset-y-0 left-0 z-20 w-[min(82vw,260px)] overflow-y-auto border-r border-slate-200 bg-slate-50/95 py-3 shadow-xl backdrop-blur-sm lg:static lg:w-[184px] lg:shadow-none" aria-label="Page thumbnails">
             <div className="mb-2 flex items-center justify-between px-4">
               <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Pages</h3>
-              <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:h-9 sm:w-9 md:hidden" aria-label="Close page thumbnails"><X className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:h-9 sm:w-9 lg:hidden" aria-label="Close page thumbnails"><X className="h-4 w-4" /></button>
             </div>
             <div className="space-y-2">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
