@@ -32,7 +32,7 @@ requireText(context, 'await waitForWorkspacePaint()', 'the loading window must p
 requireText(context, 'setMode("minimized")', 'the workspace must support minimized background operation');
 requireText(context, 'controllersRef.current.get(id)?.abort()', 'closing a generating tab must cancel or ignore its job');
 requireText(workspace, 'role="tablist"', 'open documents must be exposed as accessible tabs');
-requireText(workspace, 'fixed bottom-3 right-3', 'the minimized workspace must dock at the bottom-right');
+requireText(workspace, 'right-3 z-[90]', 'the minimized workspace must dock at the bottom-right');
 requireText(workspace, 'Generation continues if this window is minimized', 'background-generation behavior must be communicated');
 requireText(workspace, 'previousStatuses.get(document.id) === "generating"', 'completion notifications must be driven by a real generating-to-ready transition');
 requireText(workspace, 'mode === "minimized" && newlyCompleted.length > 0', 'completion notifications must only appear while minimized');
@@ -49,8 +49,21 @@ requireText(documentViewer, 'aria-label="Continuous PDF pages"', 'the main viewe
 requireText(documentViewer, 'synchronizePageFromScroll', 'scrolling must synchronize the current page and thumbnail navigation');
 requireText(documentViewer, 'rootMargin: "1200px 0px"', 'continuous pages must render lazily to bound canvas memory');
 requireText(documentViewer, 'placeholder="Search this PDF"', 'the viewer must provide full-document search');
-requireText(documentViewer, 'Page {pageNumber} of {totalPages}', 'the viewer must expose the current and total page count');
-requireText(documentViewer, 'aria-label="Rotate page clockwise"', 'the viewer must support page rotation');
+requireText(documentViewer, 'pageNumber} of ${totalPages}', 'the viewer must expose the current and total page count');
+requireText(documentViewer, 'convertToViewportPoint', 'search results must resolve to positions on the rendered PDF');
+requireText(documentViewer, 'bg-amber-400/75', 'the active PDF search result must be highlighted');
+requireText(workspace, 'Download current page as PNG', 'the top bar must offer image download alongside PDF download');
+requireText(workspace, 'aria-label="Print PDF"', 'the top bar must expose printing');
+requireText(workspace, 'aria-label="Open PDF in browser"', 'the top bar must expose browser opening');
+requireText(workspace, 'Exit full screen', 'the full-screen action must toggle back to the normal window');
+requireText(workspace, 'fixed inset-0', 'the PDF workspace must use the full small-screen viewport');
+requireText(workspace, 'More PDF actions', 'small screens must retain secondary top-bar actions in an overflow menu');
+requireText(documentViewer, 'w-[min(82vw,260px)]', 'the mobile thumbnail drawer must fit narrow screens');
+requireText(documentViewer, 'p-3 sm:p-6', 'the document surface must use narrow mobile gutters');
+requireText(documentViewer, 'touch-manipulation', 'small-screen PDF controls must be touch friendly');
+if (documentViewer.includes('aria-label="Rotate page clockwise"')) {
+  throw new Error('PDF workspace contract failed: the compact toolbar must not include a rotate control');
+}
 requireText(documentViewer, 'rounded-full', 'the modern viewer must use rounded controls');
 requireText(packageJson, '"pdfjs-dist"', 'the PDF.js rendering dependency must be declared');
 if (/\bdark:|bg-slate-9\d\d/.test(`${workspace}\n${documentViewer}`)) {

@@ -4,24 +4,46 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  Download,
   Expand,
+  ExternalLink,
   FileText,
   Loader2,
+  Maximize2,
   Minimize2,
+  MoreHorizontal,
+  Printer,
   RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
-import { PDFDocumentViewer } from "@/components/pdf/pdf-document-viewer";
+import {
+  PDFDocumentViewer,
+  type PDFDocumentViewerActions,
+} from "@/components/pdf/pdf-document-viewer";
 import {
   PDFWorkspaceDocument,
   usePDFWorkspace,
 } from "@/lib/pdf/pdf-workspace-context";
 
-function PDFDocumentSurface({ document }: { document: PDFWorkspaceDocument }) {
+function PDFDocumentSurface({
+  document,
+  fullscreenTargetRef,
+  onViewerActionsChange,
+}: {
+  document: PDFWorkspaceDocument;
+  fullscreenTargetRef: React.RefObject<HTMLElement | null>;
+  onViewerActionsChange: (actions: PDFDocumentViewerActions | null) => void;
+}) {
   if (document.status === "generating") {
     return (
       <div className="flex h-full min-h-0 items-center justify-center bg-slate-100 px-5 text-slate-900">
@@ -57,7 +79,15 @@ function PDFDocumentSurface({ document }: { document: PDFWorkspaceDocument }) {
     return <div className="flex h-full items-center justify-center bg-slate-100 text-sm text-slate-600">Loading PDF preview…</div>;
   }
 
-  return <PDFDocumentViewer blob={document.blob} fileName={document.fileName} title={document.title} />;
+  return (
+    <PDFDocumentViewer
+      blob={document.blob}
+      fileName={document.fileName}
+      title={document.title}
+      fullscreenTargetRef={fullscreenTargetRef}
+      onActionsChange={onViewerActionsChange}
+    />
+  );
 }
 
 export function PDFWorkspace() {
@@ -73,8 +103,10 @@ export function PDFWorkspace() {
     expandWorkspace,
     closeAllDocuments,
   } = usePDFWorkspace();
+  const workspaceRef = useRef<HTMLElement | null>(null);
   const previousStatusesRef = useRef(new Map<string, PDFWorkspaceDocument["status"]>());
   const [readyNoticeId, setReadyNoticeId] = useState<string | null>(null);
+  const [viewerActions, setViewerActions] = useState<PDFDocumentViewerActions | null>(null);
 
   const generatingCount = useMemo(
     () => documents.filter((document) => document.status === "generating").length,
@@ -110,6 +142,10 @@ export function PDFWorkspace() {
   useEffect(() => {
     if (mode === "expanded") setReadyNoticeId(null);
   }, [mode]);
+
+  useEffect(() => {
+    setViewerActions(null);
+  }, [activeDocumentId]);
 
   if (documents.length === 0 || !activeDocument) return null;
 
@@ -152,7 +188,7 @@ export function PDFWorkspace() {
         )}
 
         <aside
-          className="fixed bottom-3 right-3 z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_22px_70px_-20px_rgba(15,23,42,0.42)] backdrop-blur-xl"
+          className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-slate-200 bg-white/95 shadow-[0_22px_70px_-20px_rgba(15,23,42,0.42)] backdrop-blur-xl"
           aria-label="Minimized PDF workspace"
         >
           <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2.5">
@@ -216,12 +252,13 @@ export function PDFWorkspace() {
 
   return (
     <section
-      className="fixed inset-2 z-[90] flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_100px_-25px_rgba(15,23,42,0.55)] sm:inset-4 lg:inset-6"
+      ref={workspaceRef}
+      className="fixed inset-0 z-[90] flex min-h-0 flex-col overflow-hidden bg-white shadow-[0_30px_100px_-25px_rgba(15,23,42,0.55)] sm:inset-4 sm:rounded-[28px] sm:border sm:border-slate-200 lg:inset-6"
       aria-label="PDF workspace"
     >
-      <header className="flex min-h-16 items-center gap-2 border-b border-slate-200 bg-white px-2.5 text-slate-900 sm:px-4">
+      <header className="flex min-h-14 items-center gap-1 border-b border-slate-200 bg-white px-2 text-slate-900 sm:min-h-16 sm:gap-2 sm:px-4">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200 sm:h-11 sm:w-11">
             <FileText className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -230,20 +267,66 @@ export function PDFWorkspace() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button type="button" size="icon" variant="ghost" onClick={minimizeWorkspace} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700" aria-label="Minimize PDF workspace">
+          {viewerActions && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" size="icon" variant="ghost" className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:h-9 sm:w-9" aria-label="Download PDF or image">
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-56 rounded-2xl border-slate-200 p-1.5">
+                  <DropdownMenuItem onSelect={() => viewerActions.downloadPDF()} className="cursor-pointer rounded-xl px-3 py-2 text-sm">
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => viewerActions.downloadCurrentPageImage()} className="cursor-pointer rounded-xl px-3 py-2 text-sm">
+                    Download current page as PNG
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.printPDF} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:inline-flex" aria-label="Print PDF">
+                <Printer className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.openExternally} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:inline-flex" aria-label="Open PDF in browser">
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <Button type="button" size="icon" variant="ghost" onClick={viewerActions.toggleFullscreen} className="hidden h-9 w-9 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:inline-flex" aria-label={viewerActions.isFullscreen ? "Exit full screen" : "View PDF workspace in full screen"}>
+                {viewerActions.isFullscreen ? <Minimize2 className="h-4 w-4" aria-hidden="true" /> : <Maximize2 className="h-4 w-4" aria-hidden="true" />}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" size="icon" variant="ghost" className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:hidden" aria-label="More PDF actions">
+                    <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-52 rounded-2xl border-slate-200 p-1.5">
+                  <DropdownMenuItem onSelect={() => viewerActions.printPDF()} className="cursor-pointer rounded-xl px-3 py-2.5 text-sm">
+                    <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Print PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => viewerActions.openExternally()} className="cursor-pointer rounded-xl px-3 py-2.5 text-sm">
+                    <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" /> Open in browser
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => viewerActions.toggleFullscreen()} className="cursor-pointer rounded-xl px-3 py-2.5 text-sm">
+                    {viewerActions.isFullscreen ? <Minimize2 className="mr-2 h-4 w-4" aria-hidden="true" /> : <Maximize2 className="mr-2 h-4 w-4" aria-hidden="true" />} {viewerActions.isFullscreen ? "Exit full screen" : "Full screen"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+          <Button type="button" size="icon" variant="ghost" onClick={minimizeWorkspace} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 sm:h-9 sm:w-9" aria-label="Minimize PDF workspace">
             <Minimize2 className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <Button type="button" size="icon" variant="ghost" onClick={closeAllDocuments} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-red-50 hover:text-red-700" aria-label="Close all PDF documents">
+          <Button type="button" size="icon" variant="ghost" onClick={closeAllDocuments} className="h-11 w-11 cursor-pointer rounded-full border border-slate-200 text-slate-600 shadow-sm hover:bg-red-50 hover:text-red-700 sm:h-9 sm:w-9" aria-label="Close all PDF documents">
             <Trash2 className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </header>
 
-      <div className="flex min-h-12 shrink-0 items-stretch gap-1 overflow-x-auto border-b border-slate-200 bg-slate-100 px-2 pt-1.5" role="tablist" aria-label="Open PDF documents">
+      <div className="flex min-h-12 shrink-0 items-stretch gap-1 overflow-x-auto border-b border-slate-200 bg-slate-100 px-1.5 pt-1.5 sm:px-2" role="tablist" aria-label="Open PDF documents">
         {documents.map((document) => (
           <div
             key={document.id}
-            className={`group flex min-w-[170px] max-w-[250px] items-center rounded-t-2xl border border-b-0 px-1 transition-colors ${
+            className={`group flex min-w-[136px] max-w-[200px] items-center rounded-t-2xl border border-b-0 px-1 transition-colors sm:min-w-[170px] sm:max-w-[250px] ${
               document.id === activeDocumentId
                 ? "border-slate-200 bg-white text-slate-950"
                 : "border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
@@ -268,11 +351,11 @@ export function PDFWorkspace() {
               <span className="truncate">{document.title}</span>
             </button>
             {document.status === "error" && (
-              <button type="button" onClick={() => retryDocument(document.id)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label={`Retry ${document.title}`}>
+            <button type="button" onClick={() => retryDocument(document.id)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-9 sm:w-9" aria-label={`Retry ${document.title}`}>
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             )}
-            <button type="button" onClick={() => closeDocument(document.id)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label={`Close ${document.title}`}>
+            <button type="button" onClick={() => closeDocument(document.id)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 sm:h-9 sm:w-9" aria-label={`Close ${document.title}`}>
               <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
@@ -280,7 +363,12 @@ export function PDFWorkspace() {
       </div>
 
       <div id="pdf-workspace-panel" role="tabpanel" className="min-h-0 flex-1">
-        <PDFDocumentSurface key={activeDocument.id} document={activeDocument} />
+        <PDFDocumentSurface
+          key={activeDocument.id}
+          document={activeDocument}
+          fullscreenTargetRef={workspaceRef}
+          onViewerActionsChange={setViewerActions}
+        />
       </div>
 
       <div className="sr-only" aria-live="polite" aria-atomic="true">

@@ -14,16 +14,11 @@ import type {
   RenderTask,
 } from "pdfjs-dist";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Download,
   ExternalLink,
   Loader2,
-  Maximize2,
   PanelLeft,
-  Printer,
-  RotateCw,
   Scan,
   Search,
   StretchHorizontal,
@@ -40,11 +35,23 @@ interface PDFDocumentViewerProps {
   blob: Blob;
   fileName: string;
   title: string;
+  fullscreenTargetRef?: React.RefObject<HTMLElement | null>;
+  onActionsChange?: (actions: PDFDocumentViewerActions | null) => void;
 }
 
 interface SearchHit {
+  id: number;
   pageNumber: number;
-  occurrence: number;
+  bounds: { left: number; top: number; width: number; height: number };
+}
+
+export interface PDFDocumentViewerActions {
+  downloadPDF: () => void;
+  downloadCurrentPageImage: () => void;
+  printPDF: () => void;
+  openExternally: () => void;
+  toggleFullscreen: () => void;
+  isFullscreen: boolean;
 }
 
 interface PageSize {
@@ -61,24 +68,12 @@ const VIEWPORT_PADDING = 24;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const roundControlClass = cn(
-  "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
+  "inline-flex h-11 w-11 shrink-0 cursor-pointer touch-manipulation items-center justify-center rounded-full sm:h-9 sm:w-9",
   "border border-slate-200 bg-white text-slate-700 shadow-sm transition-colors duration-150",
   "hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
   "disabled:cursor-not-allowed disabled:opacity-40",
 );
-
-function countOccurrences(source: string, query: string) {
-  let count = 0;
-  let offset = 0;
-  while (offset < source.length) {
-    const matchIndex = source.indexOf(query, offset);
-    if (matchIndex < 0) break;
-    count += 1;
-    offset = matchIndex + Math.max(query.length, 1);
-  }
-  return count;
-}
 
 function useElementSize<T extends HTMLElement>(active: boolean) {
   const ref = useRef<T>(null);
@@ -109,6 +104,8 @@ function PDFPageCanvas({
   rotation,
   className,
   onPageSize,
+  searchHits = [],
+  activeSearchHitId = -1,
 }: {
   pdf: PDFDocumentProxy;
   pageNumber: number;
@@ -116,6 +113,8 @@ function PDFPageCanvas({
   rotation: number;
   className?: string;
   onPageSize?: (size: PageSize) => void;
+  searchHits?: SearchHit[];
+  activeSearchHitId?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rendering, setRendering] = useState(true);
@@ -173,6 +172,25 @@ function PDFPageCanvas({
   return (
     <div className={cn("relative flex items-center justify-center", className)}>
       <canvas ref={canvasRef} className="block bg-white shadow-[0_18px_55px_-22px_rgba(15,23,42,0.45)]" />
+      {searchHits.length > 0 && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          {searchHits.map((hit) => (
+            <span
+              key={hit.id}
+              className={cn(
+                "absolute rounded-sm bg-amber-300/55 ring-1 ring-amber-500/40",
+                hit.id === activeSearchHitId && "bg-amber-400/75 ring-2 ring-amber-600",
+              )}
+              style={{
+                left: hit.bounds.left * scale,
+                top: hit.bounds.top * scale,
+                width: Math.max(3, hit.bounds.width * scale),
+                height: Math.max(3, hit.bounds.height * scale),
+              }}
+            />
+          ))}
+        </div>
+      )}
       {rendering && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/75 text-blue-700 backdrop-blur-[1px]">
           <Loader2 className="h-7 w-7 animate-spin motion-reduce:animate-none" aria-label="Rendering PDF page" />
@@ -198,6 +216,8 @@ function ContinuousPDFPage({
   viewportHeight,
   registerPageElement,
   onPageSize,
+  searchHits,
+  activeSearchHitId,
 }: {
   pdf: PDFDocumentProxy;
   pageNumber: number;
@@ -209,6 +229,8 @@ function ContinuousPDFPage({
   viewportHeight: number;
   registerPageElement: (pageNumber: number, element: HTMLElement | null) => void;
   onPageSize: (pageNumber: number, size: PageSize) => void;
+  searchHits: SearchHit[];
+  activeSearchHitId: number;
 }) {
   const hostRef = useRef<HTMLElement | null>(null);
   const [visible, setVisible] = useState(pageNumber <= 2);
@@ -263,6 +285,8 @@ function ContinuousPDFPage({
             rotation={rotation}
             className="h-full w-full"
             onPageSize={handlePageSize}
+            searchHits={searchHits}
+            activeSearchHitId={activeSearchHitId}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-slate-400" aria-label={`Page ${pageNumber} waiting to render`}>
@@ -368,7 +392,13 @@ function PDFThumbnail({
   );
 }
 
-export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerProps) {
+export function PDFDocumentViewer({
+  blob,
+  fileName,
+  title,
+  fullscreenTargetRef,
+  onActionsChange,
+}: PDFDocumentViewerProps) {
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -376,8 +406,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
   const [pageInput, setPageInput] = useState("1");
   const [zoom, setZoom] = useState(100);
   const [fitMode, setFitMode] = useState<FitMode>("custom");
-  const [rotation, setRotation] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pageSizes, setPageSizes] = useState<Record<number, PageSize>>({
     1: { width: 595, height: 842 },
   });
@@ -385,6 +414,9 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
   const [searching, setSearching] = useState(false);
   const [searchHits, setSearchHits] = useState<SearchHit[]>([]);
   const [activeSearchHit, setActiveSearchHit] = useState(-1);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const viewerRootRef = useRef<HTMLDivElement>(null);
@@ -402,6 +434,10 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
   }, [blob]);
 
   useEffect(() => {
+    if (window.matchMedia("(min-width: 768px)").matches) setSidebarOpen(true);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
@@ -411,7 +447,6 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     pageNumberRef.current = 1;
     setZoom(100);
     setFitMode("custom");
-    setRotation(0);
     setPageSizes({ 1: { width: 595, height: 842 } });
     pageElementsRef.current.clear();
 
@@ -508,7 +543,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
       for (let candidatePage = 1; candidatePage <= pdf.numPages; candidatePage += 1) {
         const page = await pdf.getPage(candidatePage);
         if (cancelled) return;
-        const viewport = page.getViewport({ scale: 1, rotation: (page.rotate + rotation) % 360 });
+        const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
         nextSizes[candidatePage] = { width: viewport.width, height: viewport.height };
       }
       if (!cancelled) setPageSizes(nextSizes);
@@ -517,7 +552,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     return () => {
       cancelled = true;
     };
-  }, [pdf, rotation]);
+  }, [pdf]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -590,7 +625,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
       viewport.scrollTop = Math.max(0, pageElement.offsetTop - VIEWPORT_PADDING);
     });
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [fitMode, pdf, rotation, viewportRef, viewportSize.height, viewportSize.width, zoom]);
+  }, [fitMode, pdf, viewportRef, viewportSize.height, viewportSize.width, zoom]);
 
   const changeZoom = useCallback((direction: 1 | -1) => {
     setZoom(clamp(displayedZoom + direction * ZOOM_STEP, MIN_ZOOM, MAX_ZOOM));
@@ -614,13 +649,34 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
         const page: PDFPageProxy = await pdf.getPage(candidatePage);
         const textContent = await page.getTextContent();
         if (runId !== searchRunRef.current) return;
-        const text = textContent.items
-          .map((item) => ("str" in item ? item.str : ""))
-          .join(" ")
-          .toLocaleLowerCase();
-        const occurrences = countOccurrences(text, normalizedQuery);
-        for (let occurrence = 0; occurrence < occurrences; occurrence += 1) {
-          nextHits.push({ pageNumber: candidatePage, occurrence });
+        const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
+        for (const item of textContent.items) {
+          if (!("str" in item) || !item.str) continue;
+          const source = item.str.toLocaleLowerCase();
+          let offset = 0;
+          while (offset < source.length) {
+            const matchStart = source.indexOf(normalizedQuery, offset);
+            if (matchStart < 0) break;
+            const matchEnd = matchStart + normalizedQuery.length;
+            const [scaleX, , , scaleY, x, y] = item.transform;
+            const itemWidth = Math.max(item.width || Math.abs(scaleX), 1);
+            const itemHeight = Math.max(item.height || Math.abs(scaleY), 1);
+            const startX = x + itemWidth * (matchStart / source.length);
+            const endX = x + itemWidth * (matchEnd / source.length);
+            const [leftA, topA] = viewport.convertToViewportPoint(startX, y);
+            const [leftB, topB] = viewport.convertToViewportPoint(endX, y + itemHeight);
+            nextHits.push({
+              id: nextHits.length,
+              pageNumber: candidatePage,
+              bounds: {
+                left: Math.min(leftA, leftB),
+                top: Math.min(topA, topB),
+                width: Math.abs(leftB - leftA),
+                height: Math.abs(topB - topA),
+              },
+            });
+            offset = matchEnd;
+          }
         }
       }
 
@@ -639,20 +695,38 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     return () => window.clearTimeout(timeoutId);
   }, [runSearch, searchQuery]);
 
+  const navigateToSearchHit = useCallback((hit: SearchHit) => {
+    navigateToPage(hit.pageNumber);
+    window.requestAnimationFrame(() => {
+      const viewport = viewportRef.current;
+      const pageElement = pageElementsRef.current.get(hit.pageNumber);
+      const size = pageSizes[hit.pageNumber] ?? pageSizes[1] ?? activePageSize;
+      if (!viewport || !pageElement) return;
+      const scale = getScaleForPage(size);
+      viewport.scrollTo({
+        top: Math.max(0, pageElement.offsetTop + hit.bounds.top * scale - viewport.clientHeight * 0.28),
+        behavior: "auto",
+      });
+    });
+  }, [activePageSize, getScaleForPage, navigateToPage, pageSizes, viewportRef]);
+
   const moveSearchHit = useCallback((direction: 1 | -1) => {
     if (!searchHits.length) return;
     const nextIndex = (activeSearchHit + direction + searchHits.length) % searchHits.length;
     setActiveSearchHit(nextIndex);
-    navigateToPage(searchHits[nextIndex].pageNumber);
-  }, [activeSearchHit, navigateToPage, searchHits]);
+    navigateToSearchHit(searchHits[nextIndex]);
+  }, [activeSearchHit, navigateToSearchHit, searchHits]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const modifier = event.ctrlKey || event.metaKey;
       if (modifier && event.key.toLocaleLowerCase() === "f") {
         event.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
+        setSearchOpen(true);
+        window.requestAnimationFrame(() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        });
         return;
       }
       if (modifier && ["+", "="].includes(event.key)) {
@@ -674,7 +748,7 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [changeZoom]);
 
-  const downloadPDF = () => {
+  const downloadPDF = useCallback(() => {
     if (!objectUrl) return;
     const link = window.document.createElement("a");
     link.href = objectUrl;
@@ -682,23 +756,72 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
     window.document.body.appendChild(link);
     link.click();
     link.remove();
-  };
+  }, [fileName, objectUrl]);
 
-  const printPDF = () => {
+  const downloadCurrentPageImage = useCallback(async () => {
+    if (!pdf) return;
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 2, rotation: page.rotate });
+    const canvas = window.document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return;
+    canvas.width = Math.max(1, Math.floor(viewport.width));
+    canvas.height = Math.max(1, Math.floor(viewport.height));
+    await page.render({ canvas, canvasContext: context, viewport, background: "#ffffff" }).promise;
+    canvas.toBlob((imageBlob) => {
+      if (!imageBlob) return;
+      const imageUrl = URL.createObjectURL(imageBlob);
+      const link = window.document.createElement("a");
+      link.href = imageUrl;
+      link.download = `${fileName.replace(/\.pdf$/i, "")}-page-${pageNumber}.png`;
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(imageUrl), 0);
+    }, "image/png");
+  }, [fileName, pageNumber, pdf]);
+
+  const printPDF = useCallback(() => {
     const frameWindow = printFrameRef.current?.contentWindow;
     if (frameWindow) {
       frameWindow.focus();
       frameWindow.print();
     }
-  };
+  }, []);
 
-  const openExternally = () => {
+  const openExternally = useCallback(() => {
     if (objectUrl) window.open(objectUrl, "_blank", "noopener,noreferrer");
-  };
+  }, [objectUrl]);
 
-  const enterFullscreen = () => {
-    if (viewerRootRef.current?.requestFullscreen) void viewerRootRef.current.requestFullscreen();
-  };
+  const toggleFullscreen = useCallback(() => {
+    const target = fullscreenTargetRef?.current ?? viewerRootRef.current;
+    if (!target) return;
+    if (window.document.fullscreenElement === target) {
+      void window.document.exitFullscreen?.();
+    } else {
+      void target.requestFullscreen?.();
+    }
+  }, [fullscreenTargetRef]);
+
+  useEffect(() => {
+    const target = fullscreenTargetRef?.current ?? viewerRootRef.current;
+    const updateFullscreenState = () => setIsFullscreen(window.document.fullscreenElement === target);
+    window.document.addEventListener("fullscreenchange", updateFullscreenState);
+    updateFullscreenState();
+    return () => window.document.removeEventListener("fullscreenchange", updateFullscreenState);
+  }, [fullscreenTargetRef]);
+
+  useEffect(() => {
+    onActionsChange?.({
+      downloadPDF,
+      downloadCurrentPageImage: () => void downloadCurrentPageImage(),
+      printPDF,
+      openExternally,
+      toggleFullscreen,
+      isFullscreen,
+    });
+    return () => onActionsChange?.(null);
+  }, [downloadCurrentPageImage, downloadPDF, isFullscreen, onActionsChange, openExternally, printPDF, toggleFullscreen]);
 
   const commitPageInput = () => {
     const parsed = Number.parseInt(pageInput, 10);
@@ -736,17 +859,17 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
       {objectUrl && <iframe ref={printFrameRef} src={objectUrl} title={`${title} print source`} className="pointer-events-none fixed h-0 w-0 border-0 opacity-0" aria-hidden="true" />}
 
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white shadow-sm">
-        <div className="flex min-h-[64px] items-center gap-2 overflow-x-auto px-3 py-2 sm:px-4">
+        <div className="flex min-h-14 items-center gap-1.5 overflow-x-auto px-2 py-1.5 sm:min-h-12 sm:px-3">
           <button type="button" onClick={() => setSidebarOpen((open) => !open)} className={cn(roundControlClass, sidebarOpen && "border-blue-300 bg-blue-50 text-blue-700")} aria-label={sidebarOpen ? "Hide page thumbnails" : "Show page thumbnails"} aria-pressed={sidebarOpen} title={sidebarOpen ? "Hide thumbnails" : "Show thumbnails"}>
-            <PanelLeft className="h-5 w-5" />
+            <PanelLeft className="h-4 w-4" />
           </button>
 
-          <div className="mx-1 h-8 w-px shrink-0 bg-slate-200" />
+          <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200" />
 
           <button type="button" onClick={() => navigateToPage(pageNumber - 1)} disabled={pageNumber <= 1} className={roundControlClass} aria-label="Previous page" title="Previous page">
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
-          <div className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2.5 shadow-inner">
+          <div className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 shadow-inner sm:h-9">
             <label htmlFor="pdf-page-number" className="sr-only">Current page</label>
             <input
               id="pdf-page-number"
@@ -755,82 +878,51 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
               onChange={(event) => setPageInput(event.target.value.replace(/\D/g, ""))}
               onBlur={commitPageInput}
               onKeyDown={(event) => { if (event.key === "Enter") commitPageInput(); }}
-              className="h-8 w-11 rounded-full border border-slate-200 bg-white text-center text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="h-9 w-9 rounded-full border border-slate-200 bg-white text-center text-xs font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 sm:h-7"
             />
-            <span className="whitespace-nowrap pr-1 text-xs font-medium text-slate-500">of {totalPages}</span>
+            <span className="whitespace-nowrap pr-1 text-[11px] font-medium text-slate-500">/ {totalPages}</span>
           </div>
           <button type="button" onClick={() => navigateToPage(pageNumber + 1)} disabled={pageNumber >= totalPages} className={roundControlClass} aria-label="Next page" title="Next page">
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4" />
           </button>
 
-          <div className="mx-1 h-8 w-px shrink-0 bg-slate-200" />
-
-          <button type="button" onClick={() => changeZoom(-1)} disabled={displayedZoom <= MIN_ZOOM} className={roundControlClass} aria-label="Zoom out" title="Zoom out (Ctrl −)">
-            <ZoomOut className="h-5 w-5" />
+          <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200" />
+          <button
+            type="button"
+            onClick={() => {
+              setSearchOpen((open) => !open);
+              window.requestAnimationFrame(() => searchInputRef.current?.focus());
+            }}
+            className={cn(roundControlClass, searchOpen && "border-blue-300 bg-blue-50 text-blue-700")}
+            aria-label={searchOpen ? "Hide PDF search" : "Search this PDF"}
+            aria-pressed={searchOpen}
+            title="Search this PDF (Ctrl F)"
+          >
+            <Search className="h-4 w-4" />
           </button>
-          <button type="button" onClick={() => { setZoom(100); setFitMode("custom"); }} className="h-11 min-w-[72px] shrink-0 cursor-pointer rounded-full border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" aria-label={`Zoom ${displayedZoom} percent`} title="Reset zoom to 100%">
-            {displayedZoom}%
-          </button>
-          <button type="button" onClick={() => changeZoom(1)} disabled={displayedZoom >= MAX_ZOOM} className={roundControlClass} aria-label="Zoom in" title="Zoom in (Ctrl +)">
-            <ZoomIn className="h-5 w-5" />
-          </button>
-
-          <button type="button" onClick={() => setFitMode("width")} className={cn(roundControlClass, fitMode === "width" && "border-blue-300 bg-blue-50 text-blue-700")} aria-label="Fit page width" aria-pressed={fitMode === "width"} title="Fit width">
-            <StretchHorizontal className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={() => setFitMode("page")} className={cn(roundControlClass, fitMode === "page" && "border-blue-300 bg-blue-50 text-blue-700")} aria-label="Fit whole page" aria-pressed={fitMode === "page"} title="Fit page (Ctrl 0)">
-            <Scan className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={() => setRotation((value) => (value + 90) % 360)} className={roundControlClass} aria-label="Rotate page clockwise" title="Rotate clockwise">
-            <RotateCw className="h-5 w-5" />
-          </button>
-
-          <div className="mx-1 h-8 w-px shrink-0 bg-slate-200" />
-
-          <div className="relative flex h-11 min-w-[230px] shrink-0 items-center rounded-full border border-slate-200 bg-slate-50 pl-4 pr-2 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
-            <Search className="h-4 w-4 shrink-0 text-slate-500" />
-            <label htmlFor="pdf-search" className="sr-only">Search this PDF</label>
-            <input ref={searchInputRef} id="pdf-search" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this PDF" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400" />
-            {searching ? (
-              <Loader2 className="h-4 w-4 animate-spin text-blue-600 motion-reduce:animate-none" aria-label="Searching PDF" />
-            ) : searchQuery ? (
-              <button type="button" onClick={() => setSearchQuery("")} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Clear PDF search"><X className="h-4 w-4" /></button>
-            ) : null}
-          </div>
-          {searchQuery.trim().length >= 2 && (
-            <div className="flex h-11 shrink-0 items-center rounded-full border border-slate-200 bg-white px-1 shadow-sm" aria-live="polite">
-              <span className="min-w-[72px] px-2 text-center text-xs font-semibold text-slate-600">
-                {searching ? "Searching" : searchHits.length ? `${activeSearchHit + 1} of ${searchHits.length}` : "No matches"}
-              </span>
-              <button type="button" onClick={() => moveSearchHit(-1)} disabled={!searchHits.length} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Previous search result"><ChevronLeft className="h-4 w-4" /></button>
-              <button type="button" onClick={() => moveSearchHit(1)} disabled={!searchHits.length} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-600 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-35" aria-label="Next search result"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+        {searchOpen && (
+          <div className="flex min-h-14 items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3">
+            <div className="relative flex h-11 min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white pl-3 pr-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 sm:h-9">
+              <Search className="h-4 w-4 shrink-0 text-slate-500" />
+              <label htmlFor="pdf-search" className="sr-only">Search this PDF</label>
+              <input ref={searchInputRef} id="pdf-search" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this PDF" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400" />
+              {searching ? <Loader2 className="h-4 w-4 animate-spin text-blue-600 motion-reduce:animate-none" aria-label="Searching PDF" /> : searchQuery ? <button type="button" onClick={() => setSearchQuery("")} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-7 sm:w-7" aria-label="Clear PDF search"><X className="h-4 w-4" /></button> : null}
             </div>
-          )}
-
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <button type="button" onClick={downloadPDF} className={roundControlClass} aria-label={`Download ${title}`} title="Download PDF"><Download className="h-5 w-5" /></button>
-            <button type="button" onClick={printPDF} className={roundControlClass} aria-label={`Print ${title}`} title="Print PDF"><Printer className="h-5 w-5" /></button>
-            <button type="button" onClick={openExternally} className={roundControlClass} aria-label={`Open ${title} in browser`} title="Open in browser"><ExternalLink className="h-5 w-5" /></button>
-            <button type="button" onClick={enterFullscreen} className={roundControlClass} aria-label="Enter full screen" title="Full screen"><Maximize2 className="h-5 w-5" /></button>
+            <span className="shrink-0 text-xs font-semibold text-slate-600" aria-live="polite">{searching ? "…" : searchQuery.trim().length < 2 ? "Type 2+ letters" : searchHits.length ? `${activeSearchHit + 1}/${searchHits.length}` : "No matches"}</span>
+            <button type="button" onClick={() => moveSearchHit(-1)} disabled={!searchHits.length} className={roundControlClass} aria-label="Previous search result"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => moveSearchHit(1)} disabled={!searchHits.length} className={roundControlClass} aria-label="Next search result"><ChevronRight className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setSearchOpen(false)} className={roundControlClass} aria-label="Close PDF search"><X className="h-4 w-4" /></button>
           </div>
-        </div>
-
-        <div className="flex min-h-9 items-center gap-2 border-t border-slate-100 px-4 text-xs text-slate-500">
-          <span className="max-w-[45vw] truncate font-semibold text-slate-700">{fileName}</span>
-          <span aria-hidden="true">•</span>
-          <span>Page {pageNumber} of {totalPages}</span>
-          <span aria-hidden="true">•</span>
-          <span>{fitMode === "page" ? "Fit page" : fitMode === "width" ? "Fit width" : `${displayedZoom}% zoom`}</span>
-          <span className="ml-auto hidden items-center gap-1 sm:flex"><ChevronDown className="h-3.5 w-3.5" /> Ctrl+F search · Ctrl+0 fit page</span>
-        </div>
+        )}
       </div>
 
       <div className="relative flex min-h-0 flex-1">
         {sidebarOpen && (
-          <aside className="absolute inset-y-0 left-0 z-20 w-[184px] overflow-y-auto border-r border-slate-200 bg-slate-50/95 py-3 shadow-xl backdrop-blur-sm md:static md:shadow-none" aria-label="Page thumbnails">
+          <aside className="absolute inset-y-0 left-0 z-20 w-[min(82vw,260px)] overflow-y-auto border-r border-slate-200 bg-slate-50/95 py-3 shadow-xl backdrop-blur-sm md:static md:w-[184px] md:shadow-none" aria-label="Page thumbnails">
             <div className="mb-2 flex items-center justify-between px-4">
               <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Pages</h3>
-              <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 md:hidden" aria-label="Close page thumbnails"><X className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setSidebarOpen(false)} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 sm:h-9 sm:w-9 md:hidden" aria-label="Close page thumbnails"><X className="h-4 w-4" /></button>
             </div>
             <div className="space-y-2">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
@@ -840,25 +932,43 @@ export function PDFDocumentViewer({ blob, fileName, title }: PDFDocumentViewerPr
           </aside>
         )}
 
-        <main ref={viewportRef} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
-          <div className="flex min-h-full w-max min-w-full flex-col items-center gap-6" aria-label="Continuous PDF pages">
+        <main ref={viewportRef} className="min-h-0 min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef2f7_62%,#e2e8f0_100%)] p-3 sm:p-6" aria-label={`Viewing ${title}, page ${pageNumber} of ${totalPages}`}>
+          <div className="flex min-h-full w-max min-w-full flex-col items-center gap-3 sm:gap-6" aria-label="Continuous PDF pages">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((candidatePage) => (
               <ContinuousPDFPage
                 key={candidatePage}
                 pdf={pdf}
                 pageNumber={candidatePage}
                 scale={getScaleForPage(pageSizes[candidatePage] ?? pageSizes[1] ?? activePageSize)}
-                rotation={rotation}
+                rotation={0}
                 pageSize={pageSizes[candidatePage] ?? pageSizes[1] ?? activePageSize}
                 fitMode={fitMode}
                 viewportElement={viewportRef.current}
                 viewportHeight={viewportSize.height}
                 registerPageElement={registerPageElement}
                 onPageSize={updatePageSize}
+                searchHits={searchHits.filter((hit) => hit.pageNumber === candidatePage)}
+                activeSearchHitId={searchHits[activeSearchHit]?.id ?? -1}
               />
             ))}
           </div>
         </main>
+
+        <div className="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-30 flex max-w-[calc(100vw-24px)] flex-col items-end gap-2 sm:bottom-4 sm:right-4">
+          {zoomMenuOpen && (
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-400/25">
+              <button type="button" onClick={() => changeZoom(-1)} disabled={displayedZoom <= MIN_ZOOM} className={roundControlClass} aria-label="Zoom out"><ZoomOut className="h-4 w-4" /></button>
+              <button type="button" onClick={() => { setZoom(100); setFitMode("custom"); }} className="h-11 min-w-14 cursor-pointer touch-manipulation rounded-full border border-slate-200 bg-slate-50 px-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-9" aria-label="Reset zoom to 100 percent">{displayedZoom}%</button>
+              <button type="button" onClick={() => changeZoom(1)} disabled={displayedZoom >= MAX_ZOOM} className={roundControlClass} aria-label="Zoom in"><ZoomIn className="h-4 w-4" /></button>
+              <span className="mx-0.5 h-6 w-px bg-slate-200" />
+              <button type="button" onClick={() => setFitMode("width")} className={cn(roundControlClass, fitMode === "width" && "border-blue-300 bg-blue-50 text-blue-700")} aria-label="Fit page width" aria-pressed={fitMode === "width"} title="Fit width"><StretchHorizontal className="h-4 w-4" /></button>
+              <button type="button" onClick={() => setFitMode("page")} className={cn(roundControlClass, fitMode === "page" && "border-blue-300 bg-blue-50 text-blue-700")} aria-label="Fit whole page" aria-pressed={fitMode === "page"} title="Fit page"><Scan className="h-4 w-4" /></button>
+            </div>
+          )}
+          <button type="button" onClick={() => setZoomMenuOpen((open) => !open)} className="inline-flex h-11 cursor-pointer touch-manipulation items-center gap-2 rounded-full border border-blue-200 bg-white px-4 text-sm font-bold text-blue-700 shadow-lg shadow-slate-400/30 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" aria-label={zoomMenuOpen ? "Hide zoom controls" : "Show zoom controls"} aria-expanded={zoomMenuOpen}>
+            <ZoomIn className="h-4 w-4" /> {displayedZoom}%
+          </button>
+        </div>
       </div>
     </div>
   );
