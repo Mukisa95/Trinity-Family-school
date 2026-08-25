@@ -10,6 +10,7 @@ const requireText = (source, expected, label) => {
 };
 
 const layout = read('src/app/layout.tsx');
+const globals = read('src/app/globals.css');
 const context = read('src/lib/pdf/pdf-workspace-context.tsx');
 const workspace = read('src/components/pdf/pdf-workspace.tsx');
 const documentViewer = read('src/components/pdf/pdf-document-viewer.tsx');
@@ -38,7 +39,11 @@ requireText(workspace, 'previousStatuses.get(document.id) === "generating"', 'co
 requireText(workspace, 'mode === "minimized" && newlyCompleted.length > 0', 'completion notifications must only appear while minimized');
 requireText(workspace, 'Your PDF is ready', 'the minimized workspace must tell the user when generation completes');
 requireText(workspace, 'View PDF', 'the completion notification must restore the completed PDF');
-requireText(workspace, 'border-2 border-emerald-300 bg-white opacity-100', 'the completion notification must remain fully opaque and readable');
+requireText(workspace, 'pdf-workspace-solid-surface', 'the completion notification must opt out of themed transparent card styling');
+requireText(globals, '.pdf-workspace-solid-surface', 'the opaque PDF workspace surface must be defined in global styles');
+if (globals.lastIndexOf('.pdf-workspace-solid-surface') < globals.indexOf('[style*="--theme-primary"] .theme-card')) {
+  throw new Error('PDF workspace contract failed: the opaque PDF surface must override the themed glass-card rule');
+}
 requireText(workspace, '<PDFDocumentViewer', 'ready documents must use the application-owned PDF viewer');
 requireText(documentViewer, 'await import("pdfjs-dist")', 'the viewer must render PDFs through PDF.js');
 requireText(documentViewer, 'aria-label="Page thumbnails"', 'the viewer must provide page thumbnail navigation');
@@ -65,6 +70,7 @@ requireText(documentViewer, 'min-width: 1024px', 'thumbnails must remain hidden 
 requireText(documentViewer, 'p-3 sm:p-6', 'the document surface must use narrow mobile gutters');
 requireText(documentViewer, 'touch-manipulation', 'small-screen PDF controls must be touch friendly');
 requireText(documentViewer, 'lg:min-w-[300px] lg:flex-1', 'desktop PDF search must share the primary toolbar row');
+requireText(documentViewer, 'aria-label="Focus PDF search"', 'the inline PDF search field must contain its search trigger');
 if (documentViewer.includes('aria-label="Rotate page clockwise"')) {
   throw new Error('PDF workspace contract failed: the compact toolbar must not include a rotate control');
 }

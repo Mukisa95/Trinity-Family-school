@@ -4026,3 +4026,11 @@ html, body, * {
     transform: none !important;
   }
 }
+
+/* Must follow theme overrides, which otherwise replace .bg-white with a glass gradient. */
+.pdf-workspace-solid-surface {
+  background: #ffffff !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

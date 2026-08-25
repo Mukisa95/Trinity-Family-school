@@ -157,7 +157,7 @@ export function PDFWorkspace() {
             role="status"
             aria-live="polite"
             aria-atomic="true"
-            className="fixed bottom-[11.75rem] right-3 z-[95] isolate w-[min(380px,calc(100vw-24px))] overflow-hidden rounded-[24px] border-2 border-emerald-300 bg-white opacity-100 shadow-[0_24px_70px_-20px_rgba(5,150,105,0.55)]"
+            className="pdf-workspace-solid-surface fixed bottom-[11.75rem] right-3 z-[95] isolate w-[min(380px,calc(100vw-24px))] overflow-hidden rounded-[24px] border-2 border-emerald-300 shadow-[0_24px_70px_-20px_rgba(5,150,105,0.55)]"
           >
             <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-500" />
             <div className="flex items-start gap-3 p-4">
@@ -188,7 +188,7 @@ export function PDFWorkspace() {
         )}
 
         <aside
-          className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-slate-200 bg-white opacity-100 shadow-[0_22px_70px_-20px_rgba(15,23,42,0.42)]"
+          className="pdf-workspace-solid-surface fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] right-3 z-[90] w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-slate-200 shadow-[0_22px_70px_-20px_rgba(15,23,42,0.42)]"
           aria-label="Minimized PDF workspace"
         >
           <div className="flex items-center gap-2 border-b border-slate-200 px-3 py-2.5">

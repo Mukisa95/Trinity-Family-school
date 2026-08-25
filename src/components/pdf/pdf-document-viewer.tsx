@@ -887,24 +887,24 @@ export function PDFDocumentViewer({
           </button>
 
           <div className="mx-0.5 h-6 w-px shrink-0 bg-slate-200" />
-          <button
-            type="button"
-            onClick={() => {
-              setSearchOpen((open) => !open);
-              window.requestAnimationFrame(() => searchInputRef.current?.focus());
-            }}
-            className={cn(roundControlClass, searchOpen && "border-blue-300 bg-blue-50 text-blue-700")}
-            aria-label={searchOpen ? "Hide PDF search" : "Search this PDF"}
-            aria-pressed={searchOpen}
-            title="Search this PDF (Ctrl F)"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        </div>
-        {searchOpen && (
-          <div className="order-last flex min-h-14 w-full items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3 lg:order-none lg:min-h-0 lg:min-w-[300px] lg:flex-1 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0">
+          {!searchOpen && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen(true);
+                window.requestAnimationFrame(() => searchInputRef.current?.focus());
+              }}
+              className={roundControlClass}
+              aria-label="Search this PDF"
+              title="Search this PDF (Ctrl F)"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          )}
+          {searchOpen && (
+            <div className="order-last flex min-h-14 w-full items-center gap-2 border-t border-slate-100 bg-slate-50 px-2 py-1.5 sm:min-h-11 sm:px-3 lg:order-none lg:min-h-0 lg:min-w-[300px] lg:flex-1 lg:border-t-0 lg:bg-transparent lg:px-0 lg:py-0">
             <div className="relative flex h-11 min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white pl-3 pr-1.5 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 sm:h-9">
-              <Search className="h-4 w-4 shrink-0 text-slate-500" />
+              <button type="button" onClick={() => searchInputRef.current?.focus()} className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Focus PDF search" title="Search this PDF (Ctrl F)"><Search className="h-4 w-4" /></button>
               <label htmlFor="pdf-search" className="sr-only">Search this PDF</label>
               <input ref={searchInputRef} id="pdf-search" type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this PDF" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400" />
               {searching ? <Loader2 className="h-4 w-4 animate-spin text-blue-600 motion-reduce:animate-none" aria-label="Searching PDF" /> : searchQuery ? <button type="button" onClick={() => setSearchQuery("")} className="flex h-11 w-11 cursor-pointer touch-manipulation items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:h-7 sm:w-7" aria-label="Clear PDF search"><X className="h-4 w-4" /></button> : null}
@@ -914,7 +914,8 @@ export function PDFDocumentViewer({
             <button type="button" onClick={() => moveSearchHit(1)} disabled={!searchHits.length} className={roundControlClass} aria-label="Next search result"><ChevronRight className="h-4 w-4" /></button>
             <button type="button" onClick={() => setSearchOpen(false)} className={roundControlClass} aria-label="Close PDF search"><X className="h-4 w-4" /></button>
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="relative flex min-h-0 flex-1">
