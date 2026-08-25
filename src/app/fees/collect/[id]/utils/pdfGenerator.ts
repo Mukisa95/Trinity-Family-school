@@ -31,6 +31,178 @@ interface ReceiptOptions {
 }
 
 /**
+ * Creates a fee statement as a real PDF blob so it can be opened in the
+ * application's PDF workspace instead of a separate browser print window.
+ */
+export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): Promise<Blob> {
+  const {
+    pupil,
+    fees,
+    selectedAcademicYear,
+    selectedTerm,
+    includePaymentHistory = true,
+    includeSignature = true,
+    schoolSettings,
+  } = options;
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape', compress: true });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+  const formatAmount = (amount: number) => new Intl.NumberFormat('en-UG', {
+    style: 'currency',
+    currency: 'UGX',
+    maximumFractionDigits: 0,
+  }).format(amount || 0);
+  const totalFees = fees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+  const totalPaid = fees.reduce((sum, fee) => sum + (fee.paid || 0), 0);
+  const totalBalance = totalFees - totalPaid;
+  const schoolName = schoolSettings?.generalInfo?.name || 'TRINITY FAMILY SCHOOL';
+  const pupilName = `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() || 'Pupil';
+
+  doc.setFillColor(30, 64, 175);
+  doc.roundedRect(margin, 12, contentWidth, 31, 4, 4, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text(schoolName, pageWidth / 2, 23, { align: 'center', maxWidth: contentWidth - 14 });
+  doc.setFontSize(11);
+  doc.text('FEE STATEMENT', pageWidth / 2, 30, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(`Generated ${new Date().toLocaleDateString('en-UG')}`, pageWidth / 2, 36, { align: 'center' });
+
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(margin, 49, contentWidth, 29, 3, 3, 'FD');
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('PUPIL INFORMATION', margin + 5, 57);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  const infoRows = [
+    ['Name', pupilName],
+    ['Admission no.', pupil.admissionNumber || 'N/A'],
+    ['Class', pupil.className || 'N/A'],
+    ['Academic year', selectedAcademicYear?.name || 'All years'],
+    ['Term', selectedTerm || 'All terms'],
+    ['Fee items', String(fees.length)],
+  ];
+  infoRows.forEach(([label, value], index) => {
+    const column = index % 3;
+    const row = Math.floor(index / 3);
+    const x = margin + 5 + column * (contentWidth / 3);
+    const y = 64 + row * 8;
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x, y);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.text(value, x, y + 4, { maxWidth: contentWidth / 3 - 9 });
+    doc.setFont('helvetica', 'normal');
+  });
+
+  const summaryY = 85;
+  const summaryCards: Array<{ label: string; value: string; color: [number, number, number] }> = [
+    { label: 'TOTAL FEES', value: formatAmount(totalFees), color: [30, 64, 175] },
+    { label: 'AMOUNT PAID', value: formatAmount(totalPaid), color: [5, 150, 105] },
+    { label: 'BALANCE', value: formatAmount(totalBalance), color: [220, 38, 38] },
+  ];
+  summaryCards.forEach(({ label, value, color }, index) => {
+    const width = (contentWidth - 6) / 3;
+    const x = margin + index * (width + 3);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(x, summaryY, width, 18, 3, 3, 'FD');
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7);
+    doc.text(label, x + 4, summaryY + 6);
+    doc.setTextColor(...color);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(value, x + 4, summaryY + 13);
+    doc.setFont('helvetica', 'normal');
+  });
+
+  autoTable(doc, {
+    startY: 110,
+    margin: { left: margin, right: margin },
+    head: [['Fee item', 'Category', 'Amount', 'Paid', 'Balance', 'Status']],
+    body: fees.map((fee) => {
+      const paid = fee.paid || 0;
+      const balance = fee.balance ?? Math.max(0, (fee.amount || 0) - paid);
+      const status = balance <= 0 && paid > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid';
+      return [fee.name, fee.category || 'General', formatAmount(fee.amount || 0), formatAmount(paid), formatAmount(balance), status];
+    }),
+    foot: [['Total', '', formatAmount(totalFees), formatAmount(totalPaid), formatAmount(totalBalance), '']],
+    theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2.2, textColor: [30, 41, 59] },
+    headStyles: { fillColor: [30, 64, 175], textColor: [255, 255, 255], fontStyle: 'bold' },
+    footStyles: { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: 'bold' },
+    columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'center' } },
+  });
+
+  let nextY = (doc as any).lastAutoTable.finalY + 9;
+  const payments = fees.flatMap((fee) => (fee.payments || []).map((payment: any) => [
+    new Date(payment.paymentDate || payment.date || Date.now()).toLocaleDateString('en-UG'),
+    fee.name,
+    formatAmount(Number(payment.amount || payment.amountPaid || 0)),
+    payment.paymentMethod || payment.method || 'Payment',
+  ])).sort((first, second) => String(first[0]).localeCompare(String(second[0])));
+
+  if (includePaymentHistory && payments.length > 0) {
+    if (nextY > pageHeight - 40) {
+      doc.addPage();
+      nextY = 18;
+    }
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('PAYMENT HISTORY', margin, nextY);
+    autoTable(doc, {
+      startY: nextY + 4,
+      margin: { left: margin, right: margin },
+      head: [['Date', 'Fee item', 'Amount', 'Method']],
+      body: payments,
+      theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 2.2, textColor: [30, 41, 59] },
+      headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: 'bold' },
+      columnStyles: { 2: { halign: 'right' } },
+    });
+    nextY = (doc as any).lastAutoTable.finalY + 14;
+  }
+
+  if (includeSignature) {
+    if (nextY > pageHeight - 16) {
+      doc.addPage();
+      nextY = 30;
+    }
+    doc.setDrawColor(148, 163, 184);
+    doc.line(margin + 8, nextY, margin + 70, nextY);
+    doc.line(pageWidth - margin - 70, nextY, pageWidth - margin - 8, nextY);
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(8);
+    doc.text('Prepared by', margin + 39, nextY + 5, { align: 'center' });
+    doc.text('Parent / guardian', pageWidth - margin - 39, nextY + 5, { align: 'center' });
+  }
+
+  const pageCount = doc.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page);
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7);
+    doc.text(`${schoolName} · Fee statement · Page ${page} of ${pageCount}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+  }
+
+  return doc.output('blob');
+}
+
+/**
  * Generates a comprehensive fee statement PDF
  */
 export async function generateFeeStatementPDF(options: PDFGenerationOptions): Promise<void> {

@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { AcademicYear, PaymentRecord, Pupil, UniformTracking } from '@/types';
 import { getCollectedUniformItemIds } from '../utils/uniformCollectionState';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
+import { useToast } from '@/hooks/use-toast';
 
 // Extended PupilFee interface (matching the main component)
 interface PupilFee {
@@ -72,6 +73,7 @@ export function FeeCard({
   uniformTrackingError = null,
 }: FeeCardProps) {
   const pdfViewer = usePDFViewer();
+  const { toast } = useToast();
   const [isPaymentHistoryExpanded, setIsPaymentHistoryExpanded] = useState(false);
   const [isUniformTrackingExpanded, setIsUniformTrackingExpanded] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -279,6 +281,7 @@ export function FeeCard({
     const dateB = new Date(b.paymentDate || '').getTime();
     return dateB - dateA;
   });
+  const latestReceiptPayment = sortedPayments.find((payment) => !payment.reverted);
 
   // Show only 2 most recent payments when collapsed
   const displayedPayments = isPaymentHistoryExpanded ? sortedPayments : sortedPayments.slice(0, 2);
@@ -453,6 +456,31 @@ export function FeeCard({
     }
   };
 
+  const handlePrimaryAction = () => {
+    if (balance <= 0) {
+      if (!latestReceiptPayment) {
+        toast({
+          variant: 'destructive',
+          title: 'Receipt unavailable',
+          description: 'No completed payment was found for this fee.',
+        });
+        return;
+      }
+
+      void handlePrintReceipt(latestReceiptPayment).catch((error) => {
+        console.error('Failed to open payment receipt:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Could not open receipt',
+          description: 'Please try again.',
+        });
+      });
+      return;
+    }
+
+    onPayment(fee, balance, totalPaid);
+  };
+
   const handleGenerateAssignmentCard = () => {
     // Will be implemented in later phases
     console.log('Generate assignment card for fee:', fee.id);
@@ -464,7 +492,7 @@ export function FeeCard({
       <div className="flex items-center justify-between gap-3">
         <h3 className="min-w-0 flex-1 text-base sm:text-lg font-medium text-gray-900 break-words leading-tight">{fee.name}</h3>
         <button
-          onClick={() => onPayment(fee, balance, totalPaid)}
+          onClick={handlePrimaryAction}
           disabled={isPaymentDataLoading}
           className={`inline-flex flex-shrink-0 items-center justify-center px-4 py-2 border-2 text-xs sm:text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isPaymentDataLoading
             ? 'border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed shadow-none'
@@ -477,7 +505,7 @@ export function FeeCard({
               <span className="hidden sm:inline">Fetching payment data...</span>
               <span className="sm:hidden">Loading...</span>
             </>
-          ) : balance === 0 ? (
+          ) : balance <= 0 ? (
             <>
               <Receipt className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">View Receipt</span>

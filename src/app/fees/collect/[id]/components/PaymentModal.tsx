@@ -93,45 +93,47 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span className="font-bold text-sm text-indigo-600">Shs.</span>
+      <DialogContent className="!flex !w-full !max-w-md !flex-col !gap-0 !overflow-hidden !rounded-2xl !border-slate-200 !bg-white !p-0 sm:!max-w-lg">
+        <DialogHeader className="flex-none border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white px-4 py-3.5 pr-12 sm:px-6 sm:py-4">
+          <DialogTitle className="flex items-center gap-2.5 text-base font-semibold text-slate-900 sm:text-lg">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm">
+              <CurrencyCircleDollar className="h-5 w-5" weight="bold" aria-hidden="true" />
+            </span>
             Record Payment
           </DialogTitle>
         </DialogHeader>
         
-        <div className="py-4">
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
           {/* Fee Information */}
-          <div className="bg-indigo-50 rounded-lg p-4 mb-6">
-            <h3 className="font-medium text-indigo-900 mb-2">{fee.name}</h3>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-indigo-700">Total Amount:</span>
-                <span className="font-medium text-indigo-900">
+          <section className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3 sm:p-4" aria-label="Fee payment summary">
+            <h3 className="mb-3 break-words text-sm font-semibold leading-5 text-indigo-950 sm:text-base">{fee.name}</h3>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-indigo-100">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-indigo-700">Total</span>
+                <span className="mt-0.5 block break-words text-xs font-semibold tabular-nums text-indigo-950 sm:text-sm">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.amount)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-indigo-700">Amount Paid:</span>
-                <span className="font-medium text-green-600">
+              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-indigo-100">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-indigo-700">Paid</span>
+                <span className="mt-0.5 block break-words text-xs font-semibold tabular-nums text-emerald-700 sm:text-sm">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.amountPaid)}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-indigo-200 pt-1">
-                <span className="text-indigo-700 font-medium">Balance:</span>
-                <span className="font-bold text-red-600">
+              <div className="min-w-0 rounded-lg bg-white/80 px-2.5 py-2 shadow-sm ring-1 ring-inset ring-indigo-100">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide text-indigo-700">Balance</span>
+                <span className="mt-0.5 block break-words text-xs font-bold tabular-nums text-rose-700 sm:text-sm">
                   {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
                 </span>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Payment Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={(fieldId) => void formValidation.focusField(fieldId)} />
             <div>
-              <label htmlFor="paymentAmount" className={`block text-sm font-medium mb-2 ${formValidation.getFieldError('paymentAmount') ? 'text-red-700' : 'text-gray-700'}`}>
+              <label htmlFor="paymentAmount" className={`mb-2 block text-sm font-medium ${formValidation.getFieldError('paymentAmount') ? 'text-red-700' : 'text-slate-800'}`}>
                 Payment Amount (UGX)
               </label>
               <input
@@ -140,9 +142,11 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
                 value={amount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 placeholder="Enter amount"
+                inputMode="numeric"
+                autoFocus
                 {...formValidation.getFieldProps('paymentAmount')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
-                  formValidation.getFieldError('paymentAmount') ? 'border-red-600' : 'border-gray-300'
+                className={`min-h-11 w-full rounded-xl border px-3.5 py-2.5 text-base tabular-nums shadow-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
+                  formValidation.getFieldError('paymentAmount') ? 'border-red-600' : 'border-slate-300'
                 }`}
                 disabled={isProcessing}
               />
@@ -152,21 +156,22 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
             {/* Suggested Amounts */}
             {suggestedAmounts.length > 0 && (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Quick Select:
                 </label>
-                <div className="flex gap-2 flex-nowrap overflow-x-auto pb-1 scrollbar-thin">
+                <div className="grid grid-cols-3 gap-2">
                   {suggestedAmounts.map((suggestion) => (
                     <button
                       key={suggestion.label}
                       type="button"
                       onClick={() => handleAmountChange(formatMoneyInput(suggestion.value.toString()))}
-                      className="px-2.5 py-1 text-xs border border-indigo-200 rounded-full hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white whitespace-nowrap"
+                      className="min-h-11 rounded-xl border border-indigo-200 bg-white px-2 py-1.5 text-center text-xs transition-colors hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={isProcessing}
+                      aria-label={`Use ${suggestion.label.toLowerCase()} payment amount of ${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)}`}
                     >
-                      <span className="font-medium text-indigo-900">{suggestion.label}</span>
-                      <span className="text-gray-500 ml-1">
-                        ({new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)})
+                      <span className="block font-semibold text-indigo-950">{suggestion.label}</span>
+                      <span className="mt-0.5 block break-words text-[10px] leading-3 tabular-nums text-slate-500">
+                        {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(suggestion.value)}
                       </span>
                     </button>
                   ))}
@@ -176,17 +181,17 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
 
             {/* Payment Type Indicator */}
             {amount && !formValidation.getFieldError('paymentAmount') && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="text-sm">
-                  <span className="text-gray-600">Payment Type: </span>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-sm leading-5">
+                  <span className="text-slate-600">Payment Type: </span>
                   <span className={`font-medium ${
-                    parseFormattedMoney(amount) === balance ? 'text-green-600' : 'text-yellow-600'
+                    parseFormattedMoney(amount) === balance ? 'text-emerald-700' : 'text-amber-700'
                   }`}>
                     {parseFormattedMoney(amount) === balance ? 'Full Payment' : 'Partial Payment'}
                   </span>
                 </div>
                 {parseFormattedMoney(amount) < balance && (
-                  <div className="text-sm text-gray-600 mt-1">
+                  <div className="mt-1 text-sm leading-5 text-slate-600">
                     Remaining balance: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance - parseFormattedMoney(amount))}
                   </div>
                 )}
@@ -194,20 +199,20 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
             )}
 
             {/* Action Buttons */}
-            <div className="flex justify-center gap-3 pt-4">
+            <div className="sticky bottom-0 -mx-4 flex flex-col-reverse gap-2 border-t border-slate-100 bg-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-6 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
                 disabled={isProcessing}
-                className="rounded-full"
+                className="min-h-11 w-full rounded-full border-slate-300 sm:w-auto sm:min-w-28"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isProcessing || Boolean(formValidation.getFieldError('paymentAmount')) || !amount}
-                className="min-w-[120px] rounded-full"
+                className="min-h-11 w-full rounded-full sm:w-auto sm:min-w-36"
               >
                 {isProcessing ? (
                   <div className="flex items-center gap-2">

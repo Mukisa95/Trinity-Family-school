@@ -100,6 +100,7 @@ import {
   validateCarryForwardPayment
 } from './utils/carryForwardPayments';
 import { getCollectedUniformItemIds } from './utils/uniformCollectionState';
+import { createFeeStatementPDFBlob } from './utils/pdfGenerator';
 
 // Helper functions to convert pupil attributes to uniform filter types
 const getUniformGender = (pupilGender: string | undefined): 'male' | 'female' | undefined => {
@@ -1436,12 +1437,51 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     });
   };
 
-  const handlePrint = async (selectedFees: any[]) => {
-    // Will be implemented in later phases
-    console.log('Print fees:', selectedFees);
-    toast({
-      title: "Print Feature",
-      description: "Print functionality will be implemented in later phases",
+  const handlePrint = (selectedFees: any[]) => {
+    if (!pupil || selectedFees.length === 0) return;
+
+    const safePupilName = `${pupil.firstName || ''}_${pupil.lastName || ''}`
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_|_$/g, '') || 'pupil';
+    const fileName = `${safePupilName}_fee_statement.pdf`;
+
+    void pdfViewer.runPDFJob(
+      {
+        fileName,
+        title: `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() || 'Fee statement',
+        initialMessage: 'Preparing fee statement…',
+      },
+      async ({ signal, updateProgress }) => {
+        updateProgress(12, 'Collecting selected fee details…');
+        if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+        updateProgress(38, 'Building the fee statement…');
+        const blob = await createFeeStatementPDFBlob({
+          pupil,
+          fees: selectedFees,
+          selectedAcademicYear,
+          selectedTerm: selectedTermId,
+          includePaymentHistory: true,
+          includeSignature: true,
+          schoolSettings,
+        });
+        if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
+        updateProgress(96, 'Finalizing fee statement…');
+        return blob;
+      },
+    ).then(() => {
+      toast({
+        title: 'Fee statement ready',
+        description: 'Your statement is available in the PDF workspace.',
+      });
+    }).catch((error) => {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.error('Unable to create fee statement PDF:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Fee statement failed',
+        description: 'The PDF could not be created. Please try again.',
+      });
     });
   };
 

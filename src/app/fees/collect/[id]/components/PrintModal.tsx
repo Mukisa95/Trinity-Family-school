@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Printer } from '@phosphor-icons/react';
+import { Printer as LucidePrinter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Printer } from '@phosphor-icons/react';
-
-// Types
-import type { Pupil, AcademicYear, SchoolSettings } from '@/types';
+import { Label } from '@/components/ui/label';
+import { ReportCreationDialogFrame } from '@/components/exam/report-creation-dialog';
+import type { Pupil, AcademicYear } from '@/types';
 import type { PupilFee } from '../types';
-import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
-
-// Utils
-import { generateFeeStatementPDF } from '../utils/pdfGenerator';
 
 interface PrintModalProps {
   isOpen: boolean;
@@ -22,62 +18,41 @@ interface PrintModalProps {
   onPrint?: (selectedFees: PupilFee[]) => void;
 }
 
-export function PrintModal({ 
-  isOpen, 
-  onClose, 
-  fees, 
+const formatCurrency = (amount: number) => new Intl.NumberFormat('en-UG', {
+  style: 'currency',
+  currency: 'UGX',
+  maximumFractionDigits: 0,
+}).format(amount || 0);
+
+export function PrintModal({
+  isOpen,
+  onClose,
+  fees,
   pupil,
   selectedAcademicYear,
   selectedTerm,
-  onPrint 
+  onPrint,
 }: PrintModalProps) {
   const [selectedFees, setSelectedFees] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { data: schoolSettings } = useSchoolSettings();
+  const selectedFeeItems = fees.filter((fee) => selectedFees.includes(fee.id));
+  const totalAmount = selectedFeeItems.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+  const totalPaid = selectedFeeItems.reduce((sum, fee) => sum + (fee.paid || 0), 0);
+  const totalBalance = totalAmount - totalPaid;
+  const allSelected = fees.length > 0 && selectedFees.length === fees.length;
+  const scope = pupil
+    ? `${`${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() || 'Pupil'} · ${selectedAcademicYear?.name || 'Current academic year'}`
+    : `${fees.length} available fee${fees.length === 1 ? '' : 's'}`;
 
   const handleToggleFee = (feeId: string) => {
-    setSelectedFees(prev => 
-      prev.includes(feeId) 
-        ? prev.filter(id => id !== feeId)
-        : [...prev, feeId]
-    );
+    setSelectedFees((current) => (
+      current.includes(feeId)
+        ? current.filter((id) => id !== feeId)
+        : [...current, feeId]
+    ));
   };
 
-  const handleSelectAll = () => {
-    if (selectedFees.length === fees.length) {
-      setSelectedFees([]);
-    } else {
-      setSelectedFees(fees.map(fee => fee.id));
-    }
-  };
-
-  const handlePrint = async () => {
-    const selectedFeeItems = fees.filter(fee => selectedFees.includes(fee.id));
-    
-    if (pupil && selectedFeeItems.length > 0) {
-      setIsGenerating(true);
-      try {
-        await generateFeeStatementPDF({
-          pupil,
-          fees: selectedFeeItems,
-          selectedAcademicYear,
-          selectedTerm,
-          includePaymentHistory: true,
-          includeSignature: true,
-          schoolSettings
-        });
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-      } finally {
-        setIsGenerating(false);
-      }
-    }
-    
-    // Call the optional onPrint callback
-    onPrint?.(selectedFeeItems);
-    
-    setSelectedFees([]);
-    onClose();
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedFees(checked ? fees.map((fee) => fee.id) : []);
   };
 
   const handleClose = () => {
@@ -85,177 +60,144 @@ export function PrintModal({
     onClose();
   };
 
-  const selectedFeesData = fees.filter(fee => selectedFees.includes(fee.id));
-  const totalAmount = selectedFeesData.reduce((sum, fee) => sum + (fee.amount || 0), 0);
-  const totalPaid = selectedFeesData.reduce((sum, fee) => sum + (fee.paid || 0), 0);
-  const totalBalance = totalAmount - totalPaid;
+  const handlePrint = () => {
+    if (selectedFeeItems.length === 0) return;
+    // The parent starts a PDF workspace job immediately, then this selection
+    // dialog closes so the user can work while the document is being created.
+    onPrint?.(selectedFeeItems);
+    handleClose();
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Printer className="w-5 h-5 text-indigo-600" />
-            Select Fees to Print
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {/* Summary */}
-          {selectedFees.length > 0 && (
-            <div className="bg-indigo-50 rounded-lg p-4 mb-4">
-              <h3 className="font-medium text-indigo-900 mb-2">
-                Selected: {selectedFees.length} fee{selectedFees.length !== 1 ? 's' : ''}
-              </h3>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-indigo-700">Total Amount:</span>
-                  <div className="font-medium text-indigo-900">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(totalAmount)}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-indigo-700">Total Paid:</span>
-                  <div className="font-medium text-green-600">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(totalPaid)}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-indigo-700">Total Balance:</span>
-                  <div className="font-medium text-red-600">
-                    {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(totalBalance)}
-                  </div>
-                </div>
-              </div>
+    <ReportCreationDialogFrame
+      open={isOpen}
+      onClose={handleClose}
+      scope={scope}
+      step={1}
+      title="Select fees to print"
+      description="Choose the fee items for this pupil statement."
+      icon={LucidePrinter}
+      flowSteps={['Fees', 'Options', 'Preview']}
+      maxWidthClassName="sm:max-w-3xl"
+      footer={
+        <>
+          <p className={`hidden text-xs font-medium sm:block ${selectedFeeItems.length ? 'text-slate-600' : 'text-red-600'}`}>
+            {selectedFeeItems.length
+              ? `${selectedFeeItems.length} fee${selectedFeeItems.length === 1 ? '' : 's'} · ${formatCurrency(totalBalance)} balance`
+              : 'Select one or more fees to continue.'}
+          </p>
+          <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleClose}
+              className="min-h-11 rounded-full px-4 font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-950"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handlePrint}
+              disabled={selectedFeeItems.length === 0}
+              className="min-h-11 rounded-full bg-blue-600 px-5 font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:ring-blue-600"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Create PDF
+            </Button>
+          </div>
+        </>
+      }
+    >
+      <div className="space-y-4 py-0.5">
+        <section className="grid gap-2 rounded-3xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-3" aria-label="Selected fees summary">
+          {[
+            ['Selected', `${selectedFeeItems.length} fee${selectedFeeItems.length === 1 ? '' : 's'}`, 'text-blue-700'],
+            ['Total', formatCurrency(totalAmount), 'text-slate-900'],
+            ['Balance', formatCurrency(totalBalance), 'text-red-700'],
+          ].map(([label, value, valueClass]) => (
+            <div key={label} className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+              <p className={`mt-0.5 text-sm font-bold ${valueClass}`}>{value}</p>
             </div>
-          )}
+          ))}
+        </section>
 
-          {/* Select All */}
-          {fees.length > 0 && (
-            <div className="flex items-center space-x-2 mb-4 pb-2 border-b border-gray-200">
-              <Checkbox
-                id="select-all"
-                checked={selectedFees.length === fees.length}
-                onCheckedChange={handleSelectAll}
-              />
-              <label
-                htmlFor="select-all"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Select All ({fees.length} fees)
-              </label>
-            </div>
-          )}
-
-          {/* Fees List */}
-          <div className="flex-1 overflow-y-auto">
-            {fees.length === 0 ? (
-              <div className="text-center py-8">
-                <Printer className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No fees available</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  There are no fees to print for the selected term.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {fees.map((fee) => {
-                  const balance = (fee.balance || 0);
-                  const paid = (fee.paid || 0);
-                  const paymentStatus = balance === 0 && paid > 0 ? 'paid' : 
-                                       paid > 0 && balance > 0 ? 'partial' : 'unpaid';
-                  
-                  return (
-                    <div key={fee.id} className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
-                      <Checkbox
-                        id={fee.id}
-                        checked={selectedFees.includes(fee.id)}
-                        onCheckedChange={() => handleToggleFee(fee.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <label
-                              htmlFor={fee.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {fee.name}
-                            </label>
-                            {fee.description && (
-                              <p className="text-xs text-gray-500 mt-1">{fee.description}</p>
-                            )}
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {fee.category}
-                              </span>
-                              {fee.isRequired ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  Required
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  Optional
-                                </span>
-                              )}
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                ${paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                                  paymentStatus === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'}`}>
-                                {paymentStatus.toUpperCase()}
-                              </span>
-                              {fee.discount && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Discount Applied
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.amount || 0)}
-                            </div>
-                            {fee.originalAmount && fee.originalAmount !== fee.amount && (
-                              <div className="text-xs text-gray-400 line-through">
-                                {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(fee.originalAmount)}
-                              </div>
-                            )}
-                            {paid > 0 && (
-                              <div className="text-xs text-green-600">
-                                Paid: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(paid)}
-                              </div>
-                            )}
-                            {balance > 0 && (
-                              <div className="text-xs text-red-600">
-                                Balance: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(balance)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+        <section className="rounded-3xl border border-slate-200 bg-slate-50/70 p-3" aria-labelledby="fees-to-print-title">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 id="fees-to-print-title" className="text-sm font-bold text-slate-900">Fee items</h3>
+            {fees.length > 0 && (
+              <Label htmlFor="select-all-fees-to-print" className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                All
+                <Checkbox
+                  id="select-all-fees-to-print"
+                  checked={allSelected}
+                  onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                />
+              </Label>
             )}
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <Button variant="outline" onClick={handleClose} disabled={isGenerating}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handlePrint}
-            disabled={selectedFees.length === 0 || isGenerating}
-            className="min-w-[120px]"
-          >
-            <Printer className="w-4 h-4 mr-2" />
-            {isGenerating ? 'Generating...' : `Print Selected (${selectedFees.length})`}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          {fees.length === 0 ? (
+            <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-4 text-center">
+              <Printer className="h-7 w-7 text-slate-400" />
+              <p className="mt-2 text-sm font-semibold text-slate-700">No fees available</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {fees.map((fee) => {
+                const paid = fee.paid || 0;
+                const balance = fee.balance ?? Math.max(0, (fee.amount || 0) - paid);
+                const status = balance <= 0 && paid > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid';
+                const isSelected = selectedFees.includes(fee.id);
+                const feeId = `fee-to-print-${fee.id}`;
+
+                return (
+                  <div
+                    key={fee.id}
+                    className={`flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 transition-[border-color,background-color,box-shadow] duration-200 ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/70 shadow-[0_6px_18px_rgba(37,99,235,0.08)]'
+                        : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Checkbox
+                      id={feeId}
+                      checked={isSelected}
+                      onCheckedChange={() => handleToggleFee(fee.id)}
+                    />
+                    <Label htmlFor={feeId} className="min-w-0 flex-1 cursor-pointer">
+                      <span className="block truncate text-sm font-semibold text-slate-900">{fee.name}</span>
+                      <span className="mt-1 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{fee.category || 'General'}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          status === 'Paid'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : status === 'Partial'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-slate-100 text-slate-600'
+                        }`}>{status}</span>
+                        {fee.discount && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Discount</span>}
+                      </span>
+                    </Label>
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-bold text-slate-900">{formatCurrency(fee.amount || 0)}</p>
+                      <p className={`mt-0.5 text-xs font-semibold ${balance > 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                        {balance > 0 ? `${formatCurrency(balance)} due` : 'Cleared'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {selectedTerm && (
+          <div className="rounded-3xl border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-xs font-semibold text-blue-900">
+            Statement term: {selectedTerm}
+          </div>
+        )}
+      </div>
+    </ReportCreationDialogFrame>
   );
-} 
+}
