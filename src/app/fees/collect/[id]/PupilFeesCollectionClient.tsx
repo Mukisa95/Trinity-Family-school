@@ -18,6 +18,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Icons
 import {
@@ -30,7 +39,7 @@ import {
   ClipboardText,
   IdentificationCard
 } from '@phosphor-icons/react';
-import { Tag, BarChart3, Zap } from 'lucide-react';
+import { Tag, BarChart3, Zap, AlertTriangle, Loader2 } from 'lucide-react';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
 import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 import { GlassPageRouteSkeleton } from '@/components/common/glass-page-loading';
@@ -268,6 +277,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Selected items
   const [selectedFee, setSelectedFee] = useState<SelectedFee | null>(null);
+  const [pendingPaymentReversal, setPendingPaymentReversal] = useState<{
+    payment: PaymentRecord;
+    fee: Pick<FeeStructure, 'name'>;
+  } | null>(null);
+  const [isRevertingPayment, setIsRevertingPayment] = useState(false);
 
   // 🚀 OPTIMIZED: Use optimized hooks for instant cache-first loading
   // All queries run in parallel and use cache-first strategy for instant loads
@@ -1221,8 +1235,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     }
   };
 
-  const handleRevertPayment = async (payment: PaymentRecord, fee: any) => {
-    if (!user) return;
+  const handleRevertPayment = (payment: PaymentRecord, fee: Pick<FeeStructure, 'name'>) => {
+    setPendingPaymentReversal({ payment, fee });
+  };
+
+  const confirmRevertPayment = async () => {
+    if (!user || !pendingPaymentReversal || isRevertingPayment) return;
+
+    const { payment } = pendingPaymentReversal;
+    setIsRevertingPayment(true);
 
     try {
       await PaymentsService.revertPayment(payment.id, {
@@ -1240,7 +1261,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           originalAmount: payment.amount,
           pupilId: payment.pupilId,
           feeStructureId: payment.feeStructureId,
-          revertReason: 'Payment reversal requested'
+          revertReason: 'Payment reversal confirmed'
         }
       );
 
@@ -1256,6 +1277,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       refetch().catch(err => console.error('Refetch error:', err));
       queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
       setLastPaymentTimestamp(Date.now());
+      setPendingPaymentReversal(null);
 
     } catch (error) {
       console.error('Payment revert error:', error);
@@ -1264,6 +1286,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         title: "Revert Failed",
         description: "There was an error reverting the payment. Please try again.",
       });
+    } finally {
+      setIsRevertingPayment(false);
     }
   };
 
@@ -2450,6 +2474,110 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           />
         </>
       )}
+
+      <AlertDialog
+        open={Boolean(pendingPaymentReversal)}
+        onOpenChange={(open) => {
+          if (!open && !isRevertingPayment) {
+            setPendingPaymentReversal(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-xl">
+          <AlertDialogHeader>
+            <div className="flex items-start gap-3 text-left">
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+                <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <AlertDialogTitle className="text-xl text-slate-950">
+                  Reverse this payment?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="mt-1 text-sm leading-6 text-slate-600">
+                  Review the payment and its effect before confirming. Nothing will change unless you choose to reverse it.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          {pendingPaymentReversal && (
+            <>
+              <dl className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Pupil</dt>
+                  <dd className="mt-1 font-semibold text-slate-900">
+                    {pupil ? `${pupil.firstName} ${pupil.lastName}` : 'Selected pupil'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Fee item</dt>
+                  <dd className="mt-1 font-semibold text-slate-900">{pendingPaymentReversal.fee.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Payment amount</dt>
+                  <dd className="mt-1 font-bold text-red-700">
+                    {new Intl.NumberFormat('en-UG', {
+                      style: 'currency',
+                      currency: 'UGX',
+                      maximumFractionDigits: 0,
+                    }).format(pendingPaymentReversal.payment.amount)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Payment date</dt>
+                  <dd className="mt-1 font-semibold text-slate-900">
+                    {new Date(pendingPaymentReversal.payment.paymentDate).toLocaleDateString('en-UG', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Receipt reference</dt>
+                  <dd className="mt-1 font-mono text-sm font-semibold text-slate-900">
+                    {pendingPaymentReversal.payment.id.slice(-8).toUpperCase()}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-left">
+                <p className="text-sm font-semibold text-red-900">If you confirm:</p>
+                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-5 text-red-900/90">
+                  <li>The payment will be marked as reversed and will no longer count as money received.</li>
+                  <li>
+                    The balance for <span className="font-semibold">{pendingPaymentReversal.fee.name}</span> will be recalculated without this payment.
+                  </li>
+                  <li>The original payment will remain in history as reversed, and the action will be recorded under your account.</li>
+                  <li>This changes the school record only; it does not send money back through cash, bank, or SchoolPay.</li>
+                  <li>Restoring the amount later requires recording a new payment.</li>
+                </ul>
+              </div>
+            </>
+          )}
+
+          <AlertDialogFooter className="gap-2 sm:space-x-0">
+            <AlertDialogCancel disabled={isRevertingPayment} className="sm:min-w-32">
+              No, keep payment
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              onClick={() => void confirmRevertPayment()}
+              disabled={!pendingPaymentReversal || !user || isRevertingPayment}
+              className="bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600 sm:min-w-44"
+            >
+              {isRevertingPayment ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  Reversing payment...
+                </>
+              ) : (
+                'Yes, reverse payment'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <PrintModal
         isOpen={isPrintModalOpen}

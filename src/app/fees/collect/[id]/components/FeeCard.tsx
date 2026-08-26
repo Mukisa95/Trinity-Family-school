@@ -10,6 +10,7 @@ import { useUniforms } from '@/lib/hooks/use-uniforms';
 import { useUniformInventory, useIncrementStockBatch } from '@/lib/hooks/use-uniform-inventory';
 import { CollectionModal } from '@/components/common/collection-modal';
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
+import { PaymentReceiptSmsDialog } from './PaymentReceiptSmsDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
@@ -77,6 +78,7 @@ export function FeeCard({
   const [isPaymentHistoryExpanded, setIsPaymentHistoryExpanded] = useState(false);
   const [isUniformTrackingExpanded, setIsUniformTrackingExpanded] = useState(false);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [smsReceiptPayment, setSmsReceiptPayment] = useState<PaymentRecord | null>(null);
   const totalPaid = fee.paid || 0;
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(amount || 0);
@@ -443,8 +445,16 @@ export function FeeCard({
   };
 
   const handleSendSMS = (payment: PaymentRecord) => {
-    // Will be implemented in later phases
-    console.log('Send SMS for payment:', payment.id);
+    if (payment.reverted) {
+      toast({
+        variant: 'destructive',
+        title: 'Receipt SMS unavailable',
+        description: 'This payment was reversed, so a payment receipt cannot be sent.',
+      });
+      return;
+    }
+
+    setSmsReceiptPayment(payment);
   };
 
   const handleRevertPayment = (payment: PaymentRecord) => {
@@ -1043,8 +1053,10 @@ export function FeeCard({
                     </button>
                     <button
                       onClick={() => handleSendSMS(payment)}
-                      className="text-green-600 hover:text-green-800 p-0.5 rounded hover:bg-green-50 transition-colors"
-                      title="SMS"
+                      disabled={payment.reverted}
+                      className="text-green-600 hover:text-green-800 p-0.5 rounded hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                      title={payment.reverted ? 'Receipt SMS unavailable for reversed payment' : 'Send SMS receipt'}
+                      aria-label={`Send SMS receipt for payment of ${formatCurrency(payment.amount)}`}
                     >
                       <ChatCircle className="h-3 w-3" />
                     </button>
@@ -1052,7 +1064,8 @@ export function FeeCard({
                       <button
                         onClick={() => handleRevertPayment(payment)}
                         className="text-red-600 hover:text-red-800 p-0.5 rounded hover:bg-red-50 transition-colors"
-                        title="Revert"
+                        title="Reverse payment (confirmation required)"
+                        aria-label={`Reverse payment of ${formatCurrency(payment.amount)}`}
                       >
                         <ArrowCounterClockwise className="h-3 w-3" />
                       </button>
@@ -1173,8 +1186,10 @@ export function FeeCard({
                       </button>
                       <button
                         onClick={() => handleSendSMS(payment)}
-                        className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
-                        title="Send SMS Receipt"
+                        disabled={payment.reverted}
+                        className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
+                        title={payment.reverted ? 'Receipt SMS unavailable for reversed payment' : 'Send SMS Receipt'}
+                        aria-label={`Send SMS receipt for payment of ${formatCurrency(payment.amount)}`}
                       >
                         <ChatCircle className="h-3.5 w-3.5" />
                       </button>
@@ -1182,7 +1197,8 @@ export function FeeCard({
                         <button
                           onClick={() => handleRevertPayment(payment)}
                           className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                          title="Revert Payment"
+                          title="Reverse payment (confirmation required)"
+                          aria-label={`Reverse payment of ${formatCurrency(payment.amount)}`}
                         >
                           <ArrowCounterClockwise className="h-3.5 w-3.5" />
                         </button>
@@ -1228,6 +1244,17 @@ export function FeeCard({
           onUnmark={handleUnmarkItem}
         />
       )}
+
+      <PaymentReceiptSmsDialog
+        open={smsReceiptPayment !== null}
+        onOpenChange={(open) => {
+          if (!open) setSmsReceiptPayment(null);
+        }}
+        payment={smsReceiptPayment}
+        pupil={pupil}
+        feeName={fee.name}
+        currentBalance={balance}
+      />
     </div>
   );
 } 
