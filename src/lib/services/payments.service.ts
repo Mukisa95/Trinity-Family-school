@@ -3,12 +3,11 @@ import {
   doc, 
   getDocs, 
   getDoc,
-  addDoc, 
-  updateDoc, 
   query, 
   orderBy, 
   where,
-  Timestamp
+  Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { PaymentRecord } from '@/types';
@@ -100,14 +99,14 @@ export class PaymentsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = cleanUndefinedValues(newPayment);
       
-      const docRef = await addDoc(collection(db, PAYMENTS_COLLECTION), cleanedData);
-      const paymentId = docRef.id;
-      this.clearYearPaymentsCache(paymentData.academicYearId);
+      const docRef = doc(collection(db, PAYMENTS_COLLECTION));
+      const batch = writeBatch(db);
+      batch.set(docRef, cleanedData);
       if (!options?.skipHistoryLog) {
-        await HistoryLogService.log({
+        HistoryLogService.addToBatch(batch, {
           action: 'create',
           entity: 'payment',
-          recordId: paymentId,
+          recordId: docRef.id,
           label: this.buildPaymentHistoryLabel(paymentData, options?.historyContext),
           meta: this.buildPaymentHistoryMeta(paymentData, options?.historyContext),
           actor: {
@@ -117,6 +116,9 @@ export class PaymentsService {
           },
         });
       }
+      await batch.commit();
+      const paymentId = docRef.id;
+      this.clearYearPaymentsCache(paymentData.academicYearId);
       
       return paymentId;
     } catch (error) {
@@ -249,12 +251,19 @@ export class PaymentsService {
     return request;
   }
 
-  static async revertPayment(paymentId: string, revertedBy: { id: string; name: string; role: string }): Promise<void> {
+  static async revertPayment(
+    paymentId: string,
+    revertedBy: { id: string; name: string; role: string },
+    knownPayment?: PaymentRecord,
+  ): Promise<void> {
     try {
-      const paymentDoc = await getDoc(doc(db, PAYMENTS_COLLECTION, paymentId));
-      const paymentData = paymentDoc.exists()
-        ? (paymentDoc.data() as Omit<PaymentRecord, 'id' | 'createdAt'> & { paymentMethod?: string })
-        : null;
+      let paymentData: (Omit<PaymentRecord, 'id' | 'createdAt'> & { paymentMethod?: string }) | null = knownPayment || null;
+      if (!paymentData) {
+        const paymentDoc = await getDoc(doc(db, PAYMENTS_COLLECTION, paymentId));
+        paymentData = paymentDoc.exists()
+          ? (paymentDoc.data() as Omit<PaymentRecord, 'id' | 'createdAt'> & { paymentMethod?: string })
+          : null;
+      }
 
       const docRef = doc(db, PAYMENTS_COLLECTION, paymentId);
       const updateData = {
@@ -264,9 +273,9 @@ export class PaymentsService {
       };
       
       const cleanedData = cleanUndefinedValues(updateData);
-      await updateDoc(docRef, cleanedData);
-      this.clearYearPaymentsCache();
-      await HistoryLogService.log({
+      const batch = writeBatch(db);
+      batch.update(docRef, cleanedData);
+      HistoryLogService.addToBatch(batch, {
         action: 'revert',
         entity: 'payment',
         recordId: paymentId,
@@ -298,6 +307,8 @@ export class PaymentsService {
           role: revertedBy?.role,
         },
       });
+      await batch.commit();
+      this.clearYearPaymentsCache();
     } catch (error) {
       console.error('Error reverting payment:', error);
       throw error;

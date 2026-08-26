@@ -7,7 +7,8 @@ import {
   where, 
   orderBy, 
   Timestamp,
-  serverTimestamp 
+  serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/auth-context';
@@ -47,12 +48,7 @@ export class DigitalSignatureService {
         sessionId: this.getSessionId(),
       };
 
-      // Store in signatures collection
-      const signatureRef = await addDoc(collection(db, SIGNATURES_COLLECTION), {
-        ...signature,
-        createdAt: serverTimestamp(),
-      });
-
+      const signatureRef = doc(collection(db, SIGNATURES_COLLECTION));
       const signatureId = signatureRef.id;
 
       // Create audit trail entry
@@ -87,10 +83,19 @@ export class DigitalSignatureService {
         metadata: Object.keys(cleanMetadata).length > 0 ? cleanMetadata : undefined,
       };
 
-      await addDoc(collection(db, AUDIT_TRAIL_COLLECTION), {
+      // The signature and its audit trail are one logical record. Commit them
+      // together so the UI waits for one acknowledgement and they cannot drift.
+      const auditRef = doc(collection(db, AUDIT_TRAIL_COLLECTION));
+      const batch = writeBatch(db);
+      batch.set(signatureRef, {
+        ...signature,
+        createdAt: serverTimestamp(),
+      });
+      batch.set(auditRef, {
         ...auditEntry,
         createdAt: serverTimestamp(),
       });
+      await batch.commit();
 
       return { ...signature, id: signatureId };
     } catch (error) {
@@ -373,4 +378,4 @@ export function useDigitalSignature() {
     formatActionDescription: DigitalSignatureService.formatActionDescription,
     user,
   };
-} 
+}

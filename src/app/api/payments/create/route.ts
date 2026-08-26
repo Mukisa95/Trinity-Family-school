@@ -1,10 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { PaymentHistoryContext, PaymentsService } from '@/lib/services/payments.service';
 import { PupilsService } from '@/lib/services/pupils.service';
 import { FeesService } from '@/lib/services/fees.service';
 import { feesPaymentNotificationServerService } from '@/lib/services/fees-payment-notification.server';
 import type { PaymentRecord } from '@/types';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+
+const PAYMENT_NOTIFICATION_TIMEOUT_MS = 8_000;
+
+async function notifyPaymentCreatedAfterResponse(paymentId: string, paymentData: PaymentRecord) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      notifyPaymentCreated(paymentId, paymentData),
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(() => {
+          console.warn('[Payment API] Background notification exceeded its delivery budget.', {
+            paymentId,
+            timeoutMs: PAYMENT_NOTIFICATION_TIMEOUT_MS,
+          });
+          resolve();
+        }, PAYMENT_NOTIFICATION_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
 
 async function notifyPaymentCreated(paymentId: string, paymentData: PaymentRecord): Promise<void> {
   try {
@@ -51,14 +73,16 @@ async function notifyPaymentCreated(paymentId: string, paymentData: PaymentRecor
  * 
  * Server-side payment creation endpoint that:
  * 1. Creates payment record in database
- * 2. Triggers fees payment notification service
- * 3. Sends push notifications to parents and staff
+ * 2. Returns as soon as the financial record and history entry are committed
+ * 3. Sends push notifications after the response with a strict delivery budget
  * 
  * This ensures notifications run on the server where Node.js modules are available.
  */
 export async function POST(request: NextRequest) {
   try {
+    const requestStartedAt = performance.now();
     await ensureServerFirestoreAuth();
+    const authenticatedAt = performance.now();
     const body = await request.json();
     const {
       historyContext,
@@ -81,20 +105,29 @@ export async function POST(request: NextRequest) {
       skipHistoryLog,
       historyContext,
     });
+    const paymentCommittedAt = performance.now();
 
-    await notifyPaymentCreated(paymentId, {
+    const committedPayment = {
       id: paymentId,
       ...paymentData,
       createdAt: new Date(),
       paymentDate: paymentData.paymentDate || new Date().toISOString(),
-    });
+    };
+    after(() => notifyPaymentCreatedAfterResponse(paymentId, committedPayment));
 
     console.log(`✅ [Payment API] Payment created successfully: ${paymentId}\n`);
 
     return NextResponse.json({ 
       success: true, 
       paymentId,
-      message: 'Payment created and notifications sent successfully'
+      message: 'Payment recorded successfully'
+    }, {
+      headers: {
+        'Server-Timing': [
+          `auth;dur=${(authenticatedAt - requestStartedAt).toFixed(1)}`,
+          `payment-commit;dur=${(paymentCommittedAt - authenticatedAt).toFixed(1)}`,
+        ].join(', '),
+      },
     });
 
   } catch (error) {

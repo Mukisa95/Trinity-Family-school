@@ -10,8 +10,8 @@ if (typeof window !== 'undefined') {
   throw new Error('This module can only be imported on the server side');
 }
 
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { optimizedNotificationService } from './optimized-notification.service';
 import type { PaymentRecord, User, Pupil, FeeStructure, SystemUser } from '@/types';
 import { GranularPermissionService } from './granular-permissions.service';
@@ -52,9 +52,10 @@ class FeesPaymentNotificationServerService {
     try {
       // This service is invoked only from the server payment route. Its
       // delivery dependency can safely use Firebase Admin and Node-only APIs.
-      const settingsSnapshot = await getDoc(doc(db, 'notificationAutomationSettings', 'current'));
+      const adminDb = getFirestore(getFirebaseAdminApp());
+      const settingsSnapshot = await adminDb.collection('notificationAutomationSettings').doc('current').get();
       const automationSettings = normalizeNotificationAutomationSettings(
-        settingsSnapshot.exists() ? settingsSnapshot.data() : undefined,
+        settingsSnapshot.exists ? settingsSnapshot.data() : undefined,
       );
       if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
 
@@ -121,47 +122,30 @@ class FeesPaymentNotificationServerService {
   }
 
   /**
-   * Get parent accounts by familyId
-   */
-  private async getParentsByFamilyId(familyId?: string): Promise<User[]> {
-    if (!familyId) {
-      return [];
-    }
-
-    try {
-      const parentsQuery = query(
-        collection(db, 'system_users'),
-        where('familyId', '==', familyId),
-        where('role', '==', 'Parent'),
-        where('isActive', '==', true)
-      );
-
-      const querySnapshot = await getDocs(parentsQuery);
-      
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as User[];
-
-    } catch (error) {
-      console.error('❌ [Fees Notification] Error getting parents:', error);
-      return [];
-    }
-  }
-
-  /**
    * Get users with fees collection permissions
    */
   private async getUsersWithFeesPermissions(): Promise<User[]> {
     try {
-      const usersQuery = query(
-        collection(db, 'system_users'),
-        where('role', 'in', ['Admin', 'Staff']),
-        where('isActive', '==', true)
-      );
-
-      const usersSnapshot = await getDocs(usersQuery);
+      const adminDb = getFirestore(getFirebaseAdminApp());
+      const usersSnapshot = await adminDb
+        .collection('system_users')
+        .where('role', 'in', ['Admin', 'Staff'])
+        .where('isActive', '==', true)
+        .get();
       const usersWithPermissions: User[] = [];
+      const accessLevelIds = Array.from(new Set(
+        usersSnapshot.docs
+          .map(userDoc => userDoc.data().accessLevel)
+          .filter((value): value is string => typeof value === 'string' && value.length > 0),
+      ));
+      const accessLevelSnapshots = await Promise.all(
+        accessLevelIds.map(accessLevelId => adminDb.collection('accessLevels').doc(accessLevelId).get()),
+      );
+      const accessLevelsById = new Map(
+        accessLevelSnapshots
+          .filter(snapshot => snapshot.exists)
+          .map(snapshot => [snapshot.id, snapshot.data()]),
+      );
 
       for (const userDoc of usersSnapshot.docs) {
         const userData = userDoc.data();
@@ -175,20 +159,13 @@ class FeesPaymentNotificationServerService {
         }
 
         if (userData.accessLevel) {
-          try {
-            const accessLevelDoc = await getDoc(doc(db, 'accessLevels', userData.accessLevel));
-            if (accessLevelDoc.exists()) {
-              const accessLevelData = accessLevelDoc.data();
-              const feesModule = accessLevelData.modules?.find((m: any) => m.module === 'fees');
-              if (feesModule && feesModule.permission !== 'no_access') {
-                usersWithPermissions.push({
-                  id: userDoc.id,
-                  ...userData
-                } as User);
-              }
-            }
-          } catch (error) {
-            console.error(`Error checking access level for user ${userDoc.id}:`, error);
+          const accessLevelData = accessLevelsById.get(userData.accessLevel);
+          const feesModule = accessLevelData?.modules?.find((m: any) => m.module === 'fees');
+          if (feesModule && feesModule.permission !== 'no_access') {
+            usersWithPermissions.push({
+              id: userDoc.id,
+              ...userData
+            } as User);
           }
         }
       }

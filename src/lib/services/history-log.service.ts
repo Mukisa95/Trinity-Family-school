@@ -1,12 +1,14 @@
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
   Timestamp,
+  type WriteBatch,
   where,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -198,30 +200,35 @@ function recentHistoryQuery(limitCount: number) {
 }
 
 export class HistoryLogService {
+  private static buildPayload(input: HistoryLogInput) {
+    const actor = mergeActor(input.actor);
+
+    // Timestamp.now() keeps new entries visible to ordered local queries while
+    // the batch is awaiting its server acknowledgement.
+    const rawPayload = {
+      a: input.action,
+      e: input.entity.slice(0, 30),
+      rid: input.recordId?.slice(0, 60) ?? '',
+      rl: trimText(input.label, MAX_LABEL_LENGTH),
+      cf: input.changedFields?.filter(Boolean).slice(0, 12),
+      m: toPrimitiveMeta(input.meta),
+      uid: actor?.id,
+      un: actor?.username,
+      ur: actor?.role,
+      ts: Timestamp.now(),
+    };
+
+    return stripUndefined(rawPayload as Record<string, unknown>);
+  }
+
+  /** Add an audit entry to an existing atomic Firestore write. */
+  static addToBatch(batch: WriteBatch, input: HistoryLogInput): void {
+    batch.set(doc(collection(db, HISTORY_COLLECTION)), this.buildPayload(input));
+  }
+
   static async log(input: HistoryLogInput): Promise<void> {
     try {
-      const actor = mergeActor(input.actor);
-
-      // ✅ KEY FIX: Use Timestamp.now() instead of serverTimestamp().
-      // serverTimestamp() writes a sentinel that resolves to null locally during the
-      // pending-write phase. Firestore's orderBy('ts', 'desc') EXCLUDES null-ts docs,
-      // making them invisible until the server confirms the write. Timestamp.now()
-      // gives every log an immediate, non-null value so it always appears in queries.
-      const rawPayload = {
-        a: input.action,
-        e: input.entity.slice(0, 30),
-        rid: input.recordId?.slice(0, 60) ?? '',
-        rl: trimText(input.label, MAX_LABEL_LENGTH),
-        cf: input.changedFields?.filter(Boolean).slice(0, 12),
-        m: toPrimitiveMeta(input.meta),
-        uid: actor?.id,
-        un: actor?.username,
-        ur: actor?.role,
-        ts: Timestamp.now(),
-      };
-
-      // Strip undefined fields so Firestore doesn't store null keys
-      const payload = stripUndefined(rawPayload as Record<string, unknown>);
+      const payload = this.buildPayload(input);
 
       await addDoc(collection(db, HISTORY_COLLECTION), payload);
     } catch (error) {

@@ -430,13 +430,14 @@ class OptimizedNotificationService {
       console.log(`📱 [PUSH] Checking for native FCM tokens and web subscriptions...`);
 
       // Send to native FCM tokens (Android/iOS app users)
-      const nativeResults = await this.sendToNativeTokens(notification, users);
+      const [nativeResults, webResults] = await Promise.all([
+        this.sendToNativeTokens(notification, users),
+        this.sendToWebSubscriptions(notification, users),
+      ]);
       results.sent += nativeResults.sent;
       results.failed += nativeResults.failed;
       results.errors.push(...nativeResults.errors);
 
-      // Send to web push subscriptions (web browser users)
-      const webResults = await this.sendToWebSubscriptions(notification, users);
       results.sent += webResults.sent;
       results.failed += webResults.failed;
       results.errors.push(...webResults.errors);

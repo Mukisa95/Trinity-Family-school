@@ -86,7 +86,6 @@ import { getSchoolPayCode } from '@/lib/utils/schoolpay';
 import { BatchRecaptureModal } from './components/BatchRecaptureModal';
 import { AssignmentModal } from '@/components/pupils/assignment-modal';
 import { UniformTrackingModal } from '@/components/common/uniform-tracking-modal';
-import { HistoryLogService } from '@/lib/services/history-log.service';
 
 // Hooks
 import { usePupilFees } from './hooks/usePupilFees';
@@ -816,7 +815,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               paidBy: paidByUser,
               paymentMethod: paymentData.paymentMethod,
               notes: `Multi-fee payment for ${feeSelection.feeName}. Paid by: ${paymentData.paidBy}`,
-              skipHistoryLog: true,
               historyContext: {
                 feeName: feeSelection.feeName,
                 pupilName: `${pupil.firstName} ${pupil.lastName}`,
@@ -846,28 +844,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               feeName: feeSelection.feeName,
               paymentType: 'regular'
             }];
-            await HistoryLogService.log({
-              action: 'create',
-              entity: 'payment',
-              recordId: result.paymentId,
-              label: feeSelection.feeName,
-              meta: {
-                amount: feeSelection.selectedAmount,
-                feeName: feeSelection.feeName,
-                pupilName: `${pupil.firstName} ${pupil.lastName}`,
-                method: paymentData.paymentMethod,
-                source: 'multi_fee_payment',
-              },
-              actor: {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-              },
-            });
           }
 
-          // Digital signature for each payment
-          await Promise.all(signatureTargets.map(signature =>
+          // Digital signatures are audit records. A signature failure must not
+          // make an already-recorded financial transaction look unsuccessful.
+          const signatureResults = await Promise.allSettled(signatureTargets.map(signature =>
             signAction('fee_payment', signature.paymentId, 'collected', {
               amount: signature.amount,
               pupilName: `${pupil.firstName} ${pupil.lastName}`,
@@ -882,8 +863,26 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             })
           ));
 
-          return signatureTargets.map(signature => signature.paymentId);
+          const signatureFailureCount = signatureResults.filter(
+            result => result.status === 'rejected'
+          ).length;
+
+          if (signatureFailureCount > 0) {
+            console.error(
+              `${signatureFailureCount} multi-fee payment signature(s) failed after the payments were recorded.`
+            );
+          }
+
+          return {
+            paymentIds: signatureTargets.map(signature => signature.paymentId),
+            signatureFailureCount
+          };
         })
+      );
+
+      const signatureFailureCount = paymentResults.reduce(
+        (count, result) => count + (result?.signatureFailureCount || 0),
+        0
       );
 
       // Close modal before refetch
@@ -892,8 +891,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       const newTimestamp = Date.now();
       setLastPaymentTimestamp(newTimestamp);
 
-      // Invalidate queries and refetch
-      await Promise.all([
+      // Refresh dependent views in the background. The committed payment does
+      // not need to wait for every dashboard query before the cashier gets a result.
+      void Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['pupil-payments-all', pupil.id]
         }),
@@ -920,17 +920,21 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }),
         queryClient.invalidateQueries({
           queryKey: ['finance-summary']
-        })
-      ]);
-
-      await refetch();
+        }),
+        refetch()
+      ]).catch(error => console.error('Post-payment refresh failed:', error));
 
       toast({
-        title: 'Payment Successful',
+        title: signatureFailureCount === 0
+          ? 'Payment Successful'
+          : 'Payments recorded with an audit warning',
         description: `Processed ${paymentData.selectedFees.length} fee payments totaling ${new Intl.NumberFormat(
           'en-UG',
           { style: 'currency', currency: 'UGX' }
-        ).format(paymentData.totalAmount)}.`
+        ).format(paymentData.totalAmount)}.${signatureFailureCount === 0
+          ? ''
+          : ` ${signatureFailureCount} digital signature(s) could not be saved; do not record these payments again.`}`,
+        variant: signatureFailureCount === 0 ? 'default' : 'destructive'
       });
     } catch (error) {
       console.error('Multi-fee payment error:', error);
@@ -989,7 +993,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             role: user.role
           },
           notes: `Payment for ${selectedFee.name}`,
-          skipHistoryLog: true,
           historyContext: {
             feeName: selectedFee.name,
             pupilName: `${pupil.firstName} ${pupil.lastName}`,
@@ -1015,40 +1018,28 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
         const result = await response.json();
         paymentId = result.paymentId;
-        await HistoryLogService.log({
-          action: 'create',
-          entity: 'payment',
-          recordId: paymentId,
-          label: selectedFee.name,
-          meta: {
-            amount: data.amount,
-            feeName: selectedFee.name,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
-            method: 'Cash',
-            source: 'single_fee_payment',
-          },
-          actor: {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-          },
-        });
       }
 
       // Create digital signature for the payment
-      await signAction(
-        'fee_payment',
-        paymentId,
-        'collected',
-        {
-          amount: data.amount,
-          pupilName: `${pupil.firstName} ${pupil.lastName}`,
-          feeName: selectedFee.name,
-          academicYear: selectedAcademicYear.name,
-          term: selectedTermId,
-          paymentType: isUniformFee ? 'uniform' : 'regular'
-        }
-      );
+      let signatureRecorded = true;
+      try {
+        await signAction(
+          'fee_payment',
+          paymentId,
+          'collected',
+          {
+            amount: data.amount,
+            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            feeName: selectedFee.name,
+            academicYear: selectedAcademicYear.name,
+            term: selectedTermId,
+            paymentType: isUniformFee ? 'uniform' : 'regular'
+          }
+        );
+      } catch (signatureError) {
+        signatureRecorded = false;
+        console.error('Payment recorded but digital signature failed:', signatureError);
+      }
 
       // Close modal and clear selected fee BEFORE any updates
       setIsPaymentModalOpen(false);
@@ -1093,12 +1084,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       invalidateFinanceSummaryQueries(queryClient, pupil.id);
 
       // Show success message immediately (no blocking refetch)
+      const formattedAmount = new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX'
+      }).format(data.amount);
+
       toast({
-        title: "Payment Successful",
-        description: `Payment of ${new Intl.NumberFormat('en-UG', {
-          style: 'currency',
-          currency: 'UGX'
-        }).format(data.amount)} has been recorded.`,
+        title: signatureRecorded ? "Payment Successful" : "Payment recorded with an audit warning",
+        description: `Payment of ${formattedAmount} has been recorded.${signatureRecorded ? '' : ' The digital signature could not be saved; do not record the payment again.'}`,
+        variant: signatureRecorded ? 'default' : 'destructive',
       });
 
     } catch (error) {
@@ -1246,31 +1240,44 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     setIsRevertingPayment(true);
 
     try {
-      await PaymentsService.revertPayment(payment.id, {
-        id: user.id,
-        name: user.username,
-        role: user.role
-      });
-
-      // Create digital signature for the payment reversal
-      await signAction(
-        'fee_payment',
+      await PaymentsService.revertPayment(
         payment.id,
-        'reverted',
         {
-          originalAmount: payment.amount,
-          pupilId: payment.pupilId,
-          feeStructureId: payment.feeStructureId,
-          revertReason: 'Payment reversal confirmed'
-        }
+          id: user.id,
+          name: user.username,
+          role: user.role
+        },
+        payment,
       );
 
+      // Create digital signature for the payment reversal
+      let signatureRecorded = true;
+      try {
+        await signAction(
+          'fee_payment',
+          payment.id,
+          'reverted',
+          {
+            originalAmount: payment.amount,
+            pupilId: payment.pupilId,
+            feeStructureId: payment.feeStructureId,
+            revertReason: 'Payment reversal confirmed'
+          }
+        );
+      } catch (signatureError) {
+        signatureRecorded = false;
+        console.error('Payment reversed but digital signature failed:', signatureError);
+      }
+
+      const formattedAmount = new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX'
+      }).format(payment.amount);
+
       toast({
-        title: "Payment Reverted",
-        description: `Payment of ${new Intl.NumberFormat('en-UG', {
-          style: 'currency',
-          currency: 'UGX'
-        }).format(payment.amount)} has been reverted.`,
+        title: signatureRecorded ? "Payment Reverted" : "Payment reversed with an audit warning",
+        description: `Payment of ${formattedAmount} has been reverted.${signatureRecorded ? '' : ' The digital signature could not be saved; do not reverse it again.'}`,
+        variant: signatureRecorded ? 'default' : 'destructive',
       });
 
       // Refetch all data to update UI (non-blocking)
