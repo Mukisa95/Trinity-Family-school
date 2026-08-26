@@ -2,13 +2,18 @@
 
 import { motion } from 'framer-motion';
 import { SignOut, Heart } from '@phosphor-icons/react';
+import { createPortal } from 'react-dom';
 
 interface LogoutMessageProps {
   username: string;
 }
 
 const LogoutMessage = ({ username }: LogoutMessageProps) => {
-  return (
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -47,8 +52,9 @@ const LogoutMessage = ({ username }: LogoutMessageProps) => {
           <Heart size={20} weight="fill" />
         </motion.div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 };
 
-export default LogoutMessage; 
+export default LogoutMessage;

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import ReactDOM from "react-dom";
-import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, LayoutList, LayoutGrid, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer, Layers } from "lucide-react"; // Added more icons
+import { PlusCircle, Plus, MoreHorizontal, Edit, Trash2, BookOpen, CornerDownRight, Indent, FilePenLine, Eye, Calendar, Search, X, Filter, ChevronDown, ChevronUp, User, School, Type, CalendarIcon, InfoIcon, RefreshCw, GraduationCap, Users, Target, Clock, PlayCircle, CheckCircle, Camera, CalendarClock, Sparkles, Info, Loader2, Printer, Layers } from "lucide-react"; // Added more icons
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
 import {
@@ -1566,9 +1566,9 @@ export default function ExamsPage() {
     );
   }, [allClasses, exams, listFilters]);
 
-  // Add mobile view state
+  // Exam Management uses the table layout at every breakpoint.
   const [filtersExpanded, setFiltersExpanded] = React.useState(false);
-  const [viewType, setViewType] = React.useState<'table' | 'cards'>('cards');
+  const viewType: 'table' | 'cards' = 'table';
 
   // State for batch exam expansion
   const [expandedBatches, setExpandedBatches] = React.useState<Record<string, boolean>>({});
@@ -1656,24 +1656,6 @@ export default function ExamsPage() {
   const openExamPrintOptions = React.useCallback((exam: Exam) => {
     router.push(`/exams/${exam.id}/view-results?classId=${exam.classId}&openPrint=1`);
   }, [router]);
-
-  // Function to detect screen size on mount
-  React.useEffect(() => {
-    const checkScreenSize = () => {
-      if (window.innerWidth < 768) {
-        setViewType('cards');
-      }
-    };
-
-    // Check on mount
-    checkScreenSize();
-
-    // Set up listener for window resize
-    window.addEventListener('resize', checkScreenSize);
-
-    // Clean up
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
 
   // 🚀 OPTIMIZED: Progressive loading - show page as soon as core data is loaded
   const coreDataLoading = classesLoading || examsLoading || academicYearsLoading;
@@ -1800,18 +1782,6 @@ export default function ExamsPage() {
               icon={<Layers className="w-4 h-4" />}
               tone="violet"
               title="Consolidate or expand exam batches"
-            />
-
-            <GlassActionButton
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setViewType(viewType === 'table' ? 'cards' : 'table');
-              }}
-              label="View"
-              icon={viewType === 'table' ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
-              tone="slate"
-              title={viewType === 'table' ? 'Switch to Card View' : 'Switch to Table View'}
             />
 
             <GlassActionButton
@@ -2137,7 +2107,7 @@ export default function ExamsPage() {
         </ModernDialogContent>
       </ModernDialog>
 
-        {/* Show either table or card view based on viewType */}
+        {/* Table-only exam management view */}
         {viewType === 'table' ? (
           // Table view - Modern Batch Design
           <div className="space-y-4">
