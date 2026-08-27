@@ -5,7 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeft, UserSquare, BookOpen as AcademicIcon, Users as GuardianIconLucide, HeartPulse, CalendarDays, MapPin, Phone, Mail, Briefcase, Home, Edit, Trash2, Receipt, Shirt, BookOpen, MoreVertical, User, GraduationCap, Shield, CreditCard, UserPlus, ChevronDown, BarChart3, Settings, History, TrendingUp, TrendingDown, ArrowRight, Clock, Tag, Printer, Award, FileText, FileText as FileTextIcon, Check, AlertTriangle, Eye } from "lucide-react";
+import { ArrowLeft, UserSquare, BookOpen as AcademicIcon, Users as GuardianIconLucide, HeartPulse, CalendarDays, MapPin, Phone, Mail, Briefcase, Home, Edit, Trash2, Receipt, Shirt, BookOpen, MoreVertical, User, GraduationCap, Shield, CreditCard, UserPlus, ChevronDown, BarChart3, Settings, History, TrendingUp, TrendingDown, ArrowRight, Clock, Tag, Printer, Award, FileText, FileText as FileTextIcon, Check, AlertTriangle, Eye, MessageSquareText } from "lucide-react";
 import { X } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
@@ -76,6 +76,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { ManageIdCodesModal } from "@/components/pupils/manage-id-codes-modal";
 import { ManagePayCodeModal } from "@/components/pupils/manage-pay-code-modal";
+import { PaymentReceiptSmsDialog } from "@/app/fees/collect/[id]/components/PaymentReceiptSmsDialog";
 import { AssignmentModal } from "@/components/pupils/assignment-modal";
 import { useToast } from "@/hooks/use-toast";
 import { PupilPhotoDetail } from "@/components/ui/pupil-photo-detail";
@@ -143,6 +144,7 @@ interface DetailItemProps {
   label: string;
   value: string | React.ReactNode | undefined | null;
   multiline?: boolean;
+  inlineWhenViewing?: boolean;
   highlight?: boolean;
   compact?: boolean;
 }
@@ -160,6 +162,7 @@ const DetailItem = React.memo(function DetailItem({
   label,
   value,
   multiline = false,
+  inlineWhenViewing = false,
   highlight = false,
   isEditMode = false,
   fieldName,
@@ -187,9 +190,11 @@ const DetailItem = React.memo(function DetailItem({
     }
   };
 
+  const stackContent = multiline && (isEditMode || !inlineWhenViewing);
+
   return (
-    <div className={`flex ${multiline ? 'flex-col items-start' : 'items-center justify-between'} ${compact ? 'py-0.5 text-xs' : 'py-1.5 text-xs sm:text-sm'} border-b border-border/50 last:border-b-0`}>
-      <div className="flex items-center">
+    <div className={`flex ${stackContent ? 'flex-col items-start' : 'items-center justify-between'} ${compact ? 'py-0.5 text-xs' : 'py-1.5 text-xs sm:text-sm'} border-b border-border/50 last:border-b-0`}>
+      <div className="flex flex-none items-center">
         {icon && <span className={`mr-2 text-muted-foreground ${compact ? 'h-3.5 w-3.5 [&>svg]:h-3.5 [&>svg]:w-3.5' : ''}`}>{icon}</span>}
         <span className={`font-medium text-muted-foreground ${compact ? 'text-[11px]' : ''}`}>{label}:</span>
       </div>
@@ -234,7 +239,7 @@ const DetailItem = React.memo(function DetailItem({
           )}
         </div>
       ) : (
-        <span className={`text-right ${multiline ? 'mt-0.5 ml-0 sm:ml-4 text-left sm:text-right' : ''} ${highlight ? 'font-semibold text-primary' : 'text-foreground'} ${compact ? 'text-[11px]' : ''}`}>
+        <span className={`min-w-0 ${stackContent ? 'mt-0.5 ml-0 text-left sm:ml-4 sm:text-right' : 'ml-4 flex-1 text-right'} ${highlight ? 'font-semibold text-primary' : 'text-foreground'} ${compact ? 'text-[11px]' : ''}`}>
           {value}
         </span>
       )}
@@ -381,6 +386,7 @@ function PupilDetailContent() {
   const [isManagePayCodeModalOpen, setIsManagePayCodeModalOpen] = React.useState(false);
   const [isStatusChangeModalOpen, setIsStatusChangeModalOpen] = React.useState(false);
   const [isLinkedAccountOpen, setIsLinkedAccountOpen] = React.useState(false);
+  const [selectedPupilSmsTemplate, setSelectedPupilSmsTemplate] = React.useState<'profile' | 'pay-code' | 'custom' | null>(null);
 
   // Force reset modal state on component mount to ensure clean state
   React.useEffect(() => {
@@ -453,6 +459,21 @@ function PupilDetailContent() {
     [siblings, pupilId]
   );
 
+  const familyPaymentPupils = React.useMemo(() => {
+    if (!pupil) return [];
+
+    const familyMembers = new Map<string, Pupil>();
+    [pupil, ...actualSiblings].forEach((familyMember) => {
+      familyMembers.set(familyMember.id, familyMember);
+    });
+
+    return Array.from(familyMembers.values()).sort((left, right) => {
+      if (left.id === pupil.id) return -1;
+      if (right.id === pupil.id) return 1;
+      return formatPupilDisplayName(left).localeCompare(formatPupilDisplayName(right));
+    });
+  }, [actualSiblings, pupil]);
+
   // Unlink sibling state
   const [unlinkSiblingConfirm, setUnlinkSiblingConfirm] = React.useState<{
     siblingToUnlink: typeof actualSiblings[0];
@@ -503,6 +524,33 @@ function PupilDetailContent() {
       classCode: classDisplay.code,
     };
   }, [pupil, classes]);
+
+  const selectedPupilSmsContent = React.useMemo(() => {
+    if (!pupil || !selectedPupilSmsTemplate) return null;
+
+    const pupilName = formatPupilDisplayName(pupil).toUpperCase();
+    const classCode = pupilWithClass?.classCode || getClassCode(pupil.classId, classes);
+
+    if (selectedPupilSmsTemplate === 'profile') {
+      return {
+        title: 'Send profile confirmation SMS',
+        message: `TRINITY FAMILY SCHOOL SYSTEM: ${pupilName} IS REGISTERED WITH US IN CLASS ${classCode}. THANK YOU FOR TRUSTING US.`,
+      };
+    }
+
+    if (selectedPupilSmsTemplate === 'pay-code') {
+      const payCode = getSchoolPayCode(pupil) || '';
+      return {
+        title: 'Send pay code SMS',
+        message: `TRINITY FAMILY SCHOOL PAY: YOU CAN PAY ${pupilName}'S TUITION VIA PAY CODE ${payCode}. THANK YOU.`,
+      };
+    }
+
+    return {
+      title: 'Send custom SMS',
+      message: '',
+    };
+  }, [classes, pupil, pupilWithClass, selectedPupilSmsTemplate]);
 
   // Memoize emergency contact guardian calculation
   const emergencyContactGuardian = React.useMemo(() => {
@@ -1588,14 +1636,14 @@ function PupilDetailContent() {
 
       const styles = StyleSheet.create({
         page: {
-          padding: 25,
+          padding: 22,
           fontFamily: 'Helvetica',
           backgroundColor: COLORS.white
         },
         header: {
-          marginBottom: 15,
+          marginBottom: 10,
           borderBottom: `2px solid ${COLORS.primary}`,
-          paddingBottom: 8
+          paddingBottom: 6
         },
         schoolName: {
           fontSize: 16,
@@ -1616,27 +1664,27 @@ function PupilDetailContent() {
           fontSize: 9,
           color: COLORS.gray.dark,
           textAlign: 'center',
-          marginBottom: 10
+          marginBottom: 6
         },
         section: {
-          marginBottom: 12,
+          marginBottom: 7,
           backgroundColor: COLORS.gray.light,
-          padding: 8,
+          padding: 6,
           borderRadius: 5,
           border: `1px solid ${COLORS.border}`
         },
         sectionTitle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 'bold',
           color: COLORS.primary,
-          marginBottom: 6,
+          marginBottom: 4,
           borderBottom: `1px solid ${COLORS.secondary}`,
-          paddingBottom: 3
+          paddingBottom: 2
         },
         row: {
           flexDirection: 'row',
-          marginBottom: 4,
-          paddingBottom: 3,
+          marginBottom: 2,
+          paddingBottom: 2,
           borderBottom: `0.5px solid ${COLORS.border}`
         },
         label: {
@@ -1654,31 +1702,87 @@ function PupilDetailContent() {
         },
         photoContainer: {
           alignItems: 'center',
-          marginBottom: 10,
-          padding: 6,
+          width: 92,
+          marginRight: 9,
+          padding: 5,
           backgroundColor: COLORS.white,
           borderRadius: 5,
           border: `1px solid ${COLORS.secondary}`
         },
         photo: {
-          width: 80,
-          height: 100,
+          width: 72,
+          height: 88,
           borderRadius: 5,
           objectFit: 'cover',
           border: `2px solid ${COLORS.primary}`
         },
+        photoPlaceholder: {
+          width: 72,
+          height: 88,
+          borderRadius: 5,
+          border: `2px solid ${COLORS.primary}`,
+          backgroundColor: '#E5E7EB',
+          alignItems: 'center',
+          justifyContent: 'center'
+        },
+        photoInitials: {
+          fontSize: 20,
+          fontWeight: 'bold',
+          color: COLORS.primary
+        },
+        photoCaption: {
+          marginTop: 3,
+          fontSize: 6.5,
+          fontWeight: 'bold',
+          color: COLORS.primary,
+          textAlign: 'center'
+        },
+        personalContent: {
+          flexDirection: 'row',
+          alignItems: 'flex-start'
+        },
+        personalDetails: {
+          flex: 1
+        },
+        guardianColumns: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 6
+        },
         guardianSection: {
-          marginTop: 6,
-          padding: 6,
+          width: '48.8%',
+          padding: 5,
           backgroundColor: COLORS.white,
           borderRadius: 4,
           border: `1px solid ${COLORS.border}`
         },
         guardianTitle: {
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: 'bold',
           color: COLORS.accent,
-          marginBottom: 4
+          marginBottom: 3,
+          paddingBottom: 2,
+          borderBottom: `0.5px solid ${COLORS.border}`
+        },
+        guardianRow: {
+          flexDirection: 'row',
+          marginBottom: 2,
+          paddingBottom: 1.5,
+          borderBottom: `0.5px solid ${COLORS.border}`
+        },
+        guardianLabel: {
+          width: '42%',
+          paddingRight: 3,
+          fontSize: 6.8,
+          fontWeight: 'bold',
+          fontFamily: 'Helvetica-Bold',
+          color: COLORS.gray.dark
+        },
+        guardianValue: {
+          width: '58%',
+          fontSize: 7.2,
+          color: COLORS.primary,
+          flexWrap: 'wrap'
         },
         footer: {
           position: 'absolute',
@@ -1713,11 +1817,6 @@ function PupilDetailContent() {
           height: 30,
           objectFit: 'contain',
           marginBottom: 3
-        },
-        divider: {
-          height: 0.5,
-          backgroundColor: COLORS.border,
-          marginVertical: 5
         }
       });
 
@@ -1767,78 +1866,84 @@ function PupilDetailContent() {
               </Text>
             </View>
 
-            {/* Photo Section */}
-            {pupil.photo && (
-              <View style={styles.photoContainer}>
-                <Image src={pupil.photo} style={styles.photo} />
-                <Text style={{ fontSize: 8, color: COLORS.primary, marginTop: 3, fontWeight: 'bold' }}>
-                  {formatPupilDisplayName(pupil)}
-                </Text>
-              </View>
-            )}
-
             {/* Personal Information */}
-            <View style={styles.section}>
+            <View style={styles.section} wrap={false}>
               <Text style={styles.sectionTitle}>PERSONAL INFORMATION</Text>
-
-              <View style={styles.row}>
-                <Text style={styles.label}>Full Name:</Text>
-                <Text style={styles.value}>
-                  {pupil.firstName} {pupil.lastName}
-                  {pupil.otherNames && ` ${pupil.otherNames}`}
-                </Text>
-              </View>
-
-              <View style={styles.row}>
-                <Text style={styles.label}>Pay Code:</Text>
-                  <Text style={styles.value}>{getSchoolPayCode(pupil) || 'Not Generated'}</Text>
-              </View>
-
-              <View style={styles.row}>
-                <Text style={styles.label}>Admission Number:</Text>
-                <Text style={styles.value}>{pupil.admissionNumber}</Text>
-              </View>
-
-              <View style={styles.row}>
-                <Text style={styles.label}>Gender:</Text>
-                <Text style={styles.value}>{pupil.gender || 'N/A'}</Text>
-              </View>
-
-              <View style={styles.row}>
-                <Text style={styles.label}>Date of Birth:</Text>
-                <Text style={styles.value}>
-                  {formatDate(pupil.dateOfBirth)}
-                  {pupil.dateOfBirth && ` (Age: ${calculateAge(pupil.dateOfBirth)})`}
-                </Text>
-              </View>
-
-              {pupil.placeOfBirth && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>Place of Birth:</Text>
-                  <Text style={styles.value}>{pupil.placeOfBirth}</Text>
+              <View style={styles.personalContent}>
+                <View style={styles.photoContainer}>
+                  {pupil.photo ? (
+                    <Image src={pupil.photo} style={styles.photo} />
+                  ) : (
+                    <View style={styles.photoPlaceholder}>
+                      <Text style={styles.photoInitials}>
+                        {(pupil.firstName?.[0] || '')}{(pupil.lastName?.[0] || '')}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={styles.photoCaption}>{formatPupilDisplayName(pupil)}</Text>
                 </View>
-              )}
 
-              {pupil.nationality && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>Nationality:</Text>
-                  <Text style={styles.value}>{pupil.nationality}</Text>
-                </View>
-              )}
+                <View style={styles.personalDetails}>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Full Name:</Text>
+                    <Text style={styles.value}>
+                      {pupil.firstName} {pupil.lastName}
+                      {pupil.otherNames && ` ${pupil.otherNames}`}
+                    </Text>
+                  </View>
 
-              {pupil.religion && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>Religion:</Text>
-                  <Text style={styles.value}>{pupil.religion}</Text>
-                </View>
-              )}
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Pay Code:</Text>
+                    <Text style={styles.value}>{getSchoolPayCode(pupil) || 'Not Generated'}</Text>
+                  </View>
 
-              {pupil.address && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>Address:</Text>
-                  <Text style={styles.value}>{formatAddress(pupil.address)}</Text>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Admission Number:</Text>
+                    <Text style={styles.value}>{pupil.admissionNumber}</Text>
+                  </View>
+
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Gender:</Text>
+                    <Text style={styles.value}>{pupil.gender || 'N/A'}</Text>
+                  </View>
+
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Date of Birth:</Text>
+                    <Text style={styles.value}>
+                      {formatDate(pupil.dateOfBirth)}
+                      {pupil.dateOfBirth && ` (Age: ${calculateAge(pupil.dateOfBirth)})`}
+                    </Text>
+                  </View>
+
+                  {pupil.placeOfBirth && (
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Place of Birth:</Text>
+                      <Text style={styles.value}>{pupil.placeOfBirth}</Text>
+                    </View>
+                  )}
+
+                  {pupil.nationality && (
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Nationality:</Text>
+                      <Text style={styles.value}>{pupil.nationality}</Text>
+                    </View>
+                  )}
+
+                  {pupil.religion && (
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Religion:</Text>
+                      <Text style={styles.value}>{pupil.religion}</Text>
+                    </View>
+                  )}
+
+                  {pupil.address && (
+                    <View style={styles.row}>
+                      <Text style={styles.label}>Address:</Text>
+                      <Text style={styles.value}>{formatAddress(pupil.address)}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
+              </View>
             </View>
 
             {/* Academic Information */}
@@ -1932,66 +2037,65 @@ function PupilDetailContent() {
             {pupil.guardians && pupil.guardians.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>GUARDIAN INFORMATION</Text>
-
-                {pupil.guardians.map((guardian, index) => (
-                  <View key={index} style={styles.guardianSection}>
-                    <Text style={styles.guardianTitle}>
-                      Guardian {index + 1} {guardian.relationship ? `- ${guardian.relationship}` : ''}
-                      {pupil.emergencyContactGuardianId === guardian.id && ' (Emergency Contact)'}
-                    </Text>
-
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Name:</Text>
-                      <Text style={styles.value}>
-                        {guardian.firstName} {guardian.lastName}
+                <View style={styles.guardianColumns}>
+                  {pupil.guardians.map((guardian, index) => (
+                    <View key={index} style={styles.guardianSection} wrap={false}>
+                      <Text style={styles.guardianTitle}>
+                        Guardian {index + 1} {guardian.relationship ? `- ${guardian.relationship}` : ''}
+                        {pupil.emergencyContactGuardianId === guardian.id && ' (Emergency Contact)'}
                       </Text>
+
+                      <View style={styles.guardianRow}>
+                        <Text style={styles.guardianLabel}>Name:</Text>
+                        <Text style={styles.guardianValue}>
+                          {guardian.firstName} {guardian.lastName}
+                        </Text>
+                      </View>
+
+                      {guardian.phone && (
+                        <View style={styles.guardianRow}>
+                          <Text style={styles.guardianLabel}>Phone:</Text>
+                          <Text style={styles.guardianValue}>{guardian.phone}</Text>
+                        </View>
+                      )}
+
+                      {guardian.secondaryPhone && (
+                        <View style={styles.guardianRow}>
+                          <Text style={styles.guardianLabel}>Other Phone:</Text>
+                          <Text style={styles.guardianValue}>{guardian.secondaryPhone}</Text>
+                        </View>
+                      )}
+
+                      {guardian.email && (
+                        <View style={styles.guardianRow}>
+                          <Text style={styles.guardianLabel}>Email:</Text>
+                          <Text style={styles.guardianValue}>{guardian.email}</Text>
+                        </View>
+                      )}
+
+                      {guardian.occupation && (
+                        <View style={styles.guardianRow}>
+                          <Text style={styles.guardianLabel}>Occupation:</Text>
+                          <Text style={styles.guardianValue}>{guardian.occupation}</Text>
+                        </View>
+                      )}
+
+                      {guardian.address && (
+                        <View style={styles.guardianRow}>
+                          <Text style={styles.guardianLabel}>Address:</Text>
+                          <Text style={styles.guardianValue}>{formatAddress(guardian.address)}</Text>
+                        </View>
+                      )}
+
+                      {guardian.nationalId && (
+                        <View style={styles.guardianRow}>
+                          <Text style={styles.guardianLabel}>National ID:</Text>
+                          <Text style={styles.guardianValue}>{guardian.nationalId}</Text>
+                        </View>
+                      )}
                     </View>
-
-                    {guardian.phone && (
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Phone:</Text>
-                        <Text style={styles.value}>{guardian.phone}</Text>
-                      </View>
-                    )}
-
-                    {guardian.secondaryPhone && (
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Secondary Phone:</Text>
-                        <Text style={styles.value}>{guardian.secondaryPhone}</Text>
-                      </View>
-                    )}
-
-                    {guardian.email && (
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Email:</Text>
-                        <Text style={styles.value}>{guardian.email}</Text>
-                      </View>
-                    )}
-
-                    {guardian.occupation && (
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Occupation:</Text>
-                        <Text style={styles.value}>{guardian.occupation}</Text>
-                      </View>
-                    )}
-
-                    {guardian.address && (
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Address:</Text>
-                        <Text style={styles.value}>{formatAddress(guardian.address)}</Text>
-                      </View>
-                    )}
-
-                    {guardian.nationalId && (
-                      <View style={styles.row}>
-                        <Text style={styles.label}>National ID:</Text>
-                        <Text style={styles.value}>{guardian.nationalId}</Text>
-                      </View>
-                    )}
-
-                    {index < pupil.guardians.length - 1 && <View style={styles.divider} />}
-                  </View>
-                ))}
+                  ))}
+                </View>
               </View>
             )}
 
@@ -2068,13 +2172,15 @@ function PupilDetailContent() {
     }
   };
 
-  const handleGeneratePaymentSlipPDF = async () => {
-    if (!pupil) return;
+  const generatePaymentSlipsPDF = async (paymentPupils: Pupil[], isFamilyPayment = false) => {
+    if (paymentPupils.length === 0) return;
 
     try {
       toast({
-        title: "Generating Payment Slip",
-        description: "Preparing the SchoolPay payment card...",
+        title: isFamilyPayment ? "Generating Family Payment Cards" : "Generating Payment Slip",
+        description: isFamilyPayment
+          ? `Preparing ${paymentPupils.length} SchoolPay payment cards...`
+          : "Preparing the SchoolPay payment card...",
       });
 
       const [
@@ -2088,11 +2194,8 @@ function PupilDetailContent() {
       ]);
 
       const paymentLink = 'https://www.schoolpay.co.ug/site/erp-select-channel';
-      const payCode = getSchoolPayCode(pupil) || 'Not Generated';
       const schoolName = schoolSettings?.generalInfo?.name || "Trinity Family Nursery and Primary School";
       const schoolLogo = schoolSettings?.generalInfo?.logo;
-      const className = pupilWithClass?.className || getClassName(pupil.classId, classes);
-      const pupilName = formatPupilDisplayName(pupil);
 
       const qrCodeDataURL = await QRCode.toDataURL(paymentLink, {
         errorCorrectionLevel: 'H',
@@ -2106,11 +2209,22 @@ function PupilDetailContent() {
 
       const slipWidth = 4 * 72;
       const slipHeight = 6 * 72;
+      const a4Width = 595.28;
+      const a4Height = 841.89;
+      const familyPagePadding = 12;
+      const familySlipGap = 14.2;
+      const familySlipWidth = (a4Width - (familyPagePadding * 2) - familySlipGap) / 2;
+      const familySlipHeight = (a4Height - (familyPagePadding * 2) - familySlipGap) / 2;
 
       const styles = StyleSheet.create({
-        page: {
+        singlePage: {
           width: slipWidth,
           height: slipHeight,
+          backgroundColor: '#ffffff',
+        },
+        singleCard: {
+          width: '100%',
+          height: '100%',
           paddingTop: 12,
           paddingBottom: 10,
           paddingHorizontal: 12,
@@ -2118,113 +2232,148 @@ function PupilDetailContent() {
           fontFamily: 'Helvetica',
           color: '#111827',
         },
+        familyPage: {
+          width: a4Width,
+          height: a4Height,
+          padding: familyPagePadding,
+          backgroundColor: '#ffffff',
+        },
+        familyGrid: {
+          flex: 1,
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        },
+        familyRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+        },
+        familyCard: {
+          width: familySlipWidth,
+          height: familySlipHeight,
+          border: '1 solid #9ca3af',
+          paddingTop: 10,
+          paddingBottom: 8,
+          paddingHorizontal: 10,
+          backgroundColor: '#ffffff',
+          fontFamily: 'Helvetica',
+          color: '#111827',
+        },
+        blankFamilyCard: {
+          width: familySlipWidth,
+          height: familySlipHeight,
+        },
         header: {
           alignItems: 'center',
           borderBottom: '1 solid #d1d5db',
-          paddingBottom: 6,
-          marginBottom: 6,
+          paddingBottom: isFamilyPayment ? 5 : 6,
+          marginBottom: isFamilyPayment ? 5 : 6,
         },
         logo: {
-          width: 32,
-          height: 32,
+          width: isFamilyPayment ? 24 : 32,
+          height: isFamilyPayment ? 24 : 32,
           objectFit: 'contain',
-          marginBottom: 4,
+          marginBottom: isFamilyPayment ? 3 : 4,
         },
         schoolName: {
-          fontSize: 10.5,
+          fontSize: isFamilyPayment ? 9 : 10.5,
           fontWeight: 'bold',
           textAlign: 'center',
-          lineHeight: 1.2,
+          lineHeight: isFamilyPayment ? 1.15 : 1.2,
         },
         slipTitle: {
-          fontSize: 7,
+          fontSize: isFamilyPayment ? 6.2 : 7,
           textAlign: 'center',
           color: '#4b5563',
           marginTop: 2,
-          letterSpacing: 0.4,
+          letterSpacing: isFamilyPayment ? 0.3 : 0.4,
         },
         pupilBlock: {
-          marginBottom: 6,
-          padding: 6,
+          marginBottom: isFamilyPayment ? 5 : 6,
+          padding: isFamilyPayment ? 5 : 6,
           border: '1 solid #d1d5db',
           backgroundColor: '#f9fafb',
         },
         pupilName: {
-          fontSize: 9.5,
+          fontSize: isFamilyPayment ? 8.2 : 9.5,
           fontWeight: 'bold',
           textAlign: 'center',
           marginBottom: 2,
         },
         classText: {
-          fontSize: 7.5,
+          fontSize: isFamilyPayment ? 6.5 : 7.5,
           textAlign: 'center',
           color: '#374151',
         },
         payCodeLabel: {
-          fontSize: 7,
+          fontSize: isFamilyPayment ? 6.2 : 7,
           textAlign: 'center',
-          marginBottom: 3,
+          marginBottom: isFamilyPayment ? 2 : 3,
           color: '#4b5563',
-          letterSpacing: 0.4,
+          letterSpacing: isFamilyPayment ? 0.3 : 0.4,
         },
         payCodeValue: {
-          fontSize: 15,
+          fontSize: isFamilyPayment ? 12.5 : 15,
           fontWeight: 'bold',
           textAlign: 'center',
-          marginBottom: 6,
-          paddingVertical: 5,
-          paddingHorizontal: 4,
+          marginBottom: isFamilyPayment ? 5 : 6,
+          paddingVertical: isFamilyPayment ? 4 : 5,
+          paddingHorizontal: isFamilyPayment ? 3 : 4,
           border: '1 solid #111827',
         },
         sectionTitle: {
-          fontSize: 7.5,
+          fontSize: isFamilyPayment ? 6.8 : 7.5,
           fontWeight: 'bold',
-          marginBottom: 3,
+          marginBottom: isFamilyPayment ? 2 : 3,
           color: '#111827',
         },
         instruction: {
-          fontSize: 6.3,
-          lineHeight: 1.2,
-          marginBottom: 2,
+          fontSize: isFamilyPayment ? 5.6 : 6.3,
+          lineHeight: isFamilyPayment ? 1.18 : 1.2,
+          marginBottom: isFamilyPayment ? 1.5 : 2,
           color: '#1f2937',
         },
         qrSection: {
-          marginTop: 5,
-          paddingTop: 5,
+          marginTop: isFamilyPayment ? 4 : 5,
+          paddingTop: isFamilyPayment ? 4 : 5,
           borderTop: '1 solid #e5e7eb',
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 8,
+          gap: isFamilyPayment ? 0 : 8,
         },
         qrCode: {
-          width: 74,
-          height: 74,
+          width: isFamilyPayment ? 56 : 74,
+          height: isFamilyPayment ? 56 : 74,
+          marginRight: isFamilyPayment ? 6 : 0,
         },
         qrMeta: {
           flex: 1,
         },
         qrText: {
-          fontSize: 6.8,
-          marginBottom: 4,
+          fontSize: isFamilyPayment ? 5.9 : 6.8,
+          marginBottom: isFamilyPayment ? 2 : 4,
           color: '#374151',
-          lineHeight: 1.2,
+          lineHeight: isFamilyPayment ? 1.15 : 1.2,
         },
         qrHint: {
-          fontSize: 6.2,
+          fontSize: isFamilyPayment ? 5.2 : 6.2,
           color: '#4b5563',
-          marginBottom: 4,
-          lineHeight: 1.2,
+          marginBottom: isFamilyPayment ? 2 : 4,
+          lineHeight: isFamilyPayment ? 1.15 : 1.2,
         },
         linkText: {
-          fontSize: 5.6,
+          fontSize: isFamilyPayment ? 4.8 : 5.6,
           color: '#2563eb',
-          lineHeight: 1.15,
+          lineHeight: isFamilyPayment ? 1.1 : 1.15,
         },
       });
 
-      const PaymentSlipDocument = () => (
-        <Document>
-          <Page size={[slipWidth, slipHeight]} style={styles.page}>
+      const PaymentSlipCard = ({ paymentPupil }: { paymentPupil: Pupil }) => {
+        const payCode = getSchoolPayCode(paymentPupil) || 'Not Generated';
+        const className = getClassName(paymentPupil.classId, classes);
+        const pupilName = formatPupilDisplayName(paymentPupil);
+
+        return (
+          <View style={isFamilyPayment ? styles.familyCard : styles.singleCard}>
             <View style={styles.header}>
               {schoolLogo ? <Image src={schoolLogo} style={styles.logo} /> : null}
               <Text style={styles.schoolName}>{schoolName}</Text>
@@ -2253,27 +2402,127 @@ function PupilDetailContent() {
                 <Link src={paymentLink} style={styles.linkText}>{paymentLink}</Link>
               </View>
             </View>
-          </Page>
-        </Document>
-      );
+          </View>
+        );
+      };
 
-      const safeName = pupilName.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
-      const fileName = `${safeName}_Payment_Slip.pdf`;
+      const familyPaymentPages: Pupil[][] = [];
+      for (let index = 0; index < paymentPupils.length; index += 4) {
+        familyPaymentPages.push(paymentPupils.slice(index, index + 4));
+      }
+
+      const PaymentSlipDocument = () => {
+        if (!isFamilyPayment) {
+          return (
+            <Document>
+              <Page size={[slipWidth, slipHeight]} style={styles.singlePage}>
+                <PaymentSlipCard paymentPupil={paymentPupils[0]} />
+              </Page>
+            </Document>
+          );
+        }
+
+        return (
+          <Document>
+            {familyPaymentPages.map((pagePupils, pageIndex) => {
+              const slots: Array<Pupil | null> = [...pagePupils];
+              while (slots.length < 4) slots.push(null);
+
+              return (
+                <Page key={`family-payment-page-${pageIndex}`} size="A4" style={styles.familyPage}>
+                  <View style={styles.familyGrid}>
+                    {[0, 1].map((rowIndex) => (
+                      <View key={`family-payment-row-${rowIndex}`} style={styles.familyRow}>
+                        {[0, 1].map((columnIndex) => {
+                          const slotPupil = slots[(rowIndex * 2) + columnIndex];
+                          return slotPupil ? (
+                            <PaymentSlipCard key={slotPupil.id} paymentPupil={slotPupil} />
+                          ) : (
+                            <View key={`blank-family-payment-${rowIndex}-${columnIndex}`} style={styles.blankFamilyCard} />
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                </Page>
+              );
+            })}
+          </Document>
+        );
+      };
+
+      const primaryPupilName = formatPupilDisplayName(paymentPupils[0]);
+      const safeName = primaryPupilName.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
+      const fileName = isFamilyPayment
+        ? `${safeName}_Family_Payment_Cards.pdf`
+        : `${safeName}_Payment_Slip.pdf`;
+      const documentTitle = isFamilyPayment ? 'Family Payment Cards' : 'Payment Slip';
       await pdfViewer.runPDFJob(
-        { fileName, title: 'Payment Slip', initialMessage: 'Rendering SchoolPay payment slip…' },
+        {
+          fileName,
+          title: documentTitle,
+          initialMessage: isFamilyPayment
+            ? `Rendering ${paymentPupils.length} SchoolPay payment cards…`
+            : 'Rendering SchoolPay payment slip…',
+        },
         async ({ updateProgress }) => {
-          updateProgress(25, 'Preparing payment details and QR code…');
+          updateProgress(
+            25,
+            isFamilyPayment
+              ? `Preparing ${paymentPupils.length} family payment cards…`
+              : 'Preparing payment details and QR code…',
+          );
           const blob = await ReactPDF.pdf(<PaymentSlipDocument />).toBlob();
-          updateProgress(96, 'Finalizing payment slip…');
+          updateProgress(96, isFamilyPayment ? 'Finalizing family payment cards…' : 'Finalizing payment slip…');
           return blob;
         },
       );
     } catch (error) {
-      console.error('Error generating payment slip PDF:', error);
+      console.error(`Error generating ${isFamilyPayment ? 'family payment cards' : 'payment slip'} PDF:`, error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to generate payment slip.',
+        description: isFamilyPayment
+          ? 'Failed to generate family payment cards.'
+          : 'Failed to generate payment slip.',
+      });
+    }
+  };
+
+  const handleGeneratePaymentSlipPDF = async () => {
+    if (!pupil) return;
+    await generatePaymentSlipsPDF([pupil]);
+  };
+
+  const handleGenerateFamilyPaymentSlipsPDF = async () => {
+    if (!pupil || actualSiblings.length === 0) return;
+
+    const familyMembersWithPayCodes = familyPaymentPupils.filter(
+      (familyMember) => !!getSchoolPayCode(familyMember),
+    );
+    const familyMembersWithoutPayCodes = familyPaymentPupils.filter(
+      (familyMember) => !getSchoolPayCode(familyMember),
+    );
+
+    if (familyMembersWithPayCodes.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No Family Pay Codes Found',
+        description: 'None of the family members has a SchoolPay code to print.',
+      });
+      return;
+    }
+
+    await generatePaymentSlipsPDF(familyMembersWithPayCodes, true);
+
+    if (familyMembersWithoutPayCodes.length > 0) {
+      const skippedNames = familyMembersWithoutPayCodes
+        .map((familyMember) => formatPupilDisplayName(familyMember))
+        .join(', ');
+
+      toast({
+        title: 'Family Payment Cards Ready',
+        description: `Created ${familyMembersWithPayCodes.length} card${familyMembersWithPayCodes.length === 1 ? '' : 's'}. Skipped ${skippedNames} because ${familyMembersWithoutPayCodes.length === 1 ? 'this pupil has' : 'these pupils have'} no SchoolPay code.`,
       });
     }
   };
@@ -3758,19 +4007,15 @@ function PupilDetailContent() {
                           <span>Payment</span>
                         </DropdownMenuItem>
                       )}
+                      {pupil && actualSiblings.length > 0 && (
+                        <DropdownMenuItem onClick={handleGenerateFamilyPaymentSlipsPDF}>
+                          <GuardianIconLucide className="mr-2 h-4 w-4" />
+                          <span>Family Payment</span>
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </ActionGuard>
-
-                {/* Back Button */}
-                <SmartBackButton 
-                  fallbackHref="/pupils"
-                  className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95"
-                  aria-label="Back to List"
-                >
-                  <ArrowLeft className="w-4 h-4 mb-0.5" />
-                  <span className="text-[8px] font-semibold leading-tight">Back</span>
-                </SmartBackButton>
 
                 {/* Settings/Edit Dropdown */}
                 <DropdownMenu>
@@ -3922,7 +4167,39 @@ function PupilDetailContent() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
           <div className="xl:col-span-1 space-y-4 lg:space-y-6">
             <Card className="shadow-lg overflow-hidden" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
-              <CardContent className="pt-6 flex flex-col items-center bg-card">
+              <CardContent className="relative pt-6 flex flex-col items-center bg-card">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Text pupil guardian"
+                      className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                    >
+                      <MessageSquareText className="h-3.5 w-3.5" />
+                      Text
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Choose message</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setSelectedPupilSmsTemplate('profile')}>
+                      <User className="mr-2 h-4 w-4 text-sky-600" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={!getSchoolPayCode(pupil)}
+                      onClick={() => setSelectedPupilSmsTemplate('pay-code')}
+                    >
+                      <Tag className="mr-2 h-4 w-4 text-emerald-600" />
+                      <span>{getSchoolPayCode(pupil) ? 'Pay Code' : 'Pay Code (not available)'}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSelectedPupilSmsTemplate('custom')}>
+                      <Edit className="mr-2 h-4 w-4 text-violet-600" />
+                      <span>Custom</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
                 {/* Avatar row — graduation badge sits beside it at same size when graduated */}
                 <div className={isGraduatedPupil ? 'flex items-center gap-5' : ''}>
                   <PupilPhotoDetail
@@ -4248,22 +4525,26 @@ function PupilDetailContent() {
                   value={
                     isEditMode
                       ? (editableFields.dateOfBirth || pupil?.dateOfBirth || '').split('T')[0] // Format for date input
-                      : (showDateOfBirth ? formatDate(pupil.dateOfBirth) : calculateAge(pupil.dateOfBirth))
+                      : (
+                        <span className="inline-flex items-center justify-end gap-1.5">
+                          <span>{showDateOfBirth ? formatDate(pupil.dateOfBirth) : calculateAge(pupil.dateOfBirth)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowDateOfBirth(!showDateOfBirth)}
+                            aria-label={showDateOfBirth ? 'Show age' : 'Show date of birth'}
+                            title={showDateOfBirth ? 'Show age' : 'Show date of birth'}
+                            className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      )
                   }
                   isEditMode={isEditMode}
                   fieldName="dateOfBirth"
                   onValueChange={(value) => setEditableFields(prev => ({ ...prev, dateOfBirth: value }))}
                   inputType="date"
                 />
-                {!isEditMode && (
-                  <button
-                    onClick={() => setShowDateOfBirth(!showDateOfBirth)}
-                    className="text-xs text-muted-foreground hover:text-primary hover:underline cursor-pointer transition-colors w-full text-right mt-1"
-                    title={showDateOfBirth ? "Click to show age" : "Click to show date of birth"}
-                  >
-                    {showDateOfBirth ? "Show Age" : "Show Date of Birth"}
-                  </button>
-                )}
                 <DetailItem
                   key="pob"
                   icon={<MapPin />}
@@ -4317,6 +4598,7 @@ function PupilDetailContent() {
                   fieldName="address"
                   onValueChange={(value) => setEditableFields(prev => ({ ...prev, address: value }))}
                   multiline={true}
+                  inlineWhenViewing={true}
                   inputType="textarea"
                 />
                 <DetailItem
@@ -6673,6 +6955,23 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         }
         pupilName={pupil ? `${pupil.firstName} ${pupil.lastName}` : ''}
       />
+
+      {pupil && selectedPupilSmsContent && (
+        <PaymentReceiptSmsDialog
+          open={selectedPupilSmsTemplate !== null}
+          onOpenChange={(open) => {
+            if (!open) setSelectedPupilSmsTemplate(null);
+          }}
+          pupil={pupil}
+          initialMessage={selectedPupilSmsContent.message}
+          dialogTitle={selectedPupilSmsContent.title}
+          messageLabel="Message"
+          sendButtonLabel="Send SMS"
+          sendingLabel="Sending SMS…"
+          successTitle="SMS sent"
+          successMessageLabel="The message"
+        />
+      )}
     </>
   );
 }

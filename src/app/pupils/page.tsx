@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Shield, Loader2, Edit, Settings, ChevronDown, UserPlus, CreditCard, Eye, Trash2, User, Clock, Tag, Download, DollarSign, ArrowRight, Receipt, Users as LucideUsers } from "lucide-react";
+import { Shield, Loader2, Edit, Settings, ChevronDown, ChevronRight, UserPlus, CreditCard, Eye, Trash2, User, Clock, Tag, Download, DollarSign, ArrowRight, Receipt, Users as LucideUsers } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -265,6 +265,7 @@ function PupilsContent() {
     pupilName: string;
     siblings: Pupil[];
   } | null>(null);
+  const [expandedFamilyPupilId, setExpandedFamilyPupilId] = useState<string | null>(null);
   const [selectedFamilyPupil, setSelectedFamilyPupil] = useState<Pupil | null>(null);
   const [unlinkSiblingConfirm, setUnlinkSiblingConfirm] = useState<{
     siblingToUnlink: Pupil;
@@ -3424,19 +3425,23 @@ function PupilsContent() {
                   ) : (
                     filteredAndSortedPupils.map((pupil, index) => {
                       const pupilHouse = getPupilHouse(pupil);
+                      const familySiblings = getSiblings(pupil);
+                      const hasFamilySiblings = familySiblings.length > 0;
+                      const isFamilyExpanded = hasFamilySiblings && expandedFamilyPupilId === pupil.id;
+                      const familyTreeId = `pupil-family-${pupil.id}`;
                       return (
-                        <motion.tr
-                          key={pupil.id}
-                          initial={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -10 : 0 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{
-                            duration: 0.3,
-                            delay: isTransitioning ? 0 : index * 0.02,
-                            ease: "easeOut"
-                          }}
-                          className={`hover:bg-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-50 transition-colors`}
-                        >
+                        <React.Fragment key={pupil.id}>
+                          <motion.tr
+                            initial={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -10 : 0 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{
+                              duration: 0.3,
+                              delay: isTransitioning ? 0 : index * 0.02,
+                              ease: "easeOut"
+                            }}
+                            className={`hover:bg-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-50 transition-colors`}
+                          >
                           <td className="px-2 sm:px-4 py-2 sm:py-3">
                             <div className="flex items-center space-x-2 sm:space-x-3">
                               <div className="relative flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10" style={{ contain: 'layout' }}>
@@ -3450,12 +3455,35 @@ function PupilsContent() {
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <Link
-                                  href={`/pupil-detail?id=${pupil.id}`}
-                                  className={`text-xs sm:text-sm font-medium text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-800 transition-colors block truncate`}
-                                >
-                                  {formatPupilDisplayName(pupil)}
-                                </Link>
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  {hasFamilySiblings && (
+                                    <button
+                                      type="button"
+                                      aria-expanded={isFamilyExpanded}
+                                      aria-controls={familyTreeId}
+                                      aria-label={`${isFamilyExpanded ? 'Hide' : 'Show'} ${familySiblings.length} sibling${familySiblings.length === 1 ? '' : 's'} of ${formatPupilDisplayName(pupil)}`}
+                                      title={`${isFamilyExpanded ? 'Hide' : 'Show'} family members`}
+                                      onClick={() => setExpandedFamilyPupilId(current => current === pupil.id ? null : pupil.id)}
+                                      className="inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                                    >
+                                      <ChevronRight
+                                        aria-hidden="true"
+                                        className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${isFamilyExpanded ? 'rotate-90' : ''}`}
+                                      />
+                                    </button>
+                                  )}
+                                  <Link
+                                    href={`/pupil-detail?id=${pupil.id}`}
+                                    className={`min-w-0 truncate text-xs font-medium transition-colors sm:text-sm text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-800`}
+                                  >
+                                    {formatPupilDisplayName(pupil)}
+                                  </Link>
+                                  {hasFamilySiblings && (
+                                    <span className="hidden flex-none rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200 xl:inline-flex">
+                                      {familySiblings.length + 1} family pupils
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
                                   <span className="truncate max-w-[120px] xs:max-w-none">{pupil.learnerIdentificationNumber || pupil.admissionNumber}</span>
                                   <span className="hidden xs:inline text-gray-300">•</span>
@@ -3856,7 +3884,99 @@ function PupilsContent() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
-                        </motion.tr>
+                          </motion.tr>
+                          {isFamilyExpanded && (
+                            <tr id={familyTreeId} className="bg-emerald-50/30">
+                            <td colSpan={6} className="p-0">
+                              <div
+                                role="group"
+                                aria-label={`Family members of ${formatPupilDisplayName(pupil)}`}
+                                className="relative border-y border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/45 to-white px-3 py-3 sm:px-5"
+                              >
+                                <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 pl-7 sm:pl-12">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <span className="inline-flex h-7 w-7 flex-none items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                      <LucideUsers aria-hidden="true" className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0">
+                                      <p className="truncate text-xs font-semibold text-emerald-950 sm:text-sm">
+                                        Same family as {formatPupilDisplayName(pupil)}
+                                      </p>
+                                      <p className="text-[11px] text-emerald-700/80">
+                                        {familySiblings.length} linked sibling{familySiblings.length === 1 ? '' : 's'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                    Family branch
+                                  </span>
+                                </div>
+
+                                <div className="relative">
+                                  <span aria-hidden="true" className="absolute bottom-5 left-[0.95rem] top-0 w-px bg-emerald-200 sm:left-[2.2rem]" />
+                                  <ul className="space-y-1.5 pl-7 sm:pl-12">
+                                    {familySiblings.map((sibling) => {
+                                      const siblingClass = getPupilClass(sibling);
+                                      const siblingInitials = `${sibling.firstName?.[0] || ''}${sibling.lastName?.[0] || ''}` || 'P';
+
+                                      return (
+                                        <li key={sibling.id} className="relative">
+                                        <span aria-hidden="true" className="absolute -left-[1.8rem] top-1/2 h-px w-7 bg-emerald-200 sm:-left-[2.8rem] sm:w-11" />
+                                        <Link
+                                          href={`/pupil-detail?id=${sibling.id}`}
+                                          className="group flex min-h-12 items-center gap-2.5 rounded-lg border border-emerald-100 bg-white/95 px-2.5 py-2 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
+                                        >
+                                          <Avatar className="h-8 w-8 flex-none border border-emerald-100 sm:h-9 sm:w-9">
+                                            {sibling.photo?.trim() && (
+                                              <AvatarImage
+                                                src={sibling.photo}
+                                                alt=""
+                                                className="object-cover"
+                                              />
+                                            )}
+                                            <AvatarFallback className="bg-emerald-100 text-[10px] font-semibold text-emerald-800">
+                                              {siblingInitials}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                                              <span className="truncate text-xs font-semibold text-gray-900 transition-colors group-hover:text-emerald-800 sm:text-sm">
+                                                {formatPupilDisplayName(sibling)}
+                                              </span>
+                                              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                                                Sibling
+                                              </span>
+                                            </div>
+                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] text-gray-500 sm:text-xs">
+                                              <span>{siblingClass.code || siblingClass.name || 'Class N/A'}</span>
+                                              <span aria-hidden="true" className="text-emerald-300">•</span>
+                                              <span>{sibling.admissionNumber || sibling.learnerIdentificationNumber || 'No admission number'}</span>
+                                              {sibling.section && (
+                                                <>
+                                                  <span aria-hidden="true" className="text-emerald-300">•</span>
+                                                  <span>{sibling.section}</span>
+                                                </>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <span className={`flex-none rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px] ${sibling.status === 'Active'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-gray-100 text-gray-700'
+                                            }`}>
+                                            {sibling.status || 'Unknown'}
+                                          </span>
+                                          <ChevronRight aria-hidden="true" className="hidden h-4 w-4 flex-none text-emerald-400 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none sm:block" />
+                                        </Link>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              </div>
+                            </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })
                   )}

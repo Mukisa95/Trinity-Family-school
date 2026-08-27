@@ -38,6 +38,7 @@ import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
 import { useSchoolPayBadge } from '@/lib/hooks/use-schoolpay-badge';
 import { Zap } from 'lucide-react';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import type { Class, Pupil } from '@/types';
 
 
 // We need to declare the module to add types that include className
@@ -53,7 +54,157 @@ interface HeaderProps {
   loadSchoolSettings?: boolean;
 }
 
-import { Pupil } from '@/types';
+interface SearchResultStatusControlProps {
+  pupil: Pupil;
+  siblingCount: number;
+  expanded: boolean;
+  controlsId: string;
+  onToggle: () => void;
+}
+
+function SearchResultStatusControl({
+  pupil,
+  siblingCount,
+  expanded,
+  controlsId,
+  onToggle,
+}: SearchResultStatusControlProps) {
+  let StatusIcon = CheckCircle;
+  let statusColor = 'text-gray-400';
+  let statusBg = 'bg-gray-50';
+
+  if (pupil.status === 'Active') {
+    StatusIcon = CheckCircle;
+    statusColor = 'text-green-500';
+    statusBg = 'bg-green-50';
+  } else if (pupil.status === 'Graduated') {
+    StatusIcon = GraduationCap;
+    statusColor = 'text-purple-500';
+    statusBg = 'bg-purple-50';
+  } else if (pupil.status === 'Inactive') {
+    StatusIcon = XCircle;
+    statusColor = 'text-red-500';
+    statusBg = 'bg-red-50';
+  }
+
+  return (
+    <div className="flex w-6 flex-none flex-col items-center gap-1 pt-0.5">
+      <span
+        className={`flex items-center justify-center rounded-full p-0.5 ${statusBg}`}
+        title={pupil.status || 'Unknown'}
+        aria-label={`Status: ${pupil.status || 'Unknown'}`}
+      >
+        <StatusIcon aria-hidden="true" size={14} weight="fill" className={statusColor} />
+      </span>
+      {siblingCount > 0 && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={controlsId}
+          aria-label={`${expanded ? 'Hide' : 'Show'} ${siblingCount} sibling${siblingCount === 1 ? '' : 's'} of ${formatPupilDisplayName(pupil)}`}
+          title={`${expanded ? 'Hide' : 'Show'} siblings`}
+          onPointerUp={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggle();
+          }}
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+        >
+          <CaretDown
+            aria-hidden="true"
+            size={11}
+            weight="bold"
+            className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? '' : '-rotate-90'}`}
+          />
+        </button>
+      )}
+    </div>
+  );
+}
+
+interface SearchFamilyBranchProps {
+  id: string;
+  anchorPupil: Pupil;
+  siblings: Pupil[];
+  classes?: Class[];
+  onSelectPupil: (pupilId: string, navigateImmediately?: boolean) => void;
+}
+
+function SearchFamilyBranch({
+  id,
+  anchorPupil,
+  siblings,
+  classes,
+  onSelectPupil,
+}: SearchFamilyBranchProps) {
+  return (
+    <div
+      id={id}
+      role="group"
+      aria-label={`Siblings of ${formatPupilDisplayName(anchorPupil)}`}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white px-3 py-2"
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-2 pl-5">
+        <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+          Same family as {formatPupilDisplayName(anchorPupil)}
+        </span>
+        <span className="flex-none rounded-full bg-white px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+          {siblings.length} sibling{siblings.length === 1 ? '' : 's'}
+        </span>
+      </div>
+      <div className="relative">
+        <span aria-hidden="true" className="absolute bottom-4 left-1.5 top-0 w-px bg-emerald-200" />
+        <ul className="space-y-1 pl-5">
+          {siblings.map((sibling) => {
+            const siblingClass = classes?.find((candidate) => candidate.id === sibling.classId);
+            const classDisplay = siblingClass?.code || siblingClass?.name || sibling.classCode || sibling.className || 'Class N/A';
+
+            return (
+              <li key={sibling.id} className="relative">
+                <span aria-hidden="true" className="absolute -left-3.5 top-1/2 h-px w-3.5 bg-emerald-200" />
+                <button
+                  type="button"
+                  onPointerUp={(event) => {
+                    event.stopPropagation();
+                    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                      onSelectPupil(sibling.id, true);
+                    }
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                    if (pointerType !== 'touch' && pointerType !== 'pen') {
+                      onSelectPupil(sibling.id);
+                    }
+                  }}
+                  className="flex min-h-11 w-full items-center gap-2 rounded-md border border-emerald-100 bg-white/95 px-2 py-1.5 text-left shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                >
+                  <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-gray-800">
+                      {formatPupilDisplayName(sibling)}
+                    </span>
+                    <span className="block truncate text-[10px] text-gray-500">
+                      {classDisplay} • {sibling.admissionNumber || 'No admission number'}
+                    </span>
+                  </span>
+                  <span className={`flex-none rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-600'
+                    }`}>
+                    {sibling.status || 'Unknown'}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 // Lightweight spring configs — lower stiffness / higher damping for buttery feel
 const springConfig = {
@@ -161,6 +312,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Pupil[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [expandedSearchPupilId, setExpandedSearchPupilId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchHovered, setIsSearchHovered] = useState(false);
   const [searchAnimationPhase, setSearchAnimationPhase] = useState<'logo' | 'name' | 'search'>('logo');
@@ -180,6 +332,31 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
   const { data: settings } = useSchoolSettings({ enabled: loadSchoolSettings });
   const { data: pupils } = usePupils();
   const { data: classes } = useClasses(); // 🚀 CRITICAL: Fetch classes to show up-to-date class names
+  const searchSiblingsByPupilId = useMemo(() => {
+    const familyMembers = new Map<string, Pupil[]>();
+    const siblingMap = new Map<string, Pupil[]>();
+
+    (pupils || []).forEach((pupil) => {
+      if (!pupil.familyId) return;
+      const family = familyMembers.get(pupil.familyId) || [];
+      family.push(pupil);
+      familyMembers.set(pupil.familyId, family);
+    });
+
+    familyMembers.forEach((family) => {
+      if (family.length < 2) return;
+      family.forEach((pupil) => {
+        siblingMap.set(
+          pupil.id,
+          family
+            .filter((candidate) => candidate.id !== pupil.id)
+            .sort((left, right) => formatPupilDisplayName(left).localeCompare(formatPupilDisplayName(right))),
+        );
+      });
+    });
+
+    return siblingMap;
+  }, [pupils]);
   const [phase, setPhase] = useState<'welcome' | 'motto' | 'quote'>('welcome');
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState<number>(0);
   const [currentMessage, setCurrentMessage] = useState<string>(getTimeBasedGreeting());
@@ -340,6 +517,16 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     const debounceTimer = setTimeout(searchPupils, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, pupils, filters]);
+
+  useEffect(() => {
+    if (!expandedSearchPupilId) return;
+    const expandedPupilStillVisible = searchResults.some(
+      (pupil) => pupil.id === expandedSearchPupilId,
+    );
+    if (!showResults || !expandedPupilStillVisible) {
+      setExpandedSearchPupilId(null);
+    }
+  }, [expandedSearchPupilId, searchResults, showResults]);
 
   // useEffect for Top Bar Message Logic
   useEffect(() => {
@@ -696,61 +883,90 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                           className="fixed bg-white rounded-xl shadow-xl border border-blue-100 z-[9999] overflow-y-auto touch-pan-y"
                           style={{ top: '48px', left: '10vw', width: '80vw', maxHeight: '60vh' }}
                         >
-                          {searchResults.map((pupil) => (
-                            <div
-                              key={pupil.id}
-                              onPointerUp={(event) => {
-                                if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-                                  event.stopPropagation();
-                                  handlePupilSelect(pupil.id, true);
-                                }
-                              }}
-                              onClick={(event) => {
-                                const pointerType = (event.nativeEvent as PointerEvent).pointerType;
-                                if (pointerType !== 'touch' && pointerType !== 'pen') {
-                                  handlePupilSelect(pupil.id, true);
-                                }
-                              }}
-                              className="px-3 py-2.5 border-b last:border-b-0 hover:bg-blue-50 active:bg-blue-100 cursor-pointer select-none"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {formatPupilDisplayName(pupil)}
-                                  </p>
+                          {searchResults.map((pupil) => {
+                            const siblings = searchSiblingsByPupilId.get(pupil.id) || [];
+                            const isFamilyExpanded = expandedSearchPupilId === pupil.id && siblings.length > 0;
+                            const familyControlsId = `mobile-header-search-family-${pupil.id}`;
+
+                            return (
+                              <React.Fragment key={pupil.id}>
+                                <div
+                                  onPointerUp={(event) => {
+                                    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                                      event.stopPropagation();
+                                      handlePupilSelect(pupil.id, true);
+                                    }
+                                  }}
+                                  onClick={(event) => {
+                                    const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                                    if (pointerType !== 'touch' && pointerType !== 'pen') {
+                                      handlePupilSelect(pupil.id, true);
+                                    }
+                                  }}
+                                  className="cursor-pointer select-none border-b px-3 py-2.5 hover:bg-blue-50 active:bg-blue-100"
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex min-w-0 flex-1 items-start gap-2">
+                                      <SearchResultStatusControl
+                                        pupil={pupil}
+                                        siblingCount={siblings.length}
+                                        expanded={isFamilyExpanded}
+                                        controlsId={familyControlsId}
+                                        onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-medium text-gray-900">
+                                          {formatPupilDisplayName(pupil)}
+                                        </p>
+                                        <p className="truncate text-[10px] text-gray-500">
+                                          {pupil.admissionNumber}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="ml-2 flex flex-shrink-0 items-center gap-1.5">
+                                      <span className="whitespace-nowrap rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+                                        {(() => { const c = classes?.find((cl: any) => cl.id === pupil.classId); return c ? c.code : (pupil.classCode || pupil.className || pupil.classId); })()}
+                                      </span>
+                                      <button
+                                        onPointerUp={(event) => {
+                                          if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                                            event.stopPropagation();
+                                            setShowResults(false);
+                                            setShowMobileSearch(false);
+                                            router.push(`/fees/collect/${pupil.id}`);
+                                          }
+                                        }}
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                                          if (pointerType !== 'touch' && pointerType !== 'pen') {
+                                            setShowResults(false);
+                                            setShowMobileSearch(false);
+                                            router.push(`/fees/collect/${pupil.id}`);
+                                          }
+                                        }}
+                                        aria-label={`View fees for ${formatPupilDisplayName(pupil)}`}
+                                        className="inline-flex whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 transition-colors hover:border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                                        title="View Fees"
+                                        type="button"
+                                      >
+                                        <span>Shs.</span>
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                                  <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap border border-blue-100">
-                                    {(() => { const c = classes?.find((cl: any) => cl.id === pupil.classId); return c ? c.code : (pupil.classCode || pupil.className || pupil.classId); })()}
-                                  </span>
-                                  <button
-                                    onPointerUp={(event) => {
-                                      if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-                                        event.stopPropagation();
-                                        setShowResults(false);
-                                        setShowMobileSearch(false);
-                                        router.push(`/fees/collect/${pupil.id}`);
-                                      }
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const pt = (e.nativeEvent as PointerEvent).pointerType;
-                                      if (pt !== 'touch' && pt !== 'pen') {
-                                        setShowResults(false);
-                                        setShowMobileSearch(false);
-                                        router.push(`/fees/collect/${pupil.id}`);
-                                      }
-                                    }}
-                                    className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-all"
-                                    title="View Fees"
-                                    type="button"
-                                  >
-                                    <span className="text-[10px] font-bold">Shs.</span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                                {isFamilyExpanded && (
+                                  <SearchFamilyBranch
+                                    id={familyControlsId}
+                                    anchorPupil={pupil}
+                                    siblings={siblings}
+                                    classes={classes}
+                                    onSelectPupil={handlePupilSelect}
+                                  />
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </motion.div>
                       )}
                       {showResults && searchTerm && searchResults.length === 0 && (
@@ -1060,76 +1276,72 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                               const pupilClass = classes?.find((c: any) => c.id === pupil.classId);
                               // Use class code (e.g. P.1) instead of full name
                               const classDisplay = pupilClass ? pupilClass.code : (pupil.classCode || pupil.className || pupil.classId);
-
-                              // Status icons
-                              let StatusIcon = CheckCircle;
-                              let statusColor = 'text-gray-400';
-                              let statusBg = 'bg-gray-50'; // Default background
-
-                              if (pupil.status === 'Active') {
-                                StatusIcon = CheckCircle;
-                                statusColor = 'text-green-500'; // Slightly brighter green
-                                statusBg = 'bg-green-50';
-                              } else if (pupil.status === 'Graduated') {
-                                StatusIcon = GraduationCap;
-                                statusColor = 'text-purple-500';
-                                statusBg = 'bg-purple-50';
-                              } else if (pupil.status === 'Inactive') {
-                                StatusIcon = XCircle;
-                                statusColor = 'text-red-500';
-                                statusBg = 'bg-red-50';
-                              }
+                              const siblings = searchSiblingsByPupilId.get(pupil.id) || [];
+                              const isFamilyExpanded = expandedSearchPupilId === pupil.id && siblings.length > 0;
+                              const familyControlsId = `desktop-header-search-family-${pupil.id}`;
 
                               return (
-                                <div
-                                  key={pupil.id}
-                                  onClick={() => handlePupilSelect(pupil.id)}
-                                  className="px-3 py-2 border-b last:border-b-0 transition-all duration-200 hover:bg-blue-50/80 cursor-pointer"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1 min-w-0 mr-2">
-                                      <div className="flex items-center gap-2">
-                                        {/* Status Icon - Inline before name */}
-                                        <div className={`flex items-center justify-center p-0.5 rounded-full ${statusBg}`} title={pupil.status || 'Unknown'}>
-                                          <StatusIcon size={14} weight="fill" className={statusColor} />
+                                <React.Fragment key={pupil.id}>
+                                  <div
+                                    onClick={() => handlePupilSelect(pupil.id)}
+                                    className="cursor-pointer border-b px-3 py-2 transition-all duration-200 hover:bg-blue-50/80"
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="mr-2 flex min-w-0 flex-1 items-start gap-2">
+                                        <SearchResultStatusControl
+                                          pupil={pupil}
+                                          siblingCount={siblings.length}
+                                          expanded={isFamilyExpanded}
+                                          controlsId={familyControlsId}
+                                          onToggle={() => setExpandedSearchPupilId(current => current === pupil.id ? null : pupil.id)}
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                          <p className="break-words text-sm font-medium text-gray-900">
+                                            {formatPupilDisplayName(pupil)}
+                                          </p>
+                                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                            <span className="text-xs text-gray-500">
+                                              {pupil.admissionNumber}
+                                            </span>
+
+                                            {pupil.status === 'Graduated' && pupil.graduationYear && (
+                                              <span className="rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                                                {pupil.graduationYear}
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
-
-                                        <p className="text-sm font-medium text-gray-900 break-words">
-                                          {formatPupilDisplayName(pupil)}
-                                        </p>
                                       </div>
-                                      <div className="flex items-center gap-1.5 mt-0.5 pl-6 flex-wrap">
-                                        {/* Additional info below name (indented) */}
-                                        <span className="text-xs text-gray-500">
-                                          {pupil.admissionNumber}
+                                      <div className="flex flex-shrink-0 items-center gap-2">
+                                        <span className="whitespace-nowrap rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                                          {classDisplay}
                                         </span>
-
-                                        {pupil.status === 'Graduated' && pupil.graduationYear && (
-                                          <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded-full border border-gray-100">
-                                            {pupil.graduationYear}
-                                          </span>
-                                        )}
+                                        <button
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            setShowResults(false);
+                                            router.push(`/fees/collect/${pupil.id}`);
+                                          }}
+                                          aria-label={`View fees for ${formatPupilDisplayName(pupil)}`}
+                                          className="inline-flex whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 transition-colors duration-200 hover:border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                                          title="View Fees"
+                                          type="button"
+                                        >
+                                          <span>Shs.</span>
+                                        </button>
                                       </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                      <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full whitespace-nowrap">
-                                        {classDisplay}
-                                      </span>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowResults(false);
-                                          router.push(`/fees/collect/${pupil.id}`);
-                                        }}
-                                        className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-all duration-200"
-                                        title="View Fees"
-                                        type="button"
-                                      >
-                                        <span className="text-[11px] font-bold">Shs.</span>
-                                      </button>
                                     </div>
                                   </div>
-                                </div>
+                                  {isFamilyExpanded && (
+                                    <SearchFamilyBranch
+                                      id={familyControlsId}
+                                      anchorPupil={pupil}
+                                      siblings={siblings}
+                                      classes={classes}
+                                      onSelectPupil={handlePupilSelect}
+                                    />
+                                  )}
+                                </React.Fragment>
                               );
                             })}
                           </div>

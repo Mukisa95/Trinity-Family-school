@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, MessageSquareText, Phone, Send, UserRound } from 'lucide-react';
+import { Loader2, MessageSquareText, Phone, Plus, Send, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,10 +23,18 @@ import type { PaymentRecord, Pupil } from '@/types';
 interface PaymentReceiptSmsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  payment: PaymentRecord | null;
+  payment?: PaymentRecord | null;
   pupil: Pupil;
-  feeName: string;
-  currentBalance: number;
+  feeName?: string;
+  currentBalance?: number;
+  initialMessage?: string;
+  dialogTitle?: string;
+  dialogDescription?: string;
+  messageLabel?: string;
+  sendButtonLabel?: string;
+  sendingLabel?: string;
+  successTitle?: string;
+  successMessageLabel?: string;
 }
 
 const CUSTOM_NUMBER_VALUE = 'custom-number';
@@ -71,10 +79,18 @@ function normalizePhoneNumber(phoneNumber: string) {
 export function PaymentReceiptSmsDialog({
   open,
   onOpenChange,
-  payment,
+  payment = null,
   pupil,
-  feeName,
-  currentBalance,
+  feeName = '',
+  currentBalance = 0,
+  initialMessage,
+  dialogTitle = 'Send payment receipt SMS',
+  dialogDescription,
+  messageLabel = 'Receipt message',
+  sendButtonLabel = 'Send receipt',
+  sendingLabel = 'Sending receipt…',
+  successTitle = 'Receipt SMS sent',
+  successMessageLabel = 'The payment receipt',
 }: PaymentReceiptSmsDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -87,13 +103,13 @@ export function PaymentReceiptSmsDialog({
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !payment) return;
+    if (!open) return;
 
     setRecipientChoice(guardians.length > 0 ? 'guardian-0' : CUSTOM_NUMBER_VALUE);
     setCustomNumber('');
-    setMessage(buildReceiptMessage(payment, pupil, feeName, currentBalance));
+    setMessage(initialMessage ?? (payment ? buildReceiptMessage(payment, pupil, feeName, currentBalance) : ''));
     setSubmissionError(null);
-  }, [currentBalance, feeName, guardians.length, open, payment, pupil]);
+  }, [currentBalance, feeName, guardians.length, initialMessage, open, payment, pupil]);
 
   const selectedGuardianIndex = recipientChoice.startsWith('guardian-')
     ? Number(recipientChoice.replace('guardian-', ''))
@@ -104,23 +120,26 @@ export function PaymentReceiptSmsDialog({
     : selectedGuardian?.phone || '';
   const trimmedMessage = message.trim();
   const phoneIsValid = isValidPhoneNumber(selectedPhoneNumber);
-  const canSend = Boolean(payment && trimmedMessage && phoneIsValid && user?.id && !isSending && !payment.reverted);
+  const canSend = Boolean(trimmedMessage && phoneIsValid && user?.id && !isSending && !payment?.reverted);
   const estimatedSegments = useMemo(
     () => Math.max(1, Math.ceil(trimmedMessage.length / 160)),
     [trimmedMessage.length],
   );
+  const effectiveDialogDescription = dialogDescription ?? (payment
+    ? 'Review the recipient and edit the receipt before sending.'
+    : null);
 
   const handleDialogChange = (nextOpen: boolean) => {
     if (!isSending) onOpenChange(nextOpen);
   };
 
   const handleSend = async () => {
-    if (!payment || payment.reverted) {
+    if (payment?.reverted) {
       setSubmissionError('A receipt SMS cannot be sent for a reversed payment.');
       return;
     }
     if (!trimmedMessage) {
-      setSubmissionError('Enter the receipt message to send.');
+      setSubmissionError(`Enter the ${messageLabel.toLowerCase()} to send.`);
       return;
     }
     if (!phoneIsValid) {
@@ -143,21 +162,24 @@ export function PaymentReceiptSmsDialog({
       });
 
       if (!response.success) {
-        setSubmissionError(response.message || 'The receipt SMS could not be sent. Your message has been preserved.');
+        setSubmissionError(response.message || 'The SMS could not be sent. Your message has been preserved.');
         return;
       }
 
+      const recipientLabel = selectedGuardian
+        ? `${selectedGuardian.firstName} ${selectedGuardian.lastName}`.trim()
+        : normalizePhoneNumber(selectedPhoneNumber);
       toast({
-        title: 'Receipt SMS sent',
-        description: `The payment receipt was sent to ${selectedGuardian ? `${selectedGuardian.firstName} ${selectedGuardian.lastName}`.trim() : normalizePhoneNumber(selectedPhoneNumber)}.`,
+        title: successTitle,
+        description: `${successMessageLabel} was sent to ${recipientLabel}.`,
       });
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to send payment receipt SMS:', error);
+      console.error('Failed to send SMS:', error);
       setSubmissionError(
         error instanceof Error
           ? error.message
-          : 'The receipt SMS could not be sent. Your message has been preserved.',
+          : 'The SMS could not be sent. Your message has been preserved.',
       );
     } finally {
       setIsSending(false);
@@ -166,20 +188,20 @@ export function PaymentReceiptSmsDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-lg gap-3">
         <DialogHeader className="pr-8">
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-              <MessageSquareText className="h-5 w-5" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <MessageSquareText className="h-4 w-4" />
             </span>
-            Send payment receipt SMS
+            {dialogTitle}
           </DialogTitle>
-          <DialogDescription>
-            Review the recipient and edit the receipt below. The SMS is sent only after you select Send receipt.
-          </DialogDescription>
+          {effectiveDialogDescription && (
+            <DialogDescription>{effectiveDialogDescription}</DialogDescription>
+          )}
         </DialogHeader>
 
-        <div className="space-y-5">
+        <div className="space-y-3">
           {submissionError && (
             <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
               {submissionError}
@@ -187,54 +209,63 @@ export function PaymentReceiptSmsDialog({
           )}
 
           <fieldset className="space-y-2">
-            <legend className="text-sm font-semibold text-slate-900">Send to</legend>
-            <RadioGroup value={recipientChoice} onValueChange={(value) => {
-              setRecipientChoice(value);
-              setSubmissionError(null);
-            }}>
-              {guardians.map((guardian, index) => {
-                const value = `guardian-${index}`;
-                const selected = recipientChoice === value;
-                const guardianName = `${guardian.firstName || ''} ${guardian.lastName || ''}`.trim() || `Guardian ${index + 1}`;
+            <legend className="sr-only">Send to</legend>
+            <span className="block text-sm font-semibold text-slate-900">Send to</span>
 
-                return (
-                  <Label
-                    key={guardian.id || value}
-                    htmlFor={`receipt-sms-${value}`}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${
-                      selected ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <RadioGroupItem id={`receipt-sms-${value}`} value={value} />
-                    <UserRound className="h-4 w-4 flex-none text-slate-500" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-slate-900">
-                        Guardian {index + 1}{index === 0 ? ' (default)' : ''} · {guardianName}
-                      </span>
-                      <span className="block truncate text-xs font-normal text-slate-600">
-                        {guardian.relationship ? `${guardian.relationship} · ` : ''}{guardian.phone || 'No phone number saved'}
-                      </span>
-                    </span>
-                  </Label>
-                );
-              })}
+            <div className="flex items-start gap-2">
+              <RadioGroup
+                value={recipientChoice}
+                onValueChange={(value) => {
+                  setRecipientChoice(value);
+                  setSubmissionError(null);
+                }}
+                className="grid min-w-0 flex-1 grid-cols-2 gap-2"
+              >
+                {guardians.map((guardian, index) => {
+                  const value = `guardian-${index}`;
+                  const selected = recipientChoice === value;
 
-              <Label
-                htmlFor="receipt-sms-custom-number"
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors ${
+                  return (
+                    <Label
+                      key={guardian.id || value}
+                      htmlFor={`receipt-sms-${value}`}
+                      className={`flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors ${
+                        selected ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <RadioGroupItem id={`receipt-sms-${value}`} value={value} />
+                      <UserRound className="h-3.5 w-3.5 flex-none text-slate-500" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-semibold capitalize text-slate-900">
+                          {guardian.relationship || 'Guardian'}
+                        </span>
+                        <span className="block truncate text-[11px] font-normal text-slate-600">
+                          {guardian.phone || 'No number saved'}
+                        </span>
+                      </span>
+                    </Label>
+                  );
+                })}
+              </RadioGroup>
+
+              <button
+                type="button"
+                aria-label="Add phone number"
+                aria-pressed={recipientChoice === CUSTOM_NUMBER_VALUE}
+                title="Add phone number"
+                onClick={() => {
+                  setRecipientChoice(CUSTOM_NUMBER_VALUE);
+                  setSubmissionError(null);
+                }}
+                className={`inline-flex h-[42px] w-[42px] flex-none items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                   recipientChoice === CUSTOM_NUMBER_VALUE
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : 'border-slate-200 hover:border-emerald-300 hover:bg-slate-50'
+                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    : 'border-slate-300 bg-white text-slate-600 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700'
                 }`}
               >
-                <RadioGroupItem id="receipt-sms-custom-number" value={CUSTOM_NUMBER_VALUE} />
-                <Phone className="h-4 w-4 flex-none text-slate-500" />
-                <span>
-                  <span className="block text-sm font-semibold text-slate-900">Use a different number</span>
-                  <span className="block text-xs font-normal text-slate-600">Type a number for this receipt only</span>
-                </span>
-              </Label>
-            </RadioGroup>
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
 
             {recipientChoice !== CUSTOM_NUMBER_VALUE && !phoneIsValid && (
               <p role="status" className="text-xs text-amber-800">
@@ -243,21 +274,26 @@ export function PaymentReceiptSmsDialog({
             )}
 
             {recipientChoice === CUSTOM_NUMBER_VALUE && (
-              <div className="space-y-1.5 pl-0 sm:pl-7">
-                <Label htmlFor="receipt-sms-phone">Phone number</Label>
-                <Input
-                  id="receipt-sms-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  placeholder="e.g. 0772 123 456 or +256 772 123 456"
-                  value={customNumber}
-                  onChange={(event) => {
-                    setCustomNumber(event.target.value);
-                    setSubmissionError(null);
-                  }}
-                  aria-invalid={customNumber.length > 0 && !phoneIsValid}
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="receipt-sms-phone" className="sr-only">Phone number</Label>
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50/60 px-2">
+                  <Phone className="h-4 w-4 flex-none text-emerald-700" />
+                  <Input
+                    id="receipt-sms-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    autoFocus
+                    placeholder="Enter phone number"
+                    value={customNumber}
+                    onChange={(event) => {
+                      setCustomNumber(event.target.value);
+                      setSubmissionError(null);
+                    }}
+                    aria-invalid={customNumber.length > 0 && !phoneIsValid}
+                    className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                  />
+                </div>
                 {customNumber.length > 0 && !phoneIsValid && (
                   <p className="text-xs text-red-700">Enter a valid phone number, including the country code for numbers outside Uganda.</p>
                 )}
@@ -267,7 +303,7 @@ export function PaymentReceiptSmsDialog({
 
           <div className="space-y-2">
             <div className="flex items-end justify-between gap-3">
-              <Label htmlFor="receipt-sms-message" className="font-semibold text-slate-900">Receipt message</Label>
+              <Label htmlFor="receipt-sms-message" className="font-semibold text-slate-900">{messageLabel}</Label>
               <span className="text-xs text-slate-500">
                 {trimmedMessage.length} characters · about {estimatedSegments} SMS
               </span>
@@ -279,7 +315,7 @@ export function PaymentReceiptSmsDialog({
                 setMessage(event.target.value);
                 setSubmissionError(null);
               }}
-              className="min-h-36 resize-y leading-relaxed"
+              className="min-h-28 resize-y leading-relaxed"
               aria-invalid={!trimmedMessage}
             />
             <p className="text-xs text-slate-500">You can change any wording before sending.</p>
@@ -299,12 +335,12 @@ export function PaymentReceiptSmsDialog({
             {isSending ? (
               <>
                 <Loader2 className="animate-spin" />
-                Sending receipt…
+                {sendingLabel}
               </>
             ) : (
               <>
                 <Send />
-                Send receipt
+                {sendButtonLabel}
               </>
             )}
           </Button>
