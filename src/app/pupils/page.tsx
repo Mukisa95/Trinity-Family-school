@@ -119,6 +119,43 @@ interface HouseAssignment {
 type SortField = 'name' | 'age' | 'class' | 'gender' | 'status';
 type SortOrder = 'asc' | 'desc';
 
+const normalizeGuardianIdentity = (value?: string) =>
+  (value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const getGuardianIdentityKeys = (guardian: Guardian) => {
+  const keys = new Set<string>();
+  const id = normalizeGuardianIdentity(guardian.id);
+  const phone = normalizeGuardianIdentity(guardian.phone);
+  const secondaryPhone = normalizeGuardianIdentity(guardian.secondaryPhone);
+  const nationalId = normalizeGuardianIdentity(guardian.nationalId);
+  const email = normalizeGuardianIdentity(guardian.email);
+  const name = normalizeGuardianIdentity(`${guardian.firstName || ''}${guardian.lastName || ''}`);
+
+  if (id) keys.add(`id:${id}`);
+  if (phone) keys.add(`phone:${phone}`);
+  if (secondaryPhone) keys.add(`phone:${secondaryPhone}`);
+  if (nationalId) keys.add(`national-id:${nationalId}`);
+  if (email) keys.add(`email:${email}`);
+  if (name) keys.add(`name:${name}`);
+
+  return keys;
+};
+
+const pupilsShareGuardian = (left: Pupil, right: Pupil) => {
+  const leftGuardians = left.guardians || [];
+  const rightGuardians = right.guardians || [];
+  if (leftGuardians.length === 0 || rightGuardians.length === 0) return false;
+
+  const leftKeys = new Set<string>();
+  leftGuardians.forEach((guardian) => {
+    getGuardianIdentityKeys(guardian).forEach((key) => leftKeys.add(key));
+  });
+
+  return rightGuardians.some((guardian) =>
+    Array.from(getGuardianIdentityKeys(guardian)).some((key) => leftKeys.has(key)),
+  );
+};
+
 interface Filters {
   classId: string;
   gender: string;
@@ -3081,6 +3118,233 @@ function PupilsContent() {
     });
   }, []);
 
+  const renderPupilSupportingCells = (
+    rowPupil: Pupil,
+    options: { hideFamilyControls?: boolean } = {},
+  ) => {
+    const rowSiblings = getSiblings(rowPupil);
+    const guardianCount = rowPupil.guardians?.length || 0;
+    const siblingCount = rowSiblings.length;
+
+    return (
+      <>
+        <td className="hidden px-4 py-3 sm:table-cell">
+          <div className="text-sm">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={`text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-600 text-left font-medium transition-colors hover:underline`}>
+                  {getPupilClass(rowPupil).code || getPupilClass(rowPupil).name || 'N/A'}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Class Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push(`/class-detail?id=${rowPupil.classId}`)}>
+                  <Settings className="mr-2 h-4 w-4 text-blue-600" />
+                  View Class Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePupilClassChange(rowPupil)}>
+                  <Edit className="mr-2 h-4 w-4 text-orange-600" />
+                  Change Class
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="mt-0.5">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="block text-left text-xs capitalize text-gray-500 transition-colors hover:text-indigo-600 hover:underline">
+                    {rowPupil.section}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-40">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Change Section</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handlePupilSectionChange(rowPupil, 'Day')}
+                    className={rowPupil.section === 'Day' ? 'bg-blue-50' : ''}
+                  >
+                    Day
+                    {rowPupil.section === 'Day' && <span className="ml-auto text-blue-600">✓</span>}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handlePupilSectionChange(rowPupil, 'Boarding')}
+                    className={rowPupil.section === 'Boarding' ? 'bg-purple-50' : ''}
+                  >
+                    Boarding
+                    {rowPupil.section === 'Boarding' && <span className="ml-auto text-purple-600">✓</span>}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </td>
+
+        <td className="hidden px-4 py-3 lg:table-cell">
+          <div className="text-sm">
+            {rowPupil.additionalIdentifiers && rowPupil.additionalIdentifiers.length > 0 ? (
+              <div className="flex flex-col gap-0.5">
+                {rowPupil.additionalIdentifiers.map((identifier, index) => {
+                  let prefix = identifier.idType;
+                  const lowerType = prefix.toLowerCase();
+                  if (lowerType.includes('lin') || lowerType === 'lin') prefix = 'LIN';
+                  else if (lowerType.includes('index')) prefix = 'IN';
+                  else if (lowerType.includes('schoolpay') || lowerType.includes('pay code')) prefix = 'SP';
+
+                  return (
+                    <div key={`${identifier.idType}-${index}`} className="whitespace-nowrap font-mono text-xs text-gray-600">
+                      <span className="inline-block w-8 font-semibold text-gray-800">{prefix}:</span>
+                      <span className="ml-1 text-gray-700">{identifier.idValue}</span>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => handleManageIdCodes(rowPupil)}
+                  className="mt-1 flex items-center gap-1 self-start text-[10px] font-medium text-indigo-500 transition-colors hover:text-indigo-700 hover:underline"
+                >
+                  <Edit className="h-3 w-3" /> Edit
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleManageIdCodes(rowPupil)}
+                className="text-xs font-medium text-gray-400 transition-colors hover:text-indigo-600"
+              >
+                <span className="flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" />
+                  Add codes
+                </span>
+              </button>
+            )}
+          </div>
+        </td>
+
+        <td className="hidden px-4 py-3 md:table-cell">
+          {options.hideFamilyControls ? (
+            <span className="text-xs text-gray-300" title="Shares a guardian with the expanded pupil">—</span>
+          ) : guardianCount === 0 && siblingCount === 0 ? (
+            <span className="text-xs text-gray-400">—</span>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {guardianCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPupilGuardians({
+                    pupil: rowPupil,
+                    pupilName: formatPupilDisplayName(rowPupil),
+                    guardians: rowPupil.guardians || [],
+                    emergencyContactId: rowPupil.emergencyContactGuardianId || '',
+                  })}
+                  className="text-xs text-blue-700 transition-colors hover:text-blue-900 hover:underline"
+                >
+                  {guardianCount} guardian{guardianCount !== 1 ? 's' : ''}
+                </button>
+              )}
+              {guardianCount > 0 && siblingCount > 0 && <span className="text-xs text-gray-300">•</span>}
+              {siblingCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedPupilSiblings({
+                    pupil: rowPupil,
+                    pupilName: formatPupilDisplayName(rowPupil),
+                    siblings: rowSiblings,
+                  })}
+                  className="text-xs text-green-700 transition-colors hover:text-green-900 hover:underline"
+                >
+                  {siblingCount} sibling{siblingCount !== 1 ? 's' : ''}
+                </button>
+              )}
+            </div>
+          )}
+        </td>
+
+        <td className="px-2 py-2 text-center sm:px-4 sm:py-3 sm:text-left">
+          {rowSiblings.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setSelectedFamilyPupil(rowPupil)}
+              className="group/fees inline-flex items-center justify-center rounded-lg border border-emerald-200/50 bg-emerald-50 p-1.5 text-emerald-700 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 active:scale-95"
+              title="View Family / Sibling Fees Options"
+              aria-label={`View fees options for ${formatPupilDisplayName(rowPupil)}`}
+            >
+              <span className="text-[11px] font-bold text-teal-600 transition-transform duration-200 group-hover/fees:scale-110">Shs.</span>
+            </button>
+          ) : (
+            <Link
+              href={`/fees/collect/${rowPupil.id}`}
+              className="group/fees inline-flex items-center justify-center rounded-lg border border-emerald-200/50 bg-emerald-50 p-1.5 text-emerald-700 shadow-sm transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-800 active:scale-95"
+              title="Collect Fees"
+              aria-label={`Collect fees for ${formatPupilDisplayName(rowPupil)}`}
+            >
+              <span className="text-[11px] font-bold transition-transform duration-200 group-hover/fees:scale-110">Shs.</span>
+            </Link>
+          )}
+        </td>
+
+        <td className="px-2 py-2 text-right text-xs font-medium uppercase tracking-wider text-indigo-500 sm:px-4 sm:py-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={`group inline-flex items-center justify-center rounded-lg p-1.5 text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:text-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:bg-${rowPupil.gender === 'Female' ? 'pink' : 'indigo'}-50/50 transition-all duration-200`}
+                title="Actions"
+                aria-label={`Actions for ${formatPupilDisplayName(rowPupil)}`}
+              >
+                <Settings className="h-4 w-4 transition-transform duration-300 group-hover:rotate-45" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">Pupil Management</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => {
+                if (rowSiblings.length > 0) setSelectedFamilyPupil(rowPupil);
+                else window.location.href = `/fees/collect/${rowPupil.id}`;
+              }}>
+                <span className="mr-2 pt-0.5 text-[11px] font-bold text-emerald-600">Shs.</span>
+                Collect Fees
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditName(rowPupil)}>
+                <User className="mr-2 h-4 w-4 text-purple-600" />
+                Edit Name
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { window.location.href = `/pupils/edit?id=${rowPupil.id}`; }}>
+                <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                Edit Pupil Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange(rowPupil)}>
+                <Shield className="mr-2 h-4 w-4 text-orange-600" />
+                Change Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleManageIdCodes(rowPupil)}>
+                <CreditCard className="mr-2 h-4 w-4 text-green-600" />
+                ID Codes
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleManagePayCode(rowPupil)}>
+                <Tag className="mr-2 h-4 w-4 text-emerald-600" />
+                Pay Code (SchoolPay)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleRegisterSibling(rowPupil)}>
+                <UserPlus className="mr-2 h-4 w-4 text-green-600" />
+                Register New Sibling
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleLinkSiblings(rowPupil)}>
+                <UserPlus className="mr-2 h-4 w-4 text-blue-600" />
+                Link Existing as Sibling
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleDeletePupil(rowPupil)}>
+                <Trash2 className="mr-2 h-4 w-4 text-red-600" />
+                Delete Pupil
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </td>
+      </>
+    );
+  };
+
   return (
     <div className="min-h-screen">
       {/* Background fetching indicator - Fixed at top */}
@@ -3885,97 +4149,75 @@ function PupilsContent() {
                             </DropdownMenu>
                           </td>
                           </motion.tr>
-                          {isFamilyExpanded && (
-                            <tr id={familyTreeId} className="bg-emerald-50/30">
-                            <td colSpan={6} className="p-0">
-                              <div
-                                role="group"
-                                aria-label={`Family members of ${formatPupilDisplayName(pupil)}`}
-                                className="relative border-y border-emerald-100 bg-gradient-to-r from-emerald-50/90 via-teal-50/45 to-white px-3 py-3 sm:px-5"
+                          {isFamilyExpanded && familySiblings.map((sibling, siblingIndex) => {
+                            const siblingHouse = getPupilHouse(sibling);
+                            const sharesGuardianWithAnchor = pupilsShareGuardian(pupil, sibling);
+                            const isLastSibling = siblingIndex === familySiblings.length - 1;
+
+                            return (
+                              <tr
+                                key={`${pupil.id}-family-row-${sibling.id}`}
+                                id={siblingIndex === 0 ? familyTreeId : undefined}
+                                className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50/80 via-teal-50/30 to-white transition-colors hover:bg-emerald-50"
                               >
-                                <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 pl-7 sm:pl-12">
-                                  <div className="flex min-w-0 items-center gap-2">
-                                    <span className="inline-flex h-7 w-7 flex-none items-center justify-center rounded-full bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                                      <LucideUsers aria-hidden="true" className="h-4 w-4" />
-                                    </span>
-                                    <div className="min-w-0">
-                                      <p className="truncate text-xs font-semibold text-emerald-950 sm:text-sm">
-                                        Same family as {formatPupilDisplayName(pupil)}
-                                      </p>
-                                      <p className="text-[11px] text-emerald-700/80">
-                                        {familySiblings.length} linked sibling{familySiblings.length === 1 ? '' : 's'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <span className="rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                                    Family branch
-                                  </span>
-                                </div>
-
-                                <div className="relative">
-                                  <span aria-hidden="true" className="absolute bottom-5 left-[0.95rem] top-0 w-px bg-emerald-200 sm:left-[2.2rem]" />
-                                  <ul className="space-y-1.5 pl-7 sm:pl-12">
-                                    {familySiblings.map((sibling) => {
-                                      const siblingClass = getPupilClass(sibling);
-                                      const siblingInitials = `${sibling.firstName?.[0] || ''}${sibling.lastName?.[0] || ''}` || 'P';
-
-                                      return (
-                                        <li key={sibling.id} className="relative">
-                                        <span aria-hidden="true" className="absolute -left-[1.8rem] top-1/2 h-px w-7 bg-emerald-200 sm:-left-[2.8rem] sm:w-11" />
+                                <td className="relative py-2 pl-8 pr-2 sm:py-3 sm:pl-12 sm:pr-4">
+                                  <span
+                                    aria-hidden="true"
+                                    className={`absolute left-3 top-0 w-px bg-emerald-300 sm:left-5 ${isLastSibling ? 'h-1/2' : 'bottom-0'}`}
+                                  />
+                                  <span aria-hidden="true" className="absolute left-3 top-1/2 h-px w-4 bg-emerald-300 sm:left-5 sm:w-5" />
+                                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                                    <PupilPhotoDetail
+                                      pupilPhoto={sibling.photo}
+                                      pupilName={formatPupilDisplayName(sibling)}
+                                      onPhotoChange={(photoData) => handlePhotoUpdate(sibling.id, photoData)}
+                                      className="h-8 w-8 flex-none sm:h-10 sm:w-10"
+                                      ringColor={siblingHouse?.themeColor}
+                                      isLoading={photosLoading && !sibling.photo}
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                                         <Link
                                           href={`/pupil-detail?id=${sibling.id}`}
-                                          className="group flex min-h-12 items-center gap-2.5 rounded-lg border border-emerald-100 bg-white/95 px-2.5 py-2 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 sm:gap-3 sm:px-3"
+                                          className={`min-w-0 truncate text-xs font-semibold transition-colors sm:text-sm text-${sibling.gender === 'Female' ? 'pink' : 'indigo'}-700 hover:text-${sibling.gender === 'Female' ? 'pink' : 'indigo'}-900 hover:underline`}
                                         >
-                                          <Avatar className="h-8 w-8 flex-none border border-emerald-100 sm:h-9 sm:w-9">
-                                            {sibling.photo?.trim() && (
-                                              <AvatarImage
-                                                src={sibling.photo}
-                                                alt=""
-                                                className="object-cover"
-                                              />
-                                            )}
-                                            <AvatarFallback className="bg-emerald-100 text-[10px] font-semibold text-emerald-800">
-                                              {siblingInitials}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div className="min-w-0 flex-1">
-                                            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                              <span className="truncate text-xs font-semibold text-gray-900 transition-colors group-hover:text-emerald-800 sm:text-sm">
-                                                {formatPupilDisplayName(sibling)}
-                                              </span>
-                                              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                                                Sibling
-                                              </span>
-                                            </div>
-                                            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] text-gray-500 sm:text-xs">
-                                              <span>{siblingClass.code || siblingClass.name || 'Class N/A'}</span>
-                                              <span aria-hidden="true" className="text-emerald-300">•</span>
-                                              <span>{sibling.admissionNumber || sibling.learnerIdentificationNumber || 'No admission number'}</span>
-                                              {sibling.section && (
-                                                <>
-                                                  <span aria-hidden="true" className="text-emerald-300">•</span>
-                                                  <span>{sibling.section}</span>
-                                                </>
-                                              )}
-                                            </div>
-                                          </div>
-                                          <span className={`flex-none rounded-full px-2 py-0.5 text-[9px] font-semibold sm:text-[10px] ${sibling.status === 'Active'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-gray-100 text-gray-700'
-                                            }`}>
-                                            {sibling.status || 'Unknown'}
-                                          </span>
-                                          <ChevronRight aria-hidden="true" className="hidden h-4 w-4 flex-none text-emerald-400 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none sm:block" />
+                                          {formatPupilDisplayName(sibling)}
                                         </Link>
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                </div>
-                              </div>
-                            </td>
-                            </tr>
-                          )}
+                                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-800 ring-1 ring-inset ring-emerald-200">
+                                          Sibling
+                                        </span>
+                                        {!sharesGuardianWithAnchor && (
+                                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
+                                            Different guardian
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] text-gray-500 sm:text-xs">
+                                        <span>{sibling.learnerIdentificationNumber || sibling.admissionNumber || 'No admission number'}</span>
+                                        <span aria-hidden="true" className="text-emerald-300">•</span>
+                                        <span>{sibling.gender || 'N/A'}</span>
+                                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                                          {sibling.status || 'Unknown'}
+                                        </span>
+                                        {sibling.dateOfBirth && (
+                                          <>
+                                            <span aria-hidden="true" className="text-emerald-300">•</span>
+                                            <span>{calculateAgeAbbreviated(sibling.dateOfBirth)}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 sm:hidden">
+                                        <span>{getPupilClass(sibling).code || getPupilClass(sibling).name || 'Class N/A'}</span>
+                                        {sibling.section && <span>• {sibling.section}</span>}
+                                        {getSchoolPayCode(sibling) && <span>• SP: {getSchoolPayCode(sibling)}</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                {renderPupilSupportingCells(sibling, { hideFamilyControls: sharesGuardianWithAnchor })}
+                              </tr>
+                            );
+                          })}
                         </React.Fragment>
                       );
                     })

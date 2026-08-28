@@ -128,6 +128,7 @@ interface SearchFamilyBranchProps {
   siblings: Pupil[];
   classes?: Class[];
   onSelectPupil: (pupilId: string, navigateImmediately?: boolean) => void;
+  onSelectFees: (pupilId: string) => void;
 }
 
 function SearchFamilyBranch({
@@ -136,6 +137,7 @@ function SearchFamilyBranch({
   siblings,
   classes,
   onSelectPupil,
+  onSelectFees,
 }: SearchFamilyBranchProps) {
   return (
     <div
@@ -164,39 +166,62 @@ function SearchFamilyBranch({
             return (
               <li key={sibling.id} className="relative">
                 <span aria-hidden="true" className="absolute -left-3.5 top-1/2 h-px w-3.5 bg-emerald-200" />
-                <button
-                  type="button"
-                  onPointerUp={(event) => {
-                    event.stopPropagation();
-                    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-                      onSelectPupil(sibling.id, true);
-                    }
-                  }}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    const pointerType = (event.nativeEvent as PointerEvent).pointerType;
-                    if (pointerType !== 'touch' && pointerType !== 'pen') {
-                      onSelectPupil(sibling.id);
-                    }
-                  }}
-                  className="flex min-h-11 w-full items-center gap-2 rounded-md border border-emerald-100 bg-white/95 px-2 py-1.5 text-left shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
-                >
-                  <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-gray-800">
-                      {formatPupilDisplayName(sibling)}
+                <div className="flex min-h-11 items-center gap-1.5 rounded-md border border-emerald-100 bg-white/95 p-1.5 shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50">
+                  <button
+                    type="button"
+                    onPointerUp={(event) => {
+                      event.stopPropagation();
+                      if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                        onSelectPupil(sibling.id, true);
+                      }
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                      if (pointerType !== 'touch' && pointerType !== 'pen') {
+                        onSelectPupil(sibling.id);
+                      }
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded px-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                  >
+                    <UserCircle aria-hidden="true" size={16} weight="duotone" className="flex-none text-emerald-600" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-semibold text-gray-800">
+                        {formatPupilDisplayName(sibling)}
+                      </span>
+                      <span className="block truncate text-[10px] text-gray-500">
+                        {classDisplay} • {sibling.admissionNumber || 'No admission number'}
+                      </span>
                     </span>
-                    <span className="block truncate text-[10px] text-gray-500">
-                      {classDisplay} • {sibling.admissionNumber || 'No admission number'}
+                    <span className={`flex-none rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                      }`}>
+                      {sibling.status || 'Unknown'}
                     </span>
-                  </span>
-                  <span className={`flex-none rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${sibling.status === 'Active'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-600'
-                    }`}>
-                    {sibling.status || 'Unknown'}
-                  </span>
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    onPointerUp={(event) => {
+                      event.stopPropagation();
+                      if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                        onSelectFees(sibling.id);
+                      }
+                    }}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      const pointerType = (event.nativeEvent as PointerEvent).pointerType;
+                      if (pointerType !== 'touch' && pointerType !== 'pen') {
+                        onSelectFees(sibling.id);
+                      }
+                    }}
+                    aria-label={`View fees for ${formatPupilDisplayName(sibling)}`}
+                    title="View Fees"
+                    className="inline-flex flex-none whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                  >
+                    Shs.
+                  </button>
+                </div>
               </li>
             );
           })}
@@ -675,6 +700,12 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
     }
   };
 
+  const handlePupilFeesSelect = (pupilId: string) => {
+    setShowResults(false);
+    setShowMobileSearch(false);
+    router.push(`/fees/collect/${pupilId}`);
+  };
+
   // Collapse results on page navigation
   useEffect(() => {
     setShowResults(false);
@@ -962,6 +993,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                     siblings={siblings}
                                     classes={classes}
                                     onSelectPupil={handlePupilSelect}
+                                    onSelectFees={handlePupilFeesSelect}
                                   />
                                 )}
                               </React.Fragment>
@@ -1339,6 +1371,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                                       siblings={siblings}
                                       classes={classes}
                                       onSelectPupil={handlePupilSelect}
+                                      onSelectFees={handlePupilFeesSelect}
                                     />
                                   )}
                                 </React.Fragment>
