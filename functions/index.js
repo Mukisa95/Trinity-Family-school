@@ -97,8 +97,18 @@ function isExcludedDate(date, academicYear, excludedDays) {
   });
 }
 
-function activeAcademicYear(years, date) {
-  return years.find((year) => year.isActive) || years.find((year) => date >= String(year.startDate).slice(0, 10) && date <= String(year.endDate).slice(0, 10)) || null;
+function academicDateValue(value) {
+  if (typeof value === "string") return value.slice(0, 10);
+  if (value && typeof value.toDate === "function") return value.toDate().toISOString().slice(0, 10);
+  return "";
+}
+
+function academicYearForTermDate(years, date) {
+  return years.find((year) => Array.isArray(year.terms) && year.terms.some((term) => {
+    const startDate = academicDateValue(term?.startDate);
+    const endDate = academicDateValue(term?.endDate);
+    return startDate && endDate && date >= startDate && date <= endDate;
+  })) || null;
 }
 
 function reminderBody(classNames) {
@@ -176,9 +186,9 @@ exports.attendanceReminderDispatcher = onSchedule(
       db.collection("system_users").get(),
     ]);
     const years = academicSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
-    const academicYear = activeAcademicYear(years, clock.date);
+    const academicYear = academicYearForTermDate(years, clock.date);
     const excludedDays = excludedSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
-    if (reminderSettings.schoolDaysOnly !== false && isExcludedDate(clock.date, academicYear, excludedDays)) {
+    if (!academicYear || isExcludedDate(clock.date, academicYear, excludedDays)) {
       return logger.info("Attendance reminder dispatcher skipped: excluded school date.", {date: clock.date});
     }
 
@@ -407,7 +417,7 @@ async function planAttendanceRemindersForDate(date, {now = new Date(), reason = 
   const currentPlan = planSnapshot.exists ? planSnapshot.data() || {} : null;
   const sameConfiguration = currentPlan?.settingsFingerprint === fingerprint;
   const years = academicSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
-  const academicYear = activeAcademicYear(years, date);
+  const academicYear = academicYearForTermDate(years, date);
   const excludedDays = excludedSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
 
   if (!config.enabled) {
@@ -423,11 +433,11 @@ async function planAttendanceRemindersForDate(date, {now = new Date(), reason = 
     return {status: "disabled", date};
   }
 
-  if (config.schoolDaysOnly && (!academicYear || isExcludedDate(date, academicYear, excludedDays))) {
+  if (!academicYear || isExcludedDate(date, academicYear, excludedDays)) {
     await writeAttendanceReminderPlanState(planRef, currentPlan, {
       date,
       status: "skipped",
-      reason: academicYear ? "Excluded school date." : "Outside the active academic year.",
+      reason: academicYear ? "Excluded school date." : "Outside an active academic term.",
       settingsFingerprint: fingerprint,
       times: config.times,
       schoolDaysOnly: config.schoolDaysOnly,
@@ -618,6 +628,25 @@ exports.attendanceReminderTask = onTaskDispatched(
     });
     if (!claim.claimed) {
       logger.info("Attendance reminder task skipped.", {date, slot, reason: claim.reason});
+      return;
+    }
+
+    // Re-check the live calendar at execution time. An administrator may add
+    // an excluded day after this task was planned but before its send time.
+    const [academicSnapshot, excludedSnapshot] = await Promise.all([
+      db.collection("academicYears").get(),
+      db.collection("excludedDays").get(),
+    ]);
+    const liveAcademicYears = academicSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+    const liveAcademicYear = academicYearForTermDate(liveAcademicYears, date);
+    const liveExcludedDays = excludedSnapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+    if (!liveAcademicYear || isExcludedDate(date, liveAcademicYear, liveExcludedDays)) {
+      await runRef.set({
+        status: "skipped",
+        reason: liveAcademicYear ? "Excluded school date." : "Outside an active academic term.",
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      logger.info("Attendance reminder task skipped after live calendar check.", {date, slot});
       return;
     }
 

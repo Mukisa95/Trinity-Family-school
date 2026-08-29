@@ -14,6 +14,7 @@ import {
   nextSmsRunAt,
   type SmsScheduleType,
 } from '@/lib/scheduler/schedule-times';
+import { findAcademicYearForTermDate } from '@/lib/scheduler/academic-term-status';
 import { SCHEDULED_DISPATCH_QUEUE } from '@/lib/server/scheduled-dispatch-queue';
 
 export const dynamic = 'force-dynamic';
@@ -43,12 +44,6 @@ function dateValue(value: unknown): string {
     return (value as { toDate: () => Date }).toDate().toISOString().slice(0, 10);
   }
   return '';
-}
-
-function activeAcademicYear(years: Array<Record<string, unknown>>, date: string) {
-  return years.find(year => year.isActive === true)
-    || years.find(year => date >= dateValue(year.startDate) && date <= dateValue(year.endDate))
-    || null;
 }
 
 function isExcludedDate(
@@ -226,17 +221,26 @@ async function dispatchAttendance(
     now,
     settings.attendanceReminders.schoolDaysOnly,
   );
-  if (settings.attendanceReminders.schoolDaysOnly) {
-    const [yearsSnapshot, excludedSnapshot] = await Promise.all([
-      db.collection('academicYears').get(),
-      db.collection('excludedDays').get(),
-    ]);
-    const years = yearsSnapshot.docs.map(document => ({ id: document.id, ...document.data() }));
-    const excluded = excludedSnapshot.docs.map(document => ({ id: document.id, ...document.data() }));
-    const academicYear = activeAcademicYear(years, date);
-    if (!academicYear || isExcludedDate(date, academicYear, excluded)) {
-      return { terminal: false, nextRunAt, skipped: true, reason: 'Not an active school day.' };
-    }
+
+  // Attendance reminders are only meaningful while a term is in session.
+  // Recess dates can still fall inside an "active" academic year, so the year
+  // flag or the overall year boundaries must never be used as the send guard.
+  const [yearsSnapshot, excludedSnapshot] = await Promise.all([
+    db.collection('academicYears').get(),
+    db.collection('excludedDays').get(),
+  ]);
+  const years = yearsSnapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+  const academicYear = findAcademicYearForTermDate(years, date);
+  if (!academicYear) {
+    return { terminal: false, nextRunAt, skipped: true, reason: 'Not within an active academic term.' };
+  }
+
+  // A configured exclusion is authoritative even when "school days only" is
+  // disabled. That preference may alter recurrence, but it must never permit a
+  // reminder on a holiday or another explicitly excluded date.
+  const excluded = excludedSnapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+  if (isExcludedDate(date, academicYear, excluded)) {
+    return { terminal: false, nextRunAt, skipped: true, reason: 'Excluded school date.' };
   }
 
   const [classesSnapshot, summarySnapshot, usersSnapshot] = await Promise.all([
