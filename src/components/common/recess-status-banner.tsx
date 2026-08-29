@@ -16,10 +16,7 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
     isInRecess,
     isHoliday,
     shouldShowPreviousTermData,
-    periodMessage,
-    detailedMessage,
     recessInfo,
-    currentTerm,
     previousTerm,
     nextTerm,
     academicYears,
@@ -28,35 +25,24 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
 
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Use the detailed message for better display
-  const displayMessage = detailedMessage?.message || periodMessage;
-
-  // Create a compact, direct message
+  // Keep the collapsed banner short while retaining the full details below.
   const compactMessage = React.useMemo(() => {
-    if (!previousTerm) return displayMessage;
-
-    const termEndDate = previousTerm.endDate ? new Date(previousTerm.endDate) : null;
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    let whenEnded = '';
-    if (termEndDate) {
-      if (termEndDate.toDateString() === today.toDateString()) {
-        whenEnded = 'today';
-      } else if (termEndDate.toDateString() === yesterday.toDateString()) {
-        whenEnded = 'yesterday';
-      } else {
-        whenEnded = `on ${termEndDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
-      }
+    if (!nextTerm?.startDate) {
+      return 'Term Recess · Next term date pending';
     }
 
-    const nextTermStart = nextTerm?.startDate ?
-      new Date(nextTerm.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) :
-      'TBD';
+    const nextTermDate = new Date(nextTerm.startDate).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const daysUntilNextTerm = Math.max(0, recessInfo.daysUntilNextTerm || 0);
+    const countdown = daysUntilNextTerm === 0
+      ? 'today'
+      : `in ${daysUntilNextTerm} day${daysUntilNextTerm === 1 ? '' : 's'}`;
 
-    return `${previousTerm.name} has ended ${whenEnded} and holidays have begun. Next term starts ${nextTermStart}.`;
-  }, [previousTerm, nextTerm, displayMessage]);
+    return `Term Recess · Next term starts ${countdown} (${nextTermDate})`;
+  }, [nextTerm, recessInfo.daysUntilNextTerm]);
 
   // Don't show banner if academic years haven't loaded yet,
   // or if we're confirmed in term (not in recess/holiday).
@@ -68,7 +54,12 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
   }
 
   return (
-    <Alert className={`border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer ${className}`} onClick={() => setIsExpanded(!isExpanded)}>
+    <Alert
+      className={`border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer ${
+        isExpanded ? 'px-4 py-3' : 'px-3 py-2'
+      } ${className}`}
+      onClick={() => setIsExpanded(!isExpanded)}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1">
           <div className="flex-shrink-0">
@@ -79,20 +70,23 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
             )}
           </div>
 
-          <AlertDescription className="text-amber-800 font-medium text-sm">
+          <AlertDescription className="text-xs font-medium leading-snug text-amber-800 sm:text-sm">
             {compactMessage}
           </AlertDescription>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-amber-300 text-amber-700 text-xs">
-            {isInRecess ? 'Recess' : 'Holiday'}
-          </Badge>
+          {isExpanded && (
+            <Badge variant="outline" className="border-amber-300 text-amber-700 text-xs">
+              {isInRecess ? 'Recess' : 'Holiday'}
+            </Badge>
+          )}
 
           <Button
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-200"
+            aria-label={isExpanded ? 'Collapse recess details' : 'Expand recess details'}
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(!isExpanded);

@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Plus, PencilSimple, Trash, Power, FunnelSimple, CaretUp, CaretDown, X, Printer, ChartLine, DotsThree, MagnifyingGlass, Users } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from '@/components/common/glass-page-top-bar';
@@ -432,6 +432,19 @@ function PupilsContent() {
   // 🚀 INSTANT SEARCH: Use cached data when no class is selected
   // This makes search work immediately using cached data from dashboard
   const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [isMobileTopBarSearchOpen, setIsMobileTopBarSearchOpen] = useState(false);
+  const mobileTopBarSearchInputRef = useRef<HTMLInputElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!isMobileTopBarSearchOpen) return;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      mobileTopBarSearchInputRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [isMobileTopBarSearchOpen]);
 
   // 🚀 OPTIMIZED: Always use cached pupils for instant display, filter client-side
   // This is MUCH faster than waiting for class-based queries
@@ -3358,24 +3371,45 @@ function PupilsContent() {
       <RecessStatusBanner />
 
       <GlassPageTopBar
-        title={dynamicHeading}
+        title={
+          <>
+            <span className="hidden lg:inline">{dynamicHeading}</span>
+            <span className="sr-only lg:hidden">Pupils</span>
+          </>
+        }
         backHref="/"
         backLabel="Back to dashboard"
         meta={null}
+        inlineActions
+        contentClassName="overflow-x-auto px-2 sm:px-4 lg:px-8"
+        actionsClassName={`min-w-0 shrink gap-1 lg:flex-none lg:gap-2 ${
+          isMobileTopBarSearchOpen ? 'flex-[999_1_0%]' : 'flex-1'
+        }`}
         titleControls={
-          <div className="lg:hidden">
-            <ClassSelector
-              selectedClassId={selectedClassId}
-              onClassChange={handleClassChangeWithTransition}
-              placeholder="Class"
-              size="sm"
-              showIcon={false}
-              className="shrink-0"
-              triggerClassName="h-[34px] min-w-[104px] max-w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50"
-              includeAllOption={true}
-              allOptionLabel="All Classes"
-            />
-          </div>
+          <AnimatePresence initial={false} mode="popLayout">
+            {!isMobileTopBarSearchOpen && (
+              <motion.div
+                key="mobile-class-selector"
+                initial={{ opacity: 0, transform: prefersReducedMotion ? 'none' : 'translateX(-6px) scale(0.96)' }}
+                animate={{ opacity: 1, transform: 'translateX(0) scale(1)' }}
+                exit={{ opacity: 0, transform: prefersReducedMotion ? 'none' : 'translateX(-6px) scale(0.96)' }}
+                transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+                className="min-w-0 shrink-0 lg:hidden"
+              >
+                <ClassSelector
+                  selectedClassId={selectedClassId}
+                  onClassChange={handleClassChangeWithTransition}
+                  placeholder="Class"
+                  size="sm"
+                  showIcon={false}
+                  className="shrink-0"
+                  triggerClassName="h-[34px] w-[58px] min-w-0 max-w-[58px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 sm:w-[68px] sm:max-w-[68px]"
+                  includeAllOption={true}
+                  allOptionLabel="All"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         }
         center={
           <>
@@ -3399,15 +3433,81 @@ function PupilsContent() {
           </>
         }
         actionsLeading={
-          <GlassPageSearchInput
-            placeholder="Search pupils..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            containerClassName="lg:hidden"
-          />
+          <AnimatePresence initial={false} mode="popLayout">
+            {isMobileTopBarSearchOpen ? (
+              <motion.div
+                key="mobile-pupils-search-field"
+                initial={{ opacity: 0, transform: prefersReducedMotion ? 'none' : 'scaleX(0.35)' }}
+                animate={{ opacity: 1, transform: 'scaleX(1)' }}
+                exit={{ opacity: 0, transform: prefersReducedMotion ? 'none' : 'scaleX(0.35)' }}
+                transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                style={{ transformOrigin: 'right center' }}
+                className="relative flex h-9 min-w-[88px] flex-1 items-center lg:hidden"
+              >
+                <AnimatePresence initial={false}>
+                  {!searchQuery && (
+                    <motion.span
+                      key="mobile-pupils-search-icon"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.12, ease: [0.23, 1, 0.32, 1] }}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-2.5 z-10 flex text-blue-500"
+                    >
+                      <MagnifyingGlass size={14} weight="duotone" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <input
+                  ref={mobileTopBarSearchInputRef}
+                  type="search"
+                  inputMode="search"
+                  value={searchQuery}
+                  onChange={(event) => handleSearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Escape') return;
+                    handleSearch('');
+                    setIsMobileTopBarSearchOpen(false);
+                  }}
+                  placeholder="Search pupils"
+                  aria-label="Search pupils"
+                  className={`h-9 w-full min-w-0 rounded-full border border-blue-300 bg-white/95 py-1 pr-8 text-xs text-slate-800 shadow-sm outline-none transition-[padding,box-shadow,border-color] duration-150 placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/40 [&::-webkit-search-cancel-button]:appearance-none ${
+                    searchQuery ? 'pl-2.5' : 'pl-8'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSearch('');
+                    setIsMobileTopBarSearchOpen(false);
+                  }}
+                  aria-label="Close and clear pupil search"
+                  className="absolute right-0.5 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition-colors duration-150 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.97]"
+                >
+                  <X size={13} weight="bold" />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="mobile-pupils-search-button"
+                type="button"
+                onClick={() => setIsMobileTopBarSearchOpen(true)}
+                initial={{ opacity: 0, transform: prefersReducedMotion ? 'none' : 'scale(0.95)' }}
+                animate={{ opacity: 1, transform: 'scale(1)' }}
+                exit={{ opacity: 0, transform: prefersReducedMotion ? 'none' : 'scale(0.95)' }}
+                transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+                aria-label="Open pupil search"
+                aria-expanded={false}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200/70 bg-white/95 text-blue-600 shadow-sm transition-[color,background-color,transform] duration-150 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-[0.97] lg:hidden motion-reduce:active:transform-none"
+              >
+                <MagnifyingGlass size={15} weight="duotone" />
+              </motion.button>
+            )}
+          </AnimatePresence>
         }
         actions={
-          <GlassActionDock>
+          <GlassActionDock className="flex-nowrap gap-0.5 px-1 sm:gap-1 sm:px-2">
             {pendingPupilsCount > 0 && selectedClassId && selectedClassId !== '' && selectedClassId !== 'all' && (
               <GlassActionButton
                 label="Pending"
