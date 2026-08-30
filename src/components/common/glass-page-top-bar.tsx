@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import {
+  Children,
   forwardRef,
+  isValidElement,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  useEffect,
+  useRef,
+  useState,
 } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,14 +28,29 @@ type GlassActionTone =
   | "rose"
   | "slate";
 
+function useSmallScreen() {
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 639px)");
+    const updateScreenSize = () => setIsSmallScreen(mediaQuery.matches);
+
+    updateScreenSize();
+    mediaQuery.addEventListener("change", updateScreenSize);
+    return () => mediaQuery.removeEventListener("change", updateScreenSize);
+  }, []);
+
+  return isSmallScreen;
+}
+
 const actionToneClasses: Record<GlassActionTone, string> = {
-  blue: "text-blue-600 border-blue-400 hover:from-blue-400 hover:via-blue-500 hover:to-blue-600",
-  emerald: "text-emerald-600 border-emerald-400 hover:from-emerald-400 hover:via-emerald-500 hover:to-emerald-600",
-  purple: "text-purple-600 border-purple-400 hover:from-purple-400 hover:via-violet-500 hover:to-purple-600",
-  orange: "text-orange-600 border-orange-400 hover:from-orange-400 hover:via-amber-500 hover:to-orange-600",
-  violet: "text-violet-600 border-violet-400 hover:from-violet-500 hover:via-purple-500 hover:to-violet-600",
-  rose: "text-rose-600 border-rose-400 hover:from-rose-400 hover:via-pink-500 hover:to-rose-600",
-  slate: "text-slate-600 border-slate-300 hover:from-slate-400 hover:via-slate-500 hover:to-slate-600",
+  blue: "text-blue-600 sm:border-blue-400 sm:hover:from-blue-400 sm:hover:via-blue-500 sm:hover:to-blue-600",
+  emerald: "text-emerald-600 sm:border-emerald-400 sm:hover:from-emerald-400 sm:hover:via-emerald-500 sm:hover:to-emerald-600",
+  purple: "text-purple-600 sm:border-purple-400 sm:hover:from-purple-400 sm:hover:via-violet-500 sm:hover:to-purple-600",
+  orange: "text-orange-600 sm:border-orange-400 sm:hover:from-orange-400 sm:hover:via-amber-500 sm:hover:to-orange-600",
+  violet: "text-violet-600 sm:border-violet-400 sm:hover:from-violet-500 sm:hover:via-purple-500 sm:hover:to-violet-600",
+  rose: "text-rose-600 sm:border-rose-400 sm:hover:from-rose-400 sm:hover:via-pink-500 sm:hover:to-rose-600",
+  slate: "text-slate-600 sm:border-slate-300 sm:hover:from-slate-400 sm:hover:via-slate-500 sm:hover:to-slate-600",
 };
 
 interface GlassPageTopBarProps {
@@ -72,76 +94,190 @@ export function GlassPageTopBar({
   inlineActions = false,
   sticky = true,
 }: GlassPageTopBarProps) {
-  return (
-    <div
-      className={cn(
-        "glass-page-topbar-enter -mx-3 mb-4 overflow-visible rounded-b-[18px] border-b border-white/45 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] sm:-mx-6",
-        sticky && "sticky top-0 z-30",
-        className
-      )}
-    >
-      <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
-      <div className={cn("w-full px-4 py-2.5 sm:px-6 lg:px-8", contentClassName)}>
-        <div className={cn(
-          inlineActions ? "flex items-center gap-2.5" : "flex flex-col gap-2.5 lg:flex-row lg:items-center",
-        )}>
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            {backHref ? (
-              <SmartBackButton
-                fallbackHref={backHref}
-                label={backLabel}
-                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 after:absolute after:-inset-1.5 after:content-[''] hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </SmartBackButton>
-            ) : leading ? (
-              <div className="shrink-0">{leading}</div>
-            ) : null}
+  const isSmallScreen = useSmallScreen();
+  const prefersReducedMotion = useReducedMotion();
+  const topBarRef = useRef<HTMLDivElement>(null);
+  const [mobileControlsFloating, setMobileControlsFloating] = useState(false);
+  const hasMobileUtilityControls = Boolean(backHref || leading || titleControls || actionsLeading);
 
-            <div className="min-w-0 flex-1">
-              {eyebrow && (
-                <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-500">
-                  {eyebrow}
+  useEffect(() => {
+    if (!isSmallScreen || !hasMobileUtilityControls) {
+      setMobileControlsFloating(false);
+      return;
+    }
+
+    let animationFrame = 0;
+    const updateFloatingState = () => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => {
+        const barBottom = topBarRef.current?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY;
+        setMobileControlsFloating(barBottom <= 52);
+      });
+    };
+
+    updateFloatingState();
+    window.addEventListener("scroll", updateFloatingState, { passive: true });
+    window.addEventListener("resize", updateFloatingState);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", updateFloatingState);
+      window.removeEventListener("resize", updateFloatingState);
+    };
+  }, [hasMobileUtilityControls, isSmallScreen]);
+
+  const backControl = backHref ? (
+    <SmartBackButton
+      fallbackHref={backHref}
+      label={backLabel}
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200/70 bg-blue-50/90 text-blue-600 shadow-sm transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-blue-100 hover:text-blue-700 active:scale-95"
+    >
+      <ArrowLeft className="h-4 w-4" />
+    </SmartBackButton>
+  ) : leading ? (
+    <div className="shrink-0">{leading}</div>
+  ) : null;
+
+  const mobileUtilityControls = (
+    <>
+      {backControl && (
+        <div className="pointer-events-auto shrink-0">
+          {backControl}
+        </div>
+      )}
+      {titleControls && (
+        <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">
+          {titleControls}
+        </div>
+      )}
+      {actionsLeading && (
+        <div className="pointer-events-auto ml-auto flex min-w-0 flex-1 items-center justify-end">
+          {actionsLeading}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <div
+        ref={topBarRef}
+        className={cn(
+          "glass-page-topbar-enter -mx-3 mb-4 overflow-visible rounded-b-[18px] border-b border-white/45 bg-white/72 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[20px] sm:-mx-6",
+          sticky && "sm:sticky sm:top-0 sm:z-30",
+          className
+        )}
+      >
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+        <div className={cn("w-full px-4 py-2.5 sm:px-6 lg:px-8", contentClassName)}>
+          <div className={cn(
+            inlineActions ? "flex items-center gap-2.5" : "flex flex-col gap-2.5 lg:flex-row lg:items-center",
+          )}>
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              {!isSmallScreen && (
+                <div className="hidden sm:contents">
+                  {backControl}
                 </div>
               )}
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <h1 className="truncate text-base font-bold leading-tight text-indigo-900 sm:text-lg">
-                  {title}
-                </h1>
-                {meta}
-                {badges}
-                {titleControls}
+
+              <div className="min-w-0 flex-1">
+                {eyebrow && (
+                  <div className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-500">
+                    {eyebrow}
+                  </div>
+                )}
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <h1 className="truncate text-base font-bold leading-tight text-indigo-900 sm:text-lg">
+                    {title}
+                  </h1>
+                  {meta}
+                  {badges}
+                  {!isSmallScreen && (
+                    <div className="hidden sm:contents">
+                      {titleControls}
+                    </div>
+                  )}
+                </div>
+                {subtitle && (
+                  <p className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
+                    {subtitle}
+                  </p>
+                )}
               </div>
-              {subtitle && (
-                <p className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
-                  {subtitle}
-                </p>
-              )}
             </div>
+
+            {center && (
+              <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex">
+                {center}
+              </div>
+            )}
+
+            {(actionsLeading || actions) && (
+              <div className={cn(
+                inlineActions
+                  ? "hidden sm:flex sm:shrink-0 sm:items-center sm:justify-end sm:gap-2"
+                  : "hidden sm:flex sm:w-full sm:shrink-0 sm:items-center sm:justify-center sm:gap-2 lg:w-auto lg:justify-start",
+                actionsClassName,
+              )}>
+                {!isSmallScreen && actionsLeading}
+                {actions}
+              </div>
+            )}
           </div>
 
-          {center && (
-            <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 lg:flex">
-              {center}
+          {isSmallScreen && hasMobileUtilityControls && (
+            <div className="mt-2 min-h-9 min-w-0 sm:hidden">
+              <AnimatePresence initial={false}>
+                {!mobileControlsFloating && (
+                  <motion.div
+                    key="glass-topbar-inline-controls"
+                    initial={{
+                      opacity: 0,
+                      transform: prefersReducedMotion ? "none" : "translateY(-8px) scale(0.98)",
+                    }}
+                    animate={{ opacity: 1, transform: "translateY(0) scale(1)" }}
+                    exit={{
+                      opacity: 0,
+                      transform: prefersReducedMotion ? "none" : "translateY(-8px) scale(0.98)",
+                    }}
+                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                    className="flex min-h-9 min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  >
+                    {mobileUtilityControls}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
-          {(actionsLeading || actions) && (
-            <div className={cn(
-              inlineActions
-                ? "flex shrink-0 items-center justify-end gap-2"
-                : "flex w-full shrink-0 items-center justify-center gap-2 lg:w-auto lg:justify-start",
-              actionsClassName,
-            )}>
-              {actionsLeading}
-              {actions}
-            </div>
-          )}
+          {below && <div className="mt-2.5">{below}</div>}
         </div>
-
-        {below && <div className="mt-2.5">{below}</div>}
       </div>
-    </div>
+
+      {isSmallScreen && hasMobileUtilityControls && createPortal(
+        <AnimatePresence initial={false}>
+          {mobileControlsFloating && (
+            <motion.div
+              key="glass-topbar-floating-controls"
+              initial={{
+                opacity: 0,
+                transform: prefersReducedMotion ? "none" : "translateY(8px) scale(0.98)",
+              }}
+              animate={{ opacity: 1, transform: "translateY(0) scale(1)" }}
+              exit={{
+                opacity: 0,
+                transform: prefersReducedMotion ? "none" : "translateY(8px) scale(0.98)",
+              }}
+              transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+              className="pointer-events-none fixed inset-x-3 top-[calc(3.25rem+env(safe-area-inset-top))] z-[35] flex min-w-0 items-center gap-1.5 sm:hidden"
+            >
+              {mobileUtilityControls}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -194,14 +330,47 @@ interface GlassActionDockProps {
 }
 
 export function GlassActionDock({ children, className }: GlassActionDockProps) {
+  const isSmallScreen = useSmallScreen();
+  const actionCount = Math.max(
+    1,
+    Children.toArray(children).filter((child) => (
+      typeof child !== "boolean" &&
+      !(
+        isValidElement<{ "data-mobile-action-hidden"?: boolean }>(child) &&
+        child.props["data-mobile-action-hidden"]
+      )
+    )).length
+  );
+  const compactWidth = Math.min(360, actionCount * 58 + 8);
+
+  const dock = (
+    <div
+      className={cn(
+        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-slate-100/90 bg-white/95 p-1 shadow-[0_10px_25px_rgba(15,23,42,0.13)] ring-1 ring-slate-100/80 backdrop-blur-xl sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:bg-white/80 sm:px-2 sm:py-1 sm:shadow-sm sm:ring-blue-100/60",
+        className
+      )}
+      style={isSmallScreen ? { width: compactWidth } : undefined}
+    >
+      {children}
+    </div>
+  );
+
+  if (isSmallScreen) {
+    return createPortal(
+      <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[80] flex justify-center sm:hidden">
+        <div className="pointer-events-auto max-w-full">{dock}</div>
+      </div>,
+      document.body
+    );
+  }
+
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center justify-center gap-1 rounded-full border border-white/60 bg-white/80 px-2 py-1 shadow-sm ring-1 ring-blue-100/60 backdrop-blur-sm sm:justify-start",
-        className
+        "hidden sm:flex"
       )}
     >
-      {children}
+      {dock}
     </div>
   );
 }
@@ -233,13 +402,13 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
           {badge}
         </span>
       )}
-      {icon && <span className="mb-0.5 flex h-4 w-4 items-center justify-center">{icon}</span>}
-      <span className="text-[7px] font-semibold leading-tight sm:text-[8px]">{label}</span>
+      {icon && <span className="mb-0.5 flex h-5 w-5 items-center justify-center sm:h-4 sm:w-4">{icon}</span>}
+      <span className="max-w-[52px] truncate text-[9px] font-semibold leading-none sm:max-w-none sm:text-[8px]">{label}</span>
     </>
   );
 
   const classes = cn(
-    "relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border bg-white shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11",
+    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-full border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-blue-50 active:scale-95 focus-visible:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md",
     actionToneClasses[tone],
     disabled && "pointer-events-none opacity-50",
     className
@@ -247,7 +416,7 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
 
   if (href && !disabled) {
     return (
-      <Link href={href} className={classes} title={buttonProps.title}>
+      <Link href={href} className={classes} title={buttonProps.title || label} aria-label={buttonProps['aria-label'] || label}>
         {content}
       </Link>
     );

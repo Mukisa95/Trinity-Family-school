@@ -1,20 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { PlusCircle, CalendarPlus, TableProperties, X } from "lucide-react";
+import { CalendarRange, Check, ChevronDown, PlusCircle, TableProperties, X } from "lucide-react";
 import { useAcademicYears } from "@/lib/hooks/use-academic-years";
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
 import { useTimetableProfiles } from "@/lib/hooks/use-timetable";
 import { Loader2 } from "lucide-react";
 import { StructureGenerator } from "@/components/timetable/StructureGenerator";
-import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { LiveTracker } from "@/components/timetable/LiveTracker";
-import { Button } from "@/components/ui/button";
 import { Trash2, Settings, PencilRuler, Type, Printer } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -59,7 +58,7 @@ export default function TimetablePage() {
     const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        if (profiles.length > 0 && !selectedProfileId) {
+        if (profiles.length > 0 && !profiles.some(profile => profile.id === selectedProfileId)) {
             setSelectedProfileId(profiles[0].id);
         } else if (profiles.length === 0) {
             setSelectedProfileId(null);
@@ -102,10 +101,16 @@ export default function TimetablePage() {
     const [isGeneratorOpen, setIsGeneratorOpen] = React.useState(false);
     const [editingProfileForConfig, setEditingProfileForConfig] = React.useState<typeof profiles[0] | null>(null);
     const [viewMode, setViewMode] = React.useState<'single' | 'all'>('single');
-    const [sharedDay, setSharedDay] = React.useState<number>(1);
     const [zoom, setZoom] = React.useState(1);
 
     const isLoading = yearsLoading;
+    const selectedTerm = viewTerms.find(term => term.id === termId);
+    const selectedPeriodLabel = viewYear && selectedTerm
+        ? `${viewYear.name} · ${selectedTerm.name}`
+        : "Year & Term";
+    const selectedTimetableLabel = viewMode === "all"
+        ? "All Timetables"
+        : activeProfile?.name || "Timetables";
 
     return (
         <>
@@ -114,12 +119,58 @@ export default function TimetablePage() {
                 subtitle="Manage class schedules and teacher assignments"
                 backHref="/dashboard"
                 backLabel="Dashboard"
-                meta={
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                titleControls={
+                    <div className="flex min-w-0 items-center gap-1.5">
+                        <div className="sm:hidden">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="flex h-8 max-w-[42vw] items-center gap-1 rounded-full border border-blue-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                        aria-label={`Select academic year and term. Current selection: ${selectedPeriodLabel}`}
+                                    >
+                                        <CalendarRange className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="truncate">{selectedPeriodLabel}</span>
+                                        <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="max-h-[70vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto">
+                                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-slate-500">
+                                        Academic period
+                                    </DropdownMenuLabel>
+                                    {years.map((year, yearIndex) => (
+                                        <React.Fragment key={year.id}>
+                                            {yearIndex > 0 && <DropdownMenuSeparator />}
+                                            <DropdownMenuLabel className="py-1 text-xs font-bold text-slate-700">
+                                                {year.name}
+                                            </DropdownMenuLabel>
+                                            {(year.terms || []).map(term => {
+                                                const isSelected = year.id === yearId && term.id === termId;
+                                                return (
+                                                    <DropdownMenuItem
+                                                        key={`${year.id}-${term.id}`}
+                                                        onClick={() => {
+                                                            setYearId(year.id);
+                                                            setTermId(term.id);
+                                                            setViewMode("single");
+                                                        }}
+                                                        className="cursor-pointer justify-between py-2 text-xs"
+                                                    >
+                                                        <span>{term.name}</span>
+                                                        {isSelected && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                                                    </DropdownMenuItem>
+                                                );
+                                            })}
+                                        </React.Fragment>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+
                         <select
                             value={yearId}
                             onChange={(e) => { setYearId(e.target.value); setTermId(''); }}
-                            className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 cursor-pointer"
+                            className="hidden h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 sm:block"
                         >
                             <option value="" disabled>Select Year</option>
                             {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
@@ -128,7 +179,7 @@ export default function TimetablePage() {
                             value={termId}
                             onChange={(e) => setTermId(e.target.value)}
                             disabled={!yearId}
-                            className="h-[30px] rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 cursor-pointer disabled:opacity-50"
+                            className="hidden h-[30px] cursor-pointer rounded-full border border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 disabled:opacity-50 sm:block"
                         >
                             <option value="" disabled>Select Term</option>
                             {viewTerms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -136,8 +187,58 @@ export default function TimetablePage() {
 
                         {yearId && termId && profiles.length > 0 && (
                             <>
-                                <div className="w-px h-5 bg-white/40 mx-0.5" />
-                                <div className="flex items-center gap-1 flex-wrap">
+                                <div className="mx-0.5 hidden h-5 w-px bg-white/40 sm:block" />
+
+                                <div className="sm:hidden">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <button
+                                                type="button"
+                                                className="flex h-8 max-w-[34vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                                                aria-label={`Choose timetable. Current selection: ${selectedTimetableLabel}`}
+                                            >
+                                                <TableProperties className="h-3.5 w-3.5 shrink-0" />
+                                                <span className="truncate">{selectedTimetableLabel}</span>
+                                                <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-[min(16rem,calc(100vw-1.5rem))]">
+                                            <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-slate-500">
+                                                Available timetables
+                                            </DropdownMenuLabel>
+                                            {profiles.map(profile => {
+                                                const isSelected = selectedProfileId === profile.id && viewMode === "single";
+                                                return (
+                                                    <DropdownMenuItem
+                                                        key={profile.id}
+                                                        onClick={() => {
+                                                            setSelectedProfileId(profile.id);
+                                                            setViewMode("single");
+                                                        }}
+                                                        className="cursor-pointer justify-between py-2 text-xs"
+                                                    >
+                                                        <span className="truncate">{profile.name || "Main Timetable"}</span>
+                                                        {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-violet-600" />}
+                                                    </DropdownMenuItem>
+                                                );
+                                            })}
+                                            {profiles.length > 1 && (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onClick={() => setViewMode("all")}
+                                                        className="cursor-pointer justify-between py-2 text-xs"
+                                                    >
+                                                        <span>All Timetables</span>
+                                                        {viewMode === "all" && <Check className="h-3.5 w-3.5 text-violet-600" />}
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+
+                                <div className="hidden flex-wrap items-center gap-1 sm:flex">
                                     {profiles.map(profile => (
                                         <button
                                             key={profile.id}
@@ -160,30 +261,34 @@ export default function TimetablePage() {
                     yearId && termId && profiles.length > 0 ? (
                         <GlassActionDock>
                             {profiles.length > 1 && (
-                                <GlassActionButton
-                                    label={viewMode === 'all' ? "Single" : "Combined"}
-                                    icon={viewMode === 'all' ? <X className="h-4 w-4" /> : <TableProperties className="h-4 w-4" />}
-                                    tone="purple"
-                                    onClick={() => setViewMode(prev => prev === 'all' ? 'single' : 'all')}
-                                />
+                                <div data-mobile-action-hidden className="hidden sm:contents">
+                                    <GlassActionButton
+                                        label={viewMode === 'all' ? "Single" : "Combined"}
+                                        icon={viewMode === 'all' ? <X className="h-4 w-4" /> : <TableProperties className="h-4 w-4" />}
+                                        tone="purple"
+                                        onClick={() => setViewMode(prev => prev === 'all' ? 'single' : 'all')}
+                                    />
+                                </div>
                             )}
                             {activeProfile && viewMode === 'single' && (
                                 <>
-                                    <GlassActionButton
-                                        label="Zoom -"
-                                        icon={<span className="text-sm font-bold leading-none">-</span>}
-                                        tone="slate"
-                                        onClick={() => setZoom(Math.max(0.5, +(zoom - 0.25).toFixed(2)))}
-                                    />
-                                    <div className="flex items-center justify-center px-1 text-[8px] font-mono font-bold text-gray-600 bg-gray-100 rounded-full select-none h-10 w-10 sm:h-11 sm:w-11">
-                                        {Math.round(zoom * 100)}%
+                                    <div data-mobile-action-hidden className="hidden sm:contents">
+                                        <GlassActionButton
+                                            label="Zoom -"
+                                            icon={<span className="text-sm font-bold leading-none">-</span>}
+                                            tone="slate"
+                                            onClick={() => setZoom(Math.max(0.5, +(zoom - 0.25).toFixed(2)))}
+                                        />
+                                        <div className="flex h-11 w-11 select-none items-center justify-center rounded-full bg-gray-100 px-1 font-mono text-[8px] font-bold text-gray-600">
+                                            {Math.round(zoom * 100)}%
+                                        </div>
+                                        <GlassActionButton
+                                            label="Zoom +"
+                                            icon={<span className="text-sm font-bold leading-none">+</span>}
+                                            tone="slate"
+                                            onClick={() => setZoom(Math.min(2.5, +(zoom + 0.25).toFixed(2)))}
+                                        />
                                     </div>
-                                    <GlassActionButton
-                                        label="Zoom +"
-                                        icon={<span className="text-sm font-bold leading-none">+</span>}
-                                        tone="slate"
-                                        onClick={() => setZoom(Math.min(2.5, +(zoom + 0.25).toFixed(2)))}
-                                    />
                                     <GlassActionButton
                                         label="PDF"
                                         icon={<Printer className="h-4 w-4" />}

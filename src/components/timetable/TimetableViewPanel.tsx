@@ -577,6 +577,63 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const [internalZoom, setInternalZoom] = React.useState(1);
     const zoom = externalZoom !== undefined ? externalZoom : internalZoom;
     const updateZoom = setExternalZoom || setInternalZoom;
+    const pinchSurfaceRef = React.useRef<HTMLDivElement>(null);
+    const pinchStartRef = React.useRef<{ distance: number; zoom: number } | null>(null);
+    const zoomRef = React.useRef(zoom);
+    const updateZoomRef = React.useRef(updateZoom);
+
+    React.useEffect(() => {
+        zoomRef.current = zoom;
+        updateZoomRef.current = updateZoom;
+    }, [zoom, updateZoom]);
+
+    React.useEffect(() => {
+        const surface = pinchSurfaceRef.current;
+        if (!surface) return;
+
+        const touchDistance = (touches: TouchList) => {
+            const first = touches.item(0);
+            const second = touches.item(1);
+            if (!first || !second) return 0;
+            return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+        };
+
+        const handleTouchStart = (event: TouchEvent) => {
+            if (event.touches.length !== 2) return;
+            const distance = touchDistance(event.touches);
+            if (distance <= 0) return;
+            pinchStartRef.current = { distance, zoom: zoomRef.current };
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        const handleTouchMove = (event: TouchEvent) => {
+            const pinchStart = pinchStartRef.current;
+            if (!pinchStart || event.touches.length !== 2) return;
+            const distance = touchDistance(event.touches);
+            if (distance <= 0) return;
+            const nextZoom = Math.min(2.5, Math.max(0.5, pinchStart.zoom * (distance / pinchStart.distance)));
+            updateZoomRef.current(+nextZoom.toFixed(2));
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        const handleTouchEnd = (event: TouchEvent) => {
+            if (event.touches.length < 2) pinchStartRef.current = null;
+        };
+
+        surface.addEventListener("touchstart", handleTouchStart, { passive: false });
+        surface.addEventListener("touchmove", handleTouchMove, { passive: false });
+        surface.addEventListener("touchend", handleTouchEnd);
+        surface.addEventListener("touchcancel", handleTouchEnd);
+
+        return () => {
+            surface.removeEventListener("touchstart", handleTouchStart);
+            surface.removeEventListener("touchmove", handleTouchMove);
+            surface.removeEventListener("touchend", handleTouchEnd);
+            surface.removeEventListener("touchcancel", handleTouchEnd);
+        };
+    }, []);
 
     const [isEditing, setIsEditing] = React.useState(false);
     const [selectedDay, setSelectedDay] = React.useState<number>(new Date().getDay() || 7);
@@ -709,39 +766,44 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 </div>
             </div>
 
-            {/* ── Content Area ── */}
-            {viewMode === "day" ? (
-                // Day View — full interactive TimetableGrid with editing capability
-                <div className="flex-1 min-h-0 min-w-0 overflow-hidden -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
-                    <TimetableGrid
-                        yearId={yearId}
-                        termId={termId}
-                        profileId={profileId}
-                        hideToolbar={true}
-                        externalZoom={zoom}
-                        setExternalZoom={updateZoom}
-                        externalIsEditing={isEditing}
-                        setExternalIsEditing={setIsEditing}
-                        externalSelectedDay={selectedDay}
-                        setExternalSelectedDay={setSelectedDay}
+            {/* ── Content Area — two-finger pinch adjusts timetable scale on touch screens ── */}
+            <div
+                ref={pinchSurfaceRef}
+                className="flex min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y flex-col"
+            >
+                {viewMode === "day" ? (
+                    // Day View — full interactive TimetableGrid with editing capability
+                    <div className="flex-1 min-h-0 min-w-0 overflow-hidden -mx-3 sm:-mx-5 px-3 sm:px-5 flex flex-col">
+                        <TimetableGrid
+                            yearId={yearId}
+                            termId={termId}
+                            profileId={profileId}
+                            hideToolbar={true}
+                            externalZoom={zoom}
+                            setExternalZoom={updateZoom}
+                            externalIsEditing={isEditing}
+                            setExternalIsEditing={setIsEditing}
+                            externalSelectedDay={selectedDay}
+                            setExternalSelectedDay={setSelectedDay}
+                            filterMode={filterMode}
+                            filterId={filterId}
+                        />
+                    </div>
+                ) : (
+                    // Week View — full-week grid like reference image, with filter applied
+                    <WeekGridView
+                        entries={entries}
+                        periods={periods}
+                        classes={profileClasses}
+                        subjects={subjects}
+                        staffList={staffList}
                         filterMode={filterMode}
                         filterId={filterId}
+                        timeFormat={currentProfile?.timeFormat}
+                        externalZoom={zoom}
                     />
-                </div>
-            ) : (
-                // Week View — full-week grid like reference image, with filter applied
-                <WeekGridView
-                    entries={entries}
-                    periods={periods}
-                    classes={profileClasses}
-                    subjects={subjects}
-                    staffList={staffList}
-                    filterMode={filterMode}
-                    filterId={filterId}
-                    timeFormat={currentProfile?.timeFormat}
-                    externalZoom={zoom}
-                />
-            )}
+                )}
+            </div>
 
             {/* ── Floating Quick Actions (Day View) ── */}
             {viewMode === "day" && (

@@ -552,7 +552,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
           {/* Swipe hint removed as per user request */}
 
           <main
-            className="px-3 pb-4 pt-0"
+            className="px-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] pt-0 sm:pb-4"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
