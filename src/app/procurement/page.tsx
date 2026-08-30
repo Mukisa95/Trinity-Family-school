@@ -628,6 +628,27 @@ export default function ProcurementPage() {
         backLabel="Back"
         meta={periodFilterBar}
         className="mb-1.5"
+        actions={
+          (activeTab === 'overview' || activeTab === 'items') ? (
+            <GlassActionDock>
+              <GlassActionButton
+                label="Filters"
+                icon={<Filter className="h-4 w-4" />}
+                tone="blue"
+                badge={hasActiveFilters ? (categoryFilter !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) : undefined}
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+              />
+              {activeTab === 'overview' && (
+                <GlassActionButton
+                  label={viewMode === 'cards' ? 'Table' : 'Cards'}
+                  icon={viewMode === 'cards' ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                  tone="violet"
+                  onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+                />
+              )}
+            </GlassActionDock>
+          ) : null
+        }
       />
 
       <GlassSummaryBar
@@ -920,4 +941,4 @@ function OverviewTab({
       </div>
     </div>
   );
-} 
+}

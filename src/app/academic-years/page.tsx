@@ -597,40 +597,50 @@ export function AcademicYearsPageContent() {
         className="mb-1.5"
         backHref="/dashboard"
         backLabel="Dashboard"
+        titleControls={
+          <select
+            value={activeSettingTab}
+            onChange={(event) => handleTabChange(event.target.value as 'years' | 'subjects' | 'commentary')}
+            aria-label="Choose academic setup section"
+            className="h-8 max-w-[42vw] rounded-full border border-indigo-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-indigo-700 shadow-sm outline-none transition-colors hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-400/60 lg:hidden"
+          >
+            <option value="years">Years</option>
+            <option value="subjects">Subjects</option>
+            <option value="commentary">Comments</option>
+          </select>
+        }
+        center={
+          <div className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-slate-100/80 p-0.5 backdrop-blur-sm lg:flex">
+            {[
+              { id: 'years', label: 'Years' },
+              { id: 'subjects', label: 'Subjects' },
+              { id: 'commentary', label: 'Commentary' },
+            ].map((tab) => {
+              const isActive = activeSettingTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id as 'years' | 'subjects' | 'commentary')}
+                  className={cn(
+                    'rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200',
+                    isActive ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        }
         actions={
           <GlassActionDock>
-            {/* Tab buttons */}
-            <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-full border border-slate-200/50 backdrop-blur-sm mr-2">
-              {[
-                { id: 'years', label: 'Years' },
-                { id: 'subjects', label: 'Subjects' },
-                { id: 'commentary', label: 'Commentry' }
-              ].map((tab) => {
-                const isActive = activeSettingTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabChange(tab.id as any)}
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-semibold transition-all duration-300",
-                      isActive
-                        ? "bg-white text-indigo-700 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Actions */}
             {activeSettingTab === 'years' && (
               <GlassActionButton
-                label={`Sort: ${academicYears[0]?.name || ''} - ${academicYears[academicYears.length - 1]?.name || ''}`}
+                label="Sort"
                 icon={<ArrowUpDown className="h-4 w-4" />}
                 tone="slate"
                 onClick={toggleSortDirection}
+                title={`Sort: ${academicYears[0]?.name || ''} - ${academicYears[academicYears.length - 1]?.name || ''}`}
               />
             )}
 

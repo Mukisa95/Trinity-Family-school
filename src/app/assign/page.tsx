@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { FeeStructure } from "@/types";
 import { FeeStructuresService } from "@/lib/services/fee-structures.service";
 import { useAcademicYears } from "@/lib/hooks/use-academic-years";
-import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import {
   Card,
   CardHeader,
@@ -119,6 +119,10 @@ export default function AssignPage() {
     router.push(`/assign/${fee.id}`);
   };
 
+  const scrollToAssignments = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const renderSummaryCards = () => (
     <div className="grid gap-4 md:grid-cols-2">
       <Card className="border-blue-100 shadow-sm">
@@ -209,11 +213,27 @@ export default function AssignPage() {
         subtitle="Assignment fees & discounts management"
         backHref="/fees"
         backLabel="Back to fees"
+        actions={
+          <GlassActionDock>
+            <GlassActionButton
+              label="Fees"
+              icon={<Tag className="h-4 w-4" />}
+              tone="blue"
+              onClick={() => scrollToAssignments('assignment-fees')}
+            />
+            <GlassActionButton
+              label="Discounts"
+              icon={<Scissors className="h-4 w-4" />}
+              tone="orange"
+              onClick={() => scrollToAssignments('assignment-discounts')}
+            />
+          </GlassActionDock>
+        }
       />
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-blue-100">
+        <Card id="assignment-fees" className="border-blue-100 scroll-mt-24">
           <CardHeader className="py-2">
             <CardTitle className="text-sm">Assignment Fees</CardTitle>
           </CardHeader>
@@ -276,7 +296,7 @@ export default function AssignPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-100">
+        <Card id="assignment-discounts" className="border-amber-100 scroll-mt-24">
           <CardHeader className="py-2">
             <CardTitle className="text-sm">Discounts</CardTitle>
           </CardHeader>
@@ -359,4 +379,3 @@ export default function AssignPage() {
     </div>
   );
 }
-

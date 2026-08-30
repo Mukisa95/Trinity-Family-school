@@ -9,7 +9,7 @@ import { ArrowLeft, UserSquare, BookOpen as AcademicIcon, Users as GuardianIconL
 import { X } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
-import { GlassPageTopBar } from "@/components/common/glass-page-top-bar";
+import { GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -3863,9 +3863,9 @@ function PupilDetailContent() {
         backHref="/pupils"
         backLabel="Back to pupils"
         actions={
-          <div className="flex flex-row items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 action-buttons-container">
+          <GlassActionDock className="w-auto px-1.5 py-1 [&_button]:!rounded-[18px] [&_button]:!border-transparent [&_button]:!bg-transparent [&_button]:!shadow-none sm:[&_button]:!rounded-full sm:[&_button]:!border sm:[&_button]:!bg-white sm:[&_button]:!shadow-sm">
             {isEditMode ? (
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
+              <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm">
                 {/* Save Button */}
                 <ActionGuard module="pupils" page="detail" action="edit_details">
                   <button
@@ -3905,7 +3905,7 @@ function PupilDetailContent() {
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1">
+              <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm">
                 {/* Fees Collection Button */}
                 <ActionGuard module="pupils" page="detail" action="fee_collection">
                   <Link href={`/fees/collect?pupilId=${pupil.id}`}>
@@ -4121,7 +4121,7 @@ function PupilDetailContent() {
                 </DropdownMenu>
               </div>
             )}
-          </div>
+          </GlassActionDock>
         } />
 
       {pupil && (

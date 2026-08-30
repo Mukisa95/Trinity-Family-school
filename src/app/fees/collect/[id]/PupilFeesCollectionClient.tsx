@@ -2198,13 +2198,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             {hasSiblings && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button
-                    className="relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border border-orange-400 bg-white text-orange-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:from-orange-400 hover:via-amber-500 hover:to-orange-600 hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11"
+                  <GlassActionButton
+                    label="Siblings"
+                    tone="orange"
+                    icon={<Users className="h-4 w-4" weight="bold" />}
+                    badge={siblings.length > 0 ? siblings.length : undefined}
                     title="Siblings"
-                  >
-                    <span className="text-sm font-bold mb-0.5" style={{ lineHeight: '1' }}>{siblings.length}</span>
-                    <span className="text-[7px] sm:text-[8px] font-semibold leading-tight mt-[-2px]">Siblings</span>
-                  </button>
+                  />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 border-b mb-1">Select Sibling</div>
@@ -2233,19 +2233,14 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               return (
                 <DropdownMenu open={isWirePopupOpen} onOpenChange={setIsWirePopupOpen}>
                   <DropdownMenuTrigger asChild>
-                    <button
-                      className="relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border border-violet-400 bg-white text-violet-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:from-violet-500 hover:via-purple-500 hover:to-violet-600 hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11"
+                    <GlassActionButton
+                      label="Wire"
+                      tone="violet"
+                      icon={<Zap className="h-4 w-4" />}
+                      badge={schoolPayCount > 0 ? (schoolPayCount > 9 ? '9+' : schoolPayCount) : undefined}
                       title="Wire / SchoolPay Options"
                       disabled={!pupil?.id}
-                    >
-                      {schoolPayCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white z-10">
-                          {schoolPayCount > 9 ? '9+' : schoolPayCount}
-                        </span>
-                      )}
-                      <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
-                      <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Wire</span>
-                    </button>
+                    />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-violet-100 shadow-2xl rounded-2xl">
                     <div className="mb-3 pb-2 border-b border-violet-100">
@@ -2274,14 +2269,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             })()}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  className="relative flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-full border border-blue-400 bg-white text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md active:scale-95 sm:h-11 sm:w-11"
+                <GlassActionButton
+                  label="Track"
+                  tone="blue"
+                  icon={<BarChart3 className="h-4 w-4" />}
                   title="Tracking Options"
                   disabled={!pupil?.id}
-                >
-                  <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-0.5" />
-                  <span className="text-[7px] sm:text-[8px] font-semibold leading-tight">Track</span>
-                </button>
+                />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setIsUniformTrackingModalOpen(true)} className="cursor-pointer">

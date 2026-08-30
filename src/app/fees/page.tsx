@@ -1419,6 +1419,50 @@ export function FeesManagementPageContent() {
     'Configure standard school requirements for pupils'
   );
 
+  const renderFeeSettingsControls = (className: string) => (
+    <div className={className}>
+      <select
+        value={activeFilter}
+        onChange={(event) => setActiveFilter(event.target.value as ActiveFilter)}
+        aria-label="Choose fee type"
+        className="h-[34px] min-w-0 max-w-[35vw] rounded-full border border-violet-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-violet-700 shadow-sm outline-none transition-colors hover:bg-violet-50 focus:ring-2 focus:ring-violet-400/60 lg:max-w-none"
+      >
+        <option value="general">General</option>
+        <option value="assignment">Assignment</option>
+        <option value="discounts">Discounts</option>
+      </select>
+
+      {availableAcademicYears.length > 0 && (
+        <select
+          value={selectedAcademicYearId || ''}
+          onChange={(event) => {
+            setHasUserSelectedAcademicYear(true);
+            setSelectedAcademicYearId(event.target.value);
+          }}
+          aria-label="Choose academic year"
+          className="h-[34px] min-w-0 max-w-[42vw] rounded-full border border-blue-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-blue-700 shadow-sm outline-none transition-colors hover:bg-blue-50 focus:ring-2 focus:ring-blue-400/60 lg:max-w-none"
+        >
+          {availableAcademicYears.map((year) => {
+            const isCurrent = year.id === currentAcademicYear?.id;
+            const yearStartDate = new Date(year.startDate).getTime();
+            const currentYearStartDate = currentAcademicYear ? new Date(currentAcademicYear.startDate).getTime() : 0;
+            const isPast = yearStartDate < currentYearStartDate;
+            const isFuture = yearStartDate > currentYearStartDate;
+
+            return (
+              <option key={year.id} value={year.id}>
+                {year.name}
+                {isCurrent ? ' (Current)' : ''}
+                {isPast ? ' (Past)' : ''}
+                {isFuture ? ' (Future)' : ''}
+              </option>
+            );
+          })}
+        </select>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen pb-12">
       <GlassPageTopBar
@@ -1427,59 +1471,19 @@ export function FeesManagementPageContent() {
         className="mb-1.5"
         backHref="/dashboard"
         backLabel="Dashboard"
+        titleControls={activeSettingTab === 'fees' ? renderFeeSettingsControls('flex min-w-0 items-center gap-1.5 lg:hidden') : null}
+        center={activeSettingTab === 'fees' ? renderFeeSettingsControls('hidden items-center gap-2 lg:flex') : null}
         actions={
           <GlassActionDock>
             {activeSettingTab === 'fees' && (
-              <>
-                {/* Filter buttons */}
-                {(['general', 'assignment', 'discounts'] as ActiveFilter[]).map(filter => (
-                  <GlassActionButton
-                    key={filter}
-                    label={`${filter.charAt(0).toUpperCase() + filter.slice(1)} Fees`}
-                    tone={activeFilter === filter ? 'violet' : 'slate'}
-                    onClick={() => setActiveFilter(filter)}
-                    title={`Show ${filter} fees`}
-                  />
-                ))}
-                
-                {/* Academic Year Selector */}
-                {availableAcademicYears.length > 0 && (
-                  <select
-                    value={selectedAcademicYearId || ''}
-                    onChange={(e) => {
-                      setHasUserSelectedAcademicYear(true);
-                      setSelectedAcademicYearId(e.target.value);
-                    }}
-                    className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8"
-                  >
-                    {availableAcademicYears.map((year) => {
-                      const isCurrent = year.id === currentAcademicYear?.id;
-                      const yearStartDate = new Date(year.startDate).getTime();
-                      const currentYearStartDate = currentAcademicYear ? new Date(currentAcademicYear.startDate).getTime() : 0;
-                      const isPast = yearStartDate < currentYearStartDate;
-                      const isFuture = yearStartDate > currentYearStartDate;
-
-                      return (
-                        <option key={year.id} value={year.id}>
-                          {year.name}
-                          {isCurrent ? ' (Current)' : ''}
-                          {isPast ? ' (Past)' : ''}
-                          {isFuture ? ' (Future)' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                )}
-
-                {/* Main Action button */}
-                <GlassActionButton
-                  label={mainActionText}
-                  icon={<PlusCircle className="h-4 w-4" />}
-                  tone="purple"
-                  onClick={handleMainActionClick}
-                  title={mainActionText}
-                />
-              </>
+              <GlassActionButton
+                label="Add"
+                icon={<PlusCircle className="h-4 w-4" />}
+                tone="purple"
+                onClick={handleMainActionClick}
+                title={mainActionText}
+                aria-label={mainActionText}
+              />
             )}
 
             {activeSettingTab === 'uniforms' && (
@@ -1492,7 +1496,7 @@ export function FeesManagementPageContent() {
                   title="Toggle Filters"
                 />
                 <GlassActionButton
-                  label="Add Uniform"
+                  label="Add"
                   tone="purple"
                   icon={<Plus className="h-4 w-4" />}
                   onClick={() => setUniformAddTrigger(t => t + 1)}
@@ -1511,7 +1515,7 @@ export function FeesManagementPageContent() {
                   title="Toggle Filters"
                 />
                 <GlassActionButton
-                  label="Add Requirement"
+                  label="Add"
                   tone="purple"
                   icon={<Plus className="h-4 w-4" />}
                   onClick={() => setRequirementAddTrigger(t => t + 1)}

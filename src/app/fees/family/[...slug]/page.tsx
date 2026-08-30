@@ -223,6 +223,16 @@ export default function FamilyFeesCollection() {
   // Get terms for selected year
   const selectedYearTerms = academicYears.find(year => year.id === selectedYear)?.terms || [];
 
+  const handleAcademicPeriodChange = (value: string) => {
+    const [yearId, termId] = value.split('::');
+    const year = academicYears.find(item => item.id === yearId);
+    if (!year || !termId) return;
+
+    setSelectedYear(yearId);
+    setSelectedTermId(termId);
+    setSelectedAcademicYear(year);
+  };
+
   // Fetch family pupils
   const { data: familyPupils = [], isLoading: isFamilyPupilsLoading } = useQuery<Pupil[]>({
     queryKey: ['family-pupils', familyId],
@@ -561,6 +571,25 @@ export default function FamilyFeesCollection() {
             subtitle={"Family ID: " + familyId}
             backHref="/fees/collection"
             backLabel="Fees"
+            titleControls={
+              <select
+                value={selectedYear && selectedTermId ? `${selectedYear}::${selectedTermId}` : ''}
+                onChange={(event) => handleAcademicPeriodChange(event.target.value)}
+                aria-label="Select academic year and term"
+                className="h-8 max-w-[48vw] rounded-full border border-indigo-200/80 bg-white/95 px-2.5 text-[10px] font-bold text-indigo-700 shadow-sm outline-none transition-colors hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-400/60 lg:hidden"
+              >
+                <option value="" disabled>Year · Term</option>
+                {academicYears.map((year) => (
+                  <optgroup key={year.id} label={year.name}>
+                    {year.terms.map((term) => (
+                      <option key={term.id} value={`${year.id}::${term.id}`}>
+                        {year.name} · {term.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            }
             meta={
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
@@ -576,49 +605,51 @@ export default function FamilyFeesCollection() {
             }
             actions={
               <GlassActionDock>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => {
-                    const yearId = e.target.value;
-                    setSelectedYear(yearId);
-                    const year = academicYears.find(y => y.id === yearId);
-                    setSelectedTermId(getCurrentTerm(year as any)?.id || year?.terms[0]?.id || '');
-                    setSelectedAcademicYear(year || null);
-                  }}
-                  className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8"
-                >
-                  <option value="">Select Year</option>
-                  {[...academicYears].reverse().map((year) => {
-                    const isCurrent = year.id === currentAcademicYearId;
-                    const today = new Date();
-                    const yearEnd = new Date(year.endDate);
-                    const hasEnded = today > yearEnd;
+                <div data-mobile-action-hidden className="hidden sm:contents">
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => {
+                      const yearId = e.target.value;
+                      setSelectedYear(yearId);
+                      const year = academicYears.find(y => y.id === yearId);
+                      setSelectedTermId(getCurrentTerm(year as any)?.id || year?.terms[0]?.id || '');
+                      setSelectedAcademicYear(year || null);
+                    }}
+                    className="h-8 appearance-none rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Year</option>
+                    {[...academicYears].reverse().map((year) => {
+                      const isCurrent = year.id === currentAcademicYearId;
+                      const today = new Date();
+                      const yearEnd = new Date(year.endDate);
+                      const hasEnded = today > yearEnd;
 
-                    let label = '';
-                    if (isCurrent) label = '(Current)';
-                    else if (year.isLocked) label = '(Locked)';
-                    else if (!hasEnded) label = '(Upcoming)';
+                      let label = '';
+                      if (isCurrent) label = '(Current)';
+                      else if (year.isLocked) label = '(Locked)';
+                      else if (!hasEnded) label = '(Upcoming)';
 
-                    return (
-                      <option key={year.id} value={year.id}>
-                        {year.name} {label}
+                      return (
+                        <option key={year.id} value={year.id}>
+                          {year.name} {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+
+                  <select
+                    value={selectedTermId}
+                    onChange={(e) => setSelectedTermId(e.target.value)}
+                    disabled={!selectedYear}
+                    className="h-8 appearance-none rounded-full border border-gray-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-gray-700 shadow-sm backdrop-blur-md transition-all hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {selectedYearTerms.map((term) => (
+                      <option key={term.id} value={term.id}>
+                        {term.name}
                       </option>
-                    );
-                  })}
-                </select>
-
-                <select
-                  value={selectedTermId}
-                  onChange={(e) => setSelectedTermId(e.target.value)}
-                  disabled={!selectedYear}
-                  className="bg-white/80 backdrop-blur-md rounded-full px-3 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-gray-700 font-semibold hover:border-gray-300 transition-all text-[11px] shadow-sm h-8 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {selectedYearTerms.map((term) => (
-                    <option key={term.id} value={term.id}>
-                      {term.name}
-                    </option>
-                  ))}
-                </select>
+                    ))}
+                  </select>
+                </div>
 
                 <GlassActionButton
                   label="Pay"

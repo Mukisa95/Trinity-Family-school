@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   Children,
+  Fragment,
   forwardRef,
   isValidElement,
   type ButtonHTMLAttributes,
@@ -99,6 +100,7 @@ export function GlassPageTopBar({
   const topBarRef = useRef<HTMLDivElement>(null);
   const [mobileControlsFloating, setMobileControlsFloating] = useState(false);
   const hasMobileUtilityControls = Boolean(backHref || leading || titleControls || actionsLeading);
+  const actionsAlreadyUseDock = isValidElement(actions) && actions.type === GlassActionDock;
 
   useEffect(() => {
     if (!isSmallScreen || !hasMobileUtilityControls) {
@@ -277,6 +279,10 @@ export function GlassPageTopBar({
         </AnimatePresence>,
         document.body
       )}
+
+      {isSmallScreen && actions && !actionsAlreadyUseDock && (
+        <GlassActionDock>{actions}</GlassActionDock>
+      )}
     </>
   );
 }
@@ -329,24 +335,32 @@ interface GlassActionDockProps {
   className?: string;
 }
 
+function getVisibleMobileActionChildren(children: ReactNode): ReactNode[] {
+  return Children.toArray(children).flatMap((child) => {
+    if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) {
+      return getVisibleMobileActionChildren(child.props.children);
+    }
+
+    if (
+      isValidElement<{ "data-mobile-action-hidden"?: boolean }>(child) &&
+      child.props["data-mobile-action-hidden"]
+    ) {
+      return [];
+    }
+
+    return typeof child === "boolean" ? [] : [child];
+  });
+}
+
 export function GlassActionDock({ children, className }: GlassActionDockProps) {
   const isSmallScreen = useSmallScreen();
-  const actionCount = Math.max(
-    1,
-    Children.toArray(children).filter((child) => (
-      typeof child !== "boolean" &&
-      !(
-        isValidElement<{ "data-mobile-action-hidden"?: boolean }>(child) &&
-        child.props["data-mobile-action-hidden"]
-      )
-    )).length
-  );
-  const compactWidth = Math.min(360, actionCount * 58 + 8);
+  const actionCount = Math.max(1, getVisibleMobileActionChildren(children).length);
+  const compactWidth = actionCount > 1 ? Math.min(360, actionCount * 58 + 8) : undefined;
 
   const dock = (
     <div
       className={cn(
-        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-slate-100/90 bg-white/95 p-1 shadow-[0_10px_25px_rgba(15,23,42,0.13)] ring-1 ring-slate-100/80 backdrop-blur-xl sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:bg-white/80 sm:px-2 sm:py-1 sm:shadow-sm sm:ring-blue-100/60",
+        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-white/90 bg-white/80 p-1 shadow-[0_14px_32px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] ring-2 ring-slate-300/70 backdrop-blur-2xl sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:border-white/60 sm:bg-white/80 sm:px-2 sm:py-1 sm:shadow-sm sm:ring-1 sm:ring-blue-200/70",
         className
       )}
       style={isSmallScreen ? { width: compactWidth } : undefined}
@@ -408,7 +422,7 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
   );
 
   const classes = cn(
-    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-full border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-blue-50 active:scale-95 focus-visible:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md",
+    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-[18px] border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-blue-50 active:scale-95 focus-visible:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md",
     actionToneClasses[tone],
     disabled && "pointer-events-none opacity-50",
     className
