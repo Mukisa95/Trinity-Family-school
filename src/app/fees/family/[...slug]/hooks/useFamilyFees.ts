@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import type { AcademicYear, Pupil, FeeStructure, PaymentRecord } from '@/types';
+import type { AcademicYear, Pupil, PaymentRecord } from '@/types';
+import { useFeeStructures } from '@/lib/hooks/use-fees';
 
 // Services
-import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { PaymentsService } from '@/lib/services/payments.service';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
@@ -80,51 +80,10 @@ export function useFamilyFees({
     academicYears
 }: UseFamilyFeesOptions): UseFamilyFeesReturn {
 
-    // 🚀 Fetch ALL fee structures (unfiltered) — needed for discount lookups in processPupilFees
-    const { data: allFeeStructures = [], isLoading: isAllFeeStructuresLoading } = useQuery<FeeStructure[]>({
-        queryKey: ['fee-structures-all'],
-        queryFn: async () => {
-            try {
-                return await FeeStructuresService.getAllFeeStructures();
-            } catch (error) {
-                console.error('Error fetching all fee structures:', error);
-                return [];
-            }
-        },
-        staleTime: 8 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        placeholderData: (previousData) => previousData,
-    });
-
-    // 🚀 Fetch fee structures filtered by selected academic year (for filterApplicableFees)
-    // Fetches independently (not derived from allFeeStructures) to avoid stale-closure issues
-    const { data: feeStructures = [], isLoading: isFeeStructuresLoading } = useQuery<FeeStructure[]>({
-        queryKey: ['fee-structures', selectedAcademicYear?.id],
-        queryFn: async () => {
-            if (!selectedAcademicYear?.id) return [];
-            try {
-                const allStructures = await FeeStructuresService.getAllFeeStructures();
-                const filteredStructures = allStructures.filter(structure =>
-                    structure.academicYearId === selectedAcademicYear?.id
-                );
-                if (process.env.NODE_ENV === 'development') {
-                    console.log('Fee structures found:', filteredStructures.length, 'for academic year:', selectedAcademicYear?.name);
-                }
-                return filteredStructures;
-            } catch (error) {
-                console.error('Error fetching fee structures:', error);
-                return [];
-            }
-        },
-        enabled: !!selectedAcademicYear?.id,
-        staleTime: 8 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        placeholderData: (previousData) => previousData,
-    });
+    // Reuse the shared fee-structure cache used by Fees Management. The
+    // previous two local queries both read the complete collection, making a
+    // family page cold start wait for duplicate work.
+    const { data: allFeeStructures = [], isLoading: isAllFeeStructuresLoading } = useFeeStructures();
 
     // 🚀 OPTIMIZED: Batch load ALL payments for the term in ONE query
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -281,7 +240,10 @@ export function useFamilyFees({
     // Process fees info for all pupils
     const feesInfo = useMemo(() => {
         if (!selectedAcademicYear || !selectedTermId || familyPupils.length === 0) return {};
-        if (isFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading || isPreviousBalancesLoading) return {};
+        // Current-term fees can be shown as soon as their direct inputs are
+        // ready. Carry-forward balances are added when their slower historical
+        // calculation completes instead of holding the whole family page back.
+        if (isAllFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading) return {};
 
         const result: Record<string, FeesInfo> = {};
 
@@ -461,11 +423,11 @@ export function useFamilyFees({
         return result;
     }, [
         familyId, familyPupils, selectedTermId, selectedAcademicYear, academicYears,
-        feeStructures, allFeeStructures, allPaymentsMap, previousBalancesMap, historicalPupilsMap, feesHolidaysMap, uniformFeesMap,
-        isFeeStructuresLoading, isPaymentsLoading, isSnapshotsLoading, isPreviousBalancesLoading
+        allFeeStructures, allPaymentsMap, previousBalancesMap, historicalPupilsMap, feesHolidaysMap, uniformFeesMap,
+        isAllFeeStructuresLoading, isPaymentsLoading, isSnapshotsLoading
     ]);
 
-    const isLoading = isFeeStructuresLoading || isAllFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading || isHolidaysLoading || isUniformFeesLoading || isPreviousBalancesLoading;
+    const isLoading = isAllFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading || isHolidaysLoading || isUniformFeesLoading || isPreviousBalancesLoading;
 
     return { feesInfo, isLoading, isError: false, error: null };
 }

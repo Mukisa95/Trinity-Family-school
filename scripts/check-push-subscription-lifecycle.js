@@ -59,10 +59,15 @@ for (const requirement of [
   ['browser subscription invalidation triggers authenticated reconciliation',
     serviceWorker.includes("addEventListener('pushsubscriptionchange'")
       && serviceWorkerRegistration.includes('trinity-push-subscription-invalidated')],
-  ['visible PWAs use controller-change reloads while suspended PWAs are refreshed on activation',
-    serviceWorkerRegistration.includes("addEventListener('controllerchange'")
-      && serviceWorker.includes("client.visibilityState === 'hidden'")
-      && serviceWorker.includes('client.navigate(client.url)')],
+  ['service-worker updates do not navigate or reload a suspended PWA',
+    (() => {
+      const controllerChangeStart = serviceWorkerRegistration.indexOf("addEventListener('controllerchange'");
+      const controllerChangeEnd = serviceWorkerRegistration.indexOf('// Also listen for SW_UPDATED', controllerChangeStart);
+      const controllerChangeHandler = serviceWorkerRegistration.slice(controllerChangeStart, controllerChangeEnd);
+      return controllerChangeStart !== -1
+        && !serviceWorker.includes('client.navigate(client.url)')
+        && !controllerChangeHandler.includes('window.location.reload()');
+    })()],
   ['installed PWAs check for updates at startup and on mobile resume signals',
     serviceWorkerRegistration.includes("checkForUpdate('startup', true)")
       && serviceWorkerRegistration.includes("addEventListener('visibilitychange'")

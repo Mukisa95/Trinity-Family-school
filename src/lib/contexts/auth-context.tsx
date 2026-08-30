@@ -76,7 +76,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [hasStoredUser, setHasStoredUser] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [autoLockEnabled, setAutoLockEnabled] = useState(false);
@@ -151,6 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let unsubscribe: (() => void) | undefined;
     let firebaseInitialized = false;
     let restoredCachedUser: SystemUser | null = null;
+    let finishedInitialAuthCheck = false;
+
+    const finishInitialAuthCheck = () => {
+      if (finishedInitialAuthCheck) return;
+      finishedInitialAuthCheck = true;
+      setIsLoading(false);
+      performance.mark?.('trinity:auth-resolved');
+    };
 
     const initializeAuth = async () => {
       try {
@@ -287,6 +294,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setHasStoredUser(true);
                 setSessionStatus('degraded');
                 setSessionMessage('The service is temporarily unavailable. Your previously signed-in session remains available on this device.');
+                // A resumed phone can briefly lose its network while Firebase
+                // restores the token. The cached signed-in user is safe here,
+                // but this branch must still complete the boot state instead
+                // of leaving the entire app behind its loading screen.
+                finishInitialAuthCheck();
                 return;
               }
 
@@ -308,17 +320,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearUserCache();
           }
           
-          if (!isInitialized) {
-            setIsLoading(false);
-            setIsInitialized(true);
-            performance.mark?.('trinity:auth-resolved');
-          }
+          finishInitialAuthCheck();
         });
 
       } catch (error) {
         logger.error('Error initializing auth', error);
-        setIsLoading(false);
-        setIsInitialized(true);
+        finishInitialAuthCheck();
       }
     };
 

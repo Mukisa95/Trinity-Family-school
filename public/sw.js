@@ -80,29 +80,20 @@ self.addEventListener('activate', (event) => {
         return self.clients.claim();
       })
       .then(() => {
-        // Notify every open client. Visible windows use the client-side
-        // controllerchange listener for one controlled reload. Mobile PWAs can
-        // remain as hidden/suspended WindowClients and miss that event, so only
-        // those hidden clients are navigated here. This refreshes a resumed app
-        // without reintroducing the double reload that affected visible pages.
+        // Notify every open client that a newer worker is ready. Never navigate
+        // an existing client from here: mobile browsers can suspend an installed
+        // PWA midway through that navigation, then restore an empty document
+        // when the user returns to it. The app will naturally receive fresh
+        // assets on its next normal navigation or launch.
         return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-          const refreshes = clients.map(client => {
+          clients.forEach(client => {
             client.postMessage({
               type: 'SW_UPDATED',
               version: SW_VERSION,
               timestamp: Date.now()
             });
-
-            if (client.visibilityState === 'hidden' && 'navigate' in client) {
-              return client.navigate(client.url).catch((error) => {
-                console.warn('⚠️ Could not refresh suspended app client:', error);
-              });
-            }
-
-            return Promise.resolve();
           });
           console.log(`✅ Notified ${clients.length} client(s) about SW update to ${SW_VERSION}`);
-          return Promise.all(refreshes);
         });
       })
   );

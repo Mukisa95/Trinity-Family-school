@@ -18,6 +18,11 @@ assert(
   authContext.includes('void revalidateSignedSession(false)'),
   'Resume must validate the existing signed token without forcing a network refresh.',
 );
+assert(
+  authContext.includes('const finishInitialAuthCheck')
+    && authContext.includes('finishInitialAuthCheck();\n                return;'),
+  'Transient Firebase token recovery must finish the initial app boot state.',
+);
 
 const resumeFunctionStart = authContext.indexOf('const resumeSession');
 const resumeFunctionEnd = authContext.indexOf(

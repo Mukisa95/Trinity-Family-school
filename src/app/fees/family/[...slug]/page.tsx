@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
 import { GlassPageRouteSkeleton } from '@/components/common/glass-page-loading';
@@ -23,7 +23,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // Services
-import { PupilsService } from '@/lib/services/pupils.service';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { usePrint } from '@/lib/contexts/print-context';
@@ -34,7 +33,8 @@ import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary
 
 // Optimized hooks for instant cache-first loading
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
-import { useClasses } from '@/lib/hooks/use-classes';
+import { usePupilsByFamily } from '@/lib/hooks/use-pupils';
+import { FEES_QUERY_KEYS } from '@/lib/hooks/use-fees';
 
 // Custom hook for family fees
 import { useFamilyFees } from './hooks/useFamilyFees';
@@ -57,7 +57,7 @@ import {
 } from '../../collect/[id]/utils/feeProcessing';
 
 // Types
-import type { AcademicYear, Pupil, FeeStructure, PaymentRecord } from '@/types';
+import type { AcademicYear, Pupil } from '@/types';
 
 interface FeePayment {
   id: string;
@@ -233,31 +233,9 @@ export default function FamilyFeesCollection() {
     setSelectedAcademicYear(year);
   };
 
-  // Fetch family pupils
-  const { data: familyPupils = [], isLoading: isFamilyPupilsLoading } = useQuery<Pupil[]>({
-    queryKey: ['family-pupils', familyId],
-    queryFn: async () => {
-      if (!familyId) return [];
-
-      try {
-        // Use the dedicated service method to get pupils by family ID
-        const familyPupils = await PupilsService.getPupilsByFamily(familyId);
-
-        console.log('Family pupils found:', familyPupils.length, 'for familyId:', familyId);
-        console.log('Family pupils:', familyPupils.map(p => ({ id: p.id, name: `${p.firstName} ${p.lastName}`, familyId: p.familyId })));
-        return familyPupils;
-      } catch (error) {
-        console.error('Error fetching family pupils:', error);
-        return [];
-      }
-    },
-    enabled: !!familyId,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-    gcTime: 15 * 60 * 1000, // 15 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData, // Show cached data immediately
-  });
+  // Filter the shared pupil cache first. This avoids an extra Firestore query
+  // and lets the family cards appear immediately while fee totals load.
+  const { data: familyPupils = [], isLoading: isFamilyPupilsLoading } = usePupilsByFamily(familyId);
 
   // 🚀 OPTIMIZED: Use custom hook for family fees with parallel loading
   const { feesInfo, isLoading: isFeesInfoLoading } = useFamilyFees({
@@ -268,7 +246,8 @@ export default function FamilyFeesCollection() {
     academicYears
   });
 
-  // Calculate loading state
+  // Keep payment/print actions protected until the complete fee calculation is
+  // ready, but do not hide known family members behind that slower work.
   const isLoading = isFamilyPupilsLoading || isFeesInfoLoading || isAcademicYearsLoading;
 
   const handleFamilyPayment = async (paymentData: {
@@ -467,7 +446,7 @@ export default function FamilyFeesCollection() {
         ]).flat(),
 
         // Invalidate general fee and payment caches
-        queryClient.invalidateQueries({ queryKey: ['fee-structures'] }),
+        queryClient.invalidateQueries({ queryKey: FEES_QUERY_KEYS.structures() }),
         queryClient.invalidateQueries({ queryKey: ['payments'] }),
         queryClient.invalidateQueries({ queryKey: ['finance-summary'] }),
       ]);
@@ -519,7 +498,7 @@ export default function FamilyFeesCollection() {
     return unregister;
   }, [registerPrintHandler]);
 
-  if (isFamilyPupilsLoading || isFeesInfoLoading || isAcademicYearsLoading) {
+  if (isFamilyPupilsLoading && familyPupils.length === 0) {
     return (
       <div className="min-h-screen pb-12">
         <GlassPageRouteSkeleton />
@@ -550,6 +529,7 @@ export default function FamilyFeesCollection() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-12">
       {(() => {
+        const hasFeeSummary = familyPupils.every((pupil) => !!feesInfo[pupil.id]);
         const totalFees = familyPupils.reduce((sum, pupil) => {
           const summary = feesInfo[pupil.id];
           return sum + (summary?.totalFees || 0);
@@ -592,15 +572,23 @@ export default function FamilyFeesCollection() {
             }
             meta={
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  Total: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalFees)}
-                </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  Paid: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalPaid)}
-                </span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-100">
-                  Balance: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalBalance)}
-                </span>
+                {hasFeeSummary ? (
+                  <>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      Total: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalFees)}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      Paid: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalPaid)}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-100">
+                      Balance: {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(totalBalance)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+                    Calculating fees…
+                  </span>
+                )}
               </div>
             }
             actions={
@@ -686,6 +674,7 @@ export default function FamilyFeesCollection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
           {familyPupils.map((pupil) => {
             const summary = feesInfo[pupil.id];
+            const money = new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' });
             return (
               <div key={pupil.id} className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
@@ -712,19 +701,19 @@ export default function FamilyFeesCollection() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm sm:text-base text-gray-600">Total Fees:</span>
                     <span className="font-medium text-gray-900 text-sm sm:text-base">
-                      {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(summary?.totalFees || 0)}
+                      {summary ? money.format(summary.totalFees) : 'Calculating…'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm sm:text-base text-gray-600">Amount Paid:</span>
                     <span className="font-medium text-green-600 text-sm sm:text-base">
-                      {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(summary?.totalPaid || 0)}
+                      {summary ? money.format(summary.totalPaid) : 'Calculating…'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span className="text-sm sm:text-base font-medium text-gray-900">Balance:</span>
                     <span className="font-bold text-red-600 text-sm sm:text-base">
-                      {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX' }).format(summary?.balance || 0)}
+                      {summary ? money.format(summary.balance) : 'Calculating…'}
                     </span>
                   </div>
                   {summary?.lastPayment && (

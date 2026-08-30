@@ -45,6 +45,7 @@
     "test:class-streams": "node --import tsx --test tests/class-streams.test.ts",
     "test:pupil-cache-changes": "node --import tsx --test tests/pupil-cache-changes.test.ts",
     "test:fee-assignment-pipeline": "node --import tsx --test tests/fee-assignment-pipeline.test.ts",
+    "test:family-fees-loading": "node scripts/check-family-fees-loading-contract.js",
     "test:form-validation-contract": "node scripts/check-form-validation-contract.js",
     "test:remark-report-comments": "node --import tsx --test tests/subject-comment-availability.test.ts",
     "test:firebase-usage-contract": "node scripts/check-firebase-usage-contract.js",

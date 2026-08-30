@@ -5,60 +5,37 @@
  * and offline support.
  * 
  * UPDATE STRATEGY:
- * - Uses `controllerchange` event to detect when a new SW takes control
- * - Performs a single, controlled reload to pick up fresh code
- * - Prevents infinite reload loops with sessionStorage flag
+ * - Records service-worker updates without reloading an active app
+ * - Lets a mobile PWA resume its existing document safely
+ * - Lets the next normal navigation or launch use the new app files
  * - Listens for `SW_UPDATED` messages from the service worker
  */
 
 // Flag to track if we've already set up the controllerchange listener
 let controllerChangeListenerAdded = false;
+const PENDING_CHUNK_RECOVERY_KEY = 'app_chunk_reload_pending';
 
 /**
  * Set up the controllerchange listener ONCE.
- * This fires when a new service worker takes control of the page.
- * We reload the page to ensure fresh JS bundles and listeners are loaded.
+ * This fires when a new service worker takes control of the page. Do not reload
+ * here: a phone may fire it while the installed PWA is backgrounded, and an
+ * interrupted reload is what produced the blank screen on return.
  */
 function setupControllerChangeListener(): void {
   if (controllerChangeListenerAdded) return;
   controllerChangeListenerAdded = true;
 
-  const RELOAD_FLAG = 'sw_controller_reload';
-  // Written before reload so GlobalDataPreloader can flush stale caches
-  // automatically on the next mount, saving users from a manual clear.
   const SW_UPDATE_VERSION_KEY = 'sw_update_version';
 
-  const existingReloadAt = Number(sessionStorage.getItem(RELOAD_FLAG) || 0);
-  if (existingReloadAt) {
-    const remaining = Math.max(0, 5000 - (Date.now() - existingReloadAt));
-    window.setTimeout(() => sessionStorage.removeItem(RELOAD_FLAG), remaining);
-  }
-
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    console.log('🔄 New Service Worker took control - checking if reload needed');
+    console.log('🔄 New Service Worker took control - keeping the current app session alive');
 
-    // Prevent infinite reload loops: only reload ONCE per SW update
-    const hasReloaded = sessionStorage.getItem(RELOAD_FLAG);
-    if (hasReloaded) {
-      console.log('✅ Already reloaded for this SW update - skipping');
-      // Clear the flag after a short delay so future updates can trigger a reload
-      setTimeout(() => {
-        sessionStorage.removeItem(RELOAD_FLAG);
-      }, 5000);
-      return;
-    }
-
-    console.log('🔄 Reloading page to activate new app version...');
-    sessionStorage.setItem(RELOAD_FLAG, Date.now().toString());
-
-    // Stamp the current SW version so the preloader knows to flush
-    // stale localStorage/IndexedDB caches after the reload.
+    // Stamp the update for the next normal app mount. This does not clear
+    // cached school data and deliberately does not interrupt a resumed phone.
     try {
       const swVersion = navigator.serviceWorker.controller?.scriptURL ?? 'unknown';
       sessionStorage.setItem(SW_UPDATE_VERSION_KEY, swVersion);
     } catch { /* storage unavailable – safe to skip */ }
-
-    window.location.reload();
   });
 
   // Also listen for SW_UPDATED messages from the service worker.
@@ -123,8 +100,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
           console.log('✅ New Service Worker installed - sending SKIP_WAITING');
           // Tell the new SW to activate immediately (don't wait for tabs to close)
           newWorker.postMessage({ type: 'SKIP_WAITING' });
-          // The controllerchange listener above will handle visible windows;
-          // sw.js refreshes only hidden/suspended app windows.
+          // The controllerchange listener records the update without reloading
+          // an active or suspended app window.
         }
       });
     };
@@ -142,7 +119,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     if (registration.waiting) {
       console.log('⏸️  Service Worker waiting to activate - sending SKIP_WAITING');
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      // The controllerchange listener will handle the reload
+      // The controllerchange listener records the update without reloading.
     }
 
     let lastUpdateCheckAt = 0;
@@ -154,6 +131,21 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       registration.update().catch(err => {
         console.warn('⚠️ Service Worker update check failed:', err);
       });
+    };
+
+    const recoverDeferredChunkLoad = () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        if (!sessionStorage.getItem(PENDING_CHUNK_RECOVERY_KEY)) return;
+        sessionStorage.removeItem(PENDING_CHUNK_RECOVERY_KEY);
+        // Wait until the app is actually foregrounded before recovering a
+        // missing bundle. A background reload can leave an installed PWA on a
+        // blank browser surface when the operating system resumes it.
+        window.setTimeout(handleChunkLoadError, 0);
+      } catch {
+        // Storage can be unavailable in private browsing; the normal visible
+        // chunk error path still handles that case.
+      }
     };
 
     // register() can return an existing registration without immediately
@@ -169,12 +161,17 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     // receiving a fresh navigation, so cover every common resume signal.
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
+        recoverDeferredChunkLoad();
         checkForUpdate('visible');
       }
     });
-    window.addEventListener('focus', () => checkForUpdate('focus'));
+    window.addEventListener('focus', () => {
+      recoverDeferredChunkLoad();
+      checkForUpdate('focus');
+    });
     window.addEventListener('online', () => checkForUpdate('online', true));
     window.addEventListener('pageshow', (event) => {
+      recoverDeferredChunkLoad();
       checkForUpdate(event.persisted ? 'restored page' : 'page shown');
     });
 
@@ -407,6 +404,17 @@ function detectMissingChunks(): void {
  */
 function handleChunkLoadError() {
   if (typeof window === 'undefined') return;
+
+  // A chunk failure can surface while a phone has suspended this PWA. Defer
+  // recovery until it is visible instead of reloading the background document.
+  if (document.visibilityState !== 'visible') {
+    try {
+      sessionStorage.setItem(PENDING_CHUNK_RECOVERY_KEY, String(Date.now()));
+    } catch {
+      // Nothing else is safe to do while the document is suspended.
+    }
+    return;
+  }
 
   // Key to track reload attempts in session storage
   const RELOAD_KEY = 'app_chunk_reload_count';
