@@ -77,7 +77,6 @@ interface GlassPageTopBarProps {
 
 export function GlassPageTopBar({
   title,
-  subtitle,
   eyebrow,
   backHref,
   backLabel = "Back",
@@ -140,23 +139,23 @@ export function GlassPageTopBar({
     <div className="shrink-0">{leading}</div>
   ) : null;
 
-  const mobileUtilityControls = (
+  const mobileFloatingControls = (
     <>
-      {backControl && (
-        <div className="pointer-events-auto shrink-0">
-          {backControl}
-        </div>
-      )}
-      {titleControls && (
-        <div className="pointer-events-auto flex shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none">
-          {titleControls}
-        </div>
-      )}
-      {actionsLeading && (
-        <div className="pointer-events-auto ml-auto flex min-w-0 flex-1 items-center justify-end">
-          <div className="flex min-w-0 max-w-full items-center rounded-full border border-blue-300/65 bg-white/72 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[20px]">
+      <div className="flex w-full min-w-0 items-center gap-1.5">
+        {backControl && (
+          <div className="pointer-events-auto shrink-0">
+            {backControl}
+          </div>
+        )}
+        {actionsLeading && (
+          <div className="pointer-events-auto ml-auto min-w-0 shrink-0">
             {actionsLeading}
           </div>
+        )}
+      </div>
+      {titleControls && (
+        <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none">
+          {titleControls}
         </div>
       )}
     </>
@@ -177,12 +176,14 @@ export function GlassPageTopBar({
           <div className={cn(
             inlineActions ? "flex items-center gap-2.5" : "flex flex-col gap-2.5 lg:flex-row lg:items-center",
           )}>
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               {!isSmallScreen && (
                 <div className="hidden sm:contents">
                   {backControl}
                 </div>
               )}
+
+              {isSmallScreen && !mobileControlsFloating && backControl}
 
               <div className="min-w-0 flex-1">
                 {eyebrow && (
@@ -202,12 +203,13 @@ export function GlassPageTopBar({
                     </div>
                   )}
                 </div>
-                {subtitle && (
-                  <p className="mt-0.5 truncate text-xs font-medium text-gray-500 sm:text-sm">
-                    {subtitle}
-                  </p>
-                )}
               </div>
+
+              {isSmallScreen && !mobileControlsFloating && actionsLeading && (
+                <div className="pointer-events-auto min-w-0 shrink-0">
+                  {actionsLeading}
+                </div>
+              )}
             </div>
 
             {center && (
@@ -229,7 +231,7 @@ export function GlassPageTopBar({
             )}
           </div>
 
-          {isSmallScreen && hasMobileUtilityControls && (
+          {isSmallScreen && titleControls && hasMobileUtilityControls && (
             <div className="mt-2 min-h-9 min-w-0 sm:hidden">
               <AnimatePresence initial={false}>
                 {!mobileControlsFloating && (
@@ -247,7 +249,9 @@ export function GlassPageTopBar({
                     transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                     className="flex min-h-9 min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
-                    {mobileUtilityControls}
+                    <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none">
+                      {titleControls}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -273,9 +277,9 @@ export function GlassPageTopBar({
                 transform: prefersReducedMotion ? "none" : "translateY(8px) scale(0.98)",
               }}
               transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-              className="pointer-events-none fixed inset-x-3 top-[calc(3.25rem+env(safe-area-inset-top))] z-[35] flex min-w-0 items-center gap-1.5 sm:hidden"
+              className="pointer-events-none fixed inset-x-3 top-[calc(3.25rem+env(safe-area-inset-top))] z-[35] flex min-w-0 flex-col items-start gap-1.5 sm:hidden"
             >
-              {mobileUtilityControls}
+              {mobileFloatingControls}
             </motion.div>
           )}
         </AnimatePresence>,
@@ -297,18 +301,35 @@ export function GlassPageSearchInput({
   className,
   containerClassName,
   placeholder = "Search...",
+  onFocus,
+  onBlur,
   ...inputProps
 }: GlassPageSearchInputProps) {
+  const isSmallScreen = useSmallScreen();
+  const [isFocused, setIsFocused] = useState(false);
   const hasValue =
     typeof inputProps.value === "string"
       ? inputProps.value.length > 0
       : typeof inputProps.defaultValue === "string"
         ? inputProps.defaultValue.length > 0
         : false;
+  const isMobileExpanded = !isSmallScreen || hasValue || isFocused;
 
   return (
-    <div className={cn("group relative min-w-0 shrink-0", containerClassName)}>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-2.5 text-blue-500/80 transition-colors duration-300 group-hover:text-blue-600">
+    <div
+      className={cn(
+        "glass-page-search-input group relative min-w-0 shrink-0 transition-[width,flex-basis] duration-200 ease-out",
+        containerClassName,
+      )}
+      style={isSmallScreen ? {
+        width: isMobileExpanded ? "min(50vw, 14rem)" : "2.25rem",
+        flex: "none",
+      } : undefined}
+    >
+      <div className={cn(
+        "pointer-events-none absolute inset-y-0 z-10 flex items-center text-blue-500/80 transition-all duration-200 group-hover:text-blue-600",
+        isSmallScreen && !isMobileExpanded ? "inset-x-0 justify-center pl-0" : "left-0 pl-2.5",
+      )}>
         <Search className="h-3.5 w-3.5 transition-all duration-300 group-hover:scale-110" />
       </div>
       <input
@@ -320,12 +341,22 @@ export function GlassPageSearchInput({
         placeholder={placeholder}
         style={{ boxShadow: "0 1px 4px rgba(59, 130, 246, 0.05)" }}
         className={cn(
-          "h-[34px] rounded-full border border-blue-200/60 bg-white/90 pl-7 pr-8 text-xs shadow-sm transition-all duration-300 ease-in-out placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400/50",
-          hasValue
-            ? "w-56 lg:w-72"
-            : "w-32 group-hover:w-56 focus:w-56 lg:group-hover:w-72 lg:focus:w-72",
+          "h-[34px] rounded-full border border-blue-200/60 bg-white/90 text-xs shadow-sm transition-all duration-200 ease-out placeholder:text-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400/50",
+          isSmallScreen
+            ? (isMobileExpanded ? "w-full pl-7 pr-3" : "w-full px-0 placeholder:text-transparent")
+            : (hasValue
+              ? "w-56 pl-7 pr-8 lg:w-72"
+              : "w-32 pl-7 pr-8 group-hover:w-56 focus:w-56 lg:group-hover:w-72 lg:focus:w-72"),
           className
         )}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setIsFocused(false);
+          onBlur?.(event);
+        }}
         {...inputProps}
       />
     </div>
