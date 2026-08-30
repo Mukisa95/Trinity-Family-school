@@ -2,7 +2,7 @@ import { doc, increment, writeBatch, type Firestore } from 'firebase/firestore';
 
 async function publishRevision(
   db: Firestore,
-  field: 'classes' | 'academicYears',
+  field: 'classes' | 'academicYears' | 'subjects' | 'houses' | 'accessLevels',
 ): Promise<void> {
   const batch = writeBatch(db);
   batch.set(doc(db, 'settings', 'data-revisions-reference'), {
@@ -20,3 +20,12 @@ export const publishClassesRevision = (db: Firestore) =>
 
 export const publishAcademicYearsRevision = (db: Firestore) =>
   publishRevision(db, 'academicYears');
+
+export const publishSubjectsRevision = (db: Firestore) =>
+  publishRevision(db, 'subjects');
+
+export const publishHousesRevision = (db: Firestore) =>
+  publishRevision(db, 'houses');
+
+export const publishAccessLevelsRevision = (db: Firestore) =>
+  publishRevision(db, 'accessLevels');

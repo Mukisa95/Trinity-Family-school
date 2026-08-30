@@ -34,6 +34,21 @@ import { normalisePupils } from '../cache/pupil-cache';
 import { applyPupilClassIdentity } from '../utils/class-streams';
 import { shouldDeletePhotoForStatusTransition } from '../pupil-photo-retention';
 import type { PupilCacheChange } from '../cache/pupil-cache-changes';
+import {
+  searchPupilSnapshot,
+  selectActivePupils,
+  selectActivePupilsByClass,
+  selectPupilByAdmissionNumber,
+  selectPupilById,
+  selectPupilPhoto,
+  selectPupilPhotos,
+  selectPupilsByClass,
+  selectPupilsByFamily,
+  selectPupilsByIds,
+  selectPupilsByStatus,
+  selectPupilsWithFilters,
+  selectPupilsWithoutPhotos,
+} from '../selectors/pupil-selectors';
 
 export type { PupilCacheChange } from '../cache/pupil-cache-changes';
 
@@ -246,6 +261,9 @@ export class PupilsService {
   }
 
   static async getPupilById(id: string): Promise<Pupil | null> {
+    if (typeof window !== 'undefined') {
+      return selectPupilById(await this.getAllPupils(), id) ?? null;
+    }
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       // 🚀 OPTIMIZED: Use optimized helper with timeout protection
@@ -654,6 +672,9 @@ export class PupilsService {
   }
 
   static async getPupilsByClass(classId: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsByClass(await this.getAllPupils(), classId);
+    }
     try {
       const startTime = performance.now();
       console.log('🔍 Fetching pupils for class (index-free):', classId);
@@ -729,6 +750,9 @@ export class PupilsService {
       gender?: string;
     }
   ): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsWithFilters(await this.getAllPupils(), classId, filters);
+    }
     try {
       console.log('🔍 Fetching pupils for class with filters:', { classId, filters });
 
@@ -807,6 +831,19 @@ export class PupilsService {
 
   // Optimized method for getting pupils with minimal data (for performance)
   static async getPupilsMinimal(classId?: string): Promise<Pick<Pupil, 'id' | 'firstName' | 'lastName' | 'admissionNumber' | 'classId' | 'status'>[]> {
+    if (typeof window !== 'undefined') {
+      const pupils = classId && classId !== 'all'
+        ? selectPupilsByClass(await this.getAllPupils(), classId)
+        : await this.getAllPupils();
+      return pupils.map(({ id, firstName, lastName, admissionNumber, classId: pupilClassId, status }) => ({
+        id,
+        firstName,
+        lastName,
+        admissionNumber,
+        classId: pupilClassId,
+        status,
+      }));
+    }
     try {
       let q;
       if (classId && classId !== 'all') {
@@ -836,6 +873,9 @@ export class PupilsService {
   }
 
   static async getPupilsByFamily(familyId: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsByFamily(await this.getAllPupils(), familyId);
+    }
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
@@ -873,6 +913,9 @@ export class PupilsService {
   }
 
   static async searchPupils(searchTerm: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return searchPupilSnapshot(await this.getAllPupils(), searchTerm);
+    }
     try {
       // Note: This is a simple implementation. For better search, consider using Algolia or similar
       const q = query(collection(db, COLLECTION_NAME), orderBy('lastName', 'asc'));
@@ -892,6 +935,9 @@ export class PupilsService {
 
   // 🚀 NEW: Database-level filtering methods for better performance
   static async getPupilByAdmissionNumber(admissionNumber: string): Promise<Pupil | null> {
+    if (typeof window !== 'undefined') {
+      return selectPupilByAdmissionNumber(await this.getAllPupils(), admissionNumber) ?? null;
+    }
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
@@ -926,6 +972,9 @@ export class PupilsService {
   }
 
   static async getPupilsByIds(pupilIds: string[]): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsByIds(await this.getAllPupils(), pupilIds);
+    }
     try {
       if (pupilIds.length === 0) return [];
 
@@ -988,6 +1037,9 @@ export class PupilsService {
 
   // 🚀 DATABASE-LEVEL FILTERING: Fetch only active pupils from database
   static async getActivePupils(): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectActivePupils(await this.getAllPupils());
+    }
     try {
       console.log('🎯 BATCH LOADING: Fetching ONLY active pupils from database');
       const startTime = performance.now();
@@ -1038,6 +1090,9 @@ export class PupilsService {
    * Much faster than fetching all pupils and filtering
    */
   static async getActivePupilsWithoutPhotos(): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsWithoutPhotos(selectActivePupils(await this.getAllPupils()));
+    }
     try {
       console.log('🎯 OPTIMIZED: Fetching ONLY active pupils WITHOUT photos from database');
       const startTime = performance.now();
@@ -1090,6 +1145,9 @@ export class PupilsService {
 
   // 🚀 DATABASE-LEVEL FILTERING: Fetch pupils by status (Active, Inactive, etc.)
   static async getPupilsByStatus(status: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsByStatus(await this.getAllPupils(), status);
+    }
     try {
       console.log(`🎯 Fetching pupils with status: ${status} from database (optimized)`);
 
@@ -1128,6 +1186,9 @@ export class PupilsService {
 
   // 🚀 DATABASE-LEVEL FILTERING: Fetch active pupils for a specific class
   static async getActivePupilsByClass(classId: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectActivePupilsByClass(await this.getAllPupils(), classId);
+    }
     try {
       console.log(`🎯 BATCH LOADING: Fetching ACTIVE pupils for class ${classId}`);
       const startTime = performance.now();
@@ -1181,6 +1242,9 @@ export class PupilsService {
   // 🚀 ENHANCED: Database-level filtering with multiple where clauses
   // Note: This uses simple queries to avoid complex composite index requirements
   static async getPupilsByClassAndStatus(classId: string, status: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsWithFilters(await this.getAllPupils(), classId, { status });
+    }
     try {
       console.log(`🎯 Fetching pupils for class ${classId} with status ${status} (database-level)`);
 
@@ -1232,6 +1296,9 @@ export class PupilsService {
    * Photos can be loaded separately using getPupilPhoto() or getPupilPhotos()
    */
   static async getAllPupilsWithoutPhotos(): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsWithoutPhotos(await this.getAllPupils());
+    }
     try {
       console.log('🚀 OPTIMIZED LOADING: Fetching ALL pupils WITHOUT photos');
       const startTime = performance.now();
@@ -1287,6 +1354,9 @@ export class PupilsService {
    * Fetch pupils by class WITHOUT photos for faster initial load
    */
   static async getPupilsByClassWithoutPhotos(classId: string): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsWithoutPhotos(selectPupilsByClass(await this.getAllPupils(), classId));
+    }
     try {
       const startTime = performance.now();
       console.log('🔍 OPTIMIZED: Fetching pupils for class WITHOUT photos:', classId);
@@ -1354,6 +1424,11 @@ export class PupilsService {
       gender?: string;
     }
   ): Promise<Pupil[]> {
+    if (typeof window !== 'undefined') {
+      return selectPupilsWithoutPhotos(
+        selectPupilsWithFilters(await this.getAllPupils(), classId, filters),
+      );
+    }
     try {
       console.log('🔍 OPTIMIZED: Fetching pupils with filters WITHOUT photos:', { classId, filters });
 
@@ -1432,6 +1507,9 @@ export class PupilsService {
    * Use this for lazy loading individual photos
    */
   static async getPupilPhoto(pupilId: string): Promise<string | undefined> {
+    if (typeof window !== 'undefined') {
+      return selectPupilPhoto(await this.getAllPupils(), pupilId);
+    }
     try {
       const docRef = doc(db, COLLECTION_NAME, pupilId);
       const pupilData = await getDocWithTimeout<Pupil>(docRef, 5000);
@@ -1465,6 +1543,9 @@ export class PupilsService {
       batchSize?: number; // Batch size for queries (default: 30, max: 30)
     }
   ): Promise<Map<string, string>> {
+    if (typeof window !== 'undefined') {
+      return selectPupilPhotos(await this.getAllPupils(), pupilIds);
+    }
     try {
       if (pupilIds.length === 0) return new Map();
 

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MultiSelect, type MultiSelectOption } from "@/components/ui/multi-select";
 import { DormitoriesService } from "@/lib/services/dormitories.service";
-import { PupilsService } from "@/lib/services/pupils.service";
+import { usePupils } from "@/lib/hooks/use-pupils";
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useStaff } from "@/lib/hooks/use-staff";
 import type { Class, Dormitory, Pupil, Guardian } from "@/types";
@@ -36,10 +36,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
       return d;
     }),
   });
-  const { data: pupils = [] } = useQuery({
-    queryKey: ['pupils:all'],
-    queryFn: () => PupilsService.getAllPupils(),
-  });
+  const { data: pupils = [] } = usePupils();
   const { data: classes = [] } = useClasses();
   const { data: staff = [] } = useStaff();
   const { data: allDormitories = [] } = useQuery({

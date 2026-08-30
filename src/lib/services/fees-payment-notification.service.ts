@@ -14,9 +14,10 @@
  * - Who received payment
  */
 
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
+import { AccessLevelsService } from './access-levels.service';
 
 export interface PaymentNotificationDetails {
   paymentId: string;
@@ -199,18 +200,21 @@ class FeesPaymentNotificationService {
         // For staff, check their accessLevel
         if (userData.accessLevel) {
           try {
-            const accessLevelDoc = await getDoc(doc(db, 'accessLevels', userData.accessLevel));
-            if (accessLevelDoc.exists()) {
-              const accessLevelData = accessLevelDoc.data();
+            const accessLevelData = await AccessLevelsService.getAccessLevelById(userData.accessLevel);
+            if (accessLevelData) {
               
               // Check if user has fees module permissions
-              const feesModule = accessLevelData.modules?.find((m: any) => m.module === 'fees');
-              if (feesModule && feesModule.permission !== 'no_access') {
+              const legacyFeesModule = (accessLevelData as any).modules?.find((module: any) => module.module === 'fees');
+              const granularFeesModule = accessLevelData.modulePermissions?.find(module => module.moduleId === 'fees');
+              const hasFeesAccess = legacyFeesModule
+                ? legacyFeesModule.permission !== 'no_access'
+                : granularFeesModule?.pages.some(page => page.canAccess);
+              if (hasFeesAccess) {
                 usersWithPermissions.push({
                   id: userDoc.id,
                   ...userData
                 } as User);
-                console.log(`   ✅ Staff user: ${userData.username || userDoc.id} (permission: ${feesModule.permission})`);
+                console.log(`   ✅ Staff user: ${userData.username || userDoc.id} (fees access)`);
               } else {
                 console.log(`   ⏭️  Staff user: ${userData.username || userDoc.id} (no fees access)`);
               }

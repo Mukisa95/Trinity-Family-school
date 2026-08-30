@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { PupilsService } from '../services/pupils.service';
+import { usePupils } from './use-pupils';
 import type { Pupil } from '@/types';
 
 interface ProgressivePupilsState {
@@ -40,15 +39,9 @@ export function useProgressivePupils({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch all pupils initially to get the total count and basic data
-  const { data: allPupils = [], isLoading: isLoadingPupils, error: pupilsError } = useQuery({
-    queryKey: ['pupils'],
-    queryFn: () => PupilsService.getAllPupils(),
-    enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    // This hook currently has no call sites. Keep its API available for a
-    // future explicit use, but never create background pupil reads.
-    refetchInterval: false,
-  });
+  const pupilsQuery = usePupils();
+  const allPupils = enabled ? pupilsQuery.data ?? [] : [];
+  const isLoadingPupils = enabled && pupilsQuery.isLoading;
 
   // Calculate progress percentage
   const progressPercentage = useMemo(() => {

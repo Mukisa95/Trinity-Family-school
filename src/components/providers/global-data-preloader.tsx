@@ -16,6 +16,9 @@ import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
 import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
 import { useStaffCacheBootstrap } from '@/lib/hooks/use-staff-cache-bootstrap';
+import { useSubjectCacheBootstrap } from '@/lib/hooks/use-subject-cache-bootstrap';
+import { useHouseCacheBootstrap } from '@/lib/hooks/use-house-cache-bootstrap';
+import { useAccessLevelCacheBootstrap } from '@/lib/hooks/use-access-level-cache-bootstrap';
 import { useExamCacheBootstrap } from '@/lib/hooks/use-exam-cache-bootstrap';
 import { PupilsService } from '@/lib/services/pupils.service';
 
@@ -24,10 +27,11 @@ import { PupilsService } from '@/lib/services/pupils.service';
  * 
  * STRATEGY:
  * - Real-time listeners (onSnapshot) ONLY for data that changes frequently
- *   and needs instant cross-device sync: pupils, staff, subjects
- * - One-time reads (getDocs) for data that rarely changes: fees, requirements,
- *   uniforms, photos, and events. User-directory and access-level data are
- *   loaded only when their feature is opened, through shared live listeners.
+ *   and needs instant cross-device sync: pupils and payment records
+ * - Revision-owned persistent caches for independent reference data: classes,
+ *   academic years, staff, subjects, houses, access levels, and exams
+ * - One-time reads (getDocs) for dependent module data that changes rarely:
+ *   fees, requirements, uniforms, photos, and events
  * 
  * This dramatically reduces Firestore reads to prevent quota exhaustion.
  */
@@ -37,6 +41,9 @@ export function GlobalDataPreloader() {
   useClassCacheBootstrap();
   useAcademicYearCacheBootstrap();
   useStaffCacheBootstrap();
+  useSubjectCacheBootstrap();
+  useHouseCacheBootstrap();
+  useAccessLevelCacheBootstrap();
   useExamCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
@@ -191,32 +198,6 @@ export function GlobalDataPreloader() {
 
 
     */
-    // 4. 📖 SUBJECTS - Real-time (cross-device sync)
-    const setupSubjectsListener = () => {
-      const subjectsQuery = firestoreQuery(collection(db, 'subjects'));
-      const unsubscribe = onSnapshot(
-        subjectsQuery,
-        (snapshot) => {
-          const subjects = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              ...data,
-              // ISO strings for JSON-safe caching
-              createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
-              updatedAt: data.updatedAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
-            };
-          });
-          if (subjects.length > 0) {
-            queryClient.setQueryData(['subjects'], subjects);
-            console.log(`⚡ PRELOADER: Loaded ${subjects.length} subjects`);
-          }
-        },
-        (error) => console.error('❌ PRELOADER: Subjects error:', error.message)
-      );
-      unsubscribers.push(unsubscribe);
-    };
-
     // 5. PUPILS - Cache-first shared real-time listener.
     //
     // Firestore emits the listener's local IndexedDB snapshot first and then
@@ -528,20 +509,6 @@ export function GlobalDataPreloader() {
       }
     };
 
-    // 11. 🔐 ACCESS LEVELS - One-time read (rarely changes)
-    const fetchAccessLevels = async () => {
-      try {
-        const cached = queryClient.getQueryData(['accessLevels', 'all']);
-        if (cached && (cached as any[]).length > 0) return;
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'accessLevels')));
-        const accessLevels = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        queryClient.setQueryData(['accessLevels', 'all'], accessLevels);
-        console.log(`⚡ PRELOADER: Loaded ${accessLevels.length} access levels`);
-      } catch (error: any) {
-        console.error('❌ PRELOADER: Access levels fetch error:', error.message);
-      }
-    };
-
     // 14. 📆 EVENTS - One-time read (events rarely change in bulk; mutations invalidate individually)
     const fetchEvents = async () => {
       try {
@@ -692,7 +659,6 @@ export function GlobalDataPreloader() {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
           setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           deferredTimer = setTimeout(() => {
-            setupSubjectsListener();
             void fetchPhotos();
             void fetchFees();
             void fetchRequirements();

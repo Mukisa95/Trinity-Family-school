@@ -1,6 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { PupilsService } from '../services/pupils.service';
+import { useState, useMemo, useCallback } from 'react';
+import { usePupils } from './use-pupils';
+import {
+  selectPupilsWithFilters,
+  selectPupilsWithoutPhotos,
+} from '../selectors/pupil-selectors';
 import type { Pupil } from '@/types';
 
 interface UseClassPupilsOptions {
@@ -45,54 +48,15 @@ export function useClassPupils({
     console.log('🚫 QUERY DISABLED: No class selected, query will not execute. classId:', classId, 'enabled:', enabled);
   }
 
-  const {
-    data: classPupils = [],
-    isLoading: isLoadingClass,
-    isFetching: isFetchingClass,
-    error: classError
-  } = useQuery({
-    queryKey: ['pupils-by-class', classId || 'none', filters], // Use 'none' instead of empty string for query key
-    queryFn: async () => {
-      // CRITICAL: This function should NEVER execute when isQueryEnabled is false
-      // But we add a safety check just in case
-      if (!isQueryEnabled || !classId || classId === '') {
-        console.warn('🚨 SECURITY: Query function executed when disabled! Returning empty array.');
-        return [];
-      }
-
-      console.log('🎯 LOADING PUPILS FOR CLASS:', classId);
-
-      if (classId === 'all') {
-        // Only load all if explicitly requested
-        console.log('⚠️ Loading ALL pupils (slower) - user explicitly selected "All"');
-        return includeAllClasses ? await PupilsService.getAllPupils() : [];
-      }
-
-      // Use optimized class-based query - this is the main use case
-      console.log('⚡ Loading pupils for specific class (faster)');
-      try {
-        if (filters && Object.keys(filters).length > 0) {
-          console.log('🎯 Using filtered query for class:', classId, filters);
-          return await PupilsService.getPupilsByClassWithFilters(classId, filters);
-        }
-
-        console.log('📚 Using basic class query for:', classId);
-        return await PupilsService.getPupilsByClass(classId);
-      } catch (queryError) {
-        console.error('❌ Class-specific query failed, trying basic query:', queryError);
-        // Fallback to basic query without filters if there are issues
-        return await PupilsService.getPupilsByClass(classId);
-      }
-    },
-    enabled: isQueryEnabled, // CRITICAL: Only fetch when a class is actually selected
-    staleTime: 15 * 60 * 1000, // 15 minutes - cache-first means instant loads
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
-    refetchInterval: false, // No polling - cache-first handles freshness
-    placeholderData: isQueryEnabled ? (previousData) => previousData : undefined, // No placeholder data when disabled
-    refetchOnWindowFocus: false, // Cache is fast, no need to refetch
-    refetchOnMount: false, // Cache is fast, use cached data on mount
-    refetchOnReconnect: true, // Only refetch on reconnect to sync with server
-  });
+  const pupilsQuery = usePupils();
+  const classPupils = useMemo(() => {
+    if (!isQueryEnabled) return [];
+    if (classId === 'all') return includeAllClasses ? pupilsQuery.data ?? [] : [];
+    return selectPupilsWithFilters(pupilsQuery.data, classId, filters);
+  }, [classId, filters?.gender, filters?.section, filters?.status, includeAllClasses, isQueryEnabled, pupilsQuery.data]);
+  const isLoadingClass = isQueryEnabled && pupilsQuery.isLoading;
+  const isFetchingClass = false;
+  const classError = pupilsQuery.error;
 
   // Optimized: Client-side search filter with performance improvements
   const filteredPupils = useMemo(() => {
@@ -217,50 +181,17 @@ export function useClassPupilsWithoutPhotos({
     console.log('🚫 QUERY DISABLED (no photos): No class selected, query will not execute. classId:', classId);
   }
 
-  const {
-    data: classPupils = [],
-    isLoading: isLoadingClass,
-    isFetching: isFetchingClass,
-    error: classError
-  } = useQuery({
-    queryKey: ['pupils-by-class-no-photos', classId || 'none', filters],
-    queryFn: async () => {
-      if (!isQueryEnabled || !classId || classId === '') {
-        console.warn('🚨 SECURITY: Query function executed when disabled! Returning empty array.');
-        return [];
-      }
-
-      console.log('🚀 OPTIMIZED LOADING: Fetching pupils WITHOUT photos for class:', classId);
-
-      if (classId === 'all') {
-        console.log('⚠️ Loading ALL pupils WITHOUT photos (faster) - user explicitly selected "All"');
-        return includeAllClasses ? await PupilsService.getAllPupilsWithoutPhotos() : [];
-      }
-
-      // Use optimized class-based query WITHOUT photos
-      console.log('⚡ Loading pupils for specific class WITHOUT photos (much faster)');
-      try {
-        if (filters && Object.keys(filters).length > 0) {
-          console.log('🎯 Using filtered query WITHOUT photos for class:', classId, filters);
-          return await PupilsService.getPupilsByClassWithFiltersWithoutPhotos(classId, filters);
-        }
-
-        console.log('📚 Using basic class query WITHOUT photos for:', classId);
-        return await PupilsService.getPupilsByClassWithoutPhotos(classId);
-      } catch (queryError) {
-        console.error('❌ Class-specific query (no photos) failed, trying basic query:', queryError);
-        return await PupilsService.getPupilsByClassWithoutPhotos(classId);
-      }
-    },
-    enabled: isQueryEnabled,
-    staleTime: 8 * 60 * 1000, // 8 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes cache
-    refetchInterval: isQueryEnabled ? 10 * 60 * 1000 : false,
-    placeholderData: isQueryEnabled ? (previousData) => previousData : undefined,
-    refetchOnWindowFocus: false,
-    refetchOnMount: isQueryEnabled,
-    refetchOnReconnect: isQueryEnabled,
-  });
+  const pupilsQuery = usePupils();
+  const classPupils = useMemo(() => {
+    if (!isQueryEnabled) return [];
+    const selected = classId === 'all'
+      ? includeAllClasses ? pupilsQuery.data ?? [] : []
+      : selectPupilsWithFilters(pupilsQuery.data, classId, filters);
+    return selectPupilsWithoutPhotos(selected);
+  }, [classId, filters?.gender, filters?.section, filters?.status, includeAllClasses, isQueryEnabled, pupilsQuery.data]);
+  const isLoadingClass = isQueryEnabled && pupilsQuery.isLoading;
+  const isFetchingClass = false;
+  const classError = pupilsQuery.error;
 
   // Client-side search filter
   const filteredPupils = useMemo(() => {
@@ -356,18 +287,22 @@ export function useClassPupilsWithoutPhotos({
  * Hook for getting minimal pupil data (faster loading for dropdowns, etc.)
  */
 export function useClassPupilsMinimal(classId?: string) {
-  return useQuery({
-    queryKey: ['pupils-minimal', classId],
-    queryFn: async () => {
-      console.log('⚡ Loading minimal pupil data for:', classId);
-      const result = await PupilsService.getPupilsMinimal(classId);
-      console.log('✅ Minimal pupils loaded:', result.length);
-      return result;
-    },
-    enabled: !!classId,
-    staleTime: 10 * 60 * 1000, // 10 minutes - minimal data changes even less
-    gcTime: 20 * 60 * 1000, // 20 minutes cache
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(() => {
+    if (!classId) return [];
+    const selected = classId === 'all'
+      ? pupilsQuery.data ?? []
+      : selectPupilsWithFilters(pupilsQuery.data, classId);
+    return selected.map(({ id, firstName, lastName, admissionNumber, classId: pupilClassId, status }) => ({
+      id,
+      firstName,
+      lastName,
+      admissionNumber,
+      classId: pupilClassId,
+      status,
+    }));
+  }, [classId, pupilsQuery.data]);
+  return { ...pupilsQuery, data, isLoading: !!classId && pupilsQuery.isLoading };
 }
 
 /**

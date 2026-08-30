@@ -1,272 +1,145 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { collection, query as firestoreQuery, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
-import { acquireSharedFirestoreSubscription } from '../firebase/firestore-subscription-registry';
+import { useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AccessLevelsService } from '@/lib/services/access-levels.service';
-import { CreateAccessLevelData, UpdateAccessLevelData } from '@/types/access-levels';
+import type { AccessLevel, CreateAccessLevelData, UpdateAccessLevelData } from '@/types/access-levels';
 import { useAuth } from '@/lib/contexts/auth-context';
+import {
+  getAccessLevelCacheScope,
+  normaliseAccessLevels,
+  readAccessLevelCache,
+  writeAccessLevelCache,
+} from '@/lib/cache/access-level-cache';
+import {
+  selectAccessLevelById,
+  selectActiveAccessLevels,
+  selectDefaultAccessLevel,
+} from '@/lib/selectors/reference-data-selectors';
 
-const ACCESS_LEVELS_QUERY_KEY = 'accessLevels';
+export const accessLevelKeys = {
+  all: ['accessLevels'] as const,
+  lists: () => [...accessLevelKeys.all, 'list'] as const,
+  list: (scope: string) => [...accessLevelKeys.lists(), scope] as const,
+};
 
-// Get all access levels
+function patchAccessLevelSnapshot(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  patch: (current: AccessLevel[]) => AccessLevel[],
+) {
+  if (!scope) return;
+  const queryKey = accessLevelKeys.list(scope);
+  const current = queryClient.getQueryData<AccessLevel[]>(queryKey) ??
+    readAccessLevelCache(scope)?.data ?? [];
+  const next = normaliseAccessLevels(patch(current));
+  queryClient.setQueryData(queryKey, next);
+  AccessLevelsService.hydrateSharedAccessLevels(next);
+  writeAccessLevelCache(scope, -1, next);
+}
+
 export function useAccessLevels() {
-  const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
-  type AccessLevels = Awaited<ReturnType<typeof AccessLevelsService.getAllAccessLevels>>;
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getAccessLevelCacheScope(user?.id, user?.role) : '';
+  const queryKey = accessLevelKeys.list(scope);
+  const inMemory = queryClient.getQueryData<AccessLevel[]>(queryKey);
+  const persisted = inMemory === undefined ? readAccessLevelCache(scope) : null;
+  const initialData = inMemory ?? persisted?.data;
 
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    return acquireSharedFirestoreSubscription<AccessLevels>({
-      key: `access-levels:${currentUser.id}`,
-      queryClient,
-      queryKey: [ACCESS_LEVELS_QUERY_KEY, 'all'],
-      subscribe: ({ next, error }) => {
-        const accessLevelsQuery = firestoreQuery(collection(db, 'accessLevels'));
-        return onSnapshot(
-          accessLevelsQuery,
-          { includeMetadataChanges: true },
-          (snapshot) => {
-            next(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AccessLevels);
-          },
-          error,
-        );
-      },
-      fallback: AccessLevelsService.getAllAccessLevels,
-      fallbackDelayMs: 3000,
-      onError: (error) => console.error('Real-time access levels listener error:', error),
-    });
-  }, [currentUser?.id, queryClient]);
-
-  const accessLevelsQuery = useQuery({
-    queryKey: [ACCESS_LEVELS_QUERY_KEY, 'all'],
-    queryFn: AccessLevelsService.getAllAccessLevels,
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => queryClient.getQueryData<AccessLevel[]>(queryKey) ?? [],
     enabled: false,
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    placeholderData: (previousData) => previousData,
-    initialData: () => queryClient.getQueryData<AccessLevels>([ACCESS_LEVELS_QUERY_KEY, 'all']) || undefined,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    initialData,
+    initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
+    placeholderData: previousData => previousData,
   });
 
-  return {
-    ...accessLevelsQuery,
-    isLoading: Boolean(currentUser?.id) && accessLevelsQuery.data === undefined,
-  };
+  return { ...query, isLoading: !!scope && query.data === undefined };
 }
 
-// Kept temporarily as a reference while the shared-listener implementation
-// is verified in preview. It is intentionally not exported or called.
-function useAccessLevelsWithDedicatedListener() {
-  const queryClient = useQueryClient();
-
-  // 🚀 BULLETPROOF REAL-TIME LISTENER for access levels
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎧 REALTIME: Setting up access levels listener...');
-    }
-
-    let unsubscribe: (() => void) | null = null;
-    let isActive = true;
-    let listenerFired = false;
-    let fallbackTimeout: NodeJS.Timeout | null = null;
-
-    const setupListener = () => {
-      if (!isActive) return;
-
-      // 🔧 FIX: Unsubscribe old listener before creating a new one
-      if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-      }
-
-      try {
-        const accessLevelsQuery = firestoreQuery(collection(db, 'accessLevels'));
-
-        unsubscribe = onSnapshot(
-          accessLevelsQuery,
-          {
-            includeMetadataChanges: true
-          },
-          (snapshot) => {
-            if (!isActive) return;
-
-            listenerFired = true;
-
-            const accessLevels = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-
-            const fromCache = snapshot.metadata.fromCache;
-
-            if (process.env.NODE_ENV === 'development') {
-              console.log(`⚡ REALTIME: Loaded ${accessLevels.length} access levels`, {
-                fromCache,
-                source: fromCache ? '📦 cache' : '☁️ server'
-              });
-            }
-
-            queryClient.setQueryData([ACCESS_LEVELS_QUERY_KEY, 'all'], accessLevels);
-          },
-          (error) => {
-            if (!isActive) return;
-            console.error('❌ REALTIME ACCESS LEVELS ERROR:', error.message);
-          }
-        );
-
-        // Fallback
-        fallbackTimeout = setTimeout(async () => {
-          if (!listenerFired && isActive) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('⚠️ REALTIME: Access levels listener did not fire, fetching manually...');
-            }
-
-            try {
-              const accessLevels = await AccessLevelsService.getAllAccessLevels();
-              queryClient.setQueryData([ACCESS_LEVELS_QUERY_KEY, 'all'], accessLevels);
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`✅ FALLBACK: Loaded ${accessLevels.length} access levels`);
-              }
-            } catch (error) {
-              console.error('❌ FALLBACK: Access levels fetch failed:', error);
-            }
-          }
-        }, 3000);
-
-      } catch (error) {
-        console.error('❌ REALTIME: Failed to setup access levels listener:', error);
-      }
-    };
-
-    setupListener();
-
-    return () => {
-      isActive = false;
-      if (fallbackTimeout) clearTimeout(fallbackTimeout);
-      if (unsubscribe) unsubscribe();
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔌 REALTIME: Cleaned up access levels listener');
-      }
-    };
-  }, [queryClient]);
-
-  return useQuery({
-    queryKey: [ACCESS_LEVELS_QUERY_KEY, 'all'],
-    queryFn: async () => {
-      const cachedData = queryClient.getQueryData([ACCESS_LEVELS_QUERY_KEY, 'all']);
-      if (cachedData) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚡ useAccessLevels: Using cached data');
-        }
-        return cachedData as Awaited<ReturnType<typeof AccessLevelsService.getAllAccessLevels>>;
-      }
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 useAccessLevels: No cache, fetching from server...');
-      }
-      return AccessLevelsService.getAllAccessLevels();
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    placeholderData: (previousData) => previousData,
-    initialData: () => {
-      const cached = queryClient.getQueryData([ACCESS_LEVELS_QUERY_KEY, 'all']);
-      return cached as Awaited<ReturnType<typeof AccessLevelsService.getAllAccessLevels>> | undefined;
-    },
-  });
-}
-
-// Get active access levels only
 export function useActiveAccessLevels() {
-  return useQuery({
-    queryKey: [ACCESS_LEVELS_QUERY_KEY, 'active'],
-    queryFn: () => AccessLevelsService.getActiveAccessLevels(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const levelsQuery = useAccessLevels();
+  const data = useMemo(() => selectActiveAccessLevels(levelsQuery.data), [levelsQuery.data]);
+  return { ...levelsQuery, data };
 }
 
-// Get access level by ID
 export function useAccessLevel(id: string) {
-  return useQuery({
-    queryKey: [ACCESS_LEVELS_QUERY_KEY, id],
-    queryFn: () => AccessLevelsService.getAccessLevelById(id),
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const levelsQuery = useAccessLevels();
+  const data = useMemo(() => selectAccessLevelById(levelsQuery.data, id), [id, levelsQuery.data]);
+  return { ...levelsQuery, data };
 }
 
-// Get default access level
 export function useDefaultAccessLevel() {
-  return useQuery({
-    queryKey: [ACCESS_LEVELS_QUERY_KEY, 'default'],
-    queryFn: () => AccessLevelsService.getDefaultAccessLevel(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const levelsQuery = useAccessLevels();
+  const data = useMemo(() => selectDefaultAccessLevel(levelsQuery.data), [levelsQuery.data]);
+  return { ...levelsQuery, data };
 }
 
-// Create access level mutation
 export function useCreateAccessLevel() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getAccessLevelCacheScope(user?.id, user?.role) : '';
   return useMutation({
     mutationFn: async (data: CreateAccessLevelData) => {
       if (!user) throw new Error('User not authenticated');
       return AccessLevelsService.createAccessLevel(data, user.id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [ACCESS_LEVELS_QUERY_KEY] });
-    },
+    onSuccess: created => patchAccessLevelSnapshot(queryClient, scope, current => [
+      ...current.map(level => created.isDefault ? { ...level, isDefault: false } : level),
+      created,
+    ]),
   });
 }
 
-// Update access level mutation
 export function useUpdateAccessLevel() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getAccessLevelCacheScope(user?.id, user?.role) : '';
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateAccessLevelData }) => {
       if (!user) throw new Error('User not authenticated');
       return AccessLevelsService.updateAccessLevel(id, data, user.id);
     },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: [ACCESS_LEVELS_QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: [ACCESS_LEVELS_QUERY_KEY, id] });
-    },
+    onSuccess: updated => patchAccessLevelSnapshot(queryClient, scope, current =>
+      current.map(level => {
+        if (level.id === updated.id) return updated;
+        return updated.isDefault ? { ...level, isDefault: false } : level;
+      }),
+    ),
   });
 }
 
-// Delete access level mutation
 export function useDeleteAccessLevel() {
   const queryClient = useQueryClient();
-
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getAccessLevelCacheScope(user?.id, user?.role) : '';
   return useMutation({
     mutationFn: (id: string) => AccessLevelsService.deleteAccessLevel(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [ACCESS_LEVELS_QUERY_KEY] });
-    },
+    onSuccess: (_, id) => patchAccessLevelSnapshot(queryClient, scope, current =>
+      current.filter(level => level.id !== id),
+    ),
   });
 }
 
-// Initialize predefined levels mutation
 export function useInitializePredefinedLevels() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getAccessLevelCacheScope(user?.id, user?.role) : '';
   return useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('User not authenticated');
       return AccessLevelsService.initializePredefinedLevels(user.id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [ACCESS_LEVELS_QUERY_KEY] });
+    onSuccess: created => {
+      if (created.length > 0) {
+        patchAccessLevelSnapshot(queryClient, scope, current => [...current, ...created]);
+      }
     },
   });
 }

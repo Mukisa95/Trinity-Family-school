@@ -433,6 +433,9 @@ export interface SchoolSettings {
     classes?: number;
     academicYears?: number;
     staff?: number;
+    subjects?: number;
+    houses?: number;
+    accessLevels?: number;
     pupils?: number;
     attendance?: number;
     /** Full exam-definition collection revision. */

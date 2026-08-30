@@ -57,7 +57,7 @@ import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { usePrint } from '@/lib/contexts/print-context';
 
 // Services
-import { PupilsService } from '@/lib/services/pupils.service';
+import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
@@ -304,40 +304,19 @@ export default function FeesCollectionPage() {
   // Shared persistent definitions; the Fees page must not create its own class read.
   const { data: classes = [], isLoading: isLoadingClasses } = useClasses();
 
-  // Fetch pupils - now optimized with class-based loading
-  const { data: pupils = [], isLoading: isLoadingPupils, isFetching: isFetchingPupils } = useQuery({
-    queryKey: ['pupils-for-fees', filters.selectedClassId],
-    queryFn: async () => {
-      console.log('🚀 FEES COLLECTION - Loading pupils for class:', filters.selectedClassId);
-
-      let pupilsData: Pupil[];
-
-      if (!filters.selectedClassId || filters.selectedClassId === '') {
-        console.log('❌ FEES COLLECTION - No class selected, not loading any data');
-        return [];
-      }
-
-      if (filters.selectedClassId === 'all') {
-        // Only load all pupils if explicitly requested
-        console.log('⚠️ FEES COLLECTION - Loading ALL pupils (slower)');
-        pupilsData = await PupilsService.getAllPupils();
-      } else {
-        // Use optimized class-based loading (much faster!)
-        console.log('⚡ FEES COLLECTION - Loading pupils for specific class (faster)');
-        pupilsData = await PupilsService.getPupilsByClass(filters.selectedClassId);
-      }
-
-      // Add class information
-      return pupilsData.map((pupil: Pupil) => ({
+  // Pupil filtering is a selector over the global role-scoped snapshot.
+  const { data: allPupils = [], isLoading: isLoadingPupils } = usePupils();
+  const isFetchingPupils = false;
+  const pupils = useMemo(() => {
+    if (!filters.selectedClassId) return [];
+    const selectedPupils = filters.selectedClassId === 'all'
+      ? allPupils
+      : allPupils.filter(pupil => pupil.classId === filters.selectedClassId);
+    return selectedPupils.map((pupil: Pupil) => ({
         ...pupil,
         class: classes.find((c: Class) => c.id === pupil.classId)
       }));
-    },
-    enabled: !isLoadingClasses && !!filters.selectedClassId && filters.selectedClassId !== '',
-    staleTime: 2 * 60 * 1000, // 2 minutes - cache class-specific data longer
-    placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-  });
+  }, [allPupils, classes, filters.selectedClassId]);
 
   // Fetch fee structures for the selected year, term, and class
   const { data: availableFeeStructures = [], isLoading: isLoadingFeeStructures, isFetching: isFetchingFeeStructures } = useQuery({

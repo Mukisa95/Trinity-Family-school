@@ -16,6 +16,7 @@ import { FeeStructuresService } from "@/lib/services/fee-structures.service";
 import { PupilsService } from "@/lib/services/pupils.service";
 import { PaymentsService } from "@/lib/services/payments.service";
 import { useAcademicYears, useActiveAcademicYear } from "@/lib/hooks/use-academic-years";
+import { usePupils } from "@/lib/hooks/use-pupils";
 import { detectCurrentAcademicYear, getActiveOrMostRecentTerm } from "@/lib/utils/academic-year-utils";
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
 import {
@@ -96,9 +97,8 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  /** Keep assign-pupils and assignment-details in sync after any mutation (order matters for refetch). */
+  /** Recalculate payment/assignment details after an assignment mutation. */
   const refreshAssignmentCaches = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["assign-pupils"] });
     await queryClient.invalidateQueries({ queryKey: ["assignment-details", feeId] });
   }, [queryClient, feeId]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -197,11 +197,11 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     isLoading: isLoadingPupils,
     error: pupilsError,
     isError: isPupilsError,
-  } = useQuery({
-    queryKey: ["assign-pupils"],
-    queryFn: () => PupilsService.getAllPupils(),
-    staleTime: 5 * 60 * 1000,
-  });
+  } = usePupils();
+  const pupilAssignmentRevision = useMemo(
+    () => JSON.stringify(pupils.map(pupil => [pupil.id, pupil.assignedFees ?? []])),
+    [pupils],
+  );
 
   const {
     data: assignmentRecords = [],
@@ -209,18 +209,19 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
     isError: isAssignmentsError,
     error: assignmentsError,
   } = useQuery<AssignmentRecord[]>({
-    queryKey: ["assignment-details", feeId, selectedYearId, selectedTermId],
-    enabled: Boolean(feeStructure),
+    queryKey: [
+      "assignment-details",
+      feeId,
+      selectedYearId,
+      selectedTermId,
+      pupils.length,
+      pupilAssignmentRevision,
+    ],
+    enabled: Boolean(feeStructure) && !isLoadingPupils,
     queryFn: async () => {
       if (!feeStructure) return [];
 
-      const pupilsList = await queryClient.fetchQuery<Pupil[]>({
-        queryKey: ["assign-pupils"],
-        queryFn: () => PupilsService.getAllPupils(),
-        staleTime: 5 * 60 * 1000,
-      });
-
-      const assignments = pupilsList
+      const assignments = pupils
         .map((pupil) => {
           const all = pupil.assignedFees || [];
           const assignment = all.find(af =>

@@ -39,8 +39,8 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { parseLocalDate, formatDateForStorage } from "@/lib/utils/date-utils";
-import { HousesService } from "@/lib/services/houses.service";
 import type { House } from "@/types";
+import { useHouses } from "@/lib/hooks/use-houses";
 import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
 import { buildPupilRegistrationPdfHtml } from "@/lib/pdf/pupil-registration-form";
 
@@ -72,6 +72,7 @@ function NewPupilContent() {
   const createPupilMutation = useCreatePupil();
   const { data: originalPupil, isLoading: isLoadingOriginalPupil } = usePupil(originalPupilId || '');
   const { data: allPupils = [] } = usePupils();
+  const { data: houses = [] } = useHouses();
   const [predictedHouse, setPredictedHouse] = React.useState<House | null>(null);
 
   // Use school settings or fallback to sample data
@@ -322,34 +323,23 @@ function NewPupilContent() {
 
   // Predict next house assignment (round-robin) for preview
   React.useEffect(() => {
-    const computeNextHouse = async () => {
-      try {
-        const houses = await HousesService.getAll();
-        if (!houses || houses.length === 0) {
-          setPredictedHouse(null);
-          return;
-        }
-        houses.sort((a, b) => a.name.localeCompare(b.name));
-        // Determine last registered pupil from allPupils (has createdAt or rely on list order)
-        let lastPupilHouseId: string | undefined;
-        if (allPupils && allPupils.length > 0) {
-          const sorted = [...allPupils].sort((a, b) => {
-            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return bTime - aTime;
-          });
-          lastPupilHouseId = sorted[0]?.houseId || undefined;
-        }
-        const lastIndex = houses.findIndex(h => h.id === (lastPupilHouseId || ''));
-        const nextIndex = lastIndex >= 0 ? (lastIndex + 1) % houses.length : 0;
-        setPredictedHouse(houses[nextIndex]);
-      } catch (e) {
-        console.warn('Failed to compute next house', e);
-        setPredictedHouse(null);
-      }
-    };
-    computeNextHouse();
-  }, [allPupils]);
+    if (houses.length === 0) {
+      setPredictedHouse(null);
+      return;
+    }
+    let lastPupilHouseId: string | undefined;
+    if (allPupils.length > 0) {
+      const sorted = [...allPupils].sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+      lastPupilHouseId = sorted[0]?.houseId || undefined;
+    }
+    const lastIndex = houses.findIndex(house => house.id === (lastPupilHouseId || ''));
+    const nextIndex = lastIndex >= 0 ? (lastIndex + 1) % houses.length : 0;
+    setPredictedHouse(houses[nextIndex]);
+  }, [allPupils, houses]);
 
   // Prefill family information when adding a sibling
   React.useEffect(() => {

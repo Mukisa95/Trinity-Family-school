@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PupilsService } from '@/lib/services/pupils.service';
+import { usePupils } from '@/lib/hooks/use-pupils';
+import { selectPupilsByIds } from '@/lib/selectors/pupil-selectors';
 import type { Pupil } from '@/types';
 
 interface LinkSiblingsModalProps {
@@ -32,50 +34,19 @@ export function LinkSiblingsModal({
   onSuccess
 }: LinkSiblingsModalProps) {
   const { toast } = useToast();
+  const { data: pupils = [], isLoading } = usePupils();
   const [searchTerm, setSearchTerm] = useState('');
-  const [allPupils, setAllPupils] = useState<Pupil[]>([]);
   const [selectedPupilIds, setSelectedPupilIds] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
 
-  // Load all pupils when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      loadPupils();
-    }
-  }, [isOpen]);
-
-  const loadPupils = async () => {
-    try {
-      setIsLoading(true);
-      const pupils = await PupilsService.getAllPupils();
-      // Exclude the source pupil and any pupils that are already siblings
-      const existingSiblings = sourcePupil.familyId 
-        ? await PupilsService.getPupilsByFamily(sourcePupil.familyId)
-        : [];
-      const existingSiblingIds = existingSiblings.map(s => s.id);
-      
-      const availablePupils = pupils.filter(p => 
-        p.id !== sourcePupil.id && 
-        !existingSiblingIds.includes(p.id) &&
-        p.status === 'Active'
-      );
-      
-      setAllPupils(availablePupils);
-    } catch (error) {
-      console.error('Error loading pupils:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load pupils. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const availablePupils = useMemo(() => pupils.filter(pupil =>
+    pupil.id !== sourcePupil.id &&
+    (!sourcePupil.familyId || pupil.familyId !== sourcePupil.familyId) &&
+    pupil.status === 'Active'
+  ), [pupils, sourcePupil.familyId, sourcePupil.id]);
 
   // Filter pupils based on search term
-  const filteredPupils = allPupils.filter(pupil => {
+  const filteredPupils = availablePupils.filter(pupil => {
     const searchLower = searchTerm.toLowerCase();
     return (
       pupil.firstName.toLowerCase().includes(searchLower) ||
@@ -109,30 +80,17 @@ export function LinkSiblingsModal({
 
       // Get all pupils that will be linked (source + selected)
       const allPupilIds = [sourcePupil.id, ...selectedPupilIds];
-      const allPupils = await Promise.all(
-        allPupilIds.map(id => PupilsService.getPupilById(id))
-      );
-
-      // Filter out any null results
-      const validPupils = allPupils.filter(p => p !== null) as Pupil[];
+      const validPupils = selectPupilsByIds(pupils, allPupilIds);
 
       // Collect all existing family IDs and their members
       const existingFamilyIds = validPupils
         .map(p => p.familyId)
         .filter(id => id && id.trim() !== '');
 
-      let allFamilyMembers: Pupil[] = [];
-      
-      if (existingFamilyIds.length > 0) {
-        // Get all members from existing families
-        const uniqueFamilyIds = [...new Set(existingFamilyIds)];
-        for (const familyId of uniqueFamilyIds) {
-          if (familyId) {
-            const familyMembers = await PupilsService.getPupilsByFamily(familyId);
-            allFamilyMembers = [...allFamilyMembers, ...familyMembers];
-          }
-        }
-      }
+      const familyIds = new Set(existingFamilyIds);
+      const allFamilyMembers = pupils.filter(pupil =>
+        Boolean(pupil.familyId && familyIds.has(pupil.familyId)),
+      );
 
       // Remove duplicates from family members
       const uniqueFamilyMembers = allFamilyMembers.filter(
@@ -399,4 +357,4 @@ export function LinkSiblingsModal({
       </DialogContent>
     </Dialog>
   );
-} 
+}

@@ -11,6 +11,9 @@ type LegacyRevisions = {
   classes?: number;
   academicYears?: number;
   staff?: number;
+  subjects?: number;
+  houses?: number;
+  accessLevels?: number;
   exams?: number;
   pupils?: number;
   attendance?: number;
@@ -50,6 +53,9 @@ async function main() {
         classes: numberOrZero(legacy.classes),
         academicYears: numberOrZero(legacy.academicYears),
         staff: numberOrZero(legacy.staff),
+        subjects: numberOrZero(legacy.subjects),
+        houses: numberOrZero(legacy.houses),
+        accessLevels: numberOrZero(legacy.accessLevels),
         exams: numberOrZero(legacy.exams),
       },
       'settings/data-revisions-operational': {

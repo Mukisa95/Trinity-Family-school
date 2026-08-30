@@ -46,8 +46,8 @@ import { useState as useReactState } from 'react';
 import type { Pupil, Guardian, Class, PupilStatus, AdditionalIdentifier } from '@/types';
 import { Suspense } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { HousesService } from "@/lib/services/houses.service";
 import type { House } from "@/types";
+import { useHouses } from "@/lib/hooks/use-houses";
 import { ManageIdCodesModal } from '@/components/pupils/manage-id-codes-modal';
 import { ManagePayCodeModal } from '@/components/pupils/manage-pay-code-modal';
 import { LinkSiblingsModal } from '@/components/pupils/link-siblings-modal';
@@ -731,23 +731,7 @@ function PupilsContent() {
   };
 
   // Load houses and create a lookup map for quick access
-  const [houses, setHouses] = useState<House[]>([]);
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await HousesService.getAll();
-        if (!mounted) return;
-        data.sort((a, b) => a.name.localeCompare(b.name));
-        setHouses(data);
-      } catch (e) {
-        console.warn('Failed to load houses', e);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { data: houses = [] } = useHouses();
   const houseMap = useMemo(() => {
     const map = new Map<string, House>();
     houses.forEach(h => map.set(h.id, h));

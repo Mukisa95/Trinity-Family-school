@@ -1,126 +1,140 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/auth-context';
 import { SubjectsService } from '../services/subjects.service';
 import { useClassDetail } from './use-class-detail';
+import {
+  getSubjectCacheScope,
+  normaliseSubjects,
+  readSubjectCache,
+  writeSubjectCache,
+} from '@/lib/cache/subject-cache';
+import {
+  selectSubjectById,
+  selectSubjectsByAssignments,
+} from '@/lib/selectors/subject-selectors';
 import type { Subject } from '@/types';
 
-const SUBJECTS_QUERY_KEY = 'subjects';
+export const subjectsKeys = {
+  all: ['subjects'] as const,
+  lists: () => [...subjectsKeys.all, 'list'] as const,
+  list: (scope: string) => [...subjectsKeys.lists(), scope] as const,
+};
+
+function patchSubjectSnapshot(
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: string,
+  patch: (current: Subject[]) => Subject[],
+) {
+  if (!scope) return;
+  const queryKey = subjectsKeys.list(scope);
+  const current = queryClient.getQueryData<Subject[]>(queryKey) ?? readSubjectCache(scope)?.data ?? [];
+  const next = normaliseSubjects(patch(current));
+  queryClient.setQueryData(queryKey, next);
+  SubjectsService.hydrateSharedSubjects(next);
+  // The revision owner will replace this optimistic snapshot with the one
+  // authoritative collection result published by the atomic source mutation.
+  writeSubjectCache(scope, -1, next);
+}
 
 export function useSubjects() {
   const queryClient = useQueryClient();
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getSubjectCacheScope(user?.id, user?.role) : '';
+  const queryKey = subjectsKeys.list(scope);
+  const inMemory = queryClient.getQueryData<Subject[]>(queryKey);
+  const persisted = inMemory === undefined ? readSubjectCache(scope) : null;
+  const initialData = inMemory ?? persisted?.data;
 
-  // 🚀 CRITICAL: Get cached data immediately to avoid loading state
-  const cachedData = queryClient.getQueryData<Subject[]>([SUBJECTS_QUERY_KEY]);
-
-  // ⚡ Use preloaded data from GlobalDataPreloader
-  return useQuery({
-    queryKey: [SUBJECTS_QUERY_KEY],
-    queryFn: async () => {
-      // Check cache first (populated by GlobalDataPreloader)
-      const currentCachedData = queryClient.getQueryData<Subject[]>([SUBJECTS_QUERY_KEY]);
-      if (currentCachedData && currentCachedData.length > 0) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚡ SUBJECTS: Loaded from cache (instant)');
-        }
-        return currentCachedData;
-      }
-      
-      // Fallback to service if cache empty
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📊 SUBJECTS: Fetching from service...');
-      }
-      return SubjectsService.getAllSubjects();
-    },
-    staleTime: Infinity, // Never stale - updated by real-time listener
-    gcTime: Infinity, // Keep in cache forever
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: cachedData && cachedData.length > 0 ? cachedData : undefined,
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // If we have cached data, use it immediately
-      if (cachedData && cachedData.length > 0) {
-        return cachedData;
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => queryClient.getQueryData<Subject[]>(queryKey) ?? [],
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    initialData,
+    initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
+    placeholderData: previousData => previousData,
   });
+
+  return {
+    ...query,
+    isLoading: !!scope && query.data === undefined,
+  };
 }
 
 export function useSubject(id: string) {
-  return useQuery({
-    queryKey: [SUBJECTS_QUERY_KEY, id],
-    queryFn: () => SubjectsService.getSubjectById(id),
-    enabled: !!id,
-  });
+  const subjectsQuery = useSubjects();
+  const data = useMemo(
+    () => selectSubjectById(subjectsQuery.data, id),
+    [id, subjectsQuery.data],
+  );
+  return { ...subjectsQuery, data };
 }
 
 export function useCreateSubject() {
   const queryClient = useQueryClient();
-  
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getSubjectCacheScope(user?.id, user?.role) : '';
+
   return useMutation({
     mutationFn: (subjectData: Omit<Subject, 'id' | 'createdAt'>) =>
       SubjectsService.createSubject(subjectData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SUBJECTS_QUERY_KEY] });
+    onSuccess: created => {
+      patchSubjectSnapshot(queryClient, scope, current => [...current, created]);
     },
   });
 }
 
 export function useUpdateSubject() {
   const queryClient = useQueryClient();
-  
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getSubjectCacheScope(user?.id, user?.role) : '';
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Subject, 'id' | 'createdAt'>> }) =>
       SubjectsService.updateSubject(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SUBJECTS_QUERY_KEY] });
+    onSuccess: (updated, { id }) => {
+      patchSubjectSnapshot(queryClient, scope, current => current.map(subject =>
+        subject.id === id ? updated : subject,
+      ));
     },
   });
 }
 
 export function useDeleteSubject() {
   const queryClient = useQueryClient();
-  
+  const { user, isAuthenticated } = useAuth();
+  const scope = isAuthenticated ? getSubjectCacheScope(user?.id, user?.role) : '';
+
   return useMutation({
     mutationFn: (id: string) => SubjectsService.deleteSubject(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [SUBJECTS_QUERY_KEY] });
+    onSuccess: (_, id) => {
+      patchSubjectSnapshot(queryClient, scope, current =>
+        current.filter(subject => subject.id !== id),
+      );
     },
   });
 }
 
 export function useSubjectsByClass(classId: string, options?: { enabled?: boolean }) {
-  const { data: allSubjects = [] } = useSubjects();
-  const { data: classDetail } = useClassDetail(classId);
-  
-  const subjectsWithTeachers = useMemo(() => {
-    if (!classDetail?.subjectAssignments || !allSubjects.length) return [];
-    
-    return classDetail.subjectAssignments.map(assignment => {
-      const subject = allSubjects.find(s => s.id === assignment.subjectId);
-      if (!subject) return null;
-      
-      // Support both old format (teacherId) and new format (teacherIds)
-      const teacherIds = Array.isArray(assignment.teacherIds) 
-        ? assignment.teacherIds 
-        : [];
-      
-      return {
-        ...subject,
-        teacherIds: teacherIds,
-        teacherId: teacherIds[0] || null, // Keep for backward compatibility
-        teacherName: null // Will be populated by staff data
-      };
-    }).filter((subject): subject is NonNullable<typeof subject> => subject !== null && !!subject.id);
-  }, [classDetail?.subjectAssignments, allSubjects]);
+  const subjectsQuery = useSubjects();
+  const classQuery = useClassDetail(classId);
+  const data = useMemo(
+    () => selectSubjectsByAssignments(
+      subjectsQuery.data ?? [],
+      classQuery.data?.subjectAssignments,
+    ),
+    [classQuery.data?.subjectAssignments, subjectsQuery.data],
+  );
 
   return {
-    data: subjectsWithTeachers,
-    isLoading: false,
-    error: null
+    data,
+    isLoading: options?.enabled !== false && !!classId && (subjectsQuery.isLoading || classQuery.isLoading),
+    error: subjectsQuery.error ?? classQuery.error,
   };
-} 
+}

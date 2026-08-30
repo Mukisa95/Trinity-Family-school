@@ -43,8 +43,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-import type { Pupil, Class, AdditionalIdentifier, PupilAssignedFee, House } from "@/types";
-import { HousesService } from "@/lib/services/houses.service";
+import type { Pupil, Class, AdditionalIdentifier, PupilAssignedFee } from "@/types";
+import { useHouses } from "@/lib/hooks/use-houses";
 import { formatStaffRoles } from "@/lib/utils/format";
 import { usePupil, usePupilsByFamily, useUpdatePupil } from "@/lib/hooks/use-pupils";
 import { useClasses } from "@/lib/hooks/use-classes";
@@ -427,26 +427,10 @@ function PupilDetailContent() {
   const [editableGuardians, setEditableGuardians] = React.useState<any[]>([]);
 
   // Houses state
-  const [houses, setHouses] = React.useState<House[]>([]);
-  const [housesLoading, setHousesLoading] = React.useState<boolean>(false);
+  const { data: houses = [], isLoading: housesLoading } = useHouses();
   const [isHouseChangeOpen, setIsHouseChangeOpen] = React.useState(false);
   const [isFamilyModalOpen, setIsFamilyModalOpen] = React.useState(false);
   const [selectedHouseId, setSelectedHouseId] = React.useState<string>(pupil?.houseId || '');
-  const loadHouses = React.useCallback(async () => {
-    setHousesLoading(true);
-    try {
-      const data = await HousesService.getAll();
-      data.sort((a, b) => a.name.localeCompare(b.name));
-      setHouses(data);
-    } catch (e) {
-      console.error('Failed to load houses', e);
-    } finally {
-      setHousesLoading(false);
-    }
-  }, []);
-  React.useEffect(() => {
-    loadHouses();
-  }, [loadHouses]);
   React.useEffect(() => {
     setSelectedHouseId(pupil?.houseId || '');
   }, [pupil?.houseId]);

@@ -1,9 +1,24 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient, type QueryKey } from '@tanstack/react-query';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo } from 'react';
 import {
   PupilsService,
   type PupilPerformancePatch,
 } from '../services/pupils.service';
+import {
+  searchPupilSnapshot,
+  selectActivePupils,
+  selectActivePupilsByClass,
+  selectPupilByAdmissionNumber,
+  selectPupilById,
+  selectPupilPhoto,
+  selectPupilPhotos,
+  selectPupilsByClass,
+  selectPupilsByFamily,
+  selectPupilsByIds,
+  selectPupilsByStatus,
+  selectPupilsWithFilters,
+  selectPupilsWithoutPhotos,
+} from '@/lib/selectors/pupil-selectors';
 import type { Pupil } from '@/types';
 
 // Query keys
@@ -227,68 +242,32 @@ export const applyPupilChangesToQueryCaches = (
 // Hooks
 export function usePupils() {
   const queryClient = useQueryClient();
-
-  // Get cached data immediately to use as initialData
   const cachedData = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-
   const query = useQuery({
     queryKey: pupilsKeys.lists(),
-    queryFn: async () => {
-      // Return cache if already populated by the GlobalDataPreloader
-      const currentCachedData = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-      if (currentCachedData && currentCachedData.length > 0) {
-        return currentCachedData;
-      }
-      // Fallback: direct fetch (should rarely happen — preloader covers this)
-      return [];
-    },
-    // Always enabled — the preloader populates ['pupils','list'] via setQueryData;
-    // this hook subscribes to that key and re-renders components when data arrives.
-    enabled: true,
-    staleTime: Infinity, // GlobalDataPreloader's live patch listener handles ALL updates
+    queryFn: async () => queryClient.getQueryData<Pupil[]>(pupilsKeys.lists()) ?? [],
+    // The GlobalDataPreloader's role-scoped listener is the sole browser read
+    // owner. Every ordinary pupil hook observes this canonical query only.
+    enabled: false,
+    staleTime: Infinity,
     gcTime: 30 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchInterval: false,
-    initialData: cachedData && cachedData.length > 0 ? cachedData : undefined,
-    initialDataUpdatedAt: cachedData && cachedData.length > 0 ? Date.now() : undefined,
-    placeholderData: (previousData) => {
-      if (cachedData && cachedData.length > 0) return cachedData;
-      return previousData;
-    },
+    initialData: cachedData,
+    initialDataUpdatedAt: cachedData !== undefined ? Date.now() : undefined,
+    placeholderData: previousData => previousData,
   });
-
-  return query;
+  return { ...query, isLoading: query.data === undefined };
 }
 
-// 🚀 DATABASE-LEVEL FILTERING: Only fetch active pupils from database
-export const selectActivePupils = (pupils: Pupil[] | undefined) =>
-  (pupils || []).filter(pupil => pupil.status === 'Active');
-
-// The global preloader already owns a live, role-scoped pupil list. Filtering
-// that canonical cache is instant and avoids a second `status == Active`
-// Firestore query whenever a report, exam, or boarding view is opened.
 export function useActivePupils() {
   const pupilsQuery = usePupils();
   const activePupils = useMemo(() => selectActivePupils(pupilsQuery.data), [pupilsQuery.data]);
-
-  return {
-    ...pupilsQuery,
-    data: activePupils,
-  };
+  return { ...pupilsQuery, data: activePupils };
 }
 
-// Retained temporarily as a source-level fallback while the cache selector is
-// verified in preview. It is intentionally not exported or called.
-function useActivePupilsWithDedicatedQuery() {
-  return useQuery({
-    queryKey: [...pupilsKeys.lists(), 'active'],
-    queryFn: () => PupilsService.getActivePupils(), // Database-level filter
-  });
-}
-
-// 🚀 OPTIMIZED: Only load active pupils when explicitly needed (database-level filter)
 export function useActivePupilsOptimized(options?: { enabled?: boolean }) {
   const pupilsQuery = usePupils();
   const enabled = options?.enabled !== false;
@@ -304,244 +283,38 @@ export function useActivePupilsOptimized(options?: { enabled?: boolean }) {
   };
 }
 
-// Retained temporarily as a source-level fallback while the cache selector is
-// verified in preview. It is intentionally not exported or called.
-function useActivePupilsOptimizedWithDedicatedQuery(options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: [...pupilsKeys.lists(), 'active', 'optimized'],
-    queryFn: () => PupilsService.getActivePupils(), // Database-level filter
-    enabled: options?.enabled !== false,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: (failureCount, error) => {
-      // Don't retry if it's an offline error
-      if (error?.message?.includes('offline') ||
-        error?.message?.includes('Could not reach Cloud Firestore') ||
-        (error as any)?.code === 'unavailable') {
-        console.log('🚫 Offline detected, not retrying pupils query');
-        return false;
-      }
-      // Retry up to 2 times for other errors
-      return failureCount < 2;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-  });
-}
-
 export function usePupil(id: string) {
-  const queryClient = useQueryClient();
-
-  // 🚀 CRITICAL: Get cached pupils data immediately to find pupil by id
-  const cachedPupils = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-
-  // Initial query with cache-first strategy
-  const query = useQuery({
-    queryKey: pupilsKeys.detail(id),
-    queryFn: async () => {
-      // 🚀 CRITICAL: First check detail cache
-      const cachedDetail = queryClient.getQueryData<Pupil>(pupilsKeys.detail(id));
-      if (cachedDetail) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⚡ usePupil: Using pupil from detail cache`);
-        }
-        return cachedDetail;
-      }
-
-      // 🚀 CRITICAL: If no detail cache, find from cached pupils list (instant!)
-      if (cachedPupils && cachedPupils.length > 0 && id) {
-        const foundPupil = cachedPupils.find((pupil) => pupil.id === id);
-        if (foundPupil) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`⚡ usePupil: Using pupil from cached pupils list (instant!)`);
-          }
-          // Also update detail cache for future use
-          queryClient.setQueryData(pupilsKeys.detail(id), foundPupil);
-          return foundPupil;
-        }
-      }
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 usePupil: No cache, fetching from server...');
-      }
-      return PupilsService.getPupilById(id);
-    },
-    enabled: !!id,
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000, // 1 hour cache
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    refetchInterval: false,
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: () => {
-      // First check detail cache
-      const cachedDetail = queryClient.getQueryData<Pupil>(pupilsKeys.detail(id));
-      if (cachedDetail) {
-        return cachedDetail;
-      }
-      // Then check cached pupils list
-      if (cachedPupils && cachedPupils.length > 0 && id) {
-        const foundPupil = cachedPupils.find((pupil) => pupil.id === id);
-        return foundPupil || undefined;
-      }
-      return undefined;
-    },
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // First check detail cache
-      const cachedDetail = queryClient.getQueryData<Pupil>(pupilsKeys.detail(id));
-      if (cachedDetail) {
-        return cachedDetail;
-      }
-      // Then check cached pupils list
-      if (cachedPupils && cachedPupils.length > 0 && id) {
-        const foundPupil = cachedPupils.find((pupil) => pupil.id === id);
-        if (foundPupil) {
-          return foundPupil;
-        }
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
-  });
-
-  // ✅ No real-time listener needed — usePupil reads from the GlobalDataPreloader's
-  // pupils list cache (pupilsKeys.lists()). That single global listener keeps all
-  // pupil data fresh across every page navigation without opening extra connections.
-
-  return query;
+  const pupilsQuery = usePupils();
+  const data = useMemo(() => selectPupilById(pupilsQuery.data, id), [id, pupilsQuery.data]);
+  return { ...pupilsQuery, data, isLoading: !!id && pupilsQuery.isLoading };
 }
 
 export function usePupilsByClass(classId: string) {
-  const queryClient = useQueryClient();
-
-  // 🚀 CRITICAL: Get cached pupils data immediately to filter from cache
-  const cachedPupils = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-
-  return useQuery({
-    queryKey: pupilsKeys.byClass(classId),
-    queryFn: async () => {
-      // 🚀 CRITICAL: If we have cached pupils, filter from cache (instant!)
-      if (cachedPupils && cachedPupils.length > 0 && classId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.classId === classId
-        );
-        if (filtered.length > 0) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`⚡ usePupilsByClass: Using ${filtered.length} pupils from cache (instant!)`);
-          }
-          return filtered;
-        }
-      }
-
-      // Fallback to service if cache doesn't have data for this class
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 usePupilsByClass: No cache, fetching from server...');
-      }
-      return PupilsService.getPupilsByClass(classId);
-    },
-    enabled: !!classId,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: () => {
-      if (cachedPupils && cachedPupils.length > 0 && classId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.classId === classId
-        );
-        return filtered.length > 0 ? filtered : undefined;
-      }
-      return undefined;
-    },
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // If we have cached pupils, filter and use them immediately
-      if (cachedPupils && cachedPupils.length > 0 && classId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.classId === classId
-        );
-        if (filtered.length > 0) {
-          return filtered;
-        }
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilsByClass(pupilsQuery.data, classId),
+    [classId, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!classId && pupilsQuery.isLoading };
 }
 
 export function usePupilsByFamily(familyId: string) {
-  const queryClient = useQueryClient();
-
-  // 🚀 CRITICAL: Get cached pupils data immediately to filter from cache
-  const cachedPupils = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-
-  return useQuery({
-    queryKey: pupilsKeys.byFamily(familyId),
-    queryFn: async () => {
-      // 🚀 CRITICAL: If we have cached pupils, filter from cache (instant!)
-      if (cachedPupils && cachedPupils.length > 0 && familyId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.familyId === familyId
-        );
-        if (filtered.length > 0) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`⚡ usePupilsByFamily: Using ${filtered.length} pupils from cache (instant!)`);
-          }
-          return filtered;
-        }
-      }
-
-      // Fallback to service if cache doesn't have data for this family
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 usePupilsByFamily: No cache, fetching from server...');
-      }
-      return PupilsService.getPupilsByFamily(familyId);
-    },
-    enabled: !!familyId,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    refetchInterval: false, // No aggressive polling
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: () => {
-      if (cachedPupils && cachedPupils.length > 0 && familyId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.familyId === familyId
-        );
-        return filtered.length > 0 ? filtered : undefined;
-      }
-      return undefined;
-    },
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // If we have cached pupils, filter and use them immediately
-      if (cachedPupils && cachedPupils.length > 0 && familyId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.familyId === familyId
-        );
-        if (filtered.length > 0) {
-          return filtered;
-        }
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilsByFamily(pupilsQuery.data, familyId),
+    [familyId, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!familyId && pupilsQuery.isLoading };
 }
 
 export function useSearchPupils(searchTerm: string) {
-  return useQuery({
-    queryKey: pupilsKeys.search(searchTerm),
-    queryFn: () => PupilsService.searchPupils(searchTerm),
-    enabled: !!searchTerm && searchTerm.length > 2,
-  });
+  const pupilsQuery = usePupils();
+  const enabled = searchTerm.trim().length > 2;
+  const data = useMemo(
+    () => enabled ? searchPupilSnapshot(pupilsQuery.data, searchTerm) : [],
+    [enabled, pupilsQuery.data, searchTerm],
+  );
+  return { ...pupilsQuery, data, isLoading: enabled && pupilsQuery.isLoading };
 }
 
 export function useCreatePupil() {
@@ -687,98 +460,41 @@ export function useDeletePupil() {
   });
 }
 
-// 🚀 NEW: Optimized hooks for database-level filtering
 export function usePupilByAdmissionNumber(admissionNumber: string) {
-  return useQuery({
-    queryKey: [...pupilsKeys.all, 'byAdmissionNumber', admissionNumber],
-    queryFn: () => PupilsService.getPupilByAdmissionNumber(admissionNumber),
-    enabled: !!admissionNumber,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false, // Admission numbers don't change frequently
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilByAdmissionNumber(pupilsQuery.data, admissionNumber),
+    [admissionNumber, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!admissionNumber && pupilsQuery.isLoading };
 }
 
 export function usePupilsByIds(pupilIds: string[]) {
-  return useQuery({
-    queryKey: [...pupilsKeys.all, 'byIds', pupilIds.sort().join(',')],
-    queryFn: () => PupilsService.getPupilsByIds(pupilIds),
-    enabled: pupilIds.length > 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
-    refetchOnWindowFocus: false,
-  });
+  const pupilsQuery = usePupils();
+  const stableIds = useMemo(() => pupilIds.join(','), [pupilIds]);
+  const data = useMemo(
+    () => selectPupilsByIds(pupilsQuery.data, pupilIds),
+    [pupilsQuery.data, stableIds],
+  );
+  return { ...pupilsQuery, data, isLoading: pupilIds.length > 0 && pupilsQuery.isLoading };
 }
 
-// 🚀 DATABASE-LEVEL FILTERING: Fetch pupils by status (e.g., 'Active', 'Inactive', 'Graduated')
 export function usePupilsByStatus(status: string) {
-  return useQuery({
-    queryKey: [...pupilsKeys.all, 'byStatus', status],
-    queryFn: () => PupilsService.getPupilsByStatus(status),
-    enabled: !!status,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false,
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilsByStatus(pupilsQuery.data, status),
+    [pupilsQuery.data, status],
+  );
+  return { ...pupilsQuery, data, isLoading: !!status && pupilsQuery.isLoading };
 }
 
-// 🚀 DATABASE-LEVEL FILTERING: Fetch active pupils for a specific class
 export function useActivePupilsByClass(classId: string) {
-  const queryClient = useQueryClient();
-
-  // 🚀 CRITICAL: Get cached pupils data immediately to filter from cache
-  const cachedPupils = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-
-  return useQuery({
-    queryKey: [...pupilsKeys.all, 'activeByClass', classId],
-    queryFn: async () => {
-      // 🚀 CRITICAL: If we have cached pupils, filter from cache (instant!)
-      if (cachedPupils && cachedPupils.length > 0) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.classId === classId && pupil.status === 'Active'
-        );
-        if (filtered.length > 0) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`⚡ useActivePupilsByClass: Using ${filtered.length} pupils from cache (instant!)`);
-          }
-          return filtered;
-        }
-      }
-
-      // Fallback to service if cache doesn't have data for this class
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📥 useActivePupilsByClass: No cache, fetching from server...');
-      }
-      return PupilsService.getActivePupilsByClass(classId);
-    },
-    enabled: !!classId,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-    gcTime: 30 * 60 * 1000, // 30 minutes cache
-    refetchOnMount: false, // Don't refetch when component mounts - use cache
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
-    // 🚀 CRITICAL: Use cached data as initialData to prevent loading state
-    initialData: () => {
-      if (cachedPupils && cachedPupils.length > 0 && classId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.classId === classId && pupil.status === 'Active'
-        );
-        return filtered.length > 0 ? filtered : undefined;
-      }
-      return undefined;
-    },
-    // 🚀 CRITICAL: Use cached data as placeholder to show immediately
-    placeholderData: (previousData) => {
-      // If we have cached pupils, filter and use them immediately
-      if (cachedPupils && cachedPupils.length > 0 && classId) {
-        const filtered = cachedPupils.filter(
-          (pupil) => pupil.classId === classId && pupil.status === 'Active'
-        );
-        if (filtered.length > 0) {
-          return filtered;
-        }
-      }
-      // Otherwise use previous data if available
-      return previousData;
-    },
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectActivePupilsByClass(pupilsQuery.data, classId),
+    [classId, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!classId && pupilsQuery.isLoading };
 }
 
 // 🚀 PERFORMANCE OPTIMIZATION: Hooks for fetching pupils WITHOUT photos
@@ -789,37 +505,12 @@ export function useActivePupilsByClass(classId: string) {
  * Use usePupilPhotos() to load photos separately
  */
 export function usePupilsWithoutPhotos() {
-  const queryClient = useQueryClient();
-  const cachedPupils = queryClient.getQueryData<Pupil[]>(pupilsKeys.lists());
-
-  return useQuery({
-    queryKey: [...pupilsKeys.lists(), 'withoutPhotos'],
-    queryFn: async () => {
-      // If we have cached full pupils, use them!
-      if (cachedPupils && cachedPupils.length > 0) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`⚡ usePupilsWithoutPhotos: Using ${cachedPupils.length} pupils from main cache (instant!)`);
-        }
-        return cachedPupils;
-      }
-      return PupilsService.getAllPupilsWithoutPhotos();
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false,
-    // Use cached data from main list if available
-    initialData: () => {
-      if (cachedPupils && cachedPupils.length > 0) {
-        return cachedPupils;
-      }
-      return undefined;
-    },
-    placeholderData: (previousData) => {
-      if (cachedPupils && cachedPupils.length > 0) {
-        return cachedPupils;
-      }
-      return previousData;
-    }
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilsWithoutPhotos(pupilsQuery.data),
+    [pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data };
 }
 
 /**
@@ -827,13 +518,12 @@ export function usePupilsWithoutPhotos() {
  * Use usePupilPhotos() to load photos separately
  */
 export function usePupilsByClassWithoutPhotos(classId: string) {
-  return useQuery({
-    queryKey: [...pupilsKeys.byClass(classId), 'withoutPhotos'],
-    queryFn: () => PupilsService.getPupilsByClassWithoutPhotos(classId),
-    enabled: !!classId,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false,
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilsWithoutPhotos(selectPupilsByClass(pupilsQuery.data, classId)),
+    [classId, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!classId && pupilsQuery.isLoading };
 }
 
 /**
@@ -848,13 +538,12 @@ export function usePupilsByClassWithFiltersWithoutPhotos(
     gender?: string;
   }
 ) {
-  return useQuery({
-    queryKey: [...pupilsKeys.byClass(classId), 'withoutPhotos', 'filtered', filters],
-    queryFn: () => PupilsService.getPupilsByClassWithFiltersWithoutPhotos(classId, filters),
-    enabled: !!classId,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    refetchOnWindowFocus: false,
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilsWithoutPhotos(selectPupilsWithFilters(pupilsQuery.data, classId, filters)),
+    [classId, filters?.gender, filters?.section, filters?.status, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!classId && pupilsQuery.isLoading };
 }
 
 /**
@@ -862,14 +551,12 @@ export function usePupilsByClassWithFiltersWithoutPhotos(
  * Use this for lazy loading individual photos
  */
 export function usePupilPhoto(pupilId: string) {
-  return useQuery({
-    queryKey: [...pupilsKeys.detail(pupilId), 'photo'],
-    queryFn: () => PupilsService.getPupilPhoto(pupilId),
-    enabled: !!pupilId,
-    staleTime: 10 * 60 * 1000, // 10 minutes cache - photos don't change often
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
+  const pupilsQuery = usePupils();
+  const data = useMemo(
+    () => selectPupilPhoto(pupilsQuery.data, pupilId),
+    [pupilId, pupilsQuery.data],
+  );
+  return { ...pupilsQuery, data, isLoading: !!pupilId && pupilsQuery.isLoading };
 }
 
 /**
@@ -889,58 +576,19 @@ export function usePupilPhotos(
     enabled?: boolean;
   }
 ) {
-  // Create stable sorted key for caching (include priority in key for proper caching)
-  const sortedIds = useMemo(() => {
-    const unique = Array.from(new Set(pupilIds));
-    return unique.slice().sort().join(',');
-  }, [pupilIds]);
-
-  const priorityIds = options?.priorityIds || [];
-  const priorityKey = useMemo(() => {
-    if (priorityIds.length === 0) return '';
-    return priorityIds.slice().sort().join(',');
-  }, [priorityIds]);
-
-  // Create cache key that includes priority for proper cache invalidation
-  const cacheKey = useMemo(() => {
-    return priorityKey
-      ? [...pupilsKeys.all, 'photos', sortedIds, 'priority', priorityKey]
-      : [...pupilsKeys.all, 'photos', sortedIds];
-  }, [sortedIds, priorityKey]);
-
-  return useQuery({
-    queryKey: cacheKey,
-    queryFn: () => PupilsService.getPupilPhotos(pupilIds, {
-      priorityIds: priorityIds.length > 0 ? priorityIds : undefined,
-      maxConcurrent: 5, // Optimal for most cases
-      batchSize: 30, // Use max Firestore 'in' limit for efficiency
-    }),
-    enabled: (options?.enabled !== false) && pupilIds.length > 0,
-    staleTime: 30 * 60 * 1000, // 30 minutes cache - photos rarely change
-    gcTime: 60 * 60 * 1000, // Keep in cache for 1 hour
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    // Start loading immediately, don't wait
-    placeholderData: (previousData) => {
-      // Merge with previous data if available (for progressive loading)
-      if (previousData && previousData instanceof Map) {
-        return previousData;
-      }
-      return previousData;
-    },
-    // Retry logic for network issues
-    retry: (failureCount, error) => {
-      // Don't retry if it's an offline error
-      if (error?.message?.includes('offline') ||
-        error?.message?.includes('Could not reach Cloud Firestore') ||
-        (error as any)?.code === 'unavailable') {
-        return false;
-      }
-      // Retry up to 2 times for other errors
-      return failureCount < 2;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-  });
+  const pupilsQuery = usePupils();
+  const enabled = options?.enabled !== false && pupilIds.length > 0;
+  const stableIds = useMemo(() => pupilIds.join(','), [pupilIds]);
+  const data = useMemo(
+    () => enabled ? selectPupilPhotos(pupilsQuery.data, pupilIds) : new Map<string, string>(),
+    [enabled, pupilsQuery.data, stableIds],
+  );
+  return {
+    ...pupilsQuery,
+    data,
+    isLoading: enabled && pupilsQuery.isLoading,
+    isFetching: false,
+  };
 }
 
 /**
@@ -957,76 +605,19 @@ export function usePupilPhotosProgressive(
     enabled?: boolean;
   }
 ) {
-  const initialBatchSize = options?.initialBatchSize || 20;
-  const batchSize = options?.batchSize || 10;
-  const priorityIds = options?.priorityIds || [];
   const enabled = options?.enabled !== false;
-
-  // Determine initial load: priority IDs first, then first N regular IDs
-  const initialIds = useMemo(() => {
-    const unique = Array.from(new Set(pupilIds));
-    const priority = priorityIds.filter(id => unique.includes(id));
-    const regular = unique.filter(id => !priorityIds.includes(id));
-
-    // Load priority + initial batch
-    const initial = [
-      ...priority,
-      ...regular.slice(0, Math.max(0, initialBatchSize - priority.length))
-    ];
-
-    return initial;
-  }, [pupilIds, priorityIds, initialBatchSize]);
-
-  // Load remaining IDs
-  const remainingIds = useMemo(() => {
-    const unique = Array.from(new Set(pupilIds));
-    return unique.filter(id => !initialIds.includes(id));
-  }, [pupilIds, initialIds]);
-
-  // Load initial batch
-  const initialPhotos = usePupilPhotos(initialIds, {
-    priorityIds: priorityIds.filter(id => initialIds.includes(id)),
-    enabled: enabled && initialIds.length > 0,
+  const photos = usePupilPhotos(pupilIds, {
+    priorityIds: options?.priorityIds,
+    enabled,
   });
 
-  // State for progressive loading
-  const [loadedIds, setLoadedIds] = useState<Set<string>>(new Set(initialIds));
-  const [allPhotos, setAllPhotos] = useState<Map<string, string>>(new Map());
-
-  // Update photos when initial batch loads
-  useEffect(() => {
-    if (initialPhotos.data) {
-      setAllPhotos(new Map(initialPhotos.data));
-    }
-  }, [initialPhotos.data]);
-
-  // Function to load next batch
-  const loadNextBatch = useCallback(() => {
-    const notLoaded = remainingIds.filter(id => !loadedIds.has(id));
-    if (notLoaded.length === 0) return;
-
-    const nextBatch = notLoaded.slice(0, batchSize);
-    setLoadedIds(prev => new Set([...prev, ...nextBatch]));
-
-    // Load the batch
-    PupilsService.getPupilPhotos(nextBatch).then(photos => {
-      setAllPhotos(prev => {
-        const updated = new Map(prev);
-        photos.forEach((photo, id) => updated.set(id, photo));
-        return updated;
-      });
-    }).catch(err => {
-      console.warn('Failed to load photo batch:', err);
-    });
-  }, [remainingIds, loadedIds, batchSize]);
-
   return {
-    data: allPhotos,
-    isLoading: initialPhotos.isLoading,
-    isFetching: initialPhotos.isFetching,
-    loadNextBatch,
-    hasMore: remainingIds.filter(id => !loadedIds.has(id)).length > 0,
-    loadedCount: loadedIds.size,
+    data: photos.data,
+    isLoading: photos.isLoading,
+    isFetching: false,
+    loadNextBatch: () => undefined,
+    hasMore: false,
+    loadedCount: enabled ? pupilIds.length : 0,
     totalCount: pupilIds.length,
   };
 }

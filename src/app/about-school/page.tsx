@@ -16,8 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Edit3, Save, XCircle, School, Landmark, Phone, Mail, Globe, User, Edit, MessageSquare, MessageCircle, BookMarked, Users2, Info, Facebook, Twitter, Instagram, Linkedin, Loader2, Clock, CheckCircle2, Image as ImageIcon, Upload, RefreshCw } from "lucide-react";
 import { useSchoolSettings, useUpdateSchoolSettings, useInitializeSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { HousesService } from "@/lib/services/houses.service";
 import type { House } from "@/types";
+import { useCreateHouse, useHouses, useUpdateHouse } from "@/lib/hooks/use-houses";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -132,8 +132,9 @@ export default function AboutSchoolPage() {
   const [iconGenerationResults, setIconGenerationResults] = React.useState<any>(null);
 
   // Houses state and handlers
-  const [houses, setHouses] = React.useState<House[]>([]);
-  const [housesLoading, setHousesLoading] = React.useState<boolean>(true);
+  const { data: houses = [], isLoading: housesLoading } = useHouses();
+  const createHouseMutation = useCreateHouse();
+  const updateHouseMutation = useUpdateHouse();
   const [isHouseDialogOpen, setIsHouseDialogOpen] = React.useState<boolean>(false);
   const [editingHouse, setEditingHouse] = React.useState<House | null>(null);
   const [houseForm, setHouseForm] = React.useState<{ name: string; motto: string; themeColor: string }>({
@@ -171,22 +172,6 @@ export default function AboutSchoolPage() {
     });
     setIsHouseDialogOpen(true);
   };
-  const loadHouses = React.useCallback(async () => {
-    setHousesLoading(true);
-    try {
-      const data = await HousesService.getAll();
-      data.sort((a, b) => a.name.localeCompare(b.name));
-      setHouses(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setHousesLoading(false);
-    }
-  }, []);
-  React.useEffect(() => {
-    loadHouses();
-  }, [loadHouses]);
-
   // Update editable settings when Firebase data changes
   React.useEffect(() => {
     if (currentSettings && !isEditing) {
@@ -1235,14 +1220,14 @@ export default function AboutSchoolPage() {
                 try {
                   if (!houseValidation.validateAll().isValid) return;
                   if (editingHouse) {
-                    await HousesService.update(editingHouse.id, {
+                    await updateHouseMutation.mutateAsync({ id: editingHouse.id, data: {
                       name: houseForm.name.trim(),
                       motto: houseForm.motto?.trim() || '',
                       themeColor: houseForm.themeColor,
-                    });
+                    } });
                     toast({ title: "House updated" });
                   } else {
-                    await HousesService.create({
+                    await createHouseMutation.mutateAsync({
                       name: houseForm.name.trim(),
                       motto: houseForm.motto?.trim() || '',
                       themeColor: houseForm.themeColor,
@@ -1251,7 +1236,6 @@ export default function AboutSchoolPage() {
                   }
                   setIsHouseDialogOpen(false);
                   resetHouseForm();
-                  await loadHouses();
                 } catch (err) {
                   houseValidation.setSubmissionError("The house could not be saved. Your entries have been preserved.");
                 }

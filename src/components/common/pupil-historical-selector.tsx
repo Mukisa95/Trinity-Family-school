@@ -1,12 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, Users, AlertCircle, Clock, Database } from 'lucide-react';
-import { PupilsService } from '@/lib/services/pupils.service';
+import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
@@ -47,10 +46,7 @@ export function PupilHistoricalSelector({
   const [loading, setLoading] = useState(false);
 
   // Data queries
-  const { data: pupils = [] } = useQuery({
-    queryKey: ['pupils'],
-    queryFn: () => PupilsService.getAllPupils()
-  });
+  const { data: pupils = [] } = usePupils();
 
   const { data: classes = [] } = useClasses();
 

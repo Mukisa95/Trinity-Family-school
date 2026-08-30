@@ -246,7 +246,7 @@ function mergeDashboardRevisions(
   const examResults = modern.examResults || {};
   const result: DashboardDataRevisions = {};
 
-  (['classes', 'academicYears', 'staff', 'exams'] as const).forEach(key => {
+  (['classes', 'academicYears', 'staff', 'subjects', 'houses', 'accessLevels', 'exams'] as const).forEach(key => {
     const value = maxRevision(reference[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
   });

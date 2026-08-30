@@ -12,6 +12,7 @@ const section = (source, start, end) => {
 const classesHook = read('src/lib/hooks/use-classes.ts');
 const academicYearsHook = read('src/lib/hooks/use-academic-years.ts');
 const staffHook = read('src/lib/hooks/use-staff.ts');
+const subjectHook = read('src/lib/hooks/use-subjects.ts');
 const eventsHook = read('src/lib/hooks/use-events-fixed.ts');
 const eventCache = read('src/lib/cache/event-cache.ts');
 const timetableService = read('src/lib/services/timetable.service.ts');
@@ -22,7 +23,12 @@ const settingsHook = read('src/lib/hooks/use-school-settings.ts');
 const classBootstrap = read('src/lib/hooks/use-class-cache-bootstrap.ts');
 const academicYearBootstrap = read('src/lib/hooks/use-academic-year-cache-bootstrap.ts');
 const staffBootstrap = read('src/lib/hooks/use-staff-cache-bootstrap.ts');
+const subjectBootstrap = read('src/lib/hooks/use-subject-cache-bootstrap.ts');
+const houseBootstrap = read('src/lib/hooks/use-house-cache-bootstrap.ts');
+const accessLevelBootstrap = read('src/lib/hooks/use-access-level-cache-bootstrap.ts');
 const pupilBootstrap = read('src/lib/hooks/use-pupil-cache-bootstrap.ts');
+const pupilHook = read('src/lib/hooks/use-pupils.ts');
+const classPupilHook = read('src/lib/hooks/use-class-pupils.ts');
 const classesService = read('src/lib/services/classes.service.ts');
 const academicYearsService = read('src/lib/services/academic-years.service.ts');
 const firestoreHelpers = read('src/lib/utils/firestore-helpers.ts');
@@ -30,6 +36,12 @@ const classCache = read('src/lib/cache/class-cache.ts');
 const academicYearCache = read('src/lib/cache/academic-year-cache.ts');
 const staffCache = read('src/lib/cache/staff-cache.ts');
 const staffService = read('src/lib/services/staff.service.ts');
+const subjectCache = read('src/lib/cache/subject-cache.ts');
+const subjectService = read('src/lib/services/subjects.service.ts');
+const houseCache = read('src/lib/cache/house-cache.ts');
+const houseService = read('src/lib/services/houses.service.ts');
+const accessLevelCache = read('src/lib/cache/access-level-cache.ts');
+const accessLevelService = read('src/lib/services/access-levels.service.ts');
 const pupilsService = read('src/lib/services/pupils.service.ts');
 const pupilCache = read('src/lib/cache/pupil-cache.ts');
 const pupilCacheChanges = read('src/lib/cache/pupil-cache-changes.ts');
@@ -71,13 +83,23 @@ assert(
   'Ordinary staff hooks must remain cache-only selectors.',
 );
 assert(
+  subjectHook.includes('enabled: false') &&
+    !subjectHook.includes('SubjectsService.getAllSubjects') &&
+    !subjectHook.includes('SubjectsService.getSubjectById'),
+  'Ordinary subject hooks must remain cache-only selectors.',
+);
+assert(
   preloader.includes('useClassCacheBootstrap();') &&
     preloader.includes('useAcademicYearCacheBootstrap();') &&
     preloader.includes('useStaffCacheBootstrap();') &&
+    preloader.includes('useSubjectCacheBootstrap();') &&
+    preloader.includes('useHouseCacheBootstrap();') &&
+    preloader.includes('useAccessLevelCacheBootstrap();') &&
     preloader.includes('setupPupilsListener().catch') &&
     !preloader.includes('usePupilCacheBootstrap();') &&
-    !preloader.includes('setupStaffListener();'),
-  'The application preloader must keep the proven pupil cache-first listener and not start a staff listener.',
+    !preloader.includes('setupStaffListener();') &&
+    !preloader.includes('setupSubjectsListener'),
+  'The application preloader must keep the proven pupil listener and use single owners for independent reference data.',
 );
 assert(
   pupilBootstrap.includes("revisionsQuery.data?.pupils") &&
@@ -105,6 +127,12 @@ assert(
     preloader.includes('readPersistentCollection<any[]>(persistentCacheKey)') &&
     preloader.includes('readPupilCache(revisionCacheScope)'),
   'Browser pupil consumers must share a cache-first preloader owner and restore both supported cache formats.',
+);
+assert(
+  pupilHook.includes('enabled: false') &&
+    !/PupilsService\.get[A-Za-z0-9_]+\s*\(/.test(pupilHook) &&
+    !/PupilsService\.get[A-Za-z0-9_]+\s*\(/.test(classPupilHook),
+  'Pupil detail, class, family, status, search, and photo hooks must be cache-only selectors.',
 );
 assert(
   adminPupilRevision.includes("db.collection('pupilCacheChanges')") &&
@@ -146,8 +174,11 @@ assert(
 assert(
   classBootstrap.includes('needsColdFetch') &&
     academicYearBootstrap.includes('needsColdFetch') &&
-    staffBootstrap.includes('needsColdFetch'),
-  'Cold class, academic-year, and staff caches must not wait for revision readiness.',
+    staffBootstrap.includes('needsColdFetch') &&
+    subjectBootstrap.includes('needsColdFetch') &&
+    houseBootstrap.includes('needsColdFetch') &&
+    accessLevelBootstrap.includes('needsColdFetch'),
+  'Cold independent-reference caches must not wait for revision readiness.',
 );
 assert(
   classBootstrap.includes('getAllFromFirestoreCache') &&
@@ -171,6 +202,23 @@ assert(
     staffService.includes('getAllFromFirestoreCache') &&
     staffService.includes('bumpStaffRevisionInBatch'),
   'Staff data must be identity-scoped, cache-first, and mutation-revision driven.',
+);
+assert(
+  subjectCache.includes('SUBJECT_CACHE_SCHEMA') &&
+    subjectCache.includes('NEXT_PUBLIC_FIREBASE_PROJECT_ID') &&
+    subjectService.includes('getDocsFromServerWithTimeout') &&
+    subjectService.includes('getAllFromFirestoreCache') &&
+    subjectService.includes('bumpSubjectsRevisionInBatch'),
+  'Subject data must be identity-scoped, cache-first, and mutation-revision driven.',
+);
+assert(
+  houseCache.includes('HOUSE_CACHE_SCHEMA') &&
+    houseService.includes('getDocsFromServerWithTimeout') &&
+    houseService.includes('bumpHousesRevisionInBatch') &&
+    accessLevelCache.includes("role === 'Parent'") &&
+    accessLevelService.includes('getDocsFromServerWithTimeout') &&
+    accessLevelService.includes('bumpAccessLevelsRevisionInBatch'),
+  'Houses and authorized access levels must be scoped, cache-first, and mutation-revision driven.',
 );
 assert(
   !teacherNames.includes('/api/staff/') &&

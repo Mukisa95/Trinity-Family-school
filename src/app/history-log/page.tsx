@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { HistoryLogRecord, HistoryLogService } from '@/lib/services/history-log.service';
-import { PupilsService } from '@/lib/services/pupils.service';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { usePupils } from '@/lib/hooks/use-pupils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -148,6 +148,7 @@ function isSecurityLog(log: HistoryLogRecord) {
 export default function HistoryLogPage() {
   const { data: classes = [] } = useClasses();
   const { data: academicYears = [] } = useAcademicYears();
+  const { data: pupils = [] } = usePupils();
   const [logs, setLogs] = useState<HistoryLogRecord[]>([]);
   const [search, setSearch] = useState('');
   const [entity, setEntity] = useState('all');
@@ -178,37 +179,33 @@ export default function HistoryLogPage() {
       setLoading(false);
     }, 300);
 
-    // Fetch lookup data in parallel to build resolution maps
-    const fetchLookupData = async () => {
+    const fetchFeeLookupData = async () => {
       try {
-        const [allPupils, allFees] = await Promise.all([
-          PupilsService.getAllPupils().catch(() => []),
-          FeeStructuresService.getAllFeeStructures().catch(() => []),
-        ]);
-
-        const pMap: Record<string, string> = {};
-        allPupils.forEach((p) => {
-          pMap[p.id] = `${p.firstName} ${p.lastName}`;
-        });
+        const allFees = await FeeStructuresService.getAllFeeStructures().catch(() => []);
 
         const fMap: Record<string, string> = {};
         allFees.forEach((f) => {
           fMap[f.id] = f.name;
         });
 
-        setPupilsMap(pMap);
         setFeesMap(fMap);
       } catch (error) {
         logger.error('Error fetching lookup data for history logs', error);
       }
     };
 
-    fetchLookupData();
+    void fetchFeeLookupData();
 
     return () => {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    setPupilsMap(Object.fromEntries(
+      pupils.map(pupil => [pupil.id, `${pupil.firstName} ${pupil.lastName}`.trim()]),
+    ));
+  }, [pupils]);
 
   useEffect(() => {
     setClassesMap(Object.fromEntries(classes.map(classItem => [classItem.id, classItem.name])));

@@ -57,6 +57,21 @@ export function bumpStaffRevisionInBatch(batch: WriteBatch) {
   writeRevision(batch, 'reference', { staff: increment(1) });
 }
 
+/** Add a subject revision bump to the same batch as its mutation. */
+export function bumpSubjectsRevisionInBatch(batch: WriteBatch) {
+  writeRevision(batch, 'reference', { subjects: increment(1) });
+}
+
+/** Add a house-definition revision bump to the same batch as its mutation. */
+export function bumpHousesRevisionInBatch(batch: WriteBatch) {
+  writeRevision(batch, 'reference', { houses: increment(1) });
+}
+
+/** Add an access-level revision bump to the same batch as its mutation. */
+export function bumpAccessLevelsRevisionInBatch(batch: WriteBatch) {
+  writeRevision(batch, 'reference', { accessLevels: increment(1) });
+}
+
 /**
  * Reserve the next ordered pupil revision inside the source transaction.
  * The modern operational document is small. Reading the legacy profile is
