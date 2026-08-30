@@ -62,6 +62,7 @@ import { ExportConfigModal, type ExportConfig } from '@/components/pupils/Export
 import { PupilPhotoDetail } from '@/components/ui/pupil-photo-detail';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
+import { buildPupilRegistrationPdfHtml } from '@/lib/pdf/pupil-registration-form';
 import { getSchoolPayCode } from '@/lib/utils/schoolpay';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
 
@@ -2800,6 +2801,111 @@ function PupilsContent() {
     }
   };
 
+  const handleGenerateRegistrationFormPDF = async () => {
+    const schoolName = schoolSettings?.generalInfo?.name || settings.generalInfo.name || 'Trinity Family School';
+
+    try {
+      await pdfViewer.runPDFJob(
+        {
+          fileName: 'pupil-registration-form.pdf',
+          title: 'Pupil Registration Form',
+          initialMessage: 'Preparing pupil registration form…',
+        },
+        async ({ updateProgress }) => {
+          updateProgress(10, 'Preparing registration form layout…');
+          const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+            import('html2canvas'),
+            import('jspdf'),
+          ]);
+
+          const pdfContainer = document.createElement('div');
+          pdfContainer.style.width = '190mm';
+          pdfContainer.style.backgroundColor = '#fff';
+          pdfContainer.style.position = 'fixed';
+          pdfContainer.style.left = '-10000px';
+          pdfContainer.style.top = '0';
+          pdfContainer.innerHTML = buildPupilRegistrationPdfHtml({ schoolName });
+          document.body.appendChild(pdfContainer);
+
+          try {
+            updateProgress(28, 'Capturing registration form…');
+            const canvas = await html2canvas(pdfContainer, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+            });
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageMargin = 10;
+            const imageWidthOnPdf = 210 - (pageMargin * 2);
+            const pageContentHeight = 297 - (pageMargin * 2);
+            const pixelsPerMillimetre = canvas.width / imageWidthOnPdf;
+            let sourceY = 0;
+            let pageIndex = 0;
+
+            while (sourceY < canvas.height) {
+              if (pageIndex > 0) pdf.addPage();
+
+              const segmentHeight = Math.max(1, Math.floor(Math.min(
+                pageContentHeight * pixelsPerMillimetre,
+                canvas.height - sourceY,
+              )));
+              const segmentCanvas = document.createElement('canvas');
+              segmentCanvas.width = canvas.width;
+              segmentCanvas.height = segmentHeight;
+              const context = segmentCanvas.getContext('2d');
+              if (!context) throw new Error('Unable to prepare registration form page.');
+
+              context.drawImage(
+                canvas,
+                0,
+                sourceY,
+                canvas.width,
+                segmentHeight,
+                0,
+                0,
+                canvas.width,
+                segmentHeight,
+              );
+              const segmentHeightOnPdf = segmentHeight / pixelsPerMillimetre;
+              pdf.addImage(
+                segmentCanvas.toDataURL('image/png'),
+                'PNG',
+                pageMargin,
+                pageMargin,
+                imageWidthOnPdf,
+                segmentHeightOnPdf,
+              );
+
+              sourceY += segmentHeight;
+              pageIndex += 1;
+              updateProgress(
+                38 + Math.min(56, pageIndex * 18),
+                `Building registration form page ${pageIndex}…`,
+              );
+            }
+
+            updateProgress(96, 'Finalizing registration form…');
+            return pdf.output('blob');
+          } finally {
+            document.body.removeChild(pdfContainer);
+          }
+        },
+      );
+
+      toast({
+        title: 'Registration Form Ready',
+        description: 'The blank pupil registration form is ready to print.',
+      });
+    } catch (error) {
+      console.error('Error generating pupil registration form PDF:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Registration Form Failed',
+        description: 'The pupil registration form could not be generated. Please try again.',
+      });
+    }
+  };
+
   const handleGenerateBatchPaymentSlipsPDF = async () => {
     try {
       const pupilsWithPayCodes = allFilteredPupils.filter((pupil) => !!getSchoolPayCode(pupil));
@@ -3544,6 +3650,10 @@ function PupilsContent() {
                   <Printer size={14} className="mr-2 text-indigo-600" weight="duotone" />
                   <span className="font-medium text-[11px] text-gray-700">Print List</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleGenerateRegistrationFormPDF} className="cursor-pointer py-1.5 focus:bg-sky-50">
+                  <UserPlus className="mr-2 h-3.5 w-3.5 text-sky-600" />
+                  <span className="font-medium text-[11px] text-gray-700">Registration Form</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsExportConfigModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-green-50">
                   <ChartLine size={14} className="mr-2 text-green-600" weight="duotone" />
                   <span className="font-medium text-[11px] text-gray-700">Export to Excel</span>
@@ -3669,6 +3779,10 @@ function PupilsContent() {
                     <DropdownMenuItem onClick={() => setIsColumnSelectionModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-indigo-50">
                       <Printer size={14} className="mr-2 text-indigo-600" weight="duotone" />
                       <span className="font-medium text-[11px] text-gray-700">Print List</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleGenerateRegistrationFormPDF} className="cursor-pointer py-1.5 focus:bg-sky-50">
+                      <UserPlus className="mr-2 h-3.5 w-3.5 text-sky-600" />
+                      <span className="font-medium text-[11px] text-gray-700">Registration Form</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsExportConfigModalOpen(true)} className="cursor-pointer py-1.5 focus:bg-green-50">
                       <ChartLine size={14} className="mr-2 text-green-600" weight="duotone" />

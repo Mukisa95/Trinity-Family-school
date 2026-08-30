@@ -42,6 +42,7 @@ import { parseLocalDate, formatDateForStorage } from "@/lib/utils/date-utils";
 import { HousesService } from "@/lib/services/houses.service";
 import type { House } from "@/types";
 import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
+import { buildPupilRegistrationPdfHtml } from "@/lib/pdf/pupil-registration-form";
 
 const initialGuardianState: Omit<Guardian, 'id'> = {
   relationship: '',
@@ -186,122 +187,30 @@ function NewPupilContent() {
 
   const handleDownloadPdf = async () => {
     const pdfContainer = document.createElement('div');
-    pdfContainer.style.fontFamily = 'Arial, sans-serif';
-    pdfContainer.style.padding = '1px'; // Minimal padding, margins handled by PDF placement
-    pdfContainer.style.width = '190mm'; // A4 width (210mm) - 2*1cm margins
-    pdfContainer.style.color = '#333';
-    pdfContainer.style.backgroundColor = '#fff'; // Ensure a white background for the canvas capture
-
-    const formatDateForPdf = (date: Date | undefined) => date ? date.toLocaleDateString('en-GB') : '__________';
+    pdfContainer.style.width = '190mm';
+    pdfContainer.style.backgroundColor = '#fff';
+    pdfContainer.style.position = 'fixed';
+    pdfContainer.style.left = '-10000px';
+    pdfContainer.style.top = '0';
     const schoolName = currentSchoolSettings.generalInfo.name || 'School Name';
-
-    const renderOptions = (options: readonly string[], selectedValue?: string) => {
-      return options.map(opt => `
-        <span class="checkbox-option">
-          <input type="checkbox" ${selectedValue === opt ? 'checked' : ''} /> ${opt}
-        </span>
-      `).join('');
-    };
-
-    let htmlContent = `
-      <style>
-        body { font-family: Arial, sans-serif; color: #333; }
-        .pdf-header { text-align: center; margin-bottom: 30px; }
-        .pdf-header h1 { font-size: 24px; color: #2c3e50; margin-bottom: 5px; }
-        .pdf-header p { font-size: 12px; color: #7f8c8d; }
-        .pdf-section { margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff;}
-        .pdf-section h2 { font-size: 18px; color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 8px; margin-bottom: 15px; }
-        .pdf-field { margin-bottom: 12px; display: flex; align-items: center; flex-wrap: wrap; /* Allow wrapping for long content */ }
-        .pdf-field-group { display: flex; flex-basis: 100%; margin-bottom: 10px; }
-        .pdf-field-item { display: flex; align-items: center; margin-right: 20px; flex-basis: 48%; /* Adjust for spacing */ }
-        .pdf-field-item-full { display: flex; align-items: center; flex-basis: 100%; }
-        .pdf-field-label { font-weight: bold; min-width: 100px; font-size: 14px; color: #555; margin-right: 5px; }
-        .pdf-field-value { font-size: 14px; border-bottom: 1px dashed #aaa; padding-bottom: 2px; flex-grow: 1; min-width: 150px; /* Ensure line is visible */ }
-        .pdf-field-value.empty { color: #aaa; }
-        .checkbox-option { margin-right: 15px; font-size: 14px; display: inline-flex; align-items: center;}
-        .checkbox-option input { margin-right: 5px; }
-        .guardian-section { margin-top: 20px; padding-left: 15px; border-left: 3px solid #3498db; }
-        .photo-placeholder { width: 150px; height: 150px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; text-align: center; color: #aaa; font-size: 14px; margin: 0 auto 20px auto; }
-      </style>
-      <div class="pdf-header">
-        <h1>Pupil Registration Form</h1>
-        <p>${schoolName}</p>
-        <p>Please fill in the details below clearly and accurately.</p>
-      </div>
-
-      <div class="pdf-section">
-        <h2>Pupil's Personal Information</h2>
-        <div class="pdf-field-group">
-            <div class="pdf-field-item"><span class="pdf-field-label">First Name:</span><span class="pdf-field-value ${!firstName ? 'empty' : ''}">${firstName || '__________'}</span></div>
-            <div class="pdf-field-item"><span class="pdf-field-label">Surname:</span><span class="pdf-field-value ${!lastName ? 'empty' : ''}">${lastName || '__________'}</span></div>
-        </div>
-        <div class="pdf-field-group">
-            <div class="pdf-field-item"><span class="pdf-field-label">Other Names:</span><span class="pdf-field-value ${!otherNames ? 'empty' : ''}">${otherNames || '__________'}</span></div>
-            <div class="pdf-field-item"><span class="pdf-field-label">Gender:</span>${renderOptions(['Male', 'Female'], gender)}</div>
-        </div>
-        <div class="pdf-field-group">
-            <div class="pdf-field-item"><span class="pdf-field-label">Date of Birth:</span><span class="pdf-field-value">${formatDateForPdf(dateOfBirth)}</span></div>
-            <div class="pdf-field-item"><span class="pdf-field-label">Place of Birth:</span><span class="pdf-field-value ${!placeOfBirth ? 'empty' : ''}">${placeOfBirth || '__________'}</span></div>
-        </div>
-        <div class="pdf-field-group">
-            <div class="pdf-field-item"><span class="pdf-field-label">Nationality:</span><span class="pdf-field-value">__________</span></div>
-            <div class="pdf-field-item"><span class="pdf-field-label">Religion:</span><span class="pdf-field-value">__________</span></div>
-        </div>
-        <div class="pdf-field-group">
-             <div class="pdf-field-item"><span class="pdf-field-label">Class Applied For:</span><span class="pdf-field-value">${classes.find(c => c.id === classId)?.name || '__________'}</span></div>
-             <div class="pdf-field-item"><span class="pdf-field-label">Previous School:</span><span class="pdf-field-value ${!previousSchool ? 'empty' : ''}">${previousSchool || '__________'}</span></div>
-        </div>
-        <div class="pdf-field-item-full"><span class="pdf-field-label">Residential Address:</span><span class="pdf-field-value ${!pupilAddress ? 'empty' : ''}">${pupilAddress || '__________'}</span></div>
-      </div>
-    `;
-
-    // Explicitly create sections for two guardians in the PDF
-    for (let i = 0; i < 2; i++) {
-      const guardian = guardians[i]; // Will be undefined if guardians[i] doesn't exist
-      const guardianNum = i + 1;
-
-      const relationshipDisplay = guardian?.relationship || (guardianNum === 1 ? 'Primary Guardian Relationship' : 'Relationship __________');
-      const firstNameVal = guardian?.firstName || '__________';
-      const lastNameVal = guardian?.lastName || '__________';
-      const emailVal = guardian?.email || '__________';
-      const phoneVal = guardian?.phone || '__________';
-
-      // CSS classes for empty state (though handled by || '__________' for values)
-      const firstNameEmptyClass = guardian?.firstName ? '' : 'empty';
-      const lastNameEmptyClass = guardian?.lastName ? '' : 'empty';
-      const emailEmptyClass = guardian?.email ? '' : 'empty';
-      const phoneEmptyClass = guardian?.phone ? '' : 'empty';
-
-      htmlContent += `
-      <div class="pdf-section guardian-section">
-        <h2>Guardian ${guardianNum} Information (${relationshipDisplay})</h2>
-        <div class="pdf-field-group">
-            <div class="pdf-field-item"><span class="pdf-field-label">First Name:</span><span class="pdf-field-value ${firstNameEmptyClass}">${firstNameVal}</span></div>
-            <div class="pdf-field-item"><span class="pdf-field-label">Surname:</span><span class="pdf-field-value ${lastNameEmptyClass}">${lastNameVal}</span></div>
-        </div>
-        <div class="pdf-field-group">
-            <div class="pdf-field-item"><span class="pdf-field-label">Email Address:</span><span class="pdf-field-value ${emailEmptyClass}">${emailVal}</span></div>
-            <div class="pdf-field-item"><span class="pdf-field-label">Phone Number:</span><span class="pdf-field-value ${phoneEmptyClass}">${phoneVal}</span></div>
-        </div>
-      </div>
-      `;
-    }
-
-    htmlContent += `
-      <div class="pdf-section">
-        <h2>Medical Information</h2>
-        <div class="pdf-field-item-full"><span class="pdf-field-label">Known Medical Conditions:</span><span class="pdf-field-value ${!medicalConditions ? 'empty' : ''}">${medicalConditions || '__________'}</span></div>
-        <div class="pdf-field-item-full"><span class="pdf-field-label">Allergies:</span><span class="pdf-field-value ${!allergies ? 'empty' : ''}">${allergies || '__________'}</span></div>
-        <div class="pdf-field-item-full"><span class="pdf-field-label">Current Medications:</span><span class="pdf-field-value ${!medications ? 'empty' : ''}">${medications || '__________'}</span></div>
-      </div>
-
-      <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #7f8c8d;">
-        <p>Thank you for choosing ${schoolName}.</p>
-        <p>Parent/Guardian Signature: _________________________ Date: _________________________</p>
-      </div>
-    `;
-
-    pdfContainer.innerHTML = htmlContent;
+    pdfContainer.innerHTML = buildPupilRegistrationPdfHtml({
+      schoolName,
+      firstName,
+      lastName,
+      otherNames,
+      gender,
+      dateOfBirth: dateOfBirth?.toLocaleDateString('en-GB'),
+      placeOfBirth,
+      nationality,
+      religion,
+      className: classes.find((schoolClass) => schoolClass.id === classId)?.name,
+      previousSchool,
+      pupilAddress,
+      guardians,
+      medicalConditions,
+      allergies,
+      medications,
+    });
     document.body.appendChild(pdfContainer);
 
     try {
