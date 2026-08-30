@@ -2148,6 +2148,23 @@ export default function ExamsPage() {
                 // so the + button to add another set is always visible.
                 const showBatchHeader = isCATExam || exams.length > 1;
                 const selectedCollapsedExam = exams.find(exam => exam.id === selectedCollapsedBatchExams[batchId]) || exams[0];
+                const catSetGroups: Record<string, Exam[]> = {};
+                if (isCATExam) {
+                  exams.forEach(exam => {
+                    const setMatch = exam.name.match(/SET (\d+)$/i);
+                    const setKey = `SET ${setMatch ? setMatch[1] : '1'}`;
+                    (catSetGroups[setKey] ||= []).push(exam);
+                  });
+                }
+                const sortedCATSets = Object.entries(catSetGroups).sort(([a], [b]) =>
+                  (parseInt(a.split(' ')[1]) || 0) - (parseInt(b.split(' ')[1]) || 0)
+                );
+                const defaultCATSetKey = sortedCATSets[sortedCATSets.length - 1]?.[0] || 'SET 1';
+                const selectedCATSetKey = selectedCATSetKeys[batchId] || defaultCATSetKey;
+                const selectedCATSetExams = catSetGroups[selectedCATSetKey] || [];
+                const mobileSelectionKey = isCATExam ? `${batchId}_${selectedCATSetKey}` : batchId;
+                const mobileExamChoices = isCATExam ? selectedCATSetExams : exams;
+                const mobileSelectedExam = mobileExamChoices.find(exam => exam.id === selectedCollapsedBatchExams[mobileSelectionKey]) || mobileExamChoices[0] || selectedCollapsedExam;
 
                 return (
                   <div
@@ -2160,21 +2177,23 @@ export default function ExamsPage() {
                   >
                     {showBatchHeader && (
                       <div className={`px-3 py-2.5 ${isCATExam ? 'bg-gradient-to-r from-purple-500 to-indigo-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                          <h3 className="text-white font-semibold text-sm">
-                            {isCATExam ? (firstExam.baseName || firstExam.name.split(' - ')[0]) : (firstExam.baseName || firstExam.name)}
-                            {firstExam.customExamTypeName && (
-                              <span className="text-blue-100 font-normal"> ({firstExam.customExamTypeName})</span>
-                            )}
-                          </h3>
-                          <Badge variant="secondary" className="border-white/30 bg-white/15 text-white text-xs font-medium">
-                            {isCATExam ? 'Continuous Assessment' : getExamStatus(firstExam.startDate, firstExam.endDate).text.replace(/^Ongoing: Day \d+\/\d+$/, 'Ongoing')}
-                          </Badge>
+                      <div className="flex min-w-0 items-center justify-between gap-1.5">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-white animate-pulse"></div>
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <h3 className="truncate text-sm font-semibold leading-snug text-white">
+                              {isCATExam ? (firstExam.baseName || firstExam.name.split(' - ')[0]) : (firstExam.baseName || firstExam.name)}
+                              {firstExam.customExamTypeName && (
+                                <span className="text-blue-100 font-normal"> ({firstExam.customExamTypeName})</span>
+                              )}
+                            </h3>
+                            <Badge variant="secondary" className="h-5 shrink-0 whitespace-nowrap border-white/30 bg-white/15 px-1.5 text-[10px] font-semibold text-white">
+                              {isCATExam ? 'CAT' : getExamStatus(firstExam.startDate, firstExam.endDate).text.replace(/^Ongoing: Day \d+\/\d+$/, 'Ongoing')}
+                            </Badge>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-2">
                           {isCATExam ? (
                             // For CAT exams, show set count in header
                             (() => {
@@ -2183,13 +2202,13 @@ export default function ExamsPage() {
                                 return m ? m[1] : '1';
                               })).size;
                               return (
-                                <span className="text-white/90 text-xs">
+                                <span className="hidden text-white/90 text-xs sm:inline">
                                   {catSetCount} Set{catSetCount !== 1 ? 's' : ''}
                                 </span>
                               );
                             })()
                           ) : (
-                            <span className="text-white/90 text-xs">
+                            <span className="hidden text-white/90 text-xs sm:inline">
                               {exams.length} class{exams.length !== 1 ? 'es' : ''}
                             </span>
                           )}
@@ -2197,7 +2216,7 @@ export default function ExamsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleOpenStackGradingScaleDialog(exams, firstExam.baseName || firstExam.name)}
-                            className="h-7 w-7 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors"
+                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7"
                             title="Edit grading scale for this stack"
                           >
                             <GraduationCap className="h-3 w-3 text-white" />
@@ -2206,7 +2225,7 @@ export default function ExamsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteExamStack(exams.map(exam => exam.id), firstExam.baseName || firstExam.name)}
-                            className="h-7 w-7 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors"
+                            className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7"
                             title="Delete entire stack"
                           >
                             <Trash2 className="h-3 w-3 text-white" />
@@ -2217,7 +2236,7 @@ export default function ExamsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleAddSet(firstExam)}
-                              className="h-7 w-7 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors"
+                              className="h-8 w-8 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors sm:h-7 sm:w-7"
                               title="Add another set to this CAT"
                             >
                               <PlusCircle className="h-3 w-3 text-white" />
@@ -2229,7 +2248,7 @@ export default function ExamsPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setExpandedBatches(prev => ({ ...prev, [batchId]: !isExpanded }))}
-                                className="h-7 w-7 rounded-full border border-white/20 p-0 hover:bg-white/20 transition-colors"
+                                className="hidden h-8 w-8 rounded-full border border-white/20 p-0 transition-colors hover:bg-white/20 sm:inline-flex sm:h-7 sm:w-7"
                               >
                                 <ChevronDown className={`h-3 w-3 text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                               </Button>
@@ -2239,8 +2258,94 @@ export default function ExamsPage() {
                       </div>
                     )}
 
-                    {/* Table Content */}
-                    <div className="overflow-hidden">
+                    {/* Phone layout: details and controls reflow instead of compressing a table. */}
+                    <div className="space-y-2 p-2.5 sm:hidden">
+                      {isCATExam && sortedCATSets.length > 1 && (
+                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-indigo-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgba(79,70,229,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[16px]" aria-label="Choose continuous assessment set">
+                          {sortedCATSets.map(([setName, setExams]) => {
+                            const isSelected = setName === selectedCATSetKey;
+                            return (
+                              <button
+                                key={setName}
+                                type="button"
+                                onClick={() => setSelectedCATSetKeys(previous => ({ ...previous, [batchId]: setName }))}
+                                className={`h-8 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${
+                                  isSelected
+                                    ? 'border-purple-500 bg-purple-500 text-white shadow-sm'
+                                    : 'border-transparent bg-transparent text-purple-700 hover:bg-purple-50'
+                                }`}
+                              >
+                                {setName} <span className="opacity-75">({setExams.length})</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {mobileExamChoices.length > 1 && (
+                        <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-blue-300/65 bg-white/72 p-1 shadow-[0_3px_12px_rgba(59,130,246,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[16px]" aria-label="Choose class">
+                          {mobileExamChoices.map(exam => {
+                            const classMeta = getClassMeta(exam.classId);
+                            const isSelected = exam.id === mobileSelectedExam.id;
+                            return (
+                              <button
+                                key={exam.id}
+                                type="button"
+                                onClick={() => setSelectedCollapsedBatchExams(previous => ({ ...previous, [mobileSelectionKey]: exam.id }))}
+                                className={`h-8 rounded-full border px-2.5 text-[11px] font-bold transition-colors ${
+                                  isSelected
+                                    ? 'border-blue-500 bg-blue-500 text-white shadow-sm'
+                                    : 'border-transparent bg-transparent text-blue-700 hover:bg-blue-50'
+                                }`}
+                              >
+                                {classMeta.code}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {mobileSelectedExam && (() => {
+                        const classMeta = getClassMeta(mobileSelectedExam.classId);
+                        const mobileTitle = isCATExam
+                          ? mobileSelectedExam.name.replace(new RegExp(`^${(mobileSelectedExam.baseName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} - `), '').replace(/ - SET \d+$/i, '')
+                          : mobileSelectedExam.baseName || mobileSelectedExam.name;
+
+                        return (
+                          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 px-2.5 py-2 shadow-sm">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <div className={`flex h-8 min-w-8 items-center justify-center rounded-lg text-[11px] font-bold text-white ${isCATExam ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600'}`}>
+                                {classMeta.code || 'N/A'}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-semibold leading-tight text-slate-900">{mobileTitle}</p>
+                                <p className="truncate text-[11px] leading-tight text-slate-500">{classMeta.name} · {formatDateRange(mobileSelectedExam.startDate, mobileSelectedExam.endDate)}</p>
+                              </div>
+                            </div>
+                            <div className="mt-2 flex items-center justify-center gap-0.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_3px_12px_rgba(79,70,229,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[16px]">
+                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-blue-700 shadow-none hover:border-blue-200 hover:bg-blue-50" title="Record Results">
+                                <Link href={`/exams/${mobileSelectedExam.id}/record-results?classId=${mobileSelectedExam.classId}`}><FilePenLine className="h-4 w-4" /></Link>
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => openExamPrintOptions(mobileSelectedExam)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-amber-700 shadow-none hover:border-amber-200 hover:bg-amber-50" title="Print Reports">
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-emerald-700 shadow-none hover:border-emerald-200 hover:bg-emerald-50" title="View Results">
+                                <Link href={`/exams/${mobileSelectedExam.id}/view-results?classId=${mobileSelectedExam.classId}`}><Eye className="h-4 w-4" /></Link>
+                              </Button>
+                              <Button variant="outline" size="sm" asChild className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-purple-700 shadow-none hover:border-purple-200 hover:bg-purple-50" title="Edit Snapshot Data">
+                                <Link href={`/exams/${mobileSelectedExam.id}/edit-snapshot`}><Camera className="h-4 w-4" /></Link>
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handleDeleteExam(mobileSelectedExam.id)} className="h-8 min-w-0 flex-1 rounded-full border-transparent bg-transparent p-0 text-red-700 shadow-none hover:border-red-200 hover:bg-red-50" title="Delete Exam">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Desktop table keeps the complete, dense overview. */}
+                    <div className="hidden overflow-hidden sm:block">
                       <Table>
                         <TableBody>
                           {isCATExam ? (

@@ -132,7 +132,7 @@ export function GlassPageTopBar({
     <SmartBackButton
       fallbackHref={backHref}
       label={backLabel}
-      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200/70 bg-blue-50/90 text-blue-600 shadow-sm transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-blue-100 hover:text-blue-700 active:scale-95"
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-300/65 bg-white/72 text-blue-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-blue-700 active:scale-95"
     >
       <ArrowLeft className="h-4 w-4" />
     </SmartBackButton>
@@ -148,13 +148,15 @@ export function GlassPageTopBar({
         </div>
       )}
       {titleControls && (
-        <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">
+        <div className="pointer-events-auto flex shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/72 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none">
           {titleControls}
         </div>
       )}
       {actionsLeading && (
         <div className="pointer-events-auto ml-auto flex min-w-0 flex-1 items-center justify-end">
-          {actionsLeading}
+          <div className="flex min-w-0 max-w-full items-center rounded-full border border-blue-300/65 bg-white/72 p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[20px]">
+            {actionsLeading}
+          </div>
         </div>
       )}
     </>
@@ -360,7 +362,7 @@ export function GlassActionDock({ children, className }: GlassActionDockProps) {
   const dock = (
     <div
       className={cn(
-        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-white/90 bg-white/80 p-1 shadow-[0_14px_32px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] ring-2 ring-slate-300/70 backdrop-blur-2xl sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:border-white/60 sm:bg-white/80 sm:px-2 sm:py-1 sm:shadow-sm sm:ring-1 sm:ring-blue-200/70",
+        "glass-action-island flex max-w-full flex-nowrap items-center justify-center gap-0 overflow-x-auto rounded-full border border-indigo-300/65 bg-white/72 p-1 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/55 backdrop-blur-[20px] sm:w-auto sm:flex-wrap sm:justify-start sm:gap-1 sm:border-indigo-300/60 sm:bg-white/72 sm:px-2 sm:py-1 sm:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:ring-1 sm:ring-indigo-200/45",
         className
       )}
       style={isSmallScreen ? { width: compactWidth } : undefined}
@@ -371,7 +373,7 @@ export function GlassActionDock({ children, className }: GlassActionDockProps) {
 
   if (isSmallScreen) {
     return createPortal(
-      <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-[80] flex justify-center sm:hidden">
+      <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 flex justify-center sm:hidden">
         <div className="pointer-events-auto max-w-full">{dock}</div>
       </div>,
       document.body
@@ -422,7 +424,7 @@ export const GlassActionButton = forwardRef<HTMLButtonElement, GlassActionButton
   );
 
   const classes = cn(
-    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-[18px] border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-blue-50 active:scale-95 focus-visible:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md",
+    "relative flex h-11 min-w-11 max-w-[58px] flex-1 basis-0 flex-col items-center justify-center rounded-[18px] border border-transparent bg-transparent px-1 shadow-none transition-[color,background-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:bg-white/60 active:scale-95 active:bg-white/75 focus-visible:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 sm:h-11 sm:w-11 sm:max-w-none sm:flex-none sm:rounded-full sm:border sm:bg-white sm:px-0 sm:shadow-sm sm:hover:scale-105 sm:hover:bg-gradient-to-br sm:hover:text-white sm:hover:shadow-md",
     actionToneClasses[tone],
     disabled && "pointer-events-none opacity-50",
     className
