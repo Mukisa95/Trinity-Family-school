@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import {
   User,
   Mail,
@@ -27,6 +28,7 @@ import {
 export default function ParentSettingsPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const { goBack } = useNavigation();
 
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -97,7 +99,7 @@ export default function ParentSettingsPage() {
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-blue-100 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => goBack('/parent')}
             className="w-8 h-8 rounded-full bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
           >
             <ChevronLeft className="w-4 h-4 text-blue-600" />

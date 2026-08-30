@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ interface ViewAttendancePageProps {
 
 export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
   const router = useRouter();
+  const { goBack } = useNavigation();
   const [activeTab, setActiveTab] = useState('overview');
   
   // Get event data
@@ -100,7 +102,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-gray-600">Event not found</p>
-          <Button onClick={() => router.back()} className="mt-4">
+          <Button onClick={() => goBack('/events')} className="mt-4">
             Go Back
           </Button>
         </div>
@@ -168,7 +170,7 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.back()}
+                onClick={() => goBack('/events')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -555,4 +557,4 @@ export function ViewAttendancePage({ eventId }: ViewAttendancePageProps) {
       </div>
     </div>
   );
-} 
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +68,7 @@ import type {
 
 export default function RequirementTrackingPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { goBack } = useNavigation();
   const pupilId = searchParams.get('id');
   
   const [selectedRecord, setSelectedRecord] = useState<RequirementTracking | null>(null);
@@ -1177,7 +1178,7 @@ export default function RequirementTrackingPage() {
               {/* Action Buttons - matching family accounts page style */}
               <div className="bg-white rounded-full px-2 py-1.5 shadow-lg border border-gray-300 backdrop-blur-sm flex items-center gap-1 overflow-x-auto">
                 <button
-                  onClick={() => router.back()}
+                  onClick={() => goBack(pupilId ? `/pupil-detail?id=${encodeURIComponent(pupilId)}` : '/pupils')}
                   className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
                   title="Go Back"
                 >
@@ -1832,4 +1833,4 @@ export default function RequirementTrackingPage() {
       </div>
     </div>
   );
-} 
+}

@@ -13,6 +13,7 @@ import { User, Lock, Eye, EyeOff, Save, ArrowLeft, KeyRound, Shield, AlertCircle
 import { Lock as LockIcon, SignOut } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
 
@@ -20,6 +21,7 @@ export default function AccountSettingsPage() {
   const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, lockAccount, logout } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const { goBack } = useNavigation();
   const updateUserMutation = useUpdateUser();
 
   // Form states
@@ -237,7 +239,7 @@ export default function AccountSettingsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.back()}
+            onClick={() => goBack('/settings')}
             className="flex items-center gap-2 rounded-full"
           >
             <ArrowLeft className="h-4 w-4" />

@@ -2,7 +2,7 @@
 
 import { use, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ import { LinkSiblingsModal } from "@/components/pupils/link-siblings-modal";
 export default function DormitoryDetailPage(props: { params: Promise<{ id: string }> }) {
   const { id } = use(props.params);
   const qc = useQueryClient();
-  const router = useRouter();
+  const { goBack } = useNavigation();
 
   const { data: dormitory, isLoading } = useQuery({
     queryKey: ['dormitory', id],
@@ -134,7 +134,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none" />
         <div className="relative p-4">
-          <Button variant="secondary" onClick={() => router.back()} className="mb-3 inline-flex gap-2 rounded-full bg-white/70 backdrop-blur">
+          <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="mb-3 inline-flex gap-2 rounded-full bg-white/70 backdrop-blur">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div className="text-sm text-muted-foreground">Loading…</div>
@@ -148,7 +148,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 pointer-events-none" />
       <div className="relative p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <Button variant="secondary" onClick={() => router.back()} className="inline-flex gap-2 rounded-full bg-white/70 backdrop-blur">
+          <Button variant="secondary" onClick={() => goBack('/boarding/dormitory')} className="inline-flex gap-2 rounded-full bg-white/70 backdrop-blur">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <Dialog open={assignOpen} onOpenChange={(v) => { if (!v) setSelectedPupilIds([]); setAssignOpen(v); }}>
@@ -410,4 +410,3 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
     </div>
   );
 }
-

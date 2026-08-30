@@ -10,6 +10,7 @@ import {
 import { ArrowLeft, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 type GlassActionTone =
   | "blue"
@@ -86,14 +87,13 @@ export function GlassPageTopBar({
         )}>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {backHref ? (
-              <Link
-                href={backHref}
-                aria-label={backLabel}
-                title={backLabel}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95"
+              <SmartBackButton
+                fallbackHref={backHref}
+                label={backLabel}
+                className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-200/60 bg-blue-50/80 text-blue-600 shadow-sm transition-all duration-300 after:absolute after:-inset-1.5 after:content-[''] hover:scale-105 hover:bg-blue-100 hover:text-blue-700 active:scale-95"
               >
                 <ArrowLeft className="h-4 w-4" />
-              </Link>
+              </SmartBackButton>
             ) : leading ? (
               <div className="shrink-0">{leading}</div>
             ) : null}

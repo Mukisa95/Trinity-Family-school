@@ -26,6 +26,7 @@
     "test:scheduled-notifications": "node scripts/check-scheduled-notifications-contract.js",
     "test:notification-history": "node scripts/check-notification-history-contract.js",
     "test:scheduled-dispatch-times": "tsx scripts/check-scheduled-dispatch-times.ts",
+    "test:smart-back-navigation": "tsx scripts/check-smart-back-navigation.ts",
     "test:parent-ownership-backfill-contract": "node scripts/check-parent-ownership-backfill-contract.js",
     "test:pupil-rule-canary-contract": "node scripts/check-pupil-rule-canary-contract.js",
     "test:read-only-snapshot-flows": "node scripts/check-read-only-snapshot-flows.js",

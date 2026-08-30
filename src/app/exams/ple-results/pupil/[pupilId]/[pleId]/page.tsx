@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { ArrowLeft, GraduationCap, User, Calendar, Trophy, TrendingUp, Printer, Download } from 'lucide-react';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export default function IndividualPLEPerformancePage({
 }: { 
   params: Promise<{ pupilId: string; pleId: string }> 
 }) {
-  const router = useRouter();
+  const { goBack } = useNavigation();
   const { toast } = useToast();
   
   // PDF Viewer hook
@@ -223,7 +223,7 @@ Division: ${pupilResult.division}`;
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center py-8">
             <p className="text-muted-foreground">No PLE performance data found for this pupil.</p>
-            <Button onClick={() => router.back()} className="mt-4">
+            <Button onClick={() => goBack(`/exams/ple-results/${pleId}/view-results`)} className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Go Back
             </Button>

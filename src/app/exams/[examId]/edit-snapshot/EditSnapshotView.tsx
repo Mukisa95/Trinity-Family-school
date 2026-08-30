@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { Camera, ArrowLeft, Save, Loader2, Plus, X, User, BookOpen, Calendar, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ import { PageHeader } from '@/components/common/page-header';
 
 export default function EditSnapshotView() {
   const params = useParams();
-  const router = useRouter();
+  const { goBack } = useNavigation();
   const { toast } = useToast();
   const examId = params.examId as string;
 
@@ -369,7 +370,7 @@ export default function EditSnapshotView() {
         description: "Snapshot data has been updated successfully.",
       });
 
-      router.back();
+      goBack('/exams');
     } catch (error) {
       console.error('Error saving snapshot data:', error);
       toast({
@@ -408,7 +409,7 @@ export default function EditSnapshotView() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.back()}
+            onClick={() => goBack('/exams')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back

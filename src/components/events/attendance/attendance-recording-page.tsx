@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { ArrowLeft, Users, GraduationCap, Building, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,7 @@ interface AttendanceRecordingPageProps {
 }
 
 export function AttendanceRecordingPage({ eventId }: AttendanceRecordingPageProps) {
-  const router = useRouter();
+  const { goBack } = useNavigation();
   const { data: event, isLoading: eventLoading, error: eventError } = useEvent(eventId);
   const { attendanceDoc } = useEventAttendance(eventId);
   
@@ -89,7 +89,7 @@ export function AttendanceRecordingPage({ eventId }: AttendanceRecordingPageProp
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.back()}
+            onClick={() => goBack('/events')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -125,7 +125,7 @@ export function AttendanceRecordingPage({ eventId }: AttendanceRecordingPageProp
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.back()}
+          onClick={() => goBack('/events')}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -251,4 +251,4 @@ export function AttendanceRecordingPage({ eventId }: AttendanceRecordingPageProp
       )}
     </div>
   );
-} 
+}

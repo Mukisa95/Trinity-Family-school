@@ -1,8 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import React from 'react';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 
 export interface SmartBackButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fallbackHref?: string;
@@ -17,9 +17,10 @@ export function SmartBackButton({
   className,
   children,
   onClick,
+  type = 'button',
   ...props
 }: SmartBackButtonProps) {
-  const router = useRouter();
+  const { goBack } = useNavigation();
 
   const handleBack = (e: React.MouseEvent<HTMLButtonElement>) => {
     // Call any user-provided onClick first
@@ -30,15 +31,7 @@ export function SmartBackButton({
     
     e.preventDefault();
     
-    // Simple heuristic: if we have more than a couple of history entries, 
-    // it's likely we navigated here within the SPA.
-    // If not, we fall back to a sensible default route to prevent users from
-    // getting stuck on a blank page or closing the app/tab entirely.
-    if (window.history.length > 2) {
-      router.back();
-    } else {
-      router.push(fallbackHref);
-    }
+    goBack(fallbackHref);
   };
 
   // Default transparent/minimalist styling typical of standard back links
@@ -47,6 +40,9 @@ export function SmartBackButton({
   return (
     <button 
       onClick={handleBack} 
+      type={type}
+      aria-label={props['aria-label'] || label}
+      title={props.title || label}
       className={className || defaultClassName}
       {...props}
     >

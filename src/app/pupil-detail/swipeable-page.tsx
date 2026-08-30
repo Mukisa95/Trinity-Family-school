@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import { Suspense } from "react";
 import { ArrowLeft, UserSquare, BookOpen as AcademicIcon, Users as GuardianIconLucide, HeartPulse, CalendarDays, MapPin, Phone, Mail, Briefcase, Home, Edit, Trash2, Receipt, Shirt, BookOpen, MoreVertical, User, GraduationCap, Shield, CreditCard, UserPlus, ChevronDown, BarChart3, Settings, History, TrendingUp, TrendingDown, ArrowRight, Clock, Tag, Printer, Award } from "lucide-react";
 
@@ -67,7 +68,7 @@ import {
 
 function SwipeablePupilDetailContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { goBack } = useNavigation();
   const pupilId = searchParams.get('id');
   const { toast } = useToast();
   
@@ -138,7 +139,7 @@ function SwipeablePupilDetailContent() {
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-red-600">Failed to load pupil details. Please try again.</p>
-            <Button onClick={() => router.back()} className="mt-4">
+            <Button onClick={() => goBack('/pupils')} className="mt-4">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
@@ -173,7 +174,7 @@ function SwipeablePupilDetailContent() {
         <div className="flex items-center justify-between mb-6">
           <Button
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => goBack('/pupils')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />

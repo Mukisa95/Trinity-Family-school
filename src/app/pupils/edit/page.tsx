@@ -36,6 +36,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { createFieldValidation, useFormValidation } from "@/lib/utils/form-validation";
 import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
 import { parseLocalDate, formatDateForStorage } from "@/lib/utils/date-utils";
+import { useNavigation } from '@/lib/contexts/navigation-context';
 
 const initialGuardianState: Omit<Guardian, 'id'> = {
   relationship: '',
@@ -50,6 +51,7 @@ const initialGuardianState: Omit<Guardian, 'id'> = {
 
 function EditPupilContent() {
   const router = useRouter();
+  const { goBack } = useNavigation();
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
@@ -324,7 +326,7 @@ function EditPupilContent() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => router.back()}
+            onClick={() => goBack(pupilId ? `/pupil-detail?id=${encodeURIComponent(pupilId)}` : '/pupils')}
             className="mb-4 hover:bg-white/50 dark:hover:bg-gray-800/50"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -894,7 +896,7 @@ function EditPupilContent() {
               
               <Button
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={() => goBack(pupilId ? `/pupil-detail?id=${encodeURIComponent(pupilId)}` : '/pupils')}
                 className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
               >
                 Cancel

@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { DatePicker } from '@/components/common/date-picker';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useNavigation } from '@/lib/contexts/navigation-context';
 import {
   ArrowLeft,
   Loader2,
@@ -219,7 +220,7 @@ const PrintModal = ({
 
 export default function PupilResultsClient() {
   const params = useParams();
-  const router = useRouter();
+  const { goBack } = useNavigation();
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
@@ -1393,7 +1394,7 @@ export default function PupilResultsClient() {
             <h2 className="text-xl font-semibold text-gray-900">Error loading results</h2>
             <p className="text-muted-foreground">Unable to load pupil results. Please try again.</p>
             <Button
-              onClick={() => router.back()}
+              onClick={() => goBack(examId ? `/exams/${examId}/view-results` : '/exams')}
               className="mt-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
