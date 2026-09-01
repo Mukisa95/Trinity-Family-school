@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { X, CurrencyDollar, Users } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
+import { findDiscountAwarePaymentViolation } from '@/lib/utils/fee-discount-calculation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SimpleFee {
@@ -280,6 +281,25 @@ export function MultiFeePaymentModal({
       (sum, fee) => sum + fee.selectedAmount,
       0
     );
+    const payableSelections = selectedFees.filter((fee) => fee.selectedAmount > 0);
+    const currentBalances = new Map(fees.map((fee) => [fee.id, fee.balance]));
+    const balanceViolation = findDiscountAwarePaymentViolation(
+      payableSelections.map((fee) => ({
+        key: fee.feeId,
+        feeName: fee.feeName,
+        selectedAmount: fee.selectedAmount,
+      })),
+      currentBalances,
+    );
+
+    if (balanceViolation) {
+      toast({
+        title: 'Fee balance changed',
+        description: `${balanceViolation.feeName} now has a balance of UGX ${(balanceViolation.currentBalance || 0).toLocaleString()}. Review the refreshed balances before recording payment.`,
+        variant: 'destructive'
+      });
+      return;
+    }
 
     if (distributionMode === 'manual') {
       if (totalSelectedAmount <= 0) {
@@ -306,7 +326,7 @@ export function MultiFeePaymentModal({
       await onPaymentSubmit({
         totalAmount: distributionMode === 'manual' ? totalSelectedAmount : parsedTotalAmount,
         paymentMethod,
-        selectedFees,
+        selectedFees: payableSelections,
         paidBy
       });
     } catch (error) {

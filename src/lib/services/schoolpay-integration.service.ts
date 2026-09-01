@@ -7,6 +7,7 @@ import {
 import { db } from '../firebase';
 import { AcademicYearsService } from './academic-years.service';
 import { FeeStructuresService } from './fee-structures.service';
+import { FeesHolidayService } from './fees-holiday.service';
 import { PaymentsService } from './payments.service';
 import type { FeeStructure, Pupil } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -25,6 +26,7 @@ import {
   type ExistingLocalPaymentMatch,
 } from '@/lib/utils/schoolpay-recovery';
 import { hasValidFeeAssignment } from '@/lib/utils/fee-assignment-pipeline';
+import { calculateFeeBalancesAfterDiscounts } from '@/lib/utils/fee-discount-calculation';
 
 const SCHOOLPAY_GENERAL_FEE_ID = 'schoolpay-general';
 const SCHOOLPAY_SYNC_LOGS = 'schoolPaySyncLogs';
@@ -934,10 +936,11 @@ export class SchoolPayIntegrationService {
 
   private static async getApplicableFeeStructures(
     pupil: Pupil,
-    slot: AcademicSlot
+    slot: AcademicSlot,
+    allFeeStructures?: FeeStructure[],
   ): Promise<FeeStructure[]> {
     const currentTermOrder = this.extractTermOrder(slot.term.name);
-    const allFees = await FeeStructuresService.getAllFeeStructures();
+    const allFees = allFeeStructures || await FeeStructuresService.getAllFeeStructures();
 
     return allFees.filter((fee: any) => {
       if (fee.status === 'inactive') return false;
@@ -1024,7 +1027,9 @@ export class SchoolPayIntegrationService {
     localPaymentIds: string[];
     distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }>;
   }> {
-    const feeStructures = await this.getApplicableFeeStructures(pupil, slot);
+    const allFeeStructures = await FeeStructuresService.getAllFeeStructures();
+    const feeStructures = await this.getApplicableFeeStructures(pupil, slot, allFeeStructures);
+    const feesHolidays = await FeesHolidayService.getActiveFeesHolidaysByPupil(pupil.id);
     const createdPaymentIds: string[] = [];
     const distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }> = [];
     let remainingAmount = this.parseAmount(payment.amount);
@@ -1068,23 +1073,16 @@ export class SchoolPayIntegrationService {
       return { localPaymentIds: createdPaymentIds, distributionBreakdown };
     }
 
-    const feesWithBalance = feeStructures
-      .map((fee: any) => {
-        const paidForFee = existingPayments
-          .filter(
-            (paymentRecord: any) =>
-              paymentRecord.feeStructureId === fee.id &&
-              paymentRecord.academicYearId === slot.year.id &&
-              paymentRecord.termId === slot.term.id &&
-              !paymentRecord.reverted
-          )
-          .reduce((sum: number, paymentRecord: any) => sum + (paymentRecord.amount || 0), 0);
-
-        return {
-          ...fee,
-          balance: Math.max(0, (fee.amount || 0) - paidForFee),
-        };
-      })
+    const feesWithBalance = calculateFeeBalancesAfterDiscounts({
+      feeStructures,
+      allFeeStructures,
+      assignedFees: pupil.assignedFees,
+      payments: existingPayments,
+      academicYearId: slot.year.id,
+      termId: slot.term.id,
+      allAcademicYears: slot.allAcademicYears,
+      feesHolidays,
+    })
       .filter((fee: any) => fee.balance > 0)
       .sort((a: any, b: any) => b.balance - a.balance);
 
@@ -1153,7 +1151,7 @@ export class SchoolPayIntegrationService {
 
       allTermSlots.sort((a, b) => a.termStart.getTime() - b.termStart.getTime());
       const currentIndex = allTermSlots.findIndex((termSlot) => termSlot.termId === slot.term.id);
-      const allFees = await FeeStructuresService.getAllFeeStructures();
+      const allFees = allFeeStructures;
 
       for (let index = currentIndex + 1; index < allTermSlots.length && remainingAmount > 0; index += 1) {
         const futureSlot = allTermSlots[index];
@@ -1203,23 +1201,16 @@ export class SchoolPayIntegrationService {
           return true;
         });
 
-        const futureFeesWithBalance = futureFees
-          .map((fee: any) => {
-            const paid = existingPayments
-              .filter(
-                (paymentRecord: any) =>
-                  paymentRecord.feeStructureId === fee.id &&
-                  paymentRecord.termId === futureSlot.termId &&
-                  paymentRecord.academicYearId === futureSlot.yearId &&
-                  !paymentRecord.reverted
-              )
-              .reduce((sum: number, paymentRecord: any) => sum + (paymentRecord.amount || 0), 0);
-
-            return {
-              ...fee,
-              balance: Math.max(0, (fee.amount || 0) - paid),
-            };
-          })
+        const futureFeesWithBalance = calculateFeeBalancesAfterDiscounts({
+          feeStructures: futureFees,
+          allFeeStructures,
+          assignedFees: pupil.assignedFees,
+          payments: existingPayments,
+          academicYearId: futureSlot.yearId,
+          termId: futureSlot.termId,
+          allAcademicYears: slot.allAcademicYears,
+          feesHolidays,
+        })
           .filter((fee: any) => fee.balance > 0)
           .sort((a: any, b: any) => b.balance - a.balance);
 

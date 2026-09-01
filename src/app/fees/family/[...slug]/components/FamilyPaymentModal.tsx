@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Users, CurrencyDollar, Check } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
+import { findDiscountAwarePaymentViolation } from '@/lib/utils/fee-discount-calculation';
 
 // Types
 import type { Pupil } from '@/types';
@@ -300,6 +301,31 @@ export function FamilyPaymentModal({
     }
 
     const totalSelectedAmount = selectedFees.reduce((sum, fee) => sum + fee.selectedAmount, 0);
+    const payableSelections = selectedFees.filter((fee) => fee.selectedAmount > 0);
+
+    const currentBalances = new Map<string, number>();
+    for (const pupil of familyPupils) {
+      for (const fee of feesInfo[pupil.id]?.applicableFees || []) {
+        currentBalances.set(`${pupil.id}:${getFeeKey(fee)}`, fee.balance);
+      }
+    }
+    const balanceViolation = findDiscountAwarePaymentViolation(
+      payableSelections.map((fee) => ({
+        key: `${fee.pupilId}:${getFeeKey(fee)}`,
+        feeName: `${fee.pupilName} - ${fee.feeName}`,
+        selectedAmount: fee.selectedAmount,
+      })),
+      currentBalances,
+    );
+
+    if (balanceViolation) {
+      toast({
+        title: 'Fee balance changed',
+        description: `${balanceViolation.feeName} now has a balance of UGX ${(balanceViolation.currentBalance || 0).toLocaleString()}. Review the refreshed balances before recording payment.`,
+        variant: 'destructive'
+      });
+      return;
+    }
     
     // For manual mode, allow flexible payment amounts
     if (distributionMode === 'manual') {
@@ -330,7 +356,7 @@ export function FamilyPaymentModal({
       await onPaymentSubmit({
         totalAmount: distributionMode === 'manual' ? totalSelectedAmount : parsedTotalAmount,
         paymentMethod,
-        selectedFees,
+        selectedFees: payableSelections,
         paidBy
       });
     } catch (error) {

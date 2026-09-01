@@ -14,6 +14,7 @@ import {
   hasValidFeeAssignment,
   isAssignmentValidForContext,
 } from '@/lib/utils/fee-assignment-pipeline';
+import { calculateFeeAmountAfterDiscounts } from '@/lib/utils/fee-discount-calculation';
 import type {
   PupilFee,
   PreviousTermBalance
@@ -467,45 +468,6 @@ export function processPupilFees(
     feesHolidaysCount: feesHolidays.length
   });
 
-  // Find discounts assigned to this pupil that are currently valid.
-  // Includes both global discounts (resolved via allFeeStructures) and
-  // pupil-specific pivot/inline discounts (stored on assignment.inlineDiscount).
-  const assignedDiscounts = pupil.assignedFees?.filter(assignedFee => {
-    // Pupil-specific inline (pivot) discount — always treat as a discount
-    if (assignedFee.feeStructureId.startsWith('pivot-') && assignedFee.inlineDiscount) {
-      return isAssignmentCurrentlyValid(assignedFee, currentTermId, currentAcademicYear, allAcademicYears);
-    }
-
-    const feeStructure = allFeeStructures.find(fs => fs.id === assignedFee.feeStructureId);
-    const isDiscount = feeStructure && (feeStructure.category === 'Discount' || feeStructure.amount < 0);
-
-    if (!isDiscount) return false;
-
-    // Check if the discount assignment is currently valid
-    return isAssignmentCurrentlyValid(assignedFee, currentTermId, currentAcademicYear, allAcademicYears);
-  }) || [];
-
-  console.log('🎯 Found assigned and valid discounts:', assignedDiscounts.map(ad => {
-    const discountStructure = allFeeStructures.find(fs => fs.id === ad.feeStructureId);
-    return {
-      discountId: ad.feeStructureId,
-      discountName: discountStructure?.name ?? ad.inlineDiscount?.name,
-      linkedFeeIds: discountStructure?.linkedFeeIds || (discountStructure?.linkedFeeId ? [discountStructure.linkedFeeId] : undefined) || ad.inlineDiscount?.linkedFeeIds,
-      discountAmount: discountStructure?.amount ?? ad.inlineDiscount?.amount,
-      assignmentStatus: ad.status,
-      validityType: ad.validityType
-    };
-  }));
-
-  // Get active fees holidays
-  const activeFeesHolidays = feesHolidays.filter(h => h.isActive);
-  console.log('🎫 Found active fees holidays:', activeFeesHolidays.map(h => ({
-    categories: h.categories,
-    discountType: h.discountType,
-    discountValue: h.discountValue,
-    reason: h.reason
-  })));
-
   return feeStructures.map(fee => {
     // Pass current academic year and term to filter payments correctly
     // This ensures payments from previous years are not counted when viewing fees for a future year
@@ -516,162 +478,46 @@ export function processPupilFees(
       currentTermId
     );
 
-    // Apply discounts if any are linked to this fee
-    let finalAmount = fee.amount;
-    let discount = undefined;
-    let originalAmount = undefined;
-    let feesHolidayApplied = undefined;
-
-    // Check if fees holiday applies to this fee
-    // Fees holiday applies based on fee category (required/non-required)
-    const feeIsRequired = fee.isRequired === true;
-    const applicableFeesHoliday = activeFeesHolidays.find(h => {
-      // Handle both old format (single category) and new format (array of categories)
-      const holidayCategories = Array.isArray(h.categories)
-        ? h.categories
-        : (h as any).category
-          ? [(h as any).category]
-          : [];
-
-      // Check if fee matches any of the holiday's categories
-      return holidayCategories.some(cat => {
-        if (cat === 'required' && feeIsRequired) return true;
-        if (cat === 'non-required' && !feeIsRequired) return true;
-        return false;
-      });
+    const discountCalculation = calculateFeeAmountAfterDiscounts({
+      fee,
+      assignedFees: pupil.assignedFees,
+      allFeeStructures,
+      academicYearId: currentAcademicYear.id,
+      termId: currentTermId,
+      allAcademicYears,
+      feesHolidays,
     });
+    const finalAmount = discountCalculation.finalAmount;
+    const originalAmount = discountCalculation.totalDiscountAmount > 0
+      ? fee.amount
+      : undefined;
+    let discount: PupilFee['discount'];
 
-    // Apply fees holiday discount if applicable
-    if (applicableFeesHoliday) {
-      originalAmount = fee.amount;
-      let holidayDiscountAmount = 0;
-
-      switch (applicableFeesHoliday.discountType) {
-        case 'full':
-          holidayDiscountAmount = fee.amount; // 100% discount
-          break;
-        case 'half':
-          holidayDiscountAmount = fee.amount * 0.5; // 50% discount
-          break;
-        case 'quarter':
-          holidayDiscountAmount = fee.amount * 0.25; // 25% discount
-          break;
-        case 'percentage':
-          if (applicableFeesHoliday.discountValue !== undefined) {
-            holidayDiscountAmount = fee.amount * (applicableFeesHoliday.discountValue / 100);
-          }
-          break;
-      }
-
-      finalAmount = Math.max(0, fee.amount - holidayDiscountAmount);
-
-      // Handle both old format (single category) and new format (array)
-      const holidayCategories = Array.isArray(applicableFeesHoliday.categories)
-        ? applicableFeesHoliday.categories
-        : (applicableFeesHoliday as any).category
-          ? [(applicableFeesHoliday as any).category]
-          : [];
-
-      feesHolidayApplied = {
-        id: applicableFeesHoliday.id,
-        categories: holidayCategories,
-        discountType: applicableFeesHoliday.discountType,
-        discountValue: applicableFeesHoliday.discountValue,
-        reason: applicableFeesHoliday.reason,
-        amount: holidayDiscountAmount
-      };
-
-      console.log(`🎫 Applied fees holiday to fee "${fee.name}":`, {
-        categories: holidayCategories,
-        discountType: applicableFeesHoliday.discountType,
-        discountValue: applicableFeesHoliday.discountValue,
-        originalAmount: fee.amount,
-        discountAmount: holidayDiscountAmount,
-        finalAmount
-      });
-    }
-
-    const applicableDiscounts = assignedDiscounts.filter(assignedDiscount => {
-      // Inline (pivot) discounts: match using inlineDiscount.linkedFeeIds
-      if (assignedDiscount.feeStructureId.startsWith('pivot-') && assignedDiscount.inlineDiscount) {
-        return assignedDiscount.inlineDiscount.linkedFeeIds?.includes(fee.id);
-      }
-      const discountStructure = allFeeStructures.find(fs => fs.id === assignedDiscount.feeStructureId);
-      return discountStructure && (discountStructure.linkedFeeIds?.includes(fee.id) || discountStructure.linkedFeeId === fee.id);
-    });
-
-    // Apply existing discount system (only if no fees holiday applied, or apply both)
-    if (applicableDiscounts.length > 0) {
-      if (!originalAmount) originalAmount = fee.amount;
-      let totalDiscountAmount = feesHolidayApplied?.amount || 0;
-
-      // Apply all applicable discounts
-      for (const assignedDiscount of applicableDiscounts) {
-        // Pivot / inline discount: read amount directly from inlineDiscount
-        if (assignedDiscount.feeStructureId.startsWith('pivot-') && assignedDiscount.inlineDiscount) {
-          const inlineAmt = assignedDiscount.inlineDiscount.amount;
-          totalDiscountAmount += Math.abs(inlineAmt); // stored negative, we want positive magnitude
-          console.log(`💸 Applied inline pivot discount "${assignedDiscount.inlineDiscount.name}" to fee "${fee.name}": ${inlineAmt}`);
-          continue;
-        }
-
-        const discountStructure = allFeeStructures.find(fs => fs.id === assignedDiscount.feeStructureId);
-        if (discountStructure && typeof discountStructure.amount === 'number') {
-          if (discountStructure.amount < 0) {
-            // Fixed amount discount (negative value)
-            totalDiscountAmount += Math.abs(discountStructure.amount);
-          } else {
-            // Percentage discount (positive value represents percentage)
-            // Apply to the amount after fees holiday discount
-            totalDiscountAmount += (finalAmount * discountStructure.amount / 100);
-          }
-
-          console.log(`💸 Applied discount "${discountStructure.name}" to fee "${fee.name}": ${discountStructure.amount}`);
-        }
-      }
-
-      finalAmount = Math.max(0, fee.amount - totalDiscountAmount);
-
-      // Create discount info for display (combine fees holiday and regular discounts)
-      if (feesHolidayApplied && applicableFeesHoliday) {
-        discount = {
-          id: feesHolidayApplied.id,
-          name: `Fees Holiday (${feesHolidayApplied.categories.join(', ')})`,
-          amount: totalDiscountAmount,
-          type: 'fees-holiday' as const,
-          reason: feesHolidayApplied.reason,
-          // category: feesHolidayApplied.categories[0], // Removed to avoid type error
-          discountType: feesHolidayApplied.discountType
-        };
-      } else if (applicableDiscounts.length === 1) {
-        const singleDiscount = applicableDiscounts[0];
-        const discountStructure = allFeeStructures.find(fs => fs.id === singleDiscount.feeStructureId);
-        // For pivot/inline discounts there is no feeStructure in the global list
-        const isPivot = singleDiscount.feeStructureId.startsWith('pivot-') && singleDiscount.inlineDiscount;
-        discount = {
-          id: singleDiscount.feeStructureId,
-          name: discountStructure?.name ?? (isPivot ? singleDiscount.inlineDiscount!.name : 'Discount'),
-          amount: totalDiscountAmount,
-          type: isPivot ? 'fixed' : ((discountStructure?.amount && discountStructure.amount < 0) ? 'fixed' : 'percentage')
-        };
-      } else if (applicableDiscounts.length > 1) {
-        discount = {
-          id: 'multiple-discounts',
-          name: `${applicableDiscounts.length} Discounts Applied`,
-          amount: totalDiscountAmount,
-          type: 'fixed'
-        };
-      }
-    } else if (feesHolidayApplied && applicableFeesHoliday) {
-      // Only fees holiday, no regular discounts
+    if (discountCalculation.feesHoliday) {
+      const { holiday, categories } = discountCalculation.feesHoliday;
       discount = {
-        id: feesHolidayApplied.id,
-        name: `Fees Holiday (${feesHolidayApplied.categories.join(', ')})`,
-        amount: feesHolidayApplied.amount,
-        type: 'fees-holiday' as const,
-        reason: feesHolidayApplied.reason,
-        // category: feesHolidayApplied.categories[0], // Removed to avoid type error
-        discountType: feesHolidayApplied.discountType
+        id: holiday.id,
+        name: `Fees Holiday (${categories.join(', ')})`,
+        amount: discountCalculation.totalDiscountAmount,
+        type: 'fees-holiday',
+        reason: holiday.reason,
+        categories: categories as ('required' | 'non-required')[],
+        discountType: holiday.discountType,
+      };
+    } else if (discountCalculation.appliedDiscounts.length === 1) {
+      const appliedDiscount = discountCalculation.appliedDiscounts[0];
+      discount = {
+        id: appliedDiscount.id,
+        name: appliedDiscount.name,
+        amount: appliedDiscount.amount,
+        type: appliedDiscount.type,
+      };
+    } else if (discountCalculation.appliedDiscounts.length > 1) {
+      discount = {
+        id: 'multiple-discounts',
+        name: `${discountCalculation.appliedDiscounts.length} Discounts Applied`,
+        amount: discountCalculation.totalDiscountAmount,
+        type: 'fixed',
       };
     }
 
@@ -827,102 +673,15 @@ export async function calculatePreviousTermBalances(
 
       // Process regular fees
       for (const fee of periodFees) {
-        // Calculate fee amount with discounts applied (same logic as current term)
-        let finalAmount = fee.amount;
-
-        // Check if fees holiday applies to this fee (for previous term balance calculation)
-        // Fees holiday applies based on fee category (required/non-required)
-        const feeIsRequired = fee.isRequired === true;
-        const applicableFeesHoliday = activeFeesHolidays.find(h => {
-          // Handle both old format (single category) and new format (array of categories)
-          const holidayCategories = Array.isArray(h.categories)
-            ? h.categories
-            : (h as any).category
-              ? [(h as any).category]
-              : [];
-
-          // Check if fee matches any of the holiday's categories
-          return holidayCategories.some(cat => {
-            if (cat === 'required' && feeIsRequired) return true;
-            if (cat === 'non-required' && !feeIsRequired) return true;
-            return false;
-          });
-        });
-
-        // Apply fees holiday discount if applicable
-        if (applicableFeesHoliday) {
-          let holidayDiscountAmount = 0;
-
-          switch (applicableFeesHoliday.discountType) {
-            case 'full':
-              holidayDiscountAmount = fee.amount; // 100% discount
-              break;
-            case 'half':
-              holidayDiscountAmount = fee.amount * 0.5; // 50% discount
-              break;
-            case 'quarter':
-              holidayDiscountAmount = fee.amount * 0.25; // 25% discount
-              break;
-            case 'percentage':
-              if (applicableFeesHoliday.discountValue !== undefined) {
-                holidayDiscountAmount = fee.amount * (applicableFeesHoliday.discountValue / 100);
-              }
-              break;
-          }
-
-          finalAmount = Math.max(0, fee.amount - holidayDiscountAmount);
-          console.log(`🎫 Applied fees holiday to previous term fee "${fee.name}": ${fee.amount} - ${holidayDiscountAmount} = ${finalAmount}`);
-        }
-
-        // Find discounts assigned to this pupil that are linked to this fee and valid for that period
-        const assignedDiscounts = historicalPupil.assignedFees?.filter(assignedFee => {
-          // Inline pivot discount
-          if (assignedFee.feeStructureId.startsWith('pivot-') && assignedFee.inlineDiscount) {
-            const linksThisFee = assignedFee.inlineDiscount.linkedFeeIds?.includes(fee.id);
-            if (!linksThisFee) return false;
-            return isAssignmentCurrentlyValid(assignedFee, period.termId, period.academicYear, allAcademicYears);
-          }
-
-          const discountStructure = allFeeStructures.find(fs => fs.id === assignedFee.feeStructureId);
-          const isDiscount = discountStructure &&
-            (discountStructure.category === 'Discount' || discountStructure.amount < 0) &&
-            (discountStructure.linkedFeeIds?.includes(fee.id) || discountStructure.linkedFeeId === fee.id);
-
-          if (!isDiscount) return false;
-
-          // Check if the discount assignment was valid for that specific period
-          return isAssignmentCurrentlyValid(assignedFee, period.termId, period.academicYear, allAcademicYears);
-        }) || [];
-
-        if (assignedDiscounts.length > 0) {
-          let totalDiscountAmount = 0;
-
-          for (const assignedDiscount of assignedDiscounts) {
-            // Inline pivot discount: read amount from inlineDiscount
-            if (assignedDiscount.feeStructureId.startsWith('pivot-') && assignedDiscount.inlineDiscount) {
-              totalDiscountAmount += Math.abs(assignedDiscount.inlineDiscount.amount);
-              console.log(`💸 Applied previous term pivot discount "${assignedDiscount.inlineDiscount.name}" to fee "${fee.name}": ${assignedDiscount.inlineDiscount.amount}`);
-              continue;
-            }
-
-            const discountStructure = allFeeStructures.find(fs => fs.id === assignedDiscount.feeStructureId);
-            if (discountStructure && typeof discountStructure.amount === 'number') {
-              if (discountStructure.amount < 0) {
-                // Fixed amount discount (negative value)
-                totalDiscountAmount += Math.abs(discountStructure.amount);
-              } else {
-                // Percentage discount (positive value represents percentage)
-                totalDiscountAmount += (fee.amount * discountStructure.amount / 100);
-              }
-
-              console.log(`💸 Applied previous term discount "${discountStructure.name}" to fee "${fee.name}": ${discountStructure.amount}`);
-            }
-          }
-
-          // Apply regular discounts on top of fees holiday (if any)
-          finalAmount = Math.max(0, finalAmount - totalDiscountAmount);
-          console.log(`📊 Previous term fee "${fee.name}" after all discounts: ${fee.amount} -> ${finalAmount}`);
-        }
+        const finalAmount = calculateFeeAmountAfterDiscounts({
+          fee,
+          assignedFees: historicalPupil.assignedFees,
+          allFeeStructures,
+          academicYearId: period.academicYear.id,
+          termId: period.termId,
+          allAcademicYears,
+          feesHolidays: activeFeesHolidays,
+        }).finalAmount;
 
         // 🔥 CRITICAL FIX: Pass the period's academic year and term to filter payments correctly
         // This ensures we only count payments made in that specific period, not payments from other years
