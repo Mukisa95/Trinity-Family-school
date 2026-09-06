@@ -36,7 +36,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
   const [loading, setLoading] = useState(false);
   const [selectedCatalogItemId, setSelectedCatalogItemId] = useState('new');
   const { user } = useAuth();
-  const { data: catalogItems = [], isFetching: isCatalogFetching, refetch: refetchCatalog } = useSchoolItemCatalog({ enabled: isAddDialogOpen });
+  const { data: catalogItems = [], isFetching: isCatalogFetching } = useSchoolItemCatalog({ enabled: isAddDialogOpen });
 
   // Form state
   const [formData, setFormData] = useState<CreateProcurementItemData>({
@@ -134,8 +134,6 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       setItems([...items, newItem]);
       setIsAddDialogOpen(false);
       resetForm();
-      void refetchCatalog();
-
       toast({
         title: "Success",
         description: "Item created and linked to the shared catalogue.",

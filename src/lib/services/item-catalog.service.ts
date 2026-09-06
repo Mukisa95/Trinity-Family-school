@@ -10,9 +10,11 @@ import {
   serverTimestamp,
   Timestamp,
   Transaction,
-  updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
 import { buildCatalogKey, normalizeCatalogName } from '@/lib/utils/item-catalog';
+import { bumpDomainRevisionsInWrite } from '@/lib/services/dashboard-cache-revisions.service';
+import type { DomainRevisionKey } from '@/lib/cache/domain-revisions';
 import type {
   CreateCatalogLinkedInventoryItemData,
   CreateCatalogLinkedProcurementItemData,
@@ -132,6 +134,7 @@ export class ItemCatalogService {
       }
 
       this.writeNewCatalog(transaction, catalogRef, { ...data, standardUnit });
+      bumpDomainRevisionsInWrite(transaction, ['schoolItemCatalog']);
       return catalogRef.id;
     });
   }
@@ -166,6 +169,7 @@ export class ItemCatalogService {
         catalogLinkedByUserId: data.createdByUserId,
         createdAt: serverTimestamp(),
       });
+      bumpDomainRevisionsInWrite(transaction, ['schoolItemCatalog', 'procurementItems']);
       return { procurementItemId: procurementRef.id, catalogItemId: catalogRef.id };
     });
   }
@@ -192,6 +196,7 @@ export class ItemCatalogService {
         catalogLinkedByUserId: data.linkedByUserId,
         createdAt: serverTimestamp(),
       });
+      bumpDomainRevisionsInWrite(transaction, ['procurementItems']);
       return { procurementItemId: procurementRef.id, catalogItemId: catalogRef.id };
     });
   }
@@ -228,6 +233,7 @@ export class ItemCatalogService {
         catalogLinkedByUserId: data.createdByUserId,
         createdAt: serverTimestamp(),
       });
+      bumpDomainRevisionsInWrite(transaction, ['schoolItemCatalog', 'inventoryItems']);
       return { inventoryItemId: inventoryRef.id, catalogItemId: catalogRef.id };
     });
   }
@@ -256,6 +262,7 @@ export class ItemCatalogService {
         catalogLinkedByUserId: data.linkedByUserId,
         createdAt: serverTimestamp(),
       });
+      bumpDomainRevisionsInWrite(transaction, ['inventoryItems']);
       return { inventoryItemId: inventoryRef.id, catalogItemId: catalogRef.id };
     });
   }
@@ -265,10 +272,13 @@ export class ItemCatalogService {
       throw new Error('A catalogue item name or standard unit cannot be changed in place. Create a reviewed replacement or use a controlled mapping correction.');
     }
 
-    await updateDoc(doc(db, SCHOOL_ITEM_CATALOG_COLLECTION, id), {
+    const batch = writeBatch(db);
+    batch.update(doc(db, SCHOOL_ITEM_CATALOG_COLLECTION, id), {
       ...data,
       updatedAt: serverTimestamp(),
     });
+    bumpDomainRevisionsInWrite(batch, ['schoolItemCatalog']);
+    await batch.commit();
   }
 
   /** Creates one catalogue entry and links reviewed legacy records in one transaction. */
@@ -304,6 +314,10 @@ export class ItemCatalogService {
         createdAt: serverTimestamp(),
       });
       this.writeLegacyLinks(transaction, legacyTargets, catalogRef.id, data.linkedBy, data.linkedByUserId);
+      const revisionKeys: DomainRevisionKey[] = ['schoolItemCatalog'];
+      if (procurementItemIds.length) revisionKeys.push('procurementItems');
+      if (inventoryItemIds.length) revisionKeys.push('inventoryItems');
+      bumpDomainRevisionsInWrite(transaction, revisionKeys);
       return catalogRef.id;
     });
   }
@@ -328,6 +342,10 @@ export class ItemCatalogService {
       if (!catalogSnapshot.exists()) throw new Error('The shared catalogue item no longer exists. Refresh the audit and try again.');
       await this.assertLegacyTargetsExist(transaction, legacyTargets);
       this.writeLegacyLinks(transaction, legacyTargets, data.catalogItemId, data.linkedBy, data.linkedByUserId);
+      const revisionKeys: DomainRevisionKey[] = [];
+      if (procurementItemIds.length) revisionKeys.push('procurementItems');
+      if (inventoryItemIds.length) revisionKeys.push('inventoryItems');
+      bumpDomainRevisionsInWrite(transaction, revisionKeys);
     });
   }
 }

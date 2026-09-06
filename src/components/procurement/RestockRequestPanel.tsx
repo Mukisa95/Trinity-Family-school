@@ -23,7 +23,7 @@ export function RestockRequestPanel({ onRecordPurchase }: RestockRequestPanelPro
   const queryClient = useQueryClient();
   const confirmPurchase = useMutation({
     mutationFn: ({ restockRequestId, purchaseId }: { restockRequestId: string; purchaseId: string }) => ProcurementRestockService.linkPurchase(restockRequestId, purchaseId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['procurement', 'restock-queue'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['procurement', 'restock-queue'], refetchType: 'none' }),
   });
   const waitingForReceipt = requests.filter(request => request.status === 'purchased');
   const waitingForPurchase = requests.filter(request => request.status === 'submitted');
@@ -77,7 +77,7 @@ export function RestockRequestPanel({ onRecordPurchase }: RestockRequestPanelPro
   );
 }
 
-function RestockCard({ request, onRecordPurchase, onConfirmPurchase, confirming }: { request: ProcurementRestockRequest; onRecordPurchase: (request: ProcurementRestockRequest) => void; onConfirmPurchase: (restockRequestId: string, purchaseId: string) => void; confirming: boolean }) {
+function RestockCard({ request, onRecordPurchase, onConfirmPurchase, confirming = false }: { request: ProcurementRestockRequest; onRecordPurchase: (request: ProcurementRestockRequest) => void; onConfirmPurchase?: (restockRequestId: string, purchaseId: string) => void; confirming?: boolean }) {
   const purchased = request.status === 'purchased';
   return (
     <article className="rounded-xl border bg-white p-4 shadow-sm">
@@ -95,7 +95,7 @@ function RestockCard({ request, onRecordPurchase, onConfirmPurchase, confirming 
         {purchased ? (
           <div className="flex min-h-11 items-center gap-2 rounded-md bg-sky-50 px-3 text-sm font-medium text-sky-900"><ReceiptText className="h-4 w-4" aria-hidden="true" /> Receive the stock in Inventory</div>
         ) : request.unlinkedPurchaseId ? (
-          <Button type="button" className="min-h-11 shrink-0" disabled={confirming} onClick={() => onConfirmPurchase(request.id, request.unlinkedPurchaseId!)}>
+          <Button type="button" className="min-h-11 shrink-0" disabled={confirming} onClick={() => onConfirmPurchase?.(request.id, request.unlinkedPurchaseId!)}>
             {confirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ReceiptText className="mr-2 h-4 w-4" aria-hidden="true" />}Confirm recorded purchase
           </Button>
         ) : (

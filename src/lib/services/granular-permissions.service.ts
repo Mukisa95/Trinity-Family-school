@@ -3,6 +3,17 @@ import { MODULE_ACTIONS } from '@/types/permissions';
 
 export class GranularPermissionService {
   /**
+   * Inventory is also the home of the release queue. Release officers can
+   * enter that workspace without inheriting broad Inventory visibility.
+   */
+  static canAccessInventoryWorkspace(user: SystemUser | null): boolean {
+    return this.canAccessPage(user, 'inventory', 'dashboard') || (
+      this.canAccessPage(user, 'item_requests', 'release')
+      && this.canPerformAction(user, 'item_requests', 'release', 'view_release_queue')
+    );
+  }
+
+  /**
    * Check if user can access a specific page
    */
   static canAccessPage(user: SystemUser | null, moduleId: string, pageId: string): boolean {

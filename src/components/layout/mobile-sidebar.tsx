@@ -169,6 +169,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
     }
 
     if (href === '/settings/firebase-usage' || href === '/settings/deployment') return user?.role === 'Admin';
+    if (href === '/inventory') return GranularPermissionService.canAccessInventoryWorkspace(user);
 
     const routePermission = getRoutePagePermission(href);
     if (routePermission) {

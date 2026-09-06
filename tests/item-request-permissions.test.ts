@@ -44,6 +44,29 @@ test('legacy inventory access cannot silently grant item-request release authori
   assert.equal(GranularPermissionService.canPerformAction(inventoryUser, 'item_requests', 'release', 'release_items'), false);
 });
 
+test('an explicit release officer can enter the Inventory workspace without broad Inventory access', () => {
+  const releaseOfficer: SystemUser = {
+    ...requester,
+    id: 'release-officer-1',
+    granularPermissions: [{
+      moduleId: 'item_requests',
+      pages: [{
+        pageId: 'release',
+        canAccess: true,
+        actions: [
+          { actionId: 'access_page', allowed: true },
+          { actionId: 'view_release_queue', allowed: true },
+          { actionId: 'release_items', allowed: true },
+        ],
+      }],
+    }],
+  };
+
+  assert.equal(GranularPermissionService.canAccessPage(releaseOfficer, 'inventory', 'dashboard'), false);
+  assert.equal(GranularPermissionService.canAccessInventoryWorkspace(releaseOfficer), true);
+  assert.equal(GranularPermissionService.canPerformAction(releaseOfficer, 'item_requests', 'release', 'release_items'), true);
+});
+
 test('administrators retain access to the request and release pages', () => {
   const admin: SystemUser = { ...requester, id: 'admin-1', role: 'Admin' };
   assert.equal(GranularPermissionService.canAccessPage(admin, 'item_requests', 'request'), true);

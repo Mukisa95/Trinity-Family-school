@@ -1,9 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryService } from '../services/inventory.service';
 import { ItemCatalogService } from '../services/item-catalog.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
 import { auth } from '@/lib/firebase';
+import { useRevisionedDomainQuery } from './use-revisioned-domain-query';
 import type {
     InventoryItem,
     CreateInventoryItemData,
@@ -13,6 +15,8 @@ import type {
     IssuedItem,
     StockLevel,
     InventorySummary,
+    UsageReport,
+    ValueReport,
     InventoryFilters,
     TransactionFilters,
     AcademicYear,
@@ -41,35 +45,174 @@ export const inventoryKeys = {
     valueReport: () => [...inventoryKeys.all, 'valueReport'] as const,
 };
 
+function toStockLevel(item: InventoryItem): StockLevel {
+    return {
+        itemId: item.id,
+        itemName: item.name,
+        category: item.category,
+        location: item.location,
+        currentQuantity: item.quantity,
+        reorderLevel: item.reorderLevel,
+        isLowStock: item.reorderLevel !== undefined && item.quantity <= item.reorderLevel,
+        totalValue: item.totalValue,
+    };
+}
+
+function buildInventorySummary(
+    items: InventoryItem[],
+    transactions: InventoryTransaction[],
+    issuedItems: IssuedItem[],
+): InventorySummary {
+    const byCategory: InventorySummary['byCategory'] = {} as InventorySummary['byCategory'];
+    const byCondition: InventorySummary['byCondition'] = {} as InventorySummary['byCondition'];
+    const byLocation: InventorySummary['byLocation'] = {};
+    let totalQuantity = 0;
+    let totalValue = 0;
+
+    items.forEach(item => {
+        byCategory[item.category] ||= { itemCount: 0, totalQuantity: 0, totalValue: 0 };
+        byCategory[item.category].itemCount += 1;
+        byCategory[item.category].totalQuantity += item.quantity;
+        byCategory[item.category].totalValue += item.totalValue || 0;
+        byCondition[item.condition] = (byCondition[item.condition] || 0) + 1;
+        byLocation[item.location] ||= { itemCount: 0, totalQuantity: 0 };
+        byLocation[item.location].itemCount += 1;
+        byLocation[item.location].totalQuantity += item.quantity;
+        totalQuantity += item.quantity;
+        totalValue += item.totalValue || 0;
+    });
+
+    const lowStockItems = items
+        .filter(item => item.isActive && item.reorderLevel !== undefined && item.quantity <= item.reorderLevel)
+        .map(toStockLevel);
+    const now = new Date().toISOString();
+    const overdueItems = issuedItems.filter(item =>
+        item.status === 'overdue' || Boolean(item.expectedReturnDate && item.expectedReturnDate < now && !item.actualReturnDate));
+
+    return {
+        totalItems: items.length,
+        totalQuantity,
+        totalValue,
+        lowStockCount: lowStockItems.length,
+        byCategory,
+        byCondition,
+        byLocation,
+        recentTransactions: transactions.slice(0, 10),
+        lowStockItems,
+        overdueItems,
+    };
+}
+
+function buildUsageReport(
+    items: InventoryItem[],
+    transactions: InventoryTransaction[],
+    itemId: string,
+    startDate: string,
+    endDate: string,
+): UsageReport | null {
+    const item = items.find(entry => entry.id === itemId);
+    if (!item || !startDate || !endDate) return null;
+    const periodTransactions = transactions.filter(transaction =>
+        transaction.itemId === itemId
+        && transaction.transactionDate >= startDate
+        && transaction.transactionDate <= endDate);
+    const issuedByDepartment: Record<string, number> = {};
+    const issuedByPersonMap: Record<string, number> = {};
+    let totalIssued = 0;
+    let totalReturned = 0;
+    periodTransactions.forEach(transaction => {
+        if (transaction.type === 'issue') {
+            totalIssued += transaction.quantity;
+            if (transaction.toLocation) issuedByDepartment[transaction.toLocation] = (issuedByDepartment[transaction.toLocation] || 0) + transaction.quantity;
+            if (transaction.issuedTo) issuedByPersonMap[transaction.issuedTo] = (issuedByPersonMap[transaction.issuedTo] || 0) + transaction.quantity;
+        } else if (transaction.type === 'return') {
+            totalReturned += transaction.quantity;
+        }
+    });
+    return {
+        itemId,
+        itemName: item.name,
+        category: item.category,
+        period: { startDate, endDate },
+        totalIssued,
+        totalReturned,
+        netUsage: totalIssued - totalReturned,
+        issuedByDepartment,
+        issuedByPerson: Object.entries(issuedByPersonMap)
+            .map(([name, quantity]) => ({ name, quantity }))
+            .sort((left, right) => right.quantity - left.quantity),
+    };
+}
+
+function buildValueReport(items: InventoryItem[]): ValueReport {
+    const valueByCategory: ValueReport['valueByCategory'] = {} as ValueReport['valueByCategory'];
+    let totalAssetValue = 0;
+    const topValueItems = items.map(item => {
+        const totalValue = item.totalValue || 0;
+        totalAssetValue += totalValue;
+        valueByCategory[item.category] = (valueByCategory[item.category] || 0) + totalValue;
+        return {
+            itemId: item.id,
+            itemName: item.name,
+            quantity: item.quantity,
+            unitValue: item.unitValue || 0,
+            totalValue,
+        };
+    }).sort((left, right) => right.totalValue - left.totalValue).slice(0, 10);
+    return { asOfDate: new Date().toISOString(), totalAssetValue, totalItemCount: items.length, valueByCategory, topValueItems };
+}
+
 // ===== ITEM HOOKS =====
 
-export function useInventoryItems(filters?: InventoryFilters) {
-    return useQuery({
-        queryKey: inventoryKeys.itemsFiltered(filters),
-        queryFn: () => InventoryService.getItems(filters),
+function useAllInventoryItems(enabled = true) {
+    return useRevisionedDomainQuery({
+        queryKey: inventoryKeys.items(),
+        cacheName: 'inventory-items',
+        revisionKeys: ['inventoryItems'],
+        queryFn: () => InventoryService.getItems(),
+        enabled,
     });
+}
+
+function filterInventoryItems(items: InventoryItem[], filters?: InventoryFilters) {
+    if (!filters) return items;
+    return items.filter(item => {
+        if (filters.categories?.length && !filters.categories.includes(item.category)) return false;
+        if (filters.conditions?.length && !filters.conditions.includes(item.condition)) return false;
+        if (filters.locations?.length && !filters.locations.includes(item.location)) return false;
+        if (filters.isActive !== undefined && item.isActive !== filters.isActive) return false;
+        if (filters.isLowStock && !(item.reorderLevel !== undefined && item.quantity <= item.reorderLevel)) return false;
+        if (filters.searchTerm) {
+            const term = filters.searchTerm.toLowerCase();
+            if (![item.name, item.description, item.assetTag, item.serialNumber]
+                .some(value => value?.toLowerCase().includes(term))) return false;
+        }
+        return true;
+    });
+}
+
+export function useInventoryItems(filters?: InventoryFilters, options?: { enabled?: boolean }) {
+    const query = useAllInventoryItems(options?.enabled ?? true);
+    const data = useMemo(() => filterInventoryItems(query.data || [], filters), [filters, query.data]);
+    return { ...query, data };
 }
 
 export function useInventoryItem(id: string) {
-    return useQuery({
-        queryKey: inventoryKeys.item(id),
-        queryFn: () => InventoryService.getItemById(id),
-        enabled: !!id,
-    });
+    const query = useAllInventoryItems();
+    const data = useMemo(() => query.data?.find(item => item.id === id) ?? null, [id, query.data]);
+    return { ...query, data };
 }
 
 export function useActiveInventoryItems() {
-    return useQuery({
-        queryKey: inventoryKeys.itemsFiltered({ isActive: true }),
-        queryFn: () => InventoryService.getActiveItems(),
-    });
+    const query = useAllInventoryItems();
+    const data = useMemo(() => (query.data || []).filter(item => item.isActive), [query.data]);
+    return { ...query, data };
 }
 
-export function useLowStockItems() {
-    return useQuery({
-        queryKey: inventoryKeys.lowStockItems(),
-        queryFn: () => InventoryService.getLowStockItems(),
-    });
+export function useLowStockItems(options?: { enabled?: boolean }) {
+    const query = useAllInventoryItems(options?.enabled ?? true);
+    const data = useMemo(() => (query.data || []).filter(item => item.isActive && item.reorderLevel !== undefined && item.quantity <= item.reorderLevel), [query.data]);
+    return { ...query, data };
 }
 
 export function useCreateInventoryItem() {
@@ -103,9 +246,7 @@ export function useCreateInventoryItem() {
             return itemId;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.summary() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.items(), refetchType: 'none' });
         },
     });
 }
@@ -141,10 +282,8 @@ export function useCreateCatalogBackedInventoryItem() {
             return result;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.summary() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
-            queryClient.invalidateQueries({ queryKey: ['school-item-catalog'] });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.items(), refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['school-item-catalog'], refetchType: 'none' });
         },
     });
 }
@@ -177,10 +316,8 @@ export function useUpdateInventoryItem() {
             return id;
         },
         onSuccess: (id) => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.item(id) });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.summary() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.items(), refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.item(id), refetchType: 'none' });
         },
     });
 }
@@ -210,35 +347,60 @@ export function useDeleteInventoryItem() {
             return id;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.summary() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.items(), refetchType: 'none' });
         },
     });
 }
 
 // ===== TRANSACTION HOOKS =====
 
-export function useInventoryTransactions(filters?: TransactionFilters) {
-    return useQuery({
-        queryKey: inventoryKeys.transactionsFiltered(filters),
-        queryFn: () => InventoryService.getTransactions(filters),
+function useAllInventoryTransactions(enabled = true) {
+    return useRevisionedDomainQuery({
+        queryKey: inventoryKeys.transactions(),
+        cacheName: 'inventory-transactions',
+        revisionKeys: ['inventoryTransactions'],
+        queryFn: () => InventoryService.getTransactions(),
+        enabled,
     });
+}
+
+function filterInventoryTransactions(transactions: InventoryTransaction[], filters?: TransactionFilters) {
+    if (!filters) return transactions;
+    return transactions.filter(transaction => {
+        if (filters.types?.length && !filters.types.includes(transaction.type)) return false;
+        if (filters.itemIds?.length && !filters.itemIds.includes(transaction.itemId)) return false;
+        if (filters.categories?.length && (!transaction.itemCategory || !filters.categories.includes(transaction.itemCategory))) return false;
+        if (filters.locations?.length && (!transaction.toLocation || !filters.locations.includes(transaction.toLocation))) return false;
+        if (filters.issuedTo?.length && (!transaction.issuedTo || !filters.issuedTo.includes(transaction.issuedTo))) return false;
+        if (filters.processedBy?.length && !filters.processedBy.includes(transaction.processedBy)) return false;
+        if (filters.dateRange && (transaction.transactionDate < filters.dateRange.startDate || transaction.transactionDate > filters.dateRange.endDate)) return false;
+        if (filters.academicYearId && transaction.academicYearId !== filters.academicYearId) return false;
+        if (filters.termId && transaction.termId !== filters.termId) return false;
+        if (filters.searchTerm) {
+            const term = filters.searchTerm.toLowerCase();
+            if (![transaction.itemName, transaction.issuedTo, transaction.notes]
+                .some(value => value?.toLowerCase().includes(term))) return false;
+        }
+        return true;
+    });
+}
+
+export function useInventoryTransactions(filters?: TransactionFilters) {
+    const query = useAllInventoryTransactions();
+    const data = useMemo(() => filterInventoryTransactions(query.data || [], filters), [filters, query.data]);
+    return { ...query, data };
 }
 
 export function useInventoryTransactionsByItem(itemId: string) {
-    return useQuery({
-        queryKey: inventoryKeys.transactionsByItem(itemId),
-        queryFn: () => InventoryService.getTransactionsByItem(itemId),
-        enabled: !!itemId,
-    });
+    const query = useAllInventoryTransactions();
+    const data = useMemo(() => (query.data || []).filter(transaction => transaction.itemId === itemId), [itemId, query.data]);
+    return { ...query, data };
 }
 
-export function useRecentTransactions(limit: number = 10) {
-    return useQuery({
-        queryKey: [...inventoryKeys.transactions(), 'recent', limit],
-        queryFn: () => InventoryService.getRecentTransactions(limit),
-    });
+export function useRecentTransactions(limit: number = 10, options?: { enabled?: boolean }) {
+    const query = useAllInventoryTransactions(options?.enabled ?? true);
+    const data = useMemo(() => (query.data || []).slice(0, limit), [limit, query.data]);
+    return { ...query, data };
 }
 
 export function useRecordTransaction() {
@@ -308,25 +470,32 @@ export function useRecordTransaction() {
             return transactionId;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.all, refetchType: 'none' });
         },
     });
 }
 
 // ===== ISSUED ITEMS HOOKS =====
 
-export function useIssuedItems() {
-    return useQuery({
+function useAllIssuedItems(enabled = true) {
+    return useRevisionedDomainQuery({
         queryKey: inventoryKeys.issuedItems(),
+        cacheName: 'inventory-issued-items',
+        revisionKeys: ['issuedItems'],
         queryFn: () => InventoryService.getIssuedItems(),
+        enabled,
     });
 }
 
+export function useIssuedItems(options?: { enabled?: boolean }) {
+    return useAllIssuedItems(options?.enabled ?? true);
+}
+
 export function useOverdueItems() {
-    return useQuery({
-        queryKey: inventoryKeys.overdueItems(),
-        queryFn: () => InventoryService.getOverdueItems(),
-    });
+    const query = useAllIssuedItems();
+    const now = new Date().toISOString();
+    const data = useMemo(() => (query.data || []).filter(item => item.status === 'overdue' || (item.expectedReturnDate && item.expectedReturnDate < now && !item.actualReturnDate)), [now, query.data]);
+    return { ...query, data };
 }
 
 export function useProcessInventoryReturn() {
@@ -360,7 +529,7 @@ export function useProcessInventoryReturn() {
             return transactionId;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.all, refetchType: 'none' });
         },
     });
 }
@@ -368,32 +537,55 @@ export function useProcessInventoryReturn() {
 // ===== STOCK LEVELS HOOKS =====
 
 export function useStockLevels() {
-    return useQuery({
-        queryKey: inventoryKeys.stockLevels(),
-        queryFn: () => InventoryService.getStockLevels(),
-    });
+    const query = useActiveInventoryItems();
+    const data = useMemo<StockLevel[]>(() => (query.data || []).map(item => ({
+        itemId: item.id,
+        itemName: item.name,
+        category: item.category,
+        location: item.location,
+        currentQuantity: item.quantity,
+        reorderLevel: item.reorderLevel,
+        isLowStock: item.reorderLevel !== undefined && item.quantity <= item.reorderLevel,
+        totalValue: item.totalValue,
+    })), [query.data]);
+    return { ...query, data };
 }
 
 // ===== REPORTS & ANALYTICS HOOKS =====
 
-export function useInventorySummary() {
-    return useQuery({
-        queryKey: inventoryKeys.summary(),
-        queryFn: () => InventoryService.getInventorySummary(),
-    });
+export function useInventorySummary(options?: { enabled?: boolean }) {
+    const enabled = options?.enabled ?? true;
+    const itemsQuery = useAllInventoryItems(enabled);
+    const transactionsQuery = useAllInventoryTransactions(enabled);
+    const issuedQuery = useAllIssuedItems(enabled);
+    const data = useMemo<InventorySummary>(() => buildInventorySummary(
+        itemsQuery.data || [],
+        transactionsQuery.data || [],
+        issuedQuery.data || [],
+    ), [issuedQuery.data, itemsQuery.data, transactionsQuery.data]);
+    return {
+        ...itemsQuery,
+        data,
+        isLoading: itemsQuery.isLoading || transactionsQuery.isLoading || issuedQuery.isLoading,
+        isFetching: itemsQuery.isFetching || transactionsQuery.isFetching || issuedQuery.isFetching,
+    };
 }
 
 export function useUsageReport(itemId: string, startDate: string, endDate: string) {
-    return useQuery({
-        queryKey: inventoryKeys.usageReport(itemId, startDate, endDate),
-        queryFn: () => InventoryService.getUsageReport(itemId, startDate, endDate),
-        enabled: !!itemId && !!startDate && !!endDate,
-    });
+    const itemsQuery = useAllInventoryItems();
+    const transactionsQuery = useAllInventoryTransactions();
+    const data = useMemo(() => buildUsageReport(
+        itemsQuery.data || [],
+        transactionsQuery.data || [],
+        itemId,
+        startDate,
+        endDate,
+    ), [endDate, itemId, itemsQuery.data, startDate, transactionsQuery.data]);
+    return { ...transactionsQuery, data, isLoading: itemsQuery.isLoading || transactionsQuery.isLoading };
 }
 
 export function useValueReport() {
-    return useQuery({
-        queryKey: inventoryKeys.valueReport(),
-        queryFn: () => InventoryService.getValueReport(),
-    });
+    const query = useActiveInventoryItems();
+    const data = useMemo(() => buildValueReport(query.data || []), [query.data]);
+    return { ...query, data };
 }

@@ -1,17 +1,15 @@
 import { db } from '@/lib/firebase';
 import { 
   collection, 
-  addDoc, 
   getDocs, 
   doc, 
   getDoc, 
-  updateDoc, 
-  deleteDoc, 
   query, 
   where, 
   orderBy, 
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import type { 
   ProcurementItem, 
@@ -28,6 +26,7 @@ import type {
   ProcurementCategory
 } from '@/types';
 import { calculateBudgetTotal, normalizeBudgetLines } from '@/lib/utils/procurement-budget';
+import { bumpDomainRevisionsInWrite } from '@/lib/services/dashboard-cache-revisions.service';
 
 // Collection names
 const PROCUREMENT_ITEMS_COLLECTION = 'procurementItems';
@@ -46,7 +45,11 @@ export class ProcurementService {
         createdAt: serverTimestamp()
       };
       
-      const docRef = await addDoc(itemsRef, itemData);
+      const docRef = doc(itemsRef);
+      const batch = writeBatch(db);
+      batch.set(docRef, itemData);
+      bumpDomainRevisionsInWrite(batch, ['procurementItems']);
+      await batch.commit();
       return docRef.id;
     } catch (error) {
       console.error('Error creating procurement item:', error);
@@ -127,7 +130,10 @@ export class ProcurementService {
         updatedAt: serverTimestamp()
       };
       
-      await updateDoc(docRef, updateData);
+      const batch = writeBatch(db);
+      batch.update(docRef, updateData);
+      bumpDomainRevisionsInWrite(batch, ['procurementItems']);
+      await batch.commit();
     } catch (error) {
       console.error('Error updating procurement item:', error);
       throw error;
@@ -137,7 +143,10 @@ export class ProcurementService {
   static async deleteItem(id: string): Promise<void> {
     try {
       const docRef = doc(db, PROCUREMENT_ITEMS_COLLECTION, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpDomainRevisionsInWrite(batch, ['procurementItems']);
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting procurement item:', error);
       throw error;
@@ -181,7 +190,11 @@ export class ProcurementService {
         createdAt: serverTimestamp()
       };
       
-      const docRef = await addDoc(purchasesRef, purchaseData);
+      const docRef = doc(purchasesRef);
+      const batch = writeBatch(db);
+      batch.set(docRef, purchaseData);
+      bumpDomainRevisionsInWrite(batch, ['procurementPurchases']);
+      await batch.commit();
       return docRef.id;
     } catch (error) {
       console.error('Error creating procurement purchase:', error);
@@ -348,7 +361,10 @@ export class ProcurementService {
       
       updateData.updatedAt = serverTimestamp();
       
-      await updateDoc(docRef, updateData);
+      const batch = writeBatch(db);
+      batch.update(docRef, updateData);
+      bumpDomainRevisionsInWrite(batch, ['procurementPurchases']);
+      await batch.commit();
     } catch (error) {
       console.error('Error updating procurement purchase:', error);
       throw error;
@@ -358,7 +374,10 @@ export class ProcurementService {
   static async deletePurchase(id: string): Promise<void> {
     try {
       const docRef = doc(db, PROCUREMENT_PURCHASES_COLLECTION, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpDomainRevisionsInWrite(batch, ['procurementPurchases']);
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting procurement purchase:', error);
       throw error;
@@ -384,7 +403,11 @@ export class ProcurementService {
         createdAt: serverTimestamp()
       };
       
-      const docRef = await addDoc(budgetsRef, budgetData);
+      const docRef = doc(budgetsRef);
+      const batch = writeBatch(db);
+      batch.set(docRef, budgetData);
+      bumpDomainRevisionsInWrite(batch, ['procurementBudgets']);
+      await batch.commit();
       return docRef.id;
     } catch (error) {
       console.error('Error creating procurement budget:', error);
@@ -431,7 +454,10 @@ export class ProcurementService {
       
       updateData.updatedAt = serverTimestamp();
       
-      await updateDoc(docRef, updateData);
+      const batch = writeBatch(db);
+      batch.update(docRef, updateData);
+      bumpDomainRevisionsInWrite(batch, ['procurementBudgets']);
+      await batch.commit();
     } catch (error) {
       console.error('Error updating procurement budget:', error);
       throw error;
@@ -441,7 +467,10 @@ export class ProcurementService {
   static async deleteBudget(id: string): Promise<void> {
     try {
       const docRef = doc(db, PROCUREMENT_BUDGETS_COLLECTION, id);
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpDomainRevisionsInWrite(batch, ['procurementBudgets']);
+      await batch.commit();
     } catch (error) {
       console.error('Error deleting procurement budget:', error);
       throw error;

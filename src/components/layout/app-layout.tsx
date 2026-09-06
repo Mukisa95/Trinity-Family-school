@@ -275,8 +275,11 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   const routePermission = pathname ? getRoutePagePermission(pathname) : undefined;
   const isAdminOnlyRoute = pathname === '/settings/firebase-usage' || pathname === '/settings/deployment';
   const shouldCheckRoutePermission = Boolean(routePermission) || isAdminOnlyRoute;
-  const canAccessCurrentRoute = (!isAdminOnlyRoute || user?.role === 'Admin') && (!routePermission || user?.role === 'Admin' ||
-    GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId));
+  const canAccessCurrentRoute = (!isAdminOnlyRoute || user?.role === 'Admin') && (
+    pathname === '/inventory'
+      ? GranularPermissionService.canAccessInventoryWorkspace(user)
+      : (!routePermission || user?.role === 'Admin' || GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId))
+  );
 
   const accessibleFallbackPath = React.useMemo(() => {
     if (!user) return '/login';

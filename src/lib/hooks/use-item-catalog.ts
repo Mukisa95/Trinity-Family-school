@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ItemCatalogService } from '@/lib/services/item-catalog.service';
+import { useRevisionedDomainQuery } from '@/lib/hooks/use-revisioned-domain-query';
 import type {
   CreateAndLinkLegacyItemsData,
   CreateSchoolItemCatalogData,
@@ -14,11 +15,12 @@ export const itemCatalogKeys = {
 };
 
 export function useSchoolItemCatalog(options?: { enabled?: boolean }) {
-  return useQuery({
+  return useRevisionedDomainQuery({
     queryKey: itemCatalogKeys.items(),
+    cacheName: 'school-item-catalog',
+    revisionKeys: ['schoolItemCatalog'],
     queryFn: ItemCatalogService.getItems,
     enabled: options?.enabled ?? true,
-    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -27,7 +29,7 @@ export function useCreateSchoolItemCatalogEntry() {
   return useMutation({
     mutationFn: (data: CreateSchoolItemCatalogData) => ItemCatalogService.createItem(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.items() });
+      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.items(), refetchType: 'none' });
     },
   });
 }
@@ -37,9 +39,9 @@ export function useCreateAndLinkLegacyItems() {
   return useMutation({
     mutationFn: (data: CreateAndLinkLegacyItemsData) => ItemCatalogService.createAndLinkLegacyItems(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['procurement', 'items'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.all, refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['procurement', 'items'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['inventory'], refetchType: 'none' });
     },
   });
 }
@@ -49,8 +51,8 @@ export function useUpdateSchoolItemCatalogEntry() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateSchoolItemCatalogData }) => ItemCatalogService.updateItem(id, data),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.items() });
-      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.item(variables.id) });
+      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.items(), refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.item(variables.id), refetchType: 'none' });
     },
   });
 }
@@ -60,9 +62,9 @@ export function useLinkLegacyItemsToCatalog() {
   return useMutation({
     mutationFn: (data: LinkLegacyItemsToCatalogData) => ItemCatalogService.linkLegacyItems(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['procurement', 'items'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: itemCatalogKeys.all, refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['procurement', 'items'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['inventory'], refetchType: 'none' });
     },
   });
 }

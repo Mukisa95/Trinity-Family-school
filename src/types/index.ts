@@ -440,8 +440,17 @@ export interface SchoolSettings {
     attendance?: number;
     /** Full exam-definition collection revision. */
     exams?: number;
-    /** Reserved for the later per-term exam-result cache rollout. */
-    examResults?: Record<string, number>;
+      /** Reserved for the later per-term exam-result cache rollout. */
+      examResults?: Record<string, number>;
+      schoolItemCatalog?: number;
+      procurementItems?: number;
+      procurementPurchases?: number;
+      procurementBudgets?: number;
+      procurementRestocks?: number;
+      inventoryItems?: number;
+      inventoryTransactions?: number;
+      issuedItems?: number;
+      itemRequests?: number;
   };
   generalInfo: {
     name: string;

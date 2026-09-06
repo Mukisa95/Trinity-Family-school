@@ -16,6 +16,7 @@ import {
   schoolSettingsMetaDocumentRef,
   type DashboardRevisionDocumentKind,
 } from '@/lib/services/dashboard-revision-documents';
+import { DOMAIN_REVISION_KEYS } from '@/lib/cache/domain-revisions';
 
 export type DashboardDataRevisions = NonNullable<SchoolSettings['dataRevisions']>;
 
@@ -251,6 +252,10 @@ function mergeDashboardRevisions(
     if (value !== undefined) result[key] = value;
   });
   (['pupils', 'attendance', 'events'] as const).forEach(key => {
+    const value = maxRevision(operational[key], legacy?.[key]);
+    if (value !== undefined) result[key] = value;
+  });
+  DOMAIN_REVISION_KEYS.forEach(key => {
     const value = maxRevision(operational[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
   });

@@ -1,19 +1,17 @@
 import { db } from '@/lib/firebase';
 import {
     collection,
-    addDoc,
     getDocs,
     doc,
     getDoc,
-    updateDoc,
-    deleteDoc,
     query,
     where,
     orderBy,
     serverTimestamp,
     Timestamp,
     limit,
-    runTransaction
+    runTransaction,
+    writeBatch,
 } from 'firebase/firestore';
 import type {
     InventoryItem,
@@ -36,6 +34,7 @@ import type {
     ProcessInventoryReturnData
 } from '@/types';
 import { calculateInventoryQuantity, calculateReturnState } from '@/lib/utils/inventory-movement';
+import { bumpDomainRevisionsInWrite } from '@/lib/services/dashboard-cache-revisions.service';
 
 // Collection names
 const INVENTORY_ITEMS_COLLECTION = 'inventoryItems';
@@ -59,7 +58,11 @@ export class InventoryService {
                 createdAt: serverTimestamp()
             };
 
-            const docRef = await addDoc(itemsRef, itemData);
+            const docRef = doc(itemsRef);
+            const batch = writeBatch(db);
+            batch.set(docRef, itemData);
+            bumpDomainRevisionsInWrite(batch, ['inventoryItems']);
+            await batch.commit();
             return docRef.id;
         } catch (error) {
             console.error('Error creating inventory item:', error);
@@ -166,7 +169,10 @@ export class InventoryService {
 
             updateData.updatedAt = serverTimestamp();
 
-            await updateDoc(docRef, updateData);
+            const batch = writeBatch(db);
+            batch.update(docRef, updateData);
+            bumpDomainRevisionsInWrite(batch, ['inventoryItems']);
+            await batch.commit();
         } catch (error) {
             console.error('Error updating inventory item:', error);
             throw error;
@@ -176,7 +182,10 @@ export class InventoryService {
     static async deleteItem(id: string): Promise<void> {
         try {
             const docRef = doc(db, INVENTORY_ITEMS_COLLECTION, id);
-            await deleteDoc(docRef);
+            const batch = writeBatch(db);
+            batch.delete(docRef);
+            bumpDomainRevisionsInWrite(batch, ['inventoryItems']);
+            await batch.commit();
         } catch (error) {
             console.error('Error deleting inventory item:', error);
             throw error;
@@ -267,6 +276,13 @@ export class InventoryService {
                     });
                 }
 
+                bumpDomainRevisionsInWrite(
+                    firestoreTransaction,
+                    data.type === 'issue'
+                        ? ['inventoryItems', 'inventoryTransactions', 'issuedItems']
+                        : ['inventoryItems', 'inventoryTransactions'],
+                );
+
                 return transactionRef.id;
             });
         } catch (error) {
@@ -333,6 +349,11 @@ export class InventoryService {
                     lastReturnTransactionId: transactionRef.id,
                     updatedAt: serverTimestamp()
                 });
+
+                bumpDomainRevisionsInWrite(
+                    firestoreTransaction,
+                    ['inventoryItems', 'inventoryTransactions', 'issuedItems'],
+                );
 
                 return transactionRef.id;
             });

@@ -11,6 +11,7 @@ import {
   sendServerWebPush,
 } from '@/lib/server/push-notifications';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { bumpDomainRevisionsAdmin } from '@/lib/server/domain-cache-revisions.admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -144,7 +145,7 @@ async function createRequestNotification(
     pushTitle: 'New item request',
     pushBody: body,
     pushIcon: '/trinity-logo-192.png',
-    pushUrl: `/item-requests/release?requestId=${encodeURIComponent(requestId)}`,
+    pushUrl: `/inventory?tab=release&requestId=${encodeURIComponent(requestId)}`,
     deliveryStats: { total: recipientIds.length, sent: recipientIds.length, delivered: recipientIds.length, failed: 0, read: 0 },
     actions: [],
     readBy: [],
@@ -176,7 +177,7 @@ async function createRequestNotification(
       icon: '/trinity-logo-192.png',
       badge: '/icons/trinity-badge-72.png',
       tag: `item-request-${requestId}`,
-      url: `/item-requests/release?requestId=${encodeURIComponent(requestId)}`,
+      url: `/inventory?tab=release&requestId=${encodeURIComponent(requestId)}`,
       requireInteraction: true,
     }, { urgency: 'high' });
     await notificationRef.update({
@@ -346,6 +347,7 @@ export async function POST(request: NextRequest) {
         operationId: input.operationId,
         createdAt: now,
       });
+      bumpDomainRevisionsAdmin(db, transaction, ['itemRequests']);
       return { id: requestRef.id, duplicate: false, itemName, unit };
     });
 

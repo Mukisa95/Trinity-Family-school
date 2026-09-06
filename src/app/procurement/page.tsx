@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { toast } from '@/hooks/use-toast';
-import { ProcurementService } from '@/lib/services/procurement.service';
+import { procurementKeys, useProcurementBudgets, useProcurementItems, useProcurementPurchases } from '@/lib/hooks/use-procurement';
+import { useQueryClient } from '@tanstack/react-query';
 import { buildProcurementSummary, selectPurchasesForPeriod } from '@/lib/utils/procurement-selectors';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
@@ -44,12 +44,16 @@ import { CatalogAuditPanel } from '@/components/procurement/CatalogAuditPanel';
 import { RestockRequestPanel } from '@/components/procurement/RestockRequestPanel';
 
 export default function ProcurementPage() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [viewPeriod, setViewPeriod] = useState<ViewPeriodType>('Term');
-  const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<ProcurementItem[]>([]);
-  const [purchases, setPurchases] = useState<ProcurementPurchase[]>([]);
-  const [budgets, setBudgets] = useState<ProcurementBudget[]>([]);
+  const itemsQuery = useProcurementItems();
+  const purchasesQuery = useProcurementPurchases();
+  const budgetsQuery = useProcurementBudgets();
+  const items = itemsQuery.data || [];
+  const purchases = purchasesQuery.data || [];
+  const budgets = budgetsQuery.data || [];
+  const loading = itemsQuery.isLoading || purchasesQuery.isLoading || budgetsQuery.isLoading;
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [restockPurchase, setRestockPurchase] = useState<ProcurementRestockRequest | null>(null);
@@ -365,45 +369,16 @@ export default function ProcurementPage() {
   }, []);
 
   const refreshPurchases = React.useCallback(async () => {
-    const purchasesData = await ProcurementService.getPurchases();
-    setPurchases(purchasesData);
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: procurementKeys.purchases(), refetchType: 'none' });
+  }, [queryClient]);
 
   const refreshBudgets = React.useCallback(async () => {
-    const budgetsData = await ProcurementService.getBudgets();
-    setBudgets(budgetsData);
-  }, []);
+    await queryClient.invalidateQueries({ queryKey: procurementKeys.budgets(), refetchType: 'none' });
+  }, [queryClient]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch all data
-        const [itemsData, purchasesData, budgetsData] = await Promise.all([
-          ProcurementService.getItems(),
-          ProcurementService.getPurchases(),
-          ProcurementService.getBudgets()
-        ]);
-
-        setItems(itemsData);
-        setPurchases(purchasesData);
-        setBudgets(budgetsData);
-
-      } catch (error) {
-        console.error('Error loading procurement data:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load procurement data. Please try again.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const replaceCachedItems = React.useCallback((nextItems: ProcurementItem[]) => {
+    queryClient.setQueriesData<ProcurementItem[]>({ queryKey: procurementKeys.items() }, nextItems);
+  }, [queryClient]);
 
   const handleViewItemDetail = (itemId: string) => {
     setSelectedItemId(itemId);
@@ -797,14 +772,14 @@ export default function ProcurementPage() {
                   procurementItems={items}
                   onProcurementItemsLinked={(linkedItemIds, catalogItemId) => {
                     const linkedIds = new Set(linkedItemIds);
-                    setItems((currentItems) => currentItems.map((item) => (
+                    queryClient.setQueriesData<ProcurementItem[]>({ queryKey: procurementKeys.items() }, (currentItems = []) => currentItems.map((item) => (
                       linkedIds.has(item.id) ? { ...item, catalogItemId } : item
                     )));
                   }}
                 />
                 <ItemManagement
                   items={items}
-                  setItems={setItems}
+                  setItems={replaceCachedItems}
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
                   categoryFilter={categoryFilter}

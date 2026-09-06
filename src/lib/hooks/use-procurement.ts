@@ -1,7 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProcurementService } from '../services/procurement.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
+import { useRevisionedDomainQuery } from './use-revisioned-domain-query';
 import type { 
   ProcurementItem, 
   ProcurementPurchase,
@@ -26,8 +28,10 @@ export const procurementKeys = {
 
 // Item Hooks
 export function useProcurementItems() {
-  return useQuery({
+  return useRevisionedDomainQuery({
     queryKey: procurementKeys.items(),
+    cacheName: 'procurement-items',
+    revisionKeys: ['procurementItems'],
     queryFn: ProcurementService.getItems,
   });
 }
@@ -60,7 +64,7 @@ export function useCreateProcurementItem() {
       return itemId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.items() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.items(), refetchType: 'none' });
     },
   });
 }
@@ -92,15 +96,17 @@ export function useUpdateProcurementItem() {
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.items() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.items(), refetchType: 'none' });
     },
   });
 }
 
 // Purchase Hooks
 export function useProcurementPurchases() {
-  return useQuery({
+  return useRevisionedDomainQuery({
     queryKey: procurementKeys.purchases(),
+    cacheName: 'procurement-purchases',
+    revisionKeys: ['procurementPurchases'],
     queryFn: ProcurementService.getPurchases,
   });
 }
@@ -110,19 +116,24 @@ export function useProcurementPurchasesByPeriod(
   endDate: string, 
   filters?: any
 ) {
-  return useQuery({
-    queryKey: procurementKeys.purchasesByPeriod(startDate, endDate, filters),
-    queryFn: () => ProcurementService.getPurchasesByPeriod(startDate, endDate, filters),
-    enabled: !!startDate && !!endDate,
-  });
+  const query = useProcurementPurchases();
+  const data = useMemo(() => (query.data || []).filter(purchase => {
+    if (!startDate || !endDate || purchase.purchaseDate < startDate || purchase.purchaseDate > endDate) return false;
+    if (filters?.itemIds?.length && !filters.itemIds.includes(purchase.itemId)) return false;
+    if (filters?.categoryIds?.length && !filters.categoryIds.includes(purchase.itemCategory)) return false;
+    if (filters?.supplierNames?.length && (!purchase.supplierName || !filters.supplierNames.includes(purchase.supplierName))) return false;
+    if (filters?.procuredBy?.length && !filters.procuredBy.includes(purchase.procuredBy)) return false;
+    if (filters?.academicYearIds?.length && !filters.academicYearIds.includes(purchase.academicYearId)) return false;
+    if (filters?.termIds?.length && !filters.termIds.includes(purchase.termId)) return false;
+    return true;
+  }), [endDate, filters, query.data, startDate]);
+  return { ...query, data };
 }
 
 export function useProcurementPurchasesByItem(itemId: string) {
-  return useQuery({
-    queryKey: procurementKeys.purchasesByItem(itemId),
-    queryFn: () => ProcurementService.getPurchasesByItem(itemId),
-    enabled: !!itemId,
-  });
+  const query = useProcurementPurchases();
+  const data = useMemo(() => (query.data || []).filter(purchase => purchase.itemId === itemId), [itemId, query.data]);
+  return { ...query, data };
 }
 
 export function useCreateProcurementPurchase() {
@@ -166,8 +177,8 @@ export function useCreateProcurementPurchase() {
       return purchaseId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.purchases() });
-      queryClient.invalidateQueries({ queryKey: procurementKeys.items() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.purchases(), refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.items(), refetchType: 'none' });
     },
   });
 }
@@ -201,8 +212,8 @@ export function useUpdateProcurementPurchase() {
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.purchases() });
-      queryClient.invalidateQueries({ queryKey: procurementKeys.items() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.purchases(), refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.items(), refetchType: 'none' });
     },
   });
 }
@@ -232,16 +243,18 @@ export function useDeleteProcurementPurchase() {
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.purchases() });
-      queryClient.invalidateQueries({ queryKey: procurementKeys.items() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.purchases(), refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.items(), refetchType: 'none' });
     },
   });
 }
 
 // Budget Hooks
 export function useProcurementBudgets() {
-  return useQuery({
+  return useRevisionedDomainQuery({
     queryKey: procurementKeys.budgets(),
+    cacheName: 'procurement-budgets',
+    revisionKeys: ['procurementBudgets'],
     queryFn: ProcurementService.getBudgets,
   });
 }
@@ -284,7 +297,7 @@ export function useCreateProcurementBudget() {
       return budgetId;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.budgets() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.budgets(), refetchType: 'none' });
     },
   });
 }
@@ -317,7 +330,7 @@ export function useUpdateProcurementBudget() {
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: procurementKeys.budgets() });
+      queryClient.invalidateQueries({ queryKey: procurementKeys.budgets(), refetchType: 'none' });
     },
   });
 }

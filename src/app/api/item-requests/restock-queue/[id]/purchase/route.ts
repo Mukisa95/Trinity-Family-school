@@ -6,6 +6,7 @@ import type { SystemUser } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { bumpDomainRevisionsAdmin } from '@/lib/server/domain-cache-revisions.admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           createdAt: now,
         });
       }
+      bumpDomainRevisionsAdmin(db, transaction, ['procurementRestocks', 'procurementPurchases', 'itemRequests']);
       return { duplicate };
     });
     return NextResponse.json({ success: true, duplicate: outcome.duplicate });

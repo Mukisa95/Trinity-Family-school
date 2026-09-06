@@ -13,6 +13,7 @@ import {
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { calculateInventoryQuantity } from '@/lib/utils/inventory-movement';
 import { defaultRestockPendingReason } from '@/lib/utils/item-request-state';
+import { bumpDomainRevisionsAdmin } from '@/lib/server/domain-cache-revisions.admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -285,6 +286,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         createdAt: now,
       });
       transaction.create(operationRef, { requestId: id, status, actorUserId: actor.decoded.uid, operationId: input.operationId, createdAt: now });
+      bumpDomainRevisionsAdmin(
+        db,
+        transaction,
+        input.action === 'release'
+          ? ['itemRequests', 'inventoryItems', 'inventoryTransactions', 'issuedItems']
+          : ['itemRequests'],
+      );
       return { duplicate: false, status, requesterUserId, itemName, quantity, unit, reason };
     });
 

@@ -776,9 +776,9 @@ export const MODULE_ACTIONS = {
       {
         page: 'release',
         path: '/item-requests/release',
-        name: 'Item Release Queue',
+        name: 'Inventory Release Queue',
         actions: [
-          { id: 'access_page', name: 'Open release queue', description: 'Can open requests awaiting a release decision' },
+          { id: 'access_page', name: 'Open release queue', description: 'Can open the release queue embedded inside Inventory' },
           { id: 'view_release_queue', name: 'View release queue', description: 'Can see staff requests awaiting action' },
           { id: 'release_items', name: 'Release requested items', description: 'Can release available requested stock' },
           { id: 'pend_requests', name: 'Put requests on pending', description: 'Can explain why a request is waiting' },

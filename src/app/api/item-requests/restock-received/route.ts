@@ -10,6 +10,7 @@ import {
   sendServerWebPush,
 } from '@/lib/server/push-notifications';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
+import { bumpDomainRevisionsAdmin } from '@/lib/server/domain-cache-revisions.admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -64,7 +65,7 @@ async function notifyReleaseOfficers(
     pushTitle: 'Item request ready to release',
     pushBody: body,
     pushIcon: '/trinity-logo-192.png',
-    pushUrl: `/item-requests/release?requestId=${encodeURIComponent(request.id)}`,
+    pushUrl: `/inventory?tab=release&requestId=${encodeURIComponent(request.id)}`,
     deliveryStats: { total: recipientIds.length, sent: recipientIds.length, delivered: recipientIds.length, failed: 0, read: 0 },
     actions: [],
     readBy: [],
@@ -82,7 +83,7 @@ async function notifyReleaseOfficers(
     const subscriptions = await getServerPushSubscriptionsForUsers(recipientIds);
     const push = await sendServerWebPush(subscriptions, {
       title: 'Item request ready to release', body, icon: '/trinity-logo-192.png', badge: '/icons/trinity-badge-72.png',
-      tag: `item-request-ready-${request.id}`, url: `/item-requests/release?requestId=${encodeURIComponent(request.id)}`, requireInteraction: true,
+      tag: `item-request-ready-${request.id}`, url: `/inventory?tab=release&requestId=${encodeURIComponent(request.id)}`, requireInteraction: true,
     }, { urgency: 'high' });
     await notificationRef.update({ 'metadata.pushSent': push.accepted, 'metadata.pushFailed': push.failed });
   } catch (error) {
@@ -159,6 +160,9 @@ export async function POST(request: NextRequest) {
           quantity: requestedQuantity,
           unit: String(itemRequest.unit || 'Units'),
         });
+      }
+      if (ready.length) {
+        bumpDomainRevisionsAdmin(db, transaction, ['itemRequests', 'procurementRestocks']);
       }
       return ready;
     });

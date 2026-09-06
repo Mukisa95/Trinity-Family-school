@@ -85,6 +85,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
     if (href.startsWith('http://') || href.startsWith('https://')) return true;
 
     if (href === '/settings/firebase-usage' || href === '/settings/deployment') return user?.role === 'Admin';
+    if (href === '/inventory') return GranularPermissionService.canAccessInventoryWorkspace(user);
     const routePermission = getRoutePagePermission(href);
     if (routePermission) {
       return GranularPermissionService.canAccessPage(user, routePermission.moduleId, routePermission.pageId);

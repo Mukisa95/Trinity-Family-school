@@ -38,6 +38,8 @@
     "test:item-request-state": "node --import tsx --test tests/item-request-state.test.ts",
     "test:item-request-permissions": "node --import tsx --test tests/item-request-permissions.test.ts",
     "test:item-request-query-contract": "node --import tsx --test tests/item-request-query-contract.test.ts",
+    "test:item-release-inventory": "node --import tsx --test tests/item-release-inventory-contract.test.ts",
+    "test:operations-cache-contract": "node --import tsx --test tests/operations-cache-contract.test.ts",
     "test:item-catalog": "node --import tsx --test tests/item-catalog.test.ts",
     "test:procurement-selectors": "node --import tsx --test tests/procurement-selectors.test.ts",
     "test:procurement-budget": "node --import tsx --test tests/procurement-budget.test.ts",

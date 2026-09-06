@@ -3,6 +3,7 @@ import {
   dashboardRevisionDocumentRef,
   schoolSettingsDocumentRef,
 } from './dashboard-revision-documents';
+import type { DomainRevisionKey } from '@/lib/cache/domain-revisions';
 
 export const dashboardRevisionKeys = {
   timetable: (yearId: string, termId: string) =>
@@ -163,6 +164,15 @@ export function bumpExamResultRevisionInBatch(
 /** Add one attendance-summary revision bump to the same publish batch. */
 export function bumpAttendanceRevisionInBatch(batch: WriteBatch) {
   writeRevision(batch, 'operational', { attendance: increment(1) });
+}
+
+/** Publish operational collection changes in the same atomic write as their source data. */
+export function bumpDomainRevisionsInWrite(
+  writer: WriteBatch | Transaction,
+  keys: readonly DomainRevisionKey[],
+) {
+  const changes = Object.fromEntries(keys.map(key => [key, increment(1)]));
+  writeRevision(writer, 'operational', changes);
 }
 
 export function getDashboardRevisionDocumentRef() {

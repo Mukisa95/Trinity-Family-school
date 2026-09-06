@@ -317,7 +317,7 @@ export function PurchaseManagement({
           console.error('Purchase saved but restock link needs confirmation:', linkError);
           restockLinked = false;
         }
-        await queryClient.invalidateQueries({ queryKey: procurementRestockKeys.all });
+        await queryClient.invalidateQueries({ queryKey: procurementRestockKeys.all, refetchType: 'none' });
       }
       await onPurchasesChanged();
       setIsAddDialogOpen(false);

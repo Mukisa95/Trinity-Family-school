@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, Link2, Loader2, PackagePlus, PackageSearch, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useCreateAndLinkLegacyItems, useLinkLegacyItemsToCatalog, useSchoolItemCatalog } from '@/lib/hooks/use-item-catalog';
-import { InventoryService } from '@/lib/services/inventory.service';
+import { useInventoryItems } from '@/lib/hooks/use-inventory';
 import { buildItemCatalogAudit, normalizeCatalogName } from '@/lib/utils/item-catalog';
 import type { ItemCatalogMatchCandidate, ItemCatalogMatchStatus, ProcurementItem } from '@/types';
 
@@ -55,12 +54,7 @@ export function CatalogAuditPanel({ procurementItems, onProcurementItemsLinked }
     isFetching,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ['item-catalog', 'legacy-audit', 'inventory-items'],
-    queryFn: () => InventoryService.getItems(),
-    enabled: auditRequested,
-    staleTime: 5 * 60 * 1000,
-  });
+  } = useInventoryItems(undefined, { enabled: auditRequested });
   const { data: catalogItems = [], isFetching: isCatalogFetching } = useSchoolItemCatalog({ enabled: auditRequested });
   const createAndLinkLegacyItems = useCreateAndLinkLegacyItems();
   const linkLegacyItems = useLinkLegacyItemsToCatalog();

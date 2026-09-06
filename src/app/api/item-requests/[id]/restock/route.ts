@@ -8,6 +8,7 @@ import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { buildCatalogKey, normalizeCatalogName } from '@/lib/utils/item-catalog';
+import { bumpDomainRevisionsAdmin } from '@/lib/server/domain-cache-revisions.admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const procurementItemsQuery = db.collection('procurementItems').where('catalogItemId', '==', targetCatalogId).limit(1);
       const procurementItems = await transaction.get(procurementItemsQuery);
       let procurementItemRef = procurementItems.docs[0]?.ref;
+      const createdProcurementItem = !procurementItemRef;
       if (!procurementItemRef) {
         if (!canCreateProcurementItem(actor.user)) throw new Error('CATALOG_CREATE_FORBIDDEN');
         procurementItemRef = db.collection('procurementItems').doc();
@@ -170,6 +172,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         createdAt: now,
       });
       transaction.create(operationRef, { restockRequestId: restockRef.id, actorUserId: actor.decoded.uid, operationId: parsed.data.operationId, createdAt: now });
+      const revisionKeys: Array<'itemRequests' | 'procurementRestocks' | 'schoolItemCatalog' | 'procurementItems'> = ['itemRequests', 'procurementRestocks'];
+      if (createdCatalogItem) revisionKeys.push('schoolItemCatalog');
+      if (createdProcurementItem) revisionKeys.push('procurementItems');
+      bumpDomainRevisionsAdmin(db, transaction, revisionKeys);
       return { id: restockRef.id, duplicate: false, createdCatalogItem };
     });
 
