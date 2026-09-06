@@ -1,36 +1,81 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+
+const STARTUP_STAGES = [
+  'Checking your secure sign-in…',
+  'Restoring your saved school workspace…',
+  'Preparing school records…',
+  'Getting your dashboard ready…',
+];
 
 /**
- * The only blocking visual while the application decides where to take the
- * user. It has no timers, layered exits, animated blur, or spring choreography:
- * the destination simply replaces this surface in one React commit.
+ * A CSS-only startup surface. The small block animation is deliberately kept
+ * beside the logo rather than using a video, so it remains smooth on weak
+ * devices and slow connections.
  */
-export function BrandedAuthScreen({ message }: { message: string }) {
+export function BrandedAuthScreen({
+  message,
+  isExiting = false,
+}: {
+  message: string;
+  isExiting?: boolean;
+}) {
+  const [stageIndex, setStageIndex] = useState(0);
+
+  useEffect(() => {
+    if (isExiting) return;
+    const interval = window.setInterval(() => {
+      setStageIndex((current) => (current + 1) % STARTUP_STAGES.length);
+    }, 1800);
+    return () => window.clearInterval(interval);
+  }, [isExiting]);
+
+  const activeMessage = isExiting ? message : STARTUP_STAGES[stageIndex];
+
   return (
     <main
       aria-busy="true"
       aria-live="polite"
-      className="flex min-h-[100dvh] items-center justify-center bg-[#111827] px-6 text-center text-white"
+      className={`fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-[#111827] px-6 text-center text-white transition-opacity duration-200 ease-out motion-reduce:transition-none ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
     >
       <section className="flex w-full max-w-sm flex-col items-center">
-        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.25)]">
-          <Image
-            src="/logo.png"
-            alt="Trinity Family School"
-            width={64}
-            height={64}
-            priority
-            className="h-full w-full object-contain"
-          />
+        <div className="flex items-center justify-center gap-4" aria-hidden="true">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.25)]">
+            <Image
+              src="/logo.png"
+              alt=""
+              width={64}
+              height={64}
+              priority
+              className="h-full w-full object-contain"
+            />
+          </div>
+          <div className="relative h-12 w-12" aria-hidden="true">
+            <span className="startup-block startup-block-one absolute left-0 top-0 h-4 w-4 rounded bg-sky-300 shadow-[0_0_16px_rgba(125,211,252,0.65)]" />
+            <span className="startup-block startup-block-two absolute left-6 top-0 h-4 w-4 rounded bg-indigo-300 shadow-[0_0_16px_rgba(165,180,252,0.6)]" />
+            <span className="startup-block startup-block-three absolute left-3 top-6 h-4 w-4 rounded bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.55)]" />
+          </div>
         </div>
-        <h1 className="text-lg font-semibold tracking-wide">Trinity Family School</h1>
-        <p className="mt-2 text-sm text-slate-300">{message}</p>
-        <div aria-hidden="true" className="mt-6 h-1 w-24 overflow-hidden rounded-full bg-white/15">
-          <div className="h-full w-1/2 rounded-full bg-indigo-300" />
+        <div className="mt-5" aria-live="polite" aria-atomic="true">
+          <h1 className="text-lg font-semibold tracking-wide">Trinity Family School</h1>
+          <p className="mt-2 min-h-5 text-sm text-slate-300">{activeMessage}</p>
         </div>
+        <p className="mt-3 text-xs text-slate-400">{isExiting ? 'Opening your workspace…' : 'Strive to Excel'}</p>
       </section>
+      <style jsx>{`
+        .startup-block { animation: startup-block-float 1.8s ease-in-out infinite; }
+        .startup-block-two { animation-delay: -0.6s; }
+        .startup-block-three { animation-delay: -1.2s; }
+        @keyframes startup-block-float {
+          0%, 100% { transform: translate(0, 0); opacity: 0.55; }
+          50% { transform: translate(5px, 5px); opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .startup-block { animation: none; opacity: 0.9; }
+        }
+      `}</style>
     </main>
   );
 }

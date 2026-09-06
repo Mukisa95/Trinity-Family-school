@@ -258,6 +258,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 }: any) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
+  const [startupScreenPhase, setStartupScreenPhase] = useState<'loading' | 'exiting' | 'complete'>('loading');
 
   // Swipe detection state
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -297,6 +298,21 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   // Check if there's a stored user that might be loading
   const [hasStoredUser, setHasStoredUser] = React.useState(false);
+
+  // The startup screen only blocks until the authenticated workspace can be
+  // rendered. Independent data caches keep warming in the background, so a
+  // weak device is never held behind a long full-screen loader.
+  useEffect(() => {
+    if (authLoading) {
+      setStartupScreenPhase('loading');
+      return;
+    }
+    if (!isAuthenticated || startupScreenPhase !== 'loading') return;
+
+    setStartupScreenPhase('exiting');
+    const finishFade = window.setTimeout(() => setStartupScreenPhase('complete'), 200);
+    return () => window.clearTimeout(finishFade);
+  }, [authLoading, isAuthenticated, startupScreenPhase]);
 
   // Get print context
   const { triggerPrint } = usePrint();
@@ -500,8 +516,11 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   }
 
   // Show loading screen while checking authentication for protected routes
-  if (authLoading) {
-    return <BrandedAuthScreen message="Strive to Excel…" />;
+  if (authLoading || (isAuthenticated && startupScreenPhase !== 'complete')) {
+    return <BrandedAuthScreen
+      message={startupScreenPhase === 'exiting' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
+      isExiting={startupScreenPhase === 'exiting'}
+    />;
   }
 
   if (!isAuthenticated) {
