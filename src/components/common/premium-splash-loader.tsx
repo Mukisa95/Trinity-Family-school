@@ -17,28 +17,25 @@ const STARTUP_STAGES = [
  */
 export function BrandedAuthScreen({
   message,
-  isExiting = false,
 }: {
   message: string;
-  isExiting?: boolean;
 }) {
   const [stageIndex, setStageIndex] = useState(0);
 
   useEffect(() => {
-    if (isExiting) return;
     const interval = window.setInterval(() => {
       setStageIndex((current) => (current + 1) % STARTUP_STAGES.length);
     }, 1800);
     return () => window.clearInterval(interval);
-  }, [isExiting]);
+  }, []);
 
-  const activeMessage = isExiting ? message : STARTUP_STAGES[stageIndex];
+  const activeMessage = STARTUP_STAGES[stageIndex] ?? message;
 
   return (
     <main
       aria-busy="true"
       aria-live="polite"
-      className={`fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-[#111827] px-6 text-center text-white transition-opacity duration-200 ease-out motion-reduce:transition-none ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+      className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-[#111827] px-6 text-center text-white"
     >
       <section className="flex w-full max-w-sm flex-col items-center">
         <div className="flex items-center justify-center gap-4" aria-hidden="true">
@@ -62,15 +59,15 @@ export function BrandedAuthScreen({
           <h1 className="text-lg font-semibold tracking-wide">Trinity Family School</h1>
           <p className="mt-2 min-h-5 text-sm text-slate-300">{activeMessage}</p>
         </div>
-        <p className="mt-3 text-xs text-slate-400">{isExiting ? 'Opening your workspace…' : 'Strive to Excel'}</p>
+        <p className="mt-3 text-xs text-slate-400">Strive to Excel</p>
       </section>
-      <style jsx>{`
-        .startup-block { animation: startup-block-float 1.8s ease-in-out infinite; }
-        .startup-block-two { animation-delay: -0.6s; }
-        .startup-block-three { animation-delay: -1.2s; }
+      <style jsx global>{`
+        .startup-block { animation: startup-block-float 720ms cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .startup-block-two { animation-delay: -240ms; }
+        .startup-block-three { animation-delay: -480ms; }
         @keyframes startup-block-float {
-          0%, 100% { transform: translate(0, 0); opacity: 0.55; }
-          50% { transform: translate(5px, 5px); opacity: 1; }
+          0%, 100% { transform: translate(0, 0) scale(0.82); opacity: 0.45; }
+          50% { transform: translate(8px, 8px) scale(1.16); opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
           .startup-block { animation: none; opacity: 0.9; }

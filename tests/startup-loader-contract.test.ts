@@ -14,12 +14,11 @@ test('startup screen keeps the logo and lightweight moving blocks side by side',
   assert.match(loader, /prefers-reduced-motion/);
 });
 
-test('startup messages describe preparation and the overlay fades as soon as the workspace can render', () => {
+test('startup messages describe preparation and hand off directly to the workspace', () => {
   assert.match(loader, /Preparing school records/);
-  assert.match(loader, /transition-opacity duration-200/);
-  assert.match(appLayout, /startupScreenPhase/);
-  assert.match(appLayout, /setStartupScreenPhase\('exiting'\)/);
-  assert.match(appLayout, /setTimeout\(\(\) => setStartupScreenPhase\('complete'\), 200\)/);
-  assert.doesNotMatch(appLayout, /\}, \[authLoading, isAuthenticated, startupScreenPhase\]\);/);
-  assert.match(appLayout, /authLoading \|\| \(isAuthenticated && startupScreenPhase !== 'complete'\)/);
+  assert.match(loader, /startup-block-float 720ms/);
+  assert.match(loader, /style jsx global/);
+  assert.doesNotMatch(loader, /transition-opacity duration-200/);
+  assert.doesNotMatch(appLayout, /startupScreenPhase/);
+  assert.match(appLayout, /if \(authLoading\) \{\s+return <BrandedAuthScreen message="Checking your secure sign-in…" \/>;/);
 });

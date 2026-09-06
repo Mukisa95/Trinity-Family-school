@@ -258,7 +258,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 }: any) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
-  const [startupScreenPhase, setStartupScreenPhase] = useState<'loading' | 'exiting' | 'complete'>('loading');
 
   // Swipe detection state
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -298,23 +297,6 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   // Check if there's a stored user that might be loading
   const [hasStoredUser, setHasStoredUser] = React.useState(false);
-
-  // The startup screen only blocks until the authenticated workspace can be
-  // rendered. Independent data caches keep warming in the background, so a
-  // weak device is never held behind a long full-screen loader.
-  useEffect(() => {
-    if (authLoading || !isAuthenticated) {
-      setStartupScreenPhase('loading');
-      return;
-    }
-
-    setStartupScreenPhase('exiting');
-    const finishFade = window.setTimeout(() => setStartupScreenPhase('complete'), 200);
-    return () => window.clearTimeout(finishFade);
-  // Do not include startupScreenPhase here. Setting it to "exiting" causes a
-  // render, and including it would immediately run this cleanup and cancel the
-  // timer that must remove the transparent overlay.
-  }, [authLoading, isAuthenticated]);
 
   // Get print context
   const { triggerPrint } = usePrint();
@@ -518,11 +500,8 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   }
 
   // Show loading screen while checking authentication for protected routes
-  if (authLoading || (isAuthenticated && startupScreenPhase !== 'complete')) {
-    return <BrandedAuthScreen
-      message={startupScreenPhase === 'exiting' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
-      isExiting={startupScreenPhase === 'exiting'}
-    />;
+  if (authLoading) {
+    return <BrandedAuthScreen message="Checking your secure sign-in…" />;
   }
 
   if (!isAuthenticated) {
