@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { buildCatalogKey, normalizeCatalogName } from '@/lib/utils/item-catalog';
+import { normalizePurchaseUnitConfiguration } from '@/lib/utils/purchase-unit-conversion';
 import { bumpDomainRevisionsInWrite } from '@/lib/services/dashboard-cache-revisions.service';
 import type { DomainRevisionKey } from '@/lib/cache/domain-revisions';
 import type {
@@ -65,7 +66,7 @@ export class ItemCatalogService {
   private static writeNewCatalog(
     transaction: Transaction,
     catalogRef: ReturnType<typeof doc>,
-    data: Pick<CreateSchoolItemCatalogData, 'name' | 'standardUnit' | 'customUnit' | 'isStockTracked' | 'isActive' | 'createdBy'>
+    data: Pick<CreateSchoolItemCatalogData, 'name' | 'standardUnit' | 'customUnit' | 'purchaseUnit' | 'purchaseCustomUnit' | 'unitsPerPurchaseUnit' | 'isStockTracked' | 'isActive' | 'createdBy'>
   ) {
     transaction.set(catalogRef, {
       ...data,
@@ -142,6 +143,12 @@ export class ItemCatalogService {
   /** Creates a catalogue identity and its first Procurement record together. */
   static async createNewProcurementItem(data: CreateNewCatalogProcurementItemData) {
     const standardUnit = resolveItemUnit(data.item.unit, data.item.customUnit);
+    const purchaseConfig = normalizePurchaseUnitConfiguration({
+      stockUnit: standardUnit,
+      purchaseUnit: data.item.purchaseUnit,
+      purchaseCustomUnit: data.item.purchaseCustomUnit,
+      unitsPerPurchaseUnit: data.item.unitsPerPurchaseUnit,
+    });
     const catalogRef = doc(db, SCHOOL_ITEM_CATALOG_COLLECTION, buildCatalogKey(normalizeCatalogName(data.item.name), standardUnit));
     const procurementRef = doc(collection(db, PROCUREMENT_ITEMS_COLLECTION));
 
@@ -154,12 +161,18 @@ export class ItemCatalogService {
         name: data.item.name,
         standardUnit,
         customUnit: data.item.customUnit,
+        purchaseUnit: purchaseConfig.purchaseUnit,
+        purchaseCustomUnit: data.item.purchaseCustomUnit?.trim() || undefined,
+        unitsPerPurchaseUnit: purchaseConfig.unitsPerPurchaseUnit,
         isStockTracked: data.item.stockTracking ?? false,
         isActive: data.item.isActive,
         createdBy: data.createdBy,
       });
       transaction.set(procurementRef, {
         ...data.item,
+        purchaseUnit: purchaseConfig.purchaseUnit,
+        purchaseCustomUnit: data.item.purchaseCustomUnit?.trim() || undefined,
+        unitsPerPurchaseUnit: purchaseConfig.unitsPerPurchaseUnit,
         catalogItemId: catalogRef.id,
         isActive: data.item.isActive ?? true,
         totalQuantityPurchased: 0,
@@ -187,6 +200,9 @@ export class ItemCatalogService {
 
       transaction.set(procurementRef, {
         ...data.item,
+        purchaseUnit: catalog.purchaseUnit || catalog.standardUnit,
+        purchaseCustomUnit: catalog.purchaseCustomUnit,
+        unitsPerPurchaseUnit: catalog.unitsPerPurchaseUnit || 1,
         catalogItemId: catalogRef.id,
         isActive: data.item.isActive ?? true,
         totalQuantityPurchased: 0,
@@ -204,6 +220,12 @@ export class ItemCatalogService {
   /** Creates a catalogue identity and its first Inventory record together. */
   static async createNewInventoryItem(data: CreateNewCatalogInventoryItemData) {
     const standardUnit = resolveItemUnit(data.item.unit, data.item.customUnit);
+    const purchaseConfig = normalizePurchaseUnitConfiguration({
+      stockUnit: standardUnit,
+      purchaseUnit: data.item.purchaseUnit,
+      purchaseCustomUnit: data.item.purchaseCustomUnit,
+      unitsPerPurchaseUnit: data.item.unitsPerPurchaseUnit,
+    });
     const catalogRef = doc(db, SCHOOL_ITEM_CATALOG_COLLECTION, buildCatalogKey(normalizeCatalogName(data.item.name), standardUnit));
     const inventoryRef = doc(collection(db, INVENTORY_ITEMS_COLLECTION));
 
@@ -216,12 +238,18 @@ export class ItemCatalogService {
         name: data.item.name,
         standardUnit,
         customUnit: data.item.customUnit,
+        purchaseUnit: purchaseConfig.purchaseUnit,
+        purchaseCustomUnit: data.item.purchaseCustomUnit?.trim() || undefined,
+        unitsPerPurchaseUnit: purchaseConfig.unitsPerPurchaseUnit,
         isStockTracked: true,
         isActive: data.item.isActive,
         createdBy: data.createdBy,
       });
       transaction.set(inventoryRef, {
         ...data.item,
+        purchaseUnit: purchaseConfig.purchaseUnit,
+        purchaseCustomUnit: data.item.purchaseCustomUnit?.trim() || undefined,
+        unitsPerPurchaseUnit: purchaseConfig.unitsPerPurchaseUnit,
         catalogItemId: catalogRef.id,
         totalValue: data.item.unitValue ? data.item.quantity * data.item.unitValue : 0,
         totalIssued: 0,
@@ -251,6 +279,9 @@ export class ItemCatalogService {
 
       transaction.set(inventoryRef, {
         ...data.item,
+        purchaseUnit: catalog.purchaseUnit || catalog.standardUnit,
+        purchaseCustomUnit: catalog.purchaseCustomUnit,
+        unitsPerPurchaseUnit: catalog.unitsPerPurchaseUnit || 1,
         catalogItemId: catalogRef.id,
         totalValue: data.item.unitValue ? data.item.quantity * data.item.unitValue : 0,
         totalIssued: 0,

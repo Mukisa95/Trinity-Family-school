@@ -44,6 +44,9 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
     category: 'Other',
     unit: 'Pieces',
     customUnit: '',
+    purchaseUnit: 'Pieces',
+    purchaseCustomUnit: '',
+    unitsPerPurchaseUnit: 1,
     useCase: '',
     description: '',
     stockTracking: false,
@@ -58,7 +61,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
 
   const units: ProcurementUnit[] = [
     'Kg', 'Litres', 'Dozens', 'Pieces', 'Packets', 'Bags',
-    'Boxes', 'Metres', 'Bundles', 'Sets', 'Rolls', 'Bottles', 'Cans', 'Other'
+    'Boxes', 'Metres', 'Bundles', 'Sets', 'Rolls', 'Bottles', 'Cans', 'Sacks', 'Other'
   ];
 
   // Filter items
@@ -82,6 +85,9 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       category: 'Other',
       unit: 'Pieces',
       customUnit: '',
+      purchaseUnit: 'Pieces',
+      purchaseCustomUnit: '',
+      unitsPerPurchaseUnit: 1,
       useCase: '',
       description: '',
       stockTracking: false,
@@ -101,6 +107,11 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       name: catalogItem.name,
       unit: isStandardProcurementUnit ? catalogItem.standardUnit as ProcurementUnit : 'Other',
       customUnit: isStandardProcurementUnit ? '' : catalogItem.standardUnit,
+      purchaseUnit: units.includes((catalogItem.purchaseUnit || catalogItem.standardUnit) as ProcurementUnit)
+        ? (catalogItem.purchaseUnit || catalogItem.standardUnit) as ProcurementUnit
+        : 'Other',
+      purchaseCustomUnit: catalogItem.purchaseCustomUnit || '',
+      unitsPerPurchaseUnit: catalogItem.unitsPerPurchaseUnit || 1,
       stockTracking: catalogItem.isStockTracked,
     }));
   };
@@ -239,6 +250,9 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       category: item.category,
       unit: item.unit,
       customUnit: item.customUnit || '',
+      purchaseUnit: item.purchaseUnit || item.unit,
+      purchaseCustomUnit: item.purchaseCustomUnit || '',
+      unitsPerPurchaseUnit: item.unitsPerPurchaseUnit || 1,
       useCase: item.useCase,
       description: item.description || '',
       stockTracking: item.stockTracking || false,
@@ -263,7 +277,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               Add Item
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Item</DialogTitle>
               <DialogDescription>
@@ -316,7 +330,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               </div>
 
               <div>
-                <Label htmlFor="unit">Unit of Measurement *</Label>
+                <Label htmlFor="unit">Everyday stock and release unit *</Label>
                 <Select value={formData.unit} onValueChange={(value: ProcurementUnit) => setFormData({ ...formData, unit: value })}>
                   <SelectTrigger disabled={selectedCatalogItemId !== 'new'}>
                     <SelectValue />
@@ -327,6 +341,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-xs text-muted-foreground">This is what staff request and receive: for example, Pieces for pens or Kg for rice.</p>
               </div>
 
               {formData.unit === 'Other' && (
@@ -341,6 +356,30 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                   />
                 </div>
               )}
+
+              <div className="rounded-md border border-sky-100 bg-sky-50/50 p-3 space-y-3">
+                <div>
+                  <Label htmlFor="purchaseUnit">Purchase pack *</Label>
+                  <Select
+                    value={formData.purchaseUnit || formData.unit}
+                    onValueChange={(value: ProcurementUnit) => setFormData({ ...formData, purchaseUnit: value })}
+                  >
+                    <SelectTrigger id="purchaseUnit" disabled={selectedCatalogItemId !== 'new'}><SelectValue /></SelectTrigger>
+                    <SelectContent>{units.map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                {formData.purchaseUnit === 'Other' && (
+                  <div>
+                    <Label htmlFor="purchaseCustomUnit">Custom purchase pack</Label>
+                    <Input id="purchaseCustomUnit" value={formData.purchaseCustomUnit || ''} disabled={selectedCatalogItemId !== 'new'} onChange={(e) => setFormData({ ...formData, purchaseCustomUnit: e.target.value })} placeholder="e.g., Bale" />
+                  </div>
+                )}
+                <div>
+                  <Label htmlFor="unitsPerPurchaseUnit">Everyday units in one purchase pack *</Label>
+                  <Input id="unitsPerPurchaseUnit" type="number" min="0.01" step="any" disabled={selectedCatalogItemId !== 'new'} value={formData.unitsPerPurchaseUnit || 1} onChange={(e) => setFormData({ ...formData, unitsPerPurchaseUnit: Number(e.target.value) || 1 })} />
+                  <p className="mt-1 text-xs text-muted-foreground">Example: one Box has 50 Pieces; one Sack has 50 Kg. Requests and releases always use the everyday unit above.</p>
+                </div>
+              </div>
 
               <div>
                 <Label htmlFor="useCase">Use Case / Purpose *</Label>
@@ -429,7 +468,10 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                     <TableCell>
                       <Badge variant="outline">{item.category}</Badge>
                     </TableCell>
-                    <TableCell>{item.customUnit || item.unit}</TableCell>
+                    <TableCell>
+                      <div>{item.customUnit || item.unit}</div>
+                      {(item.unitsPerPurchaseUnit || 1) !== 1 && <div className="text-xs text-muted-foreground">{item.purchaseCustomUnit || item.purchaseUnit || item.unit} of {item.unitsPerPurchaseUnit} {item.customUnit || item.unit}</div>}
+                    </TableCell>
                     <TableCell className="max-w-48 truncate" title={item.useCase}>
                       {item.useCase}
                     </TableCell>

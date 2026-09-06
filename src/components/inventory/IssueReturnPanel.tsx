@@ -126,10 +126,10 @@ export function IssueReturnPanel({
         { id: 'issue-item', label: 'Inventory item', value: selectedItemId, required: true, message: 'Choose the inventory item to issue.' },
         {
             id: 'issue-quantity',
-            label: 'Quantity',
+            label: selectedItem ? `Quantity in ${selectedItem.customUnit || selectedItem.unit}` : 'Quantity',
             value: issueQuantity,
             required: true,
-            validate: value => selectedItem && Number(value) > selectedItem.quantity ? `Enter no more than the ${selectedItem.quantity} available item${selectedItem.quantity === 1 ? '' : 's'}.` : undefined,
+            validate: value => selectedItem && Number(value) > selectedItem.quantity ? `Enter no more than the ${selectedItem.quantity} ${selectedItem.customUnit || selectedItem.unit} available.` : undefined,
         },
         { id: 'issuedTo', label: 'Issue to', value: issuedTo, required: true, message: 'Enter the person or department receiving the item.' },
     ]);
@@ -197,7 +197,7 @@ export function IssueReturnPanel({
             if (!selectedIssuedItem || !academicYear || !term) return;
             const outstandingQuantity = selectedIssuedItem.quantity - (selectedIssuedItem.returnedQuantity || 0);
             if (returnQuantity <= 0 || returnQuantity > outstandingQuantity) {
-                throw new Error(`Enter a quantity between 1 and ${outstandingQuantity}.`);
+                throw new Error(`Enter a quantity greater than zero and no more than ${outstandingQuantity}.`);
             }
 
             const operationId = returnOperationIdRef.current || createOperationId();
@@ -485,14 +485,15 @@ export function IssueReturnPanel({
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="issue-quantity" className={issueValidation.getFieldError('issue-quantity') ? 'text-red-700' : undefined}>Quantity <span className="text-red-600">*</span></Label>
+                                <Label htmlFor="issue-quantity" className={issueValidation.getFieldError('issue-quantity') ? 'text-red-700' : undefined}>Quantity in {selectedItem?.customUnit || selectedItem?.unit || 'everyday units'} <span className="text-red-600">*</span></Label>
                                 <Input
                                     id="issue-quantity"
                                     type="number"
-                                    min="1"
+                                    min="0.01"
+                                    step="any"
                                     max={selectedItem?.quantity || 1}
                                     value={issueQuantity}
-                                    onChange={(e) => { setIssueQuantity(parseInt(e.target.value) || 1); issueValidation.handleFieldChange('issue-quantity'); }}
+                                    onChange={(e) => { setIssueQuantity(Number(e.target.value) || 1); issueValidation.handleFieldChange('issue-quantity'); }}
                                     {...issueValidation.getFieldProps('issue-quantity')}
                                 />
                                 <FieldError error={issueValidation.getFieldError('issue-quantity')} />
@@ -596,10 +597,11 @@ export function IssueReturnPanel({
                                 <Input
                                     id="returnQuantity"
                                     type="number"
-                                    min="1"
+                                    min="0.01"
+                                    step="any"
                                     max={selectedIssuedItem ? selectedIssuedItem.quantity - (selectedIssuedItem.returnedQuantity || 0) : 1}
                                     value={returnQuantity}
-                                    onChange={(e) => setReturnQuantity(parseInt(e.target.value) || 1)}
+                                    onChange={(e) => setReturnQuantity(Number(e.target.value) || 1)}
                                 />
                             </div>
                             <div>

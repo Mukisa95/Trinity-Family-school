@@ -1560,7 +1560,7 @@ export interface SyncStatus {
 
 export type ProcurementCategory = 'Foodstuff' | 'Class Utility' | 'Office Utility' | 'Tools' | 'Equipment' | 'Infrastructure' | 'Transport' | 'Medical' | 'Other';
 
-export type ProcurementUnit = 'Kg' | 'Litres' | 'Dozens' | 'Pieces' | 'Packets' | 'Bags' | 'Boxes' | 'Metres' | 'Bundles' | 'Sets' | 'Rolls' | 'Bottles' | 'Cans' | 'Other';
+export type ProcurementUnit = 'Kg' | 'Litres' | 'Dozens' | 'Pieces' | 'Packets' | 'Bags' | 'Sacks' | 'Boxes' | 'Metres' | 'Bundles' | 'Sets' | 'Rolls' | 'Bottles' | 'Cans' | 'Other';
 
 export type PaymentMethod = 'Cash' | 'Bank Transfer' | 'Mobile Money' | 'Cheque' | 'Credit Card' | 'Other';
 
@@ -1581,6 +1581,11 @@ export interface ProcurementItem {
   category: ProcurementCategory;
   unit: ProcurementUnit;
   customUnit?: string; // For 'Other' unit type
+  /** Unit used to purchase stock, e.g. Boxes. The main unit remains the release unit. */
+  purchaseUnit?: ProcurementUnit;
+  purchaseCustomUnit?: string;
+  /** Number of the main units inside one purchase unit, e.g. 50 pens per box. */
+  unitsPerPurchaseUnit?: number;
   useCase: string; // Purpose/description
   description?: string;
   isActive: boolean;
@@ -1609,6 +1614,11 @@ export interface ProcurementPurchase {
   quantity: number;
   unitCost: number;
   totalCost: number; // Auto-calculated: quantity * unitCost
+  /** Pack details preserved with the purchase for an auditable stock conversion. */
+  purchaseUnit?: string;
+  unitsPerPurchaseUnit?: number;
+  stockQuantity?: number;
+  stockUnit?: string;
   supplierName?: string;
   supplierContact?: string;
   paymentMethod: PaymentMethod;

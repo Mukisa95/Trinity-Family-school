@@ -103,7 +103,7 @@ export function ItemReleaseQueuePanel({ requests, isLoading, focusRequestId }: I
       <Card className="border-blue-100 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20">
         <CardContent className="flex gap-3 p-4 text-sm text-blue-950 dark:text-blue-100">
           <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-blue-700 dark:text-blue-300" />
-          <p>A release creates an Inventory issue record only after current stock is sufficient. Pending and declined responses never reduce stock.</p>
+          <p>Requests and releases use the everyday stock unit, such as one pen or one kilogram—not a procurement box or sack. A release creates an Inventory issue record only after current stock is sufficient. Pending and declined responses never reduce stock.</p>
         </CardContent>
       </Card>
 

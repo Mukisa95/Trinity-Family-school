@@ -24,6 +24,8 @@ import { DigitalSignature } from './DigitalSignature';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { resolveProcurementPurchasePeriod } from '@/lib/utils/procurement-selectors';
+import { calculatePurchasePacksNeeded, calculateStockQuantityFromPurchase, normalizePurchaseUnitConfiguration } from '@/lib/utils/purchase-unit-conversion';
 
 const toDate = (s?: string) => { if (!s) return undefined; try { const d = parseISO(s); return isValid(d) ? d : undefined; } catch { return undefined; } };
 const toStr = (d?: Date) => d ? format(d, 'yyyy-MM-dd') : '';
@@ -120,18 +122,9 @@ export function PurchaseManagement({
     }
   }, [isAddDialogOpen, user, hasPermissionToMakePurchase, authenticatedUser]);
 
-  // Get the real academic year and term objects from the props
-  const academicYear = academicYears.find(year => year.id === currentAcademicYear) || {
-    id: currentAcademicYear,
-    name: currentAcademicYear,
-    startDate: `${currentAcademicYear}-01-01`,
-    endDate: `${currentAcademicYear}-12-31`,
-    terms: [],
-    isActive: false,
-    isLocked: false
-  };
-
-  const term = availableTerms.find(t => t.id === currentTerm) || {
+  // The displayed reporting period is deliberately separate from a purchase's
+  // selected accounting period. A purchase may be entered for a future term.
+  const workspaceTerm = availableTerms.find(t => t.id === currentTerm) || {
     id: currentTerm,
     name: currentTerm,
     startDate: `${currentAcademicYear}-01-01`,
@@ -156,7 +149,7 @@ export function PurchaseManagement({
       case 'Week':
         return `Purchase records for Week ${currentWeek} of ${yearName}`;
       default:
-        return `Purchase records for ${yearName} - ${term.name}`;
+        return `Purchase records for ${yearName} - ${workspaceTerm.name}`;
     }
   };
 
@@ -181,16 +174,17 @@ export function PurchaseManagement({
   // deliberate human entry because this is still an actual purchase record.
   useEffect(() => {
     if (!restockRequest) return;
+    const requestedItem = items.find((item) => item.id === restockRequest.procurementItemId);
     setFormData(previous => ({
       ...previous,
       itemId: restockRequest.procurementItemId,
-      quantity: restockRequest.requestedQuantity,
+      quantity: calculatePurchasePacksNeeded(restockRequest.requestedQuantity, requestedItem?.unitsPerPurchaseUnit),
       restockRequestId: restockRequest.id,
       academicYearId: currentAcademicYear,
       termId: currentTerm,
     }));
     setIsAddDialogOpen(true);
-  }, [restockRequest, currentAcademicYear, currentTerm]);
+  }, [restockRequest, currentAcademicYear, currentTerm, items]);
 
   const paymentMethods: PaymentMethod[] = [
     'Cash', 'Bank Transfer', 'Mobile Money', 'Cheque', 'Credit Card', 'Other'
@@ -198,6 +192,23 @@ export function PurchaseManagement({
 
   const categories = ['Foodstuff', 'Class Utility', 'Office Utility', 'Tools', 'Equipment', 'Other'];
   const activeItems = items.filter(item => item.isActive);
+  const selectedPurchaseItem = items.find((item) => item.id === formData.itemId);
+  const selectedPurchaseConfiguration = normalizePurchaseUnitConfiguration({
+    stockUnit: selectedPurchaseItem?.customUnit || selectedPurchaseItem?.unit || 'units',
+    purchaseUnit: selectedPurchaseItem?.purchaseUnit,
+    purchaseCustomUnit: selectedPurchaseItem?.purchaseCustomUnit,
+    unitsPerPurchaseUnit: selectedPurchaseItem?.unitsPerPurchaseUnit,
+  });
+  const equivalentStockQuantity = calculateStockQuantityFromPurchase(
+    formData.quantity,
+    selectedPurchaseConfiguration.unitsPerPurchaseUnit,
+  );
+  const formatPurchaseQuantity = (purchase: ProcurementPurchase) => {
+    const stockQuantity = purchase.stockQuantity ?? calculateStockQuantityFromPurchase(purchase.quantity, purchase.unitsPerPurchaseUnit);
+    const purchaseUnit = purchase.purchaseUnit || 'units';
+    const stockUnit = purchase.stockUnit || items.find((item) => item.id === purchase.itemId)?.customUnit || items.find((item) => item.id === purchase.itemId)?.unit || 'units';
+    return `${purchase.quantity} ${purchaseUnit}${stockQuantity !== purchase.quantity || purchaseUnit !== stockUnit ? ` (${stockQuantity} ${stockUnit})` : ''}`;
+  };
 
   // Filter purchases based on search and category filters (time filtering is now handled by parent)
   const filteredPurchases = purchases.filter(purchase => {
@@ -300,12 +311,34 @@ export function PurchaseManagement({
       // Create purchase data with authenticated user info
       const purchaseData: CreateProcurementPurchaseData = {
         ...formData,
+        purchaseUnit: selectedPurchaseConfiguration.purchaseUnit,
+        unitsPerPurchaseUnit: selectedPurchaseConfiguration.unitsPerPurchaseUnit,
+        stockQuantity: equivalentStockQuantity,
+        stockUnit: selectedPurchaseConfiguration.stockUnit,
         procuredBy: `${authenticatedUser.firstName} ${authenticatedUser.lastName}`,
         procuredByUserId: authenticatedUser.id, // Store user ID for audit trail
         procuredByUsername: `${authenticatedUser.firstName} ${authenticatedUser.lastName}`.trim() || authenticatedUser.username
       };
 
-      const purchaseId = await ProcurementService.createPurchase(purchaseData, academicYear, term);
+      const selectedPeriod = resolveProcurementPurchasePeriod(
+        academicYears,
+        purchaseData.academicYearId,
+        purchaseData.termId,
+      );
+      if (!selectedPeriod) {
+        toast({
+          title: 'Choose a valid accounting period',
+          description: 'Select an academic year and a term from that year before saving this purchase.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const purchaseId = await ProcurementService.createPurchase(
+        purchaseData,
+        selectedPeriod.academicYear,
+        selectedPeriod.term,
+      );
       let restockLinked = true;
       if (purchaseData.restockRequestId) {
         try {
@@ -326,7 +359,7 @@ export function PurchaseManagement({
       toast({
         title: restockLinked ? "Success" : "Purchase recorded — confirmation needed",
         description: restockLinked
-          ? `Purchase recorded successfully. Authenticated by ${authenticatedUser.firstName} ${authenticatedUser.lastName}.`
+          ? `Purchase recorded successfully. Receive ${equivalentStockQuantity} ${selectedPurchaseConfiguration.stockUnit} in Inventory when the goods arrive. Authenticated by ${authenticatedUser.firstName} ${authenticatedUser.lastName}.`
           : 'The purchase was saved. Open Restock Queue and choose Confirm recorded purchase; do not enter this purchase again.',
         variant: restockLinked ? 'default' : 'destructive',
       });
@@ -359,17 +392,39 @@ export function PurchaseManagement({
       setLoading(true);
 
       // Create update data with authenticated user info
-      const updateData: Partial<CreateProcurementPurchaseData> & {
+      const selectedPeriod = resolveProcurementPurchasePeriod(
+        academicYears,
+        formData.academicYearId,
+        formData.termId,
+      );
+      if (!selectedPeriod) {
+        toast({
+          title: 'Choose a valid accounting period',
+          description: 'Select an academic year and a term from that year before saving this purchase.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const updateData: Partial<ProcurementPurchase> & {
         procuredBy: string;
         modifiedBy?: string;
         modifiedByUserId?: string;
         modifiedByUsername?: string;
       } = {
         ...formData,
+        purchaseUnit: selectedPurchaseConfiguration.purchaseUnit,
+        unitsPerPurchaseUnit: selectedPurchaseConfiguration.unitsPerPurchaseUnit,
+        stockQuantity: equivalentStockQuantity,
+        stockUnit: selectedPurchaseConfiguration.stockUnit,
         procuredBy: formData.procuredBy || `${editAuthenticatedUser.firstName} ${editAuthenticatedUser.lastName}`,
         modifiedBy: `${editAuthenticatedUser.firstName} ${editAuthenticatedUser.lastName}`,
         modifiedByUserId: editAuthenticatedUser.id,
-        modifiedByUsername: `${editAuthenticatedUser.firstName} ${editAuthenticatedUser.lastName}`.trim() || editAuthenticatedUser.username
+        modifiedByUsername: `${editAuthenticatedUser.firstName} ${editAuthenticatedUser.lastName}`.trim() || editAuthenticatedUser.username,
+        academicYearId: selectedPeriod.academicYear.id,
+        academicYearName: selectedPeriod.academicYear.name,
+        termId: selectedPeriod.term.id,
+        termName: selectedPeriod.term.name,
       };
 
       await ProcurementService.updatePurchase(selectedPurchase.id, updateData);
@@ -561,7 +616,7 @@ export function PurchaseManagement({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="quantity">Quantity *</Label>
+                      <Label htmlFor="quantity">{selectedPurchaseConfiguration.purchaseUnit} purchased *</Label>
                       <Input
                         id="quantity"
                         type="number"
@@ -573,7 +628,7 @@ export function PurchaseManagement({
                       />
                     </div>
                     <div>
-                      <Label htmlFor="unitCost">Unit Cost (UGX) *</Label>
+                      <Label htmlFor="unitCost">Cost per {selectedPurchaseConfiguration.purchaseUnit} (UGX) *</Label>
                       <Input
                         id="unitCost"
                         type="number"
@@ -585,6 +640,12 @@ export function PurchaseManagement({
                       />
                     </div>
                   </div>
+
+                  {formData.itemId && (
+                    <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+                      One {selectedPurchaseConfiguration.purchaseUnit} contains {selectedPurchaseConfiguration.unitsPerPurchaseUnit} {selectedPurchaseConfiguration.stockUnit}. This purchase represents <strong>{equivalentStockQuantity} {selectedPurchaseConfiguration.stockUnit}</strong> for inventory receipt.
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -843,7 +904,7 @@ export function PurchaseManagement({
                       <div className="font-medium">{purchase.itemName}</div>
                       <Badge variant="outline" className="text-xs">{purchase.itemCategory}</Badge>
                     </TableCell>
-                    <TableCell>{purchase.quantity}</TableCell>
+                    <TableCell>{formatPurchaseQuantity(purchase)}</TableCell>
                     <TableCell>{formatCurrency(purchase.unitCost)}</TableCell>
                     <TableCell className="font-medium">{formatCurrency(purchase.totalCost)}</TableCell>
                     <TableCell>{purchase.supplierName || '-'}</TableCell>
@@ -935,7 +996,7 @@ export function PurchaseManagement({
                             {new Date(purchase.purchaseDate).toLocaleDateString()}
                           </div>
                           <div className="text-sm">
-                            {purchase.quantity.toLocaleString()}
+                            {formatPurchaseQuantity(purchase)}
                           </div>
                           <div className="text-sm">
                             {formatCurrency(purchase.unitCost)}
@@ -1072,7 +1133,7 @@ export function PurchaseManagement({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-quantity">Quantity *</Label>
+                  <Label htmlFor="edit-quantity">{selectedPurchaseConfiguration.purchaseUnit} purchased *</Label>
                   <Input
                     id="edit-quantity"
                     type="number"
@@ -1084,7 +1145,7 @@ export function PurchaseManagement({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-unitCost">Unit Cost (UGX) *</Label>
+                  <Label htmlFor="edit-unitCost">Cost per {selectedPurchaseConfiguration.purchaseUnit} (UGX) *</Label>
                   <Input
                     id="edit-unitCost"
                     type="number"
@@ -1096,6 +1157,12 @@ export function PurchaseManagement({
                   />
                 </div>
               </div>
+
+              {formData.itemId && (
+                <div className="rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+                  This purchase represents <strong>{equivalentStockQuantity} {selectedPurchaseConfiguration.stockUnit}</strong> for inventory receipt ({selectedPurchaseConfiguration.unitsPerPurchaseUnit} {selectedPurchaseConfiguration.stockUnit} in each {selectedPurchaseConfiguration.purchaseUnit}).
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -94,7 +94,7 @@ const LOCATIONS: InventoryLocation[] = [
 ];
 
 const UNITS: InventoryUnit[] = [
-    'Pieces', 'Sets', 'Pairs', 'Boxes', 'Cartons', 'Rolls', 'Litres', 'Kg', 'Other'
+    'Pieces', 'Sets', 'Pairs', 'Boxes', 'Cartons', 'Packets', 'Bags', 'Sacks', 'Rolls', 'Litres', 'Kg', 'Other'
 ];
 
 interface ItemManagementProps {
@@ -123,6 +123,9 @@ const emptyFormData: Partial<CreateInventoryItemData> = {
     description: '',
     quantity: 0,
     unit: 'Pieces',
+    purchaseUnit: 'Pieces',
+    purchaseCustomUnit: '',
+    unitsPerPurchaseUnit: 1,
     condition: 'New',
     location: 'Main Store',
     isActive: true
@@ -182,6 +185,9 @@ export function ItemManagement({
             name: catalogItem.name,
             unit: isStandardInventoryUnit ? catalogItem.standardUnit as InventoryUnit : 'Other',
             customUnit: isStandardInventoryUnit ? '' : catalogItem.standardUnit,
+            purchaseUnit: catalogItem.purchaseUnit || catalogItem.standardUnit,
+            purchaseCustomUnit: catalogItem.purchaseCustomUnit || '',
+            unitsPerPurchaseUnit: catalogItem.unitsPerPurchaseUnit || 1,
         }));
         formValidation.handleFieldChange('name');
     };
@@ -247,6 +253,10 @@ export function ItemManagement({
             assetTag: item.assetTag,
             quantity: item.quantity,
             unit: item.unit,
+            customUnit: item.customUnit,
+            purchaseUnit: item.purchaseUnit || item.unit,
+            purchaseCustomUnit: item.purchaseCustomUnit || '',
+            unitsPerPurchaseUnit: item.unitsPerPurchaseUnit || 1,
             reorderLevel: item.reorderLevel,
             condition: item.condition,
             location: item.location,
@@ -341,18 +351,20 @@ export function ItemManagement({
                 </div>
 
                 <div>
-                    <Label htmlFor="quantity">Quantity *</Label>
+                    <Label htmlFor="quantity">Stock quantity in everyday units *</Label>
                     <Input
                         id="quantity"
                         type="number"
                         min="0"
                         value={formData.quantity || 0}
-                        onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 0)}
+                        step="any"
+                        onChange={(e) => handleInputChange('quantity', Number(e.target.value) || 0)}
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">Enter the usable quantity, for example 50 Pieces when receiving one box of pens.</p>
                 </div>
 
                 <div>
-                    <Label htmlFor="unit">Unit</Label>
+                    <Label htmlFor="unit">Everyday stock and release unit</Label>
                     <Select
                         value={formData.unit}
                         onValueChange={(v) => handleInputChange('unit', v as InventoryUnit)}
@@ -378,6 +390,29 @@ export function ItemManagement({
                             onChange={(e) => handleInputChange('customUnit', e.target.value)}
                             placeholder="e.g., Reams"
                         />
+                    </div>
+                )}
+
+                {!isEdit && (
+                    <div className="col-span-2 rounded-md border border-sky-100 bg-sky-50/50 p-3 space-y-3">
+                        <div>
+                            <Label htmlFor="inventory-purchaseUnit">Purchase pack</Label>
+                            <Select value={formData.purchaseUnit || formData.unit} onValueChange={(value) => handleInputChange('purchaseUnit', value)}>
+                                <SelectTrigger id="inventory-purchaseUnit" disabled={selectedCatalogItemId !== 'new'}><SelectValue /></SelectTrigger>
+                                <SelectContent>{UNITS.map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        {formData.purchaseUnit === 'Other' && (
+                            <div>
+                                <Label htmlFor="inventory-purchaseCustomUnit">Custom purchase pack</Label>
+                                <Input id="inventory-purchaseCustomUnit" value={formData.purchaseCustomUnit || ''} disabled={selectedCatalogItemId !== 'new'} onChange={(e) => handleInputChange('purchaseCustomUnit', e.target.value)} placeholder="e.g., Bale" />
+                            </div>
+                        )}
+                        <div>
+                            <Label htmlFor="inventory-unitsPerPurchaseUnit">Everyday units in one purchase pack</Label>
+                            <Input id="inventory-unitsPerPurchaseUnit" type="number" min="0.01" step="any" disabled={selectedCatalogItemId !== 'new'} value={formData.unitsPerPurchaseUnit || 1} onChange={(e) => handleInputChange('unitsPerPurchaseUnit', Number(e.target.value) || 1)} />
+                            <p className="mt-1 text-xs text-muted-foreground">Example: one Box has 50 Pieces; one Sack has 50 Kg. Staff request and receive the everyday unit, not the pack.</p>
+                        </div>
                     </div>
                 )}
 

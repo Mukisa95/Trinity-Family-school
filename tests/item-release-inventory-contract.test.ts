@@ -51,3 +51,11 @@ test('release-only view disables broad Inventory collection owners', () => {
   assert.match(inventoryPage, /useInventorySummary\(\{\s*enabled:\s*inventoryQueriesEnabled\s*\}\)/);
   assert.match(releasePanel, /useItemRequestDecision/);
 });
+
+test('requests and releases keep everyday stock units instead of procurement packs', () => {
+  const requestPage = readFileSync('src/app/item-requests/page.tsx', 'utf8');
+  assert.match(requestPage, /Request the everyday usable unit, not a purchasing box or sack/);
+  assert.match(requestPage, /step="any"/);
+  assert.match(requestRoute, /quantity: z\.number\(\)\.finite\(\)\.positive\(\)/);
+  assert.match(releasePanel, /Requests and releases use the everyday stock unit/);
+});

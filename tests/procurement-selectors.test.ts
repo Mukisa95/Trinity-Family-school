@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildProcurementSummary, selectPurchasesForPeriod } from '../src/lib/utils/procurement-selectors';
+import { readFileSync } from 'node:fs';
+import { buildProcurementSummary, resolveProcurementPurchasePeriod, selectPurchasesForPeriod } from '../src/lib/utils/procurement-selectors';
 import type { AcademicYear, ProcurementPurchase } from '../src/types';
 
 const academicYear: AcademicYear = {
@@ -13,6 +14,7 @@ const academicYear: AcademicYear = {
   terms: [
     { id: 'term-1-2026', name: 'Term 1', startDate: '2026-02-01', endDate: '2026-04-30', isCurrent: false },
     { id: 'term-2-2026', name: 'Term 2', startDate: '2026-05-01', endDate: '2026-08-31', isCurrent: false },
+    { id: 'term-3-2026', name: 'Term 3', startDate: '2026-09-01', endDate: '2026-12-15', isCurrent: false },
   ],
 };
 
@@ -32,6 +34,22 @@ const purchase = (id: string, termId: string, purchaseDate: string, totalCost: n
   termId,
   termName: termId === 'term-1-2026' ? 'Term 1' : 'Term 2',
   createdAt: purchaseDate,
+});
+
+test('purchase saving resolves the form-selected future term, not the current reporting term', () => {
+  const selected = resolveProcurementPurchasePeriod([academicYear], academicYear.id, 'term-3-2026');
+
+  assert.equal(selected?.academicYear.id, academicYear.id);
+  assert.equal(selected?.term.id, 'term-3-2026');
+  assert.equal(selected?.term.name, 'Term 3');
+  assert.equal(resolveProcurementPurchasePeriod([academicYear], academicYear.id, 'unknown-term'), null);
+});
+
+test('purchase management passes the form-selected period to the save service', () => {
+  const source = readFileSync('src/components/procurement/PurchaseManagement.tsx', 'utf8');
+
+  assert.match(source, /resolveProcurementPurchasePeriod\(\s*academicYears,\s*purchaseData\.academicYearId,\s*purchaseData\.termId/s);
+  assert.match(source, /ProcurementService\.createPurchase\(\s*purchaseData,\s*selectedPeriod\.academicYear,\s*selectedPeriod\.term/s);
 });
 
 test('term selection preserves the complete source list and returns only the selected term', () => {

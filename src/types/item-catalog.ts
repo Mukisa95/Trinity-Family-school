@@ -14,6 +14,10 @@ export interface SchoolItemCatalogEntry {
   normalizedName: string;
   standardUnit: string;
   customUnit?: string;
+  /** Bulk purchasing information. Stock, requests, and releases still use standardUnit. */
+  purchaseUnit?: string;
+  purchaseCustomUnit?: string;
+  unitsPerPurchaseUnit?: number;
   isStockTracked: boolean;
   isActive: boolean;
   createdAt: string;

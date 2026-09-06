@@ -15,6 +15,21 @@ export interface ProcurementPeriodSelection {
   viewPeriod: ViewPeriodType;
 }
 
+/**
+ * Resolves the period selected in a purchase form. This must use the form's
+ * ids, rather than the Procurement page's current reporting period: staff may
+ * legitimately record a future-term purchase while viewing the current term.
+ */
+export const resolveProcurementPurchasePeriod = (
+  academicYears: AcademicYear[],
+  academicYearId: string,
+  termId: string,
+): { academicYear: AcademicYear; term: Term } | null => {
+  const academicYear = academicYears.find((candidate) => candidate.id === academicYearId);
+  const term = academicYear?.terms.find((candidate) => candidate.id === termId);
+  return academicYear && term ? { academicYear, term } : null;
+};
+
 const getCalendarWeek = (date: Date): number => {
   const startOfYear = new Date(date.getFullYear(), 0, 1);
   const daysSinceStartOfYear = Math.floor(

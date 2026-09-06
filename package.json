@@ -35,6 +35,7 @@
     "test:master-data-ownership": "node scripts/check-master-data-ownership-contract.js",
     "test:master-data-selectors": "node --import tsx --test tests/master-data-selectors.test.ts",
     "test:inventory-movement": "node --import tsx --test tests/inventory-movement.test.ts",
+    "test:purchase-units": "node --import tsx --test tests/purchase-unit-conversion.test.ts",
     "test:item-request-state": "node --import tsx --test tests/item-request-state.test.ts",
     "test:item-request-permissions": "node --import tsx --test tests/item-request-permissions.test.ts",
     "test:item-request-query-contract": "node --import tsx --test tests/item-request-query-contract.test.ts",

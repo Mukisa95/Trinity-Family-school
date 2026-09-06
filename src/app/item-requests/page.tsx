@@ -88,8 +88,8 @@ export default function ItemRequestsPage() {
 
   const submit = async () => {
     const parsedQuantity = Number(quantity);
-    if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1) {
-      toast({ title: 'Check the quantity', description: 'Enter a whole number greater than zero.', variant: 'destructive' });
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      toast({ title: 'Check the quantity', description: 'Enter a quantity greater than zero.', variant: 'destructive' });
       return;
     }
     if (reason.trim().length < 3) {
@@ -189,7 +189,7 @@ export default function ItemRequestsPage() {
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Request an item</DialogTitle>
-            <DialogDescription>Only the item, quantity and reason are required. You will receive a notification when the request changes.</DialogDescription>
+            <DialogDescription>Request the everyday usable unit, not a purchasing box or sack. You will receive a notification when the request changes.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2" role="group" aria-label="Item source">
@@ -211,17 +211,17 @@ export default function ItemRequestsPage() {
                     </button>
                   ))}
                 </div>
-                {selectedCatalogItem && <p className="text-sm text-emerald-700">Selected: {selectedCatalogItem.name} ({selectedCatalogItem.standardUnit})</p>}
+                {selectedCatalogItem && <p className="text-sm text-emerald-700">Selected: {selectedCatalogItem.name} ({selectedCatalogItem.standardUnit}). Requests and releases use this everyday unit, not its purchase pack.</p>}
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label htmlFor="other-name">Item name</Label><Input id="other-name" value={otherItemName} onChange={event => setOtherItemName(event.target.value)} placeholder="For example, whiteboard markers" className="min-h-11" /></div>
-                <div className="space-y-2"><Label htmlFor="other-unit">Unit</Label><Input id="other-unit" value={otherItemUnit} onChange={event => setOtherItemUnit(event.target.value)} placeholder="For example, boxes" className="min-h-11" /></div>
+                <div className="space-y-2"><Label htmlFor="other-unit">Everyday unit</Label><Input id="other-unit" value={otherItemUnit} onChange={event => setOtherItemUnit(event.target.value)} placeholder="For example, Pieces or Kg" className="min-h-11" /></div>
               </div>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="quantity">Quantity</Label><Input id="quantity" value={quantity} onChange={event => setQuantity(event.target.value)} type="number" min="1" step="1" inputMode="numeric" className="min-h-11" /></div>
+              <div className="space-y-2"><Label htmlFor="quantity">Quantity in {selectedCatalogItem?.standardUnit || (source === 'other' ? otherItemUnit || 'everyday units' : 'everyday units')}</Label><Input id="quantity" value={quantity} onChange={event => setQuantity(event.target.value)} type="number" min="0.01" step="any" inputMode="decimal" className="min-h-11" /></div>
               <div className="space-y-2"><Label htmlFor="needed-by">Needed by <span className="font-normal text-slate-500">(optional)</span></Label><Input id="needed-by" value={neededBy} onChange={event => setNeededBy(event.target.value)} type="date" className="min-h-11" /></div>
             </div>
             <div className="space-y-2"><Label htmlFor="reason">Reason</Label><textarea id="reason" value={reason} onChange={event => setReason(event.target.value)} placeholder="Explain what the item will be used for." className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>

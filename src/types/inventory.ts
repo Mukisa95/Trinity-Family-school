@@ -32,6 +32,9 @@ export type InventoryUnit =
     | 'Pairs'
     | 'Boxes'
     | 'Cartons'
+    | 'Packets'
+    | 'Bags'
+    | 'Sacks'
     | 'Rolls'
     | 'Litres'
     | 'Kg'
@@ -83,6 +86,10 @@ export interface InventoryItem {
     quantity: number;              // Current stock level
     unit: InventoryUnit;
     customUnit?: string;           // For 'Other' unit type
+    /** Optional purchasing pack, e.g. one Box contains 50 Pieces. */
+    purchaseUnit?: string;
+    purchaseCustomUnit?: string;
+    unitsPerPurchaseUnit?: number;
     reorderLevel?: number;         // Alert when stock falls below this
 
     // Condition and status

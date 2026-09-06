@@ -27,7 +27,7 @@ const createRequestSchema = z.object({
   catalogItemId: z.string().trim().min(1).max(160).optional(),
   otherItemName: z.string().trim().min(2).max(160).optional(),
   otherItemUnit: z.string().trim().min(1).max(60).optional(),
-  quantity: z.number().finite().int().min(1).max(1_000_000),
+  quantity: z.number().finite().positive().max(1_000_000),
   reason: z.string().trim().min(3).max(2_000),
   neededBy: z.string().trim().max(40).optional(),
   useLocation: z.string().trim().max(160).optional(),
