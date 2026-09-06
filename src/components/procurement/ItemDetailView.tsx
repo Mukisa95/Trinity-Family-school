@@ -1,106 +1,58 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ArrowLeft, Download, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { ProcurementService } from '@/lib/services/procurement.service';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { ProcurementItem, ProcurementPurchase } from '@/types';
 
 interface ItemDetailViewProps {
   itemId: string;
+  item: ProcurementItem | null;
+  purchases: ProcurementPurchase[];
   onBack: () => void;
 }
 
-export function ItemDetailView({ itemId, onBack }: ItemDetailViewProps) {
-  const [loading, setLoading] = useState(true);
-  const [item, setItem] = useState<ProcurementItem | null>(null);
-  const [purchases, setPurchases] = useState<ProcurementPurchase[]>([]);
-  const [priceHistory, setPriceHistory] = useState<any[]>([]);
-  const [totalQuantity, setTotalQuantity] = useState(0);
-  const [totalCost, setTotalCost] = useState(0);
+export function ItemDetailView({ itemId, item, purchases, onBack }: ItemDetailViewProps) {
+  const itemPurchases = React.useMemo(() => {
+    const purchasesForItem = purchases
+      .filter((purchase) => purchase.itemId === itemId)
+      .sort((left, right) => new Date(right.purchaseDate).getTime() - new Date(left.purchaseDate).getTime());
 
-  useEffect(() => {
-    const loadItemData = async () => {
-      try {
-        setLoading(true);
-        
-        // Load item details and purchase history
-        const [itemData, purchasesData] = await Promise.all([
-          ProcurementService.getItemById(itemId),
-          ProcurementService.getPurchasesByItem(itemId)
-        ]);
-        
-        if (!itemData) {
-          toast({
-            title: "Error",
-            description: "Item not found",
-            variant: "destructive",
-          });
-          onBack();
-          return;
-        }
-        
-        setItem(itemData);
-        setPurchases(purchasesData.sort((a, b) => 
-          new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
-        ));
-        
-        // Calculate totals
-        const totalQty = purchasesData.reduce((sum, p) => sum + p.quantity, 0);
-        const totalAmt = purchasesData.reduce((sum, p) => sum + p.totalCost, 0);
-        setTotalQuantity(totalQty);
-        setTotalCost(totalAmt);
-        
-        // Create price history for the chart
-        const priceData = [];
-        const purchasesByDate = {};
-        
-        // Group purchases by date
-        purchasesData.forEach(purchase => {
-          const date = purchase.purchaseDate;
-          if (!purchasesByDate[date]) {
-            purchasesByDate[date] = [];
-          }
-          purchasesByDate[date].push(purchase);
-        });
-        
-        // Calculate average price per date
-        Object.entries(purchasesByDate).forEach(([date, purchasesList]) => {
-          const purchases = purchasesList as ProcurementPurchase[];
-          const totalCost = purchases.reduce((sum, p) => sum + p.totalCost, 0);
-          const totalQty = purchases.reduce((sum, p) => sum + p.quantity, 0);
-          const avgPrice = totalQty > 0 ? totalCost / totalQty : 0;
-          
-          priceData.push({
-            date: new Date(date).toLocaleDateString(),
-            price: avgPrice,
-            quantity: totalQty
-          });
-        });
-        
-        // Sort by date ascending for the chart
-        priceData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        setPriceHistory(priceData);
-        
-      } catch (error) {
-        console.error('Error loading item data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load item data. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    return purchasesForItem.map((purchase, index) => ({
+      ...purchase,
+      lastPurchasePrice: purchasesForItem[index + 1]?.unitCost,
+    }));
+  }, [itemId, purchases]);
 
-    loadItemData();
-  }, [itemId, onBack]);
+  const totalQuantity = React.useMemo(
+    () => itemPurchases.reduce((sum, purchase) => sum + purchase.quantity, 0),
+    [itemPurchases]
+  );
+  const totalCost = React.useMemo(
+    () => itemPurchases.reduce((sum, purchase) => sum + purchase.totalCost, 0),
+    [itemPurchases]
+  );
+  const priceHistory = React.useMemo(() => {
+    const purchasesByDate = new Map<string, ProcurementPurchase[]>();
+    for (const purchase of itemPurchases) {
+      const records = purchasesByDate.get(purchase.purchaseDate) || [];
+      records.push(purchase);
+      purchasesByDate.set(purchase.purchaseDate, records);
+    }
+
+    return [...purchasesByDate.entries()]
+      .map(([date, records]) => {
+        const quantity = records.reduce((sum, purchase) => sum + purchase.quantity, 0);
+        const cost = records.reduce((sum, purchase) => sum + purchase.totalCost, 0);
+        return { date, price: quantity > 0 ? cost / quantity : 0, quantity };
+      })
+      .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+      .map((entry) => ({ ...entry, date: new Date(entry.date).toLocaleDateString() }));
+  }, [itemPurchases]);
 
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
   
@@ -108,12 +60,12 @@ export function ItemDetailView({ itemId, onBack }: ItemDetailViewProps) {
     return item.customUnit || item.unit;
   };
   
-  if (loading) {
+  if (!item) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading item data...</p>
+          <p className="text-gray-600">This procurement item is no longer available.</p>
+          <Button className="mt-4" variant="outline" onClick={onBack}>Back to Procurement</Button>
         </div>
       </div>
     );
@@ -208,7 +160,7 @@ export function ItemDetailView({ itemId, onBack }: ItemDetailViewProps) {
       <Card>
         <CardHeader>
           <CardTitle>Purchase History</CardTitle>
-          <CardDescription>{purchases.length} purchase records found</CardDescription>
+          <CardDescription>{itemPurchases.length} purchase records found</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -224,7 +176,7 @@ export function ItemDetailView({ itemId, onBack }: ItemDetailViewProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {purchases.map((purchase) => {
+              {itemPurchases.map((purchase) => {
                 const dateStr = new Date(purchase.purchaseDate).toLocaleDateString();
                 const priceDiff = purchase.lastPurchasePrice ? 
                   ((purchase.unitCost - purchase.lastPurchasePrice) / purchase.lastPurchasePrice) * 100 : 0;
@@ -259,7 +211,7 @@ export function ItemDetailView({ itemId, onBack }: ItemDetailViewProps) {
                   </TableRow>
                 );
               })}
-              {purchases.length === 0 && (
+              {itemPurchases.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-4 text-gray-500">
                     No purchase records found for this item
@@ -310,4 +262,4 @@ export function ItemDetailView({ itemId, onBack }: ItemDetailViewProps) {
       </Card>
     </div>
   );
-} 
+}

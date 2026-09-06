@@ -103,6 +103,36 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Item requests are intentionally server-owned. A request-only account
+    // must never be able to list another staff member's request, change its
+    // status, or write an Inventory movement by bypassing the page UI.
+    match /itemRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /itemRequestEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /itemRequestOperations/{operationId} {
+      allow read, write: if false;
+    }
+
+    match /itemRequestDecisionOperations/{operationId} {
+      allow read, write: if false;
+    }
+
+    // Restock instructions drive Procurement work but are never completed
+    // purchase records. They are server-owned to prevent fake or duplicate
+    // procurement work from a browser retry.
+    match /procurementRestockRequests/{restockRequestId} {
+      allow read, write: if false;
+    }
+
+    match /itemRequestRestockOperations/{operationId} {
+      allow read, write: if false;
+    }
+
     match /attendanceReminderRuns/{runId} {
       allow read, write: if false;
     }
@@ -177,6 +207,12 @@ service cloud.firestore {
         && collection != 'photos'
         && collection != 'attendanceDailySummaries'
         && collection != 'notificationAutomationSettings'
+        && collection != 'itemRequests'
+        && collection != 'itemRequestEvents'
+        && collection != 'itemRequestOperations'
+        && collection != 'itemRequestDecisionOperations'
+        && collection != 'procurementRestockRequests'
+        && collection != 'itemRequestRestockOperations'
         && collection != 'attendanceReminderRuns'
         && collection != 'scheduledNotifications'
         && collection != 'scheduledSMS'

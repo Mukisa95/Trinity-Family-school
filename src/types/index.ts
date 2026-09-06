@@ -37,7 +37,7 @@ export type Permission =
 
 // Legacy module permission type (kept for backward compatibility)
 export type ModulePermission = {
-  module: 'pupils' | 'classes' | 'staff' | 'subjects' | 'fees' | 'exams' | 'attendance' | 'academic_years' | 'users' | 'banking' | 'procurement' | 'requirements' | 'uniforms' | 'notifications' | 'bulk_sms' | 'reports' | 'settings' | 'pupil_history' | 'events' | 'promotion' | 'timetable' | 'payroll';
+  module: 'pupils' | 'classes' | 'staff' | 'subjects' | 'fees' | 'exams' | 'attendance' | 'academic_years' | 'users' | 'banking' | 'procurement' | 'requirements' | 'uniforms' | 'notifications' | 'bulk_sms' | 'reports' | 'settings' | 'pupil_history' | 'events' | 'promotion' | 'timetable' | 'payroll' | 'inventory' | 'item_requests';
   permission: Permission;
 };
 
@@ -1566,6 +1566,8 @@ export type YearViewFormat = 'By Terms' | 'By Months' | 'By Weeks';
 // Procurement Item (Master List)
 export interface ProcurementItem {
   id: string;
+  /** Future shared catalogue identity. Legacy procurement ids remain valid during migration. */
+  catalogItemId?: string;
   name: string;
   category: ProcurementCategory;
   unit: ProcurementUnit;
@@ -1590,6 +1592,9 @@ export interface ProcurementItem {
 export interface ProcurementPurchase {
   id: string;
   itemId: string;
+  catalogItemId?: string;
+  /** Present only when this real purchase fulfils a staff item request. */
+  restockRequestId?: string;
   itemName?: string; // Denormalized for easier display
   itemCategory?: ProcurementCategory; // Denormalized
   quantity: number;
@@ -1637,6 +1642,7 @@ export interface ProcurementPurchase {
 export interface BudgetItem {
   id: string;
   itemId: string;
+  catalogItemId?: string;
   itemName?: string; // Denormalized
   itemCategory?: ProcurementCategory; // Denormalized
   estimatedQuantity: number;
@@ -2311,6 +2317,8 @@ export * from './digital-signature';
 
 // Re-export inventory types
 export * from './inventory';
+export * from './item-catalog';
+export * from './item-requests';
 
 // Re-export uniform inventory types
 export * from './uniform-inventory';

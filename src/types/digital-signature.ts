@@ -27,6 +27,7 @@ export type RecordType =
   | 'exam_creation'
   | 'exam_result'
   | 'procurement'
+  | 'inventory'
   | 'requirement_collection'
   | 'uniform_payment'
   | 'pupil_promotion'
@@ -97,4 +98,4 @@ export interface AuditTrailEntry {
   description: string;
   timestamp: string;
   metadata?: Record<string, any>;
-} 
+}

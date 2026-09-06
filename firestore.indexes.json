@@ -447,6 +447,38 @@
         { "fieldPath": "staffId", "order": "ASCENDING" },
         { "fieldPath": "effectiveDate", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "itemRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requesterUserId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "itemRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isActive", "order": "ASCENDING" },
+        { "fieldPath": "lastActionAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "itemRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "catalogItemId", "order": "ASCENDING" },
+        { "fieldPath": "isActive", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "procurementRestockRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

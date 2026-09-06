@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
 import { ProcurementService } from '@/lib/services/procurement.service';
+import { buildProcurementSummary, selectPurchasesForPeriod } from '@/lib/utils/procurement-selectors';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
 import type {
@@ -23,7 +24,8 @@ import type {
   ProcurementCategory,
   BudgetComparison,
   AcademicYear,
-  Term
+  Term,
+  ProcurementRestockRequest
 } from '@/types';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,6 +40,8 @@ import { PurchaseManagement } from '@/components/procurement/PurchaseManagement'
 import { BudgetManagement } from '@/components/procurement/BudgetManagement';
 import { ReportsAndAnalytics } from '@/components/procurement/ReportsAndAnalytics';
 import { ItemDetailView } from '@/components/procurement/ItemDetailView';
+import { CatalogAuditPanel } from '@/components/procurement/CatalogAuditPanel';
+import { RestockRequestPanel } from '@/components/procurement/RestockRequestPanel';
 
 export default function ProcurementPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -46,9 +50,9 @@ export default function ProcurementPage() {
   const [items, setItems] = useState<ProcurementItem[]>([]);
   const [purchases, setPurchases] = useState<ProcurementPurchase[]>([]);
   const [budgets, setBudgets] = useState<ProcurementBudget[]>([]);
-  const [summary, setSummary] = useState<ProcurementSummary | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [restockPurchase, setRestockPurchase] = useState<ProcurementRestockRequest | null>(null);
 
   // View and filter states
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -290,51 +294,23 @@ export default function ProcurementPage() {
     return months;
   };
 
-  // Helper function to filter purchases based on view period
-  const getFilteredPurchasesByPeriod = (allPurchases: ProcurementPurchase[]) => {
-    const selectedYear = academicYears.find(year => year.id === currentAcademicYear);
-    if (!selectedYear) return [];
+  const periodPurchases = React.useMemo(
+    () => selectPurchasesForPeriod(purchases, {
+      academicYear: academicYears.find((year) => year.id === currentAcademicYear),
+      termId: currentTerm,
+      month: currentMonth,
+      week: currentWeek,
+      viewPeriod,
+    }),
+    [academicYears, currentAcademicYear, currentMonth, currentTerm, currentWeek, purchases, viewPeriod]
+  );
 
-    return allPurchases.filter(purchase => {
-      // First filter by academic year
-      const matchesYear = purchase.academicYearId === currentAcademicYear ||
-        purchase.academicYearName === selectedYear.name;
-
-      if (!matchesYear) return false;
-
-      const purchaseDate = new Date(purchase.purchaseDate);
-      const yearNumber = parseInt(selectedYear.name);
-
-      switch (viewPeriod) {
-        case 'Year':
-          // Show all purchases for the selected academic year
-          return true;
-
-        case 'Term':
-          // Show purchases for the selected term
-          return purchase.termId === currentTerm ||
-            purchase.termName?.toLowerCase().includes(currentTerm.toLowerCase());
-
-        case 'Month':
-          // Show purchases for the selected month in the academic year
-          return purchaseDate.getFullYear() === yearNumber &&
-            (purchaseDate.getMonth() + 1) === currentMonth;
-
-        case 'Week':
-          // Show purchases for the selected week in the academic year
-          if (purchaseDate.getFullYear() !== yearNumber) return false;
-
-          const startOfYear = new Date(yearNumber, 0, 1);
-          const daysSinceStartOfYear = Math.floor((purchaseDate.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-          const weekNumber = Math.ceil((daysSinceStartOfYear + startOfYear.getDay() + 1) / 7);
-
-          return weekNumber === currentWeek;
-
-        default:
-          return true;
-      }
-    });
-  };
+  // The summary is derived from the same period list shown on screen. This
+  // avoids a second Firestore read and keeps the overview and purchase tab aligned.
+  const summary = React.useMemo(
+    () => buildProcurementSummary(periodPurchases),
+    [periodPurchases]
+  );
 
   // Initialize current week and month when academic year is set
   useEffect(() => {
@@ -388,6 +364,11 @@ export default function ProcurementPage() {
     setViewPeriod('Term');
   }, []);
 
+  const refreshPurchases = React.useCallback(async () => {
+    const purchasesData = await ProcurementService.getPurchases();
+    setPurchases(purchasesData);
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -404,10 +385,6 @@ export default function ProcurementPage() {
         setPurchases(purchasesData);
         setBudgets(budgetsData);
 
-        // Generate summary
-        const summaryData = await ProcurementService.getSummary(viewPeriod);
-        setSummary(summaryData);
-
       } catch (error) {
         console.error('Error loading procurement data:', error);
         toast({
@@ -421,21 +398,7 @@ export default function ProcurementPage() {
     };
 
     fetchData();
-  }, [viewPeriod]);
-
-  // When view period changes, update summary
-  useEffect(() => {
-    const updateSummary = async () => {
-      try {
-        const summaryData = await ProcurementService.getSummary(viewPeriod);
-        setSummary(summaryData);
-      } catch (error) {
-        console.error('Error updating summary:', error);
-      }
-    };
-
-    updateSummary();
-  }, [viewPeriod]);
+  }, []);
 
   const handleViewItemDetail = (itemId: string) => {
     setSelectedItemId(itemId);
@@ -552,6 +515,7 @@ export default function ProcurementPage() {
       >
         <option value="overview">OVERVIEW</option>
         <option value="purchases">PURCHASES</option>
+        <option value="restock">RESTOCK QUEUE</option>
         <option value="budgets">BUDGETS</option>
         <option value="reports">REPORTS</option>
         <option value="items">ITEMS</option>
@@ -664,11 +628,11 @@ export default function ProcurementPage() {
           <>
             <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-green-700/85 dark:text-green-300 font-medium">Purchases:</span>
-              <span className="font-bold text-green-700 dark:text-green-400">{stats.totalPurchases}</span>
+              <span className="font-bold text-green-700 dark:text-green-400">{summary.totalPurchases}</span>
             </div>
             <div className="flex items-center gap-1 bg-purple-50/80 dark:bg-purple-950/20 border border-purple-100/50 dark:border-purple-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-purple-700/85 dark:text-purple-300 font-medium">Total Spent:</span>
-              <span className="font-bold text-purple-700 dark:text-purple-400 font-tabular-nums">${stats.totalSpent.toFixed(2)}</span>
+              <span className="font-bold text-purple-700 dark:text-purple-400 font-tabular-nums">{formatCurrency(summary.totalAmountSpent)}</span>
             </div>
             <div className="flex items-center gap-1 bg-orange-50/80 dark:bg-orange-950/20 border border-orange-100/50 dark:border-orange-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
               <span className="text-orange-700/85 dark:text-orange-300 font-medium">Budgets:</span>
@@ -738,7 +702,12 @@ export default function ProcurementPage() {
 
         {
           selectedItemId && activeTab === 'itemDetail' ? (
-            <ItemDetailView itemId={selectedItemId} onBack={handleBackFromItemDetail} />
+            <ItemDetailView
+              itemId={selectedItemId}
+              item={items.find((item) => item.id === selectedItemId) || null}
+              purchases={purchases}
+              onBack={handleBackFromItemDetail}
+            />
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               {/* TabsList hidden - replaced by header dropdown */}
@@ -748,7 +717,7 @@ export default function ProcurementPage() {
                   summary={summary}
                   stats={stats}
                   filteredItems={filteredItems}
-                  purchases={getFilteredPurchasesByPeriod(purchases)}
+                  purchases={periodPurchases}
                   budgets={budgets}
                   viewPeriod={viewPeriod}
                   searchTerm={searchTerm}
@@ -769,8 +738,8 @@ export default function ProcurementPage() {
 
               <TabsContent value="purchases" className="space-y-4">
                 <PurchaseManagement
-                  purchases={getFilteredPurchasesByPeriod(purchases)}
-                  setPurchases={setPurchases}
+                  purchases={periodPurchases}
+                  onPurchasesChanged={refreshPurchases}
                   items={items}
                   viewPeriod={viewPeriod}
                   currentAcademicYear={currentAcademicYear}
@@ -781,6 +750,17 @@ export default function ProcurementPage() {
                   availableTerms={availableTerms}
                   currentWeek={currentWeek}
                   currentMonth={currentMonth}
+                  restockRequest={restockPurchase}
+                  onRestockPurchaseLinked={() => setRestockPurchase(null)}
+                />
+              </TabsContent>
+
+              <TabsContent value="restock" className="space-y-4">
+                <RestockRequestPanel
+                  onRecordPurchase={(request) => {
+                    setRestockPurchase(request);
+                    setActiveTab('purchases');
+                  }}
                 />
               </TabsContent>
 
@@ -789,6 +769,7 @@ export default function ProcurementPage() {
                   budgets={budgets}
                   setBudgets={setBudgets}
                   items={items}
+                  purchases={purchases}
                 />
               </TabsContent>
 
@@ -803,6 +784,15 @@ export default function ProcurementPage() {
               </TabsContent>
 
               <TabsContent value="items" className="space-y-4">
+                <CatalogAuditPanel
+                  procurementItems={items}
+                  onProcurementItemsLinked={(linkedItemIds, catalogItemId) => {
+                    const linkedIds = new Set(linkedItemIds);
+                    setItems((currentItems) => currentItems.map((item) => (
+                      linkedIds.has(item.id) ? { ...item, catalogItemId } : item
+                    )));
+                  }}
+                />
                 <ItemManagement
                   items={items}
                   setItems={setItems}
@@ -864,6 +854,12 @@ function OverviewTab({
   isMobile: boolean;
 }) {
   const categories = ['all', 'Stationery', 'Equipment', 'Maintenance', 'Technology', 'Food', 'Other'];
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-UG', {
+    style: 'currency',
+    currency: 'UGX',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -891,7 +887,7 @@ function OverviewTab({
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-sm">${purchase.totalCost?.toFixed(2)}</p>
+                      <p className="font-bold text-sm">{formatCurrency(purchase.totalCost || 0)}</p>
                       <p className="text-xs text-gray-500">Qty: {purchase.quantity}</p>
                     </div>
                   </div>
@@ -924,7 +920,7 @@ function OverviewTab({
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-500">
-                        $0.00 / ${budget.totalEstimatedCost.toFixed(2)}
+                        {formatCurrency(0)} / {formatCurrency(budget.totalEstimatedCost)}
                       </p>
                       <p className="text-xs font-medium">
                         0%

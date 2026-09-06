@@ -13,7 +13,7 @@ import {
     serverTimestamp,
     Timestamp,
     limit,
-    writeBatch
+    runTransaction
 } from 'firebase/firestore';
 import type {
     InventoryItem,
@@ -32,8 +32,10 @@ import type {
     ItemCondition,
     InventoryLocation,
     AcademicYear,
-    Term
+    Term,
+    ProcessInventoryReturnData
 } from '@/types';
+import { calculateInventoryQuantity, calculateReturnState } from '@/lib/utils/inventory-movement';
 
 // Collection names
 const INVENTORY_ITEMS_COLLECTION = 'inventoryItems';
@@ -193,116 +195,149 @@ export class InventoryService {
         term: Term
     ): Promise<string> {
         try {
-            const batch = writeBatch(db);
-
-            // Get item details
             const itemRef = doc(db, INVENTORY_ITEMS_COLLECTION, data.itemId);
-            const itemSnap = await getDoc(itemRef);
-
-            if (!itemSnap.exists()) {
-                throw new Error('Item not found');
+            if (data.type === 'return') {
+                throw new Error('Returns must be recorded through the issued-item return workflow.');
+            }
+            if (data.type === 'issue' && !data.issuedTo?.trim()) {
+                throw new Error('An issued item must identify the person or department receiving it.');
             }
 
-            const itemData = itemSnap.data() as InventoryItem;
-            const previousQuantity = itemData.quantity;
-            let newQuantity = previousQuantity;
-
-            // Calculate new quantity based on transaction type
-            switch (data.type) {
-                case 'purchase':
-                case 'return':
-                case 'adjustment':
-                    newQuantity = previousQuantity + data.quantity;
-                    break;
-                case 'issue':
-                case 'dispose':
-                case 'damage':
-                case 'loss':
-                    newQuantity = previousQuantity - data.quantity;
-                    if (newQuantity < 0) {
-                        throw new Error('Insufficient stock. Available: ' + previousQuantity);
-                    }
-                    break;
-                case 'transfer':
-                case 'repair':
-                case 'stocktake':
-                    // These may or may not affect quantity depending on implementation
-                    // For stocktake, quantity is set to the counted value
-                    if (data.type === 'stocktake') {
-                        newQuantity = data.quantity; // Quantity is the new counted value
-                    }
-                    break;
-            }
-
-            // Create transaction record
             const transactionsRef = collection(db, INVENTORY_TRANSACTIONS_COLLECTION);
+            const transactionRef = data.operationId
+                ? doc(transactionsRef, data.operationId)
+                : doc(transactionsRef);
 
-            const transactionData = {
-                ...data,
-                itemName: itemData.name,
-                itemCategory: itemData.category,
-                previousQuantity,
-                newQuantity,
-                academicYearId: academicYear.id,
-                academicYearName: academicYear.name,
-                termId: term.id,
-                termName: term.name,
-                createdAt: serverTimestamp()
-            };
+            return await runTransaction(db, async (firestoreTransaction) => {
+                const existingTransaction = await firestoreTransaction.get(transactionRef);
+                if (existingTransaction.exists()) return transactionRef.id;
 
-            const transactionRef = doc(transactionsRef);
-            batch.set(transactionRef, transactionData);
+                const itemSnap = await firestoreTransaction.get(itemRef);
+                if (!itemSnap.exists()) throw new Error('Item not found');
 
-            // Update item quantity and stats
-            const itemUpdates: any = {
-                quantity: newQuantity,
-                totalValue: (itemData.unitValue || 0) * newQuantity,
-                updatedAt: serverTimestamp()
-            };
-
-            // Update issue/return stats
-            if (data.type === 'issue') {
-                itemUpdates.totalIssued = (itemData.totalIssued || 0) + data.quantity;
-                itemUpdates.currentlyIssued = (itemData.currentlyIssued || 0) + data.quantity;
-            } else if (data.type === 'return') {
-                itemUpdates.totalReturned = (itemData.totalReturned || 0) + data.quantity;
-                itemUpdates.currentlyIssued = Math.max(0, (itemData.currentlyIssued || 0) - data.quantity);
-            }
-
-            // Update condition if provided
-            if (data.conditionAfter) {
-                itemUpdates.condition = data.conditionAfter;
-            }
-
-            batch.update(itemRef, itemUpdates);
-
-            // For issue transactions, create an issued item record
-            if (data.type === 'issue' && data.issuedTo) {
-                const issuedItemsRef = collection(db, ISSUED_ITEMS_COLLECTION);
-                const issuedItemRef = doc(issuedItemsRef);
-
-                batch.set(issuedItemRef, {
-                    itemId: data.itemId,
+                const itemData = itemSnap.data() as InventoryItem;
+                const previousQuantity = itemData.quantity;
+                const newQuantity = calculateInventoryQuantity(previousQuantity, data.type, data.quantity);
+                const transactionData = {
+                    ...data,
                     itemName: itemData.name,
-                    transactionId: transactionRef.id,
-                    quantity: data.quantity,
-                    issuedTo: data.issuedTo,
-                    issuedToRole: data.issuedToRole,
-                    purpose: data.purpose,
-                    location: data.toLocation,
-                    issueDate: data.transactionDate,
-                    expectedReturnDate: data.expectedReturnDate,
-                    status: 'issued',
+                    itemCategory: itemData.category,
+                    previousQuantity,
+                    newQuantity,
                     academicYearId: academicYear.id,
+                    academicYearName: academicYear.name,
                     termId: term.id,
+                    termName: term.name,
                     createdAt: serverTimestamp()
-                });
-            }
+                };
 
-            await batch.commit();
-            return transactionRef.id;
+                const itemUpdates: any = {
+                    quantity: newQuantity,
+                    totalValue: (itemData.unitValue || 0) * newQuantity,
+                    updatedAt: serverTimestamp()
+                };
+                if (data.type === 'issue') {
+                    itemUpdates.totalIssued = (itemData.totalIssued || 0) + data.quantity;
+                    itemUpdates.currentlyIssued = (itemData.currentlyIssued || 0) + data.quantity;
+                }
+                if (data.conditionAfter) itemUpdates.condition = data.conditionAfter;
+
+                firestoreTransaction.set(transactionRef, transactionData);
+                firestoreTransaction.update(itemRef, itemUpdates);
+
+                if (data.type === 'issue' && data.issuedTo) {
+                    const issuedItemRef = data.operationId
+                        ? doc(db, ISSUED_ITEMS_COLLECTION, data.operationId)
+                        : doc(collection(db, ISSUED_ITEMS_COLLECTION));
+                    firestoreTransaction.set(issuedItemRef, {
+                        itemId: data.itemId,
+                        itemName: itemData.name,
+                        transactionId: transactionRef.id,
+                        quantity: data.quantity,
+                        issuedTo: data.issuedTo,
+                        issuedToRole: data.issuedToRole,
+                        purpose: data.purpose,
+                        location: data.toLocation,
+                        issueDate: data.transactionDate,
+                        expectedReturnDate: data.expectedReturnDate,
+                        status: 'issued',
+                        academicYearId: academicYear.id,
+                        termId: term.id,
+                        createdAt: serverTimestamp()
+                    });
+                }
+
+                return transactionRef.id;
+            });
         } catch (error) {
             console.error('Error recording inventory transaction:', error);
+            throw error;
+        }
+    }
+
+    static async processReturn(data: ProcessInventoryReturnData): Promise<string> {
+        try {
+            const transactionRef = doc(db, INVENTORY_TRANSACTIONS_COLLECTION, data.operationId);
+            const issuedRef = doc(db, ISSUED_ITEMS_COLLECTION, data.issuedItemId);
+
+            return await runTransaction(db, async (firestoreTransaction) => {
+                const existingTransaction = await firestoreTransaction.get(transactionRef);
+                if (existingTransaction.exists()) return transactionRef.id;
+
+                const issuedSnap = await firestoreTransaction.get(issuedRef);
+                if (!issuedSnap.exists()) throw new Error('Issued item record not found');
+                const issuedItem = { id: issuedSnap.id, ...issuedSnap.data() } as IssuedItem;
+
+                const itemRef = doc(db, INVENTORY_ITEMS_COLLECTION, issuedItem.itemId);
+                const itemSnap = await firestoreTransaction.get(itemRef);
+                if (!itemSnap.exists()) throw new Error('Inventory item not found');
+                const item = itemSnap.data() as InventoryItem;
+                const returnState = calculateReturnState(issuedItem, data.returnedQuantity);
+                const newQuantity = calculateInventoryQuantity(item.quantity, 'return', data.returnedQuantity);
+
+                firestoreTransaction.set(transactionRef, {
+                    itemId: issuedItem.itemId,
+                    issuedItemId: issuedItem.id,
+                    operationId: data.operationId,
+                    itemName: item.name,
+                    itemCategory: item.category,
+                    type: 'return',
+                    quantity: data.returnedQuantity,
+                    previousQuantity: item.quantity,
+                    newQuantity,
+                    issuedTo: issuedItem.issuedTo,
+                    conditionAfter: data.returnCondition,
+                    notes: data.notes,
+                    processedBy: data.processedBy,
+                    processedByUserId: data.processedByUserId,
+                    processedByUsername: data.processedByUsername,
+                    transactionDate: data.transactionDate,
+                    academicYearId: data.academicYear.id,
+                    academicYearName: data.academicYear.name,
+                    termId: data.term.id,
+                    termName: data.term.name,
+                    createdAt: serverTimestamp()
+                });
+                firestoreTransaction.update(itemRef, {
+                    quantity: newQuantity,
+                    totalValue: (item.unitValue || 0) * newQuantity,
+                    totalReturned: (item.totalReturned || 0) + data.returnedQuantity,
+                    currentlyIssued: Math.max(0, (item.currentlyIssued || 0) - data.returnedQuantity),
+                    ...(data.returnCondition ? { condition: data.returnCondition } : {}),
+                    updatedAt: serverTimestamp()
+                });
+                firestoreTransaction.update(issuedRef, {
+                    returnedQuantity: returnState.totalReturned,
+                    status: returnState.status,
+                    actualReturnDate: returnState.isFullyReturned ? data.actualReturnDate : undefined,
+                    lastReturnTransactionId: transactionRef.id,
+                    updatedAt: serverTimestamp()
+                });
+
+                return transactionRef.id;
+            });
+        } catch (error) {
+            console.error('Error processing inventory return:', error);
             throw error;
         }
     }
@@ -406,7 +441,7 @@ export class InventoryService {
     static async getIssuedItems(status?: 'issued' | 'overdue'): Promise<IssuedItem[]> {
         try {
             const issuedRef = collection(db, ISSUED_ITEMS_COLLECTION);
-            let q = query(issuedRef, where('status', '==', 'issued'), orderBy('issueDate', 'desc'));
+            let q = query(issuedRef, where('status', 'in', ['issued', 'partial']), orderBy('issueDate', 'desc'));
 
             const snapshot = await getDocs(q);
             const now = new Date().toISOString();
@@ -452,28 +487,9 @@ export class InventoryService {
             notes?: string;
         }
     ): Promise<void> {
-        try {
-            const issuedRef = doc(db, ISSUED_ITEMS_COLLECTION, issuedItemId);
-            const issuedSnap = await getDoc(issuedRef);
-
-            if (!issuedSnap.exists()) {
-                throw new Error('Issued item record not found');
-            }
-
-            const issuedData = issuedSnap.data() as IssuedItem;
-            const newReturnedQty = (issuedData.returnedQuantity || 0) + returnData.returnedQuantity;
-            const isFullyReturned = newReturnedQty >= issuedData.quantity;
-
-            await updateDoc(issuedRef, {
-                actualReturnDate: isFullyReturned ? returnData.actualReturnDate : undefined,
-                returnedQuantity: newReturnedQty,
-                status: isFullyReturned ? 'returned' : 'partial',
-                updatedAt: serverTimestamp()
-            });
-        } catch (error) {
-            console.error('Error marking item returned:', error);
-            throw error;
-        }
+        void issuedItemId;
+        void returnData;
+        throw new Error('Use processReturn so the stock movement and issued record are saved together.');
     }
 
     // ===== STOCK LEVELS =====

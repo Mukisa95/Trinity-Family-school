@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryService } from '../services/inventory.service';
+import { ItemCatalogService } from '../services/item-catalog.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
+import { auth } from '@/lib/firebase';
 import type {
     InventoryItem,
     CreateInventoryItemData,
@@ -15,8 +17,10 @@ import type {
     TransactionFilters,
     AcademicYear,
     Term,
-    ItemCondition
+    ItemCondition,
+    ProcessInventoryReturnData
 } from '@/types';
+import type { CreateCatalogLinkedInventoryItemData, CreateNewCatalogInventoryItemData } from '@/types';
 
 // Query Keys
 export const inventoryKeys = {
@@ -102,6 +106,45 @@ export function useCreateInventoryItem() {
             queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
             queryClient.invalidateQueries({ queryKey: inventoryKeys.summary() });
             queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
+        },
+    });
+}
+
+/**
+ * Creates new Inventory records through the shared catalogue. A single
+ * transaction either saves both records or saves neither one.
+ */
+export function useCreateCatalogBackedInventoryItem() {
+    const queryClient = useQueryClient();
+    const { signAction } = useDigitalSignatureHelpers();
+    const { user } = useAuth();
+
+    return useMutation({
+        mutationFn: async (data: CreateNewCatalogInventoryItemData | CreateCatalogLinkedInventoryItemData) => {
+            const result = 'catalogItemId' in data
+                ? await ItemCatalogService.createCatalogLinkedInventoryItem(data)
+                : await ItemCatalogService.createNewInventoryItem(data);
+
+            if (user) {
+                await signAction('inventory', result.inventoryItemId, 'item_created', {
+                    itemName: data.item.name,
+                    category: data.item.category,
+                    quantity: data.item.quantity,
+                    unit: data.item.unit,
+                    location: data.item.location,
+                    condition: data.item.condition,
+                    unitValue: data.item.unitValue,
+                    assetTag: data.item.assetTag,
+                    catalogItemId: result.catalogItemId,
+                });
+            }
+            return result;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.summary() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
+            queryClient.invalidateQueries({ queryKey: ['school-item-catalog'] });
         },
     });
 }
@@ -215,26 +258,51 @@ export function useRecordTransaction() {
         }) => {
             const transactionId = await InventoryService.recordTransaction(data, academicYear, term);
 
-            // Create digital signature for inventory transaction
-            if (user) {
-                await signAction(
-                    'inventory',
-                    transactionId,
-                    `transaction_${data.type}`,
-                    {
-                        itemId: data.itemId,
-                        type: data.type,
-                        quantity: data.quantity,
-                        fromLocation: data.fromLocation,
-                        toLocation: data.toLocation,
-                        issuedTo: data.issuedTo,
-                        purpose: data.purpose,
-                        processedBy: data.processedBy,
-                        transactionDate: data.transactionDate,
-                        academicYear: academicYear.name,
-                        term: term.name
+            // A purchase receipt can make one or more staff requests ready for
+            // release. This is deliberately secondary: stock has already been
+            // committed and must never be rolled back because notification work
+            // is temporarily unavailable.
+            if (data.type === 'purchase') {
+                try {
+                    const token = await auth.currentUser?.getIdToken();
+                    if (token) {
+                        const response = await fetch('/api/item-requests/restock-received', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ inventoryItemId: data.itemId, inventoryTransactionId: transactionId }),
+                        });
+                        if (!response.ok) console.warn('Stock was received, but pending item requests could not be refreshed.');
                     }
-                );
+                } catch (error) {
+                    console.warn('Stock was received, but pending item requests could not be refreshed:', error);
+                }
+            }
+
+            // A committed stock transaction must remain successful even if the
+            // secondary signature service is temporarily unavailable.
+            if (user) {
+                try {
+                    await signAction(
+                        'inventory',
+                        transactionId,
+                        `transaction_${data.type}`,
+                        {
+                            itemId: data.itemId,
+                            type: data.type,
+                            quantity: data.quantity,
+                            fromLocation: data.fromLocation,
+                            toLocation: data.toLocation,
+                            issuedTo: data.issuedTo,
+                            purpose: data.purpose,
+                            processedBy: data.processedBy,
+                            transactionDate: data.transactionDate,
+                            academicYear: academicYear.name,
+                            term: term.name
+                        }
+                    );
+                } catch (error) {
+                    console.error('Inventory transaction was saved but could not be signed:', error);
+                }
             }
 
             return transactionId;
@@ -261,48 +329,38 @@ export function useOverdueItems() {
     });
 }
 
-export function useMarkItemReturned() {
+export function useProcessInventoryReturn() {
     const queryClient = useQueryClient();
     const { signAction } = useDigitalSignatureHelpers();
     const { user } = useAuth();
 
     return useMutation({
-        mutationFn: async ({
-            issuedItemId,
-            returnData
-        }: {
-            issuedItemId: string;
-            returnData: {
-                actualReturnDate: string;
-                returnedQuantity: number;
-                returnCondition?: ItemCondition;
-                notes?: string;
-            }
-        }) => {
-            await InventoryService.markItemReturned(issuedItemId, returnData);
+        mutationFn: async (data: ProcessInventoryReturnData) => {
+            const transactionId = await InventoryService.processReturn(data);
 
-            // Create digital signature for item return
             if (user) {
-                await signAction(
-                    'inventory',
-                    issuedItemId,
-                    'item_returned',
-                    {
-                        returnedQuantity: returnData.returnedQuantity,
-                        returnCondition: returnData.returnCondition,
-                        returnDate: returnData.actualReturnDate,
-                        processedBy: user.username
-                    }
-                );
+                try {
+                    await signAction(
+                        'inventory',
+                        transactionId,
+                        'item_returned',
+                        {
+                            issuedItemId: data.issuedItemId,
+                            returnedQuantity: data.returnedQuantity,
+                            returnCondition: data.returnCondition,
+                            returnDate: data.actualReturnDate,
+                            processedBy: user.username
+                        }
+                    );
+                } catch (error) {
+                    console.error('Inventory return was saved but could not be signed:', error);
+                }
             }
 
-            return issuedItemId;
+            return transactionId;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.issuedItems() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.overdueItems() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.items() });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.stockLevels() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
         },
     });
 }

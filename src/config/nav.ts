@@ -1,5 +1,5 @@
 import type { NavigationItem } from '@/types';
-import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList, PackageCheck } from 'lucide-react';
 
 export const navItems: NavigationItem[] = [
   {
@@ -130,6 +130,16 @@ export const navItems: NavigationItem[] = [
         title: 'Inventory',
         href: '/inventory',
         icon: Warehouse,
+      },
+      {
+        title: 'Request Items',
+        href: '/item-requests',
+        icon: ClipboardList,
+      },
+      {
+        title: 'Release Queue',
+        href: '/item-requests/release',
+        icon: PackageCheck,
       },
     ],
   },

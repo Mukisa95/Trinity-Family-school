@@ -13,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { ProcurementService } from '@/lib/services/procurement.service';
 import type { 
   ProcurementBudget, 
   ProcurementItem, 
@@ -25,6 +24,7 @@ interface BudgetManagementProps {
   budgets: ProcurementBudget[];
   setBudgets: (budgets: ProcurementBudget[]) => void;
   items: ProcurementItem[];
+  purchases: ProcurementPurchase[];
 }
 
 interface BudgetVsActualItem {
@@ -49,7 +49,7 @@ interface PeriodSelection {
   month?: string;
 }
 
-export function BudgetManagement({ budgets, setBudgets, items }: BudgetManagementProps) {
+export function BudgetManagement({ budgets, setBudgets, items, purchases }: BudgetManagementProps) {
   const [activeTab, setActiveTab] = useState('budgets');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,6 @@ export function BudgetManagement({ budgets, setBudgets, items }: BudgetManagemen
     term: `term-1-${new Date().getFullYear()}`
   });
 
-  const [purchases, setPurchases] = useState<ProcurementPurchase[]>([]);
   const [budgetVsActual, setBudgetVsActual] = useState<BudgetVsActualItem[]>([]);
 
   // Form state for adding budgets
@@ -101,20 +100,6 @@ export function BudgetManagement({ budgets, setBudgets, items }: BudgetManagemen
     { id: '11', name: 'November' },
     { id: '12', name: 'December' }
   ];
-
-  // Fetch purchases for comparison
-  useEffect(() => {
-    const fetchPurchases = async () => {
-      try {
-        const purchasesData = await ProcurementService.getPurchases();
-        setPurchases(purchasesData);
-      } catch (error) {
-        console.error('Error fetching purchases:', error);
-      }
-    };
-    
-    fetchPurchases();
-  }, []);
 
   // Calculate budget vs actual when data changes
   useEffect(() => {
@@ -506,4 +491,4 @@ export function BudgetManagement({ budgets, setBudgets, items }: BudgetManagemen
       </Tabs>
     </div>
   );
-} 
+}

@@ -70,7 +70,7 @@ export class ProcurementService {
       });
     } catch (error) {
       console.error('Error getting procurement items:', error);
-      return [];
+      throw error;
     }
   }
   
@@ -205,7 +205,7 @@ export class ProcurementService {
       });
     } catch (error) {
       console.error('Error getting procurement purchases:', error);
-      return [];
+      throw error;
     }
   }
   
@@ -408,7 +408,7 @@ export class ProcurementService {
       });
     } catch (error) {
       console.error('Error getting procurement budgets:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -649,4 +649,4 @@ export class ProcurementService {
       endDate: endDate.toISOString().split('T')[0]
     };
   }
-} 
+}

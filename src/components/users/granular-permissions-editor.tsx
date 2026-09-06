@@ -108,6 +108,7 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
           { id: "procurement", title: "Procurement", description: "Items, purchases, and budgets.", moduleId: "procurement" },
           { id: "assign", title: "Assign", description: "Pupil fee assignments, discounts, and family accounts.", moduleId: "fees", pageIds: ["list"] },
           { id: "inventory", title: "Inventory", description: "Inventory, uniforms, and requirements tracking.", moduleId: "inventory" },
+          { id: "item-requests", title: "Item Requests", description: "Request items or process staff release requests without granting full Inventory access.", moduleId: "item_requests" },
           { id: "uniforms", title: "Uniforms", description: "Uniform setup and issue tracking.", moduleId: "uniforms" },
           { id: "requirements", title: "Requirements", description: "Requirements setup and pupil tracking.", moduleId: "requirements" },
         ],

@@ -32,6 +32,11 @@ export class GranularPermissionService {
     // inherited from an ordinary Staff or Fees legacy module grant.
     if (moduleId === 'payroll') return false;
 
+    // Requesting or releasing stock is deliberately explicit-only. Legacy
+    // Inventory access must not quietly give somebody authority to release
+    // school property, and request-only staff must remain outside Inventory.
+    if (moduleId === 'item_requests') return false;
+
     // Fallback to legacy permissions
     if (user.modulePermissions) {
       const modulePerms = user.modulePermissions.find(m => m.module === moduleId);
@@ -67,6 +72,7 @@ export class GranularPermissionService {
 
     if (moduleId === 'reports' && pageId === 'docx') return false;
     if (moduleId === 'payroll') return false;
+    if (moduleId === 'item_requests') return false;
 
     // Fallback to legacy permissions with mapping
     if (user.modulePermissions) {
@@ -186,6 +192,7 @@ export class GranularPermissionService {
                 .filter(page => !(modulePerm.module === 'pupils' && page.page === 'historical_seeding'))
                 .filter(page => !(modulePerm.module === 'reports' && page.page === 'docx'))
                 .filter(page => modulePerm.module !== 'payroll')
+                .filter(page => modulePerm.module !== 'item_requests')
                 .map(page => ({
                 pageId: page.page,
                 canAccess: true, // Legacy permissions grant access to all pages in module

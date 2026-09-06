@@ -15,6 +15,9 @@ import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { ProcurementService } from '@/lib/services/procurement.service';
+import { ItemCatalogService } from '@/lib/services/item-catalog.service';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { useSchoolItemCatalog } from '@/lib/hooks/use-item-catalog';
 import type { ProcurementItem, ProcurementCategory, ProcurementUnit, CreateProcurementItemData } from '@/types';
 
 interface ItemManagementProps {
@@ -31,6 +34,9 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ProcurementItem | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedCatalogItemId, setSelectedCatalogItemId] = useState('new');
+  const { user } = useAuth();
+  const { data: catalogItems = [], isFetching: isCatalogFetching, refetch: refetchCatalog } = useSchoolItemCatalog({ enabled: isAddDialogOpen });
 
   // Form state
   const [formData, setFormData] = useState<CreateProcurementItemData>({
@@ -70,6 +76,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
   });
 
   const resetForm = () => {
+    setSelectedCatalogItemId('new');
     setFormData({
       name: '',
       category: 'Other',
@@ -83,14 +90,41 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
     });
   };
 
+  const applyCatalogItem = (catalogItemId: string) => {
+    setSelectedCatalogItemId(catalogItemId);
+    if (catalogItemId === 'new') return;
+    const catalogItem = catalogItems.find((item) => item.id === catalogItemId);
+    if (!catalogItem) return;
+    const isStandardProcurementUnit = units.includes(catalogItem.standardUnit as ProcurementUnit);
+    setFormData((previous) => ({
+      ...previous,
+      name: catalogItem.name,
+      unit: isStandardProcurementUnit ? catalogItem.standardUnit as ProcurementUnit : 'Other',
+      customUnit: isStandardProcurementUnit ? '' : catalogItem.standardUnit,
+      stockTracking: catalogItem.isStockTracked,
+    }));
+  };
+
   const handleAdd = async () => {
     try {
       setLoading(true);
-      const id = await ProcurementService.createItem(formData);
+      const result = selectedCatalogItemId === 'new'
+        ? await ItemCatalogService.createNewProcurementItem({
+          item: formData,
+          createdBy: user?.username,
+          createdByUserId: user?.id,
+        })
+        : await ItemCatalogService.createCatalogLinkedProcurementItem({
+          catalogItemId: selectedCatalogItemId,
+          item: formData,
+          linkedBy: user?.username,
+          linkedByUserId: user?.id,
+        });
 
       const newItem: ProcurementItem = {
-        id,
+        id: result.procurementItemId,
         ...formData,
+        catalogItemId: result.catalogItemId,
         isActive: true,
         totalQuantityPurchased: 0,
         totalAmountSpent: 0,
@@ -100,10 +134,11 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       setItems([...items, newItem]);
       setIsAddDialogOpen(false);
       resetForm();
+      void refetchCatalog();
 
       toast({
         title: "Success",
-        description: "Item created successfully.",
+        description: "Item created and linked to the shared catalogue.",
       });
     } catch (error) {
       console.error('Error creating item:', error);
@@ -234,15 +269,35 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
             <DialogHeader>
               <DialogTitle>Add New Item</DialogTitle>
               <DialogDescription>
-                Create a new procurement item for the master list
+                Choose a shared item first, then add its procurement purpose and category.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <Label htmlFor="procurement-catalog-item">Shared catalogue item *</Label>
+                <Select value={selectedCatalogItemId} onValueChange={applyCatalogItem}>
+                  <SelectTrigger id="procurement-catalog-item">
+                    <SelectValue placeholder={isCatalogFetching ? 'Loading shared items' : 'Choose an item'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Create a new shared item</SelectItem>
+                    {catalogItems.filter((item) => item.isActive).map((item) => (
+                      <SelectItem key={item.id} value={item.id}>{item.name} ({item.standardUnit})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {selectedCatalogItemId === 'new'
+                    ? 'This will create one shared identity and one Procurement item together.'
+                    : 'The name and unit are fixed from the shared catalogue.'}
+                </p>
+              </div>
               <div>
                 <Label htmlFor="name">Item Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
+                  disabled={selectedCatalogItemId !== 'new'}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Rice, Brooms, A4 Papers"
                 />
@@ -265,7 +320,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               <div>
                 <Label htmlFor="unit">Unit of Measurement *</Label>
                 <Select value={formData.unit} onValueChange={(value: ProcurementUnit) => setFormData({ ...formData, unit: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger disabled={selectedCatalogItemId !== 'new'}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,8 +335,9 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                 <div>
                   <Label htmlFor="customUnit">Custom Unit</Label>
                   <Input
-                    id="customUnit"
-                    value={formData.customUnit}
+                  id="customUnit"
+                  value={formData.customUnit}
+                  disabled={selectedCatalogItemId !== 'new'}
                     onChange={(e) => setFormData({ ...formData, customUnit: e.target.value })}
                     placeholder="Enter custom unit"
                   />
@@ -335,7 +391,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAdd} disabled={loading || !formData.name || !formData.useCase}>
+              <Button onClick={handleAdd} disabled={loading || isCatalogFetching || !formData.name || !formData.useCase}>
                 {loading ? 'Creating...' : 'Create Item'}
               </Button>
             </div>
@@ -557,4 +613,4 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
       </Dialog>
     </div>
   );
-} 
+}

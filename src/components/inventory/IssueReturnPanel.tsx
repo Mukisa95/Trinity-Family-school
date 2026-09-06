@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/contexts/auth-context';
 import {
     useRecordTransaction,
-    useMarkItemReturned
+    useProcessInventoryReturn
 } from '@/lib/hooks/use-inventory';
 import type {
     InventoryItem,
@@ -73,6 +73,9 @@ const LOCATIONS: InventoryLocation[] = [
 const CONDITIONS: ItemCondition[] = [
     'New', 'Good', 'Fair', 'Poor', 'Damaged'
 ];
+
+const createOperationId = () => globalThis.crypto?.randomUUID?.()
+    || `inventory-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 interface IssueReturnPanelProps {
     items: InventoryItem[];
@@ -111,10 +114,12 @@ export function IssueReturnPanel({
     const [returnQuantity, setReturnQuantity] = useState(1);
     const [returnCondition, setReturnCondition] = useState<ItemCondition>('Good');
     const [returnNotes, setReturnNotes] = useState('');
+    const issueOperationIdRef = useRef<string | null>(null);
+    const returnOperationIdRef = useRef<string | null>(null);
 
     // Mutations
     const recordTransaction = useRecordTransaction();
-    const markReturned = useMarkItemReturned();
+    const processReturn = useProcessInventoryReturn();
 
     const selectedItem = items.find(i => i.id === selectedItemId);
     const issueValidation = useFormValidation([
@@ -153,6 +158,7 @@ export function IssueReturnPanel({
 
             const transactionData: CreateInventoryTransactionData = {
                 itemId: selectedItemId,
+                operationId: issueOperationIdRef.current || createOperationId(),
                 type: 'issue',
                 quantity: issueQuantity,
                 issuedTo,
@@ -168,6 +174,7 @@ export function IssueReturnPanel({
                 academicYearId: academicYear.id,
                 termId: term.id
             };
+            issueOperationIdRef.current = transactionData.operationId || null;
 
             await recordTransaction.mutateAsync({
                 data: transactionData,
@@ -176,6 +183,7 @@ export function IssueReturnPanel({
             });
 
             toast.success('Item issued successfully');
+            issueOperationIdRef.current = null;
             setIssueDialogOpen(false);
             resetIssueForm();
         } catch (error: any) {
@@ -186,44 +194,31 @@ export function IssueReturnPanel({
 
     const handleReturnItem = async () => {
         try {
-            if (!selectedIssuedItem) return;
-
-            // First record the return transaction
-            if (academicYear && term) {
-                const transactionData: CreateInventoryTransactionData = {
-                    itemId: selectedIssuedItem.itemId,
-                    type: 'return',
-                    quantity: returnQuantity,
-                    issuedTo: selectedIssuedItem.issuedTo,
-                    conditionAfter: returnCondition,
-                    notes: returnNotes || undefined,
-                    processedBy: user?.username || 'System',
-                    processedByUserId: user?.id,
-                    processedByUsername: user?.username,
-                    transactionDate: new Date().toISOString().split('T')[0],
-                    academicYearId: academicYear.id,
-                    termId: term.id
-                };
-
-                await recordTransaction.mutateAsync({
-                    data: transactionData,
-                    academicYear,
-                    term
-                });
+            if (!selectedIssuedItem || !academicYear || !term) return;
+            const outstandingQuantity = selectedIssuedItem.quantity - (selectedIssuedItem.returnedQuantity || 0);
+            if (returnQuantity <= 0 || returnQuantity > outstandingQuantity) {
+                throw new Error(`Enter a quantity between 1 and ${outstandingQuantity}.`);
             }
 
-            // Mark the issued item as returned
-            await markReturned.mutateAsync({
+            const operationId = returnOperationIdRef.current || createOperationId();
+            returnOperationIdRef.current = operationId;
+            await processReturn.mutateAsync({
                 issuedItemId: selectedIssuedItem.id,
-                returnData: {
-                    actualReturnDate: new Date().toISOString().split('T')[0],
-                    returnedQuantity: returnQuantity,
-                    returnCondition,
-                    notes: returnNotes
-                }
+                operationId,
+                actualReturnDate: new Date().toISOString().split('T')[0],
+                returnedQuantity: returnQuantity,
+                returnCondition,
+                notes: returnNotes || undefined,
+                processedBy: user?.username || 'System',
+                processedByUserId: user?.id,
+                processedByUsername: user?.username,
+                transactionDate: new Date().toISOString().split('T')[0],
+                academicYear,
+                term
             });
 
             toast.success('Item returned successfully');
+            returnOperationIdRef.current = null;
             setReturnDialogOpen(false);
             resetReturnForm();
         } catch (error: any) {
@@ -233,6 +228,7 @@ export function IssueReturnPanel({
     };
 
     const openReturnDialog = (issuedItem: IssuedItem) => {
+        returnOperationIdRef.current = null;
         setSelectedIssuedItem(issuedItem);
         setReturnQuantity(issuedItem.quantity - (issuedItem.returnedQuantity || 0));
         setReturnDialogOpen(true);
@@ -241,7 +237,7 @@ export function IssueReturnPanel({
     // Calculate overdue items
     const overdueItems = issuedItems.filter(item => {
         if (!item.expectedReturnDate) return false;
-        return new Date(item.expectedReturnDate) < new Date() && item.status === 'issued';
+        return new Date(item.expectedReturnDate) < new Date() && (item.status === 'issued' || item.status === 'partial');
     });
 
     if (isLoading) {
@@ -389,7 +385,7 @@ export function IssueReturnPanel({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {issuedItems.filter(i => i.status === 'issued').length === 0 ? (
+                            {issuedItems.filter(i => i.status === 'issued' || i.status === 'partial' || i.status === 'overdue').length === 0 ? (
                                 <div className="text-center py-8">
                                     <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-3" />
                                     <p className="text-muted-foreground">All items have been returned!</p>
@@ -408,7 +404,7 @@ export function IssueReturnPanel({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {issuedItems.filter(i => i.status === 'issued' || i.status === 'overdue').map(item => (
+                                        {issuedItems.filter(i => i.status === 'issued' || i.status === 'partial' || i.status === 'overdue').map(item => (
                                             <TableRow key={item.id}>
                                                 <TableCell className="font-medium">{item.itemName}</TableCell>
                                                 <TableCell>
@@ -459,7 +455,7 @@ export function IssueReturnPanel({
             </Tabs>
 
             {/* Issue Dialog */}
-            <Dialog open={issueDialogOpen} onOpenChange={(open) => { if (open) issueValidation.resetValidation(); setIssueDialogOpen(open); }}>
+            <Dialog open={issueDialogOpen} onOpenChange={(open) => { if (open) issueValidation.resetValidation(); else issueOperationIdRef.current = null; setIssueDialogOpen(open); }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Issue Inventory Item</DialogTitle>
@@ -584,7 +580,7 @@ export function IssueReturnPanel({
             </Dialog>
 
             {/* Return Dialog */}
-            <Dialog open={returnDialogOpen} onOpenChange={setReturnDialogOpen}>
+            <Dialog open={returnDialogOpen} onOpenChange={(open) => { if (!open) returnOperationIdRef.current = null; setReturnDialogOpen(open); }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Process Return</DialogTitle>
@@ -639,10 +635,10 @@ export function IssueReturnPanel({
                         </Button>
                         <Button
                             onClick={handleReturnItem}
-                            disabled={markReturned.isPending || recordTransaction.isPending}
+                            disabled={processReturn.isPending || recordTransaction.isPending}
                             className="bg-green-600 hover:bg-green-700"
                         >
-                            {markReturned.isPending || recordTransaction.isPending ? 'Processing...' : 'Confirm Return'}
+                            {processReturn.isPending || recordTransaction.isPending ? 'Processing...' : 'Confirm Return'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

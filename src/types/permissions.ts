@@ -758,6 +758,36 @@ export const MODULE_ACTIONS = {
       }
     ]
   },
+  // Item Requests deliberately do not inherit the broad Inventory module.
+  // A teacher may request stock without being able to inspect or alter it.
+  item_requests: {
+    pages: [
+      {
+        page: 'request',
+        path: '/item-requests',
+        name: 'Request Items',
+        actions: [
+          { id: 'access_page', name: 'Open request items', description: 'Can open the staff item request page' },
+          { id: 'create_request', name: 'Request an item', description: 'Can submit an item request' },
+          { id: 'view_own_requests', name: 'View own requests', description: 'Can see only their own item requests and responses' },
+          { id: 'cancel_own_request', name: 'Cancel own requests', description: 'Can cancel their request before it is released' }
+        ]
+      },
+      {
+        page: 'release',
+        path: '/item-requests/release',
+        name: 'Item Release Queue',
+        actions: [
+          { id: 'access_page', name: 'Open release queue', description: 'Can open requests awaiting a release decision' },
+          { id: 'view_release_queue', name: 'View release queue', description: 'Can see staff requests awaiting action' },
+          { id: 'release_items', name: 'Release requested items', description: 'Can release available requested stock' },
+          { id: 'pend_requests', name: 'Put requests on pending', description: 'Can explain why a request is waiting' },
+          { id: 'decline_requests', name: 'Decline requests', description: 'Can decline a request with a reason' },
+          { id: 'start_restock', name: 'Start restocking', description: 'Can send an unavailable request to Procurement for restocking' }
+        ]
+      }
+    ]
+  },
   account: {
     pages: [
       {

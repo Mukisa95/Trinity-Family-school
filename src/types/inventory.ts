@@ -68,6 +68,8 @@ export type InventoryLocation =
 // ===== MAIN INVENTORY ITEM =====
 export interface InventoryItem {
     id: string;
+    /** Future shared catalogue identity. Legacy inventory ids remain valid during migration. */
+    catalogItemId?: string;
     name: string;
     category: InventoryCategory;
     description?: string;
@@ -121,6 +123,9 @@ export interface InventoryItem {
 export interface InventoryTransaction {
     id: string;
     itemId: string;
+    catalogItemId?: string;
+    operationId?: string;          // Client-generated idempotency key
+    issuedItemId?: string;         // Present for return transactions
     itemName?: string;             // Denormalized for display
     itemCategory?: InventoryCategory; // Denormalized
 
@@ -180,6 +185,7 @@ export interface InventoryTransaction {
 export interface IssuedItem {
     id: string;
     itemId: string;
+    catalogItemId?: string;
     itemName?: string;
     transactionId: string;         // Reference to issue transaction
 
@@ -195,6 +201,7 @@ export interface IssuedItem {
 
     status: 'issued' | 'returned' | 'partial' | 'overdue' | 'lost';
     returnedQuantity?: number;
+    lastReturnTransactionId?: string;
 
     // Academic context
     academicYearId: string;
@@ -314,6 +321,21 @@ export type CreateInventoryTransactionData = Omit<InventoryTransaction,
     | 'previousQuantity'
     | 'newQuantity'
 >;
+
+export interface ProcessInventoryReturnData {
+    issuedItemId: string;
+    operationId: string;
+    returnedQuantity: number;
+    actualReturnDate: string;
+    returnCondition?: ItemCondition;
+    notes?: string;
+    processedBy: string;
+    processedByUserId?: string;
+    processedByUsername?: string;
+    transactionDate: string;
+    academicYear: { id: string; name: string };
+    term: { id: string; name: string };
+}
 
 // ===== FILTER TYPES =====
 export interface InventoryFilters {

@@ -17,6 +17,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { ProcurementService } from '@/lib/services/procurement.service';
+import { ProcurementRestockService } from '@/lib/services/procurement-restock.service';
+import { procurementRestockKeys } from '@/lib/hooks/use-procurement-restock';
+import { useQueryClient } from '@tanstack/react-query';
 import { DigitalSignature } from './DigitalSignature';
 import { DatePicker } from '@/components/common/date-picker';
 import { format, parseISO, isValid } from 'date-fns';
@@ -32,12 +35,13 @@ import type {
   CreateProcurementPurchaseData,
   AcademicYear,
   Term,
-  SystemUser
+  SystemUser,
+  ProcurementRestockRequest
 } from '@/types';
 
 interface PurchaseManagementProps {
   purchases: ProcurementPurchase[];
-  setPurchases: (purchases: ProcurementPurchase[]) => void;
+  onPurchasesChanged: () => Promise<void>;
   items: ProcurementItem[];
   viewPeriod: ViewPeriodType;
   currentAcademicYear: string;
@@ -48,6 +52,8 @@ interface PurchaseManagementProps {
   availableTerms: Term[];
   currentWeek: number;
   currentMonth: number;
+  restockRequest?: ProcurementRestockRequest | null;
+  onRestockPurchaseLinked?: () => void;
 }
 
 interface StackedPurchaseItem {
@@ -63,7 +69,7 @@ interface StackedPurchaseItem {
 
 export function PurchaseManagement({
   purchases,
-  setPurchases,
+  onPurchasesChanged,
   items,
   viewPeriod,
   currentAcademicYear,
@@ -73,11 +79,14 @@ export function PurchaseManagement({
   academicYears,
   availableTerms,
   currentWeek,
-  currentMonth
+  currentMonth,
+  restockRequest = null,
+  onRestockPurchaseLinked,
 }: PurchaseManagementProps) {
+  const queryClient = useQueryClient();
   // Auth context for permission checking
   const { user, canPerformAction } = useAuth();
-  const hasPermissionToMakePurchase = canPerformAction('procurement', 'purchases', 'create');
+  const hasPermissionToMakePurchase = canPerformAction('procurement', 'purchases', 'create_purchase');
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -166,6 +175,22 @@ export function PurchaseManagement({
     academicYearId: currentAcademicYear,
     termId: currentTerm
   });
+
+  // Procurement begins from the queue with the requested item and quantity
+  // already selected. Price, supplier, receipt and purchase date remain a
+  // deliberate human entry because this is still an actual purchase record.
+  useEffect(() => {
+    if (!restockRequest) return;
+    setFormData(previous => ({
+      ...previous,
+      itemId: restockRequest.procurementItemId,
+      quantity: restockRequest.requestedQuantity,
+      restockRequestId: restockRequest.id,
+      academicYearId: currentAcademicYear,
+      termId: currentTerm,
+    }));
+    setIsAddDialogOpen(true);
+  }, [restockRequest, currentAcademicYear, currentTerm]);
 
   const paymentMethods: PaymentMethod[] = [
     'Cash', 'Bank Transfer', 'Mobile Money', 'Cheque', 'Credit Card', 'Other'
@@ -280,31 +305,30 @@ export function PurchaseManagement({
         procuredByUsername: `${authenticatedUser.firstName} ${authenticatedUser.lastName}`.trim() || authenticatedUser.username
       };
 
-      const id = await ProcurementService.createPurchase(purchaseData, academicYear, term);
-
-      // Find the item details
-      const item = items.find(i => i.id === formData.itemId);
-
-      const newPurchase: ProcurementPurchase = {
-        id,
-        ...purchaseData,
-        itemName: item?.name || 'Unknown Item',
-        itemCategory: item?.category || 'Other',
-        totalCost: formData.quantity * formData.unitCost,
-        academicYearName: academicYear.name,
-        termName: term.name,
-        weekNumber: 1, // This would be calculated properly
-        monthNumber: new Date().getMonth() + 1,
-        createdAt: new Date().toISOString(),
-      };
-
-      setPurchases([...purchases, newPurchase]);
+      const purchaseId = await ProcurementService.createPurchase(purchaseData, academicYear, term);
+      let restockLinked = true;
+      if (purchaseData.restockRequestId) {
+        try {
+          await ProcurementRestockService.linkPurchase(purchaseData.restockRequestId, purchaseId);
+          onRestockPurchaseLinked?.();
+        } catch (linkError) {
+          // The purchase is real and must never be entered a second time. Its
+          // saved restockRequestId makes the queue offer a safe confirmation.
+          console.error('Purchase saved but restock link needs confirmation:', linkError);
+          restockLinked = false;
+        }
+        await queryClient.invalidateQueries({ queryKey: procurementRestockKeys.all });
+      }
+      await onPurchasesChanged();
       setIsAddDialogOpen(false);
       resetForm();
 
       toast({
-        title: "Success",
-        description: `Purchase recorded successfully. Authenticated by ${authenticatedUser.firstName} ${authenticatedUser.lastName}.`,
+        title: restockLinked ? "Success" : "Purchase recorded — confirmation needed",
+        description: restockLinked
+          ? `Purchase recorded successfully. Authenticated by ${authenticatedUser.firstName} ${authenticatedUser.lastName}.`
+          : 'The purchase was saved. Open Restock Queue and choose Confirm recorded purchase; do not enter this purchase again.',
+        variant: restockLinked ? 'default' : 'destructive',
       });
     } catch (error) {
       console.error('Error creating purchase:', error);
@@ -350,18 +374,7 @@ export function PurchaseManagement({
 
       await ProcurementService.updatePurchase(selectedPurchase.id, updateData);
 
-      const updatedPurchases = purchases.map(purchase =>
-        purchase.id === selectedPurchase.id
-          ? {
-            ...purchase,
-            ...updateData,
-            totalCost: formData.quantity * formData.unitCost,
-            updatedAt: new Date().toISOString()
-          }
-          : purchase
-      );
-
-      setPurchases(updatedPurchases);
+      await onPurchasesChanged();
       setIsEditDialogOpen(false);
       setSelectedPurchase(null);
       setEditAuthenticatedUser(null);
@@ -388,7 +401,7 @@ export function PurchaseManagement({
     try {
       setLoading(true);
       await ProcurementService.deletePurchase(purchaseId);
-      setPurchases(purchases.filter(purchase => purchase.id !== purchaseId));
+      await onPurchasesChanged();
 
       toast({
         title: "Success",
@@ -1153,4 +1166,4 @@ export function PurchaseManagement({
       </Dialog>
     </div>
   );
-} 
+}

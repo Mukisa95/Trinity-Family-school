@@ -312,6 +312,7 @@ export class DigitalSignatureService {
       exam_creation: (action, meta) => `Exam created: ${meta?.examName || 'unnamed exam'}`,
       exam_result: (action, meta) => `Exam results recorded for ${meta?.examName || 'exam'}`,
       procurement: (action, meta) => `Procurement item ${action}: ${meta?.itemName || 'item'}`,
+      inventory: (action, meta) => `Inventory ${action}: ${meta?.itemName || meta?.itemId || 'item'}`,
       requirement_collection: (action, meta) => `Requirement collected: ${meta?.requirementName || 'requirement'}`,
       uniform_payment: (action, meta) => `Uniform payment: ${meta?.amount ? `UGX ${meta.amount.toLocaleString()}` : 'amount not specified'}`,
       pupil_promotion: (action, meta) => `Pupil promoted: ${meta?.pupilName || 'pupil'}`,
