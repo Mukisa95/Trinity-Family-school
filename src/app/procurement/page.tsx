@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { procurementKeys, useProcurementBudgets, useProcurementItems, useProcurementPurchases } from '@/lib/hooks/use-procurement';
 import { useQueryClient } from '@tanstack/react-query';
-import { buildProcurementSummary, selectPurchasesForPeriod } from '@/lib/utils/procurement-selectors';
+import { buildProcurementSummary, selectBudgetsForPeriod, selectPurchasesForPeriod } from '@/lib/utils/procurement-selectors';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
 import type {
@@ -144,37 +144,33 @@ export default function ProcurementPage() {
     return new Date().getMonth() + 1;
   };
 
-  // Stats calculations
+  const periodBudgets = React.useMemo(
+    () => selectBudgetsForPeriod(budgets, {
+      academicYear: academicYears.find((year) => year.id === currentAcademicYear),
+      termId: currentTerm,
+      viewPeriod,
+    }),
+    [academicYears, budgets, currentAcademicYear, currentTerm, viewPeriod]
+  );
+
+  // Budget counts and totals must use the exact overview period, just as
+  // purchases do. This prevents a Term 1 or Term 3 plan appearing in Term 2.
   const stats = React.useMemo(() => {
-    // Filter by academic year if selected
-    const yearFilteredPurchases = currentAcademicYear
-      ? purchases.filter(p => p.academicYearId === currentAcademicYear)
-      : purchases;
-
-    const yearFilteredBudgets = currentAcademicYear
-      ? budgets.filter(b => b.academicYearId === currentAcademicYear)
-      : budgets;
-
     const totalItems = items.length;
     const activeItems = items.filter((item: ProcurementItem) => item.isActive).length;
 
-    // Calculate stats based on YEAR FILTERED data
-    const totalPurchases = yearFilteredPurchases.length;
-    const totalSpent = yearFilteredPurchases.reduce((sum: number, purchase: ProcurementPurchase) => sum + (purchase.totalCost || 0), 0);
-    const totalBudgets = yearFilteredBudgets.length;
-    const activeBudgets = yearFilteredBudgets.filter((budget: ProcurementBudget) => budget.status === 'Active').length;
-    const totalBudgetedAmount = yearFilteredBudgets.reduce((sum: number, budget: ProcurementBudget) => sum + (budget.totalEstimatedCost || 0), 0);
+    const totalBudgets = periodBudgets.length;
+    const activeBudgets = periodBudgets.filter((budget: ProcurementBudget) => budget.status === 'Active').length;
+    const totalBudgetedAmount = periodBudgets.reduce((sum: number, budget: ProcurementBudget) => sum + (budget.totalEstimatedCost || 0), 0);
 
     return {
       totalItems,
       activeItems,
-      totalPurchases,
-      totalSpent,
       totalBudgets,
       activeBudgets,
       totalBudgetedAmount
     };
-  }, [items, purchases, budgets, currentAcademicYear]);
+  }, [items, periodBudgets]);
 
   // Filter data based on search and filters
   const filteredItems = React.useMemo(() => {
@@ -698,7 +694,7 @@ export default function ProcurementPage() {
                   stats={stats}
                   filteredItems={filteredItems}
                   purchases={periodPurchases}
-                  budgets={budgets}
+                  budgets={periodBudgets}
                   viewPeriod={viewPeriod}
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
@@ -914,7 +910,7 @@ function OverviewTab({
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-500 py-4">No budget data available</p>
+              <p className="text-center text-gray-500 py-4">No budget plan exists for this selected period.</p>
             )}
           </CardContent>
         </Card>

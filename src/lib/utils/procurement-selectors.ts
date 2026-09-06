@@ -1,6 +1,7 @@
 import type {
   AcademicYear,
   ProcurementCategory,
+  ProcurementBudget,
   ProcurementPurchase,
   ProcurementSummary,
   Term,
@@ -12,6 +13,12 @@ export interface ProcurementPeriodSelection {
   termId?: string;
   month?: number;
   week?: number;
+  viewPeriod: ViewPeriodType;
+}
+
+export interface ProcurementBudgetPeriodSelection {
+  academicYear?: AcademicYear;
+  termId?: string;
   viewPeriod: ViewPeriodType;
 }
 
@@ -47,6 +54,35 @@ const isPurchaseInTerm = (purchase: ProcurementPurchase, term?: Term) => {
   if (!term) return false;
 
   return purchase.termId === term.id || purchase.termName === term.name;
+};
+
+const isBudgetInAcademicYear = (budget: ProcurementBudget, academicYear: AcademicYear) =>
+  budget.academicYearId === academicYear.id || budget.academicYearName === academicYear.name;
+
+const isBudgetInTerm = (budget: ProcurementBudget, term?: Term) => {
+  if (!term || budget.periodType !== 'Term') return false;
+  return budget.termId === term.id || budget.termName === term.name;
+};
+
+/**
+ * The overview must not present a term-specific plan from another term as the
+ * selected term's budget. Annual plans remain available in Budget Management;
+ * they are intentionally excluded from a term-only total because they have no
+ * per-term allocation to calculate against.
+ */
+export const selectBudgetsForPeriod = (
+  budgets: ProcurementBudget[],
+  selection: ProcurementBudgetPeriodSelection,
+): ProcurementBudget[] => {
+  const { academicYear, termId, viewPeriod } = selection;
+  if (!academicYear) return [];
+  const term = academicYear.terms.find((candidate) => candidate.id === termId);
+
+  return budgets.filter((budget) => {
+    if (!isBudgetInAcademicYear(budget, academicYear)) return false;
+    if (viewPeriod === 'Year') return true;
+    return isBudgetInTerm(budget, term);
+  });
 };
 
 /**

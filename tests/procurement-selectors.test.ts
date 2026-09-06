@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildProcurementSummary, resolveProcurementPurchasePeriod, selectPurchasesForPeriod } from '../src/lib/utils/procurement-selectors';
-import type { AcademicYear, ProcurementPurchase } from '../src/types';
+import { buildProcurementSummary, resolveProcurementPurchasePeriod, selectBudgetsForPeriod, selectPurchasesForPeriod } from '../src/lib/utils/procurement-selectors';
+import type { AcademicYear, ProcurementBudget, ProcurementPurchase } from '../src/types';
 
 const academicYear: AcademicYear = {
   id: 'year-2026',
@@ -34,6 +34,21 @@ const purchase = (id: string, termId: string, purchaseDate: string, totalCost: n
   termId,
   termName: termId === 'term-1-2026' ? 'Term 1' : 'Term 2',
   createdAt: purchaseDate,
+});
+
+const budget = (id: string, periodType: ProcurementBudget['periodType'], termId?: string): ProcurementBudget => ({
+  id,
+  name: `Budget ${id}`,
+  periodType,
+  academicYearId: academicYear.id,
+  academicYearName: academicYear.name,
+  ...(termId ? { termId, termName: academicYear.terms.find((term) => term.id === termId)?.name } : {}),
+  startDate: academicYear.startDate,
+  endDate: academicYear.endDate,
+  budgetItems: [],
+  totalEstimatedCost: 0,
+  status: 'Draft',
+  createdAt: academicYear.startDate,
 });
 
 test('purchase saving resolves the form-selected future term, not the current reporting term', () => {
@@ -79,6 +94,32 @@ test('term selection accepts legacy matching term names but rejects partial id m
   });
 
   assert.deepEqual(selected.map((record) => record.id), ['legacy']);
+});
+
+test('term overview budgets exclude plans that belong to another term and annual totals', () => {
+  const budgets = [
+    budget('term-one', 'Term', 'term-1-2026'),
+    budget('term-two', 'Term', 'term-2-2026'),
+    budget('annual', 'Annual'),
+  ];
+
+  const termTwo = selectBudgetsForPeriod(budgets, {
+    academicYear,
+    termId: 'term-2-2026',
+    viewPeriod: 'Term',
+  });
+  const year = selectBudgetsForPeriod(budgets, { academicYear, viewPeriod: 'Year' });
+
+  assert.deepEqual(termTwo.map((record) => record.id), ['term-two']);
+  assert.deepEqual(year.map((record) => record.id), ['term-one', 'term-two', 'annual']);
+});
+
+test('the overview passes the same period-filtered budget list to its card and summary', () => {
+  const source = readFileSync('src/app/procurement/page.tsx', 'utf8');
+
+  assert.match(source, /const periodBudgets = React\.useMemo\(\s*\(\) => selectBudgetsForPeriod/s);
+  assert.match(source, /budgets=\{periodBudgets\}/);
+  assert.match(source, /const totalBudgets = periodBudgets\.length/);
 });
 
 test('summary uses the supplied period records without fetching or including other periods', () => {
