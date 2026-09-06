@@ -22,11 +22,12 @@ import type {
   CreateProcurementBudgetData,
   ProcurementSummary,
   ViewPeriodType,
-  BudgetComparison,
+  ProcurementBudgetPlanComparison,
   AcademicYear,
   Term,
   ProcurementCategory
 } from '@/types';
+import { calculateBudgetTotal, normalizeBudgetLines } from '@/lib/utils/procurement-budget';
 
 // Collection names
 const PROCUREMENT_ITEMS_COLLECTION = 'procurementItems';
@@ -330,7 +331,7 @@ export class ProcurementService {
       const docRef = doc(db, PROCUREMENT_PURCHASES_COLLECTION, id);
       
       // Update total cost if quantity or unit cost changed
-      let updateData = { ...data };
+      const updateData: Record<string, any> = { ...data };
       if (data.quantity !== undefined && data.unitCost !== undefined) {
         updateData.totalCost = data.quantity * data.unitCost;
       } else if (data.quantity !== undefined) {
@@ -365,21 +366,21 @@ export class ProcurementService {
   }
 
   // ===== BUDGET MANAGEMENT =====
-  static async createBudget(data: CreateProcurementBudgetData, academicYear: AcademicYear, term: Term): Promise<string> {
+  static async createBudget(data: CreateProcurementBudgetData, academicYear: AcademicYear, term?: Term): Promise<string> {
     try {
-      // Calculate total estimated cost
-      const totalEstimatedCost = data.items.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
+      const budgetItems = normalizeBudgetLines(data.budgetItems);
+      const totalEstimatedCost = budgetItems.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
       
       const budgetsRef = collection(db, PROCUREMENT_BUDGETS_COLLECTION);
       
       const budgetData = {
         ...data,
+        budgetItems,
         status: 'Draft',
         totalEstimatedCost,
         academicYearId: academicYear.id,
         academicYearName: academicYear.name,
-        termId: term.id,
-        termName: term.name,
+        ...(data.periodType === 'Term' && term ? { termId: term.id, termName: term.name } : {}),
         createdAt: serverTimestamp()
       };
       
@@ -399,9 +400,14 @@ export class ProcurementService {
       
       return snapshot.docs.map(doc => {
         const data = doc.data();
+        const budgetItems = normalizeBudgetLines(
+          Array.isArray(data.budgetItems) ? data.budgetItems : Array.isArray(data.items) ? data.items : []
+        );
         return {
           id: doc.id,
           ...data,
+          budgetItems,
+          totalEstimatedCost: budgetItems.reduce((sum, item) => sum + item.estimatedTotalCost, 0),
           createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : undefined
         } as ProcurementBudget;
@@ -416,10 +422,11 @@ export class ProcurementService {
     try {
       const docRef = doc(db, PROCUREMENT_BUDGETS_COLLECTION, id);
       
-      // Update total estimated cost if items changed
-      let updateData = { ...data };
-      if (data.items) {
-        updateData.totalEstimatedCost = data.items.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
+      const updateData: Record<string, any> = { ...data };
+      if (data.budgetItems) {
+        const budgetItems = normalizeBudgetLines(data.budgetItems);
+        updateData.budgetItems = budgetItems;
+        updateData.totalEstimatedCost = budgetItems.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
       }
       
       updateData.updatedAt = serverTimestamp();
@@ -504,29 +511,29 @@ export class ProcurementService {
       });
       
       return {
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
         totalPurchases,
         totalAmountSpent,
         totalItems,
-        categorySummary: categorySummary as any // Type casting to avoid complex typing issues
+        categorySummary: categorySummary as ProcurementSummary['categorySummary'],
+        topExpenseItems: [],
+        supplierSummary: {},
       };
     } catch (error) {
       console.error('Error generating summary:', error);
       
       // Return empty summary in case of error
       return {
-        startDate: '',
-        endDate: '',
         totalPurchases: 0,
         totalAmountSpent: 0,
         totalItems: 0,
-        categorySummary: {} as any
+        categorySummary: {} as ProcurementSummary['categorySummary'],
+        topExpenseItems: [],
+        supplierSummary: {},
       };
     }
   }
 
-  static async generateBudgetComparison(budgetId: string): Promise<BudgetComparison> {
+  static async generateBudgetComparison(budgetId: string): Promise<ProcurementBudgetPlanComparison> {
     try {
       // Get budget details
       const budgetRef = doc(db, PROCUREMENT_BUDGETS_COLLECTION, budgetId);
@@ -536,7 +543,19 @@ export class ProcurementService {
         throw new Error('Budget not found');
       }
       
-      const budgetData = budgetSnap.data() as ProcurementBudget;
+      const rawBudgetData = budgetSnap.data();
+      const budgetItems = normalizeBudgetLines(
+        Array.isArray(rawBudgetData.budgetItems)
+          ? rawBudgetData.budgetItems
+          : Array.isArray(rawBudgetData.items)
+            ? rawBudgetData.items
+            : []
+      );
+      const budgetData = {
+        ...rawBudgetData,
+        budgetItems,
+        totalEstimatedCost: calculateBudgetTotal(budgetItems),
+      } as ProcurementBudget;
       
       // Get purchases within budget date range
       const purchasesRef = collection(db, PROCUREMENT_PURCHASES_COLLECTION);
@@ -558,7 +577,7 @@ export class ProcurementService {
       const variancePercentage = totalBudgeted > 0 ? (varianceAmount / totalBudgeted) * 100 : 0;
       
       // Item-wise comparison
-      const itemComparisons = budgetData.items.map(budgetItem => {
+      const itemComparisons = budgetData.budgetItems.map(budgetItem => {
         // Find purchases for this item
         const itemPurchases = purchases.filter(purchase => purchase.itemId === budgetItem.itemId);
         

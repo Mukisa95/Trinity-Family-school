@@ -203,19 +203,25 @@ export async function GET(request: NextRequest) {
     }
 
     const db = getFirestore(getFirebaseAdminApp());
+    // Keep these reads on Firestore's automatic single-field indexes. Web
+    // deployment does not deploy firestore.indexes.json, so requiring a
+    // composite index here made both request pages return HTTP 500 in
+    // production. Sorting the bounded result on the server is deterministic
+    // and keeps the pages operational without a separate Firebase deployment.
     const snapshot = scope === 'mine'
       ? await db.collection(ITEM_REQUESTS_COLLECTION)
         .where('requesterUserId', '==', actor.decoded.uid)
-        .orderBy('createdAt', 'desc')
-        .limit(100)
+        .limit(500)
         .get()
       : await db.collection(ITEM_REQUESTS_COLLECTION)
         .where('isActive', '==', true)
-        .orderBy('lastActionAt', 'desc')
-        .limit(100)
+        .limit(500)
         .get();
 
-    const requests = snapshot.docs.map(doc => toItemRequest(doc.id, doc.data()));
+    const requests = snapshot.docs
+      .map(doc => toItemRequest(doc.id, doc.data()))
+      .sort((left, right) => new Date(right.lastActionAt || right.createdAt).getTime() - new Date(left.lastActionAt || left.createdAt).getTime())
+      .slice(0, 100);
     if (scope === 'mine') return NextResponse.json({ requests });
 
     // Release officers need a compact availability projection, not the full
@@ -282,7 +288,7 @@ export async function POST(request: NextRequest) {
 
     const outcome = await db.runTransaction(async transaction => {
       const existing = await transaction.get(operationRef);
-      if (existing.exists()) {
+      if (existing.exists) {
         return { id: String(existing.data()?.requestId || ''), duplicate: true, itemName: '', unit: '' };
       }
 

@@ -273,8 +273,8 @@ export function useCreateProcurementBudget() {
             budgetName: data.name,
             startDate: data.startDate,
             endDate: data.endDate,
-            itemCount: data.items.length,
-            totalEstimatedCost: data.items.reduce((sum, item) => sum + item.estimatedTotalCost, 0),
+            itemCount: data.budgetItems.length,
+            totalEstimatedCost: data.budgetItems.reduce((sum, item) => sum + item.estimatedTotalCost, 0),
             academicYear: academicYear.name,
             term: term.name
           }
@@ -308,7 +308,7 @@ export function useUpdateProcurementBudget() {
             updatedFields: Object.keys(data),
             nameChanged: !!data.name,
             datesChanged: !!(data.startDate || data.endDate),
-            itemsChanged: !!data.items,
+            itemsChanged: !!data.budgetItems,
             statusChanged: !!data.status
           }
         );
@@ -320,4 +320,4 @@ export function useUpdateProcurementBudget() {
       queryClient.invalidateQueries({ queryKey: procurementKeys.budgets() });
     },
   });
-} 
+}

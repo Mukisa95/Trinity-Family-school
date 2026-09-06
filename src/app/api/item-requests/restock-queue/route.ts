@@ -55,10 +55,12 @@ export async function GET(request: NextRequest) {
     const db = getFirestore(getFirebaseAdminApp());
     const snapshot = await db.collection('procurementRestockRequests')
       .where('status', 'in', ['submitted', 'purchased'])
-      .orderBy('updatedAt', 'desc')
-      .limit(100)
+      .limit(500)
       .get();
-    const restocks = snapshot.docs.map(doc => toRestockRequest(doc.id, doc.data()));
+    const restocks = snapshot.docs
+      .map(doc => toRestockRequest(doc.id, doc.data()))
+      .sort((left, right) => new Date(right.updatedAt || right.createdAt).getTime() - new Date(left.updatedAt || left.createdAt).getTime())
+      .slice(0, 100);
     // A purchase is written by the established Procurement screen before the
     // protected route confirms both records together. Surface an interrupted
     // confirmation so the next user does not accidentally buy the same item.

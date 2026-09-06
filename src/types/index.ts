@@ -1645,9 +1645,13 @@ export interface BudgetItem {
   catalogItemId?: string;
   itemName?: string; // Denormalized
   itemCategory?: ProcurementCategory; // Denormalized
+  itemUnit?: string; // Denormalized for readable quantity labels
   estimatedQuantity: number;
-  estimatedUnitPrice: number;
+  /** Optional while the school is still collecting quotations. */
+  estimatedUnitPrice?: number;
   estimatedTotalCost: number; // Auto-calculated
+  /** Distinguishes an omitted quotation from a genuine calculated amount. */
+  costEstimated?: boolean;
   notes?: string;
   priority?: 'Low' | 'Medium' | 'High' | 'Critical';
 }
@@ -1714,6 +1718,27 @@ export interface BudgetComparison {
   isOverBudget: boolean;
   isUnderUtilized: boolean;
   hasSignificantVariance: boolean; // e.g., >10% variance
+}
+
+export interface ProcurementBudgetPlanComparison {
+  budgetId: string;
+  budgetName: string;
+  startDate: string;
+  endDate: string;
+  totalBudgeted: number;
+  totalActual: number;
+  varianceAmount: number;
+  variancePercentage: number;
+  itemComparisons: Array<{
+    itemId: string;
+    itemName?: string;
+    budgetedQuantity: number;
+    actualQuantity: number;
+    budgetedCost: number;
+    actualCost: number;
+    varianceAmount: number;
+    variancePercentage: number;
+  }>;
 }
 
 // Summary/Report Types

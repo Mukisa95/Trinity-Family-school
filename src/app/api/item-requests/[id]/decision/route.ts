@@ -182,7 +182,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       let status: ItemRequestStatus;
       let reason = input.reason?.trim() || '';
       const now = FieldValue.serverTimestamp();
-      const requestUpdates: Record<string, unknown> = {
+      const requestUpdates: Record<string, FieldValue | string | number | boolean | null> = {
         updatedAt: now,
         lastActionAt: now,
         lastActionBy: actor.decoded.uid,

@@ -369,6 +369,11 @@ export default function ProcurementPage() {
     setPurchases(purchasesData);
   }, []);
 
+  const refreshBudgets = React.useCallback(async () => {
+    const budgetsData = await ProcurementService.getBudgets();
+    setBudgets(budgetsData);
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -767,9 +772,13 @@ export default function ProcurementPage() {
               <TabsContent value="budgets" className="space-y-4">
                 <BudgetManagement
                   budgets={budgets}
-                  setBudgets={setBudgets}
+                  onBudgetsChanged={refreshBudgets}
                   items={items}
                   purchases={purchases}
+                  academicYears={academicYears}
+                  availableTerms={availableTerms}
+                  currentAcademicYear={currentAcademicYear}
+                  currentTerm={currentTerm}
                 />
               </TabsContent>
 
