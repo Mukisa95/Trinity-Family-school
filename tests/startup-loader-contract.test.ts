@@ -20,5 +20,6 @@ test('startup messages describe preparation and the overlay fades as soon as the
   assert.match(appLayout, /startupScreenPhase/);
   assert.match(appLayout, /setStartupScreenPhase\('exiting'\)/);
   assert.match(appLayout, /setTimeout\(\(\) => setStartupScreenPhase\('complete'\), 200\)/);
+  assert.doesNotMatch(appLayout, /\}, \[authLoading, isAuthenticated, startupScreenPhase\]\);/);
   assert.match(appLayout, /authLoading \|\| \(isAuthenticated && startupScreenPhase !== 'complete'\)/);
 });

@@ -303,16 +303,18 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // rendered. Independent data caches keep warming in the background, so a
   // weak device is never held behind a long full-screen loader.
   useEffect(() => {
-    if (authLoading) {
+    if (authLoading || !isAuthenticated) {
       setStartupScreenPhase('loading');
       return;
     }
-    if (!isAuthenticated || startupScreenPhase !== 'loading') return;
 
     setStartupScreenPhase('exiting');
     const finishFade = window.setTimeout(() => setStartupScreenPhase('complete'), 200);
     return () => window.clearTimeout(finishFade);
-  }, [authLoading, isAuthenticated, startupScreenPhase]);
+  // Do not include startupScreenPhase here. Setting it to "exiting" causes a
+  // render, and including it would immediately run this cleanup and cancel the
+  // timer that must remove the transparent overlay.
+  }, [authLoading, isAuthenticated]);
 
   // Get print context
   const { triggerPrint } = usePrint();
