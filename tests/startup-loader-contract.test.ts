@@ -11,14 +11,20 @@ test('startup screen keeps the logo and lightweight moving blocks side by side',
   assert.match(loader, /startup-block-two/);
   assert.match(loader, /startup-block-three/);
   assert.doesNotMatch(loader, /styled-components/);
-  assert.match(loader, /prefers-reduced-motion/);
+  assert.match(loader, /matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
+  assert.match(loader, /block\.animate\(/);
 });
 
-test('startup messages describe preparation and hand off directly to the workspace', () => {
+test('startup messages cross-fade over the already-mounted workspace', () => {
   assert.match(loader, /Preparing school records/);
-  assert.match(loader, /startup-block-float 720ms/);
-  assert.match(loader, /style jsx global/);
-  assert.doesNotMatch(loader, /transition-opacity duration-200/);
-  assert.doesNotMatch(appLayout, /startupScreenPhase/);
-  assert.match(appLayout, /if \(authLoading\) \{\s+return <BrandedAuthScreen message="Checking your secure sign-in…" \/>;/);
+  assert.match(loader, /duration: 620/);
+  assert.match(loader, /transition-opacity duration-300/);
+  assert.match(loader, /isExiting \? 'pointer-events-none opacity-0' : 'opacity-100'/);
+  assert.match(appLayout, /startupPhase/);
+  assert.match(appLayout, /setMinimumFrontendDisplayElapsed\(true\), 1000/);
+  assert.match(appLayout, /must never wait for\s+\/\/ Firestore, React Query, cache hydration, or GlobalDataPreloader work/);
+  assert.doesNotMatch(appLayout, /minimumFrontendDisplayElapsed.*isLoadingSettings/);
+  assert.match(appLayout, /requestAnimationFrame\(\(\) => setStartupPhase\('fading'\)\)/);
+  assert.match(appLayout, /setTimeout\(\(\) => setStartupPhase\('complete'\), 300\)/);
+  assert.match(appLayout, /isExiting=\{startupPhase === 'fading'\}/);
 });

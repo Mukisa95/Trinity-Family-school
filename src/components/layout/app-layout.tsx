@@ -486,7 +486,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // The redirect runs after this render, so keep the same boot surface visible
   // until the route has settled.
   if (pathname === '/login' && (authLoading || isAuthenticated)) {
-    return <BrandedAuthScreen message="Opening your workspace…" />;
+    return null;
   }
 
   // If it's a public route, render without any authentication checks
@@ -501,16 +501,11 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
 
   // Show loading screen while checking authentication for protected routes
   if (authLoading) {
-    return <BrandedAuthScreen message="Checking your secure sign-in…" />;
+    return null;
   }
 
   if (!isAuthenticated) {
-    const showLoadingInstead = hasStoredUser || (typeof window !== 'undefined' && !!localStorage.getItem('trinity_user'));
-    return (
-      <BrandedAuthScreen
-        message={showLoadingInstead ? "Strive to Excel…" : "Redirecting to login…"}
-      />
-    );
+    return null;
   }
 
   if (!isParentRoute && shouldCheckRoutePermission && !canAccessCurrentRoute) {
@@ -642,6 +637,42 @@ export function AppLayout({ children }: { children: ReactNode }) {
     sessionMessage,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
+  const isPublicRoute = Boolean(pathname && ['/login', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
+  const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
+  const [startupPhase, setStartupPhase] = useState<'visible' | 'fading' | 'complete'>(() => (
+    isNonLoginPublicRoute ? 'complete' : 'visible'
+  ));
+  const [minimumFrontendDisplayElapsed, setMinimumFrontendDisplayElapsed] = useState(false);
+
+  // Ensure a restored session is visible long enough to show useful progress.
+  // This is deliberately a frontend-only timer: it must never wait for
+  // Firestore, React Query, cache hydration, or GlobalDataPreloader work.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMinimumFrontendDisplayElapsed(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // The workspace is already mounted beneath this overlay before the fade
+  // begins. This gives a real cross-fade without an intermediate white frame.
+  useEffect(() => {
+    if (startupPhase !== 'visible') return;
+
+    if (isPublicRoute && !isAuthenticated && !authLoading) {
+      setStartupPhase('complete');
+      return;
+    }
+
+    if (authLoading || !isAuthenticated || !minimumFrontendDisplayElapsed || pathname === '/login') return;
+
+    const frame = window.requestAnimationFrame(() => setStartupPhase('fading'));
+    return () => window.cancelAnimationFrame(frame);
+  }, [authLoading, isAuthenticated, isPublicRoute, minimumFrontendDisplayElapsed, pathname, startupPhase]);
+
+  useEffect(() => {
+    if (startupPhase !== 'fading') return;
+    const timer = window.setTimeout(() => setStartupPhase('complete'), 300);
+    return () => window.clearTimeout(timer);
+  }, [startupPhase]);
 
   // The service worker focuses an existing app window and forwards the
   // notification destination here. Using the App Router keeps the current
@@ -676,6 +707,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </MemoizedAppLayout>
+      {startupPhase !== 'complete' && (
+        <BrandedAuthScreen
+          message={startupPhase === 'fading' ? 'Your workspace is ready.' : 'Checking your secure sign-in…'}
+          isExiting={startupPhase === 'fading'}
+        />
+      )}
     </NavigationProvider>
   );
 }
