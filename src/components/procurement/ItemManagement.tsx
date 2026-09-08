@@ -17,7 +17,6 @@ import { toast } from '@/hooks/use-toast';
 import { ProcurementService } from '@/lib/services/procurement.service';
 import { ItemCatalogService } from '@/lib/services/item-catalog.service';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { useSchoolItemCatalog } from '@/lib/hooks/use-item-catalog';
 import type { ProcurementItem, ProcurementCategory, ProcurementUnit, CreateProcurementItemData } from '@/types';
 
 interface ItemManagementProps {
@@ -34,9 +33,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ProcurementItem | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedCatalogItemId, setSelectedCatalogItemId] = useState('new');
   const { user } = useAuth();
-  const { data: catalogItems = [], isFetching: isCatalogFetching } = useSchoolItemCatalog({ enabled: isAddDialogOpen });
 
   // Form state
   const [formData, setFormData] = useState<CreateProcurementItemData>({
@@ -79,7 +76,6 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
   });
 
   const resetForm = () => {
-    setSelectedCatalogItemId('new');
     setFormData({
       name: '',
       category: 'Other',
@@ -96,41 +92,14 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
     });
   };
 
-  const applyCatalogItem = (catalogItemId: string) => {
-    setSelectedCatalogItemId(catalogItemId);
-    if (catalogItemId === 'new') return;
-    const catalogItem = catalogItems.find((item) => item.id === catalogItemId);
-    if (!catalogItem) return;
-    const isStandardProcurementUnit = units.includes(catalogItem.standardUnit as ProcurementUnit);
-    setFormData((previous) => ({
-      ...previous,
-      name: catalogItem.name,
-      unit: isStandardProcurementUnit ? catalogItem.standardUnit as ProcurementUnit : 'Other',
-      customUnit: isStandardProcurementUnit ? '' : catalogItem.standardUnit,
-      purchaseUnit: units.includes((catalogItem.purchaseUnit || catalogItem.standardUnit) as ProcurementUnit)
-        ? (catalogItem.purchaseUnit || catalogItem.standardUnit) as ProcurementUnit
-        : 'Other',
-      purchaseCustomUnit: catalogItem.purchaseCustomUnit || '',
-      unitsPerPurchaseUnit: catalogItem.unitsPerPurchaseUnit || 1,
-      stockTracking: catalogItem.isStockTracked,
-    }));
-  };
-
   const handleAdd = async () => {
     try {
       setLoading(true);
-      const result = selectedCatalogItemId === 'new'
-        ? await ItemCatalogService.createNewProcurementItem({
-          item: formData,
-          createdBy: user?.username,
-          createdByUserId: user?.id,
-        })
-        : await ItemCatalogService.createCatalogLinkedProcurementItem({
-          catalogItemId: selectedCatalogItemId,
-          item: formData,
-          linkedBy: user?.username,
-          linkedByUserId: user?.id,
-        });
+      const result = await ItemCatalogService.createNewProcurementItem({
+        item: formData,
+        createdBy: user?.username,
+        createdByUserId: user?.id,
+      });
 
       const newItem: ProcurementItem = {
         id: result.procurementItemId,
@@ -277,39 +246,19 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               Add Item
             </Button>
           </DialogTrigger>
-            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>Add New Item</DialogTitle>
               <DialogDescription>
-                Choose a shared item first, then add its procurement purpose and category.
+                This item will automatically be saved as a shared item and added to Procurement.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="procurement-catalog-item">Shared catalogue item *</Label>
-                <Select value={selectedCatalogItemId} onValueChange={applyCatalogItem}>
-                  <SelectTrigger id="procurement-catalog-item">
-                    <SelectValue placeholder={isCatalogFetching ? 'Loading shared items' : 'Choose an item'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">Create a new shared item</SelectItem>
-                    {catalogItems.filter((item) => item.isActive).map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{item.name} ({item.standardUnit})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {selectedCatalogItemId === 'new'
-                    ? 'This will create one shared identity and one Procurement item together.'
-                    : 'The name and unit are fixed from the shared catalogue.'}
-                </p>
-              </div>
-              <div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <Label htmlFor="name">Item Name *</Label>
                 <Input
                   id="name"
                   value={formData.name}
-                  disabled={selectedCatalogItemId !== 'new'}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Rice, Brooms, A4 Papers"
                 />
@@ -332,7 +281,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               <div>
                 <Label htmlFor="unit">Everyday stock and release unit *</Label>
                 <Select value={formData.unit} onValueChange={(value: ProcurementUnit) => setFormData({ ...formData, unit: value })}>
-                  <SelectTrigger disabled={selectedCatalogItemId !== 'new'}>
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -350,38 +299,39 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                   <Input
                   id="customUnit"
                   value={formData.customUnit}
-                  disabled={selectedCatalogItemId !== 'new'}
                     onChange={(e) => setFormData({ ...formData, customUnit: e.target.value })}
                     placeholder="Enter custom unit"
                   />
                 </div>
               )}
 
-              <div className="rounded-md border border-sky-100 bg-sky-50/50 p-3 space-y-3">
-                <div>
+              <div className="space-y-3 rounded-md border border-sky-100 bg-sky-50/50 p-3 sm:col-span-2">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
                   <Label htmlFor="purchaseUnit">Purchase pack *</Label>
                   <Select
                     value={formData.purchaseUnit || formData.unit}
                     onValueChange={(value: ProcurementUnit) => setFormData({ ...formData, purchaseUnit: value })}
                   >
-                    <SelectTrigger id="purchaseUnit" disabled={selectedCatalogItemId !== 'new'}><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="purchaseUnit"><SelectValue /></SelectTrigger>
                     <SelectContent>{units.map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
                   </Select>
-                </div>
-                {formData.purchaseUnit === 'Other' && (
-                  <div>
-                    <Label htmlFor="purchaseCustomUnit">Custom purchase pack</Label>
-                    <Input id="purchaseCustomUnit" value={formData.purchaseCustomUnit || ''} disabled={selectedCatalogItemId !== 'new'} onChange={(e) => setFormData({ ...formData, purchaseCustomUnit: e.target.value })} placeholder="e.g., Bale" />
                   </div>
-                )}
+                  {formData.purchaseUnit === 'Other' && (
+                    <div>
+                      <Label htmlFor="purchaseCustomUnit">Custom purchase pack</Label>
+                      <Input id="purchaseCustomUnit" value={formData.purchaseCustomUnit || ''} onChange={(e) => setFormData({ ...formData, purchaseCustomUnit: e.target.value })} placeholder="e.g., Bale" />
+                    </div>
+                  )}
+                </div>
                 <div>
                   <Label htmlFor="unitsPerPurchaseUnit">Everyday units in one purchase pack *</Label>
-                  <Input id="unitsPerPurchaseUnit" type="number" min="0.01" step="any" disabled={selectedCatalogItemId !== 'new'} value={formData.unitsPerPurchaseUnit || 1} onChange={(e) => setFormData({ ...formData, unitsPerPurchaseUnit: Number(e.target.value) || 1 })} />
+                  <Input id="unitsPerPurchaseUnit" type="number" min="0.01" step="any" value={formData.unitsPerPurchaseUnit || 1} onChange={(e) => setFormData({ ...formData, unitsPerPurchaseUnit: Number(e.target.value) || 1 })} />
                   <p className="mt-1 text-xs text-muted-foreground">Example: one Box has 50 Pieces; one Sack has 50 Kg. Requests and releases always use the everyday unit above.</p>
                 </div>
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="useCase">Use Case / Purpose *</Label>
                 <Input
                   id="useCase"
@@ -391,7 +341,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
                 />
               </div>
 
-              <div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -428,7 +378,7 @@ export function ItemManagement({ items, setItems, searchTerm, setSearchTerm, cat
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAdd} disabled={loading || isCatalogFetching || !formData.name || !formData.useCase}>
+              <Button onClick={handleAdd} disabled={loading || !formData.name || !formData.useCase}>
                 {loading ? 'Creating...' : 'Create Item'}
               </Button>
             </div>

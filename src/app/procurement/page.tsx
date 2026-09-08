@@ -40,7 +40,6 @@ import { PurchaseManagement } from '@/components/procurement/PurchaseManagement'
 import { BudgetManagement } from '@/components/procurement/BudgetManagement';
 import { ReportsAndAnalytics } from '@/components/procurement/ReportsAndAnalytics';
 import { ItemDetailView } from '@/components/procurement/ItemDetailView';
-import { CatalogAuditPanel } from '@/components/procurement/CatalogAuditPanel';
 import { RestockRequestPanel } from '@/components/procurement/RestockRequestPanel';
 
 export default function ProcurementPage() {
@@ -764,15 +763,6 @@ export default function ProcurementPage() {
               </TabsContent>
 
               <TabsContent value="items" className="space-y-4">
-                <CatalogAuditPanel
-                  procurementItems={items}
-                  onProcurementItemsLinked={(linkedItemIds, catalogItemId) => {
-                    const linkedIds = new Set(linkedItemIds);
-                    queryClient.setQueriesData<ProcurementItem[]>({ queryKey: procurementKeys.items() }, (currentItems = []) => currentItems.map((item) => (
-                      linkedIds.has(item.id) ? { ...item, catalogItemId } : item
-                    )));
-                  }}
-                />
                 <ItemManagement
                   items={items}
                   setItems={replaceCachedItems}

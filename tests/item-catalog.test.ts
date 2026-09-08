@@ -96,3 +96,26 @@ test('item catalogue writes omit blank optional purchase-pack fields', () => {
   assert.match(service, /transaction\.set\(procurementRef, omitUndefinedFields/);
   assert.match(service, /transaction\.set\(inventoryRef, omitUndefinedFields/);
 });
+
+test('new Procurement and Inventory items always create their shared identity without an audit or catalogue picker', () => {
+  const procurementPage = readFileSync('src/app/procurement/page.tsx', 'utf8');
+  const procurementForm = readFileSync('src/components/procurement/ItemManagement.tsx', 'utf8');
+  const inventoryForm = readFileSync('src/components/inventory/ItemManagement.tsx', 'utf8');
+
+  assert.doesNotMatch(procurementPage, /CatalogAuditPanel/);
+  assert.doesNotMatch(procurementForm, /Shared catalogue item|selectedCatalogItemId|createCatalogLinkedProcurementItem/);
+  assert.doesNotMatch(inventoryForm, /Shared catalogue item|selectedCatalogItemId|useSchoolItemCatalog/);
+  assert.match(procurementForm, /createNewProcurementItem/);
+  assert.match(inventoryForm, /createdByUserId: user\?\.id/);
+});
+
+test('item forms use a single column on phones and two columns on larger screens', () => {
+  const procurementForm = readFileSync('src/components/procurement/ItemManagement.tsx', 'utf8');
+  const inventoryForm = readFileSync('src/components/inventory/ItemManagement.tsx', 'utf8');
+
+  assert.match(procurementForm, /sm:max-w-3xl/);
+  assert.match(procurementForm, /grid gap-4 sm:grid-cols-2/);
+  assert.match(procurementForm, /sm:col-span-2/);
+  assert.match(inventoryForm, /grid grid-cols-1 gap-4 sm:grid-cols-2/);
+  assert.match(inventoryForm, /sm:col-span-2/);
+});

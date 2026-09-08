@@ -63,7 +63,6 @@ import {
     useUpdateInventoryItem,
     useDeleteInventoryItem
 } from '@/lib/hooks/use-inventory';
-import { useSchoolItemCatalog } from '@/lib/hooks/use-item-catalog';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type {
     InventoryItem,
@@ -157,9 +156,7 @@ export function ItemManagement({
     const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
     const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
     const [formData, setFormData] = useState<Partial<CreateInventoryItemData>>(emptyFormData);
-    const [selectedCatalogItemId, setSelectedCatalogItemId] = useState('new');
     const { user } = useAuth();
-    const { data: catalogItems = [], isFetching: isCatalogFetching, refetch: refetchCatalog } = useSchoolItemCatalog({ enabled: isAddDialogOpen });
     const formValidation = useFormValidation([
         { id: 'name', label: 'Item name', value: formData.name, required: true, message: 'Enter the inventory item name.' },
     ]);
@@ -174,37 +171,15 @@ export function ItemManagement({
         formValidation.handleFieldChange(String(field));
     };
 
-    const applyCatalogItem = (catalogItemId: string) => {
-        setSelectedCatalogItemId(catalogItemId);
-        if (catalogItemId === 'new') return;
-        const catalogItem = catalogItems.find((item) => item.id === catalogItemId);
-        if (!catalogItem) return;
-        const isStandardInventoryUnit = UNITS.includes(catalogItem.standardUnit as InventoryUnit);
-        setFormData((previous) => ({
-            ...previous,
-            name: catalogItem.name,
-            unit: isStandardInventoryUnit ? catalogItem.standardUnit as InventoryUnit : 'Other',
-            customUnit: isStandardInventoryUnit ? '' : catalogItem.standardUnit,
-            purchaseUnit: catalogItem.purchaseUnit || catalogItem.standardUnit,
-            purchaseCustomUnit: catalogItem.purchaseCustomUnit || '',
-            unitsPerPurchaseUnit: catalogItem.unitsPerPurchaseUnit || 1,
-        }));
-        formValidation.handleFieldChange('name');
-    };
-
     const handleAddItem = async () => {
         try {
             if (!formValidation.validateAll().isValid) return;
 
             const item = formData as CreateInventoryItemData;
-            await createItem.mutateAsync(selectedCatalogItemId === 'new'
-                ? { item, createdBy: user?.username, createdByUserId: user?.id }
-                : { catalogItemId: selectedCatalogItemId, item, linkedBy: user?.username, linkedByUserId: user?.id });
+            await createItem.mutateAsync({ item, createdBy: user?.username, createdByUserId: user?.id });
             toast.success('Item added and linked to the shared catalogue');
             setIsAddDialogOpen(false);
             setFormData(emptyFormData);
-            setSelectedCatalogItemId('new');
-            void refetchCatalog();
         } catch (error) {
             formValidation.setSubmissionError('The item could not be added. Your entries have been preserved.');
             console.error(error);
@@ -281,34 +256,12 @@ export function ItemManagement({
     const ItemForm = ({ isEdit = false }: { isEdit?: boolean }) => (
         <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
             <FormErrorSummary errors={formValidation.errors} submissionError={formValidation.submissionError} onSelectError={formValidation.focusField} />
-            <div className="grid grid-cols-2 gap-4">
-                {!isEdit && (
-                    <div className="col-span-2">
-                        <Label htmlFor="inventory-catalog-item">Shared catalogue item <span className="text-red-600">*</span></Label>
-                        <Select value={selectedCatalogItemId} onValueChange={applyCatalogItem}>
-                            <SelectTrigger id="inventory-catalog-item">
-                                <SelectValue placeholder={isCatalogFetching ? 'Loading shared items' : 'Choose an item'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="new">Create a new shared item</SelectItem>
-                                {catalogItems.filter((item) => item.isActive).map((item) => (
-                                    <SelectItem key={item.id} value={item.id}>{item.name} ({item.standardUnit})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            {selectedCatalogItemId === 'new'
-                                ? 'This will create one shared identity and one Inventory item together.'
-                                : 'The name and unit are fixed from the shared catalogue.'}
-                        </p>
-                    </div>
-                )}
-                <div className="col-span-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
                     <Label htmlFor="name" className={formValidation.getFieldError('name') ? 'text-red-700' : undefined}>Item Name <span className="text-red-600">*</span></Label>
                     <Input
                         id="name"
                         value={formData.name || ''}
-                        disabled={!isEdit && selectedCatalogItemId !== 'new'}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         placeholder="e.g., Student Desk"
                         {...formValidation.getFieldProps('name')}
@@ -369,7 +322,7 @@ export function ItemManagement({
                         value={formData.unit}
                         onValueChange={(v) => handleInputChange('unit', v as InventoryUnit)}
                     >
-                        <SelectTrigger disabled={!isEdit && selectedCatalogItemId !== 'new'}>
+                        <SelectTrigger>
                             <SelectValue placeholder="Select unit" />
                         </SelectTrigger>
                         <SelectContent>
@@ -386,7 +339,6 @@ export function ItemManagement({
                         <Input
                             id="customUnit"
                             value={formData.customUnit || ''}
-                            disabled={!isEdit && selectedCatalogItemId !== 'new'}
                             onChange={(e) => handleInputChange('customUnit', e.target.value)}
                             placeholder="e.g., Reams"
                         />
@@ -394,23 +346,23 @@ export function ItemManagement({
                 )}
 
                 {!isEdit && (
-                    <div className="col-span-2 rounded-md border border-sky-100 bg-sky-50/50 p-3 space-y-3">
+                    <div className="space-y-3 rounded-md border border-sky-100 bg-sky-50/50 p-3 sm:col-span-2">
                         <div>
                             <Label htmlFor="inventory-purchaseUnit">Purchase pack</Label>
                             <Select value={formData.purchaseUnit || formData.unit} onValueChange={(value) => handleInputChange('purchaseUnit', value)}>
-                                <SelectTrigger id="inventory-purchaseUnit" disabled={selectedCatalogItemId !== 'new'}><SelectValue /></SelectTrigger>
+                                <SelectTrigger id="inventory-purchaseUnit"><SelectValue /></SelectTrigger>
                                 <SelectContent>{UNITS.map(unit => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
                             </Select>
                         </div>
                         {formData.purchaseUnit === 'Other' && (
                             <div>
                                 <Label htmlFor="inventory-purchaseCustomUnit">Custom purchase pack</Label>
-                                <Input id="inventory-purchaseCustomUnit" value={formData.purchaseCustomUnit || ''} disabled={selectedCatalogItemId !== 'new'} onChange={(e) => handleInputChange('purchaseCustomUnit', e.target.value)} placeholder="e.g., Bale" />
+                                <Input id="inventory-purchaseCustomUnit" value={formData.purchaseCustomUnit || ''} onChange={(e) => handleInputChange('purchaseCustomUnit', e.target.value)} placeholder="e.g., Bale" />
                             </div>
                         )}
                         <div>
                             <Label htmlFor="inventory-unitsPerPurchaseUnit">Everyday units in one purchase pack</Label>
-                            <Input id="inventory-unitsPerPurchaseUnit" type="number" min="0.01" step="any" disabled={selectedCatalogItemId !== 'new'} value={formData.unitsPerPurchaseUnit || 1} onChange={(e) => handleInputChange('unitsPerPurchaseUnit', Number(e.target.value) || 1)} />
+                            <Input id="inventory-unitsPerPurchaseUnit" type="number" min="0.01" step="any" value={formData.unitsPerPurchaseUnit || 1} onChange={(e) => handleInputChange('unitsPerPurchaseUnit', Number(e.target.value) || 1)} />
                             <p className="mt-1 text-xs text-muted-foreground">Example: one Box has 50 Pieces; one Sack has 50 Kg. Staff request and receive the everyday unit, not the pack.</p>
                         </div>
                     </div>
@@ -525,7 +477,7 @@ export function ItemManagement({
                     />
                 </div>
 
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                         id="description"
@@ -634,7 +586,7 @@ export function ItemManagement({
                         {items.length} item{items.length !== 1 ? 's' : ''} found
                     </p>
                 </div>
-                <Dialog open={isAddDialogOpen} onOpenChange={(open) => { if (open) { formValidation.resetValidation(); setSelectedCatalogItemId('new'); } setIsAddDialogOpen(open); }}>
+                <Dialog open={isAddDialogOpen} onOpenChange={(open) => { if (open) formValidation.resetValidation(); setIsAddDialogOpen(open); }}>
                     <DialogTrigger asChild>
                         <Button className="gap-2">
                             <Plus className="h-4 w-4" />
@@ -645,7 +597,7 @@ export function ItemManagement({
                         <DialogHeader>
                             <DialogTitle>Add New Inventory Item</DialogTitle>
                             <DialogDescription>
-                                Register a new item in the school inventory.
+                                This item will automatically be saved as a shared item and added to Inventory.
                             </DialogDescription>
                         </DialogHeader>
                         <ItemForm />
@@ -653,7 +605,7 @@ export function ItemManagement({
                             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                                 Cancel
                             </Button>
-                            <Button onClick={handleAddItem} disabled={createItem.isPending || isCatalogFetching}>
+                            <Button onClick={handleAddItem} disabled={createItem.isPending}>
                                 {createItem.isPending ? 'Adding...' : 'Add Item'}
                             </Button>
                         </DialogFooter>
