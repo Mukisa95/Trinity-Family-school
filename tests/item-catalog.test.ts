@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildCatalogKey, buildItemCatalogAudit, normalizeCatalogName } from '../src/lib/utils/item-catalog';
+import { readFileSync } from 'node:fs';
 import type { InventoryItem, ProcurementItem } from '../src/types';
 
 const procurementItem = (overrides: Partial<ProcurementItem> = {}): ProcurementItem => ({
@@ -86,4 +87,12 @@ test('unmatched records and duplicates are reported without changing their legac
   assert.equal(audit.counts['unmatched-procurement'], 1);
   assert.equal(audit.counts['unmatched-inventory'], 1);
   assert.deepEqual(audit.duplicateProcurementItems[0].itemIds, ['proc-chalk', 'proc-chalk-copy']);
+});
+
+test('item catalogue writes omit blank optional purchase-pack fields', () => {
+  const service = readFileSync('src/lib/services/item-catalog.service.ts', 'utf8');
+  assert.match(service, /import \{ omitUndefinedFields \}/);
+  assert.match(service, /transaction\.set\(catalogRef, omitUndefinedFields/);
+  assert.match(service, /transaction\.set\(procurementRef, omitUndefinedFields/);
+  assert.match(service, /transaction\.set\(inventoryRef, omitUndefinedFields/);
 });

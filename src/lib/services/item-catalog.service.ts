@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { buildCatalogKey, normalizeCatalogName } from '@/lib/utils/item-catalog';
+import { omitUndefinedFields } from '@/lib/utils/omit-undefined-fields';
 import { normalizePurchaseUnitConfiguration } from '@/lib/utils/purchase-unit-conversion';
 import { bumpDomainRevisionsInWrite } from '@/lib/services/dashboard-cache-revisions.service';
 import type { DomainRevisionKey } from '@/lib/cache/domain-revisions';
@@ -68,13 +69,13 @@ export class ItemCatalogService {
     catalogRef: ReturnType<typeof doc>,
     data: Pick<CreateSchoolItemCatalogData, 'name' | 'standardUnit' | 'customUnit' | 'purchaseUnit' | 'purchaseCustomUnit' | 'unitsPerPurchaseUnit' | 'isStockTracked' | 'isActive' | 'createdBy'>
   ) {
-    transaction.set(catalogRef, {
+    transaction.set(catalogRef, omitUndefinedFields({
       ...data,
       catalogKey: catalogRef.id,
       normalizedName: normalizeCatalogName(data.name),
       isActive: data.isActive ?? true,
       createdAt: serverTimestamp(),
-    });
+    }));
   }
 
   private static getLegacyTargets(procurementItemIds: string[] = [], inventoryItemIds: string[] = []) {
@@ -102,12 +103,12 @@ export class ItemCatalogService {
     linkedByUserId?: string
   ) {
     for (const legacyRef of legacyTargets) {
-      transaction.update(legacyRef, {
+      transaction.update(legacyRef, omitUndefinedFields({
         catalogItemId,
         catalogLinkedAt: serverTimestamp(),
         catalogLinkedBy: linkedBy,
         catalogLinkedByUserId: linkedByUserId,
-      });
+      }));
     }
   }
 
@@ -168,7 +169,7 @@ export class ItemCatalogService {
         isActive: data.item.isActive,
         createdBy: data.createdBy,
       });
-      transaction.set(procurementRef, {
+      transaction.set(procurementRef, omitUndefinedFields({
         ...data.item,
         purchaseUnit: purchaseConfig.purchaseUnit,
         purchaseCustomUnit: data.item.purchaseCustomUnit?.trim() || undefined,
@@ -181,7 +182,7 @@ export class ItemCatalogService {
         catalogLinkedBy: data.createdBy,
         catalogLinkedByUserId: data.createdByUserId,
         createdAt: serverTimestamp(),
-      });
+      }));
       bumpDomainRevisionsInWrite(transaction, ['schoolItemCatalog', 'procurementItems']);
       return { procurementItemId: procurementRef.id, catalogItemId: catalogRef.id };
     });
@@ -198,7 +199,7 @@ export class ItemCatalogService {
       const catalog = toCatalogEntry(catalogSnapshot.id, catalogSnapshot.data());
       assertMatchesCatalog(data.item.name, resolveItemUnit(data.item.unit, data.item.customUnit), catalog);
 
-      transaction.set(procurementRef, {
+      transaction.set(procurementRef, omitUndefinedFields({
         ...data.item,
         purchaseUnit: catalog.purchaseUnit || catalog.standardUnit,
         purchaseCustomUnit: catalog.purchaseCustomUnit,
@@ -211,7 +212,7 @@ export class ItemCatalogService {
         catalogLinkedBy: data.linkedBy,
         catalogLinkedByUserId: data.linkedByUserId,
         createdAt: serverTimestamp(),
-      });
+      }));
       bumpDomainRevisionsInWrite(transaction, ['procurementItems']);
       return { procurementItemId: procurementRef.id, catalogItemId: catalogRef.id };
     });
@@ -245,7 +246,7 @@ export class ItemCatalogService {
         isActive: data.item.isActive,
         createdBy: data.createdBy,
       });
-      transaction.set(inventoryRef, {
+      transaction.set(inventoryRef, omitUndefinedFields({
         ...data.item,
         purchaseUnit: purchaseConfig.purchaseUnit,
         purchaseCustomUnit: data.item.purchaseCustomUnit?.trim() || undefined,
@@ -260,7 +261,7 @@ export class ItemCatalogService {
         catalogLinkedBy: data.createdBy,
         catalogLinkedByUserId: data.createdByUserId,
         createdAt: serverTimestamp(),
-      });
+      }));
       bumpDomainRevisionsInWrite(transaction, ['schoolItemCatalog', 'inventoryItems']);
       return { inventoryItemId: inventoryRef.id, catalogItemId: catalogRef.id };
     });
@@ -277,7 +278,7 @@ export class ItemCatalogService {
       const catalog = toCatalogEntry(catalogSnapshot.id, catalogSnapshot.data());
       assertMatchesCatalog(data.item.name, resolveItemUnit(data.item.unit, data.item.customUnit), catalog);
 
-      transaction.set(inventoryRef, {
+      transaction.set(inventoryRef, omitUndefinedFields({
         ...data.item,
         purchaseUnit: catalog.purchaseUnit || catalog.standardUnit,
         purchaseCustomUnit: catalog.purchaseCustomUnit,
@@ -292,7 +293,7 @@ export class ItemCatalogService {
         catalogLinkedBy: data.linkedBy,
         catalogLinkedByUserId: data.linkedByUserId,
         createdAt: serverTimestamp(),
-      });
+      }));
       bumpDomainRevisionsInWrite(transaction, ['inventoryItems']);
       return { inventoryItemId: inventoryRef.id, catalogItemId: catalogRef.id };
     });
@@ -304,10 +305,10 @@ export class ItemCatalogService {
     }
 
     const batch = writeBatch(db);
-    batch.update(doc(db, SCHOOL_ITEM_CATALOG_COLLECTION, id), {
+    batch.update(doc(db, SCHOOL_ITEM_CATALOG_COLLECTION, id), omitUndefinedFields({
       ...data,
       updatedAt: serverTimestamp(),
-    });
+    }));
     bumpDomainRevisionsInWrite(batch, ['schoolItemCatalog']);
     await batch.commit();
   }
@@ -333,7 +334,7 @@ export class ItemCatalogService {
       }
       await this.assertLegacyTargetsExist(transaction, legacyTargets);
 
-      transaction.set(catalogRef, {
+      transaction.set(catalogRef, omitUndefinedFields({
         name: data.name,
         standardUnit,
         customUnit: data.customUnit,
@@ -343,7 +344,7 @@ export class ItemCatalogService {
         catalogKey,
         normalizedName,
         createdAt: serverTimestamp(),
-      });
+      }));
       this.writeLegacyLinks(transaction, legacyTargets, catalogRef.id, data.linkedBy, data.linkedByUserId);
       const revisionKeys: DomainRevisionKey[] = ['schoolItemCatalog'];
       if (procurementItemIds.length) revisionKeys.push('procurementItems');
