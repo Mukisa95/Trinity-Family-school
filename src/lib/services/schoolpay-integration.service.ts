@@ -8,7 +8,7 @@ import { db } from '../firebase';
 import { AcademicYearsService } from './academic-years.service';
 import { FeeStructuresService } from './fee-structures.service';
 import { FeesHolidayService } from './fees-holiday.service';
-import { PaymentsService } from './payments.service';
+import { PaymentsService, type PaymentOperationAllocation } from './payments.service';
 import type { FeeStructure, Pupil } from '@/types';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import {
@@ -1018,6 +1018,15 @@ export class SchoolPayIntegrationService {
     return parts.join(' | ');
   }
 
+  // A SchoolPay receipt is the external command ID. Reusing it after a
+  // timeout or a process restart must replay the same local allocations,
+  // never create another set of payments.
+  private static paymentOperationId(payment: SchoolPayPaymentPayload): string {
+    return `schoolpay-${createHash('sha256')
+      .update(payment.schoolpayReceiptNumber.trim())
+      .digest('hex')}`;
+  }
+
   private static async recordSchoolFeesPayment(
     payment: SchoolPayPaymentPayload,
     pupil: Pupil,
@@ -1030,37 +1039,35 @@ export class SchoolPayIntegrationService {
     const allFeeStructures = await FeeStructuresService.getAllFeeStructures();
     const feeStructures = await this.getApplicableFeeStructures(pupil, slot, allFeeStructures);
     const feesHolidays = await FeesHolidayService.getActiveFeesHolidaysByPupil(pupil.id);
-    const createdPaymentIds: string[] = [];
+    const allocations: PaymentOperationAllocation[] = [];
     const distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }> = [];
     let remainingAmount = this.parseAmount(payment.amount);
 
-    const createGenericRecord = async (
+    const createGenericRecord = (
       amount: number,
       academicYearId: string,
       termId: string,
       description: string
     ) => {
-      const paymentId = await PaymentsService.createPayment({
-        pupilId: pupil.id,
-        feeStructureId: SCHOOLPAY_GENERAL_FEE_ID,
-        academicYearId,
-        termId,
-        amount,
-        paymentDate: this.resolvePaymentDate(payment),
-        paidBy: {
-          id: 'schoolpay-system',
-          name: payment.studentName || pupil.firstName + ' ' + pupil.lastName,
-          role: 'Parent/Guardian',
-        },
-        notes: this.buildPaymentNotes(payment, description),
-        paymentMethod: payment.sourcePaymentChannel || 'SchoolPay',
-        schoolPayReceiptNumber: payment.schoolpayReceiptNumber,
-        schoolPayTransactionId: payment.sourceChannelTransactionId,
-        schoolPayPaymentCode: payment.studentPaymentCode,
-        source: 'schoolpay',
-      } as any);
-
-      createdPaymentIds.push(paymentId);
+      allocations.push({ paymentData: {
+          pupilId: pupil.id,
+          feeStructureId: SCHOOLPAY_GENERAL_FEE_ID,
+          academicYearId,
+          termId,
+          amount,
+          paymentDate: this.resolvePaymentDate(payment),
+          paidBy: {
+            id: 'schoolpay-system',
+            name: payment.studentName || pupil.firstName + ' ' + pupil.lastName,
+            role: 'Parent/Guardian',
+          },
+          notes: this.buildPaymentNotes(payment, description),
+          paymentMethod: payment.sourcePaymentChannel || 'SchoolPay',
+          schoolPayReceiptNumber: payment.schoolpayReceiptNumber,
+          schoolPayTransactionId: payment.sourceChannelTransactionId,
+          schoolPayPaymentCode: payment.studentPaymentCode,
+          source: 'schoolpay',
+        } as any });
       distributionBreakdown.push({
         feeName: description,
         feeStructureId: SCHOOLPAY_GENERAL_FEE_ID,
@@ -1069,8 +1076,9 @@ export class SchoolPayIntegrationService {
     };
 
     if (feeStructures.length === 0) {
-      await createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay unmatched school fees');
-      return { localPaymentIds: createdPaymentIds, distributionBreakdown };
+      createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay unmatched school fees');
+      const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), allocations);
+      return { localPaymentIds: operation.paymentIds, distributionBreakdown };
     }
 
     const feesWithBalance = calculateFeeBalancesAfterDiscounts({
@@ -1087,15 +1095,16 @@ export class SchoolPayIntegrationService {
       .sort((a: any, b: any) => b.balance - a.balance);
 
     if (feesWithBalance.length === 0) {
-      await createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay advance / overpayment');
-      return { localPaymentIds: createdPaymentIds, distributionBreakdown };
+      createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay advance / overpayment');
+      const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), allocations);
+      return { localPaymentIds: operation.paymentIds, distributionBreakdown };
     }
 
     for (const fee of feesWithBalance) {
       if (remainingAmount <= 0) break;
 
       const allocatedAmount = Math.min(remainingAmount, fee.balance);
-      const paymentId = await PaymentsService.createPayment({
+      allocations.push({ paymentData: {
         pupilId: pupil.id,
         feeStructureId: fee.id,
         academicYearId: slot.year.id,
@@ -1113,9 +1122,7 @@ export class SchoolPayIntegrationService {
         schoolPayTransactionId: payment.sourceChannelTransactionId,
         schoolPayPaymentCode: payment.studentPaymentCode,
         source: 'schoolpay',
-      } as any);
-
-      createdPaymentIds.push(paymentId);
+      } as any });
       distributionBreakdown.push({
         feeName: fee.name,
         feeStructureId: fee.id,
@@ -1218,7 +1225,7 @@ export class SchoolPayIntegrationService {
           if (remainingAmount <= 0) break;
 
           const allocatedAmount = Math.min(remainingAmount, fee.balance);
-          const paymentId = await PaymentsService.createPayment({
+          allocations.push({ paymentData: {
             pupilId: pupil.id,
             feeStructureId: fee.id,
             academicYearId: futureSlot.yearId,
@@ -1239,9 +1246,7 @@ export class SchoolPayIntegrationService {
             schoolPayTransactionId: payment.sourceChannelTransactionId,
             schoolPayPaymentCode: payment.studentPaymentCode,
             source: 'schoolpay',
-          } as any);
-
-          createdPaymentIds.push(paymentId);
+          } as any });
           distributionBreakdown.push({
             feeName: `${fee.name} [${futureSlot.termName} ${futureSlot.yearName}]`,
             feeStructureId: fee.id,
@@ -1252,11 +1257,12 @@ export class SchoolPayIntegrationService {
       }
 
       if (remainingAmount > 0) {
-        await createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay excess / unmatched balance');
+        createGenericRecord(remainingAmount, slot.year.id, slot.term.id, 'SchoolPay excess / unmatched balance');
       }
     }
 
-    return { localPaymentIds: createdPaymentIds, distributionBreakdown };
+    const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), allocations);
+    return { localPaymentIds: operation.paymentIds, distributionBreakdown };
   }
 
   private static async recordSupplementaryFeePayment(
@@ -1269,7 +1275,6 @@ export class SchoolPayIntegrationService {
   }> {
     const mappedFeeStructureId = await this.getSupplementaryFeeStructureId(payment.supplementaryFeeId);
     const amount = this.parseAmount(payment.amount);
-    const createdPaymentIds: string[] = [];
     const distributionBreakdown: Array<{ feeName: string; feeStructureId: string; amount: number }> = [];
 
     let feeStructureId = SCHOOLPAY_GENERAL_FEE_ID;
@@ -1289,7 +1294,7 @@ export class SchoolPayIntegrationService {
       description = `SchoolPay unmatched supplementary fee${payment.supplementaryFeeDescription ? `: ${payment.supplementaryFeeDescription}` : ''}`;
     }
 
-    const paymentId = await PaymentsService.createPayment({
+    const operation = await PaymentsService.createPaymentOperation(this.paymentOperationId(payment), [{ paymentData: {
       pupilId: pupil.id,
       feeStructureId,
       academicYearId,
@@ -1314,16 +1319,14 @@ export class SchoolPayIntegrationService {
       schoolPaySupplementaryFeeId: payment.supplementaryFeeId,
       schoolPayNeedsManualMapping: needsManualMapping,
       source: 'schoolpay',
-    } as any);
-
-    createdPaymentIds.push(paymentId);
+    } as any }]);
     distributionBreakdown.push({
       feeName: description,
       feeStructureId,
       amount,
     });
 
-    return { localPaymentIds: createdPaymentIds, distributionBreakdown };
+    return { localPaymentIds: operation.paymentIds, distributionBreakdown };
   }
 
   private static async getSupplementaryFeeStructureId(supplementaryFeeId?: string): Promise<string | null> {

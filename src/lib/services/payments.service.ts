@@ -4,9 +4,11 @@ import {
   getDocs, 
   getDoc,
   query, 
+  runTransaction,
   orderBy, 
   where,
   Timestamp,
+  type Transaction,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -14,6 +16,10 @@ import type { PaymentRecord } from '@/types';
 import { HistoryLogService } from './history-log.service';
 
 const PAYMENTS_COLLECTION = 'payments';
+const PAYMENT_OPERATIONS_COLLECTION = 'paymentOperations';
+const UNIFORM_TRACKING_COLLECTION = 'uniformTracking';
+const MAX_PAYMENT_ALLOCATIONS_PER_OPERATION = 100;
+const PAYMENT_OPERATION_ID_PATTERN = /^[A-Za-z0-9_-]{12,160}$/;
 
 export interface PaymentHistoryContext {
   feeName?: string;
@@ -23,34 +29,80 @@ export interface PaymentHistoryContext {
   paidByName?: string;
 }
 
-// Utility function to remove undefined values from objects
-function cleanUndefinedValues(obj: any): any {
-  const cleaned: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-        cleaned[key] = cleanUndefinedValues(value);
-      } else {
-        cleaned[key] = value;
-      }
-    }
+// Remove undefined fields without flattening Firestore values such as Timestamp,
+// DocumentReference and FieldValue sentinels into ordinary JSON objects.
+export function cleanUndefinedPaymentValues<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(item => cleanUndefinedPaymentValues(item)) as T;
   }
-  return cleaned;
+  if (!value || typeof value !== 'object' || value instanceof Date) {
+    return value;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([, nestedValue]) => nestedValue !== undefined)
+      .map(([key, nestedValue]) => [key, cleanUndefinedPaymentValues(nestedValue)]),
+  ) as T;
+}
+
+export interface PaymentOperationAllocation {
+  paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>;
+  historyContext?: PaymentHistoryContext;
+  uniformTracking?: {
+    trackingId: string;
+    paymentAmount: number;
+    paymentDate: string;
+  };
+}
+
+export interface PaymentOperationResult {
+  operationId: string;
+  paymentIds: string[];
+  wasReplay: boolean;
+}
+
+function stablePaymentOperationFingerprint(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (value instanceof Date) return JSON.stringify(value.toISOString());
+  if (Array.isArray(value)) {
+    return `[${value.map(item => stablePaymentOperationFingerprint(item)).join(',')}]`;
+  }
+
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map(key => (
+    `${JSON.stringify(key)}:${stablePaymentOperationFingerprint(record[key])}`
+  )).join(',')}}`;
 }
 
 export class PaymentsService {
   private static paymentsByYearCache = new Map<string, PaymentRecord[]>();
   private static paymentsByYearInFlight = new Map<string, Promise<PaymentRecord[]>>();
+  private static paymentsByTermInFlight = new Map<string, Promise<PaymentRecord[]>>();
+
+  private static termCacheKey(academicYearId: string, termId: string) {
+    return `${academicYearId}:${termId}`;
+  }
 
   private static clearYearPaymentsCache(academicYearId?: string) {
     if (!academicYearId) {
       this.paymentsByYearCache.clear();
       this.paymentsByYearInFlight.clear();
+      this.paymentsByTermInFlight.clear();
       return;
     }
 
     this.paymentsByYearCache.delete(academicYearId);
     this.paymentsByYearInFlight.delete(academicYearId);
+    const termPrefix = `${academicYearId}:`;
+    [...this.paymentsByTermInFlight.keys()]
+      .filter(key => key.startsWith(termPrefix))
+      .forEach(key => this.paymentsByTermInFlight.delete(key));
   }
 
   private static buildPaymentHistoryLabel(
@@ -81,6 +133,156 @@ export class PaymentsService {
     };
   }
 
+  private static addPaymentToTransaction(
+    transaction: Transaction,
+    paymentId: string,
+    paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>,
+    historyContext?: PaymentHistoryContext,
+  ) {
+    const newPayment = cleanUndefinedPaymentValues({
+      ...paymentData,
+      createdAt: Timestamp.now(),
+      paymentDate: paymentData.paymentDate || new Date().toISOString(),
+    });
+    transaction.set(doc(db, PAYMENTS_COLLECTION, paymentId), newPayment);
+    HistoryLogService.addToTransaction(transaction, {
+      action: 'create',
+      entity: 'payment',
+      recordId: paymentId,
+      label: this.buildPaymentHistoryLabel(paymentData, historyContext),
+      meta: this.buildPaymentHistoryMeta(paymentData, historyContext),
+      actor: {
+        id: paymentData.paidBy?.id,
+        username: paymentData.paidBy?.name,
+        role: paymentData.paidBy?.role,
+      },
+    });
+  }
+
+  /**
+   * Commits one cashier command exactly once. Reusing the same operation ID
+   * after a lost response returns the original payment IDs instead of adding
+   * another payment. This deliberately does not alter authentication; callers
+   * continue using their existing authorized payment route.
+   */
+  static async createPaymentOperation(
+    operationId: string,
+    allocations: PaymentOperationAllocation[],
+  ): Promise<PaymentOperationResult> {
+    if (!PAYMENT_OPERATION_ID_PATTERN.test(operationId)) {
+      throw new Error('Payment operation ID is invalid');
+    }
+    if (allocations.length === 0 || allocations.length > MAX_PAYMENT_ALLOCATIONS_PER_OPERATION) {
+      throw new Error(`A payment operation must contain between 1 and ${MAX_PAYMENT_ALLOCATIONS_PER_OPERATION} allocations`);
+    }
+    if (allocations.some(({ paymentData }) => !Number.isFinite(paymentData.amount) || paymentData.amount <= 0)) {
+      throw new Error('Each payment allocation must have a positive amount');
+    }
+
+    const fingerprint = stablePaymentOperationFingerprint(allocations.map(allocation => ({
+      paymentData: allocation.paymentData,
+      historyContext: allocation.historyContext || null,
+      ...(allocation.uniformTracking ? { uniformTracking: allocation.uniformTracking } : {}),
+    })));
+    const operationRef = doc(db, PAYMENT_OPERATIONS_COLLECTION, operationId);
+
+    const result = await runTransaction(db, async transaction => {
+      const existingOperation = await transaction.get(operationRef);
+      if (existingOperation.exists()) {
+        const existing = existingOperation.data();
+        if (existing.fingerprint !== fingerprint) {
+          throw new Error('This payment operation ID was already used with different payment details');
+        }
+        const paymentIds = Array.isArray(existing.paymentIds)
+          ? existing.paymentIds.filter((id): id is string => typeof id === 'string')
+          : [];
+        if (paymentIds.length !== allocations.length) {
+          throw new Error('The saved payment operation is incomplete and requires review');
+        }
+        return { paymentIds, wasReplay: true };
+      }
+
+      const uniformUpdatesByTrackingId = new Map<string, {
+        paymentAmount: number;
+        paymentDate: string;
+      }>();
+      allocations.forEach(({ uniformTracking, paymentData }) => {
+        if (!uniformTracking) return;
+        if (!uniformTracking.trackingId || !Number.isFinite(uniformTracking.paymentAmount) || uniformTracking.paymentAmount <= 0) {
+          throw new Error('Uniform tracking payment details are invalid');
+        }
+        if (uniformTracking.paymentAmount !== paymentData.amount
+          || uniformTracking.paymentDate !== paymentData.paymentDate
+          || uniformTracking.trackingId !== (paymentData as any).uniformTrackingId) {
+          throw new Error('Uniform tracking must match its payment record');
+        }
+        const current = uniformUpdatesByTrackingId.get(uniformTracking.trackingId);
+        uniformUpdatesByTrackingId.set(uniformTracking.trackingId, {
+          paymentAmount: (current?.paymentAmount || 0) + uniformTracking.paymentAmount,
+          paymentDate: uniformTracking.paymentDate,
+        });
+      });
+      const uniformSnapshots = await Promise.all(
+        [...uniformUpdatesByTrackingId.keys()].map(async trackingId => [
+          trackingId,
+          await transaction.get(doc(db, UNIFORM_TRACKING_COLLECTION, trackingId)),
+        ] as const),
+      );
+
+      const paymentIds = allocations.map(() => doc(collection(db, PAYMENTS_COLLECTION)).id);
+      allocations.forEach((allocation, index) => {
+        this.addPaymentToTransaction(
+          transaction,
+          paymentIds[index],
+          allocation.paymentData,
+          allocation.historyContext,
+        );
+      });
+      uniformSnapshots.forEach(([trackingId, trackingSnapshot]) => {
+        if (!trackingSnapshot.exists()) {
+          throw new Error('Uniform tracking record not found');
+        }
+        const update = uniformUpdatesByTrackingId.get(trackingId)!;
+        const tracking = trackingSnapshot.data();
+        if (allocations.some(allocation => allocation.uniformTracking?.trackingId === trackingId
+          && allocation.paymentData.pupilId !== tracking.pupilId)) {
+          throw new Error('Uniform tracking does not belong to the payment pupil');
+        }
+        const currentPaid = Number(tracking.paidAmount) || 0;
+        const newPaidAmount = currentPaid + update.paymentAmount;
+        // Match the established uniform fee display and legacy tracking rule.
+        const finalAmount = Number(tracking.finalAmount || tracking.originalAmount) || 0;
+        const newBalance = Math.max(0, finalAmount - newPaidAmount);
+        const paymentStatus = newBalance === 0 ? 'paid' : 'partial';
+        transaction.update(trackingSnapshot.ref, cleanUndefinedPaymentValues({
+          paidAmount: newPaidAmount,
+          paymentStatus,
+          paymentDate: newBalance === 0 ? update.paymentDate : tracking.paymentDate || update.paymentDate,
+          history: [
+            ...(Array.isArray(tracking.history) ? tracking.history : []),
+            {
+              date: update.paymentDate,
+              paymentStatus,
+              paidAmount: newPaidAmount,
+              collectionStatus: tracking.collectionStatus,
+            },
+          ],
+          updatedAt: Timestamp.now(),
+        }));
+      });
+      transaction.set(operationRef, {
+        fingerprint,
+        paymentIds,
+        allocationCount: allocations.length,
+        createdAt: Timestamp.now(),
+      });
+      return { paymentIds, wasReplay: false };
+    });
+
+    allocations.forEach(({ paymentData }) => this.clearYearPaymentsCache(paymentData.academicYearId));
+    return { operationId, ...result };
+  }
+
   // Payment Records
   static async createPayment(
     paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>,
@@ -97,7 +299,7 @@ export class PaymentsService {
       };
       
       // Clean undefined values before sending to Firebase
-      const cleanedData = cleanUndefinedValues(newPayment);
+      const cleanedData = cleanUndefinedPaymentValues(newPayment);
       
       const docRef = doc(collection(db, PAYMENTS_COLLECTION));
       const batch = writeBatch(db);
@@ -146,6 +348,35 @@ export class PaymentsService {
       console.error('Error fetching payments by pupil:', error);
       throw error;
     }
+  }
+
+  /** Load a family's ledgers in Firestore-sized batches rather than one read per pupil. */
+  static async getPaymentsByPupilIds(pupilIds: string[]): Promise<Map<string, PaymentRecord[]>> {
+    const uniqueIds = [...new Set(pupilIds.filter(Boolean))];
+    const paymentsByPupil = new Map(uniqueIds.map(id => [id, [] as PaymentRecord[]]));
+    const batches = Array.from({ length: Math.ceil(uniqueIds.length / 30) }, (_, index) => uniqueIds.slice(index * 30, index * 30 + 30));
+
+    await Promise.all(batches.map(async pupilIdBatch => {
+      const snapshot = await getDocs(query(
+        collection(db, PAYMENTS_COLLECTION),
+        where('pupilId', 'in', pupilIdBatch),
+        orderBy('paymentDate', 'desc'),
+      ));
+      snapshot.docs.forEach(paymentDoc => {
+        const payment = {
+          id: paymentDoc.id,
+          ...paymentDoc.data(),
+          paymentDate: paymentDoc.data().paymentDate?.toDate?.() || paymentDoc.data().paymentDate,
+          createdAt: paymentDoc.data().createdAt?.toDate?.() || paymentDoc.data().createdAt,
+        } as PaymentRecord;
+        paymentsByPupil.get(payment.pupilId)?.push(payment);
+      });
+    }));
+
+    paymentsByPupil.forEach(payments => payments.sort(
+      (left, right) => new Date(right.paymentDate).getTime() - new Date(left.paymentDate).getTime(),
+    ));
+    return paymentsByPupil;
   }
 
   static async getPaymentsByFee(feeStructureId: string, pupilId: string, academicYearId: string, termId: string): Promise<PaymentRecord[]> {
@@ -272,7 +503,7 @@ export class PaymentsService {
         revertedBy
       };
       
-      const cleanedData = cleanUndefinedValues(updateData);
+      const cleanedData = cleanUndefinedPaymentValues(updateData);
       const batch = writeBatch(db);
       batch.update(docRef, cleanedData);
       HistoryLogService.addToBatch(batch, {
@@ -315,37 +546,45 @@ export class PaymentsService {
     }
   }
 
-  // 🚀 PERFORMANCE OPTIMIZATION: Batch load ALL payments for a term in ONE query
-  // This eliminates N+1 query problem (100+ queries → 1 query)
+  // A collection screen, analytics, and fee calculations often ask for the
+  // same term in one render cycle. Share only in-flight requests: a later
+  // explicit refresh must see payments written by the server or another device.
   static async getAllPaymentsByTerm(academicYearId: string, termId: string): Promise<PaymentRecord[]> {
-    try {
-      console.log('🚀 BATCH LOADING: Fetching ALL payments for term in ONE query');
-      const startTime = performance.now();
-      
-      const q = query(
-        collection(db, PAYMENTS_COLLECTION), 
-        where('academicYearId', '==', academicYearId),
-        where('termId', '==', termId),
-        orderBy('paymentDate', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      const payments = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        paymentDate: doc.data().paymentDate?.toDate?.() || doc.data().paymentDate,
-        createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt
-      })) as PaymentRecord[];
-      
-      const endTime = performance.now();
-      console.log(`✅ BATCH LOADING: Loaded ${payments.length} payments in ${(endTime - startTime).toFixed(2)}ms`);
-      
-      return payments;
-    } catch (error) {
-      console.error('Error fetching payments by term (batch):', error);
-      throw error;
-    }
+    const cacheKey = this.termCacheKey(academicYearId, termId);
+
+    const inFlight = this.paymentsByTermInFlight.get(cacheKey);
+    if (inFlight) return inFlight;
+
+    const request = Promise.resolve().then(async () => {
+      try {
+        console.log('🚀 BATCH LOADING: Fetching ALL payments for term in ONE query');
+        const startTime = performance.now();
+        const q = query(
+          collection(db, PAYMENTS_COLLECTION),
+          where('academicYearId', '==', academicYearId),
+          where('termId', '==', termId),
+          orderBy('paymentDate', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        const payments = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          paymentDate: doc.data().paymentDate?.toDate?.() || doc.data().paymentDate,
+          createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt
+        })) as PaymentRecord[];
+        const endTime = performance.now();
+        console.log(`✅ BATCH LOADING: Loaded ${payments.length} payments in ${(endTime - startTime).toFixed(2)}ms`);
+        return payments;
+      } catch (error) {
+        console.error('Error fetching payments by term (batch):', error);
+        throw error;
+      } finally {
+        if (this.paymentsByTermInFlight.get(cacheKey) === request) this.paymentsByTermInFlight.delete(cacheKey);
+      }
+    });
+
+    this.paymentsByTermInFlight.set(cacheKey, request);
+    return request;
   }
 
   // 🚀 PERFORMANCE OPTIMIZATION: Group payments by pupilId in memory

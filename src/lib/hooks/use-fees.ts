@@ -17,19 +17,11 @@ export function useFeeStructures() {
   // ⚡ Use preloaded data from GlobalDataPreloader
   return useQuery({
     queryKey: FEES_QUERY_KEYS.structures(),
-    queryFn: async () => {
-      // Check cache first (populated by GlobalDataPreloader)
-      const cachedData = queryClient.getQueryData(FEES_QUERY_KEYS.structures());
-      if (cachedData) {
-        console.log('⚡ FEES: Loaded from cache (instant)');
-        return cachedData as Awaited<ReturnType<typeof FeesService.getAllFeeStructures>>;
-      }
-      
-      // Fallback to service if cache empty
-      console.log('📊 FEES: Fetching from service...');
-      return FeesService.getAllFeeStructures();
-    },
-    staleTime: Infinity, // Never stale - updated by real-time listener
+    // initialData below provides the preloaded snapshot. A query run caused by
+    // an explicit invalidation must read the authoritative collection instead
+    // of returning that same stale snapshot again.
+    queryFn: FeesService.getAllFeeStructures,
+    staleTime: Infinity,
     gcTime: Infinity, // Keep in cache forever
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -129,4 +121,4 @@ export function useCreateFeeAdjustment() {
       queryClient.invalidateQueries({ queryKey: FEES_QUERY_KEYS.adjustments() });
     },
   });
-} 
+}

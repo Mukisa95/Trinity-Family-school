@@ -306,10 +306,12 @@ export class UniformFeesIntegrationService {
     pupilId: string,
     academicYearId: string,
     termId: string,
-    paidBy: { id: string; name: string; role: string }
+    paidBy: { id: string; name: string; role: string },
+    operationId?: string,
+    paymentDateOverride?: string,
   ): Promise<string> {
     try {
-      const paymentDate = new Date().toISOString();
+      const paymentDate = paymentDateOverride || new Date().toISOString();
       
       // Import PaymentsService here to avoid circular dependency
       const { PaymentsService } = await import('./payments.service');
@@ -329,16 +331,29 @@ export class UniformFeesIntegrationService {
         uniformTrackingId: uniformFee.uniformTrackingId
       };
 
-      // 🔔 Use API route if running in browser, direct service call if on server
+      const stableOperationId = operationId || `uniform-${crypto.randomUUID()}`;
+      const allocation = {
+        paymentData: paymentRecord as any,
+        uniformTracking: {
+          trackingId: uniformFee.uniformTrackingId,
+          paymentAmount,
+          paymentDate,
+        },
+      };
+
+      // The payment record and uniform tracking balance must commit together.
+      // Keep the existing payment route and its authentication behavior.
       let paymentId: string;
       if (typeof window !== 'undefined') {
-        // Client-side: use API route for notifications
         const response = await fetch('/api/payments/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(paymentRecord),
+          body: JSON.stringify({
+            operationId: stableOperationId,
+            allocations: [allocation],
+          }),
         });
 
         if (!response.ok) {
@@ -347,19 +362,12 @@ export class UniformFeesIntegrationService {
         }
 
         const result = await response.json();
-        paymentId = result.paymentId;
+        paymentId = result.paymentIds?.[0];
+        if (!paymentId) throw new Error('Uniform payment operation did not return a payment ID');
       } else {
-        // Server-side: call service directly
-        paymentId = await PaymentsService.createPayment(paymentRecord as any);
+        const result = await PaymentsService.createPaymentOperation(stableOperationId, [allocation]);
+        paymentId = result.paymentIds[0];
       }
-
-      // Update the uniform tracking record
-      await this.handleUniformPayment(
-        uniformFee.uniformTrackingId,
-        paymentAmount,
-        paymentDate,
-        paymentId
-      );
 
       return paymentId;
     } catch (error) {

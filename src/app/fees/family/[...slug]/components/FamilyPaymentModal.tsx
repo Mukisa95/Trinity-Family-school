@@ -19,6 +19,7 @@ interface FeeWithPayment {
   academicYearId?: string;
   isCurrentTerm: boolean;
   isCarryForward: boolean;
+  uniformTrackingId?: string;
 }
 
 interface FeesInfo {
@@ -38,6 +39,7 @@ interface SelectedPupilFee {
   termId?: string;
   academicYearId?: string;
   isCarryForward?: boolean;
+  uniformTrackingId?: string;
   isComplete?: boolean; // If true, always pay full balance for this fee
 }
 
@@ -216,6 +218,7 @@ export function FamilyPaymentModal({
           termId: fee.termId,
           academicYearId: fee.academicYearId,
           isCarryForward: fee.isCarryForward,
+          uniformTrackingId: fee.uniformTrackingId,
           isComplete: false
         };
         updated = [...prev, newFee];

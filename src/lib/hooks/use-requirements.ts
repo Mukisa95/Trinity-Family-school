@@ -15,23 +15,10 @@ export function useRequirements() {
   // ⚡ Use preloaded data from GlobalDataPreloader
   return useQuery({
     queryKey: [REQUIREMENTS_QUERY_KEY],
-    queryFn: async () => {
-      // Check cache first (populated by GlobalDataPreloader)
-      const currentCachedData = queryClient.getQueryData<RequirementItem[]>([REQUIREMENTS_QUERY_KEY]);
-      if (currentCachedData && currentCachedData.length > 0) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚡ REQUIREMENTS: Loaded from cache (instant)');
-        }
-        return currentCachedData;
-      }
-      
-      // Fallback to service if cache empty
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📊 REQUIREMENTS: Fetching from service...');
-      }
-      return RequirementsService.getAllRequirements();
-    },
-    staleTime: Infinity, // Never stale - updated by real-time listener
+    // initialData below provides the preloaded snapshot. A refetch after a
+    // mutation must not simply hand React Query that same snapshot again.
+    queryFn: RequirementsService.getAllRequirements,
+    staleTime: Infinity,
     gcTime: Infinity, // Keep in cache forever
     refetchOnMount: false, // Don't refetch when component mounts - use cache
     refetchOnWindowFocus: false, // Don't refetch on window focus

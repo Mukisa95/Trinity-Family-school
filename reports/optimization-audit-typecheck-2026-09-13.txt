@@ -1,0 +1,674 @@
+
+> nextn@0.1.0 typecheck
+> tsc --noEmit --pretty false
+
+.next/types/validator.ts(503,39): error TS2306: File 'C:/Users/hp/Desktop/Trinity-Family-school-main/src/app/fee-assignments/[feeId]/page.tsx' is not a module.
+.next/types/validator.ts(512,39): error TS2306: File 'C:/Users/hp/Desktop/Trinity-Family-school-main/src/app/fee-assignments/page.tsx' is not a module.
+.next/types/validator.ts(1687,31): error TS2344: Type 'typeof import("C:/Users/hp/Desktop/Trinity-Family-school-main/src/app/fees/collect/[id]/layout")' does not satisfy the constraint 'LayoutConfig<"/fees/collect/[id]">'.
+  Types of property 'default' are incompatible.
+    Type '({ children, params }: LayoutProps) => Element' is not assignable to type 'ComponentType<LayoutProps<"/fees/collect/[id]">> | ((props: LayoutProps<"/fees/collect/[id]">) => void | Promise<void> | ReactNode | Promise<...>)'.
+      Type '({ children, params }: LayoutProps) => Element' is not assignable to type 'FunctionComponent<LayoutProps<"/fees/collect/[id]">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/fees/collect/[id]">' is not assignable to type 'LayoutProps'.
+            Types of property 'params' are incompatible.
+              Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+src/app/assign/[feeId]/page.tsx(1247,88): error TS2322: Type '(PupilAssignedFee | { status: "disabled"; statusHistory: (AssignmentStatusHistory | { date: string; action: string; previousStatus: "active" | "disabled"; newStatus: "disabled"; processedBy: string; })[]; ... 11 more ...; inlineDiscount?: { ...; } | undefined; })[]' is not assignable to type 'PupilAssignedFee[]'.
+  Type 'PupilAssignedFee | { status: "disabled"; statusHistory: (AssignmentStatusHistory | { date: string; action: string; previousStatus: "active" | "disabled"; newStatus: "disabled"; processedBy: string; })[]; ... 11 more ...; inlineDiscount?: { ...; } | undefined; }' is not assignable to type 'PupilAssignedFee'.
+    Type '{ status: "disabled"; statusHistory: (AssignmentStatusHistory | { date: string; action: string; previousStatus: "active" | "disabled"; newStatus: "disabled"; processedBy: string; })[]; ... 11 more ...; inlineDiscount?: { name: string; amount: number; description?: string; linkedFeeIds: string[]; }; }' is not assignable to type 'PupilAssignedFee'.
+      Types of property 'statusHistory' are incompatible.
+        Type '(AssignmentStatusHistory | { date: string; action: string; previousStatus: "active" | "disabled"; newStatus: "disabled"; processedBy: string; })[]' is not assignable to type 'AssignmentStatusHistory[]'.
+          Type 'AssignmentStatusHistory | { date: string; action: string; previousStatus: "active" | "disabled"; newStatus: "disabled"; processedBy: string; }' is not assignable to type 'AssignmentStatusHistory'.
+            Type '{ date: string; action: string; previousStatus: "active" | "disabled"; newStatus: "disabled"; processedBy: string; }' is not assignable to type 'AssignmentStatusHistory'.
+              Types of property 'action' are incompatible.
+                Type 'string' is not assignable to type '"enabled" | "disabled" | "time_adjusted" | "term_pushed" | "term_fetched"'.
+src/app/BlurText.tsx(71,11): error TS2322: Type '{ hidden: { filter: string; opacity: number; y: number; }; visible: { filter: string; opacity: number; y: number; transition: { type: string; damping: number; stiffness: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'visible' is incompatible with index signature.
+    Type '{ filter: string; opacity: number; y: number; transition: { type: string; damping: number; stiffness: number; }; }' is not assignable to type 'Variant'.
+      Type '{ filter: string; opacity: number; y: number; transition: { type: string; damping: number; stiffness: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ filter: string; opacity: number; y: number; transition: { type: string; damping: number; stiffness: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; damping: number; stiffness: number; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ type: string; damping: number; stiffness: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; damping: number; stiffness: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/app/boarding/dormitory/[id]/page.tsx(172,44): error TS2339: Property 'isLoading' does not exist on type 'UseMutationResult<void, Error, void, unknown>'.
+  Property 'isLoading' does not exist on type 'Override<MutationObserverIdleResult<void, Error, void, unknown>, { mutate: UseMutateFunction<void, Error, void, unknown>; }> & { ...; }'.
+src/app/boarding/dormitory/[id]/page.tsx(175,35): error TS2339: Property 'isLoading' does not exist on type 'UseMutationResult<void, Error, void, unknown>'.
+  Property 'isLoading' does not exist on type 'Override<MutationObserverIdleResult<void, Error, void, unknown>, { mutate: UseMutateFunction<void, Error, void, unknown>; }> & { ...; }'.
+src/app/class-requirements/page.tsx(270,7): error TS2304: Cannot find name 'isLoading'.
+src/app/class-requirements/page.tsx(270,21): error TS2304: Cannot find name 'hasCachedData'.
+src/app/classes/graduates/[classId]/page.tsx(233,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/app/classes/history/[classId]/page.tsx(352,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/app/classes/pending/page.tsx(79,28): error TS2339: Property 'name' does not exist on type 'SystemUser'.
+src/app/classes/pending/page.tsx(164,32): error TS2339: Property 'name' does not exist on type 'SystemUser'.
+src/app/commentary-management/page.tsx(705,62): error TS7006: Parameter 'comment' implicitly has an 'any' type.
+src/app/commentary-management/page.tsx(715,61): error TS7006: Parameter 'comment' implicitly has an 'any' type.
+src/app/enrollment-trends/page.tsx(387,15): error TS2322: Type '"green"' is not assignable to type 'GlassActionTone | undefined'.
+src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx(387,36): error TS2559: Type 'string' has no properties in common with type '{ enabled?: boolean | undefined; currentExamId?: string | undefined; academicYearId?: string | undefined; termId?: string | undefined; }'.
+src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx(479,28): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx(706,59): error TS2345: Argument of type '{ examDetails: { name: string; examTypeName: string; startDate: string; endDate: string; academicYearId: string | undefined; termId: string | undefined; academicYearName: string; termName: string; }; ... 7 more ...; classTeacherInfo: { ...; }; }' is not assignable to parameter of type 'ModernBatchReportProps'.
+  Types of property 'processedResults' are incompatible.
+    Type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: any; photo: string | null; dateOfBirth: any; schoolPayCode: any; classNameAtExam: string; classCodeAtExam?: string | undefined; ... 7 more ...; rMQRCode?: string | undefined; }; results: Record<...>; totalMarks: number; totalAggregates: numb...' is not assignable to type 'ExamResult[]'.
+      Property 'position' is missing in type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: any; photo: string | null; dateOfBirth: any; schoolPayCode: any; classNameAtExam: string; classCodeAtExam?: string; ... 7 more ...; rMQRCode?: string; }; results: Record<...>; totalMarks: number; totalAggregates: number; division: string; }' but required in type 'ExamResult'.
+src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx(1021,43): error TS2345: Argument of type '{ examDetails: { name: string; examTypeName: string; startDate: string; endDate: string; academicYearId: string | undefined; termId: string | undefined; academicYearName: string; termName: string; }; ... 9 more ...; customDates: { ...; }; }' is not assignable to parameter of type 'ModernBatchReportProps'.
+  Types of property 'processedResults' are incompatible.
+    Type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: any; photo: string | null; dateOfBirth: any; schoolPayCode: any; classNameAtExam: string; classCodeAtExam?: string | undefined; ... 7 more ...; rMQRCode?: string | undefined; }; results: Record<...>; totalMarks: number; totalAggregates: numb...' is not assignable to type 'ExamResult[]'.
+      Property 'position' is missing in type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: any; photo: string | null; dateOfBirth: any; schoolPayCode: any; classNameAtExam: string; classCodeAtExam?: string; ... 7 more ...; rMQRCode?: string; }; results: Record<...>; totalMarks: number; totalAggregates: number; division: string; }' but required in type 'ExamResult'.
+src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx(1311,38): error TS2352: Conversion of type '{ palette: "blue" | "purple" | "orange"; examDetails: { name: string; examTypeName: string; startDate: string; endDate: string; academicYearId: string | undefined; termId: string | undefined; academicYearName: string; termName: string; }; ... 11 more ...; customDates: { ...; }; }' to type 'FullReport2Props' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'processedResults' are incompatible.
+    Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' is not comparable to type '{ pupilInfo: { name: string; admissionNumber: string; pupilId: string; age?: number | undefined; ageAtExam?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }; ... 4 more ...; comparisonDataArray?: { ...; }[] | undefined; }[]'.
+      Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' is not comparable to type '{ pupilInfo: { name: string; admissionNumber: string; pupilId: string; age?: number | undefined; ageAtExam?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }; ... 4 more ...; comparisonDataArray?: { ...; }[] | undefined; }'.
+        Types of property 'comparisonDataArray' are incompatible.
+          Type '{ exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]' is not comparable to type '{ exam: { name: string; examTypeName?: string | undefined; startDate?: string | undefined; endDate?: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; ... 4 more ...; subjects?: { ...; }[] | undefined; }[]'.
+            Type '{ exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }' is not comparable to type '{ exam: { name: string; examTypeName?: string | undefined; startDate?: string | undefined; endDate?: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; ... 4 more ...; subjects?: { ...; }[] | undefined; }'.
+              Types of property 'division' are incompatible.
+                Type 'PupilSubjectResult' is not comparable to type 'string'.
+src/app/exams/[examId]/pupil-results/[pupilId]/PupilResultsClient.tsx(1312,43): error TS2345: Argument of type '{ examDetails: { name: string; examTypeName: string; startDate: string; endDate: string; academicYearId: string | undefined; termId: string | undefined; academicYearName: string; termName: string; }; ... 11 more ...; customDates: { ...; }; }' is not assignable to parameter of type 'ModernBatchReportProps'.
+  Types of property 'processedResults' are incompatible.
+    Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' is not assignable to type 'ExamResult[]'.
+      Property 'position' is missing in type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' but required in type 'ExamResult'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(1728,15): error TS2353: Object literal may only specify known properties, and 'endDate' does not exist in type '{ name: string; examTypeName?: string | undefined; startDate: string; academicYearName?: string | undefined; termName?: string | undefined; }'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(2191,38): error TS2352: Conversion of type '{ palette: "blue" | "purple" | "orange"; examDetails: { name: string; examTypeName: string; startDate: string; endDate: string; academicYearId: string | undefined; termId: string | undefined; academicYearName: string; termName: string; }; ... 12 more ...; customDates: { ...; }; }' to type 'FullReport2Props' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'processedResults' are incompatible.
+    Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ... 5 more ...; position: number; }[]' is not comparable to type '{ pupilInfo: { name: string; admissionNumber: string; pupilId: string; age?: number | undefined; ageAtExam?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }; ... 4 more ...; comparisonDataArray?: { ...; }[] | undefined; }[]'.
+      Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ... 5 more ...; position: number; }' is not comparable to type '{ pupilInfo: { name: string; admissionNumber: string; pupilId: string; age?: number | undefined; ageAtExam?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }; ... 4 more ...; comparisonDataArray?: { ...; }[] | undefined; }'.
+        Types of property 'comparisonDataArray' are incompatible.
+          Type '{ exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]' is not comparable to type '{ exam: { name: string; examTypeName?: string | undefined; startDate?: string | undefined; endDate?: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; ... 4 more ...; subjects?: { ...; }[] | undefined; }[]'.
+            Type '{ exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }' is not comparable to type '{ exam: { name: string; examTypeName?: string | undefined; startDate?: string | undefined; endDate?: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; ... 4 more ...; subjects?: { ...; }[] | undefined; }'.
+              Types of property 'division' are incompatible.
+                Type 'PupilSubjectResult' is not comparable to type 'string'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(2913,30): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3266,30): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3573,30): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3845,30): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3892,27): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3898,19): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3899,27): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3900,24): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3901,13): error TS2353: Object literal may only specify known properties, and 'endDate' does not exist in type '{ name: string; examTypeName?: string | undefined; startDate: string; academicYearName?: string | undefined; termName?: string | undefined; }'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3901,22): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3902,29): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3903,21): error TS18048: 'examDetails' is possibly 'undefined'.
+src/app/exams/[examId]/view-results/ViewResultsView.tsx(3907,11): error TS2322: Type 'ExamClassInfoSnapshot | undefined' is not assignable to type '{ name: string; code?: string | undefined; }'.
+  Type 'undefined' is not assignable to type '{ name: string; code?: string | undefined; }'.
+src/app/exams/ple-results/[pleId]/record-results/page.tsx(403,14): error TS2741: Property 'action' is missing in type '{ signature: DigitalSignature; variant: "inline"; className: string; }' but required in type 'DigitalSignatureDisplayProps'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(427,42): error TS2339: Property 'toDate' does not exist on type 'string'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(428,40): error TS2339: Property 'toDate' does not exist on type 'string'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(475,46): error TS2345: Argument of type '{ schoolSettings: SchoolSettings | {}; printOptions: { showPin: true; showMarks: false; showAgg: true; showTotal: false; showDiv: true; fillMarks: true; fillAgg: true; fillTotal: false; ... 4 more ...; showAggregateAnalysis: true; }; ... 5 more ...; majorSubjects: string[]; }' is not assignable to parameter of type 'ExamResultsPDFProps'.
+  Types of property 'subjectSnaps' are incompatible.
+    Type '{ id: string; name: string; code: string; fullMarks: number; teacherId: string; teacherName: string; }[]' is not assignable to type '{ subjectId: string; code: string; name: string; }[]'.
+      Property 'subjectId' is missing in type '{ id: string; name: string; code: string; fullMarks: number; teacherId: string; teacherName: string; }' but required in type '{ subjectId: string; code: string; name: string; }'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(851,15): error TS2322: Type '"green"' is not assignable to type 'GlassActionTone | undefined'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(868,54): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(870,20): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(870,49): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(881,70): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(883,20): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(884,26): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(884,49): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(897,54): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(911,20): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(912,44): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(912,44): error TS2345: Argument of type 'PLEPupilResult | null' is not assignable to parameter of type 'NameData'.
+  Type 'null' is not assignable to type 'NameData'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(917,20): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(917,50): error TS18047: 'statistics' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(917,50): error TS18047: 'statistics.bestPerformer' is possibly 'null'.
+src/app/exams/ple-results/[pleId]/view-results/page.tsx(934,23): error TS18047: 'statistics' is possibly 'null'.
+src/app/fees/analytics/page.tsx(96,18): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/app/fees/analytics/page.tsx(97,16): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/app/fees/analytics/page.tsx(285,34): error TS2339: Property 'fullName' does not exist on type 'Pupil'.
+src/app/fees/analytics/page.tsx(865,45): error TS2339: Property 'fullName' does not exist on type 'Pupil'.
+src/app/fees/collect/[id]/components/SummaryModal.tsx(93,9): error TS2322: Type 'SchoolSettings | null | undefined' is not assignable to type 'SchoolSettings | undefined'.
+  Type 'null' is not assignable to type 'SchoolSettings | undefined'.
+src/app/fees/components/requirement-management.tsx(466,9): error TS2322: Type '{ isOpen: boolean; onClose: () => void; onSubmit: (formData: RequirementFormData) => Promise<void>; selectedRequirement: RequirementItem | null; classes: Class[]; }' is not assignable to type 'IntrinsicAttributes & RequirementModalProps'.
+  Property 'classes' does not exist on type 'IntrinsicAttributes & RequirementModalProps'.
+src/app/login/page.tsx(1070,76): error TS2339: Property 'statistics' does not exist on type 'SchoolSettings'.
+src/app/login/page.tsx(1075,76): error TS2339: Property 'statistics' does not exist on type 'SchoolSettings'.
+src/app/login/page.tsx(1085,76): error TS2339: Property 'statistics' does not exist on type 'SchoolSettings'.
+src/app/nameorder/page.tsx(271,15): error TS2353: Object literal may only specify known properties, and 'updatedAt' does not exist in type 'Partial<Omit<Pupil, "id" | "createdAt">>'.
+src/app/nameorder/page.tsx(337,8): error TS2322: Type '{ children: Element; title: string; description: string; }' is not assignable to type 'IntrinsicAttributes & PageHeaderProps'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & PageHeaderProps'.
+src/app/nameorder/page.tsx(393,17): error TS2322: Type 'Dispatch<SetStateAction<boolean>>' is not assignable to type '(checked: CheckedState) => void'.
+  Types of parameters 'value' and 'checked' are incompatible.
+    Type 'CheckedState' is not assignable to type 'SetStateAction<boolean>'.
+      Type '"indeterminate"' is not assignable to type 'SetStateAction<boolean>'.
+src/app/nameorder/page.tsx(424,17): error TS2322: Type 'Dispatch<SetStateAction<boolean>>' is not assignable to type '(checked: CheckedState) => void'.
+  Types of parameters 'value' and 'checked' are incompatible.
+    Type 'CheckedState' is not assignable to type 'SetStateAction<boolean>'.
+      Type '"indeterminate"' is not assignable to type 'SetStateAction<boolean>'.
+src/app/notifications/page.tsx(924,13): error TS2741: Property 'createdBy' is missing in type '{ title: string; description: string; type: NotificationType; priority: NotificationPriority; recipients: NotificationRecipient[]; ... 4 more ...; richContent: { ...; } | undefined; }' but required in type 'CreateNotificationData'.
+src/app/notifications/page.tsx(936,33): error TS2341: Property 'createNotification' is private and only accessible within class 'NotificationService'.
+src/app/notifications/page.tsx(977,33): error TS2341: Property 'createNotification' is private and only accessible within class 'NotificationService'.
+src/app/notifications/page.tsx(977,52): error TS2345: Argument of type '{ title: string; description: string; type: "reminder"; priority: NotificationPriority; recipients: { id: string; type: "user"; name: string; }[]; scheduledFor: string; enablePush: true; pushTitle: string; pushBody: string; pushUrl: string; richContent: { ...; } | undefined; }' is not assignable to parameter of type 'CreateNotificationData'.
+  Property 'createdBy' is missing in type '{ title: string; description: string; type: "reminder"; priority: NotificationPriority; recipients: { id: string; type: "user"; name: string; }[]; scheduledFor: string; enablePush: true; pushTitle: string; pushBody: string; pushUrl: string; richContent: { ...; } | undefined; }' but required in type 'CreateNotificationData'.
+src/app/notifications/page.tsx(1023,29): error TS2339: Property 'name' does not exist on type 'SystemUser'.
+src/app/notifications/page.tsx(1023,81): error TS2339: Property 'avatar' does not exist on type 'SystemUser'.
+src/app/page.tsx(2660,9): error TS2322: Type 'AttendanceRecord[] | { className: string | undefined; pupilId: string; classId: string; status: AttendanceStatus; remarks?: string | undefined; recordId?: string | undefined; classCode?: string | undefined; recordedAt?: string | undefined; }[]' is not assignable to type 'AttendanceRecord[]'.
+  Type '{ className: string | undefined; pupilId: string; classId: string; status: AttendanceStatus; remarks?: string | undefined; recordId?: string | undefined; classCode?: string | undefined; recordedAt?: string | undefined; }[]' is not assignable to type 'AttendanceRecord[]'.
+    Type '{ className: string | undefined; pupilId: string; classId: string; status: AttendanceStatus; remarks?: string | undefined; recordId?: string | undefined; classCode?: string | undefined; recordedAt?: string | undefined; }' is missing the following properties from type 'AttendanceRecord': id, date, academicYearId, termId
+src/app/payroll/accounting/page.tsx(339,26): error TS2339: Property 'label' does not exist on type '{ startDate: string; endDate: string; } | { startDate: string; endDate: string; label: string; }'.
+  Property 'label' does not exist on type '{ startDate: string; endDate: string; }'.
+src/app/procurement/page.tsx(624,39): error TS2339: Property 'totalSpent' does not exist on type '{ totalItems: number; activeItems: number; totalBudgets: number; activeBudgets: number; totalBudgetedAmount: number; }'.
+src/app/pupil-detail/page.tsx(2719,46): error TS2339: Property 'length' does not exist on type '{ examResults: ExamResult[]; exams: Exam[]; }'.
+src/app/pupil-detail/page.tsx(2724,37): error TS2339: Property 'length' does not exist on type '{ examResults: ExamResult[]; exams: Exam[]; }'.
+src/app/pupil-detail/page.tsx(2726,29): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{ examResults: ExamResult[]; exams: Exam[]; }'.
+  Property '0' does not exist on type '{ examResults: ExamResult[]; exams: Exam[]; }'.
+src/app/pupil-detail/page.tsx(2749,82): error TS2551: Property 'subjectCode' does not exist on type 'ExamRecordSubjectInfo'. Did you mean 'subjectId'?
+src/app/pupil-detail/page.tsx(2749,131): error TS2551: Property 'subjectCode' does not exist on type 'ExamRecordSubjectInfo'. Did you mean 'subjectId'?
+src/app/pupil-detail/page.tsx(2757,51): error TS2551: Property 'subjectCode' does not exist on type 'ExamRecordSubjectInfo'. Did you mean 'subjectId'?
+src/app/pupil-detail/page.tsx(2768,51): error TS2551: Property 'subjectCode' does not exist on type 'ExamRecordSubjectInfo'. Did you mean 'subjectId'?
+src/app/pupil-detail/page.tsx(2769,54): error TS2339: Property 'id' does not exist on type 'ExamRecordSubjectInfo'.
+src/app/pupil-detail/page.tsx(2818,108): error TS2339: Property 'examDetails' does not exist on type 'ExamResult'.
+src/app/pupil-detail/page.tsx(3002,59): error TS2345: Argument of type '{ examDetails: { name: any; examTypeName: any; startDate: any; endDate: any; academicYearId: any; termId: any; academicYearName: string; termName: string; }; classSnap: { id: string; name: string; code: string; }; ... 6 more ...; classTeacherInfo: { ...; }; }' is not assignable to parameter of type 'ModernBatchReportProps'.
+  Types of property 'processedResults' are incompatible.
+    Type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: number; photo: string | null; schoolPayCode: any; dateOfBirth: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; totalMarks: number; totalAggregates: number; division: string; }[]' is not assignable to type 'ExamResult[]'.
+      Property 'position' is missing in type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: number; photo: string | null; schoolPayCode: any; dateOfBirth: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; totalMarks: number; totalAggregates: number; division: string; }' but required in type 'ExamResult'.
+src/app/pupil-detail/page.tsx(3393,43): error TS2345: Argument of type '{ examDetails: { name: any; examTypeName: any; startDate: any; endDate: any; academicYearId: any; termId: any; academicYearName: string; termName: string; }; classSnap: { id: string; name: string; code: string; }; ... 9 more ...; isProgressReport: boolean; }' is not assignable to parameter of type 'ModernBatchReportProps'.
+  Types of property 'processedResults' are incompatible.
+    Type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: number; photo: string | null; schoolPayCode: any; dateOfBirth: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; totalMarks: number; totalAggregates: number; division: string; }[]' is not assignable to type 'ExamResult[]'.
+      Property 'position' is missing in type '{ pupilInfo: { pupilId: string; name: string; admissionNumber: string; age: number; photo: string | null; schoolPayCode: any; dateOfBirth: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; totalMarks: number; totalAggregates: number; division: string; }' but required in type 'ExamResult'.
+src/app/pupil-detail/page.tsx(3752,38): error TS2352: Conversion of type '{ palette: "blue" | "purple" | "orange"; examDetails: { name: any; examTypeName: any; startDate: any; endDate: any; academicYearId: any; termId: any; academicYearName: string; termName: string; }; ... 11 more ...; customDates: { ...; }; }' to type 'FullReport2Props' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'processedResults' are incompatible.
+    Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' is not comparable to type '{ pupilInfo: { name: string; admissionNumber: string; pupilId: string; age?: number | undefined; ageAtExam?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }; ... 4 more ...; comparisonDataArray?: { ...; }[] | undefined; }[]'.
+      Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' is not comparable to type '{ pupilInfo: { name: string; admissionNumber: string; pupilId: string; age?: number | undefined; ageAtExam?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }; ... 4 more ...; comparisonDataArray?: { ...; }[] | undefined; }'.
+        Types of property 'comparisonDataArray' are incompatible.
+          Type '{ exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]' is not comparable to type '{ exam: { name: string; examTypeName?: string | undefined; startDate?: string | undefined; endDate?: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; ... 4 more ...; subjects?: { ...; }[] | undefined; }[]'.
+            Type '{ exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }' is not comparable to type '{ exam: { name: string; examTypeName?: string | undefined; startDate?: string | undefined; endDate?: string | undefined; }; results: Record<string, { marks: number; grade: string; aggregates: number; }>; ... 4 more ...; subjects?: { ...; }[] | undefined; }'.
+              Types of property 'division' are incompatible.
+                Type 'PupilSubjectResult' is not comparable to type 'string'.
+src/app/pupil-detail/page.tsx(3753,43): error TS2345: Argument of type '{ examDetails: { name: any; examTypeName: any; startDate: any; endDate: any; academicYearId: any; termId: any; academicYearName: string; termName: string; }; comparisonExams: { name: string; examTypeName: string; startDate: string; endDate: string; }[]; ... 10 more ...; customDates: { ...; }; }' is not assignable to parameter of type 'ModernBatchReportProps'.
+  Types of property 'processedResults' are incompatible.
+    Type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' is not assignable to type 'ExamResult[]'.
+      Property 'position' is missing in type '{ comparisonDataArray: { exam: { name: string; examTypeName: string; startDate: string; endDate: string; }; results: Record<string, any>; subjects: { name: any; code: any; teacherName: any; }[]; totalMarks: number; totalAggregates: number; division: PupilSubjectResult; subjectSnaps: ExamRecordSubjectInfo[]; }[]; ......' but required in type 'ExamResult'.
+src/app/pupil-detail/page.tsx(3835,42): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(3882,63): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(3895,56): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(3907,18): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(3951,59): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(3957,63): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4085,37): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4086,44): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4097,69): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4190,33): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4191,55): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(4243,47): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(4275,38): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4281,35): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4309,20): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4319,24): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4319,48): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4321,55): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4325,43): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4329,37): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4332,24): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4334,37): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4343,37): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4343,77): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4343,153): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4345,65): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4346,20): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4347,53): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4349,72): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4353,113): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4371,61): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(4514,63): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4514,97): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4536,69): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4545,88): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4580,64): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4591,68): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4599,65): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4610,36): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4619,33): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4619,60): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4619,79): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4619,100): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4628,30): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4636,78): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4646,70): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4656,72): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4688,14): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4691,186): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(4888,14): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4910,45): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(4941,36): error TS2339: Property 'phone' does not exist on type 'Staff'.
+src/app/pupil-detail/page.tsx(4944,55): error TS2339: Property 'phone' does not exist on type 'Staff'.
+src/app/pupil-detail/page.tsx(4945,42): error TS2339: Property 'phone' does not exist on type 'Staff'.
+src/app/pupil-detail/page.tsx(5256,64): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(5394,36): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5398,76): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5404,92): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5415,69): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5434,90): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5444,88): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5455,18): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5456,80): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5461,71): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5485,53): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5487,56): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5713,43): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5713,62): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5713,89): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5713,108): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5743,73): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5744,88): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5745,72): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5746,84): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5752,14): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5752,43): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5761,20): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5791,14): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5791,40): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5800,20): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(5974,46): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(5974,77): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6004,40): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6004,128): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6006,49): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6054,30): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6055,43): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/page.tsx(6061,9): error TS2322: Type 'Pupil | undefined' is not assignable to type 'Pupil'.
+  Type 'undefined' is not assignable to type 'Pupil'.
+src/app/pupil-detail/page.tsx(6071,39): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6071,57): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6094,126): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6095,61): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6109,71): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6123,44): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/page.tsx(6123,62): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(164,46): error TS2322: Type 'never[] | { examResults: ExamResult[]; exams: Exam[]; }' is not assignable to type 'any[]'.
+  Type '{ examResults: ExamResult[]; exams: Exam[]; }' is missing the following properties from type 'any[]': length, pop, push, concat, and 35 more.
+src/app/pupil-detail/swipeable-page.tsx(190,25): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(195,37): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(215,35): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(215,76): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/swipeable-page.tsx(217,20): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(217,42): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(223,43): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'NameData'.
+  Type 'undefined' is not assignable to type 'NameData'.
+src/app/pupil-detail/swipeable-page.tsx(226,45): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupil-detail/swipeable-page.tsx(227,45): error TS18048: 'pupil' is possibly 'undefined'.
+src/app/pupils/page.tsx(50,15): error TS2440: Import declaration conflicts with local declaration of 'House'.
+src/app/pupils/page.tsx(801,39): error TS2345: Argument of type 'import("C:/Users/hp/Desktop/Trinity-Family-school-main/src/types/index").House' is not assignable to parameter of type 'House'.
+  Property 'color' is missing in type 'import("C:/Users/hp/Desktop/Trinity-Family-school-main/src/types/index").House' but required in type 'House'.
+src/app/pupils/page.tsx(1180,11): error TS2304: Cannot find name 'updateData'.
+src/app/pupils/page.tsx(1180,33): error TS2304: Cannot find name 'updateData'.
+src/app/pupils/page.tsx(1181,71): error TS2304: Cannot find name 'updateData'.
+src/app/pupils/page.tsx(1182,68): error TS2304: Cannot find name 'updateData'.
+src/app/pupils/page.tsx(1688,32): error TS2551: Property 'stream' does not exist on type 'Pupil'. Did you mean 'streamId'?
+src/app/pupils/page.tsx(1693,26): error TS2345: Argument of type 'number | ""' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/app/pupils/page.tsx(2070,40): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/pupils/page.tsx(2070,93): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/app/pupils/page.tsx(3124,13): error TS7034: Variable 'chunkedPupils' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/app/pupils/page.tsx(3167,12): error TS7005: Variable 'chunkedPupils' implicitly has an 'any[]' type.
+src/app/pupils/page.tsx(3888,58): error TS2339: Property 'themeColor' does not exist on type 'House'.
+src/app/pupils/page.tsx(4346,64): error TS2339: Property 'themeColor' does not exist on type 'House'.
+src/app/pupils/page.tsx(5031,11): error TS2322: Type '{ pupilId: string | null; isOpen: true; onClose: () => void; }' is not assignable to type 'IntrinsicAttributes & PupilPhotoDetailProps'.
+  Property 'pupilId' does not exist on type 'IntrinsicAttributes & PupilPhotoDetailProps'. Did you mean 'pupil'?
+src/app/pupils/promote/page.tsx(86,79): error TS2367: This comparison appears to be unintentional because the types '"Other" | "Nursery" | "Lower Primary" | "Secondary"' and '"Primary"' have no overlap.
+src/app/pupils/promote/page.tsx(298,15): error TS2322: Type '{ id: string; firstName: string; lastName: string; otherNames: string | undefined; admissionNumber: string; gender: "" | "Male" | "Female"; classId: string; className: string | undefined; classCode: string | undefined; section: "" | ... 1 more ... | "Boarding"; }[]' is not assignable to type 'PLEPupilSnapshot[]'.
+  Property 'dateOfBirth' is missing in type '{ id: string; firstName: string; lastName: string; otherNames: string | undefined; admissionNumber: string; gender: "" | "Male" | "Female"; classId: string; className: string | undefined; classCode: string | undefined; section: "" | ... 1 more ... | "Boarding"; }' but required in type 'PLEPupilSnapshot'.
+src/app/reports/page.tsx(94,23): error TS2339: Property 'capacity' does not exist on type 'Class'.
+src/app/reports/page.tsx(140,11): error TS2538: Type 'string[]' cannot be used as an index type.
+src/app/reports/page.tsx(140,24): error TS2538: Type 'string[]' cannot be used as an index type.
+src/app/reports/page.tsx(195,34): error TS2339: Property 'schoolName' does not exist on type 'SchoolSettings'.
+src/app/requirement-tracking/page.tsx(218,9): error TS2304: Cannot find name 'setIsYearSelectorOpen'.
+src/app/requirement-tracking/page.tsx(221,9): error TS2304: Cannot find name 'setIsTermSelectorOpen'.
+src/app/requirement-tracking/page.tsx(1185,61): error TS2322: Type '{ className: string; weight: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'weight' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'. Did you mean 'height'?
+src/app/requirement-tracking/page.tsx(1199,104): error TS2322: Type '{ className: string; weight: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'weight' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'. Did you mean 'height'?
+src/app/requirement-tracking/page.tsx(1209,114): error TS2322: Type '{ className: string; weight: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'weight' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'. Did you mean 'height'?
+src/app/staff/[id]/page.tsx(110,17): error TS2322: Type 'StaffStatus' is not assignable to type '"inactive" | "active" | "onLeave" | undefined'.
+  Type '"suspended"' is not assignable to type '"inactive" | "active" | "onLeave" | undefined'.
+src/components/attendance/enhanced-attendance-selector.tsx(164,9): error TS2322: Type '{ selectedAcademicYear: AcademicYear; selectedTerm: Term; selectedClass: Class; onSelectionChange: (data: any) => void; }' is not assignable to type 'IntrinsicAttributes & PupilHistoricalSelectorProps'.
+  Property 'selectedAcademicYear' does not exist on type 'IntrinsicAttributes & PupilHistoricalSelectorProps'. Did you mean 'selectedAcademicYearId'?
+src/components/attendance/enhanced-attendance-selector.tsx(167,29): error TS7006: Parameter 'data' implicitly has an 'any' type.
+src/components/banking/enhanced-banking-dashboard.tsx(174,13): error TS2322: Type '{ selectedPupil: Pupil | null; onPupilChange: (pupil: Pupil | null) => void; selectedAcademicYearId: string | undefined; selectedTermId: string | undefined; onAcademicContextChange: (academicYearId: string, termId: string) => void; showDataSourceIndicator: boolean; }' is not assignable to type 'IntrinsicAttributes & PupilHistoricalSelectorProps'.
+  Property 'selectedPupil' does not exist on type 'IntrinsicAttributes & PupilHistoricalSelectorProps'.
+src/components/BulkSMS/AccountBalance.tsx(117,14): error TS2739: Type '{}' is missing the following properties from type 'WizaSMSDashboardProps': open, onClose
+src/components/BulkSMS/AccountBalance.tsx(278,46): error TS2339: Property 'topUpCount' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/AccountBalance.tsx(278,80): error TS2339: Property 'maxTopUpsPerDay' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/TopUpDialog.tsx(97,44): error TS2339: Property 'paymentMethod' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/TopUpDialog.tsx(98,42): error TS2339: Property 'phoneNumber' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/TopUpDialog.tsx(99,39): error TS2339: Property 'provider' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/TopUpDialog.tsx(100,43): error TS2339: Property 'maxTopUpsPerDay' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/TopUpDialog.tsx(592,48): error TS2339: Property 'topUpCount' does not exist on type 'AutoTopUpConfig'.
+src/components/BulkSMS/TopUpDialog.tsx(592,84): error TS2339: Property 'maxTopUpsPerDay' does not exist on type 'AutoTopUpConfig'.
+src/components/class/class-requirements-overview-modal.tsx(263,59): error TS7006: Parameter 'term' implicitly has an 'any' type.
+src/components/class/class-requirements-overview-modal.tsx(268,61): error TS7006: Parameter 'term' implicitly has an 'any' type.
+src/components/class/class-requirements-overview-modal.tsx(342,60): error TS7006: Parameter 'term' implicitly has an 'any' type.
+src/components/commentary/CommentTemplateCard.tsx(42,20): error TS2322: Type '"destructive" | "success"' is not assignable to type '"secondary" | "destructive" | "default" | "outline" | null | undefined'.
+  Type '"success"' is not assignable to type '"secondary" | "destructive" | "default" | "outline" | null | undefined'.
+src/components/common/animated-element.tsx(62,7): error TS2322: Type 'RefObject<HTMLElement>' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'.
+  Type 'RefObject<HTMLElement>' is not assignable to type 'RefObject<HTMLDivElement>'.
+    Property 'align' is missing in type 'HTMLElement' but required in type 'HTMLDivElement'.
+src/components/common/uniform-tracking-modal.tsx(80,69): error TS2345: Argument of type '{ uniformId: string; selectionMode: "item"; paidAmount: string; paymentStatus: "pending"; collectionStatus: "pending"; academicYearId: string; termId: string; selectedSizes: {}; hasDiscount: false; discountType: "static"; discountValueType: "percentage"; discountValue: string; discountReason: string; }' is not assignable to parameter of type 'UniformTrackingFormData | (() => UniformTrackingFormData)'.
+  Property 'selectedQuantities' is missing in type '{ uniformId: string; selectionMode: "item"; paidAmount: string; paymentStatus: "pending"; collectionStatus: "pending"; academicYearId: string; termId: string; selectedSizes: {}; hasDiscount: false; discountType: "static"; discountValueType: "percentage"; discountValue: string; discountReason: string; }' but required in type 'UniformTrackingFormData'.
+src/components/common/uniform-tracking-modal.tsx(671,27): error TS18048: 'year.terms.length' is possibly 'undefined'.
+src/components/common/uniform-tracking-modal.tsx(673,51): error TS18048: 'year' is possibly 'undefined'.
+src/components/common/uniform-tracking-modal.tsx(674,68): error TS18048: 'year' is possibly 'undefined'.
+src/components/dashboard/class-attendance-summary-dialog.tsx(57,22): error TS2339: Property 'className' does not exist on type 'AttendanceNotificationSummary'.
+src/components/duty-service/DutyAssessment/EditAssignmentModal.tsx(94,32): error TS2367: This comparison appears to be unintentional because the types '"inactive" | "active" | "onLeave" | undefined' and '"Active"' have no overlap.
+src/components/duty-service/DutyManagement/BulkAssignMembersModal.tsx(288,107): error TS2551: Property 'className' does not exist on type 'Pupil | Staff'. Did you mean 'lastName'?
+  Property 'className' does not exist on type 'Staff'.
+src/components/duty-service/DutyManagement/BulkAssignMembersModal.tsx(295,80): error TS2339: Property 'employeeId' does not exist on type 'Pupil | Staff'.
+  Property 'employeeId' does not exist on type 'Pupil'.
+src/components/duty-service/DutyManagement/BulkAssignMembersModal.tsx(296,81): error TS2551: Property 'className' does not exist on type 'Pupil | Staff'. Did you mean 'lastName'?
+  Property 'className' does not exist on type 'Staff'.
+src/components/duty-service/DutyManagement/EditDutyRotaModal.tsx(88,17): error TS2345: Argument of type '(prev: Partial<DutyRota>) => { teamsInvolved: string[]; id?: string | undefined; dutyName?: string | undefined; frequency?: DutyFrequency | undefined; ... 9 more ...; updatedAt?: string | undefined; }' is not assignable to parameter of type 'SetStateAction<Partial<DutyRota>>'.
+  Type '(prev: Partial<DutyRota>) => { teamsInvolved: string[]; id?: string | undefined; dutyName?: string | undefined; frequency?: DutyFrequency | undefined; ... 9 more ...; updatedAt?: string | undefined; }' is not assignable to type '(prevState: Partial<DutyRota>) => Partial<DutyRota>'.
+    Call signature return types '{ teamsInvolved: string[]; id?: string | undefined; dutyName?: string | undefined; frequency?: DutyFrequency | undefined; startDate?: string | undefined; endDate?: string | undefined; ... 7 more ...; updatedAt?: string | undefined; }' and 'Partial<DutyRota>' are incompatible.
+      The types of 'teamsInvolved' are incompatible between these types.
+        Type 'string[]' is not assignable to type 'TeamType[]'.
+          Type 'string' is not assignable to type 'TeamType'.
+src/components/duty-service/DutyManagement/EditDutyRotaModal.tsx(90,51): error TS2345: Argument of type 'string' is not assignable to parameter of type 'TeamType'.
+src/components/duty-service/DutyManagement/EditDutyRotaModal.tsx(156,63): error TS2345: Argument of type 'string' is not assignable to parameter of type 'TeamType'.
+src/components/events/attendance/pupil-attendance-form.tsx(361,34): error TS2339: Property 'pupilId' does not exist on type 'string'.
+src/components/events/attendance/pupil-attendance-form.tsx(362,57): error TS2339: Property 'pupilName' does not exist on type 'string'.
+src/components/events/attendance/pupil-attendance-form.tsx(365,30): error TS2339: Property 'status' does not exist on type 'string'.
+src/components/events/attendance/pupil-attendance-form.tsx(366,30): error TS2339: Property 'status' does not exist on type 'string'.
+src/components/events/attendance/pupil-attendance-form.tsx(369,29): error TS2339: Property 'status' does not exist on type 'string'.
+src/components/events/attendance/staff-attendance-form.tsx(124,9): error TS2322: Type '{ staffId: string; staffName: string; position: any; department: string | string[]; email: string; status: "present" | "absent" | "late"; }[]' is not assignable to type '{ staffId: string; staffName: string; position: string; department: string; email: string; status: AttendanceStatus; }[]'.
+  Type '{ staffId: string; staffName: string; position: any; department: string | string[]; email: string; status: "present" | "absent" | "late"; }' is not assignable to type '{ staffId: string; staffName: string; position: string; department: string; email: string; status: AttendanceStatus; }'.
+    Types of property 'department' are incompatible.
+      Type 'string | string[]' is not assignable to type 'string'.
+        Type 'string[]' is not assignable to type 'string'.
+src/components/events/attendance/staff-attendance-form.tsx(129,30): error TS2339: Property 'position' does not exist on type 'Staff'.
+src/components/exam/DetailedAssessmentPDF.tsx(552,108): error TS2339: Property 'ageAtExam' does not exist on type '{ name: string; admissionNumber: string; pupilId: string; age?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; }'.
+src/components/exam/DetailedAssessmentPDF.tsx(657,47): error TS2339: Property 'isMajorSubject' does not exist on type 'Subject'.
+src/components/exam/DetailedAssessmentPDF.tsx(672,38): error TS2339: Property 'marksGained' does not exist on type 'Subject'.
+src/components/exam/DetailedAssessmentPDF.tsx(675,48): error TS2339: Property 'grade' does not exist on type 'Subject'.
+src/components/exam/DetailedAssessmentPDF.tsx(678,38): error TS2339: Property 'remarks' does not exist on type 'Subject'.
+src/components/exam/DetailedAssessmentPDF.tsx(681,38): error TS2339: Property 'teacherInitials' does not exist on type 'Subject'.
+src/components/exam/DetailedAssessmentPDF.tsx(834,33): error TS2322: Type '{ name: string; code: string; fullMarks: number; marksGained: number; grade: string; aggregates: number; remarks: string; teacherInitials: string; isMajorSubject: boolean; }[]' is not assignable to type 'Subject[]'.
+  Property 'subjectId' is missing in type '{ name: string; code: string; fullMarks: number; marksGained: number; grade: string; aggregates: number; remarks: string; teacherInitials: string; isMajorSubject: boolean; }' but required in type 'Subject'.
+src/components/exam/DetailedAssessmentPDF.tsx(852,35): error TS2322: Type '{ name: string; code: string; fullMarks: number; marksGained: number; grade: string; aggregates: number; remarks: string; teacherInitials: string; isMajorSubject: boolean; }[] | null' is not assignable to type 'Subject[]'.
+  Type 'null' is not assignable to type 'Subject[]'.
+src/components/exam/ExamResultsPDF.tsx(814,12): error TS2322: Type '({ content: string; colSpan: number; } | { content: string; rowSpan: number; styles: { valign: string; }; })[]' is not assignable to type 'RowInput'.
+  Type '({ content: string; colSpan: number; } | { content: string; rowSpan: number; styles: { valign: string; }; })[]' is not assignable to type 'CellInput[]'.
+    Type '{ content: string; colSpan: number; } | { content: string; rowSpan: number; styles: { valign: string; }; }' is not assignable to type 'CellInput'.
+      Type '{ content: string; rowSpan: number; styles: { valign: string; }; }' is not assignable to type 'CellInput'.
+        Type '{ content: string; rowSpan: number; styles: { valign: string; }; }' is not assignable to type 'CellDef'.
+          The types of 'styles.valign' are incompatible between these types.
+            Type 'string' is not assignable to type 'VAlignType | undefined'.
+src/components/exam/ModernBatchReportPDF.tsx(199,35): error TS2304: Cannot find name 'QRCode'.
+src/components/exam/ModernBatchReportPDF.tsx(223,5): error TS2339: Property 'onProgress' does not exist on type 'ModernBatchReportProps'.
+src/components/exam/ModernBatchReportPDF.tsx(302,106): error TS2339: Property 'ageAtExam' does not exist on type '{ name: string; admissionNumber: string; pupilId: string; age?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }'.
+src/components/exam/ModernBatchReportPDF.tsx(398,32): error TS2339: Property 'code' does not exist on type '{ name: string; }'.
+src/components/exam/ModernBatchReportPDF.tsx(434,23): error TS2339: Property 'code' does not exist on type '{ name: string; }'.
+src/components/exam/ModernBatchReportPDF.tsx(500,5): error TS2339: Property 'onProgress' does not exist on type 'ModernBatchReportProps'.
+src/components/exam/ModernBatchReportPDF.tsx(577,106): error TS2339: Property 'ageAtExam' does not exist on type '{ name: string; admissionNumber: string; pupilId: string; age?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; schoolPayCode?: string | undefined; }'.
+src/components/exam/ModernBatchReportPDF.tsx(720,32): error TS2339: Property 'code' does not exist on type '{ name: string; }'.
+src/components/exam/ModernBatchReportPDF.tsx(758,23): error TS2339: Property 'code' does not exist on type '{ name: string; }'.
+src/components/exam/ModernBatchReportPDF.tsx(777,14): error TS2322: Type '{ pupilName: string; className: string; classCode: any; year: string; term: string; age: number; date: string; position: number; totalPupils: number; pupilIdentificationNumber: string; subjects: { ...; }[]; ... 35 more ...; customDates: { ...; } | undefined; }' is not assignable to type 'TransPupilReportCardProps'.
+  Types of property 'progressData' are incompatible.
+    Type '{ comparisonExams: { name: string; subjects: any; totalMarks: any; totalAggregates: any; division: any; }[]; allSubjectCodes: any[]; } | null' is not assignable to type '{ comparisonExams: { name: string; subjects: Subject[]; totalMarks: string | number; totalAggregates: string | number; division: string; }[]; allSubjectCodes: string[]; } | undefined'.
+      Type 'null' is not assignable to type '{ comparisonExams: { name: string; subjects: Subject[]; totalMarks: string | number; totalAggregates: string | number; division: string; }[]; allSubjectCodes: string[]; } | undefined'.
+src/components/exam/TransBatchReportPDF.tsx(237,108): error TS2339: Property 'ageAtExam' does not exist on type '{ name: string; admissionNumber: string; pupilId: string; age?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; }'.
+src/components/exam/TransBatchReportPDF.tsx(283,112): error TS2339: Property 'ageAtExam' does not exist on type '{ name: string; admissionNumber: string; pupilId: string; age?: number | undefined; photo?: string | undefined; dateOfBirth?: string | undefined; }'.
+src/components/exam/TransBatchReportPDF.tsx(292,42): error TS2339: Property 'code' does not exist on type '{ name: string; }'.
+src/components/exam/TransBatchReportPDF.tsx(328,35): error TS2339: Property 'code' does not exist on type '{ name: string; }'.
+src/components/examples/digital-signature-examples.tsx(390,7): error TS2739: Type '{ userName: string; userRole: string; timestamp: string; sessionId: string; ipAddress: string; userAgent: string; }' is missing the following properties from type 'DigitalSignature': id, userId, action
+src/components/fees/fees-holiday-modal.tsx(65,31): error TS2339: Property 'category' does not exist on type 'FeesHoliday'.
+src/components/fees/fees-holiday-modal.tsx(66,32): error TS2339: Property 'category' does not exist on type 'FeesHoliday'.
+src/components/layout/enhanced-header.tsx(757,19): error TS2322: Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition | VariantLabels | undefined'.
+  Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+    Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+      Types of property 'transition' are incompatible.
+        Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+          Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+              Types of property 'type' are incompatible.
+                Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/components/layout/enhanced-header.tsx(768,19): error TS2322: Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition | VariantLabels | undefined'.
+  Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+    Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+      Types of property 'transition' are incompatible.
+        Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+          Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+              Types of property 'type' are incompatible.
+                Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/components/layout/enhanced-header.tsx(779,19): error TS2322: Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition | VariantLabels | undefined'.
+  Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+    Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+      Types of property 'transition' are incompatible.
+        Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+          Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+              Types of property 'type' are incompatible.
+                Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/components/layout/enhanced-header.tsx(823,25): error TS2322: Type '{ enter: { opacity: number; y: number; }; center: { opacity: number; y: number; transition: { duration: number; ease: string; }; }; exit: { opacity: number; y: number; transition: { duration: number; ease: string; }; }; }' is not assignable to type 'Variants'.
+  Property 'center' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: string; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: string; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: string; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: string; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ duration: number; ease: string; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: string; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'string' is not assignable to type 'Easing | Easing[] | undefined'.
+src/components/layout/enhanced-header.tsx(1407,19): error TS2322: Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition | VariantLabels | undefined'.
+  Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+    Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+      Types of property 'transition' are incompatible.
+        Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+          Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+              Types of property 'type' are incompatible.
+                Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/components/layout/enhanced-header.tsx(1451,19): error TS2322: Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition | VariantLabels | undefined'.
+  Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+    Type '{ scale: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues$1 | undefined; }'.
+      Types of property 'transition' are incompatible.
+        Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any> | undefined'.
+          Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+              Types of property 'type' are incompatible.
+                Type 'string' is not assignable to type 'AnimationGeneratorType | undefined'.
+src/components/notifications/NotificationBubble.tsx(68,54): error TS2339: Property 'userId' does not exist on type 'Staff'.
+src/components/notifications/NotificationBubble.tsx(72,40): error TS2339: Property 'userId' does not exist on type 'Staff'.
+src/components/notifications/NotificationBubble.tsx(73,25): error TS2353: Object literal may only specify known properties, and 'name' does not exist in type 'SystemUser'.
+src/components/notifications/NotificationBubble.tsx(98,32): error TS2339: Property 'name' does not exist on type 'SystemUser'.
+src/components/notifications/NotificationBubble.tsx(99,34): error TS2339: Property 'avatar' does not exist on type 'SystemUser'.
+src/components/notifications/NotificationBubble.tsx(102,14): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/components/parent/parent-bottom-navigation.tsx(99,16): error TS2367: This comparison appears to be unintentional because the types '"notifications" | "home"' and '"settings"' have no overlap.
+src/components/parent/parent-bottom-navigation.tsx(135,51): error TS2345: Argument of type '"settings" | "dashboard" | "home"' is not assignable to parameter of type '"notifications" | "dashboard" | "home"'.
+  Type '"settings"' is not assignable to type '"notifications" | "dashboard" | "home"'.
+src/components/parent/pupil-attendance-section.tsx(99,11): error TS2322: Type 'Term | null' is not assignable to type 'Term | undefined'.
+  Type 'null' is not assignable to type 'Term | undefined'.
+src/components/parent/pupil-attendance-section.tsx(452,28): error TS2304: Cannot find name 'acc'.
+src/components/parent/pupil-attendance-section.tsx(576,28): error TS2304: Cannot find name 'acc'.
+src/components/parent/pupil-attendance-section.tsx(692,31): error TS2339: Property 'toDate' does not exist on type 'never'.
+src/components/parent/pupil-attendance-section.tsx(715,33): error TS2339: Property 'toDate' does not exist on type 'never'.
+src/components/parent/pupil-attendance-section.tsx(846,31): error TS2304: Cannot find name 'acc'.
+src/components/parent/pupil-attendance-section.tsx(1467,51): error TS7006: Parameter 'record' implicitly has an 'any' type.
+src/components/parent/pupil-attendance-section.tsx(1627,59): error TS7006: Parameter 'record' implicitly has an 'any' type.
+src/components/parent/pupil-requirements-section.tsx(69,70): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'Pupil | null'.
+  Type 'undefined' is not assignable to type 'Pupil | null'.
+src/components/parent/pupil-requirements-section.tsx(74,5): error TS2345: Argument of type 'Pupil | undefined' is not assignable to parameter of type 'Pupil | null'.
+  Type 'undefined' is not assignable to type 'Pupil | null'.
+src/components/parent/pupil-results-section.tsx(181,38): error TS2339: Property 'toDate' does not exist on type 'never'.
+src/components/procurement/ProcurementFilters.tsx(393,36): error TS2345: Argument of type '"dateRange"' is not assignable to parameter of type 'keyof ProcurementFilters'.
+src/components/procurement/ProcurementFilters.tsx(406,36): error TS2345: Argument of type '"dateRange"' is not assignable to parameter of type 'keyof ProcurementFilters'.
+src/components/pupils/assignment-modal.tsx(759,75): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/components/pupils/assignment-modal.tsx(764,77): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/components/ui/avatar.tsx(34,6): error TS2322: Type '{ prefix?: string | undefined; height?: string | number | undefined; width?: string | number | undefined; translate?: "yes" | "no" | undefined; content?: string | undefined; popover?: "" | ... 2 more ... | undefined; ... 287 more ...; src: string; }' is not assignable to type '{ src: string | StaticImport; alt: string; width?: number | `${number}` | undefined; height?: number | `${number}` | undefined; fill?: boolean | undefined; loader?: ImageLoader | undefined; ... 12 more ...; lazyRoot?: string | undefined; }'.
+  Types of property 'alt' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/ui/enhanced-skeleton.tsx(102,10): error TS2322: Type '{ children: Element[]; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; suppressContentEditableWarning?: boolean | undefined; suppressHydrationWarning?: boolean | undefined; ... 274 more ...; ref: ForwardedRef<...>; }' is not assignable to type 'Omit<HTMLMotionProps<"div">, "ref">'.
+  Types of property 'onDrag' are incompatible.
+    Type 'DragEventHandler<HTMLDivElement> | undefined' is not assignable to type '((event: MouseEvent | PointerEvent | TouchEvent, info: PanInfo) => void) | undefined'.
+      Type 'DragEventHandler<HTMLDivElement>' is not assignable to type '(event: MouseEvent | PointerEvent | TouchEvent, info: PanInfo) => void'.
+        Types of parameters 'event' and 'event' are incompatible.
+          Type 'MouseEvent | PointerEvent | TouchEvent' is not assignable to type 'DragEvent<HTMLDivElement>'.
+            Type 'MouseEvent' is missing the following properties from type 'DragEvent<HTMLDivElement>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+src/components/ui/enhanced-skeleton.tsx(141,8): error TS2322: Type '{ children: false | Element; defaultChecked?: boolean | undefined; defaultValue?: string | number | readonly string[] | undefined; suppressContentEditableWarning?: boolean | undefined; ... 276 more ...; style: { ...; } | { ...; }; }' is not assignable to type 'Omit<HTMLMotionProps<"div">, "ref">'.
+  Types of property 'onDrag' are incompatible.
+    Type 'DragEventHandler<HTMLDivElement> | undefined' is not assignable to type '((event: MouseEvent | PointerEvent | TouchEvent, info: PanInfo) => void) | undefined'.
+      Type 'DragEventHandler<HTMLDivElement>' is not assignable to type '(event: MouseEvent | PointerEvent | TouchEvent, info: PanInfo) => void'.
+        Types of parameters 'event' and 'event' are incompatible.
+          Type 'MouseEvent | PointerEvent | TouchEvent' is not assignable to type 'DragEvent<HTMLDivElement>'.
+            Type 'MouseEvent' is missing the following properties from type 'DragEvent<HTMLDivElement>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+src/components/ui/modern-form.tsx(551,22): error TS2484: Export declaration conflicts with exported declaration of 'FormField'.
+src/components/ui/modern-form.tsx(551,38): error TS2484: Export declaration conflicts with exported declaration of 'FormStep'.
+src/components/uniform-tracking/TrackingRecordCard.tsx(375,89): error TS18048: 'historyItem.paidAmount' is possibly 'undefined'.
+src/components/uniform-tracking/TrackingRecordCard.tsx(376,62): error TS18048: 'historyItem.paidAmount' is possibly 'undefined'.
+src/lib/db.ts(1,30): error TS2307: Cannot find module '@prisma/client' or its corresponding type declarations.
+src/lib/firebase/firestore-subscription-registry.ts(141,11): error TS18048: 'entry' is possibly 'undefined'.
+src/lib/firebase/firestore-subscription-registry.ts(142,15): error TS18048: 'entry' is possibly 'undefined'.
+src/lib/firebase/firestore-subscription-registry.ts(143,26): error TS18048: 'entry' is possibly 'undefined'.
+src/lib/firebase/firestore-subscription-registry.ts(144,13): error TS18048: 'entry' is possibly 'undefined'.
+src/lib/firebase/firestore-subscription-registry.ts(146,19): error TS2345: Argument of type 'SubscriptionEntry<T> | undefined' is not assignable to parameter of type 'SubscriptionEntry<T>'.
+  Type 'undefined' is not assignable to type 'SubscriptionEntry<T>'.
+src/lib/hooks/use-events.ts(228,89): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/use-events.ts(239,13): error TS18048: 'event.description' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(246,13): error TS18048: 'event.classIds' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(252,13): error TS18048: 'event.subjectIds' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(267,28): error TS2345: Argument of type 'QueryFieldFilterConstraint' is not assignable to parameter of type 'QueryOrderByConstraint'.
+  Types of property 'type' are incompatible.
+    Type '"where"' is not assignable to type '"orderBy"'.
+src/lib/hooks/use-events.ts(271,28): error TS2345: Argument of type 'QueryFieldFilterConstraint' is not assignable to parameter of type 'QueryOrderByConstraint'.
+  Types of property 'type' are incompatible.
+    Type '"where"' is not assignable to type '"orderBy"'.
+src/lib/hooks/use-events.ts(275,28): error TS2345: Argument of type 'QueryFieldFilterConstraint' is not assignable to parameter of type 'QueryOrderByConstraint'.
+  Types of property 'type' are incompatible.
+    Type '"where"' is not assignable to type '"orderBy"'.
+src/lib/hooks/use-events.ts(279,28): error TS2345: Argument of type 'QueryFieldFilterConstraint' is not assignable to parameter of type 'QueryOrderByConstraint'.
+  Types of property 'type' are incompatible.
+    Type '"where"' is not assignable to type '"orderBy"'.
+src/lib/hooks/use-events.ts(293,13): error TS18048: 'event.description' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(300,13): error TS18048: 'event.classIds' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(306,13): error TS18048: 'event.subjectIds' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(340,89): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/use-events.ts(351,13): error TS18048: 'event.description' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(358,13): error TS18048: 'event.classIds' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(364,13): error TS18048: 'event.subjectIds' is possibly 'undefined'.
+src/lib/hooks/use-events.ts(502,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(509,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(536,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(543,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(635,11): error TS2353: Object literal may only specify known properties, and 'notes' does not exist in type 'CreateEventData'.
+src/lib/hooks/use-events.ts(659,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(666,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(695,11): error TS2353: Object literal may only specify known properties, and 'notes' does not exist in type 'Partial<Omit<Event, "id" | "createdAt" | "createdBy" | "notificationsSent" | "createdByName">>'.
+src/lib/hooks/use-events.ts(720,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-events.ts(727,7): error TS2304: Cannot find name 'toast'.
+src/lib/hooks/use-ple-results.ts(225,17): error TS2339: Property 'participated' does not exist on type 'PLEPupilResult'.
+src/lib/hooks/use-requirement-tracking.ts(60,94): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/hooks/use-requirements.ts(77,18): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(77,33): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(77,68): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(83,64): error TS2367: This comparison appears to be unintentional because the types 'RequirementSection' and '"all"' have no overlap.
+src/lib/hooks/use-requirements.ts(122,18): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(122,33): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(122,68): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(128,64): error TS2367: This comparison appears to be unintentional because the types 'RequirementSection' and '"all"' have no overlap.
+src/lib/hooks/use-requirements.ts(150,18): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(150,33): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(150,68): error TS2551: Property 'classId' does not exist on type 'RequirementItem'. Did you mean 'classIds'?
+src/lib/hooks/use-requirements.ts(156,64): error TS2367: This comparison appears to be unintentional because the types 'RequirementSection' and '"all"' have no overlap.
+src/lib/server/app-auth.ts(334,27): error TS2367: This comparison appears to be unintentional because the types '"delete" | "create" | "update" | "password"' and '"read"' have no overlap.
+src/lib/services/collection-analytics.service.ts(151,25): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/lib/services/collection-analytics.service.ts(152,25): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/lib/services/collection-analytics.service.ts(274,13): error TS2339: Property 'isDiscount' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(279,13): error TS2339: Property 'applicableClasses' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(279,38): error TS2339: Property 'applicableClasses' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(280,34): error TS2339: Property 'applicableClasses' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(286,13): error TS2339: Property 'applicableSections' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(286,39): error TS2339: Property 'applicableSections' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(288,16): error TS2339: Property 'applicableSections' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(294,13): error TS2339: Property 'assignmentType' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(295,16): error TS2339: Property 'assignedPupils' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(295,39): error TS2339: Property 'assignedPupils' does not exist on type 'FeeStructure'.
+src/lib/services/collection-analytics.service.ts(312,27): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/lib/services/collection-analytics.service.ts(425,27): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/lib/services/collection-analytics.service.ts(431,27): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/lib/services/collection-analytics.service.ts(463,30): error TS2339: Property 'paymentMethod' does not exist on type 'PaymentRecord'.
+src/lib/services/fees-payment-notification.service.ts(58,55): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/services/fees-payment-notification.service.ts(152,46): error TS2339: Property 'username' does not exist on type 'User'.
+src/lib/services/fees-payment-notification.service.ts(152,79): error TS2339: Property 'firstName' does not exist on type 'User'.
+src/lib/services/fees-payment-notification.service.ts(152,99): error TS2339: Property 'lastName' does not exist on type 'User'.
+src/lib/services/notification-service.ts(126,5): error TS2741: Property 'readBy' is missing in type '{ createdAt: string; status: NotificationStatus; enablePush: boolean; deliveryStats: { total: number; sent: number; delivered: number; failed: number; read: number; }; targetGroups: string[]; ... 17 more ...; id: string; }' but required in type 'Notification'.
+src/lib/services/notification-service.ts(333,39): error TS2339: Property 'showLocalNotification' does not exist on type '{ requestPermission(): Promise<NotificationPermission>; subscribe(userId: string): Promise<any>; unsubscribe(userId: string): Promise<...>; getSubscription(userId: string): Promise<...>; getUserPushSubscription(userId: string): Promise<...>; validateAndSyncSubscription(userId: string): Promise<...>; }'.
+src/lib/services/requirement-tracking.service.ts(165,21): error TS2339: Property 'pupilSnapshotData' does not exist on type 'RequirementTracking'.
+src/lib/services/requirement-tracking.service.ts(167,18): error TS2352: Conversion of type '{ pupilSnapshotData: { classId: string; section: string; admissionNumber: string; dateOfBirth: string | undefined; dataSource: "enhanced"; snapshotId: undefined; }; id: string; pupilId: string; ... 23 more ...; updatedAt?: string; }' to type 'EnhancedRequirementTracking' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of 'pupilSnapshotData.dataSource' are incompatible between these types.
+    Type '"enhanced"' is not comparable to type '"snapshot" | "live"'.
+src/lib/services/schoolpay-integration.service.ts(541,13): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/lib/services/schoolpay-integration.service.ts(1341,15): error TS18048: 'data' is possibly 'undefined'.
+src/lib/services/user-groups.ts(31,16): error TS2352: Conversion of type '{ role: "Admin" | "Staff"; isActive: boolean; id: string; }[]' to type 'User[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ role: "Admin" | "Staff"; isActive: boolean; id: string; }' is missing the following properties from type 'User': name, email, createdAt
+src/lib/services/user-groups.ts(48,29): error TS2352: Conversion of type '{ role: "Parent"; isActive: boolean; id: string; }[]' to type 'User[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ role: "Parent"; isActive: boolean; id: string; }' is missing the following properties from type 'User': name, email, createdAt
+src/lib/services/user-groups.ts(172,70): error TS2339: Property 'firstName' does not exist on type 'User'.
+src/lib/services/user-groups.ts(172,88): error TS2339: Property 'lastName' does not exist on type 'User'.
+src/lib/utils/requirements-data-integrity.ts(412,5): error TS2353: Object literal may only specify known properties, and 'pupilSnapshotData' does not exist in type 'RequirementTracking'.
+src/scripts/clear-term-fees.ts(24,48): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/clear-term-fees.ts(24,67): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/clear-term-fees.ts(41,40): error TS2339: Property 'termId' does not exist on type '{ id: string; }'.
+src/scripts/clear-term-fees.ts(104,86): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/clear-term-fees.ts(104,105): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/clear-term-fees.ts(112,57): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/clear-term-fees.ts(112,76): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/create-manual-user.ts(3,10): error TS2724: '"readline"' has no exported member named 'readline'. Did you mean 'ReadLine'?
+src/scripts/create-procurement-staff.ts(14,26): error TS2352: Conversion of type '{ module: "Procurement"; permission: "full_access"; }[]' to type 'ModulePermission[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ module: "Procurement"; permission: "full_access"; }' is not comparable to type 'ModulePermission'.
+    Types of property 'module' are incompatible.
+      Type '"Procurement"' is not comparable to type '"pupils" | "fees" | "procurement" | "inventory" | "bulk_sms" | "uniforms" | "requirements" | "settings" | "classes" | "exams" | "staff" | "subjects" | "attendance" | "academic_years" | ... 9 more ... | "item_requests"'.
+src/scripts/create-user-from-firebase-auth.ts(47,39): error TS2552: Cannot find name 'getDocs'. Did you mean 'getDoc'?
+src/scripts/mark-terms-paid-correct.ts(33,48): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(33,67): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(54,71): error TS2339: Property 'termId' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(64,30): error TS2339: Property 'category' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(64,70): error TS2339: Property 'amount' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(74,36): error TS2339: Property 'amount' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(89,47): error TS2339: Property 'amount' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(103,57): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid-correct.ts(103,76): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(25,48): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(25,67): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(43,75): error TS2339: Property 'termId' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(114,35): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(114,54): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(186,57): error TS2339: Property 'firstName' does not exist on type '{ id: string; }'.
+src/scripts/mark-terms-paid.ts(186,76): error TS2339: Property 'lastName' does not exist on type '{ id: string; }'.
+src/scripts/migrate-all-remaining.ts(49,75): error TS2339: Property 'type' does not exist on type 'FeeStructure'.
+src/scripts/migrate-all-remaining.ts(78,30): error TS2339: Property 'updatedAt' does not exist on type 'Subject'.
+src/scripts/migrate-all-remaining.ts(102,42): error TS2339: Property 'getAllClasses' does not exist on type 'typeof ClassesService'.
+src/scripts/migrate-pupils-data.ts(147,5): error TS2322: Type '"" | "Other" | "Male" | "Female"' is not assignable to type '"" | "Male" | "Female"'.
+  Type '"Other"' is not assignable to type '"" | "Male" | "Female"'.
+src/utils/commentGenderUtils.ts(17,18): error TS2367: This comparison appears to be unintentional because the types '"Male" | "Female"' and '""' have no overlap.
+tests/fee-discount-calculation.test.ts(28,20): error TS2352: Conversion of type '{ id: string; name: string; amount: number; category: "Tuition"; isRequired: true; isRecurring: true; status: "active"; createdAt: string; }' to type 'FeeStructure' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'category' are incompatible.
+    Type '"Tuition"' is not comparable to type 'FeeCategory'.
+tests/item-release-inventory-contract.test.ts(49,81): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+tests/procurement-selectors.test.ts(66,132): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+tests/procurement-selectors.test.ts(67,133): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+tests/procurement-selectors.test.ts(120,97): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.

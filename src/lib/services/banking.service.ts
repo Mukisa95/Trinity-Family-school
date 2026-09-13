@@ -7,6 +7,8 @@ import {
   updateDoc, 
   deleteDoc, 
   query, 
+  runTransaction,
+  type Transaction as FirestoreTransaction,
   orderBy,
   where,
   Timestamp,
@@ -34,6 +36,20 @@ const LOANS_COLLECTION = 'bankLoans';
 const TRANSACTIONS_COLLECTION = 'bankTransactions';
 
 export class BankingService {
+  private static async readAccountForTransaction(transaction: FirestoreTransaction, pupilId: string): Promise<Account> {
+    // The Web SDK supports transactional document reads, not query reads.
+    // Discover the account, then read its current balance inside the transaction.
+    const matches = await getDocs(query(collection(db, ACCOUNTS_COLLECTION), where('pupilId', '==', pupilId)));
+    if (matches.empty) throw new Error('Account not found');
+    if (matches.docs.length > 1) {
+      throw new Error('Multiple banking accounts exist for this pupil. Reconcile the accounts before recording a transaction.');
+    }
+    const snapshot = await transaction.get(matches.docs[0].ref);
+    if (!snapshot.exists()) throw new Error('Account not found');
+    const account = { id: snapshot.id, ...snapshot.data() } as Account;
+    if (account.pupilId !== pupilId) throw new Error('Account does not belong to this pupil');
+    return account;
+  }
   // Account operations
   static async getAllAccounts(): Promise<Account[]> {
     try {
@@ -294,65 +310,53 @@ export class BankingService {
     }
   }
 
-  static async createLoan(data: CreateLoanData): Promise<Loan> {
+  static async createLoan(data: CreateLoanData, options?: { disburse?: boolean; processedBy?: string }): Promise<Loan> {
     try {
-      // Get the pupil's account
-      const account = await BankingService.getAccountByPupilId(data.pupilId);
-      if (!account) {
-        throw new Error('Account not found for this pupil');
+      if (!Number.isFinite(data.amount) || data.amount <= 0) {
+        throw new Error('Loan amount must be a positive number');
       }
+      const loanRef = doc(collection(db, LOANS_COLLECTION));
+      const transactionRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+      const now = Timestamp.now();
+      const nowIso = new Date().toISOString();
 
-      const loanData = {
-        ...data,
-        amountRepaid: 0,
-        status: 'ACTIVE' as const,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      };
+      return await runTransaction(db, async firestoreTransaction => {
+        const account = options?.disburse === false
+          ? null
+          : await this.readAccountForTransaction(firestoreTransaction, data.pupilId);
+        const newBalance = account ? account.balance + data.amount : 0;
 
-      // Create the loan
-      const docRef = await addDoc(collection(db, LOANS_COLLECTION), loanData);
-      await HistoryLogService.log({
-        action: 'create',
-        entity: 'bank_loan',
-        recordId: docRef.id,
-        label: data.purpose,
-        meta: {
-          amount: data.amount,
-          pupilId: data.pupilId,
-        },
+        firestoreTransaction.set(loanRef, {
+          ...data,
+          amountRepaid: 0,
+          status: 'ACTIVE',
+          createdAt: now,
+          updatedAt: now,
+        });
+        if (account) {
+          firestoreTransaction.set(transactionRef, {
+            pupilId: data.pupilId,
+            accountId: account.id,
+            type: 'LOAN_DISBURSEMENT',
+            amount: data.amount,
+            description: `Loan disbursement: ${data.purpose}`,
+            balance: newBalance,
+            transactionDate: nowIso,
+            createdAt: now,
+            ...(('academicYearId' in data && data.academicYearId) ? { academicYearId: data.academicYearId } : {}),
+            ...(('termId' in data && data.termId) ? { termId: data.termId } : {}),
+            ...(options?.processedBy ? { processedBy: options.processedBy } : {}),
+          });
+          firestoreTransaction.update(doc(db, ACCOUNTS_COLLECTION, account.id), { balance: newBalance, updatedAt: now });
+        }
+        HistoryLogService.addToTransaction(firestoreTransaction, {
+          action: 'create', entity: 'bank_loan', recordId: loanRef.id, label: data.purpose,
+          meta: { amount: data.amount, pupilId: data.pupilId },
+        });
+        return {
+          id: loanRef.id, ...data, amountRepaid: 0, status: 'ACTIVE', createdAt: nowIso, updatedAt: nowIso,
+        } as Loan;
       });
-      
-      // Add loan amount to account balance
-      const newBalance = account.balance + data.amount;
-      const accountRef = doc(db, ACCOUNTS_COLLECTION, account.id);
-      await updateDoc(accountRef, {
-        balance: newBalance,
-        updatedAt: Timestamp.now()
-      });
-
-      // Create a transaction record for loan disbursement
-      const transactionData = {
-        pupilId: data.pupilId,
-        accountId: account.id,
-        type: 'LOAN_DISBURSEMENT' as const,
-        amount: data.amount,
-        description: `Loan disbursement: ${data.purpose}`,
-        balance: newBalance,
-        transactionDate: new Date().toISOString(),
-        createdAt: Timestamp.now()
-      };
-
-      await addDoc(collection(db, TRANSACTIONS_COLLECTION), transactionData);
-      
-      return {
-        id: docRef.id,
-        ...data,
-        amountRepaid: 0,
-        status: 'ACTIVE',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
     } catch (error) {
       console.error('Error creating loan:', error);
       throw error;
@@ -406,83 +410,35 @@ export class BankingService {
 
   static async revertTransaction(transactionId: string): Promise<void> {
     try {
-      // Get the transaction to revert
       const transactionRef = doc(db, TRANSACTIONS_COLLECTION, transactionId);
-      const transactionDoc = await getDoc(transactionRef);
-      
-      if (!transactionDoc.exists()) {
-        throw new Error('Transaction not found');
-      }
-      
-      const transaction = {
-        id: transactionDoc.id,
-        ...transactionDoc.data(),
-        createdAt: transactionDoc.data().createdAt?.toDate?.()?.toISOString() || transactionDoc.data().createdAt,
-        transactionDate: transactionDoc.data().transactionDate || transactionDoc.data().createdAt?.toDate?.()?.toISOString() || transactionDoc.data().createdAt
-      } as Transaction;
-      
-      // Get the account
-      const account = await BankingService.getAccountByPupilId(transaction.pupilId);
-      if (!account) {
-        throw new Error('Account not found for this transaction');
-      }
-      
-      // Calculate the reversal amount and new balance
-      let newBalance = account.balance;
-      if (transaction.type === 'DEPOSIT' || transaction.type === 'LOAN_DISBURSEMENT') {
-        // For deposits and loan disbursements, subtract the amount to revert
-        newBalance -= transaction.amount;
-      } else if (transaction.type === 'WITHDRAWAL' || transaction.type === 'LOAN_REPAYMENT') {
-        // For withdrawals and loan repayments, add the amount back
-        newBalance += transaction.amount;
-      }
-      
-      // Create a reversal transaction
-      const reversalData = {
-        pupilId: transaction.pupilId,
-        accountId: transaction.accountId,
-        type: 'WITHDRAWAL' as const, // Reversal is always treated as withdrawal from current balance
-        amount: transaction.amount,
-        description: `Reversal of ${transaction.type}: ${transaction.description}`,
-        balance: newBalance,
-        transactionDate: new Date().toISOString(),
-        academicYearId: transaction.academicYearId,
-        termId: transaction.termId,
-        processedBy: 'System - Reversal',
-        createdAt: Timestamp.now(),
-        originalTransactionId: transactionId // Link to original transaction
-      };
-      
-      // Add the reversal transaction
-      await addDoc(collection(db, TRANSACTIONS_COLLECTION), reversalData);
-      
-      // Update account balance
-      const accountRef = doc(db, ACCOUNTS_COLLECTION, account.id);
-      await updateDoc(accountRef, {
-        balance: newBalance,
-        updatedAt: Timestamp.now()
+      const reversalRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+      const now = Timestamp.now();
+      const nowIso = new Date().toISOString();
+      await runTransaction(db, async firestoreTransaction => {
+        const transactionDoc = await firestoreTransaction.get(transactionRef);
+        if (!transactionDoc.exists()) throw new Error('Transaction not found');
+        const transaction = { id: transactionDoc.id, ...transactionDoc.data() } as Transaction;
+        if (transaction.isReverted) throw new Error('Transaction has already been reverted');
+        const account = await this.readAccountForTransaction(firestoreTransaction, transaction.pupilId);
+        const newBalance = transaction.type === 'DEPOSIT' || transaction.type === 'LOAN_DISBURSEMENT'
+          ? account.balance - transaction.amount
+          : account.balance + transaction.amount;
+
+        firestoreTransaction.set(reversalRef, {
+          pupilId: transaction.pupilId, accountId: transaction.accountId, type: 'WITHDRAWAL',
+          amount: transaction.amount, description: `Reversal of ${transaction.type}: ${transaction.description}`,
+          balance: newBalance, transactionDate: nowIso, academicYearId: transaction.academicYearId,
+          termId: transaction.termId, processedBy: 'System - Reversal', createdAt: now,
+          originalTransactionId: transactionId,
+        });
+        firestoreTransaction.update(doc(db, ACCOUNTS_COLLECTION, account.id), { balance: newBalance, updatedAt: now });
+        firestoreTransaction.update(transactionRef, { isReverted: true, revertedAt: now, revertedBy: 'System', updatedAt: now });
+        HistoryLogService.addToTransaction(firestoreTransaction, {
+          action: 'revert', entity: 'bank_transaction', recordId: transactionId,
+          label: transaction.description || transactionId, changedFields: ['isReverted'],
+          meta: { amount: transaction.amount, pupilId: transaction.pupilId, type: transaction.type },
+        });
       });
-      
-      // Mark original transaction as reverted
-      await updateDoc(transactionRef, {
-        isReverted: true,
-        revertedAt: Timestamp.now(),
-        revertedBy: 'System',
-        updatedAt: Timestamp.now()
-      });
-      await HistoryLogService.log({
-        action: 'revert',
-        entity: 'bank_transaction',
-        recordId: transactionId,
-        label: transaction.description || transactionId,
-        changedFields: ['isReverted'],
-        meta: {
-          amount: transaction.amount,
-          pupilId: transaction.pupilId,
-          type: transaction.type,
-        },
-      });
-      
     } catch (error) {
       console.error('Error reverting transaction:', error);
       throw error;
@@ -491,84 +447,37 @@ export class BankingService {
 
   static async cancelLoan(loanId: string): Promise<void> {
     try {
-      // Get the loan to cancel
       const loanRef = doc(db, LOANS_COLLECTION, loanId);
-      const loanDoc = await getDoc(loanRef);
-      
-      if (!loanDoc.exists()) {
-        throw new Error('Loan not found');
-      }
-      
-      const loan = {
-        id: loanDoc.id,
-        ...loanDoc.data(),
-        createdAt: loanDoc.data().createdAt?.toDate?.()?.toISOString() || loanDoc.data().createdAt,
-        updatedAt: loanDoc.data().updatedAt?.toDate?.()?.toISOString() || loanDoc.data().updatedAt
-      } as Loan;
-      
-      if (loan.status !== 'ACTIVE') {
-        throw new Error('Only active loans can be cancelled');
-      }
-      
-      // Get the account
-      const account = await BankingService.getAccountByPupilId(loan.pupilId);
-      if (!account) {
-        throw new Error('Account not found for this loan');
-      }
-      
-      // Calculate how much to deduct from account (outstanding loan amount)
-      const outstandingAmount = loan.amount - loan.amountRepaid;
-      
-      if (account.balance < outstandingAmount) {
-        throw new Error('Insufficient balance to cancel loan. Account balance must cover the outstanding loan amount.');
-      }
-      
-      // Update account balance (subtract outstanding amount)
-      const newBalance = account.balance - outstandingAmount;
-      const accountRef = doc(db, ACCOUNTS_COLLECTION, account.id);
-      await updateDoc(accountRef, {
-        balance: newBalance,
-        updatedAt: Timestamp.now()
+      const cancellationRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+      const now = Timestamp.now();
+      const nowIso = new Date().toISOString();
+      await runTransaction(db, async firestoreTransaction => {
+        const loanDoc = await firestoreTransaction.get(loanRef);
+        if (!loanDoc.exists()) throw new Error('Loan not found');
+        const loan = { id: loanDoc.id, ...loanDoc.data() } as Loan;
+        if (loan.status !== 'ACTIVE') throw new Error('Only active loans can be cancelled');
+        const account = await this.readAccountForTransaction(firestoreTransaction, loan.pupilId);
+        const outstandingAmount = loan.amount - loan.amountRepaid;
+        if (account.balance < outstandingAmount) {
+          throw new Error('Insufficient balance to cancel loan. Account balance must cover the outstanding loan amount.');
+        }
+        const newBalance = account.balance - outstandingAmount;
+
+        firestoreTransaction.set(cancellationRef, {
+          pupilId: loan.pupilId, accountId: account.id, type: 'LOAN_REPAYMENT', amount: outstandingAmount,
+          description: `Loan cancellation: ${loan.purpose}`, balance: newBalance, transactionDate: nowIso,
+          academicYearId: loan.academicYearId || '', termId: loan.termId || '',
+          processedBy: 'System - Loan Cancellation', createdAt: now,
+        });
+        firestoreTransaction.update(doc(db, ACCOUNTS_COLLECTION, account.id), { balance: newBalance, updatedAt: now });
+        firestoreTransaction.update(loanRef, {
+          status: 'CANCELLED', cancelledAt: now, cancelledBy: 'System', amountRepaid: loan.amount, updatedAt: now,
+        });
+        HistoryLogService.addToTransaction(firestoreTransaction, {
+          action: 'revert', entity: 'bank_loan', recordId: loanId, label: loan.purpose || loanId,
+          changedFields: ['status'], meta: { status: 'CANCELLED', amount: outstandingAmount, pupilId: loan.pupilId },
+        });
       });
-      
-      // Create a transaction record for loan cancellation
-      const cancellationTransactionData = {
-        pupilId: loan.pupilId,
-        accountId: account.id,
-        type: 'LOAN_REPAYMENT' as const,
-        amount: outstandingAmount,
-        description: `Loan cancellation: ${loan.purpose}`,
-        balance: newBalance,
-        transactionDate: new Date().toISOString(),
-        academicYearId: loan.academicYearId || '',
-        termId: loan.termId || '',
-        processedBy: 'System - Loan Cancellation',
-        createdAt: Timestamp.now()
-      };
-      
-      await addDoc(collection(db, TRANSACTIONS_COLLECTION), cancellationTransactionData);
-      
-      // Update loan status to cancelled
-      await updateDoc(loanRef, {
-        status: 'CANCELLED',
-        cancelledAt: Timestamp.now(),
-        cancelledBy: 'System',
-        amountRepaid: loan.amount, // Mark as fully repaid for accounting purposes
-        updatedAt: Timestamp.now()
-      });
-      await HistoryLogService.log({
-        action: 'revert',
-        entity: 'bank_loan',
-        recordId: loanId,
-        label: loan.purpose || loanId,
-        changedFields: ['status'],
-        meta: {
-          status: 'CANCELLED',
-          amount: outstandingAmount,
-          pupilId: loan.pupilId,
-        },
-      });
-      
     } catch (error) {
       console.error('Error cancelling loan:', error);
       throw error;
@@ -707,129 +616,126 @@ export class BankingService {
 
   static async createTransaction(data: CreateTransactionData): Promise<Transaction> {
     try {
-      // Get current account balance
-      const account = await BankingService.getAccountByPupilId(data.pupilId);
-      if (!account) {
-        throw new Error('Account not found');
+      if (!Number.isFinite(data.amount) || data.amount <= 0) {
+        throw new Error('Transaction amount must be a positive number');
       }
 
-      let newBalance = account.balance;
-      let finalAmount = data.amount;
-      let finalDescription = data.description;
-      const transactions: any[] = [];
+      const activeLoansQuery = query(
+        collection(db, LOANS_COLLECTION),
+        where('pupilId', '==', data.pupilId),
+        where('status', '==', 'ACTIVE'),
+      );
+      const transactionDate = data.transactionDate || new Date().toISOString();
+      const createdAt = Timestamp.now();
+      const createdAtIso = new Date().toISOString();
 
-      // Handle different transaction types
-      if (data.type === 'DEPOSIT') {
-        // Check for active loans first
-        const activeLoans = await BankingService.getActiveLoansByPupilId(data.pupilId);
-        let remainingDepositAmount = data.amount;
+      return await runTransaction(db, async firestoreTransaction => {
+        // All reads happen before writes so Firestore can retry the command if
+        // another cashier changes the same account or loan meanwhile.
+        const account = await this.readAccountForTransaction(firestoreTransaction, data.pupilId);
+        // Read the account before discovering loans. All loan commands update
+        // that account, so a concurrent loan change retries this discovery too.
+        const loanMatches = data.type === 'DEPOSIT' ? await getDocs(activeLoansQuery) : null;
+        const loanSnapshots = await Promise.all(
+          (loanMatches?.docs || []).map(loan => firestoreTransaction.get(loan.ref)),
+        );
+        const accountRef = doc(db, ACCOUNTS_COLLECTION, account.id);
+        let newBalance = account.balance;
+        let finalAmount = data.amount;
+        let finalDescription = data.description;
+        const createdTransactions: Transaction[] = [];
 
-        // Auto-repay loans with the deposit
-        for (const loan of activeLoans) {
-          if (remainingDepositAmount <= 0) break;
-
-          const outstandingAmount = loan.amount - loan.amountRepaid;
-          const repaymentAmount = Math.min(remainingDepositAmount, outstandingAmount);
-
-          if (repaymentAmount > 0) {
-            // Update loan
-            const loanRef = doc(db, LOANS_COLLECTION, loan.id);
-            const newAmountRepaid = loan.amountRepaid + repaymentAmount;
-            const newStatus = newAmountRepaid >= loan.amount ? 'PAID' : 'ACTIVE';
-
-            await updateDoc(loanRef, {
-              amountRepaid: newAmountRepaid,
-              status: newStatus,
-              updatedAt: Timestamp.now()
+        if (data.type === 'DEPOSIT') {
+          let remainingDepositAmount = data.amount;
+          const activeLoans = loanSnapshots
+            .filter(snapshot => snapshot.exists() && snapshot.data().status === 'ACTIVE')
+            .map(loanDoc => ({ id: loanDoc.id, ...loanDoc.data() } as Loan))
+            .sort((left, right) => {
+              const leftDate = (left.createdAt as any)?.toDate?.() || left.createdAt;
+              const rightDate = (right.createdAt as any)?.toDate?.() || right.createdAt;
+              return new Date(leftDate).getTime() - new Date(rightDate).getTime();
             });
 
-            // Create loan repayment transaction
-            const loanRepaymentTransaction = {
+          for (const loan of activeLoans) {
+            if (remainingDepositAmount <= 0) break;
+            const repaymentAmount = Math.min(remainingDepositAmount, loan.amount - loan.amountRepaid);
+            if (repaymentAmount <= 0) continue;
+
+            const newAmountRepaid = loan.amountRepaid + repaymentAmount;
+            firestoreTransaction.update(doc(db, LOANS_COLLECTION, loan.id), {
+              amountRepaid: newAmountRepaid,
+              status: newAmountRepaid >= loan.amount ? 'PAID' : 'ACTIVE',
+              updatedAt: createdAt,
+            });
+
+            const repaymentRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+            const repaymentRecord = {
               pupilId: data.pupilId,
               accountId: account.id,
               type: 'LOAN_REPAYMENT' as const,
               amount: repaymentAmount,
               description: `Auto loan repayment from deposit - ${loan.purpose}`,
-              balance: newBalance, // Balance doesn't change for loan repayment
-              transactionDate: data.transactionDate || new Date().toISOString(),
-              createdAt: Timestamp.now()
+              balance: newBalance,
+              transactionDate,
+              createdAt,
             };
-
-            const loanRepaymentRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), loanRepaymentTransaction);
-            transactions.push({
-              id: loanRepaymentRef.id,
-              ...loanRepaymentTransaction,
-              createdAt: new Date().toISOString()
-            });
-
+            firestoreTransaction.set(repaymentRef, repaymentRecord);
+            createdTransactions.push({ id: repaymentRef.id, ...repaymentRecord, createdAt: createdAtIso } as Transaction);
             remainingDepositAmount -= repaymentAmount;
           }
-        }
 
-        // Add remaining amount to balance
-        if (remainingDepositAmount > 0) {
-          newBalance += remainingDepositAmount;
-          finalAmount = remainingDepositAmount;
-          finalDescription = remainingDepositAmount < data.amount 
-            ? `${data.description} (${data.amount - remainingDepositAmount} used for loan repayment)`
-            : data.description;
+          if (remainingDepositAmount > 0) {
+            newBalance += remainingDepositAmount;
+            finalAmount = remainingDepositAmount;
+            finalDescription = remainingDepositAmount < data.amount
+              ? `${data.description} (${data.amount - remainingDepositAmount} used for loan repayment)`
+              : data.description;
+          } else {
+            finalAmount = 0;
+            finalDescription = `${data.description} (fully used for loan repayment)`;
+          }
+        } else if (data.type === 'WITHDRAWAL') {
+          if (account.balance < data.amount) throw new Error('Insufficient balance for withdrawal');
+          newBalance -= data.amount;
         } else {
-          // All deposit went to loan repayment
-          finalAmount = 0;
-          finalDescription = `${data.description} (fully used for loan repayment)`;
+          newBalance = data.type === 'LOAN_REPAYMENT'
+            ? account.balance - data.amount
+            : account.balance + data.amount;
         }
-      } else if (data.type === 'WITHDRAWAL') {
-        // Check if sufficient balance for withdrawal
-        if (account.balance < data.amount) {
-          throw new Error('Insufficient balance for withdrawal');
-        }
-        newBalance -= data.amount;
-      } else {
-        // For other transaction types (LOAN_DISBURSEMENT, LOAN_REPAYMENT)
-        const isDebit = ['LOAN_REPAYMENT'].includes(data.type);
-        newBalance = isDebit ? account.balance - data.amount : account.balance + data.amount;
-      }
 
-      // Create the main transaction only if there's an amount to record
-      if (finalAmount > 0 || data.type !== 'DEPOSIT') {
-        const transactionData = {
+        if (finalAmount > 0 || data.type !== 'DEPOSIT') {
+          const transactionRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+          const transactionRecord = {
+            ...data,
+            amount: finalAmount,
+            description: finalDescription,
+            balance: newBalance,
+            transactionDate,
+            createdAt,
+          };
+          firestoreTransaction.set(transactionRef, transactionRecord);
+          createdTransactions.push({
+            id: transactionRef.id,
+            ...data,
+            amount: finalAmount,
+            description: finalDescription,
+            balance: newBalance,
+            transactionDate,
+            createdAt: createdAtIso,
+          } as Transaction);
+        }
+
+        firestoreTransaction.update(accountRef, { balance: newBalance, updatedAt: createdAt });
+        return createdTransactions[createdTransactions.length - 1] || {
+          id: '',
           ...data,
           amount: finalAmount,
           description: finalDescription,
           balance: newBalance,
-          transactionDate: data.transactionDate || new Date().toISOString(),
-          createdAt: Timestamp.now()
-        };
-
-        const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), transactionData);
-        transactions.push({
-          id: docRef.id,
-          ...data,
-          amount: finalAmount,
-          description: finalDescription,
-          balance: newBalance,
-          transactionDate: data.transactionDate || new Date().toISOString(),
-          createdAt: new Date().toISOString()
-        });
-      }
-
-      // Update account balance
-      const accountRef = doc(db, ACCOUNTS_COLLECTION, account.id);
-      await updateDoc(accountRef, {
-        balance: newBalance,
-        updatedAt: Timestamp.now()
+          transactionDate,
+          createdAt: createdAtIso,
+        } as Transaction;
       });
-
-      // Return the main transaction (last one created)
-      return transactions[transactions.length - 1] || {
-        id: '',
-        ...data,
-        amount: finalAmount,
-        description: finalDescription,
-        balance: newBalance,
-        transactionDate: data.transactionDate || new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      };
     } catch (error) {
       console.error('Error creating transaction:', error);
       throw error;
@@ -866,77 +772,82 @@ export class BankingService {
   // Loan management methods
   static async processOverdueLoans(pupilId: string): Promise<{ processed: boolean; message: string }> {
     try {
-      const account = await BankingService.getAccountByPupilId(pupilId);
-      if (!account) {
-        return { processed: false, message: 'Account not found' };
-      }
+      const activeLoansQuery = query(
+        collection(db, LOANS_COLLECTION),
+        where('pupilId', '==', pupilId),
+        where('status', '==', 'ACTIVE'),
+      );
+      const processedAt = Timestamp.now();
+      const processedAtIso = new Date().toISOString();
+      const today = new Date();
 
-      const activeLoans = await BankingService.getActiveLoansByPupilId(pupilId);
-      const overdueLoans = activeLoans.filter(loan => {
-        const repaymentDate = new Date(loan.repaymentDate);
-        const today = new Date();
-        return repaymentDate < today;
-      });
-
-      if (overdueLoans.length === 0) {
-        return { processed: false, message: 'No overdue loans found' };
-      }
-
-      let totalCollected = 0;
-      let remainingBalance = account.balance;
-
-      for (const loan of overdueLoans) {
-        if (remainingBalance <= 0) break;
-
-        const outstandingAmount = loan.amount - loan.amountRepaid;
-        const collectionAmount = Math.min(remainingBalance, outstandingAmount);
-
-        if (collectionAmount > 0) {
-          // Update loan
-          const loanRef = doc(db, LOANS_COLLECTION, loan.id);
-          const newAmountRepaid = loan.amountRepaid + collectionAmount;
-          const newStatus = newAmountRepaid >= loan.amount ? 'PAID' : 'ACTIVE';
-
-          await updateDoc(loanRef, {
-            amountRepaid: newAmountRepaid,
-            status: newStatus,
-            updatedAt: Timestamp.now()
+      return await runTransaction(db, async firestoreTransaction => {
+        const account = await this.readAccountForTransaction(firestoreTransaction, pupilId);
+        const loanMatches = await getDocs(activeLoansQuery);
+        const loanSnapshots = await Promise.all(
+          loanMatches.docs.map(loan => firestoreTransaction.get(loan.ref)),
+        );
+        const overdueLoans = loanSnapshots
+          .filter(snapshot => snapshot.exists())
+          .map(snapshot => ({ id: snapshot.id, ...snapshot.data() } as Loan))
+          .filter(loan => loan.status === 'ACTIVE' && new Date(loan.repaymentDate) < today)
+          .sort((left, right) => {
+            const leftDate = (left.createdAt as any)?.toDate?.() || left.createdAt;
+            const rightDate = (right.createdAt as any)?.toDate?.() || right.createdAt;
+            return new Date(leftDate).getTime() - new Date(rightDate).getTime();
           });
 
-          // Create transaction for overdue collection
-          const transactionData = {
-            pupilId: pupilId,
+        if (overdueLoans.length === 0) {
+          return { processed: false, message: 'No overdue loans found' };
+        }
+
+        let totalCollected = 0;
+        let remainingBalance = account.balance;
+
+        for (const loan of overdueLoans) {
+          if (remainingBalance <= 0) break;
+          const outstandingAmount = loan.amount - loan.amountRepaid;
+          const collectionAmount = Math.min(remainingBalance, outstandingAmount);
+          if (collectionAmount <= 0) continue;
+
+          const newAmountRepaid = loan.amountRepaid + collectionAmount;
+          const newStatus = newAmountRepaid >= loan.amount ? 'PAID' : 'ACTIVE';
+          const balanceAfterCollection = remainingBalance - collectionAmount;
+          const repaymentRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+
+          firestoreTransaction.update(doc(db, LOANS_COLLECTION, loan.id), {
+            amountRepaid: newAmountRepaid,
+            status: newStatus,
+            updatedAt: processedAt,
+          });
+          firestoreTransaction.set(repaymentRef, {
+            pupilId,
             accountId: account.id,
             type: 'LOAN_REPAYMENT' as const,
             amount: collectionAmount,
             description: `Overdue loan collection - ${loan.purpose}`,
-            balance: remainingBalance - collectionAmount,
-            transactionDate: new Date().toISOString(),
-            createdAt: Timestamp.now()
-          };
-
-          await addDoc(collection(db, TRANSACTIONS_COLLECTION), transactionData);
+            balance: balanceAfterCollection,
+            transactionDate: processedAtIso,
+            createdAt: processedAt,
+          });
 
           totalCollected += collectionAmount;
-          remainingBalance -= collectionAmount;
+          remainingBalance = balanceAfterCollection;
         }
-      }
 
-      // Update account balance
-      if (totalCollected > 0) {
-        const accountRef = doc(db, ACCOUNTS_COLLECTION, account.id);
-        await updateDoc(accountRef, {
+        if (totalCollected <= 0) {
+          return { processed: false, message: 'Insufficient balance to cover overdue loans' };
+        }
+
+        firestoreTransaction.update(doc(db, ACCOUNTS_COLLECTION, account.id), {
           balance: remainingBalance,
-          updatedAt: Timestamp.now()
+          updatedAt: processedAt,
         });
-
-        return { 
-          processed: true, 
-          message: `Collected ${totalCollected} from account balance for overdue loans` 
+        return {
+          processed: true,
+          message: `Collected ${totalCollected} from account balance for overdue loans`,
         };
-      }
-
-      return { processed: false, message: 'Insufficient balance to cover overdue loans' };
+      });
     } catch (error) {
       console.error('Error processing overdue loans:', error);
       throw error;
@@ -1190,48 +1101,41 @@ export class BankingService {
     data: Omit<Transaction, 'id' | 'createdAt' | 'balance'>
   ): Promise<EnhancedTransaction> {
     try {
-      // Get current account balance
-      const account = await this.getAccountByPupilId(data.pupilId);
-      if (!account) {
-        throw new Error('Account not found for pupil');
+      if (!Number.isFinite(data.amount) || data.amount <= 0) {
+        throw new Error('Transaction amount must be a positive number');
       }
 
-      // Calculate new balance
-      let newBalance = account.balance;
-      switch (data.type) {
-        case 'DEPOSIT':
-        case 'LOAN_DISBURSEMENT':
-          newBalance += data.amount;
-          break;
-        case 'WITHDRAWAL':
-        case 'LOAN_REPAYMENT':
-          newBalance -= data.amount;
-          break;
-      }
+      const transactionDate = data.transactionDate || new Date().toISOString();
+      const createdAt = Timestamp.now();
+      const createdAtIso = new Date().toISOString();
+      const newTransaction = await runTransaction(db, async firestoreTransaction => {
+        const account = await this.readAccountForTransaction(firestoreTransaction, data.pupilId);
+        const isCredit = data.type === 'DEPOSIT' || data.type === 'LOAN_DISBURSEMENT';
+        const newBalance = isCredit ? account.balance + data.amount : account.balance - data.amount;
+        if (data.type === 'WITHDRAWAL' && newBalance < 0) {
+          throw new Error('Insufficient balance for withdrawal');
+        }
 
-      const transactionData = {
-        ...data,
-        balance: newBalance,
-        createdAt: Timestamp.now(),
-        transactionDate: data.transactionDate || new Date().toISOString()
-      };
+        const transactionRef = doc(collection(db, TRANSACTIONS_COLLECTION));
+        firestoreTransaction.set(transactionRef, {
+          ...data,
+          balance: newBalance,
+          createdAt,
+          transactionDate,
+        });
+        firestoreTransaction.update(doc(db, ACCOUNTS_COLLECTION, account.id), {
+          balance: newBalance,
+          updatedAt: createdAt,
+        });
 
-      // Create transaction
-      const docRef = await addDoc(collection(db, TRANSACTIONS_COLLECTION), transactionData);
-
-      // Update account balance
-      await updateDoc(doc(db, ACCOUNTS_COLLECTION, account.id), {
-        balance: newBalance,
-        updatedAt: Timestamp.now()
+        return {
+          id: transactionRef.id,
+          ...data,
+          balance: newBalance,
+          createdAt: createdAtIso,
+          transactionDate,
+        } as Transaction;
       });
-
-      const newTransaction: Transaction = {
-        id: docRef.id,
-        ...data,
-        balance: newBalance,
-        createdAt: new Date().toISOString(),
-        transactionDate: data.transactionDate || new Date().toISOString()
-      };
 
       // Enhance with historical data
       const enhanced = await this.enhanceTransactionsWithHistoricalData([newTransaction]);
@@ -1249,42 +1153,13 @@ export class BankingService {
     data: CreateLoanData & { academicYearId?: string; termId?: string }
   ): Promise<EnhancedLoan> {
     try {
-      const loanData = {
-        ...data,
-        amountRepaid: 0,
-        status: 'ACTIVE' as const,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      };
-
-      const docRef = await addDoc(collection(db, LOANS_COLLECTION), loanData);
-
-      const newLoan: Loan = {
-        id: docRef.id,
-        ...data,
-        amountRepaid: 0,
-        status: 'ACTIVE',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      // Create loan disbursement transaction
-      if (data.academicYearId && data.termId) {
-        const account = await this.getAccountByPupilId(data.pupilId);
-        if (account) {
-          await this.createEnhancedTransaction({
-            pupilId: data.pupilId,
-            accountId: account.id,
-            type: 'LOAN_DISBURSEMENT',
-            amount: data.amount,
-            description: `Loan disbursement: ${data.purpose}`,
-            transactionDate: new Date().toISOString(),
-            academicYearId: data.academicYearId,
-            termId: data.termId,
-            processedBy: 'System'
-          });
-        }
-      }
+      // Reuse the standard loan command: it writes the loan, disbursement
+      // ledger row and account balance in one transaction.
+      const newLoan = await this.createLoan(data, {
+        // Preserve the enhanced path's established academic-context condition.
+        disburse: !!(data.academicYearId && data.termId),
+        processedBy: 'System',
+      });
 
       // Enhance with historical data
       const enhanced = await this.enhanceLoansWithHistoricalData([newLoan]);

@@ -1,8 +1,7 @@
 import { PaymentsService } from '@/lib/services/payments.service';
-import { HistoryLogService } from '@/lib/services/history-log.service';
 import type { PaymentRecord } from '@/types';
 
-interface CarryForwardItem {
+export interface CarryForwardItem {
   name: string;
   amount: number;
   paid: number;
@@ -14,7 +13,7 @@ interface CarryForwardItem {
   academicYearId?: string;
 }
 
-interface CarryForwardPaymentData {
+export interface CarryForwardPaymentData {
   pupilId: string;
   currentTermId: string;
   currentAcademicYearId: string;
@@ -27,57 +26,103 @@ interface CarryForwardPaymentData {
     name: string;
     role: string;
   };
+  operationId?: string;
+  paymentDate?: string;
 }
 
-interface PaymentDistribution {
+function createCarryForwardOperationId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `carry-${crypto.randomUUID()}`;
+  }
+  return `carry-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+}
+
+export interface PaymentDistribution {
   item: CarryForwardItem;
   allocatedAmount: number;
   currentTermPayment: Omit<PaymentRecord, 'id' | 'createdAt'>;
 }
 
+export interface PreparedCarryForwardPayment {
+  distributions: PaymentDistribution[];
+  allocations: Array<{
+    paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>;
+    historyContext: {
+      feeName: string;
+      paymentMethod: string;
+      source: string;
+      paidByName: string;
+    };
+  }>;
+}
+
 /**
- * Calculates how payment should be distributed across carry forward items
+ * Distribute a whole-UGX payment without creating or losing money through
+ * independent rounding. Ties are resolved by the original fee order so the
+ * same request always produces the same allocation.
  */
-function calculatePaymentDistribution(
+export function calculateCarryForwardPaymentDistribution(
   amount: number,
   paymentType: 'general' | 'item-specific',
   feeBreakdown: CarryForwardItem[],
   targetItem?: CarryForwardItem
 ): PaymentDistribution[] {
-  const distributions: PaymentDistribution[] = [];
-
   if (paymentType === 'item-specific' && targetItem) {
     // For item-specific payments, allocate entire amount to the target item
     const allocatedAmount = Math.min(amount, targetItem.balance);
     
     if (allocatedAmount > 0) {
-      distributions.push({
+      return [{
         item: targetItem,
         allocatedAmount,
         currentTermPayment: {} as any   // Will be filled later
-      });
+      }];
     }
-  } else {
-    // For general payments, distribute proportionally based on balances
-    const totalBalance = feeBreakdown.reduce((sum, item) => sum + item.balance, 0);
-    
-    if (totalBalance > 0) {
-      for (const item of feeBreakdown) {
-        const proportion = item.balance / totalBalance;
-        const allocatedAmount = Math.round(amount * proportion);
-        
-        if (allocatedAmount > 0) {
-          distributions.push({
-            item,
-            allocatedAmount,
-            currentTermPayment: {} as any   // Will be filled later
-          });
-        }
-      }
+    return [];
+  }
+
+  const eligibleItems = feeBreakdown
+    .map((item, index) => ({ item, index, balance: Math.max(0, item.balance) }))
+    .filter(({ balance }) => balance > 0);
+  const totalBalance = eligibleItems.reduce((sum, { balance }) => sum + balance, 0);
+  if (totalBalance <= 0) return [];
+
+  const distributableAmount = Math.min(amount, totalBalance);
+  if (distributableAmount === totalBalance) {
+    return eligibleItems.map(({ item, balance }) => ({
+      item,
+      allocatedAmount: balance,
+      currentTermPayment: {} as Omit<PaymentRecord, 'id' | 'createdAt'>,
+    }));
+  }
+
+  const proportionalAllocations = eligibleItems.map(({ item, index, balance }) => {
+    const exactShare = (distributableAmount * balance) / totalBalance;
+    const allocatedAmount = Math.floor(exactShare);
+    return { item, index, balance, allocatedAmount, remainder: exactShare - allocatedAmount };
+  });
+  let unitsRemaining = distributableAmount - proportionalAllocations.reduce(
+    (sum, allocation) => sum + allocation.allocatedAmount,
+    0,
+  );
+
+  for (const allocation of [...proportionalAllocations].sort(
+    (left, right) => right.remainder - left.remainder || left.index - right.index,
+  )) {
+    if (unitsRemaining === 0) break;
+    if (allocation.allocatedAmount < allocation.balance) {
+      allocation.allocatedAmount += 1;
+      unitsRemaining -= 1;
     }
   }
 
-  return distributions;
+  return proportionalAllocations
+    .filter(({ allocatedAmount }) => allocatedAmount > 0)
+    .map(({ item, allocatedAmount }) => ({
+      item,
+      allocatedAmount,
+      currentTermPayment: {} as Omit<PaymentRecord, 'id' | 'createdAt'>,
+    }));
 }
 
 /**
@@ -98,7 +143,7 @@ function createPaymentRecords(
     academicYearId: currentAcademicYearId,
     termId: currentTermId,
     amount: allocatedAmount,
-    paymentDate: new Date().toISOString(),
+    paymentDate: paymentData.paymentDate || new Date().toISOString(),
     paidBy,
     notes: `Carry forward payment: ${item.name} (${item.term} - ${item.year})`,
     isCarryForwardPayment: true,
@@ -114,6 +159,44 @@ function createPaymentRecords(
 }
 
 /**
+ * Prepares the exact carry-forward allocations without writing them. A mixed
+ * fee submission can include these records in its one payment operation,
+ * rather than committing carry-forward entries in a separate request.
+ */
+export function prepareCarryForwardPayment(
+  paymentData: CarryForwardPaymentData,
+): PreparedCarryForwardPayment {
+  const validation = validateCarryForwardPayment(paymentData);
+  if (!validation.isValid) {
+    throw new Error(validation.error || 'Invalid carry forward payment');
+  }
+
+  const distributions = calculateCarryForwardPaymentDistribution(
+    paymentData.amount,
+    paymentData.paymentType,
+    paymentData.feeBreakdown,
+    paymentData.targetItem,
+  );
+  if (distributions.length === 0) {
+    throw new Error('No valid items found for payment distribution');
+  }
+
+  distributions.forEach(distribution => createPaymentRecords(distribution, paymentData));
+  return {
+    distributions,
+    allocations: distributions.map(distribution => ({
+      paymentData: distribution.currentTermPayment,
+      historyContext: {
+        feeName: distribution.item.name,
+        paymentMethod: 'Carry Forward',
+        source: 'carry_forward_payment',
+        paidByName: paymentData.paidBy.name,
+      },
+    })),
+  };
+}
+
+/**
  * Processes a carry forward payment with proper distribution and dual recording
  */
 export async function processCarryForwardPayment(
@@ -124,109 +207,39 @@ export async function processCarryForwardPayment(
   distributions: PaymentDistribution[];
   message: string;
 }> {
+  const { amount, paymentType } = paymentData;
+  const paymentIds: string[] = [];
+  let distributions: PaymentDistribution[] = [];
+
   try {
-    const { amount, paymentType, feeBreakdown, targetItem } = paymentData;
+    const prepared = prepareCarryForwardPayment(paymentData);
+    distributions = prepared.distributions;
 
-    // Calculate payment distribution
-    const distributions = calculatePaymentDistribution(
-      amount,
-      paymentType,
-      feeBreakdown,
-      targetItem
-    );
+    const operationId = paymentData.operationId || createCarryForwardOperationId();
+    const { allocations } = prepared;
 
-    if (distributions.length === 0) {
-      return {
-        success: false,
-        paymentIds: [],
-        distributions: [],
-        message: 'No valid items found for payment distribution'
-      };
-    }
-
-    // Create payment records for each distribution
-    for (const distribution of distributions) {
-      createPaymentRecords(distribution, paymentData);
-    }
-
-    // Submit all payment records to the service
-    const paymentIds: string[] = [];
-    
-    for (const distribution of distributions) {
-      try {
-        // 🔔 Use API route for client-side, direct service for server-side
-        let currentPaymentId: string;
-        if (typeof window !== 'undefined') {
-          // Client-side: use API route for notifications
-          const response = await fetch('/api/payments/create', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              ...distribution.currentTermPayment,
-              skipHistoryLog: true,
-              historyContext: {
-                feeName: distribution.item.name,
-                paymentMethod: 'Carry Forward',
-                source: 'carry_forward_payment',
-                paidByName: paymentData.paidBy.name,
-              },
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to create carry forward payment');
-          }
-
-          const result = await response.json();
-          currentPaymentId = result.paymentId;
-          await HistoryLogService.log({
-            action: 'create',
-            entity: 'payment',
-            recordId: currentPaymentId,
-            label: distribution.item.name,
-            meta: {
-              amount: distribution.allocatedAmount,
-              feeName: distribution.item.name,
-              pupilId: paymentData.pupilId,
-              method: 'Carry Forward',
-              source: 'carry_forward_payment',
-            },
-            actor: {
-              id: paymentData.paidBy.id,
-              username: paymentData.paidBy.name,
-              role: paymentData.paidBy.role,
-            },
-          });
-        } else {
-          // Server-side: call service directly
-          currentPaymentId = await PaymentsService.createPayment(
-            distribution.currentTermPayment,
-            {
-              historyContext: {
-                feeName: distribution.item.name,
-                paymentMethod: 'Carry Forward',
-                source: 'carry_forward_payment',
-                paidByName: paymentData.paidBy.name,
-              },
-            }
-          );
-        }
-        paymentIds.push(currentPaymentId);
-
-        console.log(`✅ Created carry forward payment record:`, {
-          originalTerm: distribution.item.term,
-          currentPaymentId,
-          amount: distribution.allocatedAmount,
-          originalFeeStructureId: distribution.item.feeStructureId
-        });
-
-      } catch (error) {
-        console.error(`❌ Failed to create payment for ${distribution.item.name}:`, error);
-        throw error;
+    // The whole carry-forward distribution is one durable command: either all
+    // allocations and history records commit, or none do. Retrying the same ID
+    // returns the original payment IDs instead of adding another allocation.
+    if (typeof window !== 'undefined') {
+      const response = await fetch('/api/payments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operationId, allocations }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create carry forward payment');
       }
+      const result = await response.json();
+      paymentIds.push(...(result.paymentIds || []));
+    } else {
+      const result = await PaymentsService.createPaymentOperation(operationId, allocations);
+      paymentIds.push(...result.paymentIds);
+    }
+
+    if (paymentIds.length !== distributions.length) {
+      throw new Error('The payment operation did not return every saved allocation');
     }
 
     // Generate success message
@@ -258,9 +271,13 @@ export async function processCarryForwardPayment(
     console.error('Error processing carry forward payment:', error);
     return {
       success: false,
-      paymentIds: [],
-      distributions: [],
-      message: error instanceof Error ? error.message : 'Failed to process payment'
+      paymentIds,
+      distributions,
+      message: paymentIds.length > 0
+        ? `Some payment records were already saved. Do not submit again; ${
+          error instanceof Error ? error.message : 'the remaining allocation could not be saved'
+        }`
+        : error instanceof Error ? error.message : 'Failed to process payment'
     };
   }
 }
@@ -273,8 +290,8 @@ export function validateCarryForwardPayment(
 ): { isValid: boolean; error?: string } {
   const { amount, paymentType, feeBreakdown, targetItem } = paymentData;
 
-  if (amount <= 0) {
-    return { isValid: false, error: 'Payment amount must be greater than zero' };
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    return { isValid: false, error: 'Payment amount must be a positive whole UGX amount' };
   }
 
   if (!feeBreakdown || feeBreakdown.length === 0) {
@@ -296,7 +313,7 @@ export function validateCarryForwardPayment(
       };
     }
   } else {
-    const totalBalance = feeBreakdown.reduce((sum, item) => sum + item.balance, 0);
+    const totalBalance = feeBreakdown.reduce((sum, item) => sum + Math.max(0, item.balance), 0);
     if (amount > totalBalance) {
       return { 
         isValid: false, 

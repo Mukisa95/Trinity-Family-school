@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   Timestamp,
+  type Transaction,
   type WriteBatch,
   where,
 } from 'firebase/firestore';
@@ -224,6 +225,11 @@ export class HistoryLogService {
   /** Add an audit entry to an existing atomic Firestore write. */
   static addToBatch(batch: WriteBatch, input: HistoryLogInput): void {
     batch.set(doc(collection(db, HISTORY_COLLECTION)), this.buildPayload(input));
+  }
+
+  /** Add an audit entry to an existing atomic Firestore transaction. */
+  static addToTransaction(transaction: Transaction, input: HistoryLogInput): void {
+    transaction.set(doc(collection(db, HISTORY_COLLECTION)), this.buildPayload(input));
   }
 
   static async log(input: HistoryLogInput): Promise<void> {

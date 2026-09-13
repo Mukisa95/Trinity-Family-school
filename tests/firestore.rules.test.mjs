@@ -181,6 +181,22 @@ test('the credential vault is inaccessible even to active administrators', async
   await assertFails(setDoc(doc(db, 'authCredentials', 'active-admin'), { passwordHash: 'tampered' }));
 });
 
+test('payment notification outbox remains server-only under existing scheduling rules', async () => {
+  const eventPath = 'scheduledNotifications/fee-payment-events/outbox/payment-test';
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), eventPath), { paymentId: 'test', status: 'pending' });
+  });
+  for (const db of [
+    testEnv.unauthenticatedContext().firestore(),
+    testEnv.authenticatedContext('active-admin', { appUser: true, isActive: true, role: 'Admin' }).firestore(),
+    testEnv.authenticatedContext('active-parent', { appUser: true, isActive: true, role: 'Parent', familyId: 'family-1' }).firestore(),
+  ]) {
+    await assertFails(getDoc(doc(db, eventPath)));
+    await assertFails(setDoc(doc(db, eventPath), { status: 'completed' }, { merge: true }));
+    await assertFails(deleteDoc(doc(db, eventPath)));
+  }
+});
+
 test('daily attendance summaries are restricted to staff and administrators', async () => {
   const adminDb = testEnv.authenticatedContext('active-admin', {
     appUser: true,
