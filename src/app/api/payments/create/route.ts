@@ -1,39 +1,7 @@
-import { after, NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PaymentHistoryContext, PaymentsService } from '@/lib/services/payments.service';
 import type { PaymentRecord } from '@/types';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
-import { enqueuePaymentNotificationEvents } from '@/lib/server/payment-notification-outbox';
-import { processPendingPaymentNotificationEvents } from '@/lib/server/payment-notification-worker';
-
-const PAYMENT_NOTIFICATION_TIMEOUT_MS = 8_000;
-
-type PaymentNotificationTarget = {
-  paymentId: string;
-  paymentData: PaymentRecord;
-};
-
-async function notifyPaymentsCreatedAfterResponse(targets: PaymentNotificationTarget[]) {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  try {
-    await enqueuePaymentNotificationEvents(targets);
-    await Promise.race([
-      processPendingPaymentNotificationEvents(25, targets.map(target => target.paymentId)),
-      new Promise<void>((resolve) => {
-        timeoutId = setTimeout(() => {
-          console.warn('[Payment API] Background notification exceeded its delivery budget.', {
-            paymentIds: targets.map(target => target.paymentId),
-            timeoutMs: PAYMENT_NOTIFICATION_TIMEOUT_MS,
-          });
-          resolve();
-        }, PAYMENT_NOTIFICATION_TIMEOUT_MS);
-      }),
-    ]);
-  } catch (error) {
-    console.error('[Payment API] Post-commit notification handoff failed:', error);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-}
 
 /**
  * API Route: POST /api/payments/create
@@ -41,9 +9,9 @@ async function notifyPaymentsCreatedAfterResponse(targets: PaymentNotificationTa
  * Server-side payment creation endpoint that:
  * 1. Creates payment record in database
  * 2. Returns as soon as the financial record and history entry are committed
- * 3. Hands push notifications to a leased worker after the response
- * 
- * This ensures notifications run on the server where Node.js modules are available.
+ *
+ * Payment alerts are intentionally not sent. Staff see the up-to-date fee
+ * history and balance whenever they open the pupil's fee collection page.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -78,17 +46,6 @@ export async function POST(request: NextRequest) {
       }
       const operation = await PaymentsService.createPaymentOperation(operationId, allocations);
       const paymentCommittedAt = performance.now();
-      const committedPayments = allocations.map((allocation, index) => ({
-        id: operation.paymentIds[index],
-        ...allocation.paymentData,
-        createdAt: new Date(),
-        paymentDate: allocation.paymentData.paymentDate || new Date().toISOString(),
-      }));
-      {
-        after(() => notifyPaymentsCreatedAfterResponse(
-          committedPayments.map(payment => ({ paymentId: payment.id, paymentData: payment })),
-        ));
-      }
 
       return NextResponse.json({
         success: true,
@@ -124,18 +81,6 @@ export async function POST(request: NextRequest) {
       historyContext,
     });
     const paymentCommittedAt = performance.now();
-
-    const committedPayment = {
-      id: paymentId,
-      ...paymentData,
-      createdAt: new Date(),
-      paymentDate: paymentData.paymentDate || new Date().toISOString(),
-    };
-    {
-      after(() => notifyPaymentsCreatedAfterResponse([
-        { paymentId, paymentData: committedPayment },
-      ]));
-    }
 
     console.log(`✅ [Payment API] Payment created successfully: ${paymentId}\n`);
 
