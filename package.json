@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:payment-dialog-completion": "node --import tsx --test tests/payment-dialog-completion.test.ts",
     "test:payment-optimization": "node --import tsx --test tests/optimization-ui-parity.test.ts tests/banking-optimization-review.test.ts tests/payment-operation-idempotency.test.ts tests/payment-operation-recovery.test.ts tests/individual-mixed-payment-flow-contract.test.ts tests/digital-signature-idempotency.test.ts tests/family-payment-batching-contract.test.ts tests/payment-notification-review.test.ts tests/progressive-fees-processing-key.test.ts tests/pupil-payment-owner.test.ts tests/pupil-snapshot-term-loader.test.ts tests/carry-forward-payment-allocation.test.ts tests/fee-discount-calculation.test.ts tests/fee-assignment-pipeline.test.ts tests/schoolpay-recovery.test.ts tests/reference-catalog-refresh.test.ts tests/requirement-tracking-contract.test.ts",
     "test:firestore-rules": "firebase emulators:exec --only firestore --project demo-trinity-firestore-rules \"node --test tests/firestore.rules.test.mjs\"",
     "test:firestore-security-contract": "node scripts/check-firestore-security-contract.js",

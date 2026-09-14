@@ -1246,6 +1246,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       ? getPaymentOperation(uniformPaymentIntent)
       : null;
 
+    let paymentCommitted = false;
     try {
       let paymentId: string;
 
@@ -1306,12 +1307,77 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }
 
         const result = await response.json();
+        if (typeof result.paymentId !== 'string' || !result.paymentId) {
+          throw new Error('The payment confirmation is incomplete. Retry the same submission to check its status.');
+        }
         paymentId = result.paymentId;
         clearPaymentOperation(regularPaymentIntent);
       }
 
-      // Create digital signature for the payment
-      let signatureRecorded = true;
+      // The financial write is confirmed. Signature completion must not keep
+      // this entry form open or suggest that the payment needs submitting again.
+      paymentCommitted = true;
+      setIsPaymentModalOpen(false);
+      setSelectedFee(null);
+      const formattedAmount = new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX'
+      }).format(data.amount);
+      toast({
+        title: "Payment Successful",
+        description: `Payment of ${formattedAmount} has been recorded.`,
+      });
+
+      try {
+        // Publish the confirmed payment to the existing fee-card owner.
+        const newPayment: PaymentRecord = {
+          id: paymentId,
+          pupilId: pupil.id,
+          feeStructureId: selectedFee.feeId,
+          academicYearId: selectedAcademicYear.id,
+          termId: selectedTermId,
+          amount: data.amount,
+          paymentDate: (uniformPaymentOperation || regularPaymentOperation)!.paymentDate,
+          paidBy: {
+            id: user.id,
+            name: user.username,
+            role: user.role
+          },
+          notes: isUniformFee ? `Uniform payment - ${fee!.name}` : `Payment for ${selectedFee.name}`,
+          ...(isUniformFee ? { isUniformPayment: true, uniformTrackingId: (fee as any).uniformTrackingId } : {}),
+          createdAt: (uniformPaymentOperation || regularPaymentOperation)!.paymentDate
+        };
+
+        // Update the same live-payment owner that renders the fee cards. The
+        // Firestore listener will reconcile this record once it arrives.
+        addPupilPayments([newPayment]);
+
+        // Update timestamp to trigger dependent query re-calculations
+        const newTimestamp = Date.now();
+        setLastPaymentTimestamp(newTimestamp);
+
+        // Invalidate related queries in the background (no await - let React Query handle it)
+        queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
+        queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
+        queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
+        queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+        invalidateFinanceSummaryQueries(queryClient, pupil.id);
+      } catch (refreshError) {
+        // A display failure must neither reopen the entry form nor skip audit.
+        console.error('Payment recorded but display refresh failed:', refreshError);
+        toast({
+          title: 'Payment recorded; display refresh needed',
+          description: 'The payment was saved. Refresh the fee page to check it; do not record it again.',
+          variant: 'destructive',
+        });
+      }
+
+      // Preserve the signature/idempotency process after releasing the dialog.
+      // A late result must not close a newer payment form.
       try {
         await signAction(
           'fee_payment',
@@ -1328,66 +1394,25 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           `fee-payment:${(uniformPaymentOperation || regularPaymentOperation)!.operationId}:${paymentId}`,
         );
       } catch (signatureError) {
-        signatureRecorded = false;
         console.error('Payment recorded but digital signature failed:', signatureError);
+        toast({
+          title: "Payment recorded with an audit warning",
+          description: `Payment of ${formattedAmount} has been recorded. The digital signature could not be saved; do not record the payment again.`,
+          variant: 'destructive',
+        });
       }
-
-      // Close modal and clear selected fee BEFORE any updates
-      setIsPaymentModalOpen(false);
-      setSelectedFee(null);
-
-      // 🚀 OPTIMISTIC UPDATE: Immediately add payment to cache for instant UI feedback
-      const newPayment: PaymentRecord = {
-        id: paymentId,
-        pupilId: pupil.id,
-        feeStructureId: selectedFee.feeId,
-        academicYearId: selectedAcademicYear.id,
-        termId: selectedTermId,
-        amount: data.amount,
-        paymentDate: (uniformPaymentOperation || regularPaymentOperation)!.paymentDate,
-        paidBy: {
-          id: user.id,
-          name: user.username,
-          role: user.role
-        },
-        notes: isUniformFee ? `Uniform payment - ${fee!.name}` : `Payment for ${selectedFee.name}`,
-        ...(isUniformFee ? { isUniformPayment: true, uniformTrackingId: (fee as any).uniformTrackingId } : {}),
-        createdAt: (uniformPaymentOperation || regularPaymentOperation)!.paymentDate
-      };
-
-      // Update the same live-payment owner that renders the fee cards. The
-      // Firestore listener will reconcile this record once it arrives.
-      addPupilPayments([newPayment]);
-
-      // Update timestamp to trigger dependent query re-calculations
-      const newTimestamp = Date.now();
-      setLastPaymentTimestamp(newTimestamp);
-
-      // Invalidate related queries in the background (no await - let React Query handle it)
-      queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
-      queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
-      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
-      invalidateFinanceSummaryQueries(queryClient, pupil.id);
-
-      // Show success message immediately (no blocking refetch)
-      const formattedAmount = new Intl.NumberFormat('en-UG', {
-        style: 'currency',
-        currency: 'UGX'
-      }).format(data.amount);
-
-      toast({
-        title: signatureRecorded ? "Payment Successful" : "Payment recorded with an audit warning",
-        description: `Payment of ${formattedAmount} has been recorded.${signatureRecorded ? '' : ' The digital signature could not be saved; do not record the payment again.'}`,
-        variant: signatureRecorded ? 'default' : 'destructive',
-      });
 
     } catch (error) {
       console.error('Payment submission error:', error);
+
+      if (paymentCommitted) {
+        toast({
+          variant: 'destructive',
+          title: 'Payment recorded; display refresh needed',
+          description: 'The payment was saved. Refresh the fee page to check it; do not record it again.',
+        });
+        return;
+      }
 
       // Reopen modal
       setIsPaymentModalOpen(true);
@@ -1557,43 +1582,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         },
         payment,
       );
-
-      // Create digital signature for the payment reversal
-      let signatureRecorded = true;
-      try {
-        await signAction(
-          'fee_payment',
-          payment.id,
-          'reverted',
-          {
-            originalAmount: payment.amount,
-            pupilId: payment.pupilId,
-            feeStructureId: payment.feeStructureId,
-            revertReason: 'Payment reversal confirmed'
-          }
-        );
-      } catch (signatureError) {
-        signatureRecorded = false;
-        console.error('Payment reversed but digital signature failed:', signatureError);
-      }
-
-      const formattedAmount = new Intl.NumberFormat('en-UG', {
-        style: 'currency',
-        currency: 'UGX'
-      }).format(payment.amount);
-
-      toast({
-        title: signatureRecorded ? "Payment Reverted" : "Payment reversed with an audit warning",
-        description: `Payment of ${formattedAmount} has been reverted.${signatureRecorded ? '' : ' The digital signature could not be saved; do not reverse it again.'}`,
-        variant: signatureRecorded ? 'default' : 'destructive',
-      });
-
-      // Refetch all data to update UI (non-blocking)
-      refetch().catch(err => console.error('Refetch error:', err));
-      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
-      setLastPaymentTimestamp(Date.now());
-      setPendingPaymentReversal(null);
-
     } catch (error) {
       console.error('Payment revert error:', error);
       toast({
@@ -1601,8 +1589,57 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         title: "Revert Failed",
         description: "There was an error reverting the payment. Please try again.",
       });
-    } finally {
       setIsRevertingPayment(false);
+      return;
+    }
+
+    // The payment/history batch has committed. Release this confirmation before
+    // waiting for the signature; its late result must not reset a newer dialog.
+    setPendingPaymentReversal(null);
+    setIsRevertingPayment(false);
+    const formattedAmount = new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: 'UGX'
+    }).format(payment.amount);
+    toast({
+      title: "Payment Reverted",
+      description: `Payment of ${formattedAmount} has been reverted.`,
+    });
+
+    try {
+      // Keep the existing listener and fee calculations; refresh in parallel
+      // with the audit instead of making either one hold the dialog open.
+      refetch().catch(err => console.error('Refetch error:', err));
+      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+      setLastPaymentTimestamp(Date.now());
+    } catch (refreshError) {
+      console.error('Payment reversed but display refresh failed:', refreshError);
+      toast({
+        title: 'Payment reversed; display refresh needed',
+        description: 'The payment was reversed. Refresh the fee page to check it; do not reverse it again.',
+        variant: 'destructive',
+      });
+    }
+
+    try {
+      await signAction(
+        'fee_payment',
+        payment.id,
+        'reverted',
+        {
+          originalAmount: payment.amount,
+          pupilId: payment.pupilId,
+          feeStructureId: payment.feeStructureId,
+          revertReason: 'Payment reversal confirmed'
+        }
+      );
+    } catch (signatureError) {
+      console.error('Payment reversed but digital signature failed:', signatureError);
+      toast({
+        title: "Payment reversed with an audit warning",
+        description: `Payment of ${formattedAmount} has been reverted. The digital signature could not be saved; do not reverse it again.`,
+        variant: 'destructive',
+      });
     }
   };
 
