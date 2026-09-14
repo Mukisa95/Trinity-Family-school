@@ -5,6 +5,20 @@ import { getTermStatus, isTermEnded } from '@/lib/utils/academic-year-utils';
 
 export class PupilSnapshotsService {
   private static collectionName = 'pupilTermSnapshots';
+  private static termSnapshotsInFlight = new Map<string, Promise<PupilTermSnapshot[]>>();
+
+  private static termSnapshotsCacheKey(academicYearId: string, termId: string) {
+    return `${academicYearId}:${termId}`;
+  }
+
+  private static clearTermSnapshotsCache(academicYearId?: string, termId?: string) {
+    if (!academicYearId || !termId) {
+      this.termSnapshotsInFlight.clear();
+      return;
+    }
+    const cacheKey = this.termSnapshotsCacheKey(academicYearId, termId);
+    this.termSnapshotsInFlight.delete(cacheKey);
+  }
 
   /**
    * Validate snapshot data before creation to prevent incorrect snapshots
@@ -127,6 +141,7 @@ export class PupilSnapshotsService {
     };
 
     const docRef = await addDoc(collection(db, this.collectionName), snapshot);
+    this.clearTermSnapshotsCache(academicYearId, termId);
     console.log(`✅ Successfully created snapshot ${docRef.id} for ended term ${termId}`);
     return docRef.id;
   }
@@ -592,6 +607,44 @@ export class PupilSnapshotsService {
   }
 
   /**
+   * Load the persisted historical snapshots for one term in one query. Class
+   * collection screens use this before calculating rows so they do not issue a
+   * separate snapshot query for every pupil. Missing legacy snapshots still go
+   * through getSnapshotForRead, which preserves the existing recovery logic.
+   */
+  static async getActiveSnapshotsForTerm(
+    academicYearId: string,
+    termId: string,
+  ): Promise<PupilTermSnapshot[]> {
+    const cacheKey = this.termSnapshotsCacheKey(academicYearId, termId);
+
+    const inFlight = this.termSnapshotsInFlight.get(cacheKey);
+    if (inFlight) return inFlight;
+
+    const request = Promise.resolve().then(async () => {
+      try {
+        const q = query(
+          collection(db, this.collectionName),
+          where('academicYearId', '==', academicYearId),
+          where('termId', '==', termId),
+          where('isActive', '==', true),
+        );
+        const querySnapshot = await getDocs(q);
+        const snapshots = querySnapshot.docs.map(snapshot => ({
+          id: snapshot.id,
+          ...snapshot.data(),
+        } as PupilTermSnapshot));
+        return snapshots;
+      } finally {
+        if (this.termSnapshotsInFlight.get(cacheKey) === request) this.termSnapshotsInFlight.delete(cacheKey);
+      }
+    });
+
+    this.termSnapshotsInFlight.set(cacheKey, request);
+    return request;
+  }
+
+  /**
    * Get all snapshots for a pupil
    */
   static async getPupilSnapshots(pupilId: string): Promise<PupilTermSnapshot[]> {
@@ -629,6 +682,7 @@ export class PupilSnapshotsService {
     try {
       const docRef = doc(db, this.collectionName, snapshot.id);
       await deleteDoc(docRef);
+      this.clearTermSnapshotsCache(snapshot.academicYearId, snapshot.termId);
       console.log(`✅ Successfully deleted snapshot ${snapshot.id} for pupil ${pupilId}, term ${termId}`);
     } catch (error) {
       console.error(`❌ Failed to delete snapshot ${snapshot.id}:`, error);
@@ -829,6 +883,9 @@ export class PupilSnapshotsService {
       ...updates,
       updatedAt: new Date().toISOString(),
     });
+    // This mutation receives only a document ID, so invalidate all short-lived
+    // term snapshots rather than risk serving a changed historical class.
+    this.clearTermSnapshotsCache();
   }
 
   /**
@@ -1117,6 +1174,7 @@ export class PupilSnapshotsService {
             console.error(`❌ Failed to delete snapshot ${docSnapshot.id}:`, error);
           }
         }
+        this.clearTermSnapshotsCache(academicYear.id, term.id);
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);

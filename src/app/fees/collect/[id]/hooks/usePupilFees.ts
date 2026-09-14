@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import type {
   AcademicYear,
   Pupil,
@@ -57,6 +57,7 @@ interface UsePupilFeesReturn {
   isPaymentDataLoading: boolean; // True when payments or previous balance are still loading
   isError: boolean;
   error: Error | null;
+  addPupilPayments: (payments: PaymentRecord[]) => void;
   refetch: () => Promise<any>;
   previousBalance: PreviousTermBalance | null;
   termTotals: {
@@ -64,6 +65,17 @@ interface UsePupilFeesReturn {
     totalPaid: number;
     totalBalance: number;
   };
+}
+
+export function mergePupilPayments(
+  currentPayments: PaymentRecord[],
+  newPayments: PaymentRecord[],
+): PaymentRecord[] {
+  const paymentsById = new Map(currentPayments.map(payment => [payment.id, payment]));
+  newPayments.forEach(payment => paymentsById.set(payment.id, payment));
+  return [...paymentsById.values()].sort(
+    (left, right) => new Date(right.paymentDate).getTime() - new Date(left.paymentDate).getTime(),
+  );
 }
 
 export function usePupilFees({
@@ -155,10 +167,33 @@ export function usePupilFees({
   // When SchoolPay records a payment, the UI updates immediately without refresh
   const [pupilPayments, setPupilPayments] = useState<PaymentRecord[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+  const locallyCommittedPayments = useRef(new Map<string, PaymentRecord>());
+
+  // The Firestore listener owns the payment list displayed by this page. Keep
+  // locally committed records in that same owner until the listener confirms
+  // them, rather than writing to an unrelated React Query key.
+  const addPupilPayments = useCallback((payments: PaymentRecord[]) => {
+    const scopedPayments = payments.filter(payment => payment.pupilId === pupilId);
+    scopedPayments.forEach(payment => locallyCommittedPayments.current.set(payment.id, payment));
+    setPupilPayments(currentPayments => {
+      // A listener may arrive before the HTTP response; preserve its canonical
+      // record (including reversals and receipt metadata) over the local copy.
+      const knownIds = new Set(currentPayments.map(payment => payment.id));
+      return mergePupilPayments(currentPayments, scopedPayments.filter(payment => !knownIds.has(payment.id)));
+    });
+  }, [pupilId]);
+
+  const sortPupilPayments = useCallback((payments: PaymentRecord[]) => (
+    [...payments].sort(
+      (left, right) => new Date(right.paymentDate).getTime() - new Date(left.paymentDate).getTime(),
+    )
+  ), []);
 
 
 
   useEffect(() => {
+    locallyCommittedPayments.current.clear();
+    setPupilPayments([]);
     if (!pupilId) {
       setPupilPayments([]);
       setIsLoadingPayments(false);
@@ -181,9 +216,10 @@ export function usePupilFees({
           paymentDate: doc.data().paymentDate?.toDate?.()?.toISOString?.() ?? doc.data().paymentDate,
           createdAt: doc.data().createdAt?.toDate?.()?.toISOString?.() ?? doc.data().createdAt,
         })) as PaymentRecord[];
-        setPupilPayments(
-          payments.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
-        );
+        payments.forEach(payment => locallyCommittedPayments.current.delete(payment.id));
+        setPupilPayments(sortPupilPayments(mergePupilPayments(
+          [...locallyCommittedPayments.current.values()], payments,
+        )));
         setIsLoadingPayments(false);
         if (process.env.NODE_ENV === 'development') {
           console.log(`🔴 [Live] Payments updated for pupil ${pupilId}:`, payments.length);
@@ -196,12 +232,12 @@ export function usePupilFees({
     );
 
     return () => unsubscribe();
-  }, [pupilId]);
+  }, [pupilId, sortPupilPayments]);
 
   // Calculate previous term balances - OPTIMIZED
   const { data: previousBalance = null, isLoading: isLoadingPreviousBalance } = useQuery<PreviousTermBalance | null>({
     // Updated queryKey to include dependencies that affect the calculation
-    queryKey: ['previous-balance', pupilId, selectedTermId, selectedAcademicYear?.id, pupilPayments.length, allFeeStructures.length, lastPaymentTimestamp],
+    queryKey: ['previous-balance', pupilId, selectedTermId, selectedAcademicYear?.id, JSON.stringify([pupilPayments, allFeeStructures, pupil, allAcademicYears, feesHolidays]), lastPaymentTimestamp],
     queryFn: async (): Promise<PreviousTermBalance | null> => {
       if (!selectedAcademicYear || !pupil) {
         console.log('⚡ Previous balance: Early return - missing data');
@@ -465,7 +501,6 @@ export function usePupilFees({
     return await Promise.all([
       refetchCurrentTermFees(),
       refetchAllFeeStructures(),
-      queryClient.invalidateQueries({ queryKey: ['pupil-payments', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['previous-balance', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupilId] }),
       queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupilId] }),
@@ -483,6 +518,7 @@ export function usePupilFees({
     isPaymentDataLoading,
     isError,
     error,
+    addPupilPayments,
     refetch,
     previousBalance,
     termTotals,

@@ -147,9 +147,10 @@ class OptimizedNotificationService {
   async sendPushOnlyNotification(
     data: Pick<CreateNotificationData, 'title' | 'description' | 'priority' | 'type' | 'enablePush' | 'pushTitle' | 'pushBody' | 'pushIcon' | 'pushUrl'>,
     users: User[],
+    notificationId?: string,
   ): Promise<{ sent: number; failed: number; errors: string[] }> {
     const transient = {
-      id: `push-only-${Date.now()}`,
+      id: notificationId || `push-only-${Date.now()}`,
       title: data.title,
       description: data.description || '',
       type: data.type,

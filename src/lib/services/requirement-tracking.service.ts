@@ -108,7 +108,7 @@ export class RequirementTrackingService {
     pupil: Pupil,
     termId: string,
     academicYear: AcademicYear
-  ): Promise<RequirementTracking[]> {
+  ): Promise<EnhancedRequirementTracking[]> {
     try {
       console.log('🔍 Getting enhanced tracking records with data integrity:', {
         pupilId: pupil.id,
@@ -174,9 +174,9 @@ export class RequirementTrackingService {
               dataSource: 'enhanced' as const,
               snapshotId: undefined
             }
-          };
+          } as EnhancedRequirementTracking;
         }
-        return record;
+        return record as EnhancedRequirementTracking;
       });
 
       console.log(`✅ Retrieved ${enhancedRecords.length} enhanced tracking records`);
@@ -598,30 +598,6 @@ export class RequirementTrackingService {
       console.error('Error getting pupil progress:', error);
       throw error;
     }
-  }
-
-  /**
-   * NEW: Get enhanced requirement tracking with historical pupil data
-   */
-  static async getEnhancedTrackingRecordsByPupilAndTerm(
-    pupilId: string, 
-    academicYearId: string, 
-    termId: string
-  ): Promise<EnhancedRequirementTracking[]> {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('pupilId', '==', pupilId),
-      where('academicYearId', '==', academicYearId),
-      where('termId', '==', termId)
-    );
-
-    const querySnapshot = await getDocs(q);
-    const trackingRecords = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as RequirementTracking));
-
-    return this.enhanceWithHistoricalData(trackingRecords);
   }
 
   /**

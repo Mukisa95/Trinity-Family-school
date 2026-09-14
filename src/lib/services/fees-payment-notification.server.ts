@@ -38,7 +38,47 @@ export interface PaymentNotificationDetails {
   term: string;
 }
 
+export interface PreparedPaymentNotification {
+  paymentId: string;
+  paymentData: PaymentRecord;
+  pupilDetails: Pupil;
+  feeDetails: FeeStructure;
+  balance: number;
+}
+
 class FeesPaymentNotificationServerService {
+  // Scope this cache to one worker run; subsequent retries resolve current policy.
+  createRecipientResolver(): () => Promise<User[]> {
+    let pending: Promise<User[]> | undefined;
+    return () => pending ??= this.resolvePaymentRecipients();
+  }
+
+  private async resolvePaymentRecipients(): Promise<User[]> {
+    const adminDb = getFirestore(getFirebaseAdminApp());
+    const settingsSnapshot = await adminDb.collection('notificationAutomationSettings').doc('current').get();
+    const automationSettings = normalizeNotificationAutomationSettings(
+      settingsSnapshot.exists ? settingsSnapshot.data() : undefined,
+    );
+    if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return [];
+
+    // Parent receipt pushes are intentionally excluded from this policy.
+    // Resolve the staff policy once even when a payment was distributed
+    // across several fees.
+    const eligibleStaff = await this.getUsersWithFeesPermissions();
+    const selectedStaffIds = new Set(resolveAutomatedNotificationRecipientIds(
+      automationSettings,
+      'schoolPay',
+      eligibleStaff.map(user => user.id),
+    ));
+    const staffWithPermissions = eligibleStaff.filter(user =>
+      selectedStaffIds.has(user.id)
+      && GranularPermissionService.canAccessPage(user as unknown as SystemUser, 'fees', 'collection')
+      && GranularPermissionService.canAccessPage(user as unknown as SystemUser, 'fees', 'collect'),
+    );
+    return staffWithPermissions;
+
+  }
+
   /**
    * Main method to send payment notification
    */
@@ -49,75 +89,62 @@ class FeesPaymentNotificationServerService {
     feeDetails: FeeStructure,
     balance: number
   ): Promise<void> {
+    await this.sendPaymentNotifications([{
+      paymentId,
+      paymentData,
+      pupilDetails,
+      feeDetails,
+      balance,
+    }]);
+  }
+
+  /**
+   * Sends the payment notifications prepared by the payment route. Recipient
+   * policy is resolved once for the whole command, rather than once for every
+   * fee allocation in a single cashier action.
+   */
+  async sendPaymentNotifications(notifications: PreparedPaymentNotification[], progress?: {
+    deliveredUserIds: string[];
+    resolveRecipients?: () => Promise<User[]>;
+    beforeRecipient: () => Promise<void>;
+    onRecipientDelivered: (userId: string) => Promise<void>;
+  }): Promise<boolean> {
+    if (notifications.length === 0) return true;
+
     try {
-      // This service is invoked only from the server payment route. Its
-      // delivery dependency can safely use Firebase Admin and Node-only APIs.
-      const adminDb = getFirestore(getFirebaseAdminApp());
-      const settingsSnapshot = await adminDb.collection('notificationAutomationSettings').doc('current').get();
-      const automationSettings = normalizeNotificationAutomationSettings(
-        settingsSnapshot.exists ? settingsSnapshot.data() : undefined,
-      );
-      if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return;
-
-      console.log(`\n${'='.repeat(80)}`);
-      console.log(`💳 [Fees Notification] Starting payment notification`);
-      console.log(`   Payment ID: ${paymentId}`);
-      console.log(`   Pupil: ${pupilDetails.firstName} ${pupilDetails.lastName}`);
-      console.log(`   Fee: ${feeDetails.name}`);
-      console.log(`   Amount: ${paymentData.amount}`);
-      console.log(`${'='.repeat(80)}\n`);
-
-      // Step 1: Get parent accounts by familyId
-      // Parent receipt pushes are intentionally excluded from this policy.
-      const parents: User[] = [];
-      console.log(`👨‍👩‍👧 [Fees Notification] Found ${parents.length} parent account(s)`);
-
-      // Step 2: Get staff/admin with fees permissions
-      const eligibleStaff = await this.getUsersWithFeesPermissions();
-      const selectedStaffIds = new Set(resolveAutomatedNotificationRecipientIds(
-        automationSettings,
-        'schoolPay',
-        eligibleStaff.map(user => user.id),
-      ));
-      const staffWithPermissions = eligibleStaff.filter(user =>
-        selectedStaffIds.has(user.id)
-        && GranularPermissionService.canAccessPage(user as unknown as SystemUser, 'fees', 'collection')
-        && GranularPermissionService.canAccessPage(user as unknown as SystemUser, 'fees', 'collect'),
-      );
-      console.log(`👥 [Fees Notification] Found ${staffWithPermissions.length} staff with fees permissions`);
-
-      // Step 3: Combine recipients
-      const recipients = staffWithPermissions;
+      const recipients = await (progress?.resolveRecipients || this.createRecipientResolver())();
 
       if (recipients.length === 0) {
         console.log('⚠️ [Fees Notification] No recipients found, skipping notification');
-        return;
+        return true;
       }
 
-      console.log(`📊 [Fees Notification] Total recipients: ${recipients.length}`);
-
-      // Step 4: Format notification content
-      const notificationContent = this.formatPaymentNotification(
-        paymentId,
-        paymentData,
-        pupilDetails,
-        feeDetails,
-        balance
-      );
-
-      // Step 5: Send notification
-      console.log(`📨 [Fees Notification] Sending notification...`);
-      
-      await optimizedNotificationService.sendPushOnlyNotification(
-        notificationContent,
-        recipients,
-      );
-
-      console.log(`✅ [Fees Notification] Payment notification sent successfully!\n`);
+      let successful = true;
+      for (const { paymentId, paymentData, pupilDetails, feeDetails, balance } of notifications) {
+        const payload = this.formatPaymentNotification(paymentId, paymentData, pupilDetails, feeDetails, balance);
+        if (!progress) {
+          const result = await optimizedNotificationService.sendPushOnlyNotification(payload, recipients);
+          successful = successful && result.failed === 0 && result.errors.length === 0;
+          continue;
+        }
+        for (const recipient of recipients) {
+          if (progress.deliveredUserIds.includes(recipient.id)) continue;
+          await progress.beforeRecipient();
+          const result = await optimizedNotificationService.sendPushOnlyNotification(payload, [recipient], `fee-${paymentId}`);
+          if (result.failed > 0 || result.errors.length > 0) {
+            successful = false;
+          } else {
+            await progress.onRecipientDelivered(recipient.id);
+          }
+        }
+      }
+      return successful;
 
     } catch (error) {
-      console.error('❌ [Fees Notification] Error sending payment notification:', error);
-      // Don't throw error - notification failure shouldn't fail payment
+      console.error('❌ [Fees Notification] Error sending payment notifications:', error);
+      // Don't throw error - notification failure shouldn't fail payment.
+      // The payment outbox worker uses this false result to schedule a retry.
+      return false;
     }
   }
 
@@ -174,7 +201,7 @@ class FeesPaymentNotificationServerService {
 
     } catch (error) {
       console.error('❌ [Fees Notification] Error getting users with fees permissions:', error);
-      return [];
+      throw error;
     }
   }
 

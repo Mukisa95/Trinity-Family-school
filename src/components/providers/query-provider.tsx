@@ -1,8 +1,13 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+const ReactQueryDevtools = dynamic(
+  () => import('@tanstack/react-query-devtools').then(module => module.ReactQueryDevtools),
+  { ssr: false },
+);
 
 // ─── QueryClient factory ────────────────────────────────────────────────────
 // Created once per browser session. React Query's in-memory cache persists
@@ -59,7 +64,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }

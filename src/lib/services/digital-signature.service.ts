@@ -8,6 +8,7 @@ import {
   orderBy, 
   Timestamp,
   serverTimestamp,
+  runTransaction,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -25,6 +26,22 @@ import type { SystemUser } from '@/types';
 const SIGNATURES_COLLECTION = 'digital_signatures';
 const AUDIT_TRAIL_COLLECTION = 'audit_trail';
 
+// Firestore document IDs may not include `/`. A deterministic, compact ID lets
+// a retried confirmed payment find the audit record it already created without
+// persisting the full payment operation identifier in a document path.
+function signatureIdForKey(idempotencyKey: string): string {
+  let primary = 2166136261;
+  let secondary = 0x811c9dc5;
+
+  for (let index = 0; index < idempotencyKey.length; index += 1) {
+    const code = idempotencyKey.charCodeAt(index);
+    primary = Math.imul(primary ^ code, 16777619);
+    secondary = Math.imul(secondary ^ (code + index), 2246822519);
+  }
+
+  return `idem-${(primary >>> 0).toString(36)}-${(secondary >>> 0).toString(36)}`;
+}
+
 export class DigitalSignatureService {
   /**
    * Create a digital signature for an action
@@ -32,7 +49,8 @@ export class DigitalSignatureService {
   static async createSignature(
     user: SystemUser,
     data: CreateSignatureData,
-    additionalMetadata?: Record<string, any>
+    additionalMetadata?: Record<string, any>,
+    idempotencyKey?: string,
   ): Promise<DigitalSignature> {
     try {
       const signature: Omit<DigitalSignature, 'id'> = {
@@ -48,7 +66,9 @@ export class DigitalSignatureService {
         sessionId: this.getSessionId(),
       };
 
-      const signatureRef = doc(collection(db, SIGNATURES_COLLECTION));
+      const signatureRef = idempotencyKey
+        ? doc(db, SIGNATURES_COLLECTION, signatureIdForKey(idempotencyKey))
+        : doc(collection(db, SIGNATURES_COLLECTION));
       const signatureId = signatureRef.id;
 
       // Create audit trail entry
@@ -80,12 +100,55 @@ export class DigitalSignatureService {
         action: data.action,
         description: data.description,
         timestamp: signature.timestamp,
-        metadata: Object.keys(cleanMetadata).length > 0 ? cleanMetadata : undefined,
+        ...(Object.keys(cleanMetadata).length > 0 ? { metadata: cleanMetadata } : {}),
       };
 
       // The signature and its audit trail are one logical record. Commit them
       // together so the UI waits for one acknowledgement and they cannot drift.
-      const auditRef = doc(collection(db, AUDIT_TRAIL_COLLECTION));
+      const auditRef = idempotencyKey
+        ? doc(db, AUDIT_TRAIL_COLLECTION, `signature-${signatureId}`)
+        : doc(collection(db, AUDIT_TRAIL_COLLECTION));
+
+      if (idempotencyKey) {
+        return await runTransaction(db, async transaction => {
+          const [existingSignature, existingAudit] = await Promise.all([
+            transaction.get(signatureRef),
+            transaction.get(auditRef),
+          ]);
+
+          if (existingSignature.exists()) {
+            const previous = existingSignature.data() as DigitalSignature;
+            const auditMatches = existingAudit.exists() && (() => {
+              const audit = existingAudit.data() as AuditTrailEntry;
+              return audit.recordType === data.recordType &&
+                audit.recordId === data.recordId &&
+                audit.action === data.action &&
+                audit.signature?.userId === user.id;
+            })();
+
+            if (!auditMatches || previous.userId !== user.id || previous.action !== data.action) {
+              throw new Error('This signature retry key belongs to a different action.');
+            }
+
+            return { ...previous, id: signatureId } as DigitalSignature;
+          }
+
+          if (existingAudit.exists()) {
+            throw new Error('This signature retry key has an incomplete audit record.');
+          }
+
+          transaction.set(signatureRef, {
+            ...signature,
+            createdAt: serverTimestamp(),
+          });
+          transaction.set(auditRef, {
+            ...auditEntry,
+            createdAt: serverTimestamp(),
+          });
+          return { ...signature, id: signatureId };
+        });
+      }
+
       const batch = writeBatch(db);
       batch.set(signatureRef, {
         ...signature,
@@ -362,11 +425,15 @@ export class DigitalSignatureService {
 export function useDigitalSignature() {
   const { user } = useAuth();
 
-  const createSignature = async (data: CreateSignatureData, additionalMetadata?: Record<string, any>) => {
+  const createSignature = async (
+    data: CreateSignatureData,
+    additionalMetadata?: Record<string, any>,
+    idempotencyKey?: string,
+  ) => {
     if (!user) {
       throw new Error('User must be authenticated to create signatures');
     }
-    return DigitalSignatureService.createSignature(user, data, additionalMetadata);
+    return DigitalSignatureService.createSignature(user, data, additionalMetadata, idempotencyKey);
   };
 
   return {

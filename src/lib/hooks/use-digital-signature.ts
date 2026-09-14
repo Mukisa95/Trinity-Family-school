@@ -29,14 +29,15 @@ export function useCreateDigitalSignature() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ data, additionalMetadata }: {
+    mutationFn: async ({ data, additionalMetadata, idempotencyKey }: {
       data: CreateSignatureData;
       additionalMetadata?: Record<string, any>;
+      idempotencyKey?: string;
     }) => {
       if (!user) {
         throw new Error('User must be authenticated to create signatures');
       }
-      return DigitalSignatureService.createSignature(user, data, additionalMetadata);
+      return DigitalSignatureService.createSignature(user, data, additionalMetadata, idempotencyKey);
     },
     onSuccess: (signature, variables) => {
       // Invalidate relevant queries
@@ -158,7 +159,8 @@ export function useDigitalSignatureHelpers() {
     recordType: RecordType,
     recordId: string,
     action: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    idempotencyKey?: string,
   ) => {
     if (!user) {
       throw new Error('User must be authenticated');
@@ -174,6 +176,7 @@ export function useDigitalSignatureHelpers() {
         description,
         metadata,
       },
+      idempotencyKey,
     });
   };
 
@@ -183,4 +186,4 @@ export function useDigitalSignatureHelpers() {
     error: createSignature.error,
     formatActionDescription: DigitalSignatureService.formatActionDescription,
   };
-} 
+}

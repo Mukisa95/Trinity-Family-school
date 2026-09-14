@@ -10,19 +10,10 @@ export function useUniforms() {
   // ⚡ Use preloaded data from GlobalDataPreloader
   return useQuery({
     queryKey: [UNIFORMS_QUERY_KEY],
-    queryFn: async () => {
-      // Check cache first (populated by GlobalDataPreloader)
-      const cachedData = queryClient.getQueryData([UNIFORMS_QUERY_KEY]);
-      if (cachedData) {
-        console.log('⚡ UNIFORMS: Loaded from cache (instant)');
-        return cachedData as Awaited<ReturnType<typeof UniformsService.getAllUniforms>>;
-      }
-      
-      // Fallback to service if cache empty
-      console.log('📊 UNIFORMS: Fetching from service...');
-      return UniformsService.getAllUniforms();
-    },
-    staleTime: Infinity, // Never stale - updated by real-time listener
+    // initialData below provides the preloaded snapshot. Invalidation must
+    // fetch current data rather than return the existing snapshot.
+    queryFn: UniformsService.getAllUniforms,
+    staleTime: Infinity,
     gcTime: Infinity, // Keep in cache forever
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -107,4 +98,4 @@ export function useToggleUniformStatus() {
       queryClient.invalidateQueries({ queryKey: [UNIFORMS_QUERY_KEY] });
     },
   });
-} 
+}

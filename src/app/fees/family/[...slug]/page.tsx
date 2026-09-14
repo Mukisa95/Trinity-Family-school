@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
@@ -23,18 +23,19 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // Services
-import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { usePrint } from '@/lib/contexts/print-context';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDigitalSignatureHelpers } from '@/lib/hooks/use-digital-signature';
-import { HistoryLogService } from '@/lib/services/history-log.service';
 import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
+import {
+  clearPendingPaymentOperation as clearRecoveredPaymentOperation,
+  getOrCreatePendingPaymentOperation,
+} from '@/lib/utils/payment-operation-recovery';
 
 // Optimized hooks for instant cache-first loading
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { usePupilsByFamily } from '@/lib/hooks/use-pupils';
-import { FEES_QUERY_KEYS } from '@/lib/hooks/use-fees';
 
 // Custom hook for family fees
 import { useFamilyFees } from './hooks/useFamilyFees';
@@ -139,6 +140,12 @@ export default function FamilyFeesCollection() {
   const { registerPrintHandler } = usePrint();
   const { user } = useAuth();
   const { signAction } = useDigitalSignatureHelpers();
+  const pendingFamilyPaymentOperations = useRef(new Map<string, { operationId: string; paymentDate: string }>());
+  const familyPaymentOperationScope = () => ({
+    kind: 'family' as const,
+    userId: user?.id || '',
+    ownerId: familyId || '',
+  });
 
   if (process.env.NODE_ENV === 'development') {
     console.log('FamilyFeesCollection mounted with familyId:', familyId);
@@ -238,7 +245,7 @@ export default function FamilyFeesCollection() {
   const { data: familyPupils = [], isLoading: isFamilyPupilsLoading } = usePupilsByFamily(familyId);
 
   // 🚀 OPTIMIZED: Use custom hook for family fees with parallel loading
-  const { feesInfo, isLoading: isFeesInfoLoading } = useFamilyFees({
+  const { feesInfo, isLoading: isFeesInfoLoading, error: feesInfoError } = useFamilyFees({
     familyId,
     familyPupils,
     selectedTermId,
@@ -248,7 +255,17 @@ export default function FamilyFeesCollection() {
 
   // Keep payment/print actions protected until the complete fee calculation is
   // ready, but do not hide known family members behind that slower work.
-  const isLoading = isFamilyPupilsLoading || isFeesInfoLoading || isAcademicYearsLoading;
+  const isLoading = isFamilyPupilsLoading || isFeesInfoLoading || isAcademicYearsLoading || !!feesInfoError;
+
+  useEffect(() => {
+    if (feesInfoError) {
+      toast({
+        variant: 'destructive',
+        title: 'Fee data unavailable',
+        description: 'Payments could not be loaded. Please refresh before recording or printing fees.',
+      });
+    }
+  }, [feesInfoError]);
 
   const handleFamilyPayment = async (paymentData: {
     totalAmount: number;
@@ -263,6 +280,7 @@ export default function FamilyFeesCollection() {
       termId?: string;
       academicYearId?: string;
       isCarryForward?: boolean;
+      uniformTrackingId?: string;
     }>;
     paidBy: string;
   }) => {
@@ -276,6 +294,9 @@ export default function FamilyFeesCollection() {
     }
 
     try {
+      if (feesInfoError) {
+        throw new Error('Payments could not be loaded. Refresh the fee information before recording a payment.');
+      }
       console.log('Processing family payment:', {
         totalAmount: paymentData.totalAmount,
         selectedFeesCount: paymentData.selectedFees.length,
@@ -284,155 +305,103 @@ export default function FamilyFeesCollection() {
         receivedBy: user.username
       });
 
-      // Process each payment individually and create digital signatures
-      const paymentResults = await Promise.all(
-        paymentData.selectedFees.map(async (feePayment) => {
-          // Check if this is a uniform fee (tracking ID starts with uniform-specific pattern)
-          const isUniformFee = feePayment.feeStructureId.includes('uniform') ||
-            feePayment.feeStructureId.includes('tracking');
-          const isCarryForwardFee = feePayment.isCarryForward === true;
+      const paidByUser = { id: user.id, name: user.username, role: user.role };
+      const operationIntent = JSON.stringify({
+        familyId,
+        academicYearId: selectedAcademicYear?.id || '',
+        termId: selectedTermId,
+        paymentMethod: paymentData.paymentMethod,
+        selectedFees: paymentData.selectedFees,
+        paidBy: paymentData.paidBy,
+        receivedBy: user.id,
+      });
+      const operationMapKey = `${familyPaymentOperationScope().userId}:${familyPaymentOperationScope().ownerId}:${operationIntent}`;
+      let operation = pendingFamilyPaymentOperations.current.get(operationMapKey);
+      if (!operation) {
+        operation = getOrCreatePendingPaymentOperation(
+          familyPaymentOperationScope(),
+          operationIntent,
+          () => ({ operationId: `family-${crypto.randomUUID()}`, paymentDate: new Date().toISOString() }),
+        );
+        pendingFamilyPaymentOperations.current.set(operationMapKey, operation);
+      }
 
-          // Prepare paidBy object with actual logged-in user info
-          const paidByUser = {
-            id: user.id,
-            name: user.username,
-            role: user.role
-          };
-
-          let paymentId: string;
-
-          if (isUniformFee) {
-            // For uniform fees, use the uniform payment service
-            console.log(`Processing uniform payment for ${feePayment.pupilName} - ${feePayment.feeName}`);
-
-            // Create a uniform fee-like object for the payment
-            const uniformFeeData = {
-              id: feePayment.feeStructureId,
-              uniformTrackingId: feePayment.feeStructureId,
-              name: feePayment.feeName,
-              amount: feePayment.maxAmount,
-              paid: feePayment.maxAmount - feePayment.selectedAmount, // Previous payments
-              balance: feePayment.selectedAmount, // Amount being paid now
-              termId: selectedTermId,
-              academicYearId: selectedAcademicYear?.id || '',
-              isUniformFee: true
-            };
-
-            // Create uniform payment - service expects paidBy object, not string
-            paymentId = await UniformFeesIntegrationService.createUniformPaymentRecord(
-              uniformFeeData as any,
-              feePayment.selectedAmount,
-              feePayment.pupilId,
-              selectedAcademicYear?.id || '',
-              selectedTermId,
-              paidByUser
-            );
-          } else {
-            // For regular fees, use the API route (for notifications)
-            const paymentRecord = {
-              pupilId: feePayment.pupilId,
-              feeStructureId: isCarryForwardFee ? 'previous-balance' : feePayment.feeStructureId,
-              amount: feePayment.selectedAmount,
-              paymentMethod: paymentData.paymentMethod,
-              paymentDate: new Date().toISOString(),
-              termId: selectedTermId,
-              academicYearId: selectedAcademicYear?.id || '',
-              paidBy: paidByUser,
-              notes: isCarryForwardFee
-                ? `Family carry forward payment: ${feePayment.feeName}. Paid by: ${paymentData.paidBy}`
-                : `Family payment for ${feePayment.pupilName} - ${feePayment.feeName}. Paid by: ${paymentData.paidBy}`,
-              balance: Math.max(0, feePayment.maxAmount - feePayment.selectedAmount),
-              ...(isCarryForwardFee ? {
-                isCarryForwardPayment: true,
-                originalFeeStructureId: feePayment.feeStructureId,
-                originalTermId: feePayment.termId,
-                originalAcademicYearId: feePayment.academicYearId,
-                carryForwardItemName: feePayment.feeName,
-                paymentMadeInTerm: selectedTermId,
-                paymentMadeInYear: selectedAcademicYear?.id || ''
-              } : {}),
-              skipHistoryLog: true,
-              historyContext: {
-                feeName: feePayment.feeName,
-                pupilName: feePayment.pupilName,
-                paymentMethod: paymentData.paymentMethod,
-                source: 'family_fee_payment',
-                paidByName: paymentData.paidBy,
-              }
-            };
-
-            // 🔔 Use API route for notifications
-            const response = await fetch('/api/payments/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(paymentRecord),
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to create payment');
-            }
-
-            const result = await response.json();
-            paymentId = result.paymentId;
-            await HistoryLogService.log({
-              action: 'create',
-              entity: 'payment',
-              recordId: paymentId,
-              label: feePayment.feeName,
-              meta: {
-                amount: feePayment.selectedAmount,
-                feeName: feePayment.feeName,
-                pupilName: feePayment.pupilName,
-                method: paymentData.paymentMethod,
-                source: 'family_fee_payment',
-              },
-              actor: {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-              },
-            });
-          }
-
-          // Create digital signature for the payment (who received it)
-          await signAction(
-            'fee_payment',
-            paymentId,
-            'collected',
-            {
-              amount: feePayment.selectedAmount,
-              pupilName: feePayment.pupilName,
-              feeName: feePayment.feeName,
-              academicYear: selectedAcademicYear?.name || '',
-              term: selectedTermId,
-              paymentType: isUniformFee ? 'uniform' : isCarryForwardFee ? 'carry-forward' : 'regular',
-              paymentMethod: paymentData.paymentMethod,
-              paidBy: paymentData.paidBy,
-              receivedBy: user.username
-            }
-          );
-
-          return { paymentId, feePayment, isUniformFee };
-        })
-      );
+      // One commit covers the complete family receipt, including uniforms.
+      const allocations = paymentData.selectedFees.map(feePayment => {
+        const isUniformFee = !!feePayment.uniformTrackingId;
+        const isCarryForwardFee = !isUniformFee && feePayment.isCarryForward === true;
+        return {
+          paymentData: {
+            pupilId: feePayment.pupilId,
+            feeStructureId: isCarryForwardFee ? 'previous-balance' : feePayment.feeStructureId,
+            amount: feePayment.selectedAmount,
+            paymentMethod: paymentData.paymentMethod,
+            paymentDate: operation!.paymentDate,
+            termId: selectedTermId,
+            academicYearId: selectedAcademicYear?.id || '',
+            paidBy: paidByUser,
+            notes: isUniformFee ? `Uniform payment - ${feePayment.feeName}` : isCarryForwardFee
+              ? `Family carry forward payment: ${feePayment.feeName}. Paid by: ${paymentData.paidBy}`
+              : `Family payment for ${feePayment.pupilName} - ${feePayment.feeName}. Paid by: ${paymentData.paidBy}`,
+            balance: Math.max(0, feePayment.maxAmount - feePayment.selectedAmount),
+            ...(isUniformFee ? { isUniformPayment: true, uniformTrackingId: feePayment.uniformTrackingId } : {}),
+            ...(isCarryForwardFee ? {
+              isCarryForwardPayment: true, originalFeeStructureId: feePayment.feeStructureId,
+              originalTermId: feePayment.termId, originalAcademicYearId: feePayment.academicYearId,
+              carryForwardItemName: feePayment.feeName, paymentMadeInTerm: selectedTermId,
+              paymentMadeInYear: selectedAcademicYear?.id || '',
+            } : {}),
+          },
+          ...(isUniformFee ? { uniformTracking: {
+            trackingId: feePayment.uniformTrackingId!, paymentAmount: feePayment.selectedAmount,
+            paymentDate: operation!.paymentDate,
+          } } : {}),
+          historyContext: {
+            feeName: feePayment.feeName, pupilName: feePayment.pupilName,
+            paymentMethod: paymentData.paymentMethod, source: 'family_fee_payment', paidByName: paymentData.paidBy,
+          },
+        };
+      });
+      const response = await fetch('/api/payments/create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operationId: operation.operationId, allocations }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to create family payment');
+      if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== allocations.length) {
+        throw new Error('Family payment confirmation is incomplete. Retry the same submission to check its status.');
+      }
+      const paymentResults = paymentData.selectedFees.map((feePayment, index) => ({
+        paymentId: result.paymentIds[index] as string, feePayment, isUniformFee: !!feePayment.uniformTrackingId,
+      }));
+      const signatureResults = await Promise.allSettled(paymentResults.map(({ paymentId, feePayment, isUniformFee }) => signAction(
+        'fee_payment', paymentId, 'collected', {
+          amount: feePayment.selectedAmount, pupilName: feePayment.pupilName, feeName: feePayment.feeName,
+          academicYear: selectedAcademicYear?.name || '', term: selectedTermId,
+          paymentType: isUniformFee ? 'uniform' : feePayment.isCarryForward ? 'carry-forward' : 'regular',
+          paymentMethod: paymentData.paymentMethod, paidBy: paymentData.paidBy, receivedBy: user.username,
+        },
+        `fee-payment:${operation.operationId}:${paymentId}`,
+      )));
+      const signatureFailures = signatureResults.filter(result => result.status === 'rejected').length;
+      pendingFamilyPaymentOperations.current.delete(operationMapKey);
+      clearRecoveredPaymentOperation(familyPaymentOperationScope(), operationIntent);
 
       toast({
         title: "Payment Successful",
-        description: `Successfully processed ${paymentResults.length} payments totaling UGX ${paymentData.totalAmount.toLocaleString()}. Digital signatures recorded.`,
+        description: `Successfully processed ${paymentResults.length} payments totaling UGX ${paymentData.totalAmount.toLocaleString()}. ${signatureFailures ? 'Some digital signatures could not be saved; the payments are recorded. Do not pay again.' : 'Digital signatures recorded.'}`,
       });
 
       // Close modal
       setIsFamilyPaymentModalOpen(false);
 
       // Invalidate all relevant caches to trigger data refresh
-      await Promise.all([
+      void Promise.all([
         // Invalidate family fees data
         queryClient.invalidateQueries({ queryKey: ['family-pupils', familyId] }),
         queryClient.invalidateQueries({ queryKey: ['family-fees-info'] }),
         queryClient.invalidateQueries({ queryKey: ['family-payments-all'] }),
+        queryClient.invalidateQueries({ queryKey: ['family-uniform-fees-batch'] }),
         queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] }),
 
         // Invalidate individual pupil caches for all affected pupils
@@ -442,11 +411,10 @@ export default function FamilyFeesCollection() {
           queryClient.invalidateQueries({ queryKey: ['previous-balance', feePayment.pupilId] }),
           queryClient.invalidateQueries({ queryKey: ['uniform-fees', feePayment.pupilId] }),
           queryClient.invalidateQueries({ queryKey: ['pupil-fees', feePayment.pupilId] }),
-          queryClient.invalidateQueries({ queryKey: ['uniform-tracking', feePayment.pupilId] }),
+          queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', feePayment.pupilId] }),
         ]).flat(),
 
         // Invalidate general fee and payment caches
-        queryClient.invalidateQueries({ queryKey: FEES_QUERY_KEYS.structures() }),
         queryClient.invalidateQueries({ queryKey: ['payments'] }),
         queryClient.invalidateQueries({ queryKey: ['finance-summary'] }),
       ]);
@@ -463,17 +431,20 @@ export default function FamilyFeesCollection() {
       });
       window.dispatchEvent(paymentUpdateEvent);
 
-      // Also store the timestamp in localStorage as a backup mechanism
-      localStorage.setItem('lastFamilyPaymentTimestamp', Date.now().toString());
-      paymentData.selectedFees.forEach(feePayment => {
-        localStorage.setItem(`lastPaymentTimestamp_${feePayment.pupilId}`, Date.now().toString());
-      });
+      // Backup refresh hints must never turn an already committed payment into a failure.
+      try {
+        localStorage.setItem('lastFamilyPaymentTimestamp', Date.now().toString());
+        paymentData.selectedFees.forEach(feePayment => {
+          localStorage.setItem(`lastPaymentTimestamp_${feePayment.pupilId}`, Date.now().toString());
+        });
+      } catch (storageError) {
+        console.warn('Family payment recorded; backup refresh hints unavailable:', storageError);
+      }
 
       console.log('Family payment completed successfully:', {
         paymentsCreated: paymentData.selectedFees.length,
         cacheInvalidated: true,
-        eventDispatched: true,
-        timestampsStored: true
+        eventDispatched: true
       });
     } catch (error) {
       console.error('Family payment error:', error);

@@ -55,6 +55,26 @@ interface UseProgressiveFeesOptions {
   enabled?: boolean;
 }
 
+/**
+ * The collection calculation must be tied to its actual inputs. Counts alone
+ * collide when two classes contain the same number of pupils or a fee is
+ * edited without changing the catalog length.
+ */
+export function progressiveFeesProcessingKey(
+  mode: 'legacy' | 'optimized',
+  academicYearId: string,
+  termId: string,
+  pupils: Pupil[],
+  feeStructures: FeeStructure[],
+) {
+  // Hash every calculation input rather than selected fields or counts. In
+  // particular assignment validity, discounts and registration dates matter.
+  return JSON.stringify([mode, academicYearId, termId,
+    [...pupils].sort((a, b) => a.id.localeCompare(b.id)),
+    [...feeStructures].sort((a, b) => a.id.localeCompare(b.id)),
+  ]);
+}
+
 export function useProgressiveFees({
   pupils,
   selectedYear,
@@ -80,6 +100,7 @@ export function useProgressiveFees({
   const mountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastProcessingParamsRef = useRef<string | null>(null);
+  const displayedScopeRef = useRef<string | null>(null);
 
   // Fetch fee structures once
   const { data: allFeeStructures = [], isLoading: isLoadingFeeStructures } = useQuery({
@@ -353,7 +374,13 @@ export function useProgressiveFees({
     const startTime = performance.now();
     
     // Create a unique key for this processing request
-    const processingKey = `optimized-${selectedYear.id}-${selectedTermId}-${pupils.length}`;
+    const processingKey = progressiveFeesProcessingKey(
+      'optimized',
+      selectedYear.id,
+      selectedTermId,
+      pupils,
+      allFeeStructures,
+    );
     
     // Prevent multiple simultaneous processing
     if (processingRef.current || !mountedRef.current || lastProcessingParamsRef.current === processingKey) {
@@ -372,12 +399,18 @@ export function useProgressiveFees({
 
     processingRef.current = true;
     lastProcessingParamsRef.current = processingKey;
+    const displayScope = JSON.stringify([selectedYear.id, selectedTermId, pupils.map(pupil => pupil.id).sort()]);
+    const retainConfirmedRows = displayedScopeRef.current === displayScope;
+    displayedScopeRef.current = displayScope;
 
     if (!mountedRef.current) return;
 
-    // Reset state
-    setState({
-      pupilFeesInfo: {},
+    // Keep the last confirmed rows while a replacement calculation loads. A
+    // read failure must never make every pupil look unpaid by substituting an
+    // empty payment ledger.
+    setState(prev => ({
+      ...prev,
+      pupilFeesInfo: retainConfirmedRows ? prev.pupilFeesInfo : {},
       processedCount: 0,
       totalCount: pupils.length,
       isProcessing: true,
@@ -386,7 +419,7 @@ export function useProgressiveFees({
       processingStatus: 'Optimizing fee calculations with grouping...',
       error: null,
       optimizationInfo: undefined
-    });
+    }));
 
     try {
       if (signal.aborted) return;
@@ -451,8 +484,7 @@ export function useProgressiveFees({
         }
       } catch (error) {
         console.error('❌ [OPTIMIZED] Failed to batch load payments:', error);
-        // Fallback to empty array if batch loading fails
-        allTermPayments = [];
+        throw new Error('Term payment data could not be loaded; previous confirmed balances were kept.');
       }
 
       // 🚀 Group payments by pupilId in memory (instant lookups, NO more queries!)
@@ -541,8 +573,8 @@ export function useProgressiveFees({
         }));
       }
     } finally {
-      processingRef.current = false;
-      if (abortControllerRef.current === abortControllerRef.current) {
+      if (abortControllerRef.current?.signal === signal) {
+        processingRef.current = false;
         abortControllerRef.current = null;
       }
     }
@@ -565,7 +597,13 @@ export function useProgressiveFees({
     }
 
     // Create a unique key for this processing request
-    const processingKey = `${selectedYear.id}-${selectedTermId}-${pupils.length}-${allFeeStructures.length}`;
+    const processingKey = progressiveFeesProcessingKey(
+      'legacy',
+      selectedYear.id,
+      selectedTermId,
+      pupils,
+      allFeeStructures,
+    );
     
     // Prevent multiple simultaneous processing and duplicate requests
     if (processingRef.current || !mountedRef.current || lastProcessingParamsRef.current === processingKey) {
@@ -584,6 +622,9 @@ export function useProgressiveFees({
 
     processingRef.current = true;
     lastProcessingParamsRef.current = processingKey;
+    const displayScope = JSON.stringify([selectedYear.id, selectedTermId, pupils.map(pupil => pupil.id).sort()]);
+    const retainConfirmedRows = displayedScopeRef.current === displayScope;
+    displayedScopeRef.current = displayScope;
 
     console.log('🚀 Starting progressive fees processing:', {
       pupilsCount: pupils.length,
@@ -594,9 +635,10 @@ export function useProgressiveFees({
 
     if (!mountedRef.current) return;
 
-    // Reset state completely
-    setState({
-      pupilFeesInfo: {},
+    // Preserve last confirmed rows until the replacement ledger is available.
+    setState(prev => ({
+      ...prev,
+      pupilFeesInfo: retainConfirmedRows ? prev.pupilFeesInfo : {},
       processedCount: 0,
       totalCount: pupils.length,
       isProcessing: true,
@@ -605,7 +647,7 @@ export function useProgressiveFees({
       processingStatus: 'Preparing fee structures...',
       error: null,
       optimizationInfo: undefined // Clear optimization info for legacy processing
-    });
+    }));
 
     try {
       if (signal.aborted) return;
@@ -681,8 +723,7 @@ export function useProgressiveFees({
         }
       } catch (error) {
         console.error('❌ Failed to batch load payments:', error);
-        // Fallback to empty array if batch loading fails
-        allTermPayments = [];
+        throw new Error('Term payment data could not be loaded; previous confirmed balances were kept.');
       }
 
       // 🚀 Group payments by pupilId in memory (instant lookups, NO more queries!)
@@ -706,12 +747,35 @@ export function useProgressiveFees({
         
         console.log(`📸 PRE-LOADING: Loading snapshots for ${pupils.length} pupils for ended term ${selectedTerm.name}`);
         const snapshotStartTime = performance.now();
+
+        try {
+          const persistedSnapshots = await PupilSnapshotsService.getActiveSnapshotsForTerm(
+            selectedYear.id,
+            selectedTermId,
+          );
+          const pupilsById = new Map(pupils.map(pupil => [pupil.id, pupil]));
+          for (const snapshot of persistedSnapshots) {
+            const pupil = pupilsById.get(snapshot.pupilId);
+            if (pupil) {
+              snapshotsMap.set(
+                pupil.id,
+                PupilSnapshotsService.createVirtualPupilFromSnapshot(pupil, snapshot),
+              );
+            }
+          }
+          console.log(`📸 BATCH LOADED: ${snapshotsMap.size}/${pupils.length} persisted snapshots in one query`);
+        } catch (error) {
+          // Keep the established per-pupil recovery path as a compatibility
+          // fallback if an older project lacks the required composite index.
+          console.warn('⚠️ Could not batch load term snapshots; using legacy recovery:', error);
+        }
         
-        // Load snapshots in parallel batches to avoid overwhelming the database
+        // Only legacy gaps need the more expensive per-pupil recovery path.
+        const pupilsNeedingRecovery = pupils.filter(pupil => !snapshotsMap.has(pupil.id));
         const snapshotBatchSize = 20; // Process 20 pupils at a time
         const snapshotBatches: Pupil[][] = [];
-        for (let i = 0; i < pupils.length; i += snapshotBatchSize) {
-          snapshotBatches.push(pupils.slice(i, i + snapshotBatchSize));
+        for (let i = 0; i < pupilsNeedingRecovery.length; i += snapshotBatchSize) {
+          snapshotBatches.push(pupilsNeedingRecovery.slice(i, i + snapshotBatchSize));
         }
         
         for (let batchIdx = 0; batchIdx < snapshotBatches.length; batchIdx++) {
@@ -806,6 +870,7 @@ export function useProgressiveFees({
         return;
       }
       
+      lastProcessingParamsRef.current = null;
       console.error('❌ Error during progressive fees processing:', error);
       if (mountedRef.current) {
         setState(prev => ({
@@ -816,8 +881,8 @@ export function useProgressiveFees({
         }));
       }
     } finally {
-      processingRef.current = false;
-      if (abortControllerRef.current === abortControllerRef.current) {
+      if (abortControllerRef.current?.signal === signal) {
+        processingRef.current = false;
         abortControllerRef.current = null;
       }
     }
@@ -834,7 +899,13 @@ export function useProgressiveFees({
         }
       }, 200); // Delay to ensure component is fully mounted
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        processingRef.current = false;
+        lastProcessingParamsRef.current = null;
+      };
     }
   }, [isLoadingFeeStructures, allFeeStructures.length, selectedYear?.id, selectedTermId, pupils.length, startProcessing]); // Use legacy processing
 

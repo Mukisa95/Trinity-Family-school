@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -105,10 +105,15 @@ import { usePerformanceMonitor, useRenderTracker } from './utils/performance';
 import { handleError, handleDataLoadingError } from './utils/errorHandling';
 import {
   processCarryForwardPayment,
+  prepareCarryForwardPayment,
   validateCarryForwardPayment
 } from './utils/carryForwardPayments';
 import { getCollectedUniformItemIds } from './utils/uniformCollectionState';
 import { createFeeStatementPDFBlob } from './utils/pdfGenerator';
+import {
+  clearPendingPaymentOperation as clearRecoveredPaymentOperation,
+  getOrCreatePendingPaymentOperation,
+} from '@/lib/utils/payment-operation-recovery';
 
 // Helper functions to convert pupil attributes to uniform filter types
 const getUniformGender = (pupilGender: string | undefined): 'male' | 'female' | undefined => {
@@ -123,6 +128,13 @@ const getUniformSection = (pupilSection: string | undefined): 'Day' | 'Boarding'
   if (pupilSection === 'Day' || pupilSection === 'Boarding') return pupilSection as 'Day' | 'Boarding';
   return undefined;
 };
+
+function createPaymentOperationId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `fee-${crypto.randomUUID()}`;
+  }
+  return `fee-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+}
 
 
 // Extended interfaces for this component
@@ -208,6 +220,35 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const [selectedTermId, setSelectedTermId] = useState<string>('');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<AcademicYear | null>(null);
   const [lastPaymentTimestamp, setLastPaymentTimestamp] = useState<number>(0);
+  const pendingPaymentOperations = useRef(new Map<string, { operationId: string; paymentDate: string }>());
+
+  const paymentOperationScope = () => ({
+    kind: 'individual' as const,
+    userId: user?.id || '',
+    ownerId: pupilId || '',
+  });
+
+  const paymentOperationMapKey = (intent: string) => (
+    `${paymentOperationScope().userId}:${paymentOperationScope().ownerId}:${intent}`
+  );
+
+  const getPaymentOperation = (intent: string) => {
+    const mapKey = paymentOperationMapKey(intent);
+    const existing = pendingPaymentOperations.current.get(mapKey);
+    if (existing) return existing;
+    const operation = getOrCreatePendingPaymentOperation(
+      paymentOperationScope(),
+      intent,
+      () => ({ operationId: createPaymentOperationId(), paymentDate: new Date().toISOString() }),
+    );
+    pendingPaymentOperations.current.set(mapKey, operation);
+    return operation;
+  };
+
+  const clearPaymentOperation = (intent: string) => {
+    pendingPaymentOperations.current.delete(paymentOperationMapKey(intent));
+    clearRecoveredPaymentOperation(paymentOperationScope(), intent);
+  };
 
   // Listen for family payment updates to refresh data
   useEffect(() => {
@@ -533,6 +574,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const {
     pupilFees,
     pupilPayments,
+    addPupilPayments,
     uniformTrackingRecords,
     isUniformTrackingLoading,
     uniformTrackingError,
@@ -734,9 +776,257 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         role: user.role
       };
 
-      // Process each selected fee
+      let signatureFailureCount = 0;
+      const useAtomicMixedPaymentOperation = true;
+
+      if (useAtomicMixedPaymentOperation) {
+        const operationIntent = JSON.stringify({
+          kind: 'individual-mixed-fee-payment',
+          pupilId: pupil.id,
+          academicYearId: selectedAcademicYear.id,
+          termId: selectedTermId,
+          paymentMethod: paymentData.paymentMethod,
+          paidBy: paymentData.paidBy,
+          selections: paymentData.selectedFees,
+        });
+        const operation = getPaymentOperation(operationIntent);
+        const allocations: Array<any> = [];
+        const signatureTargets: Array<{
+          feeName: string;
+          amount: number;
+          paymentType: 'regular' | 'uniform' | 'carry-forward';
+        }> = [];
+
+        for (const feeSelection of paymentData.selectedFees) {
+          const fee = pupilFees.find(item => item.id === feeSelection.feeId);
+          if (!fee) {
+            throw new Error(`The selected fee ${feeSelection.feeName} is no longer available. Refresh and try again.`);
+          }
+
+          const isUniformFee = UniformFeesIntegrationService.isUniformFee(fee as any);
+          const isCarryForwardFee = !isUniformFee && (
+            feeSelection.isCarryForward || feeSelection.feeId === 'previous-balance' || fee.id === 'previous-balance'
+          );
+
+          if (isCarryForwardFee) {
+            const prepared = prepareCarryForwardPayment({
+              pupilId: pupil.id,
+              currentTermId: selectedTermId,
+              currentAcademicYearId: selectedAcademicYear.id,
+              amount: feeSelection.selectedAmount,
+              paymentType: 'general',
+              feeBreakdown: feeSelection.feeBreakdown || fee.feeBreakdown || [],
+              paidBy: paidByUser,
+              paymentDate: operation.paymentDate,
+            });
+            prepared.allocations.forEach((allocation, index) => {
+              allocations.push(allocation);
+              signatureTargets.push({
+                feeName: prepared.distributions[index].item.name,
+                amount: prepared.distributions[index].allocatedAmount,
+                paymentType: 'carry-forward',
+              });
+            });
+            continue;
+          }
+
+          if (isUniformFee) {
+            const uniformTrackingId = (fee as any).uniformTrackingId as string | undefined;
+            if (!uniformTrackingId) {
+              throw new Error(`Uniform tracking is missing for ${feeSelection.feeName}.`);
+            }
+            allocations.push({
+              paymentData: {
+                pupilId: pupil.id,
+                feeStructureId: fee.id,
+                academicYearId: selectedAcademicYear.id,
+                termId: selectedTermId,
+                amount: feeSelection.selectedAmount,
+                paymentDate: operation.paymentDate,
+                paidBy: paidByUser,
+                notes: `Uniform payment - ${fee.name}`,
+                isUniformPayment: true,
+                uniformTrackingId,
+              },
+              uniformTracking: {
+                trackingId: uniformTrackingId,
+                paymentAmount: feeSelection.selectedAmount,
+                paymentDate: operation.paymentDate,
+              },
+            });
+            signatureTargets.push({
+              feeName: feeSelection.feeName,
+              amount: feeSelection.selectedAmount,
+              paymentType: 'uniform',
+            });
+            continue;
+          }
+
+          allocations.push({
+            paymentData: {
+              pupilId: pupil.id,
+              feeStructureId: feeSelection.feeId,
+              academicYearId: selectedAcademicYear.id,
+              termId: selectedTermId,
+              amount: feeSelection.selectedAmount,
+              paymentDate: operation.paymentDate,
+              paidBy: paidByUser,
+              paymentMethod: paymentData.paymentMethod,
+              notes: `Multi-fee payment for ${feeSelection.feeName}. Paid by: ${paymentData.paidBy}`,
+            },
+            historyContext: {
+              feeName: feeSelection.feeName,
+              pupilName: `${pupil.firstName} ${pupil.lastName}`,
+              paymentMethod: paymentData.paymentMethod,
+              source: 'multi_fee_payment',
+              paidByName: paymentData.paidBy,
+            },
+          });
+          signatureTargets.push({
+            feeName: feeSelection.feeName,
+            amount: feeSelection.selectedAmount,
+            paymentType: 'regular',
+          });
+        }
+
+        if (allocations.length === 0) {
+          throw new Error('Select at least one fee before recording a payment.');
+        }
+
+        const response = await fetch('/api/payments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operationId: operation.operationId, allocations }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to create fee payments');
+        if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== allocations.length) {
+          throw new Error('The payment confirmation is incomplete. Retry the same submission to check its status.');
+        }
+
+        clearPaymentOperation(operationIntent);
+        addPupilPayments(result.paymentIds.map((id: string, index: number) => ({
+          id,
+          ...allocations[index].paymentData,
+          createdAt: operation.paymentDate,
+        } as PaymentRecord)));
+        const signatureResults = await Promise.allSettled(result.paymentIds.map((paymentId: string, index: number) => (
+          signAction('fee_payment', paymentId, 'collected', {
+            amount: signatureTargets[index].amount,
+            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            feeName: signatureTargets[index].feeName,
+            academicYear: selectedAcademicYear.name,
+            term: selectedTermId,
+            paymentType: signatureTargets[index].paymentType,
+            paymentMethod: paymentData.paymentMethod,
+            paidBy: paymentData.paidBy,
+            receivedBy: user.username,
+            source: 'multi_fee_payment',
+          }, `fee-payment:${operation.operationId}:${paymentId}`)
+        )));
+        signatureFailureCount = signatureResults.filter(result => result.status === 'rejected').length;
+      } else {
+
+      const regularSelections = paymentData.selectedFees.flatMap((feeSelection, index) => {
+        const fee = pupilFees.find(item => item.id === feeSelection.feeId);
+        const isUniformFee = fee && UniformFeesIntegrationService.isUniformFee(fee as any);
+        const isCarryForwardFee =
+          feeSelection.isCarryForward ||
+          feeSelection.feeId === 'previous-balance' ||
+          fee?.id === 'previous-balance';
+        return fee && !isUniformFee && !isCarryForwardFee
+          ? [{ fee, feeSelection, index }]
+          : [];
+      });
+      const regularSelectionIndexes = new Set(regularSelections.map(item => item.index));
+      let groupedRegularSignatureFailureCount = 0;
+      const completedOperationIntents: string[] = [];
+
+      if (regularSelections.length > 0) {
+        const regularPaymentIntent = [
+          'multi-regular-group',
+          pupil.id,
+          selectedAcademicYear.id,
+          selectedTermId,
+          paymentData.paymentMethod,
+          ...regularSelections.map(item => `${item.feeSelection.feeId}:${item.feeSelection.selectedAmount}`),
+        ].join(':');
+        const regularPaymentOperation = getPaymentOperation(regularPaymentIntent);
+        const response = await fetch('/api/payments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operationId: regularPaymentOperation.operationId,
+            allocations: regularSelections.map(({ feeSelection }) => ({
+              paymentData: {
+                pupilId: pupil.id,
+                feeStructureId: feeSelection.feeId,
+                academicYearId: selectedAcademicYear.id,
+                termId: selectedTermId,
+                amount: feeSelection.selectedAmount,
+                paymentDate: regularPaymentOperation.paymentDate,
+                paidBy: paidByUser,
+                paymentMethod: paymentData.paymentMethod,
+                notes: `Multi-fee payment for ${feeSelection.feeName}. Paid by: ${paymentData.paidBy}`,
+              },
+              historyContext: {
+                feeName: feeSelection.feeName,
+                pupilName: `${pupil.firstName} ${pupil.lastName}`,
+                paymentMethod: paymentData.paymentMethod,
+                source: 'multi_fee_payment',
+                paidByName: paymentData.paidBy,
+              },
+            })),
+          }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create grouped fee payments');
+        }
+        const result = await response.json();
+        if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== regularSelections.length) {
+          throw new Error('The grouped payment did not return every saved fee record');
+        }
+        completedOperationIntents.push(regularPaymentIntent);
+
+        addPupilPayments(regularSelections.map(({ feeSelection }, index) => ({
+          id: result.paymentIds[index],
+          pupilId: pupil.id,
+          feeStructureId: feeSelection.feeId,
+          academicYearId: selectedAcademicYear.id,
+          termId: selectedTermId,
+          amount: feeSelection.selectedAmount,
+          paymentDate: regularPaymentOperation.paymentDate,
+          paymentMethod: paymentData.paymentMethod,
+          paidBy: paidByUser,
+          notes: `Multi-fee payment for ${feeSelection.feeName}. Paid by: ${paymentData.paidBy}`,
+          createdAt: regularPaymentOperation.paymentDate,
+        })));
+
+        const signatureResults = await Promise.allSettled(result.paymentIds.map((paymentId: string, index: number) => {
+          const feeSelection = regularSelections[index].feeSelection;
+          return signAction('fee_payment', paymentId, 'collected', {
+            amount: feeSelection.selectedAmount,
+            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            feeName: feeSelection.feeName,
+            academicYear: selectedAcademicYear.name,
+            term: selectedTermId,
+            paymentType: 'regular',
+            paymentMethod: paymentData.paymentMethod,
+            paidBy: paymentData.paidBy,
+            receivedBy: user.username,
+            source: 'multi_fee_payment',
+          });
+        }));
+        groupedRegularSignatureFailureCount = signatureResults.filter(
+          result => result.status === 'rejected',
+        ).length;
+      }
+
+      // Carry-forward and uniform payments retain their specialized paths.
       const paymentResults = await Promise.all(
-        paymentData.selectedFees.map(async (feeSelection) => {
+        paymentData.selectedFees.map(async (feeSelection, index) => {
+          if (regularSelectionIndexes.has(index)) return null;
           const fee = pupilFees.find(f => f.id === feeSelection.feeId);
           if (!fee) {
             console.warn('Fee not found for multi payment:', feeSelection.feeId);
@@ -760,7 +1050,18 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
           if (isCarryForwardFee) {
             const feeBreakdown = feeSelection.feeBreakdown || fee.feeBreakdown || [];
+            const carryForwardIntent = [
+              'multi-carry-forward',
+              pupil.id,
+              selectedAcademicYear.id,
+              selectedTermId,
+              feeSelection.selectedAmount,
+              feeSelection.feeId,
+            ].join(':');
+            const carryForwardOperation = getPaymentOperation(carryForwardIntent);
             const carryForwardPaymentData = {
+              operationId: carryForwardOperation.operationId,
+              paymentDate: carryForwardOperation.paymentDate,
               pupilId: pupil.id,
               currentTermId: selectedTermId,
               currentAcademicYearId: selectedAcademicYear.id,
@@ -779,6 +1080,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             if (!result.success) {
               throw new Error(result.message || 'Failed to create carry forward payment');
             }
+            completedOperationIntents.push(carryForwardIntent);
 
             signatureTargets = result.paymentIds.map((paymentId, index) => ({
               paymentId,
@@ -787,7 +1089,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               paymentType: 'carry-forward' as const
             }));
           } else if (isUniformFee) {
-            // Uniform fee payment through integration service
+            const uniformPaymentIntent = [
+              'multi-uniform', pupil.id, selectedAcademicYear.id, selectedTermId,
+              feeSelection.feeId, feeSelection.selectedAmount,
+            ].join(':');
+            const uniformPaymentOperation = getPaymentOperation(uniformPaymentIntent);
             const paymentId =
               await UniformFeesIntegrationService.createUniformPaymentRecord(
                 fee as any,
@@ -795,54 +1101,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 pupil.id,
                 selectedAcademicYear.id,
                 selectedTermId,
-                paidByUser
+                paidByUser,
+                uniformPaymentOperation.operationId,
+                uniformPaymentOperation.paymentDate,
               );
+            completedOperationIntents.push(uniformPaymentIntent);
             signatureTargets = [{
               paymentId,
               amount: feeSelection.selectedAmount,
               feeName: feeSelection.feeName,
               paymentType: 'uniform'
-            }];
-          } else {
-            // Regular fee payment via API (for notifications)
-            const paymentRecord = {
-              pupilId: pupil.id,
-              feeStructureId: feeSelection.feeId,
-              academicYearId: selectedAcademicYear.id,
-              termId: selectedTermId,
-              amount: feeSelection.selectedAmount,
-              paymentDate: new Date().toISOString(),
-              paidBy: paidByUser,
-              paymentMethod: paymentData.paymentMethod,
-              notes: `Multi-fee payment for ${feeSelection.feeName}. Paid by: ${paymentData.paidBy}`,
-              historyContext: {
-                feeName: feeSelection.feeName,
-                pupilName: `${pupil.firstName} ${pupil.lastName}`,
-                paymentMethod: paymentData.paymentMethod,
-                source: 'multi_fee_payment',
-                paidByName: paymentData.paidBy,
-              }
-            };
-
-            const response = await fetch('/api/payments/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(paymentRecord)
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Failed to create payment');
-            }
-
-            const result = await response.json();
-            signatureTargets = [{
-              paymentId: result.paymentId,
-              amount: feeSelection.selectedAmount,
-              feeName: feeSelection.feeName,
-              paymentType: 'regular'
             }];
           }
 
@@ -880,10 +1148,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         })
       );
 
-      const signatureFailureCount = paymentResults.reduce(
+      signatureFailureCount = groupedRegularSignatureFailureCount + paymentResults.reduce(
         (count, result) => count + (result?.signatureFailureCount || 0),
-        0
+        0,
       );
+
+      completedOperationIntents.forEach(clearPaymentOperation);
+      }
 
       // Close modal before refetch
       setIsMultiPaymentModalOpen(false);
@@ -909,6 +1180,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         queryClient.invalidateQueries({
           queryKey: ['uniform-fees', pupil.id]
         }),
+        queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] }),
         queryClient.invalidateQueries({
           queryKey: ['pupil-snapshot', pupil.id]
         }),
@@ -938,11 +1210,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       });
     } catch (error) {
       console.error('Multi-fee payment error:', error);
+      const message = error instanceof Error
+        ? error.message
+        : 'There was an error processing the multi-fee payment.';
+      const paymentNeedsReview = message.startsWith('Some payment records were already saved.');
       toast({
         variant: 'destructive',
-        title: 'Payment Failed',
-        description:
-          'There was an error processing the multi-fee payment. Please try again.'
+        title: paymentNeedsReview ? 'Payment Needs Review' : 'Payment Failed',
+        description: paymentNeedsReview
+          ? message
+          : `${message} Some entries may already be recorded. Retry the same submission to confirm its status.`,
       });
       throw error;
     }
@@ -960,7 +1237,16 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     // Check if this is a uniform fee
     const fee = pupilFees.find(f => f.id === selectedFee.feeId);
     const isUniformFee = fee && UniformFeesIntegrationService.isUniformFee(fee);
+    const regularPaymentIntent = `single:${pupil.id}:${selectedAcademicYear.id}:${selectedTermId}:${selectedFee.feeId}:${data.amount}`;
+    const regularPaymentOperation = isUniformFee
+      ? null
+      : getPaymentOperation(regularPaymentIntent);
+    const uniformPaymentIntent = `single-uniform:${pupil.id}:${selectedAcademicYear.id}:${selectedTermId}:${selectedFee.feeId}:${data.amount}`;
+    const uniformPaymentOperation = isUniformFee
+      ? getPaymentOperation(uniformPaymentIntent)
+      : null;
 
+    let paymentCommitted = false;
     try {
       let paymentId: string;
 
@@ -976,17 +1262,21 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             id: user.id,
             name: user.username,
             role: user.role
-          }
+          },
+          uniformPaymentOperation!.operationId,
+          uniformPaymentOperation!.paymentDate,
         );
+        clearPaymentOperation(uniformPaymentIntent);
       } else {
         // Handle regular fee payment via server-side API route
         const paymentData = {
+          operationId: regularPaymentOperation!.operationId,
           pupilId: pupil.id,
           feeStructureId: selectedFee.feeId,
           academicYearId: selectedAcademicYear.id,
           termId: selectedTermId,
           amount: data.amount,
-          paymentDate: new Date().toISOString(),
+          paymentDate: regularPaymentOperation!.paymentDate,
           paidBy: {
             id: user.id,
             name: user.username,
@@ -1017,11 +1307,77 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }
 
         const result = await response.json();
+        if (typeof result.paymentId !== 'string' || !result.paymentId) {
+          throw new Error('The payment confirmation is incomplete. Retry the same submission to check its status.');
+        }
         paymentId = result.paymentId;
+        clearPaymentOperation(regularPaymentIntent);
       }
 
-      // Create digital signature for the payment
-      let signatureRecorded = true;
+      // The financial write is confirmed. Signature completion must not keep
+      // this entry form open or suggest that the payment needs submitting again.
+      paymentCommitted = true;
+      setIsPaymentModalOpen(false);
+      setSelectedFee(null);
+      const formattedAmount = new Intl.NumberFormat('en-UG', {
+        style: 'currency',
+        currency: 'UGX'
+      }).format(data.amount);
+      toast({
+        title: "Payment Successful",
+        description: `Payment of ${formattedAmount} has been recorded.`,
+      });
+
+      try {
+        // Publish the confirmed payment to the existing fee-card owner.
+        const newPayment: PaymentRecord = {
+          id: paymentId,
+          pupilId: pupil.id,
+          feeStructureId: selectedFee.feeId,
+          academicYearId: selectedAcademicYear.id,
+          termId: selectedTermId,
+          amount: data.amount,
+          paymentDate: (uniformPaymentOperation || regularPaymentOperation)!.paymentDate,
+          paidBy: {
+            id: user.id,
+            name: user.username,
+            role: user.role
+          },
+          notes: isUniformFee ? `Uniform payment - ${fee!.name}` : `Payment for ${selectedFee.name}`,
+          ...(isUniformFee ? { isUniformPayment: true, uniformTrackingId: (fee as any).uniformTrackingId } : {}),
+          createdAt: (uniformPaymentOperation || regularPaymentOperation)!.paymentDate
+        };
+
+        // Update the same live-payment owner that renders the fee cards. The
+        // Firestore listener will reconcile this record once it arrives.
+        addPupilPayments([newPayment]);
+
+        // Update timestamp to trigger dependent query re-calculations
+        const newTimestamp = Date.now();
+        setLastPaymentTimestamp(newTimestamp);
+
+        // Invalidate related queries in the background (no await - let React Query handle it)
+        queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
+        queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
+        queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
+        queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
+        queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+        invalidateFinanceSummaryQueries(queryClient, pupil.id);
+      } catch (refreshError) {
+        // A display failure must neither reopen the entry form nor skip audit.
+        console.error('Payment recorded but display refresh failed:', refreshError);
+        toast({
+          title: 'Payment recorded; display refresh needed',
+          description: 'The payment was saved. Refresh the fee page to check it; do not record it again.',
+          variant: 'destructive',
+        });
+      }
+
+      // Preserve the signature/idempotency process after releasing the dialog.
+      // A late result must not close a newer payment form.
       try {
         await signAction(
           'fee_payment',
@@ -1034,69 +1390,29 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             academicYear: selectedAcademicYear.name,
             term: selectedTermId,
             paymentType: isUniformFee ? 'uniform' : 'regular'
-          }
+          },
+          `fee-payment:${(uniformPaymentOperation || regularPaymentOperation)!.operationId}:${paymentId}`,
         );
       } catch (signatureError) {
-        signatureRecorded = false;
         console.error('Payment recorded but digital signature failed:', signatureError);
+        toast({
+          title: "Payment recorded with an audit warning",
+          description: `Payment of ${formattedAmount} has been recorded. The digital signature could not be saved; do not record the payment again.`,
+          variant: 'destructive',
+        });
       }
-
-      // Close modal and clear selected fee BEFORE any updates
-      setIsPaymentModalOpen(false);
-      setSelectedFee(null);
-
-      // 🚀 OPTIMISTIC UPDATE: Immediately add payment to cache for instant UI feedback
-      const newPayment: PaymentRecord = {
-        id: paymentId,
-        pupilId: pupil.id,
-        feeStructureId: selectedFee.feeId,
-        academicYearId: selectedAcademicYear.id,
-        termId: selectedTermId,
-        amount: data.amount,
-        paymentDate: new Date().toISOString(),
-        paidBy: {
-          id: user.id,
-          name: user.username,
-          role: user.role
-        },
-        notes: `Payment for ${selectedFee.name}`,
-        createdAt: new Date().toISOString()
-      };
-
-      // Optimistically update the payments cache
-      queryClient.setQueryData(
-        ['pupil-payments-all', pupil.id],
-        (oldPayments: PaymentRecord[] = []) => [...oldPayments, newPayment]
-      );
-
-      // Update timestamp to trigger dependent query re-calculations
-      const newTimestamp = Date.now();
-      setLastPaymentTimestamp(newTimestamp);
-
-      // Invalidate related queries in the background (no await - let React Query handle it)
-      queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
-      queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
-      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
-      invalidateFinanceSummaryQueries(queryClient, pupil.id);
-
-      // Show success message immediately (no blocking refetch)
-      const formattedAmount = new Intl.NumberFormat('en-UG', {
-        style: 'currency',
-        currency: 'UGX'
-      }).format(data.amount);
-
-      toast({
-        title: signatureRecorded ? "Payment Successful" : "Payment recorded with an audit warning",
-        description: `Payment of ${formattedAmount} has been recorded.${signatureRecorded ? '' : ' The digital signature could not be saved; do not record the payment again.'}`,
-        variant: signatureRecorded ? 'default' : 'destructive',
-      });
 
     } catch (error) {
       console.error('Payment submission error:', error);
+
+      if (paymentCommitted) {
+        toast({
+          variant: 'destructive',
+          title: 'Payment recorded; display refresh needed',
+          description: 'The payment was saved. Refresh the fee page to check it; do not record it again.',
+        });
+        return;
+      }
 
       // Reopen modal
       setIsPaymentModalOpen(true);
@@ -1111,7 +1427,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       toast({
         variant: "destructive",
         title: "Payment Failed",
-        description: "There was an error processing the payment. Changes have been reverted.",
+        description: "Payment confirmation was not received. Retry the same submission to confirm its status.",
       });
     }
   };
@@ -1123,8 +1439,21 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   }) => {
     if (!selectedFee || !pupil || !selectedAcademicYear) return;
 
+    const carryForwardIntent = [
+      'carry-forward',
+      pupil.id,
+      selectedAcademicYear.id,
+      selectedTermId,
+      data.paymentType,
+      data.targetItem?.feeStructureId || data.targetItem?.name || 'all',
+      data.amount,
+    ].join(':');
+    const carryForwardOperation = getPaymentOperation(carryForwardIntent);
+
     try {
       const paymentData = {
+        operationId: carryForwardOperation.operationId,
+        paymentDate: carryForwardOperation.paymentDate,
         pupilId: pupil.id,
         currentTermId: selectedTermId,
         currentAcademicYearId: selectedAcademicYear.id,
@@ -1154,6 +1483,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       const result = await processCarryForwardPayment(paymentData);
 
       if (result.success) {
+        clearPaymentOperation(carryForwardIntent);
         // Close modal and clear selected fee BEFORE any updates
         setIsCarryForwardPaymentModalOpen(false);
         setSelectedFee(null);
@@ -1169,10 +1499,10 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             academicYearId: selectedAcademicYear.id,
             termId: selectedTermId,
             amount: distribution.allocatedAmount,
-            paymentDate: new Date().toISOString(),
+            paymentDate: carryForwardOperation.paymentDate,
             paidBy: paymentData.paidBy,
             notes: `Carry forward payment: ${distribution.item.name} (${distribution.item.term} - ${distribution.item.year})`,
-            createdAt: new Date().toISOString(),
+            createdAt: carryForwardOperation.paymentDate,
             // Carry forward metadata
             isCarryForwardPayment: true,
             originalFeeStructureId: distribution.item.feeStructureId,
@@ -1186,11 +1516,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           } as any;
         });
 
-        // Optimistically update the payments cache
-        queryClient.setQueryData(
-          ['pupil-payments-all', pupil.id],
-          (oldPayments: PaymentRecord[] = []) => [...oldPayments, ...newPayments]
-        );
+        // Update the same live-payment owner that renders the fee cards. The
+        // Firestore listener will reconcile these records once they arrive.
+        addPupilPayments(newPayments);
 
         // Update timestamp to trigger dependent query re-calculations
         const newTimestamp = Date.now();
@@ -1201,6 +1529,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
         queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
         queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
+      queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] });
         queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
         queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
         queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
@@ -1212,19 +1541,23 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           description: result.message,
         });
       } else {
+        const paymentNeedsReview = result.paymentIds.length > 0;
         toast({
           variant: "destructive",
-          title: "Payment Failed",
+          title: paymentNeedsReview ? "Payment Needs Review" : "Payment Failed",
           description: result.message,
         });
       }
 
     } catch (error) {
       console.error('Carry forward payment submission error:', error);
+      const message = error instanceof Error
+        ? error.message
+        : 'There was an error processing the payment.';
       toast({
         variant: "destructive",
         title: "Payment Failed",
-        description: "There was an error processing the payment. Please try again.",
+        description: `${message} No payment has been confirmed.`,
       });
     }
   };
@@ -1249,43 +1582,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         },
         payment,
       );
-
-      // Create digital signature for the payment reversal
-      let signatureRecorded = true;
-      try {
-        await signAction(
-          'fee_payment',
-          payment.id,
-          'reverted',
-          {
-            originalAmount: payment.amount,
-            pupilId: payment.pupilId,
-            feeStructureId: payment.feeStructureId,
-            revertReason: 'Payment reversal confirmed'
-          }
-        );
-      } catch (signatureError) {
-        signatureRecorded = false;
-        console.error('Payment reversed but digital signature failed:', signatureError);
-      }
-
-      const formattedAmount = new Intl.NumberFormat('en-UG', {
-        style: 'currency',
-        currency: 'UGX'
-      }).format(payment.amount);
-
-      toast({
-        title: signatureRecorded ? "Payment Reverted" : "Payment reversed with an audit warning",
-        description: `Payment of ${formattedAmount} has been reverted.${signatureRecorded ? '' : ' The digital signature could not be saved; do not reverse it again.'}`,
-        variant: signatureRecorded ? 'default' : 'destructive',
-      });
-
-      // Refetch all data to update UI (non-blocking)
-      refetch().catch(err => console.error('Refetch error:', err));
-      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
-      setLastPaymentTimestamp(Date.now());
-      setPendingPaymentReversal(null);
-
     } catch (error) {
       console.error('Payment revert error:', error);
       toast({
@@ -1293,8 +1589,57 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         title: "Revert Failed",
         description: "There was an error reverting the payment. Please try again.",
       });
-    } finally {
       setIsRevertingPayment(false);
+      return;
+    }
+
+    // The payment/history batch has committed. Release this confirmation before
+    // waiting for the signature; its late result must not reset a newer dialog.
+    setPendingPaymentReversal(null);
+    setIsRevertingPayment(false);
+    const formattedAmount = new Intl.NumberFormat('en-UG', {
+      style: 'currency',
+      currency: 'UGX'
+    }).format(payment.amount);
+    toast({
+      title: "Payment Reverted",
+      description: `Payment of ${formattedAmount} has been reverted.`,
+    });
+
+    try {
+      // Keep the existing listener and fee calculations; refresh in parallel
+      // with the audit instead of making either one hold the dialog open.
+      refetch().catch(err => console.error('Refetch error:', err));
+      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+      setLastPaymentTimestamp(Date.now());
+    } catch (refreshError) {
+      console.error('Payment reversed but display refresh failed:', refreshError);
+      toast({
+        title: 'Payment reversed; display refresh needed',
+        description: 'The payment was reversed. Refresh the fee page to check it; do not reverse it again.',
+        variant: 'destructive',
+      });
+    }
+
+    try {
+      await signAction(
+        'fee_payment',
+        payment.id,
+        'reverted',
+        {
+          originalAmount: payment.amount,
+          pupilId: payment.pupilId,
+          feeStructureId: payment.feeStructureId,
+          revertReason: 'Payment reversal confirmed'
+        }
+      );
+    } catch (signatureError) {
+      console.error('Payment reversed but digital signature failed:', signatureError);
+      toast({
+        title: "Payment reversed with an audit warning",
+        description: `Payment of ${formattedAmount} has been reverted. The digital signature could not be saved; do not reverse it again.`,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -1494,7 +1839,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           selectedTerm: selectedTermId,
           includePaymentHistory: true,
           includeSignature: true,
-          schoolSettings,
+          schoolSettings: schoolSettings ?? undefined,
         });
         if (signal.aborted) throw new DOMException('PDF generation was cancelled', 'AbortError');
         updateProgress(96, 'Finalizing fee statement…');
@@ -2484,18 +2829,18 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           }
         }}
       >
-        <AlertDialogContent className="max-w-xl">
-          <AlertDialogHeader>
-            <div className="flex items-start gap-3 text-left">
-              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
-                <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+        <AlertDialogContent className="w-[calc(100%-1rem)] max-w-md gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-xl">
+          <AlertDialogHeader className="border-b border-slate-100 px-4 py-3 text-left sm:px-5">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
               </div>
               <div className="min-w-0">
-                <AlertDialogTitle className="text-xl text-slate-950">
+                <AlertDialogTitle className="text-base font-semibold text-slate-950 sm:text-lg">
                   Reverse this payment?
                 </AlertDialogTitle>
-                <AlertDialogDescription className="mt-1 text-sm leading-6 text-slate-600">
-                  Review the payment and its effect before confirming. Nothing will change unless you choose to reverse it.
+                <AlertDialogDescription className="sr-only">
+                  Confirm reversal of this recorded school payment.
                 </AlertDialogDescription>
               </div>
             </div>
@@ -2503,77 +2848,64 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
           {pendingPaymentReversal && (
             <>
-              <dl className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Pupil</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">
+              <div className="space-y-3 px-4 py-3.5 sm:px-5">
+                <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                  <div className="min-w-0 border-b border-r border-slate-200 px-3 py-2.5">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Pupil</dt>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900">
                     {pupil ? `${pupil.firstName} ${pupil.lastName}` : 'Selected pupil'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Fee item</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">{pendingPaymentReversal.fee.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Payment amount</dt>
-                  <dd className="mt-1 font-bold text-red-700">
+                    </dd>
+                  </div>
+                  <div className="min-w-0 border-b border-slate-200 px-3 py-2.5">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Fee</dt>
+                    <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900">{pendingPaymentReversal.fee.name}</dd>
+                  </div>
+                  <div className="border-r border-slate-200 px-3 py-2.5">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Amount</dt>
+                    <dd className="mt-0.5 text-sm font-bold tabular-nums text-red-700">
                     {new Intl.NumberFormat('en-UG', {
                       style: 'currency',
                       currency: 'UGX',
                       maximumFractionDigits: 0,
                     }).format(pendingPaymentReversal.payment.amount)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Payment date</dt>
-                  <dd className="mt-1 font-semibold text-slate-900">
+                    </dd>
+                  </div>
+                  <div className="px-3 py-2.5">
+                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Date</dt>
+                    <dd className="mt-0.5 whitespace-nowrap text-sm font-semibold text-slate-900">
                     {new Date(pendingPaymentReversal.payment.paymentDate).toLocaleDateString('en-UG', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric',
                     })}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Receipt reference</dt>
-                  <dd className="mt-1 font-mono text-sm font-semibold text-slate-900">
-                    {pendingPaymentReversal.payment.id.slice(-8).toUpperCase()}
-                  </dd>
-                </div>
-              </dl>
+                    </dd>
+                  </div>
+                </dl>
 
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-left">
-                <p className="text-sm font-semibold text-red-900">If you confirm:</p>
-                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-5 text-red-900/90">
-                  <li>The payment will be marked as reversed and will no longer count as money received.</li>
-                  <li>
-                    The balance for <span className="font-semibold">{pendingPaymentReversal.fee.name}</span> will be recalculated without this payment.
-                  </li>
-                  <li>The original payment will remain in history as reversed, and the action will be recorded under your account.</li>
-                  <li>This changes the school record only; it does not send money back through cash, bank, or SchoolPay.</li>
-                  <li>Restoring the amount later requires recording a new payment.</li>
-                </ul>
+                <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs leading-4 text-red-900">
+                  Marks this school record as reversed, recalculates the balance, and keeps it in history. It does not send money back. To restore it later, record a new payment.
+                </p>
               </div>
             </>
           )}
 
-          <AlertDialogFooter className="gap-2 sm:space-x-0">
-            <AlertDialogCancel disabled={isRevertingPayment} className="sm:min-w-32">
-              No, keep payment
+          <AlertDialogFooter className="grid grid-cols-2 gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
+            <AlertDialogCancel disabled={isRevertingPayment} className="m-0 h-10 min-w-0 rounded-full border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 sm:text-sm">
+              Keep payment
             </AlertDialogCancel>
             <Button
               type="button"
               onClick={() => void confirmRevertPayment()}
               disabled={!pendingPaymentReversal || !user || isRevertingPayment}
-              className="bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600 sm:min-w-44"
+              className="h-10 min-w-0 rounded-full bg-red-600 px-3 text-xs font-semibold text-white hover:bg-red-700 focus-visible:ring-red-600 sm:text-sm"
             >
               {isRevertingPayment ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Reversing payment...
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                  Reversing...
                 </>
               ) : (
-                'Yes, reverse payment'
+                'Reverse payment'
               )}
             </Button>
           </AlertDialogFooter>
