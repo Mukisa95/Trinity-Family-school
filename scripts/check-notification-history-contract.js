@@ -16,7 +16,7 @@ const indexes = JSON.parse(fs.readFileSync('firestore.indexes.json', 'utf8'));
 
 assert.ok(attendance.includes('classCode: string'));
 assert.ok(attendanceRoute.includes('summary.classCode'));
-assert.ok(dispatch.includes(".code\n      || classItem.id"));
+assert.ok(/\(classItem as Record<string, unknown>\)\.code\s*\|\|\s*classItem\.id/.test(dispatch));
 assert.ok(!dispatch.includes('classItem.name || classItem.code'));
 
 assert.ok(cache.includes("DATABASE_NAME = 'trinity-notification-history'"));

@@ -20,7 +20,7 @@ assert(
 );
 assert(
   authContext.includes('const finishInitialAuthCheck')
-    && authContext.includes('finishInitialAuthCheck();\n                return;'),
+    && /finishInitialAuthCheck\(\);\s*return;/.test(authContext),
   'Transient Firebase token recovery must finish the initial app boot state.',
 );
 
