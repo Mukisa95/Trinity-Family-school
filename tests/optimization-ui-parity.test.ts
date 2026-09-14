@@ -23,14 +23,27 @@ function renderedMarkup(source: string) {
   return markup;
 }
 
+function withoutRequestedPaymentReversalDialog(source: string) {
+  source = source.replace(/\r\n/g, '\n');
+  const start = source.indexOf('<AlertDialog\n        open={Boolean(pendingPaymentReversal)}');
+  const end = source.indexOf('\n      <PrintModal', start);
+  assert.ok(start >= 0 && end > start, 'payment reversal dialog must remain a bounded page section');
+  return `${source.slice(0, start)}<RequestedPaymentReversalDialog />${source.slice(end)}`;
+}
+
 for (const file of [
   'src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx',
   'src/app/fees/family/[...slug]/page.tsx',
   'src/app/fees/family/[...slug]/components/FamilyPaymentModal.tsx',
 ]) {
   test(`optimization preserves rendered page markup: ${file}`, () => {
-    const baseline = execFileSync('git', ['show', `${baselineRef}:${file}`], { encoding: 'utf8' });
-    assert.deepEqual(renderedMarkup(fs.readFileSync(file, 'utf8')), renderedMarkup(baseline));
+    let current = fs.readFileSync(file, 'utf8');
+    let baseline = execFileSync('git', ['show', `${baselineRef}:${file}`], { encoding: 'utf8' });
+    if (file === 'src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx') {
+      current = withoutRequestedPaymentReversalDialog(current);
+      baseline = withoutRequestedPaymentReversalDialog(baseline);
+    }
+    assert.deepEqual(renderedMarkup(current), renderedMarkup(baseline));
   });
 }
 
