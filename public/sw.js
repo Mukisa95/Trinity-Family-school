@@ -13,22 +13,46 @@
  * - Browser is running (even if app tab is closed)
  *
  * CACHE STRATEGY:
- * - Uses NETWORK-FIRST for app files to always get latest version
+ * - Uses NETWORK-FIRST for ordinary application pages
+ * - Keeps the normal parent routes and their immutable Next.js assets in a
+ *   dedicated cache after an authenticated parent session prepares them
  * - Version number changes with each deployment for cache busting
  */
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20260816092536130';
-const BUILD_TIMESTAMP = '2026-08-16T09:25:36.130Z'; // Update this on each build
+const SW_VERSION = 'build-20260920174248922';
+const BUILD_TIMESTAMP = '2026-09-20T17:42:48.922Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${SW_VERSION}`;
+const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
+const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
+
+function parentAppRouteRequest(url) {
+  return new Request(new URL(url.pathname, self.location.origin).toString(), {
+    credentials: 'same-origin',
+    headers: { Accept: 'text/html' },
+  });
+}
+
+function parentStaticAssetUrlsFromHtml(html, baseUrl) {
+  const urls = new Set();
+  const matcher = /(?:src|href)=["']([^"']*\/_next\/static\/[^"']+)["']/gi;
+  let match;
+  while ((match = matcher.exec(html))) {
+    try {
+      const url = new URL(match[1], baseUrl);
+      if (url.origin === self.location.origin && url.pathname.startsWith('/_next/static/')) urls.add(url.toString());
+    } catch {
+      // Ignore malformed markup; the parent route response remains cached.
+    }
+  }
+  return Array.from(urls);
+}
 
 // Files to cache for offline use.
-// NOTE: Do NOT include '/offline' — it is not a real Next.js route and its
-// absence causes cache.addAll() to fail, aborting the whole install step.
 // Do NOT include '/' — it is an HTML page that must always be fetched fresh
 // to avoid serving a stale app-shell after deployments.
 const STATIC_FILES = [
@@ -63,10 +87,21 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
+        const retainedParentShellCaches = new Set(
+          cacheNames
+            .filter(cacheName => cacheName.startsWith('parent-app-shell-'))
+            .sort()
+            .reverse()
+            .slice(0, 2),
+        );
         return Promise.all(
           cacheNames.map((cacheName) => {
             // Delete ALL caches that don't match the current version
-            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+            if (
+              cacheName !== STATIC_CACHE &&
+              cacheName !== DYNAMIC_CACHE &&
+              !retainedParentShellCaches.has(cacheName)
+            ) {
               console.log('🗑️ Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
@@ -166,6 +201,63 @@ self.addEventListener('message', (event) => {
     if (event.ports && event.ports[0]) {
       event.ports[0].postMessage({ version: CACHE_NAME });
     }
+    return;
+  }
+
+  // CACHE_PARENT_APP_SHELL keeps the normal parent route usable after a true
+  // offline restart. Only same-origin parent HTML and immutable Next static
+  // assets are accepted; API/Firebase URLs can never enter this cache.
+  if (event.data.type === 'CACHE_PARENT_APP_SHELL') {
+    const routes = Array.isArray(event.data.routes) ? event.data.routes : [];
+    const assetUrls = Array.isArray(event.data.assetUrls) ? event.data.assetUrls : [];
+    const force = event.data.force === true;
+    const candidateUrls = [...routes, ...assetUrls];
+    const acceptedUrls = candidateUrls
+      .map(value => {
+        try {
+          return new URL(value, self.location.origin);
+        } catch {
+          return null;
+        }
+      })
+      .filter(url => url && url.origin === self.location.origin)
+      .filter(url => PARENT_APP_ROUTES.has(url.pathname) || url.pathname.startsWith('/_next/static/'));
+
+    event.waitUntil(
+      caches.open(PARENT_APP_SHELL_CACHE)
+        .then(async cache => {
+          await Promise.all(acceptedUrls.map(async url => {
+            const request = PARENT_APP_ROUTES.has(url.pathname)
+              ? parentAppRouteRequest(url)
+              : new Request(url.toString(), { credentials: 'same-origin' });
+            if (!force && await cache.match(request)) return;
+            const response = await fetch(request, force ? { cache: 'no-store' } : undefined);
+            if (!response.ok) throw new Error(`Could not save ${url.pathname}`);
+            await cache.put(request, response.clone());
+            if (PARENT_APP_ROUTES.has(url.pathname)) {
+              const discoveredAssets = parentStaticAssetUrlsFromHtml(await response.clone().text(), url.toString());
+              await Promise.all(discoveredAssets.map(async assetUrl => {
+                const assetRequest = new Request(assetUrl, { credentials: 'same-origin' });
+                if (!force && await cache.match(assetRequest)) return;
+                const assetResponse = await fetch(assetRequest, force ? { cache: 'no-store' } : undefined);
+                if (assetResponse.ok) await cache.put(assetRequest, assetResponse.clone());
+              }));
+            }
+          }));
+        })
+        .then(() => {
+          if (event.ports && event.ports[0]) event.ports[0].postMessage({ type: 'PARENT_APP_SHELL_CACHED' });
+        })
+        .catch(error => {
+          console.warn('Could not cache parent application shell:', error);
+          if (event.ports && event.ports[0]) {
+            event.ports[0].postMessage({
+              type: 'PARENT_APP_SHELL_CACHE_FAILED',
+              message: error instanceof Error ? error.message : 'Could not save the parent interface.',
+            });
+          }
+        }),
+    );
     return;
   }
 
@@ -408,9 +500,9 @@ async function doBackgroundSync() {
 
 // Fetch event - handle offline functionality
 // STRATEGY:
-// - NEVER cache HTML pages (prevents stale app shell after deployments)
+// - Parent HTML and immutable parent build chunks receive an explicit,
+//   versioned offline exception after automatic parent preparation.
 // - NEVER intercept _next/data routes (Next.js client-side data fetching)
-// - NEVER intercept _next/static chunks (webpack bundles)
 // - NEVER intercept API, Firebase, or googleapis requests
 // - CACHE-FIRST only for truly static assets (images, fonts, icons)
 self.addEventListener('fetch', (event) => {
@@ -426,6 +518,28 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
+  if (url.origin === self.location.origin && PARENT_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
+    event.respondWith(
+      caches.open(PARENT_APP_SHELL_CACHE).then(async cache => {
+        const canonicalRequest = parentAppRouteRequest(url);
+        const cached = await cache.match(canonicalRequest);
+        if (cached) return cached;
+        const response = await fetch(event.request, { cache: 'no-store' });
+          if (response.ok) {
+            await cache.put(canonicalRequest, response.clone());
+          }
+          return response;
+      })
+        .catch(() => {
+          return new Response(
+            '<!DOCTYPE html><html><body><h1>Parent dashboard is still preparing</h1><p>Connect once to finish saving it on this device.</p></body></html>',
+            { status: 503, statusText: 'Service Unavailable', headers: new Headers({ 'Content-Type': 'text/html' }) },
+          );
+        }),
+    );
+    return;
+  }
+
   // Completely skip API requests - don't intercept them at all
   if (url.pathname.startsWith('/api/')) {
     return;
@@ -438,7 +552,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip ALL Next.js internal routes - these MUST always be fresh
+  // Immutable Next.js static assets are content-hashed. The parent shell has
+  // explicitly saved the ones it needs, so serve them locally first and only
+  // download an unknown hash once. Dynamic data/image routes remain excluded.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response.ok) {
+            void caches.open(PARENT_APP_SHELL_CACHE).then(cache => cache.put(event.request, response.clone()));
+          }
+          return response;
+        });
+      }),
+    );
+    return;
+  }
+
+  // Skip all other Next.js internal routes. Dynamic data/image routes are not
+  // private parent snapshots and must not be cached here.
   if (url.pathname.startsWith('/_next/')) {
     return;
   }

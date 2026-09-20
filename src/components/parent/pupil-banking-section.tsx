@@ -17,23 +17,27 @@ import {
   Info,
   CreditCard,
   History,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
-import { useAccountByPupilId, useTransactionsByPupilId, useLoansByPupilId } from '@/lib/hooks/use-banking';
+import type { ParentBankingData } from '@/lib/services/parent-banking.service';
 import { formatCurrency } from '@/utils/format';
 
 interface PupilBankingSectionProps {
-  pupilId: string;
+  banking?: ParentBankingData;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
-export function PupilBankingSection({ pupilId }: PupilBankingSectionProps) {
+export function PupilBankingSection({ banking, isLoading = false, error }: PupilBankingSectionProps) {
   const [showBalance, setShowBalance] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'transactions' | 'loans'>('overview');
 
-  // Fetch banking data
-  const { data: account, isLoading: accountLoading, error: accountError } = useAccountByPupilId(pupilId);
-  const { data: transactions = [], isLoading: transactionsLoading } = useTransactionsByPupilId(pupilId);
-  const { data: loans = [], isLoading: loansLoading } = useLoansByPupilId(pupilId);
+  const account = banking?.account;
+  const transactions = banking?.transactions || [];
+  const loans = banking?.loans || [];
+  const accountLoading = isLoading;
+  const transactionsLoading = isLoading;
+  const loansLoading = isLoading;
 
   // If no account exists, show message
   if (!accountLoading && !account) {
@@ -50,7 +54,7 @@ export function PupilBankingSection({ pupilId }: PupilBankingSectionProps) {
     );
   }
 
-  if (accountError) {
+  if (error) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -388,4 +392,4 @@ export function PupilBankingSection({ pupilId }: PupilBankingSectionProps) {
       )}
     </div>
   );
-} 
+}

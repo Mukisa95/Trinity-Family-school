@@ -10,6 +10,7 @@ import { auth } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
 import { validateCurrentAppSession } from '@/lib/auth/firebase-session';
 import { detachPushSubscriptionForLogout } from '@/lib/push-subscription-client';
+import { removeParentOfflineAccount } from '@/lib/parent-offline/repository';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often a long-lived tab asks Firebase Authentication for a fresh signed
@@ -99,6 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearUserCache = () => {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(AUTH_CACHE_KEY);
+  };
+
+  const clearPrivateParentOfflineData = (accountId?: string) => {
+    if (!accountId) return;
+    void removeParentOfflineAccount(accountId).catch(error => {
+      logger.warn('Could not clear private parent offline data', error);
+    });
   };
 
   const readUserCache = (): { user: SystemUser; ageMs: number; isLegacy: boolean } | null => {
@@ -303,6 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
 
               logger.error('AuthContext: Error processing Firebase identity', error);
+              clearPrivateParentOfflineData(cachedUser?.id);
               setUser(null);
               restoredCachedUser = null;
               setHasStoredUser(false);
@@ -314,6 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             firebaseInitialized = true;
             logger.debug('No signed Firebase application user - clearing the private user session');
+            clearPrivateParentOfflineData(restoredCachedUser?.id || readUserCache()?.user.id);
             setUser(null);
             restoredCachedUser = null;
             setHasStoredUser(false);
@@ -354,6 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('trinity_account_locked', JSON.stringify(true));
       } else if (autoLockAction === 'signout') {
         // Clear user data
+        clearPrivateParentOfflineData(user.id);
         setUser(null);
         setHasStoredUser(false);
         setIsLocked(false);
@@ -435,6 +446,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       logger.info('Explicit logout - clearing all user data');
+      if (departingUserId) {
+        await removeParentOfflineAccount(departingUserId).catch(offlineError => {
+          logger.warn('Could not clear private parent offline data during logout', offlineError);
+        });
+      }
       await firebaseSignOut(auth);
       setUser(null);
       setHasStoredUser(false);
@@ -455,6 +471,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setHasStoredUser(false);
       setIsLocked(false);
       if (typeof window !== 'undefined') {
+        if (departingUserId) {
+          void removeParentOfflineAccount(departingUserId).catch(() => undefined);
+        }
         clearUserCache();
         localStorage.removeItem('trinity_account_locked');
         // Same reasoning — don't clear public system data on logout.
@@ -496,6 +515,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     logger.info('Signed session is no longer valid', { userId: user.id });
+    clearPrivateParentOfflineData(user.id);
     setUser(null);
     setHasStoredUser(false);
     setIsLocked(false);
@@ -560,6 +580,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSessionMessage(null);
       } else {
         // Account deactivated or removed — invalidate only this user's session
+        clearPrivateParentOfflineData(user.id);
         setUser(null);
         setHasStoredUser(false);
         clearUserCache();

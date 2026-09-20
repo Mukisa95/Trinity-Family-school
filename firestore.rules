@@ -73,6 +73,50 @@ service cloud.firestore {
       allow write: if isActiveApplicationUser();
     }
 
+    // Banking records predate the family ownership field used by the parent
+    // dashboard. Parents therefore receive their own child's compact banking
+    // projection from the server, after it has checked the pupil's family.
+    // Do not let a parent query these raw collections while that ownership is
+    // not rule-checkable on every legacy record.
+    match /bankAccounts/{accountId} {
+      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+
+    match /bankLoans/{loanId} {
+      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+
+    match /bankTransactions/{transactionId} {
+      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+
+    // A parent receives only its family's compact change counters. The
+    // counters contain no banking values and let an offline dashboard refresh
+    // one saved child only after a relevant school-side change.
+    match /parentDashboardRevisions/{familyId} {
+      allow read: if isTrustedServerApp() || isStaffOrAdmin() || isParentForFamily(familyId);
+      allow write: if false;
+    }
+
+    // Parent attendance is supplied by the verified server projection. This
+    // prevents a browser caller from reading another child's history or
+    // changing a staff attendance record directly.
+    match /attendanceRecords/{recordId} {
+      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+
+    // A released exam source document holds every learner in a class. The
+    // parent dashboard receives a server-filtered, one-child projection only.
+    match /examResults/{resultId} {
+      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+
+    // Release lists contain the identifiers of other children in the class.
+    // They are used by the server projection and are never a parent query.
+    match /resultReleases/{releaseId} {
+      allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
+    }
+
     // Ordered pupil cache deltas contain only revision, pupil id, and operation.
     // Staff/admin mutations publish them atomically with the source document;
     // parent devices continue using their family-scoped pupils query.
@@ -193,6 +237,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // WhatsApp webhook records and inbox messages are written and read through
+    // permission-checked server routes. Do not expose phone conversations to
+    // the browser Firebase SDK or the broad transitional rule below.
+    match /whatsappConversations/{conversationId} {
+      allow read, write: if false;
+    }
+
+    match /whatsappMessages/{messageId} {
+      allow read, write: if false;
+    }
+
     // Transitional production boundary: preserve every existing authenticated
     // application flow while denying anonymous users and arbitrary Firebase
     // anonymous accounts. Collection-level role restrictions are introduced
@@ -201,6 +256,13 @@ service cloud.firestore {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
         && collection != 'pupils'
+        && collection != 'bankAccounts'
+        && collection != 'bankLoans'
+        && collection != 'bankTransactions'
+        && collection != 'parentDashboardRevisions'
+        && collection != 'attendanceRecords'
+        && collection != 'examResults'
+        && collection != 'resultReleases'
         && collection != 'pupilCacheChanges'
         && collection != 'pushSubscriptions'
         && collection != 'settings'

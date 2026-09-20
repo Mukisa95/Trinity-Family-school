@@ -30,12 +30,14 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useAttendanceByPupil, useUpdateAttendanceRecord } from '@/lib/hooks/use-attendance';
-import { useAcademicYears } from '@/lib/hooks/use-academic-years';
-import { detectCurrentAcademicYear } from '@/lib/utils/academic-year-utils';
+import { useParentAttendance } from '@/lib/hooks/use-parent-attendance';
+import { ParentAttendanceService } from '@/lib/services/parent-attendance.service';
+import { useAcademicNow, useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { detectCurrentAcademicYear, detectCurrentTerm } from '@/lib/utils/academic-year-utils';
 import { useExcludedDays } from '@/lib/hooks/use-excluded-days';
 import { usePupil } from '@/lib/hooks/use-pupils';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { format, isToday, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, getDay } from 'date-fns';
 import { isSchoolDay } from '@/lib/utils/attendance-academic-utils';
 import type { AttendanceRecord, AttendanceStatus } from '@/types';
@@ -56,57 +58,38 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   const [editRemarks, setEditRemarks] = useState('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
+  const [isSavingRemarks, setIsSavingRemarks] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  // Fetch data
-  const { data: attendanceRecords = [], isLoading: attendanceLoading, error: attendanceError } = useAttendanceByPupil(pupilId);
+  // Read the family-authorized, local-first attendance projection. Raw
+  // attendance records remain staff-owned Firestore documents.
+  const { data: attendanceRecords = [], isLoading: attendanceLoading, error: attendanceError } = useParentAttendance(
+    pupilId,
+    user?.id,
+    user?.familyId,
+    user?.role === 'Parent',
+  );
   const { data: academicYears = [], isLoading: academicYearsLoading } = useAcademicYears();
   const { data: excludedDays = [] } = useExcludedDays();
   const { data: pupil } = usePupil(pupilId);
-  const updateAttendanceMutation = useUpdateAttendanceRecord();
+  const academicNow = useAcademicNow();
+  const currentAcademicYear = useMemo(
+    () => detectCurrentAcademicYear(academicYears, academicNow),
+    [academicNow, academicYears],
+  );
+  const currentTerm = useMemo(
+    () => detectCurrentTerm(currentAcademicYear, academicNow) ?? null,
+    [academicNow, currentAcademicYear],
+  );
 
   // Set default academic year and term when data loads
   useEffect(() => {
-    if (academicYears.length > 0 && !selectedAcademicYearId) {
-      const currentYear = detectCurrentAcademicYear(academicYears);
-      if (currentYear) {
-        setSelectedAcademicYearId(currentYear.id);
+    if (!currentAcademicYear || selectedAcademicYearId) return;
 
-        // 🚀 Use smart term selector that handles holiday periods
-        // During holidays, this will return the most recent completed term
-        const now = new Date();
-        let activeTerm = currentYear.terms.find(term => {
-          if (!term.startDate || !term.endDate) return false;
-          const termStart = new Date(term.startDate);
-          const termEnd = new Date(term.endDate);
-          return now >= termStart && now <= termEnd;
-        });
-
-        // If not in any term (holiday period), find most recent completed term
-        if (!activeTerm) {
-          let mostRecentTerm = null;
-          let mostRecentDate = new Date(0);
-
-          for (const term of currentYear.terms) {
-            const termEnd = new Date(term.endDate);
-            if (termEnd < now && termEnd > mostRecentDate) {
-              mostRecentTerm = term;
-              mostRecentDate = termEnd;
-            }
-          }
-
-          activeTerm = mostRecentTerm;
-        }
-
-        if (activeTerm) {
-          setSelectedTermId(activeTerm.id);
-        } else if (currentYear.terms.length > 0) {
-          setSelectedTermId(currentYear.terms[0].id);
-        }
-      }
-    }
-  }, [academicYears, selectedAcademicYearId]);
+    setSelectedAcademicYearId(currentAcademicYear.id);
+    setSelectedTermId(currentTerm?.id ?? currentAcademicYear.terms[0]?.id ?? '');
+  }, [currentAcademicYear, currentTerm, selectedAcademicYearId]);
 
   // Set default date, week, and month when view mode changes
   useEffect(() => {
@@ -126,37 +109,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     }
   }, [viewMode, selectedDate, selectedWeek, selectedMonth]);
 
-  // Get current academic year if none selected
-  const currentAcademicYear = detectCurrentAcademicYear(academicYears);
   const effectiveAcademicYearId = selectedAcademicYearId || currentAcademicYear?.id || '';
-
-  // Get current term if none selected
-  const currentTerm = useMemo(() => {
-    if (!currentAcademicYear) return null;
-
-    const now = new Date();
-
-    // Find term that contains current date
-    const termByDate = currentAcademicYear.terms.find(term => {
-      if (!term.startDate || !term.endDate) return false;
-      const termStart = new Date(term.startDate);
-      const termEnd = new Date(term.endDate);
-      return now >= termStart && now <= termEnd;
-    });
-
-    if (termByDate) {
-      return termByDate;
-    }
-
-    // Fallback: find next upcoming term or use first term
-    const upcomingTerm = currentAcademicYear.terms.find(term => {
-      if (!term.startDate) return false;
-      const termStart = new Date(term.startDate);
-      return termStart > now;
-    });
-
-    return upcomingTerm || currentAcademicYear.terms[0] || null;
-  }, [currentAcademicYear]);
 
   const effectiveTermId = selectedTermId || currentTerm?.id || '';
 
@@ -332,7 +285,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
         return academicYears.map(year => ({
           value: year.id,
           label: year.name,
-          isCurrent: year.isActive
+          isCurrent: year.id === currentAcademicYear?.id
         }));
 
       case 'term':
@@ -340,13 +293,13 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
         return availableTerms.map(term => ({
           value: term.id,
           label: term.name,
-          isCurrent: term.isCurrent
+          isCurrent: effectiveAcademicYearId === currentAcademicYear?.id && term.id === currentTerm?.id
         }));
 
       default:
         return [];
     }
-  }, [viewMode, academicYears, availableTerms]);
+  }, [viewMode, academicYears, availableTerms, currentAcademicYear?.id, currentTerm?.id, effectiveAcademicYearId]);
 
   // Filter records by selected academic year and term
   const filteredRecords = useMemo(() => {
@@ -420,7 +373,17 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     const termStart = new Date(term.startDate);
     const termEnd = new Date(term.endDate);
     const termRecords = filteredRecords.filter(record => record.termId === effectiveTermId);
-    const monthlyData: { [key: string]: any } = {};
+    const monthlyData: Record<string, {
+      monthKey: string;
+      monthName: string;
+      present: number;
+      absent: number;
+      late: number;
+      excused: number;
+      delayed: number;
+      total: number;
+      records: AttendanceRecord[];
+    }> = {};
 
     // Generate all months in the term period
     const currentMonth = startOfMonth(termStart);
@@ -449,13 +412,18 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     // Now populate with actual attendance records
     termRecords.forEach(record => {
       const dateStr = getValidDateString(record.date);
-      if (!dateStr) return acc;
+      if (!dateStr) return;
       const monthKey = dateStr.substring(0, 7); // Extract 'yyyy-MM' from 'yyyy-MM-dd'
 
-      if (monthlyData[monthKey]) {
-        monthlyData[monthKey].records.push(record);
-        monthlyData[monthKey][record.status.toLowerCase()]++;
-        monthlyData[monthKey].total++;
+      const month = monthlyData[monthKey];
+      if (month) {
+        month.records.push(record);
+        if (record.status === 'Present') month.present++;
+        if (record.status === 'Absent') month.absent++;
+        if (record.status === 'Late') month.late++;
+        if (record.status === 'Excused') month.excused++;
+        if (record.status === 'Delayed') month.delayed++;
+        month.total++;
       }
     });
 
@@ -544,7 +512,17 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     const termStart = new Date(term.startDate);
     const termEnd = new Date(term.endDate);
     const termRecords = filteredRecords.filter(record => record.termId === termId);
-    const monthlyData: { [key: string]: any } = {};
+    const monthlyData: Record<string, {
+      monthKey: string;
+      monthName: string;
+      present: number;
+      absent: number;
+      late: number;
+      excused: number;
+      delayed: number;
+      total: number;
+      records: AttendanceRecord[];
+    }> = {};
 
     // Generate all months in the term period
     const currentMonth = startOfMonth(termStart);
@@ -573,13 +551,18 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     // Now populate with actual attendance records
     termRecords.forEach(record => {
       const dateStr = getValidDateString(record.date);
-      if (!dateStr) return acc;
+      if (!dateStr) return;
       const monthKey = dateStr.substring(0, 7); // Extract 'yyyy-MM' from 'yyyy-MM-dd'
 
-      if (monthlyData[monthKey]) {
-        monthlyData[monthKey].records.push(record);
-        monthlyData[monthKey][record.status.toLowerCase()]++;
-        monthlyData[monthKey].total++;
+      const month = monthlyData[monthKey];
+      if (month) {
+        month.records.push(record);
+        if (record.status === 'Present') month.present++;
+        if (record.status === 'Absent') month.absent++;
+        if (record.status === 'Late') month.late++;
+        if (record.status === 'Excused') month.excused++;
+        if (record.status === 'Delayed') month.delayed++;
+        month.total++;
       }
     });
 
@@ -686,13 +669,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     return filteredRecords.find(record => {
       if (!record.date) return false;
 
-      // Handle Firestore Timestamp objects
-      let dateValue = record.date;
-      if (typeof dateValue === 'object' && dateValue !== null && 'toDate' in dateValue) {
-        dateValue = dateValue.toDate();
-      }
-
-      const recordDate = new Date(dateValue);
+      const recordDate = new Date(record.date);
       // Validate the date before formatting
       if (isNaN(recordDate.getTime())) {
         console.warn('Invalid date in attendance record:', record.date);
@@ -709,13 +686,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
       return filteredRecords.find(record => {
         if (!record.date) return false;
 
-        // Handle Firestore Timestamp objects
-        let dateValue = record.date;
-        if (typeof dateValue === 'object' && dateValue !== null && 'toDate' in dateValue) {
-          dateValue = dateValue.toDate();
-        }
-
-        const recordDate = new Date(dateValue);
+        const recordDate = new Date(record.date);
         // Validate the date before formatting
         if (isNaN(recordDate.getTime())) {
           console.warn('Invalid date in attendance record:', record.date);
@@ -843,7 +814,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
     const map = new Map<string, AttendanceRecord>();
     attendanceStats.records.forEach(record => {
       const dateString = getValidDateString(record.date);
-      if (!dateString) return acc;
+      if (!dateString) return;
       map.set(dateString, record);
     });
     return map;
@@ -856,28 +827,31 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
   };
 
   const handleSaveRemarks = async () => {
-    if (!editingRecord) return;
-
+    if (!editingRecord || isSavingRemarks) return;
+    setIsSavingRemarks(true);
     try {
-      await updateAttendanceMutation.mutateAsync({
-        id: editingRecord.id,
-        data: { remarks: editRemarks }
+      await ParentAttendanceService.updateRemark({
+        attendanceRecordId: editingRecord.id,
+        pupilId,
+        remarks: editRemarks,
       });
-
       toast({
-        title: "Remarks Updated",
-        description: "Attendance remarks have been updated successfully.",
+        title: 'Remarks Updated',
+        description: 'Attendance remarks have been updated successfully.',
       });
-
       setIsEditDialogOpen(false);
       setEditingRecord(null);
       setEditRemarks('');
-    } catch (error) {
+    } catch {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update remarks. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: navigator.onLine
+          ? 'Failed to update remarks. Please try again.'
+          : 'Connect to the internet to save attendance remarks.',
       });
+    } finally {
+      setIsSavingRemarks(false);
     }
   };
 
@@ -985,7 +959,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               <SelectContent>
                 {academicYears.map((year) => (
                   <SelectItem key={year.id} value={year.id}>
-                    {year.name} {year.isActive && '(Current)'}
+                    {year.name} {year.id === currentAcademicYear?.id && '(Current)'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1774,7 +1748,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               <Input
                 id="remarks"
                 value={editRemarks}
-                onChange={(e) => setEditRemarks(e.target.value)}
+                onChange={(event) => setEditRemarks(event.target.value)}
                 placeholder="e.g., Sick, Doctor appointment, Family emergency, etc."
                 maxLength={200}
               />
@@ -1787,16 +1761,13 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
               <Button
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
-                disabled={updateAttendanceMutation.isPending}
+                disabled={isSavingRemarks}
               >
                 <X className="h-4 w-4 mr-2" />
                 Cancel
               </Button>
-              <Button
-                onClick={handleSaveRemarks}
-                disabled={updateAttendanceMutation.isPending}
-              >
-                {updateAttendanceMutation.isPending ? (
+              <Button onClick={handleSaveRemarks} disabled={isSavingRemarks}>
+                {isSavingRemarks ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Saving...
@@ -1812,6 +1783,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           </div>
         </ModernDialogContent>
       </ModernDialog>
+
     </div>
   );
-} 
+}

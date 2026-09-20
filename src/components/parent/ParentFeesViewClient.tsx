@@ -28,6 +28,8 @@ import { PupilsService } from '@/lib/services/pupils.service';
 // Optimized hooks for instant data loading
 import { usePupil } from '@/lib/hooks/use-pupils';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { useParentOfflineFees } from '@/lib/hooks/use-parent-offline-fees';
 
 // Utilities
 import { getCurrentTerm, getActiveOrMostRecentTerm } from '@/lib/utils/academic-year-utils';
@@ -230,6 +232,18 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
   const [selectedTermId, setSelectedTermId] = useState<string>('');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<AcademicYear | null>(null);
   const [lastPaymentTimestamp, setLastPaymentTimestamp] = useState<number>(0);
+  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const updateOnlineState = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateOnlineState);
+    window.addEventListener('offline', updateOnlineState);
+    return () => {
+      window.removeEventListener('online', updateOnlineState);
+      window.removeEventListener('offline', updateOnlineState);
+    };
+  }, []);
 
   // 🚀 OPTIMIZED: Use optimized hooks for instant cache-first loading
   // Fetch academic years - optimized with cache-first
@@ -244,6 +258,20 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
     const effectiveTerm = getEffectiveTermForDataDisplay(academicYears);
     return effectiveTerm?.academicYear?.id || null;
   }, [academicYears]);
+  const visibleAcademicYears = useMemo(
+    () => isOnline || !currentAcademicYearId
+      ? academicYears
+      : academicYears.filter(year => year.id === currentAcademicYearId),
+    [academicYears, currentAcademicYearId, isOnline],
+  );
+
+  useEffect(() => {
+    if (isOnline || !currentAcademicYearId || selectedAcademicYear?.id === currentAcademicYearId) return;
+    const currentYear = academicYears.find(year => year.id === currentAcademicYearId);
+    if (!currentYear) return;
+    setSelectedAcademicYear(currentYear);
+    setSelectedTermId(currentYear.terms[0]?.id || '');
+  }, [academicYears, currentAcademicYearId, isOnline, selectedAcademicYear?.id]);
 
   // Set default academic year and term when data is loaded
   useEffect(() => {
@@ -284,6 +312,20 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
     selectedAcademicYear,
     lastPaymentTimestamp
   });
+  const { snapshot: offlineSnapshot, save: saveOfflineFees } = useParentOfflineFees(
+    user?.role === 'Parent' ? user.id : undefined,
+    pupilId,
+    selectedAcademicYear?.id,
+    selectedTermId,
+  );
+  const displayedPupilFees = !isOnline && offlineSnapshot ? offlineSnapshot.fees : pupilFees;
+  const displayedTermTotals = !isOnline && offlineSnapshot ? offlineSnapshot.totals : termTotals;
+
+  useEffect(() => {
+    if (!isOnline || !selectedAcademicYear?.id || !selectedTermId || isPupilFeesLoading) return;
+    void saveOfflineFees(pupilFees, termTotals)
+      .catch(error => console.warn('Could not save the displayed parent fee summary for offline use:', error));
+  }, [isOnline, isPupilFeesLoading, pupilFees, saveOfflineFees, selectedAcademicYear?.id, selectedTermId, termTotals]);
 
   const handleRefreshData = async () => {
     try {
@@ -333,19 +375,19 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
               <div class="grid">
                 <div class="text-center">
                   <div>Total Fees</div>
-                  <div class="font-bold">${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(termTotals.totalFees)}</div>
+                  <div class="font-bold">${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(displayedTermTotals.totalFees)}</div>
                 </div>
                 <div class="text-center text-green">
                   <div>Total Paid</div>
-                  <div class="font-bold">${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(termTotals.totalPaid)}</div>
+                  <div class="font-bold">${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(displayedTermTotals.totalPaid)}</div>
                 </div>
                 <div class="text-center text-red">
                   <div>Outstanding</div>
-                  <div class="font-bold">${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(termTotals.totalBalance)}</div>
+                  <div class="font-bold">${new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', minimumFractionDigits: 0 }).format(displayedTermTotals.totalBalance)}</div>
                 </div>
               </div>
             </div>
-            ${pupilFees.map(fee => `
+            ${displayedPupilFees.map(fee => `
               <div class="fee-item">
                 <h4>${fee.name}</h4>
                 <div class="grid">
@@ -379,7 +421,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
 
   // Render term fees
   const renderTermFees = (term: string) => {
-    if (pupilFees.length === 0) {
+    if (displayedPupilFees.length === 0) {
       return (
         <div className="text-center py-8">
           <CurrencyCircleDollar className="mx-auto h-10 w-10 text-gray-400 mb-3" />
@@ -393,7 +435,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
 
     return (
       <div className="space-y-3 mt-4">
-        {pupilFees.map((fee: any) => (
+        {displayedPupilFees.map((fee: any) => (
           <ParentFeeCard
             key={fee.id}
             fee={fee}
@@ -405,7 +447,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
     );
   };
 
-  if (isPupilLoading || isPupilFeesLoading) {
+  if (isPupilLoading || (isPupilFeesLoading && !offlineSnapshot)) {
     return (
       <div className="min-h-[300px] flex items-center justify-center">
         <div className="text-center">
@@ -434,7 +476,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
               disabled={isLoadingAcademicYears}
             >
               <option value="">Select Year</option>
-              {academicYears.map((year) => {
+              {visibleAcademicYears.map((year) => {
                 // Dynamic label based on effective term
                 const isCurrent = year.id === currentAcademicYearId;
                 const today = new Date();
@@ -487,7 +529,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
                   currency: 'UGX',
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0
-                }).format(termTotals.totalFees)}
+                }).format(displayedTermTotals.totalFees)}
               </div>
             </div>
           </Card>
@@ -500,7 +542,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
                   currency: 'UGX',
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0
-                }).format(termTotals.totalPaid)}
+                }).format(displayedTermTotals.totalPaid)}
               </div>
             </div>
           </Card>
@@ -513,7 +555,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
                   currency: 'UGX',
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0
-                }).format(termTotals.totalBalance)}
+                }).format(displayedTermTotals.totalBalance)}
               </div>
             </div>
           </Card>

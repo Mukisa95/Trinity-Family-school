@@ -7,7 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-const {onRequest} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {onTaskDispatched} = require("firebase-functions/tasks");
@@ -29,6 +29,441 @@ const ATTENDANCE_REMINDER_PLANS = "attendanceReminderPlans";
 const ATTENDANCE_REMINDER_RUNS = "attendanceReminderRuns";
 const ATTENDANCE_REMINDER_TASK_FUNCTION = "locations/us-central1/functions/attendanceReminderTask";
 const ENABLE_FIREBASE_ATTENDANCE_REMINDERS = process.env.ENABLE_FIREBASE_ATTENDANCE_REMINDERS === "true";
+const PARENT_DASHBOARD_REVISIONS = "parentDashboardRevisions";
+const PARENT_DATASET_REVISION_COALESCE_MS = 2 * 1000;
+
+/**
+ * Parent datasets remain staff-owned source documents, so they cannot be
+ * safely queried by a parent directly. This trigger resolves the affected
+ * pupil's family on a source write and advances only that family's tiny
+ * offline-sync counter. It never writes financial or attendance data to the
+ * counter document.
+ */
+async function publishParentDatasetRevision(change, dataset) {
+  if (!change) return;
+  const pupilIds = new Set();
+  [change.before, change.after].forEach(snapshot => {
+    const pupilId = snapshot?.data?.()?.pupilId;
+    if (typeof pupilId === "string" && pupilId.trim()) pupilIds.add(pupilId);
+  });
+  return publishParentDatasetRevisionForPupilIds(pupilIds, dataset);
+}
+
+async function publishParentDatasetRevisionForPupilIds(pupilIds, dataset) {
+  if (!pupilIds.size) return;
+
+  const db = admin.firestore();
+  const pupils = await Promise.all(Array.from(pupilIds).map(pupilId => db.collection("pupils").doc(pupilId).get()));
+  const familyIds = new Set();
+  pupils.forEach(pupil => {
+    const familyId = pupil.data()?.familyId;
+    if (typeof familyId === "string" && familyId.trim()) familyIds.add(familyId);
+  });
+  if (!familyIds.size) {
+    logger.warn("Parent dataset change has no resolvable parent family.", {dataset, pupilIds: Array.from(pupilIds)});
+    return;
+  }
+
+  // One school action can write several related records in the same operation.
+  // same school operation. Coalesce those related trigger invocations so
+  // a parent receives one refresh signal for the completed change.
+  await Promise.all(Array.from(familyIds).map(async familyId => {
+    const revisionRef = db.collection(PARENT_DASHBOARD_REVISIONS).doc(familyId);
+    await db.runTransaction(async transaction => {
+      const current = await transaction.get(revisionRef);
+      const currentData = current.data() || {};
+      const now = Date.now();
+      const timestampField = `last${dataset[0].toUpperCase()}${dataset.slice(1)}ChangeAtMs`;
+      const previousChangeAt = Number(currentData[timestampField] || 0);
+      const changesAreRelated = now - previousChangeAt >= 0 && now - previousChangeAt < PARENT_DATASET_REVISION_COALESCE_MS;
+      transaction.set(revisionRef, {
+        ...(changesAreRelated ? {} : {[dataset]: Number.isFinite(Number(currentData[dataset])) && Number(currentData[dataset]) >= 0 ? Number(currentData[dataset]) + 1 : 1}),
+        [timestampField]: now,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+    });
+  }));
+}
+
+const parentBankingRevisionTriggerOptions = {
+  region: "us-central1",
+  memory: "256MiB",
+  timeoutSeconds: 60,
+};
+
+exports.parentBankingAccountChanged = onDocumentWritten(
+  {...parentBankingRevisionTriggerOptions, document: "bankAccounts/{accountId}"},
+  async event => publishParentDatasetRevision(event.data, "banking"),
+);
+
+exports.parentBankingLoanChanged = onDocumentWritten(
+  {...parentBankingRevisionTriggerOptions, document: "bankLoans/{loanId}"},
+  async event => publishParentDatasetRevision(event.data, "banking"),
+);
+
+exports.parentBankingTransactionChanged = onDocumentWritten(
+  {...parentBankingRevisionTriggerOptions, document: "bankTransactions/{transactionId}"},
+  async event => publishParentDatasetRevision(event.data, "banking"),
+);
+
+exports.parentAttendanceChanged = onDocumentWritten(
+  {...parentBankingRevisionTriggerOptions, document: "attendanceRecords/{recordId}"},
+  async event => publishParentDatasetRevision(event.data, "attendance"),
+);
+
+exports.parentResultReleaseChanged = onDocumentWritten(
+  {...parentBankingRevisionTriggerOptions, document: "resultReleases/{releaseId}"},
+  async event => {
+    const pupilIds = new Set();
+    [event.data?.before, event.data?.after].forEach(snapshot => {
+      const releasedPupils = snapshot?.data?.()?.releasedPupils;
+      if (!Array.isArray(releasedPupils)) return;
+      releasedPupils.forEach(pupilId => {
+        if (typeof pupilId === "string" && pupilId.trim()) pupilIds.add(pupilId);
+      });
+    });
+    return publishParentDatasetRevisionForPupilIds(pupilIds, "results");
+  },
+);
+
+function projectionString(value) {
+  return typeof value === "string" ? value : "";
+}
+
+function projectionNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function projectionIsoDate(value) {
+  if (typeof value === "string") return value;
+  if (value?.toDate && typeof value.toDate === "function") return value.toDate().toISOString();
+  if (value instanceof Date) return value.toISOString();
+  return "";
+}
+
+/**
+ * The parent application receives this small, family-authorized projection
+ * through Firebase Functions. It avoids both raw collection access and a
+ * Vercel API request during first download or revision-triggered refresh.
+ */
+exports.getParentBankingProjection = onCall(
+  {region: "us-central1", memory: "256MiB", timeoutSeconds: 60},
+  async request => {
+    if (!request.auth || request.auth.token.appUser !== true || request.auth.token.isActive !== true) {
+      throw new HttpsError("unauthenticated", "A verified application session is required.");
+    }
+    const pupilId = projectionString(request.data?.pupilId).trim();
+    if (!pupilId || pupilId.length > 160) {
+      throw new HttpsError("invalid-argument", "A valid pupil is required.");
+    }
+
+    const db = admin.firestore();
+    const user = await db.collection("system_users").doc(request.auth.uid).get();
+    const userData = user.data() || {};
+    const familyId = projectionString(userData.familyId).trim();
+    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
+      throw new HttpsError("permission-denied", "Parent access is required.");
+    }
+
+    const pupil = await db.collection("pupils").doc(pupilId).get();
+    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
+      throw new HttpsError("not-found", "The requested child is not available to this account.");
+    }
+
+    const accounts = await db.collection("bankAccounts").where("pupilId", "==", pupilId).limit(2).get();
+    if (accounts.size > 1) {
+      throw new HttpsError("failed-precondition", "The banking account needs reconciliation by the school.");
+    }
+    const accountDocument = accounts.docs[0];
+    if (!accountDocument) return {account: null, transactions: [], loans: []};
+
+    const [transactionDocuments, loanDocuments] = await Promise.all([
+      db.collection("bankTransactions").where("pupilId", "==", pupilId).get(),
+      db.collection("bankLoans").where("pupilId", "==", pupilId).get(),
+    ]);
+    const accountData = accountDocument.data();
+    const account = {
+      id: accountDocument.id,
+      pupilId,
+      accountNumber: projectionString(accountData.accountNumber),
+      accountName: projectionString(accountData.accountName),
+      balance: projectionNumber(accountData.balance),
+      ...(typeof accountData.isActive === "boolean" ? {isActive: accountData.isActive} : {}),
+      createdAt: projectionIsoDate(accountData.createdAt),
+      ...(accountData.updatedAt ? {updatedAt: projectionIsoDate(accountData.updatedAt)} : {}),
+    };
+    const transactions = transactionDocuments.docs
+      .map(document => ({id: document.id, ...document.data()}))
+      .filter(transaction => transaction.accountId === account.id)
+      .map(transaction => ({
+        id: transaction.id,
+        pupilId,
+        accountId: account.id,
+        type: transaction.type,
+        amount: projectionNumber(transaction.amount),
+        description: projectionString(transaction.description),
+        balance: projectionNumber(transaction.balance),
+        transactionDate: projectionIsoDate(transaction.transactionDate),
+        createdAt: projectionIsoDate(transaction.createdAt),
+        ...(transaction.processedBy ? {processedBy: projectionString(transaction.processedBy)} : {}),
+        academicYearId: projectionString(transaction.academicYearId),
+        termId: projectionString(transaction.termId),
+        ...(typeof transaction.isReverted === "boolean" ? {isReverted: transaction.isReverted} : {}),
+        ...(transaction.revertedAt ? {revertedAt: projectionIsoDate(transaction.revertedAt)} : {}),
+        ...(transaction.revertedBy ? {revertedBy: projectionString(transaction.revertedBy)} : {}),
+        ...(transaction.originalTransactionId ? {originalTransactionId: projectionString(transaction.originalTransactionId)} : {}),
+      }))
+      .sort((left, right) => right.transactionDate.localeCompare(left.transactionDate));
+    const loans = loanDocuments.docs
+      .map(document => ({id: document.id, ...document.data()}))
+      .map(loan => ({
+        id: loan.id,
+        pupilId,
+        amount: projectionNumber(loan.amount),
+        amountRepaid: projectionNumber(loan.amountRepaid),
+        purpose: projectionString(loan.purpose),
+        repaymentDate: projectionIsoDate(loan.repaymentDate),
+        status: loan.status,
+        createdAt: projectionIsoDate(loan.createdAt),
+        ...(loan.updatedAt ? {updatedAt: projectionIsoDate(loan.updatedAt)} : {}),
+        ...(loan.academicYearId ? {academicYearId: projectionString(loan.academicYearId)} : {}),
+        ...(loan.termId ? {termId: projectionString(loan.termId)} : {}),
+        ...(loan.cancelledAt ? {cancelledAt: projectionIsoDate(loan.cancelledAt)} : {}),
+        ...(loan.cancelledBy ? {cancelledBy: projectionString(loan.cancelledBy)} : {}),
+      }))
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    return {account, transactions, loans};
+  },
+);
+
+/** Returns a parent-owned, read-only attendance history for one verified child. */
+exports.getParentAttendanceProjection = onCall(
+  {region: "us-central1", memory: "256MiB", timeoutSeconds: 60},
+  async request => {
+    if (!request.auth || request.auth.token.appUser !== true || request.auth.token.isActive !== true) {
+      throw new HttpsError("unauthenticated", "A verified application session is required.");
+    }
+    const pupilId = projectionString(request.data?.pupilId).trim();
+    if (!pupilId || pupilId.length > 160) {
+      throw new HttpsError("invalid-argument", "A valid pupil is required.");
+    }
+
+    const db = admin.firestore();
+    const user = await db.collection("system_users").doc(request.auth.uid).get();
+    const userData = user.data() || {};
+    const familyId = projectionString(userData.familyId).trim();
+    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
+      throw new HttpsError("permission-denied", "Parent access is required.");
+    }
+    const pupil = await db.collection("pupils").doc(pupilId).get();
+    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
+      throw new HttpsError("not-found", "The requested child is not available to this account.");
+    }
+
+    const records = await db.collection("attendanceRecords").where("pupilId", "==", pupilId).get();
+    return records.docs
+      .map(document => ({id: document.id, ...document.data()}))
+      .map(record => ({
+        id: record.id,
+        pupilId,
+        date: projectionIsoDate(record.date),
+        classId: projectionString(record.classId),
+        ...(record.className ? {className: projectionString(record.className)} : {}),
+        ...(record.classCode ? {classCode: projectionString(record.classCode)} : {}),
+        status: ["Present", "Absent", "Late", "Excused", "Delayed", ""].includes(record.status) ? record.status : "",
+        ...(record.remarks ? {remarks: projectionString(record.remarks)} : {}),
+        recordedAt: projectionIsoDate(record.recordedAt),
+        ...(record.recordedBy ? {recordedBy: projectionString(record.recordedBy)} : {}),
+        academicYearId: projectionString(record.academicYearId),
+        termId: projectionString(record.termId),
+      }))
+      .sort((left, right) => right.date.localeCompare(left.date));
+  },
+);
+
+/**
+ * Preserves the existing parent attendance-reason interaction without giving
+ * the browser write access to staff-owned attendance documents. The parent may
+ * change only the remarks field for a record belonging to their own child.
+ */
+exports.updateParentAttendanceRemark = onCall(
+  {region: "us-central1", memory: "256MiB", timeoutSeconds: 60},
+  async request => {
+    if (!request.auth || request.auth.token.appUser !== true || request.auth.token.isActive !== true) {
+      throw new HttpsError("unauthenticated", "A verified application session is required.");
+    }
+    const attendanceRecordId = projectionString(request.data?.attendanceRecordId).trim();
+    const pupilId = projectionString(request.data?.pupilId).trim();
+    const remarks = projectionString(request.data?.remarks).trim();
+    if (!attendanceRecordId || attendanceRecordId.length > 160 || !pupilId || pupilId.length > 160 || remarks.length > 200) {
+      throw new HttpsError("invalid-argument", "A valid attendance record, pupil, and remark are required.");
+    }
+
+    const db = admin.firestore();
+    const user = await db.collection("system_users").doc(request.auth.uid).get();
+    const userData = user.data() || {};
+    const familyId = projectionString(userData.familyId).trim();
+    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
+      throw new HttpsError("permission-denied", "Parent access is required.");
+    }
+
+    const [pupil, attendanceRecord] = await Promise.all([
+      db.collection("pupils").doc(pupilId).get(),
+      db.collection("attendanceRecords").doc(attendanceRecordId).get(),
+    ]);
+    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
+      throw new HttpsError("not-found", "The requested child is not available to this account.");
+    }
+    if (!attendanceRecord.exists || attendanceRecord.data()?.pupilId !== pupilId) {
+      throw new HttpsError("not-found", "The attendance record is not available to this account.");
+    }
+
+    await attendanceRecord.ref.update({
+      remarks,
+      parentReportedAt: admin.firestore.FieldValue.serverTimestamp(),
+      parentReportedBy: request.auth.uid,
+    });
+    return {success: true};
+  },
+);
+
+function parentResultDivision(totalAggregates) {
+  if (totalAggregates <= 12) return "I";
+  if (totalAggregates <= 24) return "II";
+  if (totalAggregates <= 28) return "III";
+  if (totalAggregates <= 32) return "IV";
+  return "U";
+}
+
+function parentResultRemarks(totalAggregates) {
+  if (totalAggregates <= 12) return "Excellent";
+  if (totalAggregates <= 24) return "Good";
+  if (totalAggregates <= 28) return "Fair";
+  return "Needs Improvement";
+}
+
+/**
+ * Returns only the released marks for one verified child. Exam result source
+ * documents contain every pupil in a class, so they must never be returned to
+ * a parent browser or copied to that browser's offline cache.
+ */
+exports.getParentResultsProjection = onCall(
+  {region: "us-central1", memory: "256MiB", timeoutSeconds: 60},
+  async request => {
+    if (!request.auth || request.auth.token.appUser !== true || request.auth.token.isActive !== true) {
+      throw new HttpsError("unauthenticated", "A verified application session is required.");
+    }
+    const pupilId = projectionString(request.data?.pupilId).trim();
+    if (!pupilId || pupilId.length > 160) {
+      throw new HttpsError("invalid-argument", "A valid pupil is required.");
+    }
+
+    const db = admin.firestore();
+    const user = await db.collection("system_users").doc(request.auth.uid).get();
+    const userData = user.data() || {};
+    const familyId = projectionString(userData.familyId).trim();
+    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
+      throw new HttpsError("permission-denied", "Parent access is required.");
+    }
+    const pupil = await db.collection("pupils").doc(pupilId).get();
+    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
+      throw new HttpsError("not-found", "The requested child is not available to this account.");
+    }
+
+    const releaseDocuments = await db.collection("resultReleases")
+      .where("releasedPupils", "array-contains", pupilId)
+      .get();
+    const results = await Promise.all(releaseDocuments.docs.map(async releaseDocument => {
+      const examId = projectionString(releaseDocument.data().examId).trim();
+      if (!examId) return null;
+
+      const [examDocument, resultDocuments] = await Promise.all([
+        db.collection("exams").doc(examId).get(),
+        db.collection("examResults").where("examId", "==", examId).limit(2).get(),
+      ]);
+      const candidateDocuments = resultDocuments.docs.length
+        ? resultDocuments.docs
+        : [(await db.collection("examResults").doc(examId).get())].filter(document => document.exists);
+      const resultDocument = candidateDocuments.find(document => {
+        const candidate = document.data();
+        return candidate?.results && candidate.results[pupilId] && Array.isArray(candidate.pupilSnapshots);
+      });
+      if (!resultDocument) return null;
+
+      const resultData = resultDocument.data();
+      const pupilResult = resultData.results[pupilId] || {};
+      const pupilSnapshot = (Array.isArray(resultData.pupilSnapshots) ? resultData.pupilSnapshots : [])
+        .find(snapshot => snapshot?.pupilId === pupilId);
+      if (!pupilSnapshot) return null;
+
+      const examData = examDocument.data() || {};
+      const academicYearId = projectionString(examData.academicYearId || resultData.academicYearId);
+      const termId = projectionString(examData.termId || resultData.termId);
+      const academicYearDocument = academicYearId
+        ? await db.collection("academicYears").doc(academicYearId).get()
+        : null;
+      const academicYearData = academicYearDocument?.data() || {};
+      const term = (Array.isArray(academicYearData.terms) ? academicYearData.terms : [])
+        .find(item => item?.id === termId);
+      const subjectSnapshots = Array.isArray(resultData.subjectSnapshots) ? resultData.subjectSnapshots : [];
+      let totalMarks = 0;
+      let totalAggregates = 0;
+      const subjectResults = [];
+      Object.entries(pupilResult).forEach(([subjectId, result]) => {
+        const subject = subjectSnapshots.find(snapshot => snapshot?.subjectId === subjectId);
+        if (!subject || typeof result?.marks !== "number") return;
+        const score = projectionNumber(result.marks);
+        const maxMarks = projectionNumber(subject.maxMarks);
+        const aggregates = projectionNumber(result.aggregates);
+        totalMarks += score;
+        totalAggregates += aggregates;
+        subjectResults.push({
+          subject: projectionString(subject.name),
+          subjectCode: projectionString(subject.code),
+          score,
+          totalMarks: maxMarks,
+          grade: projectionString(result.grade) || "-",
+          aggregates,
+          ...(result.comment ? {comment: projectionString(result.comment)} : {}),
+        });
+      });
+      const maxPossibleMarks = subjectSnapshots.reduce(
+        (total, subject) => total + projectionNumber(subject?.maxMarks),
+        0,
+      );
+      const totalScore = maxPossibleMarks > 0 ? Math.round((totalMarks / maxPossibleMarks) * 100) : 0;
+      const division = parentResultDivision(totalAggregates);
+      return {
+        id: resultDocument.id,
+        examId,
+        examName: projectionString(examData.name) || "Unknown Exam",
+        examDate: projectionIsoDate(examData.startDate) || projectionIsoDate(resultData.recordedAt),
+        academicYear: projectionString(academicYearData.name) || "Unknown Year",
+        term: projectionString(term?.name) || "Unknown Term",
+        className: projectionString(pupilSnapshot.classNameAtExam),
+        ...(pupilSnapshot.classCodeAtExam ? {classCode: projectionString(pupilSnapshot.classCodeAtExam)} : {}),
+        totalScore,
+        totalMarks,
+        totalAggregates,
+        maxPossibleMarks,
+        subjectResults,
+        grade: division,
+        division,
+        remarks: parentResultRemarks(totalAggregates),
+        recordedAt: projectionIsoDate(resultData.recordedAt),
+        ...(resultData.releasedAt ? {releasedAt: projectionIsoDate(resultData.releasedAt)} : {}),
+        pupilInfo: {
+          name: projectionString(pupilSnapshot.name),
+          admissionNumber: projectionString(pupilSnapshot.admissionNumber),
+          classNameAtExam: projectionString(pupilSnapshot.classNameAtExam),
+        },
+      };
+    }));
+    return results
+      .filter(Boolean)
+      .sort((left, right) => right.examDate.localeCompare(left.examDate));
+  },
+);
 
 function normalizeVapidValue(value) {
   return String(value || "").trim().replace(/^['\"]|['\"]$/g, "").replace(/\\n/g, "\n");

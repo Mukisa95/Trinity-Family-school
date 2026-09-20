@@ -81,9 +81,17 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     // This ensures we catch the event even if the SW activates quickly
     setupControllerChangeListener();
 
-    const registration = await navigator.serviceWorker.register('/sw.js', {
+    const isParentRoute = window.location.pathname === '/parent' || window.location.pathname.startsWith('/parent/');
+    // Calling register() again is itself a hosting update check. A parent who
+    // already has this worker must stay entirely local until the forthcoming
+    // Firebase release signal says a new interface exists. New devices still
+    // register once to make their first offline download possible.
+    const existingRegistration = isParentRoute
+      ? await navigator.serviceWorker.getRegistration()
+      : undefined;
+    const registration = existingRegistration || await navigator.serviceWorker.register('/sw.js', {
       scope: '/',
-      updateViaCache: 'none' // Always check for updates - browser will compare byte-for-byte
+      updateViaCache: 'none' // Staff still compare byte-for-byte on registration.
     });
 
     console.log('✅ Service Worker registered successfully');
@@ -148,32 +156,39 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       }
     };
 
-    // register() can return an existing registration without immediately
-    // checking the network on every mobile browser. Force a check at startup.
-    checkForUpdate('startup', true);
-
-    // Check for updates frequently (every 5 minutes)
-    setInterval(() => {
-      checkForUpdate('interval');
-    }, 5 * 60 * 1000);
-
-    // Installed mobile apps are often resumed from a suspended page instead of
-    // receiving a fresh navigation, so cover every common resume signal.
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
+    if (isParentRoute) {
+      // Parent updates will move to the explicit release signal described by
+      // the offline rollout. Do not make Vercel update checks every time a
+      // parent opens, focuses, reconnects, or leaves the dashboard running.
+      // We still retain missing-chunk recovery because it does not poll Vercel.
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) recoverDeferredChunkLoad();
+      });
+      window.addEventListener('focus', recoverDeferredChunkLoad);
+      window.addEventListener('pageshow', recoverDeferredChunkLoad);
+    } else {
+      // Staff and administration continue to use the existing update policy
+      // until their own offline-release path is built.
+      checkForUpdate('startup', true);
+      setInterval(() => {
+        checkForUpdate('interval');
+      }, 5 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          recoverDeferredChunkLoad();
+          checkForUpdate('visible');
+        }
+      });
+      window.addEventListener('focus', () => {
         recoverDeferredChunkLoad();
-        checkForUpdate('visible');
-      }
-    });
-    window.addEventListener('focus', () => {
-      recoverDeferredChunkLoad();
-      checkForUpdate('focus');
-    });
-    window.addEventListener('online', () => checkForUpdate('online', true));
-    window.addEventListener('pageshow', (event) => {
-      recoverDeferredChunkLoad();
-      checkForUpdate(event.persisted ? 'restored page' : 'page shown');
-    });
+        checkForUpdate('focus');
+      });
+      window.addEventListener('online', () => checkForUpdate('online', true));
+      window.addEventListener('pageshow', (event) => {
+        recoverDeferredChunkLoad();
+        checkForUpdate(event.persisted ? 'restored page' : 'page shown');
+      });
+    }
 
     // 🔥 CRITICAL FOR MOBILE: Keep service worker alive with periodic pings
     startServiceWorkerKeepAlive(registration);

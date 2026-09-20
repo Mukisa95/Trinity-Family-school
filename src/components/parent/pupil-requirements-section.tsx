@@ -66,14 +66,14 @@ export function PupilRequirementsSection({ pupilId }: PupilRequirementsSectionPr
   const { data: activeAcademicYear } = useActiveAcademicYear();
   
   // Use enhanced tracking with data integrity
-  const trackingQuery = useEnhancedRequirementTrackingByPupilAndTerm(pupil, selectedTermId, activeAcademicYear);
+  const trackingQuery = useEnhancedRequirementTrackingByPupilAndTerm(pupil || null, selectedTermId, activeAcademicYear || null);
   const allYearTrackingQuery = useRequirementTrackingByPupilAndAcademicYear(pupilId, selectedAcademicYearId);
 
   // Get eligible requirements for this pupil with enhanced data integrity
   const { data: eligibleRequirements = [], isFetching: isFetchingEligibleRequirements } = useEnhancedRequirementsByFilter(
-    pupil,
+    pupil || null,
     selectedTermId,
-    activeAcademicYear,
+    activeAcademicYear || null,
     academicYears
   );
 

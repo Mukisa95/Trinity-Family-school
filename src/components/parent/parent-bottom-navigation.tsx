@@ -81,7 +81,7 @@ export function ParentBottomNavigation({
     }
   ];
 
-  const handleViewChange = (view: 'dashboard' | 'home' | 'notifications') => {
+  const handleViewChange = (view: 'dashboard' | 'home' | 'settings') => {
     if (view === 'dashboard') {
       // Special handling for dashboard button
       if (hasSingleChild) {

@@ -10,11 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useReleasedExamResultsForPupil } from '@/lib/hooks/use-results-release';
+import { useParentResults } from '@/lib/hooks/use-parent-results';
 import { useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSubjects } from '@/lib/hooks/use-subjects';
 import { usePupil } from '@/lib/hooks/use-pupils';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { formatDateForDisplay } from '@/lib/utils/date-utils';
 
 interface PupilResultsSectionProps {
@@ -45,7 +46,13 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [expandedExam, setExpandedExam] = useState<string | null>(null);
 
-  const { data: results = [], isLoading, error } = useReleasedExamResultsForPupil(pupilId);
+  const { user } = useAuth();
+  const { data: results = [], isLoading, error } = useParentResults(
+    pupilId,
+    user?.id,
+    user?.familyId,
+    user?.role === 'Parent',
+  );
   const { data: activeAcademicYear } = useActiveAcademicYear();
   const { data: subjects = [] } = useSubjects();
   const { data: pupil } = usePupil(pupilId);
@@ -175,13 +182,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
       for (const term of activeAcademicYear.terms) {
         if (!term.endDate) continue;
         
-        let termEndDate: Date;
-        // Handle Firestore Timestamp objects
-        if (typeof term.endDate === 'object' && 'toDate' in term.endDate) {
-          termEndDate = term.endDate.toDate();
-        } else {
-          termEndDate = new Date(term.endDate);
-        }
+        const termEndDate = new Date(term.endDate);
 
         // If term has ended and we have results for it, it's a candidate
         if (termEndDate <= now && termNames.includes(term.name)) {
@@ -621,4 +622,4 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
       )}
     </div>
   );
-} 
+}

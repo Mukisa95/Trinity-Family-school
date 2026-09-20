@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { usePupil, usePupilsByFamily } from '@/lib/hooks/use-pupils';
+import { useParentOfflineFamily } from '@/lib/hooks/use-parent-offline-family';
 import { ParentBottomNavigation } from './parent-bottom-navigation';
 import { ParentSidebar } from './parent-sidebar';
 import { ParentDashboard } from './parent-dashboard';
 import { ParentAboutSchool } from './parent-about-school';
+import { ParentOfflineDatasetPreparer } from './parent-offline-dataset-preparer';
 import type { Pupil } from '@/types';
 
 interface ParentLayoutProps {
@@ -28,7 +30,16 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   const familyId = userFamilyId || fallbackFamilyId;
 
   // Fetch all family members using the family-based relationship
-  const { data: familyMembers = [] } = usePupilsByFamily(familyId || '');
+  const familyQuery = usePupilsByFamily(familyId || '');
+  const { familyMembers } = useParentOfflineFamily({
+    accountId: user?.role === 'Parent' ? user.id : undefined,
+    familyId,
+    liveFamilyMembers: familyQuery.data,
+    // The selector intentionally returns [] while its canonical pupil cache is
+    // still empty. Use the query's loading state so a cold offline launch can
+    // distinguish that placeholder from a confirmed live empty family.
+    hasLiveFamilyData: !familyQuery.isLoading,
+  });
 
   // Initialize with user's default pupil or first family member
   useEffect(() => {
@@ -81,6 +92,7 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   }, []);
 
   const renderContent = () => {
+    if (pathname.startsWith('/parent/settings')) return children;
     switch (currentView) {
       case 'home':
         return <ParentAboutSchool />;
@@ -92,6 +104,11 @@ export function ParentLayout({ children }: ParentLayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <ParentOfflineDatasetPreparer
+        accountId={user?.role === 'Parent' ? user.id : undefined}
+        familyId={familyId}
+        pupils={familyMembers}
+      />
       {/* Desktop Sidebar */}
       <ParentSidebar
         currentView={currentView}
@@ -124,4 +141,4 @@ export function ParentLayout({ children }: ParentLayoutProps) {
       </div>
     </div>
   );
-} 
+}

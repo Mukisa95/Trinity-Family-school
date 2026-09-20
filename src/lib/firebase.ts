@@ -7,6 +7,7 @@ import {
   persistentMultipleTabManager,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -63,6 +64,7 @@ if (typeof window !== 'undefined') {
 
 // Initialize Auth & Storage
 export const auth = getAuth(app);
+export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
 
 // Analytics disabled to avoid console noise

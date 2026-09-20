@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { usePupil } from '@/lib/hooks/use-pupils';
-import { useAccountByPupilId } from '@/lib/hooks/use-banking';
-import { useHasReleasedResults } from '@/lib/hooks/use-results-release';
+import { useParentBanking } from '@/lib/hooks/use-parent-banking';
+import { useParentResults } from '@/lib/hooks/use-parent-results';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { sampleSchoolSettings } from '@/lib/sample-data';
 import type { Pupil } from '@/types';
@@ -45,10 +45,22 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   const { data: classes = [] } = useClasses();
 
   // Check if pupil has banking account (for conditional navigation)
-  const { data: bankingAccount, isLoading: bankingLoading } = useAccountByPupilId(targetPupilId || '');
+  const { data: bankingData, isLoading: bankingLoading, error: bankingError } = useParentBanking(
+    targetPupilId || '',
+    user?.id,
+    user?.familyId,
+    user?.role === 'Parent',
+  );
+  const bankingAccount = bankingData?.account;
   
-  // Check if pupil has released exam results (for conditional navigation)
-  const { data: hasReleasedResults, isLoading: resultsLoading } = useHasReleasedResults(targetPupilId || '');
+  // The released-result indicator shares the same local-first projection as
+  // the results view, avoiding a separate raw Firestore release lookup.
+  const { data: releasedResults = [], isLoading: resultsLoading } = useParentResults(
+    targetPupilId || '',
+    user?.id,
+    user?.familyId,
+    user?.role === 'Parent',
+  );
 
   // Fetch school settings to get dynamic links (e.g., WhatsApp)
   const { data: schoolSettings } = useSchoolSettings();
@@ -290,7 +302,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   const showBankingSection = !bankingLoading && bankingAccount;
   
   // Determine if results section should be shown
-  const showResultsSection = !resultsLoading && hasReleasedResults;
+  const showResultsSection = !resultsLoading && releasedResults.length > 0;
 
   return (
     <div 
@@ -561,10 +573,16 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                   pupilName={`${pupil?.firstName || ''} ${pupil?.lastName || ''}`.trim() || 'Student'}
                 />
             )}
-            {currentView === 'banking' && showBankingSection && <PupilBankingSection pupilId={pupil.id} />}
+            {currentView === 'banking' && (
+              <PupilBankingSection
+                banking={bankingData}
+                isLoading={bankingLoading}
+                error={bankingError instanceof Error ? bankingError : null}
+              />
+            )}
         </div>
       </div>
       
     </div>
   );
-} 
+}

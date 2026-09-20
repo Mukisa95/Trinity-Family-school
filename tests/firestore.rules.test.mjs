@@ -60,6 +60,26 @@ beforeEach(async () => {
       endpoint: 'https://push.example/parent-device',
       isActive: true,
     });
+    await setDoc(doc(db, 'bankAccounts', 'bank-account-1'), {
+      pupilId: 'pupil-1',
+      balance: 20,
+    });
+    await setDoc(doc(db, 'attendanceRecords', 'attendance-1'), {
+      pupilId: 'pupil-1',
+      date: '2026-09-20',
+      status: 'Present',
+    });
+    await setDoc(doc(db, 'examResults', 'exam-result-1'), {
+      examId: 'exam-1',
+      results: { 'pupil-1': { mathematics: { marks: 90 } } },
+    });
+    await setDoc(doc(db, 'resultReleases', 'exam-1_class-1'), {
+      examId: 'exam-1',
+      releasedPupils: ['pupil-1'],
+    });
+    await setDoc(doc(db, 'parentDashboardRevisions', 'family-1'), {
+      banking: 3,
+    });
   });
 });
 
@@ -128,6 +148,79 @@ test('the trusted Vercel server identity can read pupils for server-side notific
 
   await assertSucceeds(getDoc(doc(trustedServerDb, 'pupils', 'pupil-1')));
   await assertFails(getDoc(doc(untrustedServerDb, 'pupils', 'pupil-1')));
+});
+
+test('parents cannot query raw banking collections', async () => {
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-1',
+  }).firestore();
+  const staffDb = testEnv.authenticatedContext('active-staff', {
+    appUser: true,
+    isActive: true,
+    role: 'Staff',
+  }).firestore();
+
+  await assertFails(getDoc(doc(parentDb, 'bankAccounts', 'bank-account-1')));
+  await assertSucceeds(getDoc(doc(staffDb, 'bankAccounts', 'bank-account-1')));
+});
+
+test('parents cannot read or change raw attendance records', async () => {
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-1',
+  }).firestore();
+  const staffDb = testEnv.authenticatedContext('active-staff', {
+    appUser: true,
+    isActive: true,
+    role: 'Staff',
+  }).firestore();
+
+  await assertFails(getDoc(doc(parentDb, 'attendanceRecords', 'attendance-1')));
+  await assertFails(setDoc(doc(parentDb, 'attendanceRecords', 'attendance-1'), { remarks: 'Forged' }, { merge: true }));
+  await assertSucceeds(getDoc(doc(staffDb, 'attendanceRecords', 'attendance-1')));
+});
+
+test('parents cannot read class-wide exam source documents or release lists', async () => {
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-1',
+  }).firestore();
+  const staffDb = testEnv.authenticatedContext('active-staff', {
+    appUser: true,
+    isActive: true,
+    role: 'Staff',
+  }).firestore();
+
+  await assertFails(getDoc(doc(parentDb, 'examResults', 'exam-result-1')));
+  await assertFails(getDoc(doc(parentDb, 'resultReleases', 'exam-1_class-1')));
+  await assertSucceeds(getDoc(doc(staffDb, 'examResults', 'exam-result-1')));
+  await assertSucceeds(getDoc(doc(staffDb, 'resultReleases', 'exam-1_class-1')));
+});
+
+test('parents can read only their own compact dashboard revision', async () => {
+  const parentDb = testEnv.authenticatedContext('active-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-1',
+  }).firestore();
+  const otherParentDb = testEnv.authenticatedContext('other-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'family-2',
+  }).firestore();
+
+  await assertSucceeds(getDoc(doc(parentDb, 'parentDashboardRevisions', 'family-1')));
+  await assertFails(getDoc(doc(otherParentDb, 'parentDashboardRevisions', 'family-1')));
+  await assertFails(setDoc(doc(parentDb, 'parentDashboardRevisions', 'family-1'), { banking: 999 }));
 });
 
 test('push endpoints are user-readable but writable only by the trusted server', async () => {

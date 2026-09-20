@@ -277,64 +277,56 @@ export function groupRecordsByTerm<T extends { createdAt: string; termId?: strin
 }
 
 /**
- * Detect the current academic year.
+ * Detect the academic year that contains the supplied date.
  *
- * Priority order (IMPORTANT — do not change without careful consideration):
- * 1. isActive flag  — the admin explicitly marked this year as active. Trust it.
- * 2. Most recent date-range match — if today falls in multiple years' ranges
- *    (e.g. overlapping test records), pick the one that started most recently.
- * 3. Most recent year that has already started — for the gap between isActive
- *    being unset and the next year starting.
- * 4. First year in list — absolute last resort.
- *
- * Why NOT date-first? Because the DB has 128 academic years including old test
- * records. Array.find() on an unsorted array returns the first date-range match
- * which could be a 2023 record, not the real current year.
+ * Date ranges are authoritative. The isActive flag is retained only as a
+ * fallback for records whose dates are missing or invalid, because an old flag
+ * must not make a completed year appear current. When test or legacy records
+ * overlap, the matching year with the newest start date wins.
  */
-export function detectCurrentAcademicYear(academicYears: AcademicYear[]): AcademicYear | undefined {
+export function detectCurrentAcademicYear(
+  academicYears: AcademicYear[],
+  targetDate: Date = new Date(),
+): AcademicYear | undefined {
   if (!academicYears || academicYears.length === 0) return undefined;
 
-  const now = new Date();
+  const newestByStartDate = (matches: AcademicYear[]) => [...matches].sort(
+    (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+  )[0];
 
-  // ── Priority 1: explicit isActive flag ───────────────────────────────────
-  const activeByFlag = academicYears.find(y => y.isActive);
-  if (activeByFlag) return activeByFlag;
+  // Prefer a term match because term dates are the most precise evidence that
+  // a school year is currently in progress.
+  const termMatches = academicYears.filter(year => year.terms?.some(term => {
+    const start = new Date(term.startDate);
+    const end = new Date(term.endDate);
+    return !Number.isNaN(start.getTime())
+      && !Number.isNaN(end.getTime())
+      && targetDate >= start
+      && targetDate <= end;
+  }));
+  if (termMatches.length > 0) return newestByStartDate(termMatches);
 
-  // ── Priority 2: most-recent year whose full date range contains today ─────
-  // Collect ALL matches then pick the one with the latest startDate so we
-  // don't accidentally pick an old test record.
+  // During recess, the enclosing academic-year range still identifies the
+  // correct year even though no term contains the date.
   const dateMatches = academicYears.filter(year => {
-    if (!year.startDate || !year.endDate) return false;
     const start = new Date(year.startDate);
     const end = new Date(year.endDate);
-    return now >= start && now <= end;
+    return !Number.isNaN(start.getTime())
+      && !Number.isNaN(end.getTime())
+      && targetDate >= start
+      && targetDate <= end;
   });
+  if (dateMatches.length > 0) return newestByStartDate(dateMatches);
 
-  if (dateMatches.length > 0) {
-    // Sort descending by startDate — most recently started match wins
-    dateMatches.sort((a, b) =>
-      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-    );
-    return dateMatches[0];
-  }
-
-  // ── Priority 3: most recently started year that has already begun ─────────
-  // Covers the case where we're past ALL year end dates (e.g. new year not
-  // yet entered in the DB, or holiday between years).
+  // If the school's year-level end date is incomplete, use the latest year
+  // that has begun before falling back to an administrative flag.
   const startedYears = academicYears.filter(year => {
-    if (!year.startDate) return false;
-    return new Date(year.startDate) <= now;
+    const start = new Date(year.startDate);
+    return !Number.isNaN(start.getTime()) && start <= targetDate;
   });
+  if (startedYears.length > 0) return newestByStartDate(startedYears);
 
-  if (startedYears.length > 0) {
-    startedYears.sort((a, b) =>
-      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-    );
-    return startedYears[0];
-  }
-
-  // ── Priority 4: absolute fallback — first in list ─────────────────────────
-  return academicYears[0];
+  return academicYears.find(year => year.isActive) ?? academicYears[0];
 }
 
 
@@ -344,17 +336,20 @@ export function detectCurrentAcademicYear(academicYears: AcademicYear[]): Academ
  * During holidays/recess: falls back to the most recently completed term.
  * Final fallback: isCurrent flag, then to the first term in the list.
  */
-export function detectCurrentTerm(year: AcademicYear | undefined | null): Term | undefined {
+export function detectCurrentTerm(
+  year: AcademicYear | undefined | null,
+  targetDate: Date = new Date(),
+): Term | undefined {
   if (!year || !year.terms || year.terms.length === 0) return undefined;
-
-  const now = new Date();
 
   // Primary: find term where current date falls within its date range
   const byDate = year.terms.find(term => {
-    if (!term.startDate || !term.endDate) return false;
     const start = new Date(term.startDate);
     const end = new Date(term.endDate);
-    return now >= start && now <= end;
+    return !Number.isNaN(start.getTime())
+      && !Number.isNaN(end.getTime())
+      && targetDate >= start
+      && targetDate <= end;
   });
   if (byDate) return byDate;
 
@@ -366,7 +361,7 @@ export function detectCurrentTerm(year: AcademicYear | undefined | null): Term |
   for (const term of year.terms) {
     if (!term.endDate) continue;
     const termEnd = new Date(term.endDate);
-    if (termEnd < now && termEnd > mostRecentEndDate) {
+    if (!Number.isNaN(termEnd.getTime()) && termEnd < targetDate && termEnd > mostRecentEndDate) {
       mostRecentTerm = term;
       mostRecentEndDate = termEnd;
     }

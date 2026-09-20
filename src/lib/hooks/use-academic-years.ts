@@ -4,7 +4,7 @@ import { AcademicYearsService } from '../services/academic-years.service';
 import { useDigitalSignatureHelpers } from './use-digital-signature';
 import { useAuth } from '../contexts/auth-context';
 import { getAcademicYearCacheScope, readAcademicYearCache } from '@/lib/cache/academic-year-cache';
-import { getEffectiveTermForDataDisplay } from '@/lib/utils/term-status-utils';
+import { detectCurrentAcademicYear } from '@/lib/utils/academic-year-utils';
 import type { AcademicYear } from '@/types';
 
 // Ordinary academic-year consumers observe this one identity-scoped list.
@@ -48,33 +48,6 @@ export function useAcademicNow(targetDate?: Date): Date {
   }, [targetDate]);
 
   return targetDate ?? now;
-}
-
-function resolveAcademicYearForDate(years: AcademicYear[], targetDate: Date): AcademicYear | undefined {
-  const sortNewest = (matches: AcademicYear[]) => matches.sort(
-    (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
-  )[0];
-
-  const termMatches = years.filter(year => year.terms.some(term => {
-    const start = new Date(term.startDate);
-    const end = new Date(term.endDate);
-    return !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())
-      && targetDate >= start && targetDate <= end;
-  }));
-  if (termMatches.length > 0) return sortNewest(termMatches);
-
-  const yearMatches = years.filter(year => {
-    const start = new Date(year.startDate);
-    const end = new Date(year.endDate);
-    return !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())
-      && targetDate >= start && targetDate <= end;
-  });
-  if (yearMatches.length > 0) return sortNewest(yearMatches);
-
-  const lastCompletedTermYear = getEffectiveTermForDataDisplay(years, targetDate).academicYear;
-  if (lastCompletedTermYear) return lastCompletedTermYear;
-
-  return years.find(year => year.isActive) ?? years[0];
 }
 
 export function useAcademicYears() {
@@ -129,7 +102,7 @@ export function useActiveAcademicYear() {
   const now = useAcademicNow();
   const data = useMemo(() => {
     if (years.length === 0) return undefined;
-    return resolveAcademicYearForDate(years, now);
+    return detectCurrentAcademicYear(years, now);
   }, [now, years]);
 
   return { ...yearsQuery, data };
