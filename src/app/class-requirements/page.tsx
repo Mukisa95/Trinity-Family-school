@@ -74,8 +74,8 @@ function ClassRequirementsContent() {
   const [isReceptionModalOpen, setIsReceptionModalOpen] = React.useState(false);
 
   // Data fetching - these will use cached data immediately if available
-  const { data: classDetail, isLoading: classLoading } = useClass(classId || '');
-  const { data: pupilsInClass = [], isLoading: pupilsLoading } = usePupilsByClass(classId || '');
+  const { data: classDetail, isLoading: classLoading, error: classError } = useClass(classId || '');
+  const { data: pupilsInClass = [], isLoading: pupilsLoading, error: pupilsError } = usePupilsByClass(classId || '');
   const { data: allRequirements = [] } = useRequirements();
   const { data: academicYears = [] } = useAcademicYears();
 
@@ -267,7 +267,7 @@ function ClassRequirementsContent() {
 
   // 🚀 CRITICAL: Only show loading if we don't have cached data at all (first load)
   // If we have cached data (even if stale), show it immediately even if loading in background
-  if (isLoading && !hasCachedData) {
+  if (classLoading || pupilsLoading || trackingLoading) {
     return (
       <div className="p-4 sm:p-6 space-y-6">
         <PageHeader title="Loading Class Requirements..." />
@@ -279,10 +279,25 @@ function ClassRequirementsContent() {
     );
   }
 
+  if (classError || pupilsError || (trackingQuery.error && !hasCachedTrackingData)) {
+    return (
+      <div className="p-4 sm:p-6 text-center">
+        <PageHeader title="Class Requirements" />
+        <p className="text-muted-foreground">Unable to load class requirements. Please try again.</p>
+        <Button className="mt-4" onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
+
   // 🚀 CRITICAL: If we still don't have classDetail after loading, return early
   // This prevents errors when trying to access classDetail properties
   if (!classDetail) {
-    return null;
+    return (
+      <div className="p-4 sm:p-6 text-center">
+        <PageHeader title="Class Requirements" />
+        <p className="text-muted-foreground">Class not found.</p>
+      </div>
+    );
   }
 
   const selectedAcademicYearData = academicYears.find(y => y.id === selectedAcademicYear);
@@ -662,4 +677,4 @@ export default function ClassRequirementsPage() {
       </Suspense>
     </div>
   );
-} 
+}

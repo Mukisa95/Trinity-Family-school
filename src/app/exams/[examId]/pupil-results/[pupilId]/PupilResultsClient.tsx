@@ -384,7 +384,7 @@ export default function PupilResultsClient() {
     data: examHistoryData,
     isLoading: isLoadingHistory,
     error: historyError
-  } = usePupilExamHistory(pupilId, examId);
+  } = usePupilExamHistory(pupilId, { currentExamId: examId });
 
   // Progress update helper - MUST be before any early returns
   const updateProgress = useCallback((progress: number, status: string) => {
