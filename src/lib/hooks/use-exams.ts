@@ -666,6 +666,7 @@ export function usePupilExamHistory(
   const scope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
   return useQuery({
     queryKey: [...examKeys.pupilHistory(scope, pupilId), {
+      currentExamId: options?.currentExamId,
       academicYearId: options?.academicYearId,
       termId: options?.termId,
     }],
