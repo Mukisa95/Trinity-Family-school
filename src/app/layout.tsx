@@ -13,6 +13,7 @@ import { PrintProvider } from '@/lib/contexts/print-context';
 import { ServiceWorkerProvider } from '@/components/providers/service-worker-provider';
 import { PDFWorkspaceProvider } from '@/lib/pdf/pdf-workspace-context';
 import { PDFWorkspace } from '@/components/pdf/pdf-workspace';
+import { OperationalAuditProvider } from '@/components/providers/operational-audit-provider';
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
@@ -171,6 +172,7 @@ export default function RootLayout({
               <PDFWorkspaceProvider>
                 <ServiceWorkerProvider />
                 <GlobalDataPreloader />
+                <OperationalAuditProvider />
                 <SyncProvider>
                   <AppLayout>
                     {children}
