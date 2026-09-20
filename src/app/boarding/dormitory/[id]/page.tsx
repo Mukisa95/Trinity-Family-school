@@ -169,10 +169,10 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
               <DialogFooter>
                 <Button
                   onClick={() => assignMutation.mutate()}
-                  disabled={assignMutation.isLoading || selectedPupilIds.length === 0}
+                  disabled={assignMutation.isPending || selectedPupilIds.length === 0}
                   className="rounded-full bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white shadow hover:from-indigo-700 hover:to-fuchsia-700"
                 >
-                  {assignMutation.isLoading ? 'Assigning…' : 'Assign'}
+                  {assignMutation.isPending ? 'Assigning…' : 'Assign'}
                 </Button>
               </DialogFooter>
             </DialogContent>

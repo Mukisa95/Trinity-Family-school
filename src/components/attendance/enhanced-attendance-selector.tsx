@@ -49,6 +49,14 @@ export function EnhancedAttendanceSelector({
   const [selectedDate, setSelectedDate] = React.useState<string>(
     format(new Date(), 'yyyy-MM-dd')
   );
+  const lastPublished = React.useRef<{
+    key: string;
+    records: EnhancedAttendanceRecord[];
+    termStatus: 'past' | 'current' | 'future';
+  } | null>(null);
+  const handlePupilsChange = React.useCallback((pupils: Pupil[]) => {
+    console.log('Pupil selection changed:', pupils);
+  }, []);
 
   // Determine term status
   const termStatus = React.useMemo(() => {
@@ -60,6 +68,7 @@ export function EnhancedAttendanceSelector({
   const {
     data: attendanceRecords = [],
     isLoading,
+    isSuccess,
     error
   } = useEnhancedAttendanceByDateRange(
     selectedDate,
@@ -70,15 +79,15 @@ export function EnhancedAttendanceSelector({
 
   // Update parent when data changes
   React.useEffect(() => {
-    if (attendanceRecords.length > 0) {
-      const dataSource = attendanceRecords[0]?.pupilSnapshotData?.dataSource || 'live';
-      onAttendanceDataChange({
-        attendanceRecords,
-        dataSource,
-        termStatus
-      });
-    }
-  }, [attendanceRecords, termStatus, onAttendanceDataChange]);
+    if (!selectedAcademicYear || !selectedTerm || !selectedClass || !isSuccess || error) return;
+    const key = [selectedDate, selectedAcademicYear.id, selectedTerm.id, selectedClass.id].join(':');
+    if (lastPublished.current?.key === key &&
+        lastPublished.current.records === attendanceRecords &&
+        lastPublished.current.termStatus === termStatus) return;
+    lastPublished.current = { key, records: attendanceRecords, termStatus };
+    const dataSource = attendanceRecords[0]?.pupilSnapshotData?.dataSource || 'live';
+    onAttendanceDataChange({ attendanceRecords, dataSource, termStatus });
+  }, [attendanceRecords, isSuccess, error, selectedDate, selectedAcademicYear, selectedTerm, selectedClass, termStatus, onAttendanceDataChange]);
 
   const getStatusIcon = (status: 'past' | 'current' | 'future') => {
     switch (status) {
@@ -161,13 +170,11 @@ export function EnhancedAttendanceSelector({
 
       {/* Pupil Selector with Historical Accuracy */}
       <PupilHistoricalSelector
-        selectedAcademicYear={selectedAcademicYear}
-        selectedTerm={selectedTerm}
-        selectedClass={selectedClass}
-        onSelectionChange={(data) => {
-          // Handle pupil selection changes
-          console.log('Pupil selection changed:', data);
-        }}
+        key={selectedClass.id}
+        selectedAcademicYearId={selectedAcademicYear.id}
+        selectedTermId={selectedTerm.id}
+        classFilter={selectedClass.id}
+        onPupilsChange={handlePupilsChange}
       />
 
       {/* Attendance Records Display */}
@@ -238,4 +245,4 @@ export function EnhancedAttendanceSelector({
       </Card>
     </div>
   );
-} 
+}

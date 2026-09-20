@@ -19,6 +19,7 @@ import { db } from '../firebase';
 import type { AttendanceRecord, EnhancedAttendanceRecord } from '@/types';
 import { PupilSnapshotsService } from './pupil-snapshots.service';
 import { getDocsWithTimeout } from '../utils/firestore-helpers';
+import { getAttendanceDateRangeBounds, mergeAttendanceDateResults } from '../utils/attendance-date-range';
 
 /**
  * EAT TIMEZONE FIX:
@@ -321,32 +322,37 @@ export class AttendanceService {
     academicYearId?: string,
     termId?: string
   ): Promise<EnhancedAttendanceRecord[]> {
-    let q = query(
-      collection(db, COLLECTION_NAME),
-      where('date', '>=', startDate),
-      where('date', '<=', endDate),
-      orderBy('date', 'desc'),
-      orderBy('recordedAt', 'desc')
-    );
+    const bounds = getAttendanceDateRangeBounds(startDate, endDate);
+    const scopedQuery = (start: Timestamp | string, endExclusive: Timestamp | string) => {
+      let dateQuery = query(
+        collection(db, COLLECTION_NAME),
+        where('date', '>=', start),
+        where('date', '<', endExclusive),
+      );
+      if (academicYearId) dateQuery = query(dateQuery, where('academicYearId', '==', academicYearId));
+      if (termId) dateQuery = query(dateQuery, where('termId', '==', termId));
+      return dateQuery;
+    };
 
-    // Add academic context filters if provided
-    if (academicYearId) {
-      q = query(q, where('academicYearId', '==', academicYearId));
-    }
-    if (termId) {
-      q = query(q, where('termId', '==', termId));
-    }
-
-    const querySnapshot = await getDocs(q);
-    const attendanceRecords = querySnapshot.docs.map(doc => {
-      const data = doc.data();
+    // Older enhanced records were written with string dates; ordinary records
+    // use Timestamps. Firestore range comparisons cannot match both types.
+    const [timestampSnapshot, legacySnapshot] = await Promise.all([
+      getDocs(scopedQuery(Timestamp.fromDate(bounds.start), Timestamp.fromDate(bounds.endExclusive))),
+      getDocs(scopedQuery(bounds.legacyStart, bounds.legacyEndExclusive)),
+    ]);
+    const toRecords = (snapshot: typeof timestampSnapshot) => snapshot.docs.map(record => {
+      const data = record.data();
       return {
-        id: doc.id,
+        id: record.id,
         ...data,
         date: data.date?.toDate ? toLocalISOString(data.date.toDate()) : data.date,
-        recordedAt: data.recordedAt?.toDate ? data.recordedAt.toDate().toISOString() : data.recordedAt
+        recordedAt: data.recordedAt?.toDate ? data.recordedAt.toDate().toISOString() : data.recordedAt,
       } as AttendanceRecord;
     });
+    const attendanceRecords = mergeAttendanceDateResults(
+      toRecords(timestampSnapshot),
+      toRecords(legacySnapshot),
+    );
 
     // Enhance with historical pupil data
     return this.enhanceWithHistoricalData(attendanceRecords);
@@ -395,6 +401,7 @@ export class AttendanceService {
   ): Promise<string> {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...recordData,
+      date: Timestamp.fromDate(parseDateToLocalMidnight(recordData.date)),
       recordedAt: serverTimestamp(),
     });
     return docRef.id;
