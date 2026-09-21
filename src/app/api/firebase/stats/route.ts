@@ -89,6 +89,7 @@ async function queryMetric(metricType: string, startTime: Date, resourceFilter?:
 
   const accessToken = await getAccessToken();
   const filter = [`metric.type = \"${metricType}\"`, resourceFilter].filter(Boolean).join(' AND ');
+  const endTime = new Date().toISOString();
   const points: MetricPoint[] = [];
   let pageToken: string | undefined;
 
@@ -96,7 +97,7 @@ async function queryMetric(metricType: string, startTime: Date, resourceFilter?:
     const search = new URLSearchParams({
       filter,
       'interval.startTime': startTime.toISOString(),
-      'interval.endTime': new Date().toISOString(),
+      'interval.endTime': endTime,
       view: 'FULL',
       pageSize: '1000',
     });
