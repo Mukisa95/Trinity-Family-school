@@ -8,6 +8,7 @@ const parentSettings = readFileSync('src/app/parent/settings/page.tsx', 'utf8');
 const accountSettings = readFileSync('src/app/settings/account/page.tsx', 'utf8');
 const authGuard = readFileSync('src/components/common/AuthGuard.tsx', 'utf8');
 const autoLockSettings = readFileSync('src/components/settings/auto-lock-settings.tsx', 'utf8');
+const passkeySettings = readFileSync('src/components/settings/passkey-settings.tsx', 'utf8');
 const passkeyService = readFileSync('src/lib/services/passkey.service.ts', 'utf8');
 
 test('passkeys remain in the existing recursive server-only credential namespace', () => {
@@ -36,4 +37,13 @@ test('the privacy lock can require local device verification without a network r
   assert.match(passkeyService, /userVerification:\s*'required'/);
   const localUnlock = passkeyService.slice(passkeyService.indexOf('async unlockLocalSession'));
   assert.doesNotMatch(localUnlock.split('async signIn')[0], /requestPasskey\(/);
+});
+
+test('passkey settings wait for restored Firebase auth and recover an existing authenticator', () => {
+  assert.match(passkeyService, /if \(authenticated\) await auth\.authStateReady\(\)/);
+  assert.match(passkeyService, /ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED/);
+  assert.match(passkeySettings, /PasskeyService\.isPreviouslyRegisteredError\(error\)/);
+  assert.match(passkeySettings, /This device unlock was already registered and is ready to use\./);
+  assert.match(passkeySettings, /Check status/);
+  assert.doesNotMatch(passkeySettings, /Try again online/);
 });

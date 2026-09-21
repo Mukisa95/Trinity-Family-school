@@ -34,6 +34,12 @@ function randomChallenge() {
 }
 
 async function requestPasskey<T>(body: Record<string, unknown>, authenticated = false): Promise<T> {
+  // The application profile is restored from its local cache before Firebase
+  // Auth finishes restoring its persisted identity. Settings can therefore
+  // mount while currentUser is briefly null even though the user is signed in.
+  // Waiting here prevents that normal startup window from being reported as a
+  // network or sign-in failure.
+  if (authenticated) await auth.authStateReady();
   const token = authenticated ? await auth.currentUser?.getIdToken() : null;
   if (authenticated && !token) throw new Error('Sign in again to manage device unlock.');
   const response = await fetch('/api/auth/passkey', {
@@ -47,6 +53,15 @@ async function requestPasskey<T>(body: Record<string, unknown>, authenticated = 
 }
 
 export const PasskeyService = {
+  isPreviouslyRegisteredError(error: unknown) {
+    return Boolean(
+      error
+      && typeof error === 'object'
+      && 'code' in error
+      && error.code === 'ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED',
+    );
+  },
+
   async supported() {
     return typeof window !== 'undefined' && window.isSecureContext
       && await browserSupportsPasskeys()
