@@ -54,8 +54,8 @@ function db() { return getFirestore(getFirebaseAdminApp()); }
 // Keep security credentials below the already server-only authCredentials
 // namespace. Existing production rules deny this entire recursive path, so the
 // browser cannot read or forge a passkey even before any rules update.
-function passkeys() { return db().collection('authCredentials').doc('__passkeys__').collection('credentials'); }
-function passkeyChallenges() { return db().collection('authCredentials').doc('__passkeys__').collection('challenges'); }
+function passkeys() { return db().collection('authCredentials').doc('passkeys').collection('credentials'); }
+function passkeyChallenges() { return db().collection('authCredentials').doc('passkeys').collection('challenges'); }
 
 async function cleanExpiredChallenges() {
   // Firestore's TTL policy is optional; bounded cleanup prevents abandoned

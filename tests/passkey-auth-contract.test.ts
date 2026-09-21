@@ -8,7 +8,7 @@ const parentSettings = readFileSync('src/app/parent/settings/page.tsx', 'utf8');
 const accountSettings = readFileSync('src/app/settings/account/page.tsx', 'utf8');
 
 test('passkeys remain in the existing recursive server-only credential namespace', () => {
-  assert.match(route, /collection\('authCredentials'\)\.doc\('__passkeys__'\)/);
+  assert.match(route, /collection\('authCredentials'\)\.doc\('passkeys'\)/);
   assert.doesNotMatch(route, /collection\('authPasskeys'/);
   assert.match(route, /transaction\.delete\(ref\)/, 'a challenge must be consumed before verification');
 });
