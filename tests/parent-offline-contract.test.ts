@@ -135,7 +135,7 @@ test('a fee display is cached only for the selected parent, child, and term', ()
 });
 
 test('only normal parent routes are requested for automatic app-shell preparation', () => {
-  assert.deepEqual(PARENT_OFFLINE_APP_ROUTES, ['/parent', '/parent/settings']);
+  assert.deepEqual(PARENT_OFFLINE_APP_ROUTES, ['/', '/parent', '/parent/settings']);
 });
 
 test('a parent shell refresh requires a confirmed newer Firebase release', () => {

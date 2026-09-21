@@ -1,5 +1,12 @@
-export const PARENT_OFFLINE_APP_ROUTES = ['/parent', '/parent/settings'] as const;
+export const PARENT_OFFLINE_APP_ROUTES = ['/', '/parent', '/parent/settings'] as const;
 export const PARENT_SHELL_READY_EVENT = 'trinity:parent-shell-ready';
+export const PARENT_OFFLINE_RETRY_EVENT = 'trinity:parent-offline-retry';
+const PARENT_SHELL_PREPARED_AT_KEY = 'trinity_parent_shell_prepared_at';
+
+export function getParentAppShellPreparedAt(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(PARENT_SHELL_PREPARED_AT_KEY);
+}
 
 export async function isParentAppShellReady(): Promise<boolean> {
   if (typeof window === 'undefined' || !('caches' in window)) return false;
@@ -59,13 +66,14 @@ export async function prepareParentAppShell(options: { force?: boolean } = {}): 
     const timeout = window.setTimeout(() => {
       channel.port1.close();
       reject(new Error('The parent interface did not finish saving.'));
-    }, 30_000);
+    }, 120_000);
 
     channel.port1.onmessage = event => {
       window.clearTimeout(timeout);
       channel.port1.close();
       const result = event.data as ParentShellResponse;
       if (result?.type === 'PARENT_APP_SHELL_CACHED') {
+        localStorage.setItem(PARENT_SHELL_PREPARED_AT_KEY, new Date().toISOString());
         window.dispatchEvent(new Event(PARENT_SHELL_READY_EVENT));
         resolve();
       }

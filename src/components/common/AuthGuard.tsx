@@ -4,13 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import SessionResumeModal from './SessionResumeModal';
+import { PasskeyService } from '@/lib/services/passkey.service';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { user, isLocked, resumeSession, login, logout } = useAuth();
+  const { user, isLocked, resumeSession, login, logout, deviceUnlockForAutoLock } = useAuth();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const router = useRouter();
 
@@ -23,6 +24,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }, [user, isLocked]);
 
   const handleResume = async (): Promise<boolean> => {
+    if (deviceUnlockForAutoLock && user) {
+      await PasskeyService.unlockLocalSession(user.id);
+    }
     return await resumeSession();
   };
 
@@ -86,6 +90,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           onSwitchUser={handleSwitchUser}
           onSignOut={handleSignOut}
           username={user.username}
+          requiresDeviceUnlock={deviceUnlockForAutoLock}
         />
       </>
     );

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Eye, EyeOff, Save, ArrowLeft, KeyRound, Shield, AlertCircle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, Save, ArrowLeft, KeyRound, Shield, AlertCircle, Fingerprint } from "lucide-react";
 import { Lock as LockIcon, SignOut } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -17,9 +17,10 @@ import { useNavigation } from '@/lib/contexts/navigation-context';
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
 import { PasskeySettings } from '@/components/settings/passkey-settings';
+import { PASSKEYS_CHANGED_EVENT, PasskeyService } from '@/lib/services/passkey.service';
 
 export default function AccountSettingsPage() {
-  const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, lockAccount, logout } = useAuth();
+  const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, lockAccount, logout, deviceUnlockForAutoLock, setDeviceUnlockForAutoLock } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const { goBack } = useNavigation();
@@ -40,6 +41,28 @@ export default function AccountSettingsPage() {
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [showLockModal, setShowLockModal] = useState(false);
+  const [localDeviceUnlockAvailable, setLocalDeviceUnlockAvailable] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      if (!user) return setLocalDeviceUnlockAvailable(false);
+      const supported = await PasskeyService.supported().catch(() => false);
+      setLocalDeviceUnlockAvailable(supported && PasskeyService.hasLocalUnlock(user.id));
+    };
+    void check();
+    window.addEventListener(PASSKEYS_CHANGED_EVENT, check);
+    window.addEventListener('focus', check);
+    return () => {
+      window.removeEventListener(PASSKEYS_CHANGED_EVENT, check);
+      window.removeEventListener('focus', check);
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (deviceUnlockForAutoLock && (!localDeviceUnlockAvailable || autoLockAction === 'signout')) {
+      setDeviceUnlockForAutoLock(false);
+    }
+  }, [autoLockAction, deviceUnlockForAutoLock, localDeviceUnlockAvailable, setDeviceUnlockForAutoLock]);
 
   // Handle navigation in useEffect to avoid state updates during render
   React.useEffect(() => {
@@ -536,6 +559,27 @@ export default function AccountSettingsPage() {
                       </Button>
                     </div>
                   </div>
+                  {autoLockAction !== 'signout' && (
+                    <div className="flex items-start justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+                      <div className="flex items-start gap-3">
+                        <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700" />
+                        <div>
+                          <Label className="text-sm font-semibold text-gray-900">Require device unlock</Label>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {localDeviceUnlockAvailable
+                              ? 'Use fingerprint, face unlock, or the device PIN. The privacy lock also opens offline.'
+                              : 'Enable biometric / device unlock above on this device first.'}
+                          </p>
+                        </div>
+                      </div>
+                      <button type="button" role="switch" aria-checked={deviceUnlockForAutoLock}
+                        disabled={!localDeviceUnlockAvailable}
+                        onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)}
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                        <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${deviceUnlockForAutoLock ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>

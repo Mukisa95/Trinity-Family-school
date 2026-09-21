@@ -71,6 +71,8 @@ interface AuthContextType {
   setAutoLockEnabled: (enabled: boolean) => void;
   autoLockAction: 'lock-on-close' | 'lock-on-leave' | 'signout' | null;
   setAutoLockAction: (action: 'lock-on-close' | 'lock-on-leave' | 'signout') => void;
+  deviceUnlockForAutoLock: boolean;
+  setDeviceUnlockForAutoLock: (enabled: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLocked, setIsLocked] = useState(false);
   const [autoLockEnabled, setAutoLockEnabled] = useState(false);
   const [autoLockAction, setAutoLockActionState] = useState<'lock-on-close' | 'lock-on-leave' | 'signout' | null>(null);
+  const [deviceUnlockForAutoLock, setDeviceUnlockForAutoLockState] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('checking');
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [lastSessionValidationAt, setLastSessionValidationAt] = useState<number>(0);
@@ -174,6 +177,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedAutoLock = localStorage.getItem('trinity_auto_lock');
         const storedLockState = localStorage.getItem('trinity_account_locked');
         const storedAutoLockAction = localStorage.getItem('trinity_auto_lock_action');
+        const storedDeviceUnlock = localStorage.getItem('trinity_auto_lock_device_unlock');
+        const storedHiddenApp = localStorage.getItem('trinity_app_hidden');
         
         if (storedAutoLock) {
           try {
@@ -204,6 +209,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (error) {
             logger.warn('Error parsing auto lock action', error);
           }
+        }
+
+        if (storedDeviceUnlock) {
+          try {
+            setDeviceUnlockForAutoLockState(JSON.parse(storedDeviceUnlock));
+          } catch (error) {
+            logger.warn('Error parsing device unlock setting', error);
+          }
+        }
+
+        // Mobile browsers do not reliably fire beforeunload when an installed
+        // app is swiped away. A window that was hidden and never became visible
+        // again is treated as closed on the next launch.
+        if (storedHiddenApp === 'true') {
+          try {
+            const enabled = JSON.parse(storedAutoLock || 'false');
+            const action = JSON.parse(storedAutoLockAction || 'null');
+            if (enabled && (action === 'lock-on-close' || action === 'lock')) {
+              setIsLocked(true);
+              localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+            }
+          } catch (error) {
+            logger.warn('Error restoring app-close lock state', error);
+          }
+          localStorage.removeItem('trinity_app_hidden');
         }
         
         const storedCache = readUserCache();
@@ -375,10 +405,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleVisibilityChange = () => {
-      // Only lock on leave if the action is 'lock-on-leave' and page becomes hidden
-      if (autoLockAction === 'lock-on-leave' && document.visibilityState === 'hidden') {
-        setIsLocked(true);
-        localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+      if (document.visibilityState === 'hidden') {
+        if (autoLockAction === 'lock-on-leave') {
+          setIsLocked(true);
+          localStorage.setItem('trinity_account_locked', JSON.stringify(true));
+        } else if (autoLockAction === 'lock-on-close') {
+          localStorage.setItem('trinity_app_hidden', 'true');
+        }
+      } else if (autoLockAction === 'lock-on-close') {
+        localStorage.removeItem('trinity_app_hidden');
       }
     };
 
@@ -396,6 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       saveUserCache(authenticatedUser);
       localStorage.removeItem('trinity_account_locked');
+      localStorage.removeItem('trinity_app_hidden');
     }
     setIsLocked(false);
     setHasStoredUser(true);
@@ -461,6 +497,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         clearUserCache();
         localStorage.removeItem('trinity_account_locked');
+        localStorage.removeItem('trinity_app_hidden');
         // NOTE: We intentionally do NOT call liteClearAll() here.
         // Photos, events, and academicYears are school-level public data — they
         // don't belong to any individual user. Keeping them in the lite cache
@@ -477,6 +514,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (departingUserId) {
           void removeParentOfflineAccount(departingUserId).catch(() => undefined);
         }
+
         clearUserCache();
         localStorage.removeItem('trinity_account_locked');
         // Same reasoning — don't clear public system data on logout.
@@ -525,6 +563,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearUserCache();
     if (typeof window !== 'undefined') {
       localStorage.removeItem('trinity_account_locked');
+      localStorage.removeItem('trinity_app_hidden');
     }
     setSessionStatus('stale');
     setSessionMessage(validation.message);
@@ -547,17 +586,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resumeSession = async (): Promise<boolean> => {
     if (!user) return false;
 
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser || firebaseUser.isAnonymous || firebaseUser.uid !== user.id) {
-      return revalidateSignedSession(false);
-    }
-
     // Auto-lock is a local privacy screen, not a second sign-in. Resume
     // immediately and verify revocation in the background so slow internet
     // never delays access to the already-mounted dashboard and cache.
     setIsLocked(false);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('trinity_account_locked');
+      localStorage.removeItem('trinity_app_hidden');
     }
     logger.info('Local privacy lock resumed');
     // This uses the already-issued token locally. Forced refreshes happen on
@@ -576,6 +611,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAutoLockActionState(action);
     if (typeof window !== 'undefined') {
       localStorage.setItem('trinity_auto_lock_action', JSON.stringify(action));
+    }
+  };
+
+  const setDeviceUnlockForAutoLock = (enabled: boolean) => {
+    setDeviceUnlockForAutoLockState(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trinity_auto_lock_device_unlock', JSON.stringify(enabled));
     }
   };
 
@@ -696,6 +738,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAutoLockEnabled: handleSetAutoLockEnabled,
     autoLockAction,
     setAutoLockAction,
+    deviceUnlockForAutoLock,
+    setDeviceUnlockForAutoLock,
   };
 
   return (

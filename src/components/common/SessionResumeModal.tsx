@@ -9,6 +9,7 @@ import {
   Lock,
   SignOut,
   UserSwitch,
+  Fingerprint,
 } from '@phosphor-icons/react';
 
 interface SessionResumeModalProps {
@@ -17,6 +18,7 @@ interface SessionResumeModalProps {
   onSwitchUser?: (username: string, password: string) => Promise<boolean>;
   onSignOut?: () => void | Promise<void>;
   username?: string;
+  requiresDeviceUnlock?: boolean;
 }
 
 export default function SessionResumeModal({
@@ -25,6 +27,7 @@ export default function SessionResumeModal({
   onSwitchUser,
   onSignOut,
   username,
+  requiresDeviceUnlock = false,
 }: SessionResumeModalProps) {
   const [password, setPassword] = useState('');
   const [switchUsername, setSwitchUsername] = useState('');
@@ -55,8 +58,10 @@ export default function SessionResumeModal({
       if (!success) {
         setError('This signed session is no longer available. Please switch user or sign in again.');
       }
-    } catch {
-      setError('The session could not be resumed. Please try again or switch user.');
+    } catch (resumeError) {
+      setError(resumeError instanceof Error
+        ? resumeError.message
+        : 'The session could not be resumed. Please try again or switch user.');
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +121,9 @@ export default function SessionResumeModal({
             {mode === 'switch' ? (
               <UserSwitch size={24} className="text-blue-700" weight="duotone" />
             ) : (
-              <Lock size={24} className="text-blue-700" weight="duotone" />
+              requiresDeviceUnlock
+                ? <Fingerprint size={24} className="text-blue-700" weight="duotone" />
+                : <Lock size={24} className="text-blue-700" weight="duotone" />
             )}
           </div>
           <h2 id="session-resume-title" className="text-lg font-semibold text-slate-950">
@@ -125,7 +132,9 @@ export default function SessionResumeModal({
           <p id="session-resume-description" className="mt-2 text-sm leading-6 text-slate-600">
             {mode === 'switch'
               ? 'Sign in with a different account. This replaces the current signed session.'
-              : 'Your signed session and mounted dashboard are still available. Resume without entering your password again.'}
+              : requiresDeviceUnlock
+                ? 'Use this device’s fingerprint, face unlock, or screen PIN to open your saved session. This also works offline.'
+                : 'Your signed session and mounted dashboard are still available. Resume without entering your password again.'}
           </p>
           {mode === 'resume' && username && (
             <p className="mt-2 text-xs font-medium text-slate-500">
@@ -146,13 +155,17 @@ export default function SessionResumeModal({
               {isLoading ? (
                 <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
-                <ArrowCounterClockwise size={18} className="mr-2" weight="bold" />
+                requiresDeviceUnlock
+                  ? <Fingerprint size={18} className="mr-2" weight="bold" />
+                  : <ArrowCounterClockwise size={18} className="mr-2" weight="bold" />
               )}
-              {isLoading ? 'Resuming…' : 'Resume session'}
+              {isLoading ? 'Unlocking…' : requiresDeviceUnlock ? 'Unlock with this device' : 'Resume session'}
             </button>
 
             <p className="text-center text-xs leading-5 text-slate-500">
-              Access changes made by an administrator are checked through Firebase Authentication in the background, without a Firestore user read.
+              {requiresDeviceUnlock
+                ? 'The device verifies you locally. Account access changes are checked in the background when a connection is available.'
+                : 'Access changes made by an administrator are checked through Firebase Authentication in the background, without a Firestore user read.'}
             </p>
           </div>
         ) : (

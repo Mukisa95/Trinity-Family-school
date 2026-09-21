@@ -21,14 +21,15 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20260921034644432';
-const BUILD_TIMESTAMP = '2026-09-21T03:46:44.432Z'; // Update this on each build
+const SW_VERSION = 'build-20260921101239236';
+const BUILD_TIMESTAMP = '2026-09-21T10:12:39.236Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${SW_VERSION}`;
 const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
+const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
 
 function parentAppRouteRequest(url) {
   return new Request(new URL(url.pathname, self.location.origin).toString(), {
@@ -58,7 +59,8 @@ function parentStaticAssetUrlsFromHtml(html, baseUrl) {
 const STATIC_FILES = [
   '/trinity-logo-192.png',
   '/trinity-logo-512.png',
-  '/manifest.json'
+  '/manifest.json',
+  '/parent-manifest.json'
 ];
 
 // Install event - cache static files
@@ -221,20 +223,20 @@ self.addEventListener('message', (event) => {
         }
       })
       .filter(url => url && url.origin === self.location.origin)
-      .filter(url => PARENT_APP_ROUTES.has(url.pathname) || url.pathname.startsWith('/_next/static/'));
+      .filter(url => PARENT_APP_ROUTES.has(url.pathname) || url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE || url.pathname.startsWith('/_next/static/'));
 
     event.waitUntil(
       caches.open(PARENT_APP_SHELL_CACHE)
         .then(async cache => {
           await Promise.all(acceptedUrls.map(async url => {
-            const request = PARENT_APP_ROUTES.has(url.pathname)
+            const request = PARENT_APP_ROUTES.has(url.pathname) || url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE
               ? parentAppRouteRequest(url)
               : new Request(url.toString(), { credentials: 'same-origin' });
             if (!force && await cache.match(request)) return;
             const response = await fetch(request, force ? { cache: 'no-store' } : undefined);
             if (!response.ok) throw new Error(`Could not save ${url.pathname}`);
             await cache.put(request, response.clone());
-            if (PARENT_APP_ROUTES.has(url.pathname)) {
+            if (PARENT_APP_ROUTES.has(url.pathname) || url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE) {
               const discoveredAssets = parentStaticAssetUrlsFromHtml(await response.clone().text(), url.toString());
               await Promise.all(discoveredAssets.map(async assetUrl => {
                 const assetRequest = new Request(assetUrl, { credentials: 'same-origin' });
@@ -536,6 +538,24 @@ self.addEventListener('fetch', (event) => {
             { status: 503, statusText: 'Service Unavailable', headers: new Headers({ 'Content-Type': 'text/html' }) },
           );
         }),
+    );
+    return;
+  }
+
+  // Existing installed copies may still have `/` as their saved start URL.
+  // Keep normal online launches network-first, but fall back to the root shell
+  // explicitly prepared by an authenticated parent when the device is offline.
+  if (url.origin === self.location.origin && url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE && event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(async () => {
+        const cache = await caches.open(PARENT_APP_SHELL_CACHE);
+        const cached = await cache.match(parentAppRouteRequest(url));
+        if (cached) return cached;
+        return new Response(
+          '<!DOCTYPE html><html><body><h1>The application is not downloaded yet</h1><p>Connect once and open the parent dashboard to prepare offline access.</p></body></html>',
+          { status: 503, statusText: 'Service Unavailable', headers: new Headers({ 'Content-Type': 'text/html' }) },
+        );
+      }),
     );
     return;
   }

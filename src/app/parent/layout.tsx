@@ -4,6 +4,7 @@ import { ParentLayout } from '@/components/parent/parent-layout';
 export const metadata: Metadata = {
   title: 'Parent Portal - Trinity Family Schools',
   description: 'Access your child\'s school information, notifications, and updates.',
+  manifest: '/parent-manifest.json',
 };
 
 export default function ParentRootLayout({

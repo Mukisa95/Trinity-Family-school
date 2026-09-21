@@ -16,6 +16,7 @@ import { ParentAttendanceService } from '@/lib/services/parent-attendance.servic
 import { ParentBankingService } from '@/lib/services/parent-banking.service';
 import { ParentResultsService } from '@/lib/services/parent-results.service';
 import { ParentOfflineFeePreparer } from './parent-offline-fee-preparer';
+import { PARENT_OFFLINE_RETRY_EVENT } from '@/lib/parent-offline/app-shell';
 
 type ParentOfflineDatasetPreparerProps = {
   accountId?: string;
@@ -48,10 +49,17 @@ export function ParentOfflineDatasetPreparer({
   pupils,
 }: ParentOfflineDatasetPreparerProps) {
   const online = useOnlineStatus();
+  const [retryVersion, setRetryVersion] = useState(0);
   const { revision: bankingRevision } = useParentDashboardRevision(familyId, 'banking');
   const { revision: attendanceRevision } = useParentDashboardRevision(familyId, 'attendance');
   const { revision: resultsRevision } = useParentDashboardRevision(familyId, 'results');
   const pupilIds = pupils.map(pupil => pupil.id).filter(Boolean).sort().join('|');
+
+  useEffect(() => {
+    const retry = () => setRetryVersion(version => version + 1);
+    window.addEventListener(PARENT_OFFLINE_RETRY_EVENT, retry);
+    return () => window.removeEventListener(PARENT_OFFLINE_RETRY_EVENT, retry);
+  }, []);
 
   useEffect(() => {
     if (!accountId || !online || bankingRevision === undefined || !isParentOfflineStorageAvailable()) return;
@@ -63,7 +71,7 @@ export function ParentOfflineDatasetPreparer({
       if (!cancelled) await saveParentOfflineBanking({ accountId, pupilId, revision: bankingRevision, ...banking });
     })).catch(error => console.warn('Could not prepare parent banking for offline use:', error));
     return () => { cancelled = true; };
-  }, [accountId, bankingRevision, online, pupilIds]);
+  }, [accountId, bankingRevision, online, pupilIds, retryVersion]);
 
   useEffect(() => {
     if (!accountId || !online || attendanceRevision === undefined || !isParentOfflineStorageAvailable()) return;
@@ -75,7 +83,7 @@ export function ParentOfflineDatasetPreparer({
       if (!cancelled) await saveParentOfflineAttendance({ accountId, pupilId, revision: attendanceRevision, records });
     })).catch(error => console.warn('Could not prepare parent attendance for offline use:', error));
     return () => { cancelled = true; };
-  }, [accountId, attendanceRevision, online, pupilIds]);
+  }, [accountId, attendanceRevision, online, pupilIds, retryVersion]);
 
   useEffect(() => {
     if (!accountId || !online || resultsRevision === undefined || !isParentOfflineStorageAvailable()) return;
@@ -87,12 +95,12 @@ export function ParentOfflineDatasetPreparer({
       if (!cancelled) await saveParentOfflineResults({ accountId, pupilId, revision: resultsRevision, results });
     })).catch(error => console.warn('Could not prepare parent results for offline use:', error));
     return () => { cancelled = true; };
-  }, [accountId, online, pupilIds, resultsRevision]);
+  }, [accountId, online, pupilIds, resultsRevision, retryVersion]);
 
   return (
     <>
       {online && pupils.map(pupil => (
-        <ParentOfflineFeePreparer key={pupil.id} accountId={accountId} pupilId={pupil.id} />
+        <ParentOfflineFeePreparer key={`${pupil.id}:${retryVersion}`} accountId={accountId} pupilId={pupil.id} />
       ))}
     </>
   );
