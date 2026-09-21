@@ -1,4 +1,5 @@
 import { PaymentsService } from '@/lib/services/payments.service';
+import { submitPaymentCommand } from '@/lib/services/payment-command.service';
 import type { PaymentRecord } from '@/types';
 
 export interface CarryForwardItem {
@@ -221,22 +222,8 @@ export async function processCarryForwardPayment(
     // The whole carry-forward distribution is one durable command: either all
     // allocations and history records commit, or none do. Retrying the same ID
     // returns the original payment IDs instead of adding another allocation.
-    if (typeof window !== 'undefined') {
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operationId, allocations }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create carry forward payment');
-      }
-      const result = await response.json();
-      paymentIds.push(...(result.paymentIds || []));
-    } else {
-      const result = await PaymentsService.createPaymentOperation(operationId, allocations);
-      paymentIds.push(...result.paymentIds);
-    }
+    const result = await submitPaymentCommand({ operationId, allocations });
+    paymentIds.push(...(result.paymentIds || []));
 
     if (paymentIds.length !== distributions.length) {
       throw new Error('The payment operation did not return every saved allocation');

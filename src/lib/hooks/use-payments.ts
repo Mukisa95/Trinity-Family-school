@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PaymentsService } from '../services/payments.service';
+import { submitPaymentCommand } from '../services/payment-command.service';
 import type { PaymentRecord } from '@/types';
 import { samplePaymentRecords } from '../sample-data';
 import { invalidateFinanceSummaryQueries } from './use-finance-summary';
@@ -72,21 +73,7 @@ export function useCreatePayment() {
   
   return useMutation({
     mutationFn: async (paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>) => {
-      // 🔔 Use API route for client-side (enables notifications)
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment');
-      }
-
-      const result = await response.json();
+      const result = await submitPaymentCommand(paymentData);
       return result.paymentId;
     },
     onSuccess: (_, variables) => {

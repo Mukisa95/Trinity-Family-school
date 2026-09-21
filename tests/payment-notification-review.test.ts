@@ -25,8 +25,9 @@ test('retiring a payment alert is idempotent', async () => {
   assert.equal(event.status, 'skipped');
 });
 
-test('payment route does not create or deliver payment alerts', () => {
-  const source = fs.readFileSync('src/app/api/payments/create/route.ts', 'utf8');
+test('signed-in payment command does not create or deliver payment alerts', () => {
+  assert.equal(fs.existsSync('src/app/api/payments/create/route.ts'), false);
+  const source = fs.readFileSync('src/lib/services/payment-command.service.ts', 'utf8');
   assert.doesNotMatch(source, /enqueuePaymentNotificationEvents|processPendingPaymentNotificationEvents|after\(/);
-  assert.match(source, /Payment alerts are intentionally not sent/);
+  assert.match(source, /performs no additional authentication or token minting/);
 });

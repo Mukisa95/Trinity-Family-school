@@ -4,8 +4,7 @@ import type { AcademicYear } from '@/types';
 import type { PaymentData } from '../types';
 import { PaymentType } from '../types';
 
-// Services
-import { PaymentsService } from '@/lib/services/payments.service';
+import { submitPaymentCommand } from '@/lib/services/payment-command.service';
 
 // Utilities
 import { 
@@ -73,7 +72,6 @@ export function usePaymentProcessing({
         academicYear: selectedAcademicYear.id
       };
 
-      // Submit payment via API route (server-side for notifications)
       const paymentRecord = {
         pupilId: paymentData.pupilId,
         feeStructureId: paymentData.feeId,
@@ -88,20 +86,7 @@ export function usePaymentProcessing({
         }
       };
 
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentRecord),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment');
-      }
-
-      const result = await response.json();
+      const result = await submitPaymentCommand(paymentRecord);
 
       return { result: result.paymentId, paymentType, paymentData };
     },

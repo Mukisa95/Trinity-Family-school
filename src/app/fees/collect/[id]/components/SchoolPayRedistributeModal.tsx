@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import type { PaymentRecord, FeeStructure, AcademicYear, Pupil } from '@/types';
 import type { GroupedSchoolPayTx } from './SchoolPayPaymentBanner';
 import { PaymentsService } from '@/lib/services/payments.service';
+import { submitPaymentCommand } from '@/lib/services/payment-command.service';
 import { HistoryLogService } from '@/lib/services/history-log.service';
 import { filterApplicableFees } from '../utils/feeProcessing';
 
@@ -259,10 +260,7 @@ export function SchoolPayRedistributeModal({
             const slot = allTermSlots.find(s => s.termId === termId);
             const feeName = feeStructures.find(f => f.id === feeId)?.name || feeId;
             const isCrossTermPush = termId !== selectedTermId;
-            const response = await fetch('/api/payments/create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            const result = await submitPaymentCommand({
                 pupilId: pupil.id,
                 academicYearId: slot?.yearId ?? selectedAcademicYear.id,
                 termId,
@@ -285,9 +283,8 @@ export function SchoolPayRedistributeModal({
                   paidByName: transaction.payerName,
                 },
                 ...(isCrossTermPush && { schoolPayOriginTermId: selectedTermId, schoolPayOriginYearId: selectedAcademicYear.id }),
-              }),
             });
-            const result = await response.json();
+            if (!result.paymentId) throw new Error('The redistributed payment did not return a payment ID');
             await HistoryLogService.log({
               action: 'create',
               entity: 'payment',
@@ -323,10 +320,7 @@ export function SchoolPayRedistributeModal({
           if (!targetPupil) continue;
           for (const { termId, feeId, amount } of entries) {
             const feeName = feeStructures.find(f => f.id === feeId)?.name || feeId;
-            const response = await fetch('/api/payments/create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
+            const result = await submitPaymentCommand({
                 pupilId: targetPupilId,
                 academicYearId: selectedAcademicYear.id,
                 termId,
@@ -348,9 +342,8 @@ export function SchoolPayRedistributeModal({
                   source: 'schoolpay_family_redistribution',
                   paidByName: transaction.payerName,
                 },
-              }),
             });
-            const result = await response.json();
+            if (!result.paymentId) throw new Error('The redistributed payment did not return a payment ID');
             await HistoryLogService.log({
               action: 'create',
               entity: 'payment',
@@ -371,10 +364,7 @@ export function SchoolPayRedistributeModal({
 
       // Excess/advance always goes to current (main) pupil
       if (currentExcess > 0) {
-        await fetch('/api/payments/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        await submitPaymentCommand({
             pupilId: pupil.id,
             academicYearId: selectedAcademicYear.id,
             termId: selectedTermId,
@@ -388,7 +378,6 @@ export function SchoolPayRedistributeModal({
             schoolPayPaymentCode: transaction.payCode,
             source: 'schoolpay',
             notes: `Advance/Excess (SchoolPay – ${isFamily ? 'family ' : ''}redistribution) | ${transaction.txRef || ''}`,
-          }),
         });
       }
 

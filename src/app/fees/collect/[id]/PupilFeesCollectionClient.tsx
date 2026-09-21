@@ -52,6 +52,7 @@ import { SchoolPayRedistributeModal } from './components/SchoolPayRedistributeMo
 import { PupilsService } from '@/lib/services/pupils.service';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
 import { PaymentsService } from '@/lib/services/payments.service';
+import { submitPaymentCommand } from '@/lib/services/payment-command.service';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 
 // Optimized hooks for instant data loading
@@ -893,13 +894,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           throw new Error('Select at least one fee before recording a payment.');
         }
 
-        const response = await fetch('/api/payments/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ operationId: operation.operationId, allocations }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Failed to create fee payments');
+        const result = await submitPaymentCommand({ operationId: operation.operationId, allocations });
         if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== allocations.length) {
           throw new Error('The payment confirmation is incomplete. Retry the same submission to check its status.');
         }
@@ -952,12 +947,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           ...regularSelections.map(item => `${item.feeSelection.feeId}:${item.feeSelection.selectedAmount}`),
         ].join(':');
         const regularPaymentOperation = getPaymentOperation(regularPaymentIntent);
-        const response = await fetch('/api/payments/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            operationId: regularPaymentOperation.operationId,
-            allocations: regularSelections.map(({ feeSelection }) => ({
+        const result = await submitPaymentCommand({
+          operationId: regularPaymentOperation.operationId,
+          allocations: regularSelections.map(({ feeSelection }) => ({
               paymentData: {
                 pupilId: pupil.id,
                 feeStructureId: feeSelection.feeId,
@@ -977,20 +969,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 paidByName: paymentData.paidBy,
               },
             })),
-          }),
         });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create grouped fee payments');
-        }
-        const result = await response.json();
         if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== regularSelections.length) {
           throw new Error('The grouped payment did not return every saved fee record');
         }
+        const groupedPaymentIds = result.paymentIds;
         completedOperationIntents.push(regularPaymentIntent);
 
         addPupilPayments(regularSelections.map(({ feeSelection }, index) => ({
-          id: result.paymentIds[index],
+          id: groupedPaymentIds[index],
           pupilId: pupil.id,
           feeStructureId: feeSelection.feeId,
           academicYearId: selectedAcademicYear.id,
@@ -1003,7 +990,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           createdAt: regularPaymentOperation.paymentDate,
         })));
 
-        const signatureResults = await Promise.allSettled(result.paymentIds.map((paymentId: string, index: number) => {
+        const signatureResults = await Promise.allSettled(groupedPaymentIds.map((paymentId: string, index: number) => {
           const feeSelection = regularSelections[index].feeSelection;
           return signAction('fee_payment', paymentId, 'collected', {
             amount: feeSelection.selectedAmount,
@@ -1268,7 +1255,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         );
         clearPaymentOperation(uniformPaymentIntent);
       } else {
-        // Handle regular fee payment via server-side API route
+        // Record with the Firebase identity established when this user signed in.
         const paymentData = {
           operationId: regularPaymentOperation!.operationId,
           pupilId: pupil.id,
@@ -1292,21 +1279,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           }
         };
 
-        // 🔔 Call server-side API to create payment and trigger notifications
-        const response = await fetch('/api/payments/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(paymentData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create payment');
-        }
-
-        const result = await response.json();
+        const result = await submitPaymentCommand(paymentData);
         if (typeof result.paymentId !== 'string' || !result.paymentId) {
           throw new Error('The payment confirmation is incomplete. Retry the same submission to check its status.');
         }

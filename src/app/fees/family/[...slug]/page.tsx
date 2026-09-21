@@ -28,6 +28,7 @@ import { usePrint } from '@/lib/contexts/print-context';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDigitalSignatureHelpers } from '@/lib/hooks/use-digital-signature';
 import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
+import { submitPaymentCommand } from '@/lib/services/payment-command.service';
 import {
   clearPendingPaymentOperation as clearRecoveredPaymentOperation,
   getOrCreatePendingPaymentOperation,
@@ -362,17 +363,13 @@ export default function FamilyFeesCollection() {
           },
         };
       });
-      const response = await fetch('/api/payments/create', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operationId: operation.operationId, allocations }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Failed to create family payment');
+      const result = await submitPaymentCommand({ operationId: operation.operationId, allocations });
       if (!Array.isArray(result.paymentIds) || result.paymentIds.length !== allocations.length) {
         throw new Error('Family payment confirmation is incomplete. Retry the same submission to check its status.');
       }
+      const paymentIds = result.paymentIds;
       const paymentResults = paymentData.selectedFees.map((feePayment, index) => ({
-        paymentId: result.paymentIds[index] as string, feePayment, isUniformFee: !!feePayment.uniformTrackingId,
+        paymentId: paymentIds[index], feePayment, isUniformFee: !!feePayment.uniformTrackingId,
       }));
       const signatureResults = await Promise.allSettled(paymentResults.map(({ paymentId, feePayment, isUniformFee }) => signAction(
         'fee_payment', paymentId, 'collected', {

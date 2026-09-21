@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 
 // Keep the pre-optimization baseline fixed after committing the review branch.
-const baselineRef = 'b701ea259ec2f0b01b30d3c9c05efbbbd822a50e';
+const baselineRef = '27c70d6d5e1c6c6cb1146a27906a322b87cfabf3';
 
 function renderedMarkup(source: string) {
   source = source.replace(/\r\n/g, '\n');

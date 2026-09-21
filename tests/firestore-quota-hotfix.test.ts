@@ -35,11 +35,12 @@ test('staff pupil data and secondary catalogs are not eagerly read by the global
   assert.doesNotMatch(preloader, /firestoreQuery\(collection\(db, 'pupils'\)\)/);
 });
 
-test('quota failures return a retryable service response and payment dialogs are described', () => {
-  const route = read('src/app/api/payments/create/route.ts');
-  assert.match(route, /FIRESTORE_QUOTA_EXHAUSTED/);
-  assert.match(route, /status: 503/);
-  assert.match(route, /'Retry-After': '900'/);
+test('signed-in payment commands expose a clear quota failure and dialogs are described', () => {
+  const command = read('src/lib/services/payment-command.service.ts');
+  assert.match(command, /submitPaymentCommand/);
+  assert.match(command, /isFirestoreQuotaError/);
+  assert.match(command, /temporarily at capacity/);
+  assert.doesNotMatch(command, /ensureServerFirestoreAuth|getIdToken|auth\.currentUser/);
 
   for (const path of [
     'src/app/fees/collect/[id]/components/PaymentModal.tsx',

@@ -162,8 +162,8 @@ export class PaymentsService {
   /**
    * Commits one cashier command exactly once. Reusing the same operation ID
    * after a lost response returns the original payment IDs instead of adding
-   * another payment. This deliberately does not alter authentication; callers
-   * continue using their existing authorized payment route.
+   * another payment. The caller uses the Firebase identity established during
+   * application sign-in; this operation performs no separate authentication.
    */
   static async createPaymentOperation(
     operationId: string,

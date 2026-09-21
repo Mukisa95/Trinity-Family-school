@@ -7,7 +7,7 @@ test('individual mixed-fee submissions use one operation for regular, uniform an
   const source = fs.readFileSync(
     path.join(process.cwd(), 'src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx'),
     'utf8',
-  );
+  ).replace(/\r\n/g, '\n');
   const start = source.indexOf('const useAtomicMixedPaymentOperation = true;');
   const legacyBranch = source.indexOf('\n      } else {\n\n      const regularSelections', start);
   assert.ok(start >= 0, 'the live multi-fee handler must select the atomic operation');
@@ -18,7 +18,8 @@ test('individual mixed-fee submissions use one operation for regular, uniform an
   assert.match(atomicSection, /uniformTracking/);
   assert.match(atomicSection, /clearPaymentOperation\(operationIntent\)/);
   assert.match(atomicSection, /fee-payment:\$\{operation\.operationId\}:\$\{paymentId\}/);
-  assert.equal((atomicSection.match(/fetch\('\/api\/payments\/create'/g) || []).length, 1);
+  assert.equal((atomicSection.match(/submitPaymentCommand\(/g) || []).length, 1);
+  assert.doesNotMatch(atomicSection, /\/api\/payments\/create|ensureServerFirestoreAuth/);
   assert.doesNotMatch(atomicSection, /processCarryForwardPayment\(/);
   assert.doesNotMatch(atomicSection, /createUniformPaymentRecord\(/);
 });

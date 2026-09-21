@@ -2,6 +2,7 @@ import { UniformTrackingService } from './uniform-tracking.service';
 import { UniformsService } from './uniforms.service';
 import type { UniformTracking, UniformItem } from '@/types';
 import type { PupilFee } from '@/app/fees/collect/[id]/types';
+import { submitPaymentCommand } from './payment-command.service';
 
 export interface UniformFeeData extends PupilFee {
   uniformTrackingId: string;
@@ -341,33 +342,14 @@ export class UniformFeesIntegrationService {
         },
       };
 
-      // The payment record and uniform tracking balance must commit together.
-      // Keep the existing payment route and its authentication behavior.
-      let paymentId: string;
-      if (typeof window !== 'undefined') {
-        const response = await fetch('/api/payments/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            operationId: stableOperationId,
-            allocations: [allocation],
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create uniform payment');
-        }
-
-        const result = await response.json();
-        paymentId = result.paymentIds?.[0];
-        if (!paymentId) throw new Error('Uniform payment operation did not return a payment ID');
-      } else {
-        const result = await PaymentsService.createPaymentOperation(stableOperationId, [allocation]);
-        paymentId = result.paymentIds[0];
-      }
+      // The payment record and uniform tracking balance commit together using
+      // the Firebase session established by application sign-in.
+      const result = await submitPaymentCommand({
+        operationId: stableOperationId,
+        allocations: [allocation],
+      });
+      const paymentId = result.paymentIds?.[0];
+      if (!paymentId) throw new Error('Uniform payment operation did not return a payment ID');
 
       return paymentId;
     } catch (error) {

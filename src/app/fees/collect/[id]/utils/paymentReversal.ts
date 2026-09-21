@@ -1,5 +1,6 @@
 import type { PaymentRecord } from '@/types';
 import { PaymentsService } from '@/lib/services/payments.service';
+import { submitPaymentCommand } from '@/lib/services/payment-command.service';
 
 interface PaymentReversalOptions {
   paymentId: string;
@@ -94,29 +95,8 @@ export async function reversePayment(
       status: requiresApproval ? 'pending_approval' : 'completed'
     };
 
-    // 🔔 Submit reversal via API route (for notifications)
-    let reversalId: string;
-    if (typeof window !== 'undefined') {
-      // Client-side: use API route
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(reversalData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create reversal');
-      }
-
-      const result = await response.json();
-      reversalId = result.paymentId;
-    } else {
-      // Server-side: call service directly
-      reversalId = await PaymentsService.createPayment(reversalData);
-    }
+    const result = await submitPaymentCommand(reversalData);
+    const reversalId = result.paymentId;
 
     // If successful, mark original payment as reversed
     if (reversalId && !requiresApproval) {
@@ -231,4 +211,4 @@ This action will:
 • Require supervisor approval for amounts over 500,000 UGX
 
 This action cannot be undone without creating a new payment.`;
-} 
+}
