@@ -60,8 +60,10 @@ export function usePupilCacheBootstrap() {
       if (previousScope.current) {
         queryClient.removeQueries({ queryKey: pupilsKeys.all });
         previousScope.current = null;
+        PupilsService.clearSharedPupils();
+      } else if (!isAuthenticated) {
+        PupilsService.clearSharedPupils();
       }
-      PupilsService.clearSharedPupils();
       return;
     }
 
@@ -149,5 +151,5 @@ export function usePupilCacheBootstrap() {
       disposed = true;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [queryClient, retryEpoch, revision, revisionsReady, scope]);
+  }, [isAuthenticated, queryClient, retryEpoch, revision, revisionsReady, scope]);
 }

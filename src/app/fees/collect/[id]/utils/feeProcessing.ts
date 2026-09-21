@@ -772,7 +772,6 @@ export async function calculatePreviousTermBalances(
     console.log('📋 Final balance breakdown (including uniforms):', balanceBreakdown);
 
     if (balanceBreakdown.length === 0) {
-      console.log('❌ No previous balances to carry forward');
       return null;
     }
 

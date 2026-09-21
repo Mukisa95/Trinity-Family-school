@@ -5,7 +5,7 @@ import { X, CurrencyDollar, Users } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
 import { findDiscountAwarePaymentViolation } from '@/lib/utils/fee-discount-calculation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface SimpleFee {
   id: string;
@@ -361,6 +361,9 @@ export function MultiFeePaymentModal({
               Multi-Fee Payment - {pupilName}
             </span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Allocate one payment across the selected pupil fees.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="px-4 pt-2.5 pb-4 overflow-y-auto flex-1">

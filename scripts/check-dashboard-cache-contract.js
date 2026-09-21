@@ -95,11 +95,11 @@ assert(
     preloader.includes('useSubjectCacheBootstrap();') &&
     preloader.includes('useHouseCacheBootstrap();') &&
     preloader.includes('useAccessLevelCacheBootstrap();') &&
-    preloader.includes('setupPupilsListener().catch') &&
-    !preloader.includes('usePupilCacheBootstrap();') &&
+    preloader.includes('usePupilCacheBootstrap();') &&
+    !preloader.includes('setupPupilsListener().catch') &&
     !preloader.includes('setupStaffListener();') &&
     !preloader.includes('setupSubjectsListener'),
-  'The application preloader must keep the proven pupil listener and use single owners for independent reference data.',
+  'The application preloader must use revision cache owners for staff pupil and independent reference data.',
 );
 assert(
   pupilBootstrap.includes("revisionsQuery.data?.pupils") &&
@@ -117,15 +117,14 @@ assert(
 );
 assert(
   preloader.includes("where('familyId', '==', userFamilyId)") &&
-    preloader.includes("? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))") &&
-    preloader.includes(": firestoreQuery(collection(db, 'pupils'))"),
-  'The pupil listener must remain family-scoped for parents and shared cache-first for staff/admin users.',
+    !preloader.includes("firestoreQuery(collection(db, 'pupils'))"),
+  'The remaining pupil listener must be family-scoped and must never read the whole pupil collection.',
 );
 assert(
   pupilsService.includes("if (typeof window !== 'undefined')") &&
     pupilsService.includes('return this.waitForSharedPupils()') &&
     preloader.includes('readPersistentCollection<any[]>(persistentCacheKey)') &&
-    preloader.includes('readPupilCache(revisionCacheScope)'),
+    pupilBootstrap.includes('readPupilCache(scope)'),
   'Browser pupil consumers must share a cache-first preloader owner and restore both supported cache formats.',
 );
 assert(

@@ -260,7 +260,6 @@ export function usePupilFees({
         async (pupilId: string) => pupilPayments,
         pupil
       );
-      console.log('✅ Previous balance calculated:', result?.amount || 0);
       return result;
     },
     // Only run when we have all necessary data loaded to avoid race conditions

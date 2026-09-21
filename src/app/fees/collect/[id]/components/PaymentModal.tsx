@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CurrencyCircleDollar } from '@phosphor-icons/react';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
@@ -101,6 +101,9 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
             </span>
             Record Payment
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Enter an amount to record against the selected pupil fee.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">

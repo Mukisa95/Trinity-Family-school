@@ -17,8 +17,11 @@ import {
   sanitizeAuditText,
 } from '@/lib/operational-audit/core';
 
-const FLUSH_INTERVAL_MS = 10 * 60 * 1000;
-const MIN_EARLY_FLUSH_MS = 5 * 60 * 1000;
+// Keep detailed observations locally and publish at most one routine summary
+// per hour. Warning/error batches may publish sooner when a tab closes.
+const FLUSH_INTERVAL_MS = 60 * 60 * 1000;
+const MIN_EARLY_FLUSH_MS = 15 * 60 * 1000;
+const ABANDONED_SESSION_MS = 2 * FLUSH_INTERVAL_MS;
 const PERSIST_INTERVAL_MS = 30 * 1000;
 const SLOW_OPERATION_MS = 2000;
 const MAX_BUFFER_KEYS = 40;
@@ -177,7 +180,7 @@ export function OperationalAuditProvider() {
       try {
         const pending = JSON.parse(window.localStorage.getItem(key) || '') as PendingPayload;
         const isCurrentSession = key === pendingKeyRef.current;
-        const isAbandonedSession = typeof pending.savedAt === 'number' && Date.now() - pending.savedAt > 10 * 60 * 1000;
+        const isAbandonedSession = typeof pending.savedAt === 'number' && Date.now() - pending.savedAt > ABANDONED_SESSION_MS;
         if (!isCurrentSession && !isAbandonedSession) return;
         if (pending.startedAt < startedAtRef.current) startedAtRef.current = pending.startedAt;
         pending.events?.forEach(event => {

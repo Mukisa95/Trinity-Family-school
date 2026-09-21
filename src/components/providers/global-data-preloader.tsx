@@ -2,16 +2,14 @@
 
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
+import { collection, query as firestoreQuery, onSnapshot, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
 import {
   persistentCollectionCacheKey,
   readPersistentCollection,
   writePersistentCollection,
 } from '@/lib/cache/persistent-collection-cache';
-import { getPupilCacheScope, readPupilCache } from '@/lib/cache/pupil-cache';
 import { applyPupilChangesToQueryCaches } from '@/lib/hooks/use-pupils';
 import { useClassCacheBootstrap } from '@/lib/hooks/use-class-cache-bootstrap';
 import { useAcademicYearCacheBootstrap } from '@/lib/hooks/use-academic-year-cache-bootstrap';
@@ -20,18 +18,17 @@ import { useSubjectCacheBootstrap } from '@/lib/hooks/use-subject-cache-bootstra
 import { useHouseCacheBootstrap } from '@/lib/hooks/use-house-cache-bootstrap';
 import { useAccessLevelCacheBootstrap } from '@/lib/hooks/use-access-level-cache-bootstrap';
 import { useExamCacheBootstrap } from '@/lib/hooks/use-exam-cache-bootstrap';
+import { usePupilCacheBootstrap } from '@/lib/hooks/use-pupil-cache-bootstrap';
 import { PupilsService } from '@/lib/services/pupils.service';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
  * 
  * STRATEGY:
- * - Real-time listeners (onSnapshot) ONLY for data that changes frequently
- *   and needs instant cross-device sync: pupils and payment records
- * - Revision-owned persistent caches for independent reference data: classes,
- *   academic years, staff, subjects, houses, access levels, and exams
- * - One-time reads (getDocs) for dependent module data that changes rarely:
- *   fees, requirements, uniforms, photos, and events
+ * - A family-scoped pupil listener and child payment listeners for parents
+ * - Revision-owned persistent caches for staff pupil data and independent
+ *   reference data
+ * - Feature-owned reads for fees, requirements, uniforms, and photos
  * 
  * This dramatically reduces Firestore reads to prevent quota exhaustion.
  */
@@ -45,6 +42,7 @@ export function GlobalDataPreloader() {
   useHouseCacheBootstrap();
   useAccessLevelCacheBootstrap();
   useExamCacheBootstrap();
+  usePupilCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
   const userFamilyId = user?.familyId;
@@ -75,7 +73,6 @@ export function GlobalDataPreloader() {
     // ──────────────────────────────────────────────────────────────────────────
 
     const unsubscribers: Array<() => void> = [];
-    let deferredTimer: ReturnType<typeof setTimeout> | undefined;
     let pupilCacheWriteTimer: ReturnType<typeof setTimeout> | undefined;
     let pupilCacheIdleHandle: number | undefined;
     let disposed = false;
@@ -206,6 +203,8 @@ export function GlobalDataPreloader() {
     const setupPupilsListener = async (
       onParentPupilIds?: (pupilIds: string[]) => void,
     ) => {
+      if (userRole !== 'Parent' || !userFamilyId) return;
+
       const normalizePupilDoc = (doc: any) => {
         const data = doc.data();
         return {
@@ -218,26 +217,22 @@ export function GlobalDataPreloader() {
         };
       };
 
-      // Parents remain constrained to their own family. Staff and admins reuse
-      // the same cache-first owner, so browser consumers can never hang waiting
-      // for a separate revision bootstrap to finish.
-      const baseQuery = (userRole === 'Parent' && userFamilyId)
-        ? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))
-        : firestoreQuery(collection(db, 'pupils'));
+      // Parent records remain constrained to this signed-in family. Staff and
+      // administrators are owned by usePupilCacheBootstrap above.
+      const baseQuery = firestoreQuery(
+        collection(db, 'pupils'),
+        where('familyId', '==', userFamilyId),
+      );
       const projectId =
         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
-      const cacheScope = userRole === 'Parent'
-        ? `parent:${userId}:family:${userFamilyId || 'unassigned'}`
-        : `user:${userId}`;
+      const cacheScope = `parent:${userId}:family:${userFamilyId}`;
       const persistentCacheKey = persistentCollectionCacheKey(
         projectId,
         'pupils',
         cacheScope,
       );
 
-      if (userRole === 'Parent' && userFamilyId) {
-        console.log(`🎯 PARENT MODE: Loading only pupils for family ${userFamilyId}`);
-      }
+      console.log(`🎯 PARENT MODE: Loading only pupils for family ${userFamilyId}`);
 
       const schedulePersistentPupilCacheWrite = () => {
         if (disposed) return;
@@ -295,35 +290,6 @@ export function GlobalDataPreloader() {
           `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
         );
       });
-
-      // The short-lived revision-cache rollout used a different, scoped key.
-      // Read it too so devices that already hold that complete snapshot recover
-      // immediately rather than waiting for a network response to seed the
-      // restored listener cache again.
-      const revisionCacheScope = getPupilCacheScope(userId, userRole);
-      if (revisionCacheScope) {
-        void readPupilCache(revisionCacheScope).then(snapshot => {
-          const persistedPupils = snapshot?.data;
-          const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
-          if (
-            disposed ||
-            serverSnapshotSeen ||
-            existingPupils?.length ||
-            !persistedPupils ||
-            persistedPupils.length === 0
-          ) {
-            return;
-          }
-
-          queryClient.setQueryData(['pupils', 'list'], persistedPupils);
-          PupilsService.hydrateSharedPupils(persistedPupils);
-          onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
-          performance.mark?.('trinity:pupils-revision-cache-ready');
-          console.log(
-            `FAST CACHE: Restored ${persistedPupils.length} pupils from the shared revision cache in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
-          );
-        });
-      }
 
       const unsubscribe = onSnapshot(
         baseQuery,
@@ -399,96 +365,8 @@ export function GlobalDataPreloader() {
     };
 
 
-    // ═══════════════════════════════════════════════════════════
-    // ONE-TIME READS (getDocs) — Data that rarely changes
-    // These save massive Firestore reads vs onSnapshot listeners
-    // ═══════════════════════════════════════════════════════════
-
-    // 6. 💰 FEE STRUCTURES - One-time read (rarely changes)
-    const fetchFees = async () => {
-      try {
-        // Skip if cache already has data
-        const cached = queryClient.getQueryData(['fees', 'structures']);
-        if (cached && (cached as any[]).length > 0) {
-          console.log('⚡ PRELOADER: Fees already cached, skipping fetch');
-          return;
-        }
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'feeStructures')));
-        const fees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (fees.length > 0) {
-          queryClient.setQueryData(['fees', 'structures'], fees);
-          console.log(`⚡ PRELOADER: Loaded ${fees.length} fee structures`);
-        }
-      } catch (error: any) {
-        console.error('❌ PRELOADER: Fees fetch error:', error.message);
-      }
-    };
-
-    // 7. 📋 REQUIREMENTS - One-time read (rarely changes)
-    const fetchRequirements = async () => {
-      try {
-        const cached = queryClient.getQueryData(['requirements']);
-        if (cached && (cached as any[]).length > 0) return;
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'requirements')));
-        const requirements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (requirements.length > 0) {
-          queryClient.setQueryData(['requirements'], requirements);
-          console.log(`⚡ PRELOADER: Loaded ${requirements.length} requirements`);
-        }
-      } catch (error: any) {
-        console.error('❌ PRELOADER: Requirements fetch error:', error.message);
-      }
-    };
-
-    // 8. 👔 UNIFORMS - One-time read (rarely changes)
-    const fetchUniforms = async () => {
-      try {
-        const cached = queryClient.getQueryData(['uniforms']);
-        if (cached && (cached as any[]).length > 0) return;
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'uniforms')));
-        const uniforms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        queryClient.setQueryData(['uniforms'], uniforms);
-        console.log(`⚡ PRELOADER: Loaded ${uniforms.length} uniforms`);
-      } catch (error: any) {
-        console.error('❌ PRELOADER: Uniforms fetch error:', error.message);
-      }
-    };
-
-    // 9. 📸 PHOTOS - One-time read with smart re-fetch on new uploads
-    // No persistent listener — photos are cached and only refreshed when count changes.
-    const fetchPhotos = async () => {
-      try {
-        
-
-        const cached = queryClient.getQueryData<any[]>(['photos']);
-        const serverCount = cached?.length ?? 0;
-        
-
-        
-
-        // Skip full fetch if counts match — nothing new has been added
-        if (cached && cached.length > 0) {
-          console.log(`⚡ PRELOADER: Photos count unchanged (${serverCount}), using cache`);
-          return;
-        }
-
-        // Count differs — fetch the full list once
-        const snapshot = await getDocs(collection(db, 'photos'));
-        const photos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Keep only active Cloudinary photos (same filter as before)
-        const validPhotos = photos.filter((photo: any) =>
-          photo.url?.includes('cloudinary.com') && photo.isActive !== false
-        );
-
-        queryClient.setQueryData(['photos'], validPhotos);
-        // Persist to lite cache so usePhotos() has instant initialData on warm loads
-        liteWrite(LITE_KEYS.photos, validPhotos);
-        console.log(`⚡ PRELOADER: Loaded ${validPhotos.length} photos (one-time read, server=${serverCount})`);
-      } catch (error: any) {
-        console.error('❌ PRELOADER: Photos fetch error:', error.message);
-      }
-    };
+    // Fees, requirements, uniforms, and photos are loaded by their owning
+    // feature when the user opens it. They are not dashboard startup data.
 
     // 10. 👤 USERS - One-time read (rarely changes)
     /*
@@ -650,22 +528,13 @@ export function GlobalDataPreloader() {
         // with the first visible dashboard request burst.
         if (userRole === 'Parent') {
           console.log('🎯 PARENT MODE: Loading minimal essential data + pupil-specific records...');
-          // Fire all in parallel — pupils load concurrently with classes and fees
+          // The family listener restores cached pupils immediately and then
+          // starts only the child payment listeners that the parent needs.
           const syncParentPupilRecords = setupParentRecordsListeners();
           setupPupilsListener(syncParentPupilRecords).catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
-          fetchFees();
           console.log('✅ PARENT PRELOADER: Essential data + payment listener active');
         } else {
-          console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
-          setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
-          deferredTimer = setTimeout(() => {
-            void fetchPhotos();
-            void fetchFees();
-            void fetchRequirements();
-            void fetchUniforms();
-          }, 1200);
-
-          console.log('✅ GLOBAL PRELOADER: Dashboard listeners active; remaining data queued');
+          console.log('✅ GLOBAL PRELOADER: Revision-gated dashboard caches active');
         }
       } catch (error) {
         console.error('❌ GLOBAL PRELOADER: Setup failed:', error);
@@ -676,7 +545,6 @@ export function GlobalDataPreloader() {
     return () => {
       console.log('🔌 GLOBAL PRELOADER: Cleaning up all listeners');
       disposed = true;
-      if (deferredTimer) clearTimeout(deferredTimer);
       if (pupilCacheWriteTimer) clearTimeout(pupilCacheWriteTimer);
       if (
         pupilCacheIdleHandle !== undefined &&

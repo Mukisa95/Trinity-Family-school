@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PaymentHistoryContext, PaymentsService } from '@/lib/services/payments.service';
 import type { PaymentRecord } from '@/types';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { isFirestoreQuotaError } from '@/lib/utils/firestore-quota-error';
 
 /**
  * API Route: POST /api/payments/create
@@ -101,6 +102,21 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ [Payment API] Error creating payment:', error);
+
+    if (isFirestoreQuotaError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'FIRESTORE_QUOTA_EXHAUSTED',
+          retryable: true,
+          error: 'The database is temporarily at capacity, so this payment request could not be completed. Please wait and retry the same payment later.',
+        },
+        {
+          status: 503,
+          headers: { 'Retry-After': '900' },
+        },
+      );
+    }
     
     return NextResponse.json(
       { 

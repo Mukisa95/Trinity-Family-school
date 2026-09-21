@@ -1424,10 +1424,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         amountPaid: selectedFee.amountPaid
       });
 
+      const isCapacityError = error instanceof Error && error.message.includes('temporarily at capacity');
       toast({
         variant: "destructive",
-        title: "Payment Failed",
-        description: "Payment confirmation was not received. Retry the same submission to confirm its status.",
+        title: isCapacityError
+          ? 'Payment Temporarily Unavailable'
+          : 'Payment Failed',
+        description: isCapacityError
+          ? error.message
+          : 'Payment confirmation was not received. Retry the same submission to confirm its status.',
       });
     }
   };

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Pupil } from '@/types';
-import { useParentDashboardRevision } from '@/lib/hooks/use-parent-dashboard-revision';
+import { useParentDashboardRevisions } from '@/lib/hooks/use-parent-dashboard-revision';
 import {
   isParentOfflineStorageAvailable,
   readParentOfflineAttendance,
@@ -15,7 +15,6 @@ import {
 import { ParentAttendanceService } from '@/lib/services/parent-attendance.service';
 import { ParentBankingService } from '@/lib/services/parent-banking.service';
 import { ParentResultsService } from '@/lib/services/parent-results.service';
-import { ParentOfflineFeePreparer } from './parent-offline-fee-preparer';
 
 type ParentOfflineDatasetPreparerProps = {
   accountId?: string;
@@ -48,52 +47,85 @@ export function ParentOfflineDatasetPreparer({
   pupils,
 }: ParentOfflineDatasetPreparerProps) {
   const online = useOnlineStatus();
-  const { revision: bankingRevision } = useParentDashboardRevision(familyId, 'banking');
-  const { revision: attendanceRevision } = useParentDashboardRevision(familyId, 'attendance');
-  const { revision: resultsRevision } = useParentDashboardRevision(familyId, 'results');
+  const { revisions } = useParentDashboardRevisions(familyId);
+  const bankingRevision = revisions?.banking;
+  const attendanceRevision = revisions?.attendance;
+  const resultsRevision = revisions?.results;
   const pupilIds = pupils.map(pupil => pupil.id).filter(Boolean).sort().join('|');
 
   useEffect(() => {
-    if (!accountId || !online || bankingRevision === undefined || !isParentOfflineStorageAvailable()) return;
+    if (
+      !accountId ||
+      !online ||
+      bankingRevision === undefined ||
+      attendanceRevision === undefined ||
+      resultsRevision === undefined ||
+      !isParentOfflineStorageAvailable()
+    ) return;
     let cancelled = false;
-    void Promise.all(pupilIds.split('|').filter(Boolean).map(async pupilId => {
-      const saved = await readParentOfflineBanking(accountId, pupilId);
-      if (saved && saved.revision >= bankingRevision) return;
-      const banking = await ParentBankingService.getForPupil(pupilId);
-      if (!cancelled) await saveParentOfflineBanking({ accountId, pupilId, revision: bankingRevision, ...banking });
-    })).catch(error => console.warn('Could not prepare parent banking for offline use:', error));
-    return () => { cancelled = true; };
-  }, [accountId, bankingRevision, online, pupilIds]);
+    let idleHandle: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-  useEffect(() => {
-    if (!accountId || !online || attendanceRevision === undefined || !isParentOfflineStorageAvailable()) return;
-    let cancelled = false;
-    void Promise.all(pupilIds.split('|').filter(Boolean).map(async pupilId => {
-      const saved = await readParentOfflineAttendance(accountId, pupilId);
-      if (saved && saved.revision >= attendanceRevision) return;
-      const records = await ParentAttendanceService.getForPupil(pupilId);
-      if (!cancelled) await saveParentOfflineAttendance({ accountId, pupilId, revision: attendanceRevision, records });
-    })).catch(error => console.warn('Could not prepare parent attendance for offline use:', error));
-    return () => { cancelled = true; };
-  }, [accountId, attendanceRevision, online, pupilIds]);
+    const prepare = async () => {
+      // Process one child and one dataset at a time. This keeps background
+      // preparation from competing with the screen the parent is using.
+      for (const pupilId of pupilIds.split('|').filter(Boolean)) {
+        if (cancelled) return;
 
-  useEffect(() => {
-    if (!accountId || !online || resultsRevision === undefined || !isParentOfflineStorageAvailable()) return;
-    let cancelled = false;
-    void Promise.all(pupilIds.split('|').filter(Boolean).map(async pupilId => {
-      const saved = await readParentOfflineResults(accountId, pupilId);
-      if (saved && saved.revision >= resultsRevision) return;
-      const results = await ParentResultsService.getForPupil(pupilId);
-      if (!cancelled) await saveParentOfflineResults({ accountId, pupilId, revision: resultsRevision, results });
-    })).catch(error => console.warn('Could not prepare parent results for offline use:', error));
-    return () => { cancelled = true; };
-  }, [accountId, online, pupilIds, resultsRevision]);
+        try {
+          const saved = await readParentOfflineBanking(accountId, pupilId);
+          if (!cancelled && (!saved || saved.revision < bankingRevision)) {
+            const banking = await ParentBankingService.getForPupil(pupilId);
+            if (!cancelled) {
+              await saveParentOfflineBanking({ accountId, pupilId, revision: bankingRevision, ...banking });
+            }
+          }
+        } catch (error) {
+          console.warn('Could not prepare parent banking for offline use:', error);
+        }
 
-  return (
-    <>
-      {online && pupils.map(pupil => (
-        <ParentOfflineFeePreparer key={pupil.id} accountId={accountId} pupilId={pupil.id} />
-      ))}
-    </>
-  );
+        if (cancelled) return;
+        try {
+          const saved = await readParentOfflineAttendance(accountId, pupilId);
+          if (!cancelled && (!saved || saved.revision < attendanceRevision)) {
+            const records = await ParentAttendanceService.getForPupil(pupilId);
+            if (!cancelled) {
+              await saveParentOfflineAttendance({ accountId, pupilId, revision: attendanceRevision, records });
+            }
+          }
+        } catch (error) {
+          console.warn('Could not prepare parent attendance for offline use:', error);
+        }
+
+        if (cancelled) return;
+        try {
+          const saved = await readParentOfflineResults(accountId, pupilId);
+          if (!cancelled && (!saved || saved.revision < resultsRevision)) {
+            const results = await ParentResultsService.getForPupil(pupilId);
+            if (!cancelled) {
+              await saveParentOfflineResults({ accountId, pupilId, revision: resultsRevision, results });
+            }
+          }
+        } catch (error) {
+          console.warn('Could not prepare parent results for offline use:', error);
+        }
+      }
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      idleHandle = window.requestIdleCallback(() => void prepare(), { timeout: 3000 });
+    } else {
+      timer = setTimeout(() => void prepare(), 500);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleHandle !== undefined && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (timer) clearTimeout(timer);
+    };
+  }, [accountId, attendanceRevision, bankingRevision, online, pupilIds, resultsRevision]);
+
+  return null;
 }

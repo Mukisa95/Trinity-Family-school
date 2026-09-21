@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CurrencyCircleDollar, Calculator, Target } from '@phosphor-icons/react';
 import { formatMoneyInput, parseFormattedMoney } from '@/lib/utils';
@@ -173,6 +173,9 @@ export function CarryForwardPaymentModal({
             <span className="font-bold text-sm text-indigo-600">Shs.</span>
             Record Carry Forward Payment
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Record a payment against the pupil's carried-forward balance.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="py-4 space-y-6">

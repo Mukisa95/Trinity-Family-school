@@ -448,9 +448,14 @@ export default function FamilyFeesCollection() {
       });
     } catch (error) {
       console.error('Family payment error:', error);
+      const isCapacityError = error instanceof Error && error.message.includes('temporarily at capacity');
       toast({
-        title: "Payment Failed",
-        description: "There was an error processing the family payment. Please try again.",
+        title: isCapacityError
+          ? 'Payment Temporarily Unavailable'
+          : 'Payment Failed',
+        description: isCapacityError
+          ? error.message
+          : 'There was an error processing the family payment. Please try again.',
         variant: "destructive"
       });
       throw error;
