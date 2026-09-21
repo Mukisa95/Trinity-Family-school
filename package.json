@@ -2,6 +2,7 @@
   "name": "nextn",
   "version": "0.1.0",
   "private": true,
+  "engines": { "node": "22.x" },
   "scripts": {
     "dev": "next dev -p 9004",
     "dev3000": "next dev -p 3000",
@@ -140,6 +141,8 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@react-pdf/renderer": "^4.3.0",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.2",
     "@tanstack-query-firebase/react": "^1.0.5",
     "@tanstack/query-persist-client-core": "^5.95.2",
     "@tanstack/query-sync-storage-persister": "^5.95.2",

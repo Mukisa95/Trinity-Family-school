@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useNavigation } from '@/lib/contexts/navigation-context';
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
+import { PasskeySettings } from '@/components/settings/passkey-settings';
 
 export default function AccountSettingsPage() {
   const { user, refreshUser, autoLockEnabled, setAutoLockEnabled, autoLockAction, setAutoLockAction, lockAccount, logout } = useAuth();
@@ -254,6 +255,7 @@ export default function AccountSettingsPage() {
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
+        <div className="lg:col-span-2"><PasskeySettings /></div>
         {/* Account Information Card */}
         <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">

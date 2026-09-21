@@ -19,6 +19,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { auth } from '@/lib/firebase';
+import { ParentOfflineReadinessCard } from '@/components/parent/parent-offline-readiness-card';
+import { PasskeySettings } from '@/components/settings/passkey-settings';
 import {
   updatePassword,
   reauthenticateWithCredential,
@@ -131,6 +133,9 @@ export default function ParentSettingsPage() {
             </div>
           </div>
         </div>
+
+        <ParentOfflineReadinessCard accountId={user?.id} />
+        <PasskeySettings />
 
         {/* Alert message */}
         {message && (

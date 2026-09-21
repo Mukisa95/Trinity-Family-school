@@ -91,7 +91,7 @@ export function ParentOfflineDatasetPreparer({
 
   return (
     <>
-      {pupils.map(pupil => (
+      {online && pupils.map(pupil => (
         <ParentOfflineFeePreparer key={pupil.id} accountId={accountId} pupilId={pupil.id} />
       ))}
     </>

@@ -235,13 +235,19 @@ export async function authenticateLegacyUser(username: string, password: string)
   const match = await findUserByCredentials(username.trim(), password);
   if (!match) return null;
 
+  return issueAppUserCustomToken(match.id, match.data);
+}
+
+/** Shared token handoff for password and verified passkey sign-in. */
+export async function issueAppUserCustomToken(id: string, data: UserRecord) {
+  if (data.isActive === false) throw new Error('ACCOUNT_INACTIVE');
   const claims = {
     appUser: true,
-    role: match.data.role || 'Staff',
-    isActive: match.data.isActive !== false,
-    ...(match.data.familyId ? { familyId: match.data.familyId } : {}),
-    ...(match.data.staffId ? { staffId: match.data.staffId } : {}),
-    ...(match.data.pupilId ? { pupilId: match.data.pupilId } : {}),
+    role: data.role || 'Staff',
+    isActive: true,
+    ...(data.familyId ? { familyId: data.familyId } : {}),
+    ...(data.staffId ? { staffId: data.staffId } : {}),
+    ...(data.pupilId ? { pupilId: data.pupilId } : {}),
   };
   const adminAuth = getAuth(getFirebaseAdminApp());
 
@@ -261,23 +267,23 @@ export async function authenticateLegacyUser(username: string, password: string)
   // createCustomToken() signs the JWT locally with the service-account
   // private key (RSA, in Node.js crypto) — it makes NO outbound calls —
   // so it works regardless of IAM permissions.
-  const isAdmin = String(match.data.role || '').toLowerCase() === 'admin';
+  const isAdmin = String(data.role || '').toLowerCase() === 'admin';
   if (!isAdmin) {
     try {
-      const firebaseUser = await adminAuth.getUser(match.id);
+      const firebaseUser = await adminAuth.getUser(id);
       if (firebaseUser.disabled) {
-        await adminAuth.updateUser(match.id, { disabled: false });
+        await adminAuth.updateUser(id, { disabled: false });
       }
     } catch (error: any) {
       if (error?.code !== 'auth/user-not-found') throw error;
-      await adminAuth.createUser({ uid: match.id, disabled: false });
+      await adminAuth.createUser({ uid: id, disabled: false });
     }
-    await adminAuth.setCustomUserClaims(match.id, claims);
+    await adminAuth.setCustomUserClaims(id, claims);
   }
 
   return {
-    user: sanitizeSystemUser(match.id, match.data),
-    customToken: await adminAuth.createCustomToken(match.id, claims),
+    user: sanitizeSystemUser(id, data),
+    customToken: await adminAuth.createCustomToken(id, claims),
   };
 }
 

@@ -54,6 +54,7 @@ interface UsePupilFeesReturn {
   uniformTrackingError: Error | null;
   allFeeStructures: FeeStructure[]; // All fee structures for modals (redistribute, etc.)
   isLoading: boolean;
+  isOfflineSnapshotComplete: boolean;
   isPaymentDataLoading: boolean; // True when payments or previous balance are still loading
   isError: boolean;
   error: Error | null;
@@ -91,7 +92,7 @@ export function usePupilFees({
   // 🚀 OPTIMIZED: Use the optimized useAcademicYears hook (cache-first, real-time)
   // This is instant if cached, and uses the same data as the component
   const { data: allAcademicYears = [] } = useAcademicYears();
-  const { data: feeAdjustments = [] } = useFeeAdjustments();
+  const { data: feeAdjustments = [], isSuccess: hasFeeAdjustments } = useFeeAdjustments();
 
   // 🔄 FUTURE YEARS FIXED: Fetch fees applicable to the selected year (including ongoing fees from previous years)
   // 🚀 OPTIMIZED: Don't wait for allAcademicYears - fees can load in parallel
@@ -99,6 +100,7 @@ export function usePupilFees({
   const {
     data: currentTermFees = [],
     isLoading: isLoadingCurrentFees,
+    isSuccess: hasCurrentFees,
     refetch: refetchCurrentTermFees,
   } = useQuery({
     queryKey: ['fee-structures-applicable-to-year', selectedAcademicYear?.id, selectedTermId],
@@ -144,6 +146,7 @@ export function usePupilFees({
   const {
     data: allFeeStructures = [],
     isLoading: isLoadingAllFees,
+    isSuccess: hasAllFees,
     refetch: refetchAllFeeStructures,
   } = useQuery({
     queryKey: ['all-fee-structures-for-carryforward'],
@@ -167,6 +170,7 @@ export function usePupilFees({
   // When SchoolPay records a payment, the UI updates immediately without refresh
   const [pupilPayments, setPupilPayments] = useState<PaymentRecord[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+  const [hasServerPaymentSnapshot, setHasServerPaymentSnapshot] = useState(false);
   const locallyCommittedPayments = useRef(new Map<string, PaymentRecord>());
 
   // The Firestore listener owns the payment list displayed by this page. Keep
@@ -193,6 +197,7 @@ export function usePupilFees({
 
   useEffect(() => {
     locallyCommittedPayments.current.clear();
+    setHasServerPaymentSnapshot(false);
     setPupilPayments([]);
     if (!pupilId) {
       setPupilPayments([]);
@@ -221,6 +226,7 @@ export function usePupilFees({
           [...locallyCommittedPayments.current.values()], payments,
         )));
         setIsLoadingPayments(false);
+        if (!snapshot.metadata.fromCache) setHasServerPaymentSnapshot(true);
         if (process.env.NODE_ENV === 'development') {
           console.log(`🔴 [Live] Payments updated for pupil ${pupilId}:`, payments.length);
         }
@@ -235,7 +241,7 @@ export function usePupilFees({
   }, [pupilId, sortPupilPayments]);
 
   // Calculate previous term balances - OPTIMIZED
-  const { data: previousBalance = null, isLoading: isLoadingPreviousBalance } = useQuery<PreviousTermBalance | null>({
+  const { data: previousBalance = null, isLoading: isLoadingPreviousBalance, isSuccess: hasPreviousBalance } = useQuery<PreviousTermBalance | null>({
     // Updated queryKey to include dependencies that affect the calculation
     queryKey: ['previous-balance', pupilId, selectedTermId, selectedAcademicYear?.id, JSON.stringify([pupilPayments, allFeeStructures, pupil, allAcademicYears, feesHolidays]), lastPaymentTimestamp],
     queryFn: async (): Promise<PreviousTermBalance | null> => {
@@ -269,9 +275,10 @@ export function usePupilFees({
   const {
     data: uniformTrackingRecords = [],
     isLoading: isUniformTrackingLoading,
+    isSuccess: hasUniformTracking,
     error: uniformTrackingError,
   } = useUniformTrackingByPupil(pupilId);
-  const { data: allUniforms = [], isLoading: isLoadingUniforms } = useUniforms();
+  const { data: allUniforms = [], isLoading: isLoadingUniforms, isSuccess: hasUniforms } = useUniforms();
 
   const uniformFees = useMemo<UniformFeeData[]>(() => {
     if (!selectedTermId || !selectedAcademicYear) return [];
@@ -292,7 +299,7 @@ export function usePupilFees({
   const selectedTerm = selectedAcademicYear?.terms.find(t => t.id === selectedTermId);
   const termHasEnded = selectedTerm ? isTermEnded(selectedTerm) : false;
 
-  const { data: historicalPupil, isLoading: isLoadingSnapshot } = useQuery<Pupil>({
+  const { data: historicalPupil, isLoading: isLoadingSnapshot, isFetched: hasHistoricalPupil } = useQuery<Pupil>({
     queryKey: ['pupil-snapshot', pupilId, selectedTermId, selectedAcademicYear?.id],
     queryFn: async () => {
       if (!pupil || !selectedTermId || !selectedAcademicYear) {
@@ -493,6 +500,14 @@ export function usePupilFees({
   // This is used to disable payment buttons and prevent duplicate payments
   const isPaymentDataLoading = isLoadingPayments || isLoadingPreviousBalance;
 
+  // The collection screen can render provisional values while queries settle.
+  // Saving that provisional view as a complete offline fee snapshot would make
+  // an empty/error response look like a successful download.
+  const isOfflineSnapshotComplete = Boolean(pupil) && hasCurrentFees && hasAllFees &&
+    hasFeeAdjustments && hasServerPaymentSnapshot && hasPreviousBalance &&
+    hasUniformTracking && hasUniforms && (!termHasEnded || hasHistoricalPupil) &&
+    !isLoading && !uniformTrackingError;
+
   const isError = false; // TODO: Add proper error handling
   const error = null; // TODO: Add proper error handling
 
@@ -515,6 +530,7 @@ export function usePupilFees({
     uniformTrackingError,
     allFeeStructures,
     isLoading,
+    isOfflineSnapshotComplete,
     isPaymentDataLoading,
     isError,
     error,

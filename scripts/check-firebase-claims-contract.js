@@ -2,6 +2,7 @@ const fs = require('fs');
 
 const appAuth = fs.readFileSync('src/lib/server/app-auth.ts', 'utf8');
 const userRoute = fs.readFileSync('src/app/api/users/[id]/route.ts', 'utf8');
+const passkeyRoute = fs.readFileSync('src/app/api/auth/passkey/route.ts', 'utf8');
 const failures = [];
 
 for (const [label, source] of [
@@ -15,12 +16,17 @@ for (const [label, source] of [
   }
 }
 
-if (!appAuth.includes('adminAuth.setCustomUserClaims(match.id, claims)')) {
+if (!appAuth.includes('adminAuth.setCustomUserClaims(id, claims)')) {
   failures.push('A successful sign-in must persist the same Firebase claims it returns in the custom token.');
 }
 
-if (!appAuth.includes('adminAuth.createCustomToken(match.id, claims)')) {
+if (!appAuth.includes('adminAuth.createCustomToken(id, claims)')) {
   failures.push('A successful sign-in must return a Firebase custom token with the trusted claims.');
+}
+
+if (!appAuth.includes('return issueAppUserCustomToken(match.id, match.data)') ||
+    !passkeyRoute.includes('issueAppUserCustomToken(userDoc.id, userDoc.data()!')) {
+  failures.push('Password and verified passkey sign-in must use the same trusted token handoff.');
 }
 
 if (!userRoute.includes('adminAuth.revokeRefreshTokens(id)')) {

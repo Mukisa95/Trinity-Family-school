@@ -1,4 +1,29 @@
 export const PARENT_OFFLINE_APP_ROUTES = ['/parent', '/parent/settings'] as const;
+export const PARENT_SHELL_READY_EVENT = 'trinity:parent-shell-ready';
+
+export async function isParentAppShellReady(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
+  const names = (await caches.keys()).filter(name => name.startsWith('parent-app-shell-'));
+  for (const name of names) {
+    const cache = await caches.open(name);
+    const routes = await Promise.all(PARENT_OFFLINE_APP_ROUTES.map(route => cache.match(
+      new Request(new URL(route, location.origin), { credentials: 'same-origin', headers: { Accept: 'text/html' } }),
+    )));
+    if (routes.some(response => !response)) continue;
+    const assets = new Set<string>();
+    for (const response of routes) {
+      const html = await response!.clone().text();
+      const matcher = /(?:src|href)=["']([^"']*\/_next\/static\/[^"']+)["']/gi;
+      let match: RegExpExecArray | null;
+      while ((match = matcher.exec(html))) {
+        const url = new URL(match[1], location.origin);
+        if (url.origin === location.origin) assets.add(url.toString());
+      }
+    }
+    if (assets.size > 0 && (await Promise.all([...assets].map(asset => cache.match(asset)))).every(Boolean)) return true;
+  }
+  return false;
+}
 
 type ParentShellResponse = {
   type?: string;
@@ -40,7 +65,10 @@ export async function prepareParentAppShell(options: { force?: boolean } = {}): 
       window.clearTimeout(timeout);
       channel.port1.close();
       const result = event.data as ParentShellResponse;
-      if (result?.type === 'PARENT_APP_SHELL_CACHED') resolve();
+      if (result?.type === 'PARENT_APP_SHELL_CACHED') {
+        window.dispatchEvent(new Event(PARENT_SHELL_READY_EVENT));
+        resolve();
+      }
       else reject(new Error(result?.message || 'The parent interface could not be saved.'));
     };
 

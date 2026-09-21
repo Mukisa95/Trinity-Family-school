@@ -5,6 +5,12 @@ const rulesPath = path.join(process.cwd(), 'firestore.rules');
 const rules = fs.readFileSync(rulesPath, 'utf8');
 const failures = [];
 
+for (const collection of ['authCredentials']) {
+  if (!rules.includes(`collection != '${collection}'`)) {
+    failures.push(`${collection} must be excluded from the authenticated catch-all rule.`);
+  }
+}
+
 for (const operation of ['get', 'exists', 'getAfter']) {
   if (new RegExp(`\\b${operation}\\s*\\(`).test(rules)) {
     failures.push(`Firestore Rules must not call ${operation}(). It can add rule-level document reads.`);

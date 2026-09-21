@@ -3,8 +3,9 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, LogIn, School, MapPin, Phone, Mail, User, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Fingerprint, LogIn, School, MapPin, Phone, Mail, User, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/contexts/auth-context";
+import { PasskeyService } from '@/lib/services/passkey.service';
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { usePhotos } from "@/lib/hooks/use-photos";
@@ -94,7 +95,7 @@ function CountUpNumber({ target }: { target: number }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuth();
+  const { login, loginWithPasskey, isLoading } = useAuth();
   const { toast } = useToast();
 
   const { data: schoolSettings } = useSchoolSettings();
@@ -108,6 +109,11 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [passkeySupported, setPasskeySupported] = useState(false);
+
+  useEffect(() => {
+    void PasskeyService.supported().then(setPasskeySupported).catch(() => setPasskeySupported(false));
+  }, []);
 
   // Load the dashboard route while the user is reading or entering credentials.
   // This changes no auth state; it only removes route-bundle loading after login.
@@ -241,6 +247,20 @@ export default function LoginPage() {
           ? error.message
           : "An error occurred during login. Please try again.",
       );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasskeySignIn = async () => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await loginWithPasskey();
+      toast({ title: 'Login Successful', description: `Welcome to ${settings.generalInfo.name}` });
+      setShowLoginModal(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Device unlock failed. Sign in with your password instead.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1612,6 +1632,13 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
+
+              {passkeySupported && (
+                <button type="button" disabled={isSubmitting || isLoading} onClick={() => void handlePasskeySignIn()}
+                  className="mt-3 w-full min-h-11 rounded-full border border-white/25 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/10 disabled:opacity-50">
+                  <Fingerprint className="w-4 h-4" /> Sign in with device unlock
+                </button>
+              )}
 
               <div className="modal-divider flex items-center gap-2.5 my-5 uppercase text-[11px] tracking-wider text-white/60">
                 Secure Access

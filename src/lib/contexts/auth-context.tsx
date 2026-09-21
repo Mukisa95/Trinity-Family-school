@@ -50,6 +50,7 @@ interface AuthContextType {
   user: SystemUser | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
+  loginWithPasskey: () => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isSessionStale: boolean;
@@ -390,25 +391,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [autoLockEnabled, autoLockAction, user]);
 
+  const acceptAuthenticatedUser = (authenticatedUser: SystemUser) => {
+    setUser(authenticatedUser);
+    if (typeof window !== 'undefined') {
+      saveUserCache(authenticatedUser);
+      localStorage.removeItem('trinity_account_locked');
+    }
+    setIsLocked(false);
+    setHasStoredUser(true);
+    setLastSessionValidationAt(Date.now());
+    setSessionStatus('fresh');
+    setSessionMessage(null);
+  };
+
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       const authenticatedUser = await SecureAuthService.signIn(username, password);
       
       if (authenticatedUser) {
-        setUser(authenticatedUser);
-        if (typeof window !== 'undefined') {
-          saveUserCache(authenticatedUser);
-          localStorage.removeItem('trinity_account_locked');
-        }
-        setIsLocked(false);
-        
+        acceptAuthenticatedUser(authenticatedUser);
         logger.info('Successfully authenticated with Firebase custom token', { username: authenticatedUser.username });
-        setHasStoredUser(true);
-        setLastSessionValidationAt(Date.now());
-        setSessionStatus('fresh');
-        setSessionMessage(null);
-        
         return true;
       }
       
@@ -527,6 +530,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSessionMessage(validation.message);
     await firebaseSignOut(auth).catch(() => undefined);
     return false;
+  };
+
+  const loginWithPasskey = async (): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const { PasskeyService } = await import('@/lib/services/passkey.service');
+      const authenticatedUser = await PasskeyService.signIn();
+      acceptAuthenticatedUser(authenticatedUser);
+      return true;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resumeSession = async (): Promise<boolean> => {
@@ -660,6 +675,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isLoading,
     login,
+    loginWithPasskey,
     logout,
     refreshUser,
     isSessionStale: sessionStatus === 'stale',

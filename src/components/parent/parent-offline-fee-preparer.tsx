@@ -48,7 +48,7 @@ function ParentOfflineFeeTermPreparer({
   term: Term;
 }) {
   const { data: pupil } = usePupil(pupilId);
-  const { pupilFees, termTotals, isLoading } = usePupilFees({
+  const { pupilFees, termTotals, isOfflineSnapshotComplete } = usePupilFees({
     pupilId,
     pupil: pupil || undefined,
     selectedTermId: term.id,
@@ -58,10 +58,10 @@ function ParentOfflineFeeTermPreparer({
   const { save } = useParentOfflineFees(accountId, pupilId, academicYear.id, term.id);
 
   useEffect(() => {
-    if (!accountId || isLoading) return;
+    if (!accountId || !isOfflineSnapshotComplete) return;
     void save(pupilFees, termTotals)
       .catch(error => console.warn('Could not prepare parent fees for offline use:', error));
-  }, [accountId, isLoading, pupilFees, save, termTotals]);
+  }, [accountId, isOfflineSnapshotComplete, pupilFees, save, termTotals]);
 
   return null;
 }

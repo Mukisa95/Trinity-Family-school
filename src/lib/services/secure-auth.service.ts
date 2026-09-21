@@ -65,6 +65,10 @@ export class SecureAuthService {
     });
     const payload = await parseResponse<LoginResponse>(response);
 
+    return this.establishSession(payload);
+  }
+
+  static async establishSession(payload: LoginResponse): Promise<SystemUser> {
     const previousCache = typeof window !== 'undefined'
       ? window.localStorage.getItem(AUTH_CACHE_KEY)
       : null;
@@ -95,7 +99,7 @@ export class SecureAuthService {
       }
       throw new SecureAuthError(
         'secure-session-failed',
-        'Your username and password were accepted, but this device could not establish a secure session. Check your connection and try again.',
+        'Sign-in was accepted, but this device could not establish a secure session. Check your connection and try again.',
       );
     }
 
