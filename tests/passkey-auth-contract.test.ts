@@ -7,6 +7,7 @@ const login = readFileSync('src/app/login/page.tsx', 'utf8');
 const parentSettings = readFileSync('src/app/parent/settings/page.tsx', 'utf8');
 const accountSettings = readFileSync('src/app/settings/account/page.tsx', 'utf8');
 const authGuard = readFileSync('src/components/common/AuthGuard.tsx', 'utf8');
+const sessionResumeModal = readFileSync('src/components/common/SessionResumeModal.tsx', 'utf8');
 const autoLockSettings = readFileSync('src/components/settings/auto-lock-settings.tsx', 'utf8');
 const passkeySettings = readFileSync('src/components/settings/passkey-settings.tsx', 'utf8');
 const passkeyService = readFileSync('src/lib/services/passkey.service.ts', 'utf8');
@@ -46,4 +47,18 @@ test('passkey settings wait for restored Firebase auth and recover an existing a
   assert.match(passkeySettings, /This device unlock was already registered and is ready to use\./);
   assert.match(passkeySettings, /Check status/);
   assert.doesNotMatch(passkeySettings, /Try again online/);
+});
+
+test('the biometric privacy-lock preference survives settings remounts', () => {
+  assert.match(autoLockSettings, /useState<boolean \| null>\(null\)/);
+  assert.doesNotMatch(autoLockSettings, /deviceUnlockForAutoLock && \(!deviceUnlockAvailable/);
+  assert.match(autoLockSettings, /deviceUnlockForAutoLock && autoLockAction === 'signout'/);
+  assert.match(autoLockSettings, /disabled=\{deviceUnlockAvailable !== true\}/);
+});
+
+test('a locked parent must unlock before account actions become available', () => {
+  assert.match(authGuard, /const isParent = user\?\.role === 'Parent'/);
+  assert.match(authGuard, /onSwitchUser=\{isParent \? undefined : handleSwitchUser\}/);
+  assert.match(authGuard, /onSignOut=\{isParent \? undefined : handleSignOut\}/);
+  assert.match(sessionResumeModal, /\{\(onSwitchUser \|\| onSignOut\) && \(/);
 });

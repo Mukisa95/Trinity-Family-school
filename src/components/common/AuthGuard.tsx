@@ -14,6 +14,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const { user, isLocked, resumeSession, login, logout, deviceUnlockForAutoLock } = useAuth();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const router = useRouter();
+  const isParent = user?.role === 'Parent';
 
   useEffect(() => {
     if (user && isLocked) {
@@ -87,8 +88,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         <SessionResumeModal
           isOpen={showUnlockModal}
           onResume={handleResume}
-          onSwitchUser={handleSwitchUser}
-          onSignOut={handleSignOut}
+          onSwitchUser={isParent ? undefined : handleSwitchUser}
+          onSignOut={isParent ? undefined : handleSignOut}
           username={user.username}
           requiresDeviceUnlock={deviceUnlockForAutoLock}
         />

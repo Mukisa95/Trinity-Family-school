@@ -16,7 +16,7 @@ export function AutoLockSettings() {
     setDeviceUnlockForAutoLock,
     lockAccount,
   } = useAuth();
-  const [deviceUnlockAvailable, setDeviceUnlockAvailable] = useState(false);
+  const [deviceUnlockAvailable, setDeviceUnlockAvailable] = useState<boolean | null>(null);
 
   const checkDeviceUnlock = useCallback(async () => {
     if (!user) return setDeviceUnlockAvailable(false);
@@ -35,10 +35,14 @@ export function AutoLockSettings() {
   }, [checkDeviceUnlock]);
 
   useEffect(() => {
-    if (deviceUnlockForAutoLock && (!deviceUnlockAvailable || autoLockAction === 'signout')) {
+    // Device support is checked asynchronously whenever Settings mounts. Do
+    // not erase the user's saved preference while that check is pending or if
+    // a browser capability check temporarily fails. Signing out is the only
+    // action that is inherently incompatible with a local privacy unlock.
+    if (deviceUnlockForAutoLock && autoLockAction === 'signout') {
       setDeviceUnlockForAutoLock(false);
     }
-  }, [autoLockAction, deviceUnlockAvailable, deviceUnlockForAutoLock, setDeviceUnlockForAutoLock]);
+  }, [autoLockAction, deviceUnlockForAutoLock, setDeviceUnlockForAutoLock]);
 
   const toggleAutoLock = () => {
     const enabled = !autoLockEnabled;
@@ -92,14 +96,16 @@ export function AutoLockSettings() {
                 <div>
                   <p className="text-xs font-semibold text-indigo-950">Require device unlock</p>
                   <p className="mt-0.5 text-[11px] leading-4 text-indigo-700">
-                    {deviceUnlockAvailable
+                    {deviceUnlockAvailable === null
+                      ? 'Checking biometric / device unlock on this device…'
+                      : deviceUnlockAvailable
                       ? 'Use fingerprint, face unlock, or the device PIN. The privacy lock can be opened offline.'
                       : 'First enable biometric / device unlock on this device while online.'}
                   </p>
                 </div>
               </div>
               <button type="button" role="switch" aria-checked={deviceUnlockForAutoLock}
-                disabled={!deviceUnlockAvailable}
+                disabled={deviceUnlockAvailable !== true}
                 onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)}
                 className={`relative mt-0.5 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-indigo-600' : 'bg-gray-300'}`}>
                 <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${deviceUnlockForAutoLock ? 'translate-x-6' : 'translate-x-1'}`} />
