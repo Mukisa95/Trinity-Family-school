@@ -11,6 +11,7 @@ import {
 } from '@/lib/services/operational-audit.service';
 import {
   auditQueryFamily,
+  isOperationalAuditTransportResource,
   mergeOperationalEvent,
   operationalEventKey,
   sanitizeAuditRoute,
@@ -69,7 +70,17 @@ export function OperationalAuditProvider() {
   const flushingRef = useRef(false);
   const startedAtRef = useRef(new Date().toISOString());
   const routeRef = useRef(sanitizeAuditRoute(pathname));
-  const routeStartedAtRef = useRef(Date.now());
+  const routeVisibleSinceRef = useRef<number | null>(null);
+  const routeVisibleElapsedRef = useRef(0);
+  const routeHistoryRef = useRef([{ startedAt: 0, route: sanitizeAuditRoute(pathname) }]);
+  const navigationRecordedRef = useRef(false);
+  const activeOperationsRef = useRef(0);
+  const offlineEpisodeRef = useRef<{
+    startedAt: number;
+    route: string;
+    visibility: DocumentVisibilityState;
+    activeOperations: number;
+  } | null>(null);
   const actorRef = useRef<OperationalAuditActor>();
   const sessionIdRef = useRef('');
   const pendingKeyRef = useRef('');
@@ -120,8 +131,40 @@ export function OperationalAuditProvider() {
     bufferRef.current.set(key, mergeOperationalEvent(bufferRef.current.get(key), normalized));
   }, []);
 
+  const pauseRouteTimer = useCallback(() => {
+    if (routeVisibleSinceRef.current === null) return;
+    routeVisibleElapsedRef.current += Math.max(0, Date.now() - routeVisibleSinceRef.current);
+    routeVisibleSinceRef.current = null;
+  }, []);
+
+  const resumeRouteTimer = useCallback(() => {
+    if (document.visibilityState === 'visible' && routeVisibleSinceRef.current === null) {
+      routeVisibleSinceRef.current = Date.now();
+    }
+  }, []);
+
+  const recordRouteTime = useCallback((route: string) => {
+    pauseRouteTimer();
+    const elapsed = routeVisibleElapsedRef.current;
+    routeVisibleElapsedRef.current = 0;
+    if (elapsed <= 0) return;
+    addEvent({
+      kind: 'activity',
+      name: 'route_visible',
+      severity: 'info',
+      route,
+      source: 'navigation',
+      totalMs: elapsed,
+      minMs: elapsed,
+      maxMs: elapsed,
+    });
+  }, [addEvent, pauseRouteTimer]);
+
   const flush = useCallback(async () => {
-    if (!activeRef.current || flushingRef.current || bufferRef.current.size === 0) return;
+    if (!activeRef.current || flushingRef.current) return;
+    recordRouteTime(routeRef.current);
+    resumeRouteTimer();
+    if (bufferRef.current.size === 0) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       persist();
       return;
@@ -155,7 +198,7 @@ export function OperationalAuditProvider() {
     } finally {
       flushingRef.current = false;
     }
-  }, [persist]);
+  }, [persist, recordRouteTime, resumeRouteTimer]);
 
   useEffect(() => {
     activeRef.current = Boolean(isAuthenticated && user);
@@ -199,54 +242,50 @@ export function OperationalAuditProvider() {
     });
 
     return () => {
+      recordRouteTime(routeRef.current);
       persist();
       activeRef.current = false;
     };
-  }, [addEvent, isAuthenticated, persist, user]);
+  }, [addEvent, isAuthenticated, persist, recordRouteTime, resumeRouteTimer, user]);
 
   useEffect(() => {
     if (!activeRef.current) return;
     const previousRoute = routeRef.current;
-    const elapsed = Math.max(0, Date.now() - routeStartedAtRef.current);
-    if (previousRoute && previousRoute !== sanitizeAuditRoute(pathname)) {
-      addEvent({
-        kind: 'activity',
-        name: 'route_visible',
-        severity: 'info',
-        route: previousRoute,
-        source: 'navigation',
-        totalMs: elapsed,
-        minMs: elapsed,
-        maxMs: elapsed,
-      });
-    }
-    routeRef.current = sanitizeAuditRoute(pathname);
-    routeStartedAtRef.current = Date.now();
-  }, [addEvent, pathname]);
+    const nextRoute = sanitizeAuditRoute(pathname);
+    if (previousRoute && previousRoute !== nextRoute) recordRouteTime(previousRoute);
+    routeRef.current = nextRoute;
+    routeHistoryRef.current.push({ startedAt: performance.now(), route: nextRoute });
+    routeHistoryRef.current = routeHistoryRef.current.slice(-30);
+    resumeRouteTimer();
+  }, [pathname, recordRouteTime, resumeRouteTimer]);
 
   useEffect(() => {
     if (!activeRef.current) return;
-    const queryStarts = new Map<string, number>();
-    const mutationStarts = new Map<number, number>();
+    const queryStarts = new Map<string, { startedAt: number; route: string }>();
+    const mutationStarts = new Map<number, { startedAt: number; route: string }>();
 
     const unsubscribeQueries = queryClient.getQueryCache().subscribe((event) => {
       const observed = event.query;
       const hash = observed.queryHash;
       if (observed.state.fetchStatus === 'fetching') {
-        if (!queryStarts.has(hash)) queryStarts.set(hash, performance.now());
+        if (!queryStarts.has(hash)) {
+          queryStarts.set(hash, { startedAt: performance.now(), route: routeRef.current });
+          activeOperationsRef.current += 1;
+        }
         return;
       }
-      const started = queryStarts.get(hash);
-      if (started === undefined) return;
+      const operation = queryStarts.get(hash);
+      if (!operation) return;
       queryStarts.delete(hash);
-      const duration = Math.max(0, performance.now() - started);
+      activeOperationsRef.current = Math.max(0, activeOperationsRef.current - 1);
+      const duration = Math.max(0, performance.now() - operation.startedAt);
       const failed = observed.state.status === 'error';
       const details = failed ? errorDetails(observed.state.error) : {};
       addEvent({
         kind: failed ? 'error' : 'performance',
         name: `query:${auditQueryFamily(observed.queryKey)}`,
         severity: failed ? 'error' : duration >= SLOW_OPERATION_MS ? 'warning' : 'info',
-        route: routeRef.current,
+        route: operation.route,
         source: 'react-query',
         totalMs: duration,
         minMs: duration,
@@ -260,13 +299,17 @@ export function OperationalAuditProvider() {
       if (!observed) return;
       const id = observed.mutationId;
       if (observed.state.status === 'pending') {
-        if (!mutationStarts.has(id)) mutationStarts.set(id, performance.now());
+        if (!mutationStarts.has(id)) {
+          mutationStarts.set(id, { startedAt: performance.now(), route: routeRef.current });
+          activeOperationsRef.current += 1;
+        }
         return;
       }
-      const started = mutationStarts.get(id);
-      if (started === undefined) return;
+      const operation = mutationStarts.get(id);
+      if (!operation) return;
       mutationStarts.delete(id);
-      const duration = Math.max(0, performance.now() - started);
+      activeOperationsRef.current = Math.max(0, activeOperationsRef.current - 1);
+      const duration = Math.max(0, performance.now() - operation.startedAt);
       const failed = observed.state.status === 'error';
       const mutationKey = Array.isArray(observed.options.mutationKey) ? observed.options.mutationKey : ['unnamed-mutation'];
       const details = failed ? errorDetails(observed.state.error) : {};
@@ -274,7 +317,7 @@ export function OperationalAuditProvider() {
         kind: failed ? 'error' : 'performance',
         name: `mutation:${auditQueryFamily(mutationKey)}`,
         severity: failed ? 'error' : duration >= SLOW_OPERATION_MS ? 'warning' : 'info',
-        route: routeRef.current,
+        route: operation.route,
         source: 'react-query',
         totalMs: duration,
         minMs: duration,
@@ -284,6 +327,10 @@ export function OperationalAuditProvider() {
     });
 
     return () => {
+      activeOperationsRef.current = Math.max(
+        0,
+        activeOperationsRef.current - queryStarts.size - mutationStarts.size,
+      );
       unsubscribeQueries();
       unsubscribeMutations();
     };
@@ -310,12 +357,45 @@ export function OperationalAuditProvider() {
         ...details,
       });
     };
-    const onOffline = () => addEvent({
-      kind: 'network', name: 'offline', severity: 'warning', route: routeRef.current, source: 'browser',
-    });
-    const onOnline = () => addEvent({
-      kind: 'network', name: 'online_recovered', severity: 'info', route: routeRef.current, source: 'browser',
-    });
+    const connectionType = () => {
+      const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+      return sanitizeAuditText(connection?.effectiveType, 20) || 'unknown';
+    };
+    const onOffline = () => {
+      if (offlineEpisodeRef.current) return;
+      offlineEpisodeRef.current = {
+        startedAt: Date.now(),
+        route: routeRef.current,
+        visibility: document.visibilityState,
+        activeOperations: activeOperationsRef.current,
+      };
+      addEvent({
+        kind: 'network',
+        name: 'offline_started',
+        severity: 'warning',
+        route: routeRef.current,
+        source: `browser:${connectionType()}`,
+        message: `Connection was lost while the tab was ${document.visibilityState}; ${activeOperationsRef.current} tracked operation(s) were active.`,
+      });
+    };
+    const onOnline = () => {
+      const episode = offlineEpisodeRef.current;
+      offlineEpisodeRef.current = null;
+      const duration = episode ? Math.max(0, Date.now() - episode.startedAt) : undefined;
+      addEvent({
+        kind: 'network',
+        name: 'online_recovered',
+        severity: 'info',
+        route: episode?.route || routeRef.current,
+        source: `browser:${connectionType()}`,
+        message: episode
+          ? `Connection recovered; it began while the tab was ${episode.visibility} with ${episode.activeOperations} tracked operation(s) active.`
+          : 'Connection recovered after an interruption that began before this audit session.',
+        totalMs: duration,
+        minMs: duration,
+        maxMs: duration,
+      });
+    };
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
     window.addEventListener('offline', onOffline);
@@ -334,7 +414,7 @@ export function OperationalAuditProvider() {
     try {
       const longTaskObserver = new PerformanceObserver(list => {
         list.getEntries().forEach(entry => {
-          if (entry.duration < 150) return;
+          if (entry.duration < 150 || document.visibilityState !== 'visible') return;
           addEvent({
             kind: 'performance',
             name: 'browser_long_task',
@@ -355,17 +435,20 @@ export function OperationalAuditProvider() {
       const resourceObserver = new PerformanceObserver(list => {
         list.getEntries().forEach(entry => {
           const resource = entry as PerformanceResourceTiming;
-          if (resource.duration < SLOW_OPERATION_MS || resource.name.includes('Firestore/Write/channel')) return;
+          if (resource.duration < SLOW_OPERATION_MS || isOperationalAuditTransportResource(resource.name)) return;
           let target = 'resource';
           try {
             const url = new URL(resource.name);
             target = `${url.hostname}${sanitizeAuditRoute(url.pathname)}`.slice(0, 120);
           } catch { /* retain generic target */ }
+          const startingRoute = [...routeHistoryRef.current]
+            .reverse()
+            .find(item => item.startedAt <= resource.startTime)?.route || routeRef.current;
           addEvent({
             kind: 'performance',
             name: `resource:${resource.initiatorType || 'other'}`,
             severity: 'warning',
-            route: routeRef.current,
+            route: startingRoute,
             source: target,
             totalMs: resource.duration,
             minMs: resource.duration,
@@ -378,7 +461,8 @@ export function OperationalAuditProvider() {
     } catch { /* unsupported performance entry type */ }
 
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-    if (navigation?.duration) {
+    if (navigation?.duration && !navigationRecordedRef.current) {
+      navigationRecordedRef.current = true;
       addEvent({
         kind: 'performance',
         name: 'page_load',
@@ -428,10 +512,13 @@ export function OperationalAuditProvider() {
       return [...bufferRef.current.values()].some(event => event.severity !== 'info');
     };
     const onVisibility = () => {
+      if (document.visibilityState === 'hidden') pauseRouteTimer();
+      else resumeRouteTimer();
       persist();
       if (document.visibilityState === 'visible' && navigator.onLine && flushIsDue(false)) void flush();
     };
     const onPageHide = () => {
+      recordRouteTime(routeRef.current);
       persist();
       if (navigator.onLine && flushIsDue(true)) void flush();
     };
@@ -444,7 +531,7 @@ export function OperationalAuditProvider() {
       document.removeEventListener('visibilitychange', onVisibility);
       persist();
     };
-  }, [flush, isAuthenticated, persist, user]);
+  }, [flush, isAuthenticated, pauseRouteTimer, persist, recordRouteTime, resumeRouteTimer, user]);
 
   return null;
 }

@@ -74,6 +74,27 @@ export function auditQueryFamily(queryKey: readonly unknown[]): string {
   return parts.filter(Boolean).join('/') || 'unnamed-query';
 }
 
+/**
+ * Browser resource timing reports persistent Firebase transports when their
+ * connection eventually closes. Those durations describe connection lifetime,
+ * not application latency, so they must never be ranked as slow operations.
+ */
+export function isOperationalAuditTransportResource(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.toLowerCase();
+  return (
+    normalized.includes('firestore.googleapis.com/google.firestore.v1.firestore/listen/channel') ||
+    normalized.includes('firestore.googleapis.com/google.firestore.v1.firestore/write/channel') ||
+    normalized.includes('securetoken.googleapis.com/v1/token') ||
+    normalized.includes('/generate_204') ||
+    normalized.includes('/images/cleardot.gif')
+  );
+}
+
+export function isOperationalAuditTransportEvent(event: Pick<OperationalAuditEvent, 'name' | 'source'>): boolean {
+  return event.name.startsWith('resource:') && isOperationalAuditTransportResource(event.source);
+}
+
 export function operationalEventKey(event: OperationalAuditEvent): string {
   return [event.kind, event.name, event.source, event.route, event.severity, event.code || '', event.status || ''].join('|');
 }
@@ -135,6 +156,15 @@ function durationLabel(event: OperationalAuditEvent) {
   return average === undefined ? `${Math.round(event.maxMs)} ms max` : `${average} ms avg / ${Math.round(event.maxMs)} ms max`;
 }
 
+function eventDetailLabel(event: OperationalAuditEvent) {
+  return [
+    event.message,
+    event.code ? `code: ${event.code}` : '',
+    typeof event.status === 'number' ? `status: ${event.status}` : '',
+    durationLabel(event),
+  ].filter(Boolean).join('; ');
+}
+
 function severityRank(severity: OperationalAuditSeverity) {
   return severity === 'error' ? 3 : severity === 'warning' ? 2 : 1;
 }
@@ -144,20 +174,38 @@ export function buildOperationalAuditMarkdown(
   day: string,
   limitReached: boolean,
 ): string {
-  const events = flattenOperationalRecords(records);
+  const allEvents = flattenOperationalRecords(records);
+  const excludedTransportEvents = allEvents.filter(isOperationalAuditTransportEvent);
+  const events = allEvents.filter(event => !isOperationalAuditTransportEvent(event));
   const occurrences = events.reduce((total, event) => total + Math.max(1, event.count), 0);
   const errors = events.filter(event => event.severity === 'error');
   const warnings = events.filter(event => event.severity === 'warning');
   const slow = events
-    .filter(event => typeof event.maxMs === 'number')
+    .filter(event => event.kind === 'performance' && event.name !== 'route_visible' && typeof event.maxMs === 'number')
     .sort((a, b) => (b.maxMs || 0) - (a.maxMs || 0))
     .slice(0, 40);
+  const routeTime = events
+    .filter(event => event.name === 'route_visible' && typeof event.maxMs === 'number')
+    .sort((a, b) => (b.maxMs || 0) - (a.maxMs || 0))
+    .slice(0, 40);
+  const coordination = events
+    .filter(event => event.kind === 'coordination')
+    .sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime());
   const incidents = [...events]
     .filter(event => event.severity !== 'info' || event.source === 'manual')
     .sort((a, b) => severityRank(b.severity) - severityRank(a.severity) || b.recordedAt.getTime() - a.recordedAt.getTime());
-  const routeTotals = new Map<string, number>();
-  events.forEach(event => routeTotals.set(event.route, (routeTotals.get(event.route) || 0) + Math.max(1, event.count)));
-  const activeRoutes = [...routeTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30);
+  const routeTotals = new Map<string, { route: string; version: string; count: number }>();
+  events.forEach(event => {
+    const key = `${event.route}\u0000${event.appVersion}`;
+    const existing = routeTotals.get(key);
+    routeTotals.set(key, {
+      route: event.route,
+      version: event.appVersion,
+      count: (existing?.count || 0) + Math.max(1, event.count),
+    });
+  });
+  const activeRoutes = [...routeTotals.values()].sort((a, b) => b.count - a.count).slice(0, 30);
+  const appVersions = [...new Set(events.map(event => event.appVersion || 'unknown'))].sort();
   const generated = new Date().toISOString();
 
   const lines = [
@@ -173,28 +221,46 @@ export function buildOperationalAuditMarkdown(
     `- Recorded occurrences: ${occurrences}`,
     `- Error occurrences: ${errors.reduce((total, event) => total + event.count, 0)}`,
     `- Warning occurrences: ${warnings.reduce((total, event) => total + event.count, 0)}`,
+    `- Application versions: ${appVersions.map(markdownCell).join(', ') || 'none'}`,
+    `- Transport observations excluded: ${excludedTransportEvents.reduce((total, event) => total + Math.max(1, event.count), 0)}`,
     `- Read limit reached: ${limitReached ? 'Yes — later records may be absent' : 'No'}`,
     '',
     '## Incidents and observations',
     '',
-    '| Time | Severity | Kind | Signal | Route | User | Count | Detail |',
-    '|---|---|---|---|---|---|---:|---|',
-    ...incidents.map(event => `| ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(event.severity)} | ${markdownCell(event.kind)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(event.message || durationLabel(event) || event.code || '')} |`),
-    ...(incidents.length ? [] : ['| — | — | — | No incidents recorded | — | — | 0 | — |']),
+    '| Time | Version | Severity | Kind | Signal | Route | User | Count | Detail |',
+    '|---|---|---|---|---|---|---|---:|---|',
+    ...incidents.map(event => `| ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(event.appVersion)} | ${markdownCell(event.severity)} | ${markdownCell(event.kind)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(eventDetailLabel(event))} |`),
+    ...(incidents.length ? [] : ['| — | — | — | — | No incidents recorded | — | — | 0 | — |']),
     '',
     '## Slowest observed operations',
     '',
-    '| Signal | Source | Route | Count | Average / maximum | User |',
-    '|---|---|---|---:|---|---|',
-    ...slow.map(event => `| ${markdownCell(event.name)} | ${markdownCell(event.source)} | ${markdownCell(event.route)} | ${event.count} | ${markdownCell(durationLabel(event))} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} |`),
-    ...(slow.length ? [] : ['| No timed operations recorded | — | — | 0 | — | — |']),
+    '| Signal | Source | Route | Version | Count | Average / maximum | User |',
+    '|---|---|---|---|---:|---|---|',
+    ...slow.map(event => `| ${markdownCell(event.name)} | ${markdownCell(event.source)} | ${markdownCell(event.route)} | ${markdownCell(event.appVersion)} | ${event.count} | ${markdownCell(durationLabel(event))} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} |`),
+    ...(slow.length ? [] : ['| No timed operations recorded | — | — | — | 0 | — | — |']),
     '',
-    '## Most active routes',
+    '## Time spent on pages',
     '',
-    '| Route | Recorded occurrences |',
-    '|---|---:|',
-    ...activeRoutes.map(([route, count]) => `| ${markdownCell(route)} | ${count} |`),
-    ...(activeRoutes.length ? [] : ['| No routes recorded | 0 |']),
+    'Corrected collector versions count visible route time. Older records may include background time. These values are not page-load durations.',
+    '',
+    '| Route | Version | Count | Average / maximum | User |',
+    '|---|---|---:|---|---|',
+    ...routeTime.map(event => `| ${markdownCell(event.route)} | ${markdownCell(event.appVersion)} | ${event.count} | ${markdownCell(durationLabel(event))} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} |`),
+    ...(routeTime.length ? [] : ['| No completed route visits recorded | — | 0 | — | — |']),
+    '',
+    '## Coordination observations',
+    '',
+    '| Time | Version | Signal | Route | User | Count | Detail |',
+    '|---|---|---|---|---|---:|---|',
+    ...coordination.map(event => `| ${markdownCell(event.recordedAt.toISOString())} | ${markdownCell(event.appVersion)} | ${markdownCell(event.name)} | ${markdownCell(event.route)} | ${markdownCell(`${event.actorName} (${event.actorRole})`)} | ${event.count} | ${markdownCell(eventDetailLabel(event))} |`),
+    ...(coordination.length ? [] : ['| — | — | No coordination observations recorded | — | — | 0 | — |']),
+    '',
+    '## Routes generating the most audit signals',
+    '',
+    '| Route | Version | Recorded occurrences |',
+    '|---|---|---:|',
+    ...activeRoutes.map(item => `| ${markdownCell(item.route)} | ${markdownCell(item.version)} | ${item.count} |`),
+    ...(activeRoutes.length ? [] : ['| No routes recorded | — | 0 |']),
     '',
     '## Diagnostic notes',
     '',
@@ -202,6 +268,8 @@ export function buildOperationalAuditMarkdown(
     '- Routes have query strings removed and identifier-like path segments replaced.',
     '- Messages are shortened and scrubbed for URLs, email addresses, phone-like numbers, and long identifiers.',
     '- Duration values are browser-side elapsed times. They include network and client processing and are not Firestore billed-read counts.',
+    '- Persistent Firestore transports, token refreshes, and connectivity probes are excluded from resource-latency rankings.',
+    '- Time spent on pages is reported separately and must not be interpreted as page-load latency.',
     '',
   ];
   return lines.join('\n');
