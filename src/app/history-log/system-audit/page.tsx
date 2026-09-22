@@ -21,6 +21,7 @@ import { HistoryLogService } from '@/lib/services/history-log.service';
 import {
   buildOperationalAuditMarkdown,
   flattenOperationalRecords,
+  isOperationalAuditTransportEvent,
 } from '@/lib/operational-audit/core';
 
 function localDateInputValue(date = new Date()) {
@@ -91,7 +92,10 @@ export default function SystemAuditPage() {
 
   useEffect(() => { void loadAudit(); }, [loadAudit]);
 
-  const events = useMemo(() => flattenOperationalRecords(records), [records]);
+  const events = useMemo(
+    () => flattenOperationalRecords(records).filter(event => !isOperationalAuditTransportEvent(event)),
+    [records],
+  );
   const filteredEvents = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return events.filter(event => {
@@ -111,7 +115,9 @@ export default function SystemAuditPage() {
     return {
       occurrences: occurrenceCount,
       errors: events.filter(event => event.severity === 'error').reduce((sum, event) => sum + event.count, 0),
-      slow: events.filter(event => (event.maxMs || 0) >= 2000).reduce((sum, event) => sum + event.count, 0),
+      slow: events
+        .filter(event => event.kind === 'performance' && event.name !== 'route_visible' && (event.maxMs || 0) >= 2000)
+        .reduce((sum, event) => sum + event.count, 0),
       users: new Set(events.map(event => `${event.actorName}|${event.actorRole}`)).size,
     };
   }, [events]);
@@ -304,13 +310,20 @@ export default function SystemAuditPage() {
                   <p className="text-sm text-muted-foreground">
                     {event.route} · {event.source} · {event.actorName}{event.actorRole ? ` (${event.actorRole})` : ''}
                   </p>
-                  {event.message && <p className="text-sm">{event.message}</p>}
+                  {(event.message || event.code || typeof event.status === 'number') && (
+                    <p className="text-sm">
+                      {[event.message, event.code ? `Code: ${event.code}` : '', typeof event.status === 'number' ? `Status: ${event.status}` : '']
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {durationLabel(event.totalMs, event.count, event.maxMs)} · {event.count.toLocaleString()} occurrence{event.count === 1 ? '' : 's'}
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground lg:text-right">
                   {displayTimestamp(event.recordedAt)}
+                  <div className="mt-1 break-all">Version {event.appVersion}</div>
                 </div>
               </CardContent>
             </Card>
