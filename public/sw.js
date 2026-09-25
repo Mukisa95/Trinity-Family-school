@@ -581,7 +581,12 @@ self.addEventListener('fetch', (event) => {
         if (cached) return cached;
         return fetch(event.request).then(response => {
           if (response.ok) {
-            void caches.open(PARENT_APP_SHELL_CACHE).then(cache => cache.put(event.request, response.clone()));
+            // Clone before returning the response: the browser may start
+            // consuming its body before caches.open() settles.
+            const responseToCache = response.clone();
+            void caches.open(PARENT_APP_SHELL_CACHE)
+              .then(cache => cache.put(event.request, responseToCache))
+              .catch(error => console.warn('Could not cache static asset:', error));
           }
           return response;
         });

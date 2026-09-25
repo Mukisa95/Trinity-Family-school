@@ -5,6 +5,14 @@ import { test } from 'node:test';
 const readiness = readFileSync('src/lib/parent-offline/readiness.ts', 'utf8');
 const card = readFileSync('src/components/parent/parent-offline-readiness-card.tsx', 'utf8');
 const worker = readFileSync('public/sw.js', 'utf8');
+
+test('static assets are cloned before the network response is returned', () => {
+  const staticAssetBranch = worker.match(/if \(url\.origin === self\.location\.origin && url\.pathname\.startsWith\('\/_next\/static\/'\)\) \{([\s\S]*?)\n  \}/)?.[1];
+  assert.ok(staticAssetBranch);
+  assert.match(staticAssetBranch, /const responseToCache = response\.clone\(\)/);
+  assert.match(staticAssetBranch, /cache\.put\(event\.request, responseToCache\)/);
+  assert.doesNotMatch(staticAssetBranch, /\.then\(cache => cache\.put\(event\.request, response\.clone\(\)\)\)/);
+});
 const manifest = JSON.parse(readFileSync('public/parent-manifest.json', 'utf8')) as { start_url?: string };
 
 test('parent offline status exposes real progress and per-dataset update times', () => {
