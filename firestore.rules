@@ -73,6 +73,18 @@ service cloud.firestore {
       allow write: if isActiveApplicationUser();
     }
 
+    // Dev Contral reads are administrator-only. Operational telemetry still
+    // accepts create-only summaries from active app users.
+    match /historicalPupilSeeds/{seedId} {
+      allow read, write: if isActiveApplicationUser() && request.auth.token.role == 'Admin';
+    }
+
+    match /operationalAuditLogs/{auditId} {
+      allow read: if isActiveApplicationUser() && request.auth.token.role == 'Admin';
+      allow create: if isActiveApplicationUser();
+      allow update, delete: if false;
+    }
+
     // Banking records predate the family ownership field used by the parent
     // dashboard. Parents therefore receive their own child's compact banking
     // projection from the server, after it has checked the pupil's family.
@@ -256,6 +268,8 @@ service cloud.firestore {
       allow read, write: if collection != 'authCredentials'
         && collection != 'system_users'
         && collection != 'pupils'
+        && collection != 'historicalPupilSeeds'
+        && collection != 'operationalAuditLogs'
         && collection != 'bankAccounts'
         && collection != 'bankLoans'
         && collection != 'bankTransactions'

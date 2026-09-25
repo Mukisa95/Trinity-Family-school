@@ -47,7 +47,7 @@ type PermissionSection = {
 
 // This mirrors the sidebar: main section, menu group, then the submenu/feature
 // the user actually sees. A feature can expose just the relevant pages from a
-// module, which keeps sensitive pages such as Seeding deliberately separate.
+// module. Dev Contral tools are administrator-only, so they are not grantable here.
 const PERMISSION_SECTIONS: PermissionSection[] = [
   {
     id: "overview",
@@ -147,7 +147,6 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
           { id: "access-levels", title: "Access Levels", description: "Detailed access-level configuration.", moduleId: "access_levels" },
           { id: "accounts-settings", title: "Accounts", description: "Fee structures and account setup.", moduleId: "fees", pageIds: ["list"] },
           { id: "academic-setup", title: "Academic Setup", description: "Academic years and terms.", moduleId: "academic_years" },
-          { id: "seeding", title: "Seeding", description: "Historical pupil seeding. This remains hidden from every non-admin until explicitly granted here.", moduleId: "pupils", pageIds: ["historical_seeding"] },
           { id: "about-school", title: "About School", description: "School profile and settings.", moduleId: "settings" },
           { id: "history-log", title: "History Log", description: "System activity history and audit records.", moduleId: "account", pageIds: ["history_log"] },
           { id: "my-profile", title: "My Profile", description: "Signed-in user profile and password controls.", moduleId: "account", pageIds: ["profile"] },

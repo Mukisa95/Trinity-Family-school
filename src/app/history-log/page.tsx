@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Activity, Download, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
+import { Download, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 
@@ -304,13 +304,6 @@ export default function HistoryLogPage() {
         }
         actions={
           <GlassActionDock>
-            <GlassActionButton
-              label="System Audit"
-              icon={<Activity className="h-4 w-4" />}
-              tone="violet"
-              href="/history-log/system-audit"
-              title="Open system performance and reliability audit"
-            />
             <GlassActionButton
               label="Refresh"
               icon={<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}

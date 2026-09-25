@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission } from '@/types/permissions';
+import { isDevControlPath } from '@/config/dev-control';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Premium deeper color palettes for each section's icons and active states
@@ -84,7 +85,7 @@ export function SidebarNav({ items }: SidebarNavProps) {
   function checkItemPermission(href: string): boolean {
     if (href.startsWith('http://') || href.startsWith('https://')) return true;
 
-    if (href === '/settings/firebase-usage' || href === '/settings/deployment') return user?.role === 'Admin';
+    if (isDevControlPath(href)) return user?.role === 'Admin';
     if (href === '/inventory') return GranularPermissionService.canAccessInventoryWorkspace(user);
     const routePermission = getRoutePagePermission(href);
     if (routePermission) {

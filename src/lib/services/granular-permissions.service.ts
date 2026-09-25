@@ -18,6 +18,7 @@ export class GranularPermissionService {
    */
   static canAccessPage(user: SystemUser | null, moduleId: string, pageId: string): boolean {
     if (!user) return false;
+    if (moduleId === 'pupils' && pageId === 'historical_seeding') return user.role === 'Admin';
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false; // Parents use a different system
     
@@ -30,10 +31,6 @@ export class GranularPermissionService {
       }
     }
     
-    // Historical seeding is deliberately opt-in for non-admin users. Existing
-    // broad/legacy Pupil permissions must never expose it accidentally.
-    if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
-
     // DocX is admin-only by default. Non-admin staff can receive access only
     // through an explicit granular page grant above; legacy Reports access is
     // intentionally not broad enough to expose personalised pupil documents.
@@ -62,6 +59,7 @@ export class GranularPermissionService {
    */
   static canPerformAction(user: SystemUser | null, moduleId: string, pageId: string, actionId: string): boolean {
     if (!user) return false;
+    if (moduleId === 'pupils' && pageId === 'historical_seeding') return user.role === 'Admin';
     if (user.role === 'Admin') return true;
     if (user.role === 'Parent') return false;
     
@@ -77,10 +75,6 @@ export class GranularPermissionService {
       }
     }
     
-    // Historical seeding is deliberately opt-in for non-admin users. Existing
-    // broad/legacy Pupil permissions must never expose it accidentally.
-    if (moduleId === 'pupils' && pageId === 'historical_seeding') return false;
-
     if (moduleId === 'reports' && pageId === 'docx') return false;
     if (moduleId === 'payroll') return false;
     if (moduleId === 'item_requests') return false;

@@ -1,5 +1,6 @@
 import type { NavigationItem } from '@/types';
-import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList, LockKeyhole, Activity } from 'lucide-react';
+import { DEV_CONTROL_PATHS } from './dev-control';
 
 export const navItems: NavigationItem[] = [
   {
@@ -187,11 +188,6 @@ export const navItems: NavigationItem[] = [
         icon: CalendarDays,
       },
       {
-        title: 'Seeding',
-        href: '/pupils/historical-seeding',
-        icon: Sprout,
-      },
-      {
         title: 'About School',
         href: '/about-school',
         icon: Info,
@@ -201,16 +197,17 @@ export const navItems: NavigationItem[] = [
         href: '/history-log',
         icon: History,
       },
-      {
-        title: 'Firebase Usage',
-        href: '/settings/firebase-usage',
-        icon: Gauge,
-      },
-      {
-        title: 'Deployment Control',
-        href: '/settings/deployment',
-        icon: ServerCog,
-      },
+    ],
+  },
+  {
+    title: 'Dev Contral',
+    icon: LockKeyhole,
+    section: 'Administration',
+    items: [
+      { title: 'Seeding', href: DEV_CONTROL_PATHS.seeding, icon: Sprout },
+      { title: 'Firestore Usage', href: DEV_CONTROL_PATHS.firestoreUsage, icon: Gauge },
+      { title: 'Deployment Control', href: DEV_CONTROL_PATHS.deployment, icon: ServerCog },
+      { title: 'System Audit', href: DEV_CONTROL_PATHS.systemAudit, icon: Activity },
     ],
   },
 ];

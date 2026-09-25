@@ -15,6 +15,8 @@ import {
 import { SidebarNav } from './sidebar-nav';
 import { MobileSidebar } from './mobile-sidebar';
 import { navItems } from '@/config/nav';
+import { isDevControlPath } from '@/config/dev-control';
+import { DevControlGate } from './dev-control-gate';
 import { School, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -273,7 +275,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   // Check if this is a parent route (should use its own layout)
   const isParentRoute = pathname?.startsWith('/parent') || false;
   const routePermission = pathname ? getRoutePagePermission(pathname) : undefined;
-  const isAdminOnlyRoute = pathname === '/settings/firebase-usage' || pathname === '/settings/deployment';
+  const isAdminOnlyRoute = isDevControlPath(pathname);
   const shouldCheckRoutePermission = Boolean(routePermission) || isAdminOnlyRoute;
   const canAccessCurrentRoute = (!isAdminOnlyRoute || user?.role === 'Admin') && (
     pathname === '/inventory'
@@ -560,7 +562,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
             )}
             {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
             <AuthGuard>
-              {children}
+              {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
             </AuthGuard>
           </main>
 
@@ -613,7 +615,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
                 )}
                 {isSessionVerificationDelayed && <SessionVerificationBanner message={sessionMessage} />}
                 <AuthGuard>
-                {children}
+                {isAdminOnlyRoute ? <DevControlGate>{children}</DevControlGate> : children}
               </AuthGuard>
             </main>
           </SidebarInset>

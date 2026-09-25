@@ -17,6 +17,7 @@ import { SidebarUserFooter } from './sidebar-user-footer';
 import { SchoolSettingsLoader } from './school-settings-loader';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { getRoutePagePermission } from '@/types/permissions';
+import { isDevControlPath } from '@/config/dev-control';
 
 // Premium deeper color palettes matching desktop sidebar
 const sectionColors: Record<string, { icon: string; text: string; activeBg: string; activeIcon: string }> = {
@@ -168,7 +169,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
       return true;
     }
 
-    if (href === '/settings/firebase-usage' || href === '/settings/deployment') return user?.role === 'Admin';
+    if (isDevControlPath(href)) return user?.role === 'Admin';
     if (href === '/inventory') return GranularPermissionService.canAccessInventoryWorkspace(user);
 
     const routePermission = getRoutePagePermission(href);

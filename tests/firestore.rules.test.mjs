@@ -125,6 +125,34 @@ test('an active application identity keeps normal read and write behavior', asyn
   await assertSucceeds(deleteDoc(doc(db, 'pupils', 'pupil-2')));
 });
 
+test('Dev Contral seed records are administrator-only', async () => {
+  const adminDb = testEnv.authenticatedContext('active-admin', {
+    appUser: true, isActive: true, role: 'Admin',
+  }).firestore();
+  const staffDb = testEnv.authenticatedContext('active-staff', {
+    appUser: true, isActive: true, role: 'Staff',
+  }).firestore();
+
+  await assertSucceeds(setDoc(doc(adminDb, 'historicalPupilSeeds', 'seed-1'), { pupilId: 'pupil-1' }));
+  await assertSucceeds(getDoc(doc(adminDb, 'historicalPupilSeeds', 'seed-1')));
+  await assertFails(getDoc(doc(staffDb, 'historicalPupilSeeds', 'seed-1')));
+  await assertFails(setDoc(doc(staffDb, 'historicalPupilSeeds', 'seed-2'), { pupilId: 'pupil-1' }));
+});
+
+test('operational audit reads are admin-only while active users can create telemetry', async () => {
+  const adminDb = testEnv.authenticatedContext('active-admin', {
+    appUser: true, isActive: true, role: 'Admin',
+  }).firestore();
+  const staffDb = testEnv.authenticatedContext('active-staff', {
+    appUser: true, isActive: true, role: 'Staff',
+  }).firestore();
+
+  await assertSucceeds(setDoc(doc(staffDb, 'operationalAuditLogs', 'audit-1'), { av: '6' }));
+  await assertSucceeds(getDoc(doc(adminDb, 'operationalAuditLogs', 'audit-1')));
+  await assertFails(getDoc(doc(staffDb, 'operationalAuditLogs', 'audit-1')));
+  await assertFails(setDoc(doc(staffDb, 'operationalAuditLogs', 'audit-1'), { av: 'changed' }));
+});
+
 test('only the small public school-profile token is anonymously readable', async () => {
   const db = testEnv.unauthenticatedContext().firestore();
   await assertSucceeds(getDoc(doc(db, 'settings', 'school-settings')));

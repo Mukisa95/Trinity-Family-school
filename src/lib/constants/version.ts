@@ -1,4 +1,4 @@
-export const APP_VERSION = '5';
+export const APP_VERSION = '6';
 
 export interface ChangelogEntry {
   date: string;
@@ -9,6 +9,48 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    date: '2026-09-25',
+    version: '6',
+    improvements: [
+      'Grouped Seeding, Firestore Usage, Deployment Control, and System Audit under the administrator-only Dev Contral menu with one password unlock for all four tools',
+      'Added an offline-ready parent dashboard, family-scoped offline data preparation, passkey sign-in, biometric privacy lock, and persistent auto-lock preferences',
+      'Expanded parent and family views with clearer pupil information, attendance and banking sections, sibling navigation, settings, and family messaging tools',
+      'Improved individual and family fee collection with discount-aware balances, shared assignment rules, historical carry-forward handling, and faster payment recording',
+      'Added safer payment reversal and receipt-SMS confirmations, reload-safe payment retries, and an atomic mixed-payment flow for regular, uniform, and carry-forward fees',
+      'Added a recoverable SchoolPay payment inbox, historical payment recovery, unmatched-payment prompts, and improved SchoolPay reconciliation',
+      'Added staff payroll, a pupil DocX document studio, photo-design tools, and in-app document preview and printing',
+      'Added staff item requests, restock and release workflows, bulk purchase-unit conversions, and shared procurement and inventory item forms',
+      'Added class streams throughout class setup, pupil labels, exam entry, result views, and class-aware reporting',
+      'Expanded exam reporting with subject-set, cross-exam, and performance-analysis PDFs plus compact report and assessment print options',
+      'Added new nursery and primary report layouts, improved report printing, and more reliable performance status and comment saving',
+      'Added selective Firebase usage insights and System Audit diagnostics for performance, errors, network events, coordination, and app-version reporting',
+      'Refined the mobile navigation, page headers, action docks, exam cards, pupil toolbar, PDF workspace, and startup cross-fade',
+      'Added scheduled communications dispatch, improved push notification history and delivery, and attendance reminder scheduling',
+    ],
+    bugFixes: [
+      'Prevented fee pages from showing false zero payments, empty fee catalogues, or unverified balances while financial reads are still pending',
+      'Kept the fees collection shell and safe controls visible while individual amounts and fee cards wait for verified data',
+      'Restored the correct historical term for graduated pupils after academic-year changes and repaired fee assignment carry-forward overlap',
+      'Fixed duplicate or partial payment outcomes by making retries idempotent and keeping mixed allocations in one confirmed operation',
+      'Corrected discount allocation, previous-balance calculations, family fee loading, and stale fee selections',
+      'Protected uniform balances and collection status when catalogue entries are missing or database quota is exhausted',
+      'Fixed stale exam result caches, batch ordering, locked-result recovery, class-stream displays, and several analysis PDF layouts',
+      'Corrected procurement budget scoping, request loading, and item purchase fields',
+      'Fixed attendance term filtering, summary refresh, notification timing, and reminder suppression outside school days',
+      'Repaired parent portal routing, offline launch, passkey registration, biometric preference persistence, and auth recovery',
+      'Improved service-worker update recovery, cache refresh, push subscription rotation, and background notification delivery',
+      'Fixed PDF viewer scrolling and zoom, report printing, DocX print fidelity, and photo/PDF generation stalls',
+    ],
+    updates: [
+      'Consolidated shared reference-data queries and reduced duplicate dashboard, pupil, family, fee, authentication, and notification reads',
+      'Kept financial totals behind server-confirmed payment data while preserving cached values only as unverified placeholders',
+      'Added scoped Firestore access checks, parent-ownership validation, read-only snapshot flows, and safer public-content rules',
+      'Kept payment notifications server-side and retired automatic payment alerts that could duplicate messages',
+      'Improved deployment credential controls, administrator usage monitoring, and privacy-bounded operational audit export',
+      'Updated the release notes and visible application version from v5 to v6; the v5 entry remains available below',
+    ],
+  },
   {
     date: '2026-06-06',
     version: '5',
