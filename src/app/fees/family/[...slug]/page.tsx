@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -102,6 +102,7 @@ interface FeesInfo {
 export default function FamilyFeesCollection() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   // Extract familyId from catch-all route
@@ -152,7 +153,7 @@ export default function FamilyFeesCollection() {
   }
 
   // 🚀 OPTIMIZED: Use optimized hook for instant cache-first loading
-  const { data: rawAcademicYears = [], isLoading: isAcademicYearsLoading } = useAcademicYears();
+  const { data: rawAcademicYears = [], isLoading: isAcademicYearsLoading, dataUpdatedAt: academicYearsUpdatedAt } = useAcademicYears();
 
   // 🔥 CRITICAL FIX: Process academic years to mark current terms
   // This ensures the default term selection works properly
@@ -176,6 +177,14 @@ export default function FamilyFeesCollection() {
   // Set initial year and term when data is loaded
   useEffect(() => {
     if (academicYears.length > 0 && !selectedAcademicYear) {
+      const requestedYear = academicYears.find(year => year.id === searchParams.get('yearId'));
+      const requestedTerm = requestedYear?.terms.find(term => term.id === searchParams.get('termId'));
+      if (requestedYear && requestedTerm) {
+        setSelectedAcademicYear(requestedYear);
+        setSelectedYear(requestedYear.id);
+        setSelectedTermId(requestedTerm.id);
+        return;
+      }
       // Use dynamic effective term for data display
       const effectiveTerm = getEffectiveTermForDataDisplay(academicYears);
       const currentYear = effectiveTerm?.academicYear;
@@ -225,7 +234,7 @@ export default function FamilyFeesCollection() {
         }
       }
     }
-  }, [academicYears, selectedAcademicYear]);
+  }, [academicYears, selectedAcademicYear, searchParams]);
 
   // Get terms for selected year
   const selectedYearTerms = academicYears.find(year => year.id === selectedYear)?.terms || [];
@@ -242,7 +251,7 @@ export default function FamilyFeesCollection() {
 
   // Filter the shared pupil cache first. This avoids an extra Firestore query
   // and lets the family cards appear immediately while fee totals load.
-  const { data: familyPupils = [], isLoading: isFamilyPupilsLoading } = usePupilsByFamily(familyId);
+  const { data: familyPupils = [], isLoading: isFamilyPupilsLoading, dataUpdatedAt: familyPupilsUpdatedAt } = usePupilsByFamily(familyId);
 
   // 🚀 OPTIMIZED: Use custom hook for family fees with parallel loading
   const { feesInfo, isLoading: isFeesInfoLoading, error: feesInfoError } = useFamilyFees({
@@ -250,7 +259,9 @@ export default function FamilyFeesCollection() {
     familyPupils,
     selectedTermId,
     selectedAcademicYear,
-    academicYears
+    academicYears,
+    academicYearsUpdatedAt,
+    familyPupilsUpdatedAt,
   });
 
   // Keep payment/print actions protected until the complete fee calculation is
@@ -492,6 +503,19 @@ export default function FamilyFeesCollection() {
               <span>Back to Fees Collection</span>
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (feesInfoError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
+        <div role="alert" className="mx-auto mt-10 max-w-xl rounded-xl border border-red-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-red-800">Family fee totals are unavailable</h2>
+          <p className="mt-2 text-sm text-gray-700">A payment, fee, uniform, holiday, or historical record could not be verified. No balance or payment option is shown until the data is corrected or reloaded.</p>
+          <p className="mt-2 text-xs text-gray-500">{feesInfoError.message}</p>
+          <Link href="/fees/collection" className="mt-4 inline-block text-sm font-semibold text-blue-700">Back to Fees Collection</Link>
         </div>
       </div>
     );

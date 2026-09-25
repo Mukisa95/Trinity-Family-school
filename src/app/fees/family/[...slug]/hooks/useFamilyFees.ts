@@ -1,13 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type { AcademicYear, Pupil, PaymentRecord } from '@/types';
 import { useFeeStructures } from '@/lib/hooks/use-fees';
+import { useUniforms } from '@/lib/hooks/use-uniforms';
 
 // Services
 import { PaymentsService } from '@/lib/services/payments.service';
-import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
+import { UniformFeesIntegrationService, type UniformFeeData } from '@/lib/services/uniform-fees-integration.service';
+import { UniformTrackingService } from '@/lib/services/uniform-tracking.service';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { FeesHolidayService } from '@/lib/services/fees-holiday.service';
+import { isTermEnded } from '@/lib/utils/academic-year-utils';
 
 // Utilities
 import {
@@ -64,6 +67,8 @@ interface UseFamilyFeesOptions {
     selectedTermId: string;
     selectedAcademicYear: AcademicYear | null;
     academicYears: AcademicYear[];
+    academicYearsUpdatedAt: number;
+    familyPupilsUpdatedAt: number;
 }
 
 interface UseFamilyFeesReturn {
@@ -78,19 +83,23 @@ export function useFamilyFees({
     familyPupils,
     selectedTermId,
     selectedAcademicYear,
-    academicYears
+    academicYears,
+    academicYearsUpdatedAt,
+    familyPupilsUpdatedAt,
 }: UseFamilyFeesOptions): UseFamilyFeesReturn {
+    const queryClient = useQueryClient();
 
     // Reuse the shared fee-structure cache used by Fees Management. The
     // previous two local queries both read the complete collection, making a
     // family page cold start wait for duplicate work.
-    const { data: allFeeStructures = [], isLoading: isAllFeeStructuresLoading } = useFeeStructures();
+    const { data: allFeeStructures = [], isLoading: isAllFeeStructuresLoading, error: feeStructuresError, dataUpdatedAt: feesUpdatedAt } = useFeeStructures();
+    const { data: allUniforms = [], isLoading: isAllUniformsLoading, error: uniformsError, dataUpdatedAt: uniformsUpdatedAt } = useUniforms();
 
     // 🚀 OPTIMIZED: Batch load ALL payments for the term in ONE query
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const pupilIds = useMemo(() => familyPupils.map(p => p.id), [familyPupils]);
 
-    const { data: allPaymentsMap = new Map(), isLoading: isPaymentsLoading, error: paymentError } = useQuery<Map<string, PaymentRecord[]>>({
+    const { data: allPaymentsMap = new Map(), isLoading: isPaymentsLoading, error: paymentError, dataUpdatedAt: paymentsUpdatedAt } = useQuery<Map<string, PaymentRecord[]>>({
         queryKey: ['family-payments-all', pupilIds.join(',')],
         queryFn: async () => {
             if (pupilIds.length === 0) {
@@ -106,46 +115,8 @@ export function useFamilyFees({
         refetchOnMount: false,
     });
 
-    const { data: previousBalancesMap = new Map(), isLoading: isPreviousBalancesLoading } = useQuery<Map<string, any>>({
-        queryKey: ['family-previous-balances', selectedAcademicYear?.id, selectedTermId, pupilIds.join(','), JSON.stringify([[...allPaymentsMap], allFeeStructures, familyPupils, academicYears])],
-        queryFn: async () => {
-            if (!selectedAcademicYear || !selectedTermId || pupilIds.length === 0) {
-                return new Map();
-            }
-
-            const balancesMap = new Map<string, any>();
-            await Promise.all(
-                familyPupils.map(async (pupil) => {
-                    try {
-                        const previousBalance = await calculatePreviousTermBalances(
-                            pupil.id,
-                            selectedTermId,
-                            selectedAcademicYear,
-                            academicYears,
-                            async () => allFeeStructures,
-                            async () => allPaymentsMap.get(pupil.id) || [],
-                            pupil
-                        );
-                        balancesMap.set(pupil.id, previousBalance);
-                    } catch (error) {
-                        console.error(`Error calculating previous balance for pupil ${pupil.id}:`, error);
-                        balancesMap.set(pupil.id, null);
-                    }
-                })
-            );
-
-            return balancesMap;
-        },
-        enabled: !!selectedAcademicYear && !!selectedTermId && pupilIds.length > 0 && !isPaymentsLoading && !paymentError && !isAllFeeStructuresLoading,
-        staleTime: 5 * 60 * 1000,
-        gcTime: 15 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        placeholderData: (previousData) => previousData,
-    });
-
     // 🚀 OPTIMIZED: Load all snapshots, holidays, and uniform fees in parallel
-    const { data: historicalPupilsMap = new Map(), isLoading: isSnapshotsLoading } = useQuery<Map<string, Pupil>>({
+    const { data: historicalPupilsMap = new Map(), isLoading: isSnapshotsLoading, error: snapshotsError } = useQuery<Map<string, Pupil>>({
         queryKey: ['family-snapshots-batch', selectedTermId, selectedAcademicYear?.id, pupilIds.join(',')],
         queryFn: async () => {
             if (!selectedTermId || !selectedAcademicYear || familyPupils.length === 0) return new Map();
@@ -153,13 +124,20 @@ export function useFamilyFees({
             const snapshotsMap = new Map<string, Pupil>();
             await Promise.all(
                 familyPupils.map(async (pupil) => {
-                    try {
-                        const snapshot = await PupilSnapshotsService.getSnapshotForRead(pupil, selectedTermId, selectedAcademicYear);
-                        const historicalPupil = PupilSnapshotsService.createVirtualPupilFromSnapshot(pupil, snapshot);
-                        snapshotsMap.set(pupil.id, historicalPupil);
-                    } catch (error) {
-                        snapshotsMap.set(pupil.id, pupil);
-                    }
+                    const selectedTerm = selectedAcademicYear.terms.find(term => term.id === selectedTermId);
+                    const snapshot = await queryClient.fetchQuery({
+                        queryKey: ['pupil-snapshot', pupil.id, selectedTermId, selectedAcademicYear.id, 'raw',
+                            ...(selectedTerm && isTermEnded(selectedTerm) ? [] : [pupil.classId, pupil.section])],
+                        queryFn: async () => {
+                            const result = await PupilSnapshotsService.getSnapshotForRead(pupil, selectedTermId, selectedAcademicYear);
+                            if (result.id.startsWith('virtual-missing-history')) {
+                                throw new Error(`Historical class information for ${pupil.firstName} needs review.`);
+                            }
+                            return result;
+                        },
+                        staleTime: 10 * 60 * 1000,
+                    });
+                    snapshotsMap.set(pupil.id, PupilSnapshotsService.createVirtualPupilFromSnapshot(pupil, snapshot));
                 })
             );
             return snapshotsMap;
@@ -169,22 +147,17 @@ export function useFamilyFees({
         gcTime: 20 * 60 * 1000,
         refetchOnWindowFocus: false,
         refetchOnMount: false,
-        placeholderData: (previousData) => previousData,
     });
 
-    const { data: feesHolidaysMap = new Map(), isLoading: isHolidaysLoading } = useQuery<Map<string, any[]>>({
+    const { data: feesHolidaysMap = new Map(), isLoading: isHolidaysLoading, error: holidaysError, dataUpdatedAt: holidaysUpdatedAt } = useQuery<Map<string, any[]>>({
         queryKey: ['family-holidays-batch', pupilIds.join(',')],
         queryFn: async () => {
             if (pupilIds.length === 0) return new Map();
             const holidaysMap = new Map<string, any[]>();
             await Promise.all(
                 pupilIds.map(async (pupilId) => {
-                    try {
-                        const holidays = await FeesHolidayService.getActiveFeesHolidaysByPupil(pupilId);
-                        holidaysMap.set(pupilId, holidays);
-                    } catch (error) {
-                        holidaysMap.set(pupilId, []);
-                    }
+                    const holidays = await FeesHolidayService.getActiveFeesHolidaysByPupil(pupilId);
+                    holidaysMap.set(pupilId, holidays);
                 })
             );
             return holidaysMap;
@@ -194,45 +167,88 @@ export function useFamilyFees({
         gcTime: 15 * 60 * 1000,
         refetchOnWindowFocus: false,
         refetchOnMount: false,
-        placeholderData: (previousData) => previousData,
     });
 
-    const { data: uniformFeesMap = new Map(), isLoading: isUniformFeesLoading } = useQuery<Map<string, any[]>>({
-        queryKey: ['family-uniform-fees-batch', selectedTermId, selectedAcademicYear?.id, pupilIds.join(',')],
+    const { data: uniformFeesMap = new Map<string, UniformFeeData[]>(), isLoading: isUniformFeesLoading, error: uniformFeesError, dataUpdatedAt: uniformFeesUpdatedAt } = useQuery<Map<string, UniformFeeData[]>>({
+        queryKey: ['family-uniform-fees-batch', pupilIds.join(','), uniformsUpdatedAt],
         queryFn: async () => {
-            if (!selectedTermId || !selectedAcademicYear?.id || familyPupils.length === 0) return new Map();
-            const uniformMap = new Map<string, any[]>();
+            if (familyPupils.length === 0) return new Map();
+            const uniformMap = new Map<string, UniformFeeData[]>();
             await Promise.all(
                 familyPupils.map(async (pupil) => {
-                    try {
-                        const uniformFees = await UniformFeesIntegrationService.getUniformFeesForPupil(
-                            pupil.id, selectedTermId, selectedAcademicYear.id
-                        );
-                        uniformMap.set(pupil.id, uniformFees);
-                    } catch (error) {
-                        uniformMap.set(pupil.id, []);
-                    }
+                    const records = await UniformTrackingService.getTrackingRecordsByPupil(pupil.id);
+                    uniformMap.set(pupil.id, UniformFeesIntegrationService.convertTrackingRecordsToFees(records, allUniforms));
                 })
             );
             return uniformMap;
         },
-        enabled: !!selectedTermId && !!selectedAcademicYear?.id && familyPupils.length > 0,
+        enabled: familyPupils.length > 0 && !isAllUniformsLoading && !uniformsError,
         staleTime: 7 * 60 * 1000,
         gcTime: 12 * 60 * 1000,
         refetchOnWindowFocus: false,
         refetchOnMount: false,
-        placeholderData: (previousData) => previousData,
+    });
+
+    // Reuse the data already fetched for the family cards. Historical snapshots
+    // share the pupil page's cache; switching terms need not reread holidays,
+    // uniform tracking or the uniform catalogue.
+    const { data: previousBalancesMap = new Map(), isLoading: isPreviousBalancesLoading, error: previousBalancesError } = useQuery<Map<string, any>>({
+        queryKey: ['family-previous-balances', selectedAcademicYear?.id, selectedTermId,
+            pupilIds.join(','), paymentsUpdatedAt, feesUpdatedAt, holidaysUpdatedAt,
+            uniformFeesUpdatedAt, familyPupilsUpdatedAt, academicYearsUpdatedAt],
+        queryFn: async () => {
+            if (!selectedAcademicYear || !selectedTermId) return new Map();
+            const balances = await Promise.all(familyPupils.map(async pupil => {
+                const balance = await calculatePreviousTermBalances(
+                    pupil.id, selectedTermId, selectedAcademicYear, academicYears,
+                    async () => allFeeStructures,
+                    async () => allPaymentsMap.get(pupil.id) || [],
+                    pupil,
+                    {
+                        feesHolidays: feesHolidaysMap.get(pupil.id) || [],
+                        uniformFees: uniformFeesMap.get(pupil.id) || [],
+                        throwOnError: true,
+                        getHistoricalSnapshot: (targetPupil, termId, academicYear) => queryClient.fetchQuery({
+                            queryKey: ['pupil-snapshot', targetPupil.id, termId, academicYear.id, 'raw',
+                                ...(academicYear.terms.some(term => term.id === termId && isTermEnded(term))
+                                    ? [] : [targetPupil.classId, targetPupil.section])],
+                            queryFn: async () => {
+                                const snapshot = await PupilSnapshotsService.getSnapshotForRead(targetPupil, termId, academicYear);
+                                if (snapshot.id.startsWith('virtual-missing-history')) {
+                                    throw new Error(`Historical class information for ${targetPupil.firstName} needs review.`);
+                                }
+                                return snapshot;
+                            },
+                            staleTime: 10 * 60 * 1000,
+                        }),
+                    },
+                );
+                return [pupil.id, balance] as const;
+            }));
+            return new Map(balances);
+        },
+        enabled: !!selectedAcademicYear && !!selectedTermId && pupilIds.length > 0 &&
+            !isPaymentsLoading && !paymentError && !isAllFeeStructuresLoading && !feeStructuresError &&
+            !isHolidaysLoading && !holidaysError && !isUniformFeesLoading && !uniformFeesError,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
     });
 
     // Process fees info for all pupils
-    const feesInfo = useMemo(() => {
-        if (!selectedAcademicYear || !selectedTermId || familyPupils.length === 0) return {};
+    const { feesInfo, processingError } = useMemo<{ feesInfo: Record<string, FeesInfo>; processingError: Error | null }>(() => {
+        if (!selectedAcademicYear || !selectedTermId || familyPupils.length === 0) return { feesInfo: {}, processingError: null };
         // Current-term fees can be shown as soon as their direct inputs are
         // ready. Carry-forward balances are added when their slower historical
         // calculation completes instead of holding the whole family page back.
-        if (isAllFeeStructuresLoading || isPaymentsLoading || paymentError || isSnapshotsLoading) return {};
+        if (isAllFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading ||
+            isHolidaysLoading || isUniformFeesLoading || isPreviousBalancesLoading ||
+            paymentError || feeStructuresError || snapshotsError || holidaysError ||
+            uniformsError || uniformFeesError || previousBalancesError) return { feesInfo: {}, processingError: null };
 
         const result: Record<string, FeesInfo> = {};
+        let processingError: Error | null = null;
 
         for (const pupil of familyPupils) {
             try {
@@ -257,7 +273,9 @@ export function useFamilyFees({
                 const allPayments = allPaymentsMap.get(pupil.id) || [];
                 const historicalPupil = historicalPupilsMap.get(pupil.id) || pupil;
                 const activeFeesHolidays = feesHolidaysMap.get(pupil.id) || [];
-                const uniformFees = uniformFeesMap.get(pupil.id) || [];
+                const uniformFees = (uniformFeesMap.get(pupil.id) || []).filter(
+                    fee => fee.termId === selectedTermId && fee.academicYearId === selectedAcademicYear.id
+                );
 
                 // Use allFeeStructures (full set) not feeStructures (year-filtered).
                 // feeStructures excludes universal/assignment fees with no academicYearId.
@@ -370,7 +388,7 @@ export function useFamilyFees({
                             balance: uniformFee.balance,
                             lastPayment: null,
                             originalAmount: uniformFee.originalAmount || uniformFee.amount,
-                            termId: uniformFee.termId,
+                            termId: uniformFee.termId ?? selectedTermId,
                             academicYearId: uniformFee.academicYearId,
                             isCurrentTerm: isCurrentTermUniform,
                             isCarryForward: !isCurrentTermUniform && hasBalance
@@ -397,25 +415,25 @@ export function useFamilyFees({
                 };
             } catch (error) {
                 console.error(`Error processing fees for pupil ${pupil.id}:`, error);
-                result[pupil.id] = {
-                    type: 'total',
-                    totalFees: 0,
-                    totalPaid: 0,
-                    balance: 0,
-                    lastPayment: null,
-                    applicableFees: []
-                };
+                processingError = error instanceof Error ? error : new Error(String(error));
             }
         }
 
-        return result;
+        return { feesInfo: processingError ? {} : result, processingError };
     }, [
         familyId, familyPupils, selectedTermId, selectedAcademicYear, academicYears,
         allFeeStructures, allPaymentsMap, previousBalancesMap, historicalPupilsMap, feesHolidaysMap, uniformFeesMap,
-        isAllFeeStructuresLoading, isPaymentsLoading, paymentError, isSnapshotsLoading
+        isAllFeeStructuresLoading, isPaymentsLoading, paymentError, isSnapshotsLoading,
+        isHolidaysLoading, isUniformFeesLoading, isPreviousBalancesLoading,
+        feeStructuresError, snapshotsError, holidaysError, uniformsError,
+        uniformFeesError, previousBalancesError,
     ]);
 
-    const isLoading = isAllFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading || isHolidaysLoading || isUniformFeesLoading || isPreviousBalancesLoading;
+    const isLoading = !selectedAcademicYear || !selectedTermId ||
+        isAllFeeStructuresLoading || isPaymentsLoading || isSnapshotsLoading ||
+        isHolidaysLoading || isUniformFeesLoading || isPreviousBalancesLoading;
+    const error = paymentError || feeStructuresError || snapshotsError || holidaysError ||
+        uniformsError || uniformFeesError || previousBalancesError || processingError;
 
-    return { feesInfo, isLoading, isError: !!paymentError, error: paymentError };
+    return { feesInfo, isLoading, isError: !!error, error };
 }

@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@/lib/contexts/navigation-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -32,7 +37,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, parseFormattedMoney } from '@/lib/utils';
 import { usePupil } from '@/lib/hooks/use-pupils';
-import { useRequirements, useRequirementsByFilter } from '@/lib/hooks/use-requirements';
+import { useRequirements } from '@/lib/hooks/use-requirements';
 import { useAcademicYears, useActiveAcademicYear } from '@/lib/hooks/use-academic-years';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -67,6 +72,7 @@ import type {
 } from '@/types';
 
 export default function RequirementTrackingPage() {
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const { goBack } = useNavigation();
   const pupilId = searchParams.get('id');
@@ -82,13 +88,16 @@ export default function RequirementTrackingPage() {
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<string>('');
   const [selectedTermId, setSelectedTermId] = useState<string>('');
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
+  const [isAssignPreviewOpen, setIsAssignPreviewOpen] = useState(false);
+  const [isCleanupConfirmOpen, setIsCleanupConfirmOpen] = useState(false);
+  const [isRefreshingTracking, setIsRefreshingTracking] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
-  const [autoAssignedTerms, setAutoAssignedTerms] = useState<Set<string>>(new Set());
 
   // Hooks - these will use cached data immediately if available
   const { user } = useAuth();
   const { data: pupil, isLoading: pupilLoading } = usePupil(pupilId || '');
-  const { data: allRequirements = [] } = useRequirements();
+  const requirementsQuery = useRequirements();
+  const allRequirements = requirementsQuery.data || [];
   const { data: academicYears = [] } = useAcademicYears();
   const { data: activeAcademicYear } = useActiveAcademicYear();
   
@@ -123,17 +132,8 @@ export default function RequirementTrackingPage() {
   const refetchTracking = trackingQuery.refetch; 
 
   const createTrackingMutation = useCreateRequirementTracking();
+  const batchCreateTrackingMutation = useCreateRequirementTracking({ deferInvalidation: true });
   const updateTrackingMutation = useUpdateRequirementTracking();
-
-  // Get eligible requirements for this pupil
-  const { data: eligibleRequirements = [] } = useRequirementsByFilter(
-    pupil ? {
-      gender: pupil.gender === 'Male' ? 'male' : pupil.gender === 'Female' ? 'female' : 'all',
-      classId: pupil.classId,
-      section: pupil.section === 'Day' ? 'Day' : pupil.section === 'Boarding' ? 'Boarding' : undefined
-    } : {},
-    !!pupil
-  );
 
   // Set active academic year and current term as default
   useEffect(() => {
@@ -165,69 +165,9 @@ export default function RequirementTrackingPage() {
     }
   }, [selectedAcademicYearId, academicYears, selectedTermId]);
 
-  // Auto-assign eligible requirements when pupil data loads (only once per term, after data is confirmed)
-  useEffect(() => {
-    const termKey = `${selectedAcademicYearId}-${selectedTermId}`;
-
-    // Proceed only if all necessary data is loaded and successful
-    if (
-      pupil &&
-      allRequirements.length > 0 &&
-      selectedAcademicYearId &&
-      selectedTermId &&
-      trackingQuery.isSuccess && // Ensure term-specific data fetch is successful
-      allYearTrackingQuery.isSuccess && // Ensure year-wide data fetch is successful
-      !autoAssignedTerms.has(termKey) // Check if this term has already been processed in this session
-    ) {
-      // At this point, trackingQuery.data should be the fresh data for the term
-      if (trackingQuery.data && trackingQuery.data.length === 0) {
-        console.log(`Auto-assigning for term (data loaded and empty): ${termKey}`);
-        autoAssignEligibleRequirements().then(() => {
-          setAutoAssignedTerms(prev => new Set(prev).add(termKey));
-        })
-        .catch(error => {
-          console.error('Error from autoAssignEligibleRequirements in useEffect:', error);
-          // Optionally, you could set an error state here to inform the user
-        });
-      } else if (trackingQuery.data && trackingQuery.data.length > 0) {
-        // Data loaded, records exist, mark as processed to prevent re-assignment attempts
-        console.log(`Term ${termKey} already has ${trackingQuery.data.length} records. Marking as processed.`);
-        setAutoAssignedTerms(prev => new Set(prev).add(termKey));
-      } else if (trackingQuery.data === undefined) {
-        // This case should ideally be caught by isSuccess, but as a safeguard:
-        console.log(`Term ${termKey} data is undefined even after success, skipping auto-assign.`);
-      }
-    }
-  }, [
-    pupil?.id,
-    allRequirements.length,
-    selectedAcademicYearId,
-    selectedTermId,
-    trackingQuery.isSuccess, // Dependency for term-specific query success
-    trackingQuery.data,      // Dependency for term-specific data
-    allYearTrackingQuery.isSuccess, // Dependency for year-wide query success
-    allYearTrackingQuery.data,    // Dependency for year-wide data
-    autoAssignedTerms
-  ]);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('[data-dropdown="year"]')) {
-        setIsYearSelectorOpen(false);
-      }
-      if (!target.closest('[data-dropdown="term"]')) {
-        setIsTermSelectorOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const autoAssignEligibleRequirements = async () => {
-    if (!pupil || !selectedAcademicYearId || !selectedTermId || isAutoAssigning) return;
+    if (!pupil || !selectedAcademicYearId || !selectedTermId || isAutoAssigning ||
+        !trackingQuery.isSuccess || !allYearTrackingQuery.isSuccess) return;
 
     console.log('Starting auto-assignment for pupil:', pupil.firstName, pupil.lastName);
     console.log('Current tracking records count:', trackingRecords.length);
@@ -251,8 +191,7 @@ export default function RequirementTrackingPage() {
       const eligibleRequirements = getEligibleRequirements();
       console.log('Eligible requirements found:', eligibleRequirements.length);
       
-      // Get all year records if available, otherwise use empty array (non-blocking)
-      const yearRecords = allYearTrackingRecords.length > 0 ? allYearTrackingRecords : [];
+      const yearRecords = allYearTrackingRecords;
       
       // Check which requirements are not yet tracked (with proper duplicate prevention)
       const unassignedRequirements = eligibleRequirements.filter(requirement => {
@@ -292,7 +231,8 @@ export default function RequirementTrackingPage() {
 
       console.log('Unassigned requirements to create:', unassignedRequirements.length);
       
-      // Auto-assign unassigned requirements
+      // Create only after an explicit review and confirmation.
+      const failedRequirements: string[] = [];
       for (const requirement of unassignedRequirements) {
         // Final safety check: verify this requirement doesn't already exist
         const existsInCurrentTerm = trackingRecords.some(record => {
@@ -331,20 +271,37 @@ export default function RequirementTrackingPage() {
         };
 
         try {
-          await createTrackingMutation.mutateAsync(trackingData);
+          await batchCreateTrackingMutation.mutateAsync(trackingData);
         } catch (error) {
           console.error('Error creating tracking record for', requirement.name, ':', error);
+          failedRequirements.push(requirement.name);
         }
       }
 
-      // Refresh tracking records after auto-assignment
+      // Batch writes should cause one refresh per active tracking query, not one per item.
       if (unassignedRequirements.length > 0) {
-        await refetchTracking();
+        await Promise.all([refetchTracking(), allYearTrackingQuery.refetch()]);
+        await queryClient.invalidateQueries({ queryKey: ['requirementTracking'], refetchType: 'none' });
+        await queryClient.invalidateQueries({ queryKey: ['enhancedRequirementTracking'], refetchType: 'none' });
+      }
+      if (failedRequirements.length > 0) {
+        alert(`Some requirements were not assigned: ${failedRequirements.join(', ')}. Review the refreshed list before trying again.`);
       }
     } catch (error) {
       console.error('Error auto-assigning requirements:', error);
     } finally {
       setIsAutoAssigning(false);
+      setIsAssignPreviewOpen(false);
+    }
+  };
+
+  const refreshTracking = async () => {
+    if (isRefreshingTracking || !selectedAcademicYearId || !selectedTermId) return;
+    setIsRefreshingTracking(true);
+    try {
+      await Promise.all([refetchTracking(), allYearTrackingQuery.refetch()]);
+    } finally {
+      setIsRefreshingTracking(false);
     }
   };
 
@@ -1094,6 +1051,24 @@ export default function RequirementTrackingPage() {
     return null;
   }
 
+  if (requirementsQuery.isError || trackingQuery.isError || allYearTrackingQuery.isError) {
+    return (
+      <div className="min-h-screen bg-blue-50 p-4">
+        <div role="alert" className="mx-auto mt-10 max-w-xl rounded-xl border border-red-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-red-800">Requirements could not be verified</h1>
+          <p className="mt-2 text-sm text-gray-700">Assignments and totals are hidden until the requirement catalogue and this pupil&apos;s tracking records load successfully.</p>
+          <Button className="mt-4" onClick={() => {
+            void Promise.all([
+              ...(requirementsQuery.isError ? [requirementsQuery.refetch()] : []),
+              ...(trackingQuery.isError ? [trackingQuery.refetch()] : []),
+              ...(allYearTrackingQuery.isError ? [allYearTrackingQuery.refetch()] : []),
+            ]);
+          }}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate summary statistics
   const totalRequirements = trackingRecords.length;
   const paidRequirements = trackingRecords.filter(r => r.paymentStatus === 'paid').length;
@@ -1182,31 +1157,37 @@ export default function RequirementTrackingPage() {
                   className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-gray-600 border border-gray-400 shadow-sm hover:bg-gradient-to-br hover:from-gray-400 hover:via-gray-500 hover:to-gray-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
                   title="Go Back"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5 mb-0.5" weight="bold" />
+                  <ArrowLeft className="w-3.5 h-3.5 mb-0.5" strokeWidth={3} />
                   <span className="text-[7px] font-semibold leading-tight">Back</span>
                 </button>
 
                 <button
-                  onClick={() => {
-                    // Reset auto-assigned terms tracking to allow manual refresh
-                    setAutoAssignedTerms(new Set());
-                    autoAssignEligibleRequirements();
-                  }}
-                  disabled={isAutoAssigning}
+                  onClick={refreshTracking}
+                  disabled={isRefreshingTracking}
                   className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-blue-600 border border-blue-400 shadow-sm hover:bg-gradient-to-br hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
                   title="Refresh Requirements"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 mb-0.5 ${isAutoAssigning ? 'animate-spin' : ''}`} weight="bold" />
+                  <RefreshCw className={`w-3.5 h-3.5 mb-0.5 ${isRefreshingTracking ? 'animate-spin' : ''}`} strokeWidth={3} />
                   <span className="text-[7px] font-semibold leading-tight">Refresh</span>
                 </button>
 
                 <button
-                  onClick={cleanupDuplicateRequirements}
+                  onClick={() => setIsAssignPreviewOpen(true)}
+                  disabled={isAutoAssigning || !requirementsQuery.isSuccess || !trackingQuery.isSuccess || !allYearTrackingQuery.isSuccess}
+                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-green-700 border border-green-400 shadow-sm hover:bg-green-600 hover:text-white flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  title="Review eligible requirements before assigning"
+                >
+                  <Plus className="w-3.5 h-3.5 mb-0.5" />
+                  <span className="text-[7px] font-semibold leading-tight">Assign</span>
+                </button>
+
+                <button
+                  onClick={() => setIsCleanupConfirmOpen(true)}
                   disabled={isCleaningDuplicates}
                   className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-white text-orange-600 border border-orange-400 shadow-sm hover:bg-gradient-to-br hover:from-orange-400 hover:via-orange-500 hover:to-orange-600 hover:text-white hover:shadow-md transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
                   title="Clean Duplicates"
                 >
-                  <AlertTriangle className={`w-3.5 h-3.5 mb-0.5 ${isCleaningDuplicates ? 'animate-pulse' : ''}`} weight="bold" />
+                  <AlertTriangle className={`w-3.5 h-3.5 mb-0.5 ${isCleaningDuplicates ? 'animate-pulse' : ''}`} strokeWidth={3} />
                   <span className="text-[7px] font-semibold leading-tight">Clean</span>
                 </button>
               </div>
@@ -1758,15 +1739,16 @@ export default function RequirementTrackingPage() {
                   No Requirements Found
                 </h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  No requirements have been assigned to this pupil for the selected term yet. Requirements are automatically assigned based on the pupil's gender, class, section, and term.
+                  No requirements have been assigned to this pupil for the selected term yet. Review eligible items before assigning them.
                 </p>
                 <Button
-                  onClick={autoAssignEligibleRequirements}
+                  onClick={() => setIsAssignPreviewOpen(true)}
+                  disabled={!requirementsQuery.isSuccess || !trackingQuery.isSuccess || !allYearTrackingQuery.isSuccess}
                   size="sm"
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Check for Requirements
+                  Review Requirements
                 </Button>
               </div>
             </CardContent>
@@ -1774,6 +1756,61 @@ export default function RequirementTrackingPage() {
         )}
 
         {/* Modals */}
+        <AlertDialog open={isAssignPreviewOpen} onOpenChange={setIsAssignPreviewOpen}>
+          <AlertDialogContent className="max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Assign eligible requirements?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Only the items listed below will be created for this pupil and selected term.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="max-h-64 overflow-y-auto text-sm">
+              {getEligibleRequirements().length === 0 ? (
+                <p className="text-gray-600">No unassigned requirements are eligible.</p>
+              ) : getEligibleRequirements().map(requirement => (
+                <div key={requirement.id} className="flex justify-between gap-3 border-b py-2">
+                  <span>{requirement.name}</span>
+                  <span className="shrink-0">{formatCurrency(requirement.price || 0)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm font-semibold">
+              Total: {formatCurrency(getEligibleRequirements().reduce((sum, requirement) => sum + (requirement.price || 0), 0))}
+            </p>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isAutoAssigning}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={event => { event.preventDefault(); void autoAssignEligibleRequirements(); }}
+                disabled={isAutoAssigning || getEligibleRequirements().length === 0 ||
+                  !requirementsQuery.isSuccess || !trackingQuery.isSuccess || !allYearTrackingQuery.isSuccess}
+              >
+                {isAutoAssigning ? 'Assigning…' : 'Assign requirements'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AlertDialog open={isCleanupConfirmOpen} onOpenChange={setIsCleanupConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Check and remove duplicate assignments?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will scan this pupil&apos;s selected academic year and delete records identified as duplicates. This cannot be undone here.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isCleaningDuplicates}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={event => {
+                  event.preventDefault();
+                  void cleanupDuplicateRequirements().finally(() => setIsCleanupConfirmOpen(false));
+                }}
+                disabled={isCleaningDuplicates}
+              >
+                {isCleaningDuplicates ? 'Checking…' : 'Check and clean'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {pupil && (
           <RequirementTrackingModal
             isOpen={isModalOpen}

@@ -7,7 +7,7 @@ test('individual mixed-fee submissions use one operation for regular, uniform an
   const source = fs.readFileSync(
     path.join(process.cwd(), 'src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx'),
     'utf8',
-  );
+  ).replace(/\r\n/g, '\n');
   const start = source.indexOf('const useAtomicMixedPaymentOperation = true;');
   const legacyBranch = source.indexOf('\n      } else {\n\n      const regularSelections', start);
   assert.ok(start >= 0, 'the live multi-fee handler must select the atomic operation');

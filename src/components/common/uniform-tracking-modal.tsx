@@ -86,6 +86,7 @@ export function UniformTrackingModal({
     academicYearId: '', // Will be auto-set from current year
     termId: '', // Will be auto-set from current term
     selectedSizes: {}, // Maps uniformId to selected size
+    selectedQuantities: {},
     hasDiscount: false,
     discountType: 'static',
     discountValueType: 'percentage',
@@ -480,6 +481,11 @@ export function UniformTrackingModal({
       return;
     }
 
+    if (formData.selectionMode === 'full' && eligibleUniforms.length === 0) {
+      alert('No eligible uniform items are available for this pupil');
+      return;
+    }
+
 
     // Note: Size selection is optional when adding tracking
     // Size validation and stock reduction happens during the collection process
@@ -668,10 +674,11 @@ export function UniformTrackingModal({
                       handleInputChange('academicYearId', value);
                       // Reset term when academic year changes
                       const year = academicYears.find(y => y.id === value);
-                      if (year?.terms?.length > 0) {
+                      const terms = year?.terms || [];
+                      if (terms.length > 0) {
                         // Use current term if it's in the selected year, otherwise first term
-                        const currentTermInYear = year.terms.find(t => t.id === currentTerm?.id);
-                        const termToUse = currentTermInYear?.id || year.terms[0].id;
+                        const currentTermInYear = terms.find(t => t.id === currentTerm?.id);
+                        const termToUse = currentTermInYear?.id || terms[0].id;
                         handleInputChange('termId', termToUse);
                       }
                     }}
@@ -1224,14 +1231,20 @@ export function UniformTrackingModal({
                       {(() => {
                         const finalAmount = computedPricing.finalAmount;
                         const paidAmount = formData.paidAmount ? parseFormattedMoney(formData.paidAmount) : 0;
+                        const hasSelectedItem = formData.selectionMode === 'full'
+                          ? eligibleUniforms.length > 0
+                          : formData.selectionMode === 'partial'
+                            ? selectedUniforms.length > 0
+                            : !!formData.uniformId;
+                        const isPaid = hasSelectedItem && paidAmount >= finalAmount;
 
                         return (
                           <Badge variant={
-                            paidAmount >= finalAmount ? 'default' :
-                              paidAmount > 0 ? 'secondary' : 'outline'
+                            isPaid ? 'default' :
+                              hasSelectedItem && paidAmount > 0 ? 'secondary' : 'outline'
                           } className="py-0 px-2 text-[10px] rounded-full">
-                            {paidAmount >= finalAmount ? 'Paid' :
-                              paidAmount > 0 ? 'Partial' : 'Pending'}
+                            {isPaid ? 'Paid' :
+                              hasSelectedItem && paidAmount > 0 ? 'Partial' : 'Pending'}
                           </Badge>
                         );
                       })()}

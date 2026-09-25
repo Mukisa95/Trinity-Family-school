@@ -94,7 +94,7 @@ import { useDigitalSignatureHelpers } from '@/lib/hooks/use-digital-signature';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useActiveFeesHolidaysByPupil } from '@/lib/hooks/use-fees-holiday';
 import { usePrint } from '@/lib/contexts/print-context';
-import { useActiveUniforms, useUniforms, useUniformsByFilter } from '@/lib/hooks/use-uniforms';
+import { useUniforms } from '@/lib/hooks/use-uniforms';
 import { useCreateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { invalidateFinanceSummaryQueries } from '@/lib/hooks/use-finance-summary';
@@ -341,7 +341,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   }, [rawAcademicYears]);
 
   // Fetch pupil data - optimized with cache-first (instant if cached)
-  const { data: pupil, isLoading: isPupilLoading, error: pupilError } = usePupil(pupilId || '');
+  const { data: pupil, isLoading: isPupilLoading, error: pupilError, dataUpdatedAt: pupilDataUpdatedAt } = usePupil(pupilId || '');
 
   // Fetch classes data - optimized with cache-first (instant if cached)
   const { data: classes = [] } = useClasses();
@@ -349,9 +349,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   // Fetch all pupils data for batch recapture modal
   const { data: allPupils = [] } = usePupils();
 
-  // Fetch uniforms for tracking modal
-  const { data: activeUniforms = [] } = useActiveUniforms();
+  // The shared uniform catalogue supplies the tracking modal and fee display.
   const { data: allUniforms = [] } = useUniforms();
+  const activeUniforms = useMemo(() => allUniforms
+    .filter(uniform => uniform.isActive)
+    .sort((left, right) => left.group === right.group
+      ? left.name.localeCompare(right.name)
+      : left.group.localeCompare(right.group)), [allUniforms]);
   const createUniformTrackingMutation = useCreateUniformTracking();
   // Get valid academic years for this pupil:
   // 1. Filters out years before the pupil's registration date
@@ -364,12 +368,19 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     );
   }, [academicYears, pupil?.registrationDate, pupil?.status, pupil?.statusChangeHistory?.length]);
 
-  // Fetch filtered uniforms based on pupil's gender, class, and section
-  const { data: eligibleUniforms = [] } = useUniformsByFilter({
-    gender: getUniformGender(pupil?.gender),
-    classId: pupil?.classId,
-    section: getUniformSection(pupil?.section)
-  }, !!pupil);
+  // Match UniformsService.getUniformsByFilter locally; that service performs
+  // this same filtering after another full active-uniform collection read.
+  const eligibleUniforms = useMemo(() => {
+    const gender = getUniformGender(pupil?.gender);
+    const section = getUniformSection(pupil?.section);
+    return activeUniforms.filter(uniform =>
+      (!gender || uniform.gender === gender || uniform.gender === 'all') &&
+      (!pupil?.classId || uniform.classType === 'all' ||
+        (uniform.classType === 'specific' && uniform.classIds?.includes(pupil.classId))) &&
+      (!section || uniform.sectionType === 'all' ||
+        (uniform.sectionType === 'specific' && uniform.section === section))
+    );
+  }, [activeUniforms, pupil?.gender, pupil?.classId, pupil?.section]);
 
   // Compute siblings for quick navigation
   const siblings = useMemo(() => {
@@ -517,11 +528,21 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       try {
         // Get historical snapshot for the selected term - NO FALLBACK
         // This is critical for financial accuracy - must always use correct historical data
-        const snapshot = await PupilSnapshotsService.getSnapshotForRead(
-          pupil,
-          selectedTermId,
-          selectedAcademicYear
-        );
+        const snapshot = await queryClient.fetchQuery({
+          queryKey: [
+            'pupil-snapshot', pupil.id, selectedTermId, selectedAcademicYear.id, 'raw',
+            ...(selectedAcademicYear.terms.some(term => term.id === selectedTermId && isTermEnded(term))
+              ? [] : [pupil.classId, pupil.section]),
+          ],
+          queryFn: async () => {
+            const snapshot = await PupilSnapshotsService.getSnapshotForRead(pupil, selectedTermId, selectedAcademicYear);
+            if (snapshot.id.startsWith('virtual-missing-history')) {
+              throw new Error(`Historical class information for ${selectedAcademicYear.name} ${selectedTermId} needs review.`);
+            }
+            return snapshot;
+          },
+          staleTime: 10 * 60 * 1000,
+        });
 
         // Find class name from classes data
         const classData = classes.find(c => c.id === snapshot.classId);
@@ -562,11 +583,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     };
 
     loadHistoricalPupilInfo();
-  }, [pupil, selectedTermId, selectedAcademicYear, classes]);
+  }, [pupil, selectedTermId, selectedAcademicYear, classes, queryClient]);
 
 
   // Fetch active fees holidays for this pupil (needed for fee calculations)
-  const { data: feesHolidays = [] } = useActiveFeesHolidaysByPupil(pupilId, {
+  const {
+    data: feesHolidays = [], isLoading: isFeesHolidaysLoading,
+    error: feesHolidaysError,
+    dataUpdatedAt: feesHolidaysUpdatedAt,
+  } = useActiveFeesHolidaysByPupil(pupilId, {
     enabled: !!pupilId
   });
 
@@ -590,7 +615,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     selectedTermId,
     selectedAcademicYear,
     lastPaymentTimestamp,
-    feesHolidays
+    feesHolidays,
+    isFeesHolidaysLoading,
+    feesHolidaysError,
+    pupilDataUpdatedAt,
+    feesHolidaysUpdatedAt,
   });
 
   // Check for active assignments and uniform tracking - get actual names and status
@@ -1156,45 +1185,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       completedOperationIntents.forEach(clearPaymentOperation);
       }
 
-      // Close modal before refetch
+      // The payment listener and its shared cache own the new records.
       setIsMultiPaymentModalOpen(false);
-
-      const newTimestamp = Date.now();
-      setLastPaymentTimestamp(newTimestamp);
-
-      // Refresh dependent views in the background. The committed payment does
-      // not need to wait for every dashboard query before the cashier gets a result.
-      void Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ['pupil-payments-all', pupil.id]
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['previous-balance', pupil.id]
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['family-payments-all']
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['family-previous-balances']
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['uniform-fees', pupil.id]
-        }),
-        queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] }),
-        queryClient.invalidateQueries({
-          queryKey: ['pupil-snapshot', pupil.id]
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['fee-structures']
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['assignment-details']
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['finance-summary']
-        }),
-        refetch()
-      ]).catch(error => console.error('Post-payment refresh failed:', error));
+      void queryClient.invalidateQueries({ queryKey: ['pupil-payments-all', pupil.id], refetchType: 'none' });
+      void queryClient.invalidateQueries({ queryKey: ['family-previous-balances'], refetchType: 'none' });
+      invalidateFinanceSummaryQueries(queryClient, pupil.id);
 
       toast({
         title: signatureFailureCount === 0
@@ -1352,19 +1347,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         // Firestore listener will reconcile this record once it arrives.
         addPupilPayments([newPayment]);
 
-        // Update timestamp to trigger dependent query re-calculations
-        const newTimestamp = Date.now();
-        setLastPaymentTimestamp(newTimestamp);
-
-        // Invalidate related queries in the background (no await - let React Query handle it)
-        queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
-        queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
-        queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
-        queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+        void queryClient.invalidateQueries({ queryKey: ['pupil-payments-all', pupil.id], refetchType: 'none' });
+        void queryClient.invalidateQueries({ queryKey: ['family-previous-balances'], refetchType: 'none' });
         invalidateFinanceSummaryQueries(queryClient, pupil.id);
       } catch (refreshError) {
         // A display failure must neither reopen the entry form nor skip audit.
@@ -1520,19 +1504,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         // Firestore listener will reconcile these records once they arrive.
         addPupilPayments(newPayments);
 
-        // Update timestamp to trigger dependent query re-calculations
-        const newTimestamp = Date.now();
-        setLastPaymentTimestamp(newTimestamp);
-
-        // Invalidate related queries in the background (no await - let React Query handle it)
-        queryClient.invalidateQueries({ queryKey: ['previous-balance', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['family-payments-all'] });
-        queryClient.invalidateQueries({ queryKey: ['family-previous-balances'] });
-        queryClient.invalidateQueries({ queryKey: ['uniform-fees', pupil.id] });
-      queryClient.invalidateQueries({ queryKey: ['uniformTracking', 'pupil', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['pupil-snapshot', pupil.id] });
-        queryClient.invalidateQueries({ queryKey: ['fee-structures'] });
-        queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
+        void queryClient.invalidateQueries({ queryKey: ['pupil-payments-all', pupil.id], refetchType: 'none' });
+        void queryClient.invalidateQueries({ queryKey: ['family-previous-balances'], refetchType: 'none' });
         invalidateFinanceSummaryQueries(queryClient, pupil.id);
 
         // Show success toast immediately (no blocking refetch)
@@ -1607,11 +1580,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     });
 
     try {
-      // Keep the existing listener and fee calculations; refresh in parallel
-      // with the audit instead of making either one hold the dialog open.
-      refetch().catch(err => console.error('Refetch error:', err));
-      queryClient.invalidateQueries({ queryKey: ['assignment-details'] });
-      setLastPaymentTimestamp(Date.now());
+      // The existing payment listener will deliver the reversal and update balances.
+      void queryClient.invalidateQueries({ queryKey: ['family-previous-balances'], refetchType: 'none' });
     } catch (refreshError) {
       console.error('Payment reversed but display refresh failed:', refreshError);
       toast({
@@ -2285,9 +2255,22 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     );
   }
 
-  // OPTIMIZED: Show loading only if we don't have term/year selected yet
+  const loadError = pupilError || academicYearsError || pupilFeesError;
+  if (loadError || !pupil) {
+    return (
+      <div className="min-h-screen pb-24">
+        <GlassPageTopBar backHref="/fees/collection" backLabel="Back to Fees" backMode="href" title="Fees Collection" />
+        <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900">
+          <h2 className="font-semibold">Fee information could not be verified</h2>
+          <p className="mt-2 text-sm">{loadError?.message || 'Pupil information is unavailable.'} Payment actions are unavailable until the data is verified.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Do not render totals or empty fee history until every financial input is ready.
   const isWaitingForTermYear = !selectedTermId || !selectedAcademicYear;
-  const shouldShowFullLoading = isPupilFeesLoading && pupil && isWaitingForTermYear;
+  const shouldShowFullLoading = isPupilFeesLoading || (isWaitingForTermYear && isLoadingAcademicYears);
 
   if (shouldShowFullLoading) {
     return (
@@ -2295,6 +2278,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         <GlassPageTopBar
           backHref="/fees/collection"
           backLabel="Back to Fees"
+          backMode="href"
           title={`Fees Collection - ${pupil.firstName} ${pupil.lastName}`}
           subtitle={`${pupil.admissionNumber} · ${pupil.className} · ${pupil.section}`}
         />
@@ -2334,11 +2318,23 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     );
   }
 
+  if (isWaitingForTermYear) {
+    return (
+      <div className="min-h-screen pb-24">
+        <GlassPageTopBar backHref="/fees/collection" backLabel="Back to Fees" backMode="href" title={`Fees Collection - ${pupil.firstName} ${pupil.lastName}`} />
+        <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+          No valid academic year and term are available for this pupil. No balance can be calculated.
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-12">
       <GlassPageTopBar
         backHref="/fees/collection"
         backLabel="Back to Fees"
+        backMode="href"
         className="mb-1.5"
         title={
           pupil ? (
@@ -2535,7 +2531,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     toast({ title: 'Family ID Missing', description: 'This pupil does not have a family ID.', variant: 'destructive' });
                     return;
                   }
-                  router.push(`/fees/family/${pupil.familyId}`);
+                  const period = new URLSearchParams({
+                    yearId: selectedAcademicYear?.id || '',
+                    termId: selectedTermId,
+                  });
+                  router.push(`/fees/family/${pupil.familyId}?${period.toString()}`);
                 }}
                 title="Family Accounts"
               />

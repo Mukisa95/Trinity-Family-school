@@ -21,6 +21,9 @@ import { useHouseCacheBootstrap } from '@/lib/hooks/use-house-cache-bootstrap';
 import { useAccessLevelCacheBootstrap } from '@/lib/hooks/use-access-level-cache-bootstrap';
 import { useExamCacheBootstrap } from '@/lib/hooks/use-exam-cache-bootstrap';
 import { PupilsService } from '@/lib/services/pupils.service';
+import { FeesService } from '@/lib/services/fees.service';
+import { FEES_QUERY_KEYS } from '@/lib/hooks/use-fees';
+import { UniformsService } from '@/lib/services/uniforms.service';
 
 /**
  * 🚀 ROLE-AWARE DATA PRELOADER (OPTIMIZED FOR QUOTA)
@@ -407,18 +410,14 @@ export function GlobalDataPreloader() {
     // 6. 💰 FEE STRUCTURES - One-time read (rarely changes)
     const fetchFees = async () => {
       try {
-        // Skip if cache already has data
-        const cached = queryClient.getQueryData(['fees', 'structures']);
-        if (cached && (cached as any[]).length > 0) {
-          console.log('⚡ PRELOADER: Fees already cached, skipping fetch');
-          return;
-        }
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'feeStructures')));
-        const fees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (fees.length > 0) {
-          queryClient.setQueryData(['fees', 'structures'], fees);
-          console.log(`⚡ PRELOADER: Loaded ${fees.length} fee structures`);
-        }
+        // Share React Query's in-flight request with every consumer, including
+        // the fees collection page. A cold navigation cannot start a second
+        // collection read while the preloader is still running.
+        await queryClient.ensureQueryData({
+          queryKey: FEES_QUERY_KEYS.structures(),
+          queryFn: FeesService.getAllFeeStructures,
+          staleTime: Infinity,
+        });
       } catch (error: any) {
         console.error('❌ PRELOADER: Fees fetch error:', error.message);
       }
@@ -443,12 +442,11 @@ export function GlobalDataPreloader() {
     // 8. 👔 UNIFORMS - One-time read (rarely changes)
     const fetchUniforms = async () => {
       try {
-        const cached = queryClient.getQueryData(['uniforms']);
-        if (cached && (cached as any[]).length > 0) return;
-        const snapshot = await getDocs(firestoreQuery(collection(db, 'uniforms')));
-        const uniforms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        queryClient.setQueryData(['uniforms'], uniforms);
-        console.log(`⚡ PRELOADER: Loaded ${uniforms.length} uniforms`);
+        await queryClient.ensureQueryData({
+          queryKey: ['uniforms'],
+          queryFn: UniformsService.getAllUniforms,
+          staleTime: Infinity,
+        });
       } catch (error: any) {
         console.error('❌ PRELOADER: Uniforms fetch error:', error.message);
       }

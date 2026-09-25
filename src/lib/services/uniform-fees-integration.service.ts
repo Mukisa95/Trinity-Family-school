@@ -58,7 +58,7 @@ export class UniformFeesIntegrationService {
       return this.convertTrackingRecordsToFees(filteredRecords, allUniforms);
     } catch (error) {
       console.error('Error fetching uniform fees for pupil:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -90,7 +90,7 @@ export class UniformFeesIntegrationService {
       return this.convertTrackingRecordsToFees(trackingRecords, allUniforms);
     } catch (error) {
       console.error('Error fetching all uniform fees for pupil:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -126,23 +126,28 @@ export class UniformFeesIntegrationService {
       const uniformIds = Array.isArray(record.uniformId) ? record.uniformId : [record.uniformId];
       const uniformDetails = uniformIds.map(id => allUniforms.find(u => u.id === id)).filter(Boolean) as UniformItem[];
       
-      if (uniformDetails.length === 0) {
-        console.warn('No uniform details found for tracking record:', record.id);
-        return null;
+      const missingUniformIds = uniformIds.filter(id => !allUniforms.some(uniform => uniform.id === id));
+      if (missingUniformIds.length > 0) {
+        console.warn('Uniform catalogue items missing for tracking record:', record.id, missingUniformIds);
       }
 
       // Calculate amounts
-      const originalAmount = record.originalAmount || this.calculateOriginalAmount(uniformDetails, record.selectedQuantities);
-      const finalAmount = record.finalAmount || originalAmount;
+      const originalAmount = record.originalAmount ?? this.calculateOriginalAmount(uniformDetails, record.selectedQuantities);
+      const finalAmount = record.finalAmount ?? originalAmount;
+      if (!Number.isFinite(originalAmount) || !Number.isFinite(finalAmount)) {
+        throw new Error(`Uniform tracking ${record.id} has no valid stored amount.`);
+      }
       const discountAmount = originalAmount - finalAmount;
       const paidAmount = record.paidAmount || 0;
       const balance = Math.max(0, finalAmount - paidAmount);
 
       // Create uniform fee name based on selection mode
       let feeName = '';
-      const uniformNames = uniformDetails.map(u => {
-        const qty = record.selectedQuantities?.[u.id] || 1;
-        return qty > 1 ? `${qty} x ${u.name}` : u.name;
+      const uniformNames = uniformIds.map(id => {
+        const uniform = allUniforms.find(item => item.id === id);
+        const qty = record.selectedQuantities?.[id] || 1;
+        const name = uniform?.name || `Unknown uniform (${id})`;
+        return qty > 1 ? `${qty} x ${name}` : name;
       });
       
       switch (record.selectionMode) {
@@ -208,7 +213,7 @@ export class UniformFeesIntegrationService {
       return uniformFee;
     } catch (error) {
       console.error('Error converting tracking record to fee:', error);
-      return null;
+      throw error;
     }
   }
 

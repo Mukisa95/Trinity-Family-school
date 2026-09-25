@@ -57,7 +57,7 @@ export function useRequirementTrackingByClass(
         });
       }
       // 🚀 CRITICAL: Fetch ALL tracking records for the class/term at once (not one pupil at a time)
-      const allRecords = await RequirementTrackingService.getTrackingRecordsByClass(classId, academicYearId, termId);
+      const allRecords = await RequirementTrackingService.getTrackingRecordsByClass(classId, academicYearId!, termId!);
       
       // Filter by pupils in this class (using cached pupils data if available)
       if (cachedPupils && cachedPupils.length > 0) {
@@ -111,7 +111,7 @@ export function useRequirementTrackingByRequirement(requirementId: string) {
 }
 
 // Create a new requirement tracking record
-export function useCreateRequirementTracking() {
+export function useCreateRequirementTracking(options: { deferInvalidation?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { signAction } = useDigitalSignatureHelpers();
   const { user } = useAuth();
@@ -142,6 +142,7 @@ export function useCreateRequirementTracking() {
       return newRecord;
     },
     onSuccess: (newRecord) => {
+      if (options.deferInvalidation) return;
       // Invalidate and refetch relevant queries
       queryClient.invalidateQueries({ queryKey: ['requirementTracking'] });
       queryClient.invalidateQueries({ queryKey: ['enhancedRequirementTracking'] });

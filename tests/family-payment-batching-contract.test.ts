@@ -83,11 +83,12 @@ test('family fee hook exposes a failed ledger and suppresses incomplete calculat
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   vm.runInNewContext(output, { module, exports: module.exports, require(name: string) {
     if (name === 'react') return { useMemo: (fn: Function) => fn() };
-    if (name === '@tanstack/react-query') return { useQuery: (options: any) => ({
+    if (name === '@tanstack/react-query') return { useQueryClient: () => ({ fetchQuery: () => Promise.resolve(null) }), useQuery: (options: any) => ({
       data: new Map(), isLoading: false,
       error: options.queryKey[0] === 'family-payments-all' ? failure : null,
     }) };
     if (name === '@/lib/hooks/use-fees') return { useFeeStructures: () => ({ data: [], isLoading: false }) };
+    if (name === '@/lib/hooks/use-uniforms') return { useUniforms: () => ({ data: [], isLoading: false }) };
     return {};
   } });
   const result = module.exports.useFamilyFees({

@@ -60,6 +60,7 @@ interface GlassPageTopBarProps {
   eyebrow?: ReactNode;
   backHref?: string;
   backLabel?: string;
+  backMode?: "history" | "href";
   leading?: ReactNode;
   meta?: ReactNode;
   badges?: ReactNode;
@@ -80,6 +81,7 @@ export function GlassPageTopBar({
   eyebrow,
   backHref,
   backLabel = "Back",
+  backMode = "history",
   leading,
   meta,
   badges,
@@ -127,15 +129,16 @@ export function GlassPageTopBar({
     };
   }, [hasMobileUtilityControls, isSmallScreen]);
 
-  const backControl = backHref ? (
-    <SmartBackButton
-      fallbackHref={backHref}
-      label={backLabel}
-      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-300/65 bg-white/72 text-blue-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-blue-700 active:scale-95"
-    >
+  const backClassName = "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-300/65 bg-white/72 text-blue-600 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-blue-200/45 backdrop-blur-[20px] transition-all duration-200 after:absolute after:-inset-1 after:content-[''] hover:scale-[1.03] hover:bg-white/90 hover:text-blue-700 active:scale-95";
+  const backControl = backHref ? (backMode === "href" ? (
+    <Link href={backHref} aria-label={backLabel} title={backLabel} className={backClassName}>
+      <ArrowLeft className="h-4 w-4" />
+    </Link>
+  ) : (
+    <SmartBackButton fallbackHref={backHref} label={backLabel} className={backClassName}>
       <ArrowLeft className="h-4 w-4" />
     </SmartBackButton>
-  ) : leading ? (
+  )) : leading ? (
     <div className="shrink-0">{leading}</div>
   ) : null;
 

@@ -20,6 +20,18 @@ import type {
   PreviousTermBalance
 } from '../types';
 import { PaymentType } from '../types';
+import type { UniformFeeData } from '@/lib/services/uniform-fees-integration.service';
+
+export interface PreviousTermBalanceInputs {
+  feesHolidays?: FeesHoliday[];
+  uniformFees?: UniformFeeData[];
+  throwOnError?: boolean;
+  getHistoricalSnapshot?: (
+    pupil: Pupil,
+    termId: string,
+    academicYear: AcademicYear,
+  ) => Promise<PupilTermSnapshot>;
+}
 
 /**
  * Checks if an assignment is currently valid based on its time settings
@@ -554,14 +566,16 @@ export async function calculatePreviousTermBalances(
   allAcademicYears: AcademicYear[],
   getAllFeeStructures: () => Promise<FeeStructure[]>,
   getAllPayments: (pupilId: string) => Promise<PaymentRecord[]>,
-  pupil: Pupil
+  pupil: Pupil,
+  preloaded?: PreviousTermBalanceInputs,
 ): Promise<PreviousTermBalance | null> {
   try {
     const allFeeStructures = await getAllFeeStructures();
     const allPayments = await getAllPayments(pupilId);
 
     // Fetch active fees holidays for this pupil (needed for carry forward calculations)
-    const activeFeesHolidays = await FeesHolidayService.getActiveFeesHolidaysByPupil(pupilId);
+    const activeFeesHolidays = preloaded?.feesHolidays ??
+      await FeesHolidayService.getActiveFeesHolidaysByPupil(pupilId);
     console.log('🎫 Active fees holidays for carry forward:', activeFeesHolidays.length);
 
     // Import uniform fees service for carry forward calculations
@@ -600,7 +614,8 @@ export async function calculatePreviousTermBalances(
     })));
 
     // Get ALL uniform fees for this pupil (not filtered by term) for carry forward
-    const allUniformFees = await UniformFeesIntegrationService.getAllUniformFeesForPupil(pupilId);
+    const allUniformFees = preloaded?.uniformFees ??
+      await UniformFeesIntegrationService.getAllUniformFeesForPupil(pupilId);
     console.log('👕 All uniform fees for carry forward:', {
       uniformFeesCount: allUniformFees.length,
       uniformFees: allUniformFees.map(f => ({
@@ -621,7 +636,7 @@ export async function calculatePreviousTermBalances(
       // This ensures we use the pupil's class/section as it was during that term,
       // not their current class/section
       // NO FALLBACK - this must always work for financial accuracy
-      const snapshot = await PupilSnapshotsService.getSnapshotForRead(
+      const snapshot = await (preloaded?.getHistoricalSnapshot ?? PupilSnapshotsService.getSnapshotForRead.bind(PupilSnapshotsService))(
         pupil,
         period.termId,
         period.academicYear
@@ -790,6 +805,7 @@ export async function calculatePreviousTermBalances(
     };
   } catch (error) {
     console.error('Error calculating previous term balances:', error);
+    if (preloaded?.throwOnError) throw error;
     return null;
   }
 }
