@@ -56,7 +56,7 @@ function loadHook(
 }
 
 for (const catalog of [
-  ['src/lib/hooks/use-fees.ts', 'useFeeStructures', '../services/fees.service', 'FeesService', 'getAllFeeStructures', ['fees', 'structures']],
+  ['src/lib/hooks/use-fees.ts', 'useFeeStructures', '../services/fees.service', 'FeesService', 'getAllFeeStructures', ['fees', 'structures', 'server-confirmed-v1']],
   ['src/lib/hooks/use-uniforms.ts', 'useUniforms', '../services/uniforms.service', 'UniformsService', 'getAllUniforms', ['uniforms']],
   ['src/lib/hooks/use-requirements.ts', 'useRequirements', '../services/requirements.service', 'RequirementsService', 'getAllRequirements', ['requirements']],
 ] as const) {

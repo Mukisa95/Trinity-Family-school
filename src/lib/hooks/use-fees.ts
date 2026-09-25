@@ -4,7 +4,9 @@ import type { FeeStructure, FeeAdjustmentEntry } from '@/types';
 
 export const FEES_QUERY_KEYS = {
   all: ['fees'] as const,
-  structures: () => [...FEES_QUERY_KEYS.all, 'structures'] as const,
+  // Version the shared key once so clients that cached an unconfirmed empty
+  // catalogue cannot carry it into the server-confirmed collection path.
+  structures: () => [...FEES_QUERY_KEYS.all, 'structures', 'server-confirmed-v1'] as const,
   structure: (id: string) => [...FEES_QUERY_KEYS.structures(), id] as const,
   structuresByYear: (yearId: string) => [...FEES_QUERY_KEYS.structures(), 'year', yearId] as const,
   adjustments: () => [...FEES_QUERY_KEYS.all, 'adjustments'] as const,
@@ -25,7 +27,9 @@ export function useFeeStructures() {
     gcTime: Infinity, // Keep in cache forever
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    // A failed read may recover when connectivity returns; a successful
+    // catalogue remains fresh and never incurs a reconnect read.
+    refetchOnReconnect: query => query.state.status === 'error',
     placeholderData: (previousData) => previousData,
     initialData: () => {
       const cached = queryClient.getQueryData(FEES_QUERY_KEYS.structures());

@@ -2,6 +2,7 @@ import {
   collection, 
   doc, 
   getDocs, 
+  getDocsFromServer,
   getDoc, 
   addDoc, 
   updateDoc, 
@@ -50,7 +51,11 @@ export class FeesService {
   static async getAllFeeStructures(): Promise<FeeStructure[]> {
     try {
       const q = query(collection(db, FEE_STRUCTURES_COLLECTION), orderBy('name', 'asc'));
-      const querySnapshot = await getDocs(q);
+      // This catalogue is the source of amounts shown on collection screens.
+      // getDocs() can resolve an empty offline cache as a successful query,
+      // which the shared React Query owner would otherwise keep indefinitely.
+      // One server read confirms either the real catalogue or a real empty set.
+      const querySnapshot = await getDocsFromServer(q);
       
       return querySnapshot.docs.map(doc => ({
         id: doc.id,

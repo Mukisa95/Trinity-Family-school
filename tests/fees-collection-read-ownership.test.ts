@@ -17,6 +17,46 @@ test('pupil fees share catalogue data and historical calculation inputs', () => 
   assert.match(processing, /if \(preloaded\?\.throwOnError\) throw error/);
 });
 
+test('shared fee catalogue is server-confirmed without a second normal read', () => {
+  const service = read('src/lib/services/fees.service.ts');
+  const hook = read('src/lib/hooks/use-fees.ts');
+  const preloader = read('src/components/providers/global-data-preloader.tsx');
+  assert.match(service, /getDocsFromServer\(q\)/);
+  assert.match(hook, /'server-confirmed-v1'/);
+  assert.match(hook, /refetchOnReconnect: query => query\.state\.status === 'error'/);
+  assert.match(preloader, /ensureQueryData\(\{[\s\S]*?queryKey: FEES_QUERY_KEYS\.structures\(\),[\s\S]*?queryFn: FeesService\.getAllFeeStructures/);
+});
+
+test('an offline fee read fails instead of accepting an empty local catalogue', async () => {
+  const source = read('src/lib/services/fees.service.ts');
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  }).outputText;
+  const module = { exports: {} as any };
+  let cacheReads = 0;
+  vm.runInNewContext(compiled, {
+    module, exports: module.exports, console: { error() {} },
+    require: (name: string) => {
+      if (name === 'firebase/firestore') return {
+        collection: () => ({}), query: (reference: unknown) => reference, orderBy: () => ({}),
+        getDocs: async () => { cacheReads += 1; return { docs: [] }; },
+        getDocsFromServer: async () => { throw new Error('backend unavailable'); },
+      };
+      if (name === '../firebase') return { db: {} };
+      throw new Error(`Unexpected import: ${name}`);
+    },
+  });
+  await assert.rejects(module.exports.FeesService.getAllFeeStructures(), /backend unavailable/);
+  assert.equal(cacheReads, 0);
+});
+
+test('missing academic-year data is not described as a valid empty period', () => {
+  const page = read('src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx');
+  assert.match(page, /academicYears\.length === 0[\s\S]*?Academic years could not be loaded/);
+  assert.match(page, /academicYears\.length === 0 && \([\s\S]*?Retry loading/);
+  assert.match(page, /Fee information could not be verified[\s\S]*?Retry loading/);
+});
+
 test('Requirements refresh cannot assign records without explicit confirmation', () => {
   const page = read('src/app/requirement-tracking/page.tsx');
   const refresh = page.match(/const refreshTracking = async \(\) => \{([\s\S]*?)\n  \};/)?.[1];

@@ -2263,6 +2263,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-900">
           <h2 className="font-semibold">Fee information could not be verified</h2>
           <p className="mt-2 text-sm">{loadError?.message || 'Pupil information is unavailable.'} Payment actions are unavailable until the data is verified.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-3 min-h-11 rounded-lg border border-red-300 px-4 font-medium hover:bg-red-100">
+            Retry loading
+          </button>
         </div>
       </div>
     );
@@ -2323,7 +2326,14 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       <div className="min-h-screen pb-24">
         <GlassPageTopBar backHref="/fees/collection" backLabel="Back to Fees" backMode="href" title={`Fees Collection - ${pupil.firstName} ${pupil.lastName}`} />
         <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
-          No valid academic year and term are available for this pupil. No balance can be calculated.
+          {academicYears.length === 0
+            ? 'Academic years could not be loaded. The fee balance cannot be verified while the school data is unavailable.'
+            : 'No valid academic year and term are available for this pupil. No balance can be calculated.'}
+          {academicYears.length === 0 && (
+            <button type="button" onClick={() => window.location.reload()} className="mt-3 block min-h-11 rounded-lg border border-amber-400 px-4 font-medium hover:bg-amber-100">
+              Retry loading
+            </button>
+          )}
         </div>
       </div>
     );
