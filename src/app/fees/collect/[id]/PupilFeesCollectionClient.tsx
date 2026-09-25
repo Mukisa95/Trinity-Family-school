@@ -499,8 +499,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Optimized: Only reset term if academic year changes (much faster)
   useEffect(() => {
-    if (selectedAcademicYear && validTerms.length > 0 && selectedTermId) {
-      // Only validate if term is invalid for the current academic year
+    if (selectedAcademicYear && validTerms.length > 0) {
+      // A status update can invalidate the old year while the first effect
+      // selects the pupil's last active year. The old year's cleanup may
+      // clear that new term in the same effect flush, so also recover a
+      // missing selection once the valid year has settled.
       const isCurrentTermValid = validTerms.find(t => t.id === selectedTermId);
 
       if (!isCurrentTermValid) {

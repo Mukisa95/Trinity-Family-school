@@ -57,6 +57,12 @@ test('missing academic-year data is not described as a valid empty period', () =
   assert.match(page, /Fee information could not be verified[\s\S]*?Retry loading/);
 });
 
+test('a graduated pupil recovers a term cleared during the year switch', () => {
+  const page = read('src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx');
+  assert.match(page, /if \(selectedAcademicYear && validTerms\.length > 0\) \{[\s\S]*?const isCurrentTermValid = validTerms\.find\(t => t\.id === selectedTermId\);[\s\S]*?if \(!isCurrentTermValid\) \{[\s\S]*?setSelectedTermId\(newestValidTerm\.id\)/);
+  assert.doesNotMatch(page, /validTerms\.length > 0 && selectedTermId/);
+});
+
 test('Requirements refresh cannot assign records without explicit confirmation', () => {
   const page = read('src/app/requirement-tracking/page.tsx');
   const refresh = page.match(/const refreshTracking = async \(\) => \{([\s\S]*?)\n  \};/)?.[1];
