@@ -31,13 +31,16 @@ export function getLegacyExamEventCacheKey(scope: string): string {
 
 export function readEventCache(scope: string): EventCacheSnapshot | null {
   if (!scope) return null;
-  const snapshot = liteRead<EventCacheSnapshot>(getEventCacheKey(scope));
-  return snapshot?.schema === EVENT_CACHE_SCHEMA ? snapshot : null;
-}
+  const cacheKey = getEventCacheKey(scope);
+  const snapshot = liteRead<EventCacheSnapshot>(cacheKey);
+  if (snapshot?.schema !== EVENT_CACHE_SCHEMA) return null;
 
-export function readEventCacheMetadata(scope: string) {
-  if (!scope) return null;
-  return liteReadMetadata(getEventCacheKey(scope));
+  // Upgrade still-valid 48-hour entries written by older releases without
+  // forcing one last expiry read from Firestore.
+  if (liteReadMetadata(cacheKey)?.ttlMs !== LITE_TTL.events) {
+    liteWrite(cacheKey, snapshot, LITE_TTL.events);
+  }
+  return snapshot;
 }
 
 export function writeEventCache(scope: string, revision: number, events: Event[]): void {
@@ -51,13 +54,13 @@ export function writeEventCache(scope: string, revision: number, events: Event[]
 
 export function readLegacyExamEventCache(scope: string): EventCacheSnapshot | null {
   if (!scope) return null;
-  const snapshot = liteRead<EventCacheSnapshot>(getLegacyExamEventCacheKey(scope));
-  return snapshot?.schema === EVENT_CACHE_SCHEMA ? snapshot : null;
-}
-
-export function readLegacyExamEventCacheMetadata(scope: string) {
-  if (!scope) return null;
-  return liteReadMetadata(getLegacyExamEventCacheKey(scope));
+  const cacheKey = getLegacyExamEventCacheKey(scope);
+  const snapshot = liteRead<EventCacheSnapshot>(cacheKey);
+  if (snapshot?.schema !== EVENT_CACHE_SCHEMA) return null;
+  if (liteReadMetadata(cacheKey)?.ttlMs !== LITE_TTL.events) {
+    liteWrite(cacheKey, snapshot, LITE_TTL.events);
+  }
+  return snapshot;
 }
 
 export function writeLegacyExamEventCache(

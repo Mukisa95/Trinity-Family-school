@@ -15,6 +15,8 @@ const staffHook = read('src/lib/hooks/use-staff.ts');
 const subjectHook = read('src/lib/hooks/use-subjects.ts');
 const eventsHook = read('src/lib/hooks/use-events-fixed.ts');
 const eventCache = read('src/lib/cache/event-cache.ts');
+const liteCache = read('src/lib/cache/lite-cache.ts');
+const revisionCachePolicy = read('src/lib/cache/revision-cache-policy.ts');
 const timetableService = read('src/lib/services/timetable.service.ts');
 const timetableHook = read('src/lib/hooks/use-timetable.ts');
 const preloader = read('src/components/providers/global-data-preloader.tsx');
@@ -116,10 +118,10 @@ assert(
   'Staff/admin pupil data must use a scoped revision cache with ordered mutation deltas.',
 );
 assert(
-  preloader.includes("where('familyId', '==', userFamilyId)") &&
-    preloader.includes("? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))") &&
+  preloader.includes("where('parentAccountId', '==', userId)") &&
+    preloader.includes("where('parentAccountActive', '==', true)") &&
     preloader.includes(": firestoreQuery(collection(db, 'pupils'))"),
-  'The pupil listener must remain family-scoped for parents and shared cache-first for staff/admin users.',
+  'The pupil listener must remain account-scoped for parents and shared cache-first for staff/admin users.',
 );
 assert(
   pupilsService.includes("if (typeof window !== 'undefined')") &&
@@ -320,11 +322,23 @@ assert(
   'Timetable caches must be scoped to project and signed-in identity.',
 );
 assert(
-  timetableHook.includes('(revisionsReady || initialData === undefined)') &&
-    eventsHook.includes('(revisionsReady || !hasUsableCachedData)') &&
+  timetableHook.includes('cachePolicy.shouldFetch') &&
+    eventsHook.includes('cachePolicy.shouldFetch') &&
     timetableHook.includes('getDocsFromServer') &&
-    eventsHook.includes('getDocsFromServer'),
-  'Cold timetable and event caches must fail open while warm caches remain read-free.',
+    eventsHook.includes('getDocsFromServer') &&
+    timetableService.includes('getDocFromServer') &&
+    revisionCachePolicy.includes('cachedRevision < currentRevision') &&
+    revisionCachePolicy.includes('shouldFetch: !hasCachedData || revisionChanged'),
+  'Timetable and event reads must be limited to cold caches and confirmed revision changes.',
+);
+assert(
+  liteCache.includes('events: Number.MAX_SAFE_INTEGER') &&
+    !eventsHook.includes('refreshEpoch') &&
+    eventsHook.includes('queryKey: eventsBaseCacheKey(scope)') &&
+    !eventsHook.includes("'events',\n      'filtered'") &&
+    eventsHook.includes('currentCache !== undefined') &&
+    timetableHook.includes('fetchWithTimetableFallback'),
+  'Warm event and timetable snapshots must share one owner, avoid timed refresh, and survive reconciliation failures.',
 );
 
 console.log(

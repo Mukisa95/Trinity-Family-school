@@ -25,8 +25,9 @@ const PREFIX = 'trinity_lite_';
 export const LITE_TTL = {
   // Academic years change maybe once a year — 7-day TTL is very safe
   academicYears: 7 * 24 * 60 * 60 * 1000,
-  // Events/calendar receive a bounded safety refresh every 48 hours
-  events: 48 * 60 * 60 * 1000,
+  // Events/calendar are refreshed by their shared revision signal. Keeping the
+  // snapshot removes time-based reads for data that may not change all term.
+  events: Number.MAX_SAFE_INTEGER,
   // Photos rarely change — 24-hour TTL
   photos: 24 * 60 * 60 * 1000,
   // Attendance summaries are published after a recording session and are

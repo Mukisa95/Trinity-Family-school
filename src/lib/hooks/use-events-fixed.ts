@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   collection,
   doc,
@@ -43,13 +43,11 @@ import { useSubjects } from './use-subjects';
 import {
   getEventCacheScope,
   readEventCache,
-  readEventCacheMetadata,
   readLegacyExamEventCache,
-  readLegacyExamEventCacheMetadata,
   writeEventCache,
   writeLegacyExamEventCache,
 } from '@/lib/cache/event-cache';
-import { LITE_TTL } from '@/lib/cache/lite-cache';
+import { getRevisionCachePolicy } from '@/lib/cache/revision-cache-policy';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -312,83 +310,43 @@ function writeCachedEvents(
   writeEventCache(scope, revision, events);
 }
 
-function updateFilteredEventQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  scope: string,
-  events: Event[],
-  role?: string,
-) {
-  const filteredQueries = queryClient.getQueryCache().findAll({
-    predicate: candidate =>
-      candidate.queryKey[0] === 'events' &&
-      candidate.queryKey[1] === 'filtered' &&
-      candidate.queryKey[2] === scope,
-  });
-  filteredQueries.forEach(candidate => {
-    queryClient.setQueryData(
-      candidate.queryKey,
-      applyEventFilters(
-        events,
-        candidate.queryKey[3] as EventFilters | undefined,
-        role,
-      ),
-    );
-  });
-}
-
 // Get all events with proper error handling
 export function useEvents(filters?: EventFilters) {
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuth();
   const revisionsQuery = useDashboardDataRevisions();
-  const [refreshEpoch, setRefreshEpoch] = useState(0);
   const scope = isAuthenticated
     ? getEventCacheScope(user?.id, user?.role, user?.familyId)
     : '';
   const currentRevision = revisionsQuery.data?.events ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
   const persisted = readEventCache(scope);
-  const cacheMetadata = readEventCacheMetadata(scope);
-  const cacheIsFresh = !!cacheMetadata &&
-    Date.now() - cacheMetadata.writtenAt < LITE_TTL.events;
-  const revisionMatches = !revisionsReady || persisted?.revision === currentRevision;
-
-  useEffect(() => {
-    if (!cacheMetadata) return;
-    const refreshIn = Math.max(cacheMetadata.writtenAt + LITE_TTL.events - Date.now(), 0);
-    const timer = window.setTimeout(() => setRefreshEpoch(epoch => epoch + 1), refreshIn + 50);
-    return () => window.clearTimeout(timer);
-  }, [cacheMetadata?.writtenAt, refreshEpoch]);
 
   // 🚀 CRITICAL: Read from GlobalDataPreloader's pre-populated cache immediately
   const cachedData = getCachedEvents(queryClient, scope);
-  const canUseCachedData = cacheIsFresh && revisionMatches;
-  const hasUsableCachedData = canUseCachedData && cachedData !== undefined;
-
-  return useQuery({
-    queryKey: [
-      'events',
-      'filtered',
-      scope,
-      filters,
-      'revision',
-      currentRevision,
-      revisionsReady ? 'ready' : 'pending',
-      refreshEpoch,
-    ],
+  const cachePolicy = getRevisionCachePolicy({
+    hasCachedData: cachedData !== undefined,
+    cachedRevision: persisted?.revision,
+    currentRevision,
+    revisionsReady,
+  });
+  // One canonical owner reads the collection. Every calendar filter derives
+  // from this shared array, so mounting several event views cannot fan out into
+  // duplicate Firestore reads.
+  const eventsQuery = useQuery({
+    queryKey: eventsBaseCacheKey(scope),
     // A warm calendar paints without a read. A genuinely cold calendar may
     // fetch before revisions arrive so settings-listener trouble cannot freeze
     // the page; a later non-zero revision will reconcile through a new key.
-    enabled: !!scope && (revisionsReady || !hasUsableCachedData),
+    enabled: !!scope && cachePolicy.shouldFetch,
     queryFn: async () => {
       const currentCache = getCachedEvents(queryClient, scope);
-      if (canUseCachedData && currentCache) {
+      if (!cachePolicy.shouldFetch && currentCache !== undefined) {
         queryClient.setQueryData(eventsBaseCacheKey(scope), currentCache);
         if (process.env.NODE_ENV === 'development') {
           console.log(`⚡ useEvents: Using ${currentCache.length} events from preloader cache`);
         }
-        // Apply client-side filters and return immediately
-        return applyEventFilters(currentCache, filters, user?.role);
+        return currentCache;
       }
 
       if (process.env.NODE_ENV === 'development') {
@@ -418,33 +376,39 @@ export function useEvents(filters?: EventFilters) {
         );
 
         console.log('Events loaded successfully:', events.length);
-        return applyEventFilters(events, filters, user?.role);
+        return events;
       } catch (error) {
         console.error('Error fetching events:', error);
+        // A failed reconciliation must not blank a calendar that already has a
+        // usable snapshot. The unchanged cached revision causes a retry on the
+        // next mount or reconnect.
+        if (currentCache !== undefined) {
+          return currentCache;
+        }
         throw error;
       }
     },
-    staleTime: Infinity,
+    staleTime: cachePolicy.shouldFetch ? 0 : Infinity,
     gcTime: 60 * 60 * 1000, // 1 hour cache
-    refetchOnMount: false,
+    refetchOnMount: cachePolicy.shouldFetch,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnReconnect: cachePolicy.shouldFetch,
     refetchInterval: false,
     // 🚀 Use pre-populated cache as initialData for zero-delay rendering
-    initialData: () => {
-      if (canUseCachedData && cachedData) {
-        return applyEventFilters(cachedData, filters, user?.role);
-      }
-      return undefined;
-    },
-    placeholderData: (previousData) => {
-      if (canUseCachedData && cachedData) {
-        return applyEventFilters(cachedData, filters, user?.role);
-      }
-      return previousData;
-    },
+    initialData: cachedData,
+    initialDataUpdatedAt: cachedData !== undefined ? Date.now() : undefined,
+    placeholderData: (previousData) => previousData ?? cachedData,
     retry: 1,
   });
+
+  const filteredData = useMemo(
+    () => eventsQuery.data === undefined
+      ? undefined
+      : applyEventFilters(eventsQuery.data, filters, user?.role),
+    [eventsQuery.data, filters, user?.role],
+  );
+
+  return { ...eventsQuery, data: filteredData };
 }
 
 // Helper: apply all event filters client-side without round-tripping to Firestore
@@ -548,7 +512,6 @@ export function useCreateEvent() {
       if (existing) {
         const updated = [newEvent, ...existing.filter(event => event.id !== newEvent.id)];
         writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
-        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
       }
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       toast({
@@ -632,9 +595,7 @@ export function useUpdateEvent() {
           ? existing.map(cachedEvent => cachedEvent.id === event.id ? event : cachedEvent)
           : [event, ...existing];
         writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
-        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
       }
-      // Notify all filtered-query observers to re-render from the updated master cache
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
 
       // If it's an exam event, also invalidate exams queries
@@ -756,9 +717,7 @@ export function useDeleteEvent() {
         const cleanId = typeof deletedId === 'string' ? deletedId.replace('exam-', '') : deletedId;
         const filtered = existing.filter(e => e.id !== deletedId && e.id !== cleanId);
         writeCachedEvents(queryClient, scope, currentRevision + 1, filtered);
-        updateFilteredEventQueries(queryClient, scope, filtered, user?.role);
       }
-      // Notify all filtered-query observers to re-render from the updated master cache
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       queryClient.invalidateQueries({ queryKey: ['exams-as-events'] });
@@ -797,7 +756,6 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
   const { data: subjects = [], isLoading: subjectsLoading } = useSubjects();
   const eventsQuery = useEvents();
   const revisionsQuery = useDashboardDataRevisions();
-  const [refreshEpoch, setRefreshEpoch] = useState(0);
   const revision = revisionsQuery.data?.events ?? 0;
   const examRevision = revisionsQuery.data?.exams ?? 0;
   const revisionsReady = revisionsQuery.data !== undefined;
@@ -805,18 +763,16 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
     ? getEventCacheScope(user?.id, user?.role, user?.familyId)
     : '';
   const persisted = readLegacyExamEventCache(scope);
-  const cacheMetadata = readLegacyExamEventCacheMetadata(scope);
-  const initialData = persisted?.revision === revision ? persisted.data : undefined;
+  const initialData = persisted?.data;
+  const cachePolicy = getRevisionCachePolicy({
+    hasCachedData: initialData !== undefined,
+    cachedRevision: persisted?.revision,
+    currentRevision: revision,
+    revisionsReady,
+  });
   const examScope = isAuthenticated ? getExamCacheScope(user?.id, user?.role) : '';
   const examSnapshotReady = user?.role === 'Parent' ||
     (!!examScope && readExamCache(examScope)?.revision === examRevision);
-
-  useEffect(() => {
-    if (!cacheMetadata) return;
-    const refreshIn = Math.max(cacheMetadata.writtenAt + LITE_TTL.events - Date.now(), 0);
-    const timer = window.setTimeout(() => setRefreshEpoch(epoch => epoch + 1), refreshIn + 50);
-    return () => window.clearTimeout(timer);
-  }, [cacheMetadata?.writtenAt, refreshEpoch]);
 
   return useQuery({
     queryKey: [
@@ -825,7 +781,6 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
       revision,
       examRevision,
       revisionsReady ? 'ready' : 'pending',
-      refreshEpoch,
     ],
     enabled:
       (options?.enabled ?? true) &&
@@ -1231,13 +1186,14 @@ export function useExamsAsEvents(options?: { enabled?: boolean }) {
         throw error;
       }
     },
-    staleTime: Infinity,
+    staleTime: cachePolicy.shouldFetch ? 0 : Infinity,
     gcTime: 24 * 60 * 60 * 1000,
-    refetchOnMount: false,
+    refetchOnMount: cachePolicy.shouldFetch,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnReconnect: cachePolicy.shouldFetch,
     retry: 1,
     initialData,
+    initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
   });
 }
 
@@ -1321,7 +1277,6 @@ export function useCreateEventFromExam() {
       if (existing) {
         const updated = [newEvent, ...existing.filter(event => event.id !== newEvent.id)];
         writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
-        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
       }
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       toast({
@@ -1399,7 +1354,6 @@ export function useUpdateEventFromExam() {
           ? existing.map(event => event.id === updatedEvent.id ? updatedEvent : event)
           : [updatedEvent, ...existing];
         writeCachedEvents(queryClient, scope, currentRevision + 1, updated);
-        updateFilteredEventQueries(queryClient, scope, updated, user?.role);
       }
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       toast({

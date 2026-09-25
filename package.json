@@ -37,6 +37,7 @@
     "test:read-only-snapshot-flows": "node scripts/check-read-only-snapshot-flows.js",
     "test:auth-session-flow": "node scripts/check-auth-session-flow.js",
     "test:dashboard-cache-contract": "node scripts/check-dashboard-cache-contract.js",
+    "test:events-timetable-cache": "node --import tsx --test tests/revision-cache-policy.test.ts && node scripts/check-dashboard-cache-contract.js",
     "test:master-data-ownership": "node scripts/check-master-data-ownership-contract.js",
     "test:master-data-selectors": "node --import tsx --test tests/master-data-selectors.test.ts",
     "test:inventory-movement": "node --import tsx --test tests/inventory-movement.test.ts",

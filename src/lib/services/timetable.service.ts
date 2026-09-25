@@ -3,6 +3,7 @@ import {
     doc,
     getDocs,
     getDoc,
+    getDocFromServer,
     addDoc,
     query,
     orderBy,
@@ -49,10 +50,17 @@ export class TimetableService {
         }
     }
 
-    static async getTimetableById(yearId: string, termId: string, timetableId: string): Promise<TimetableProfile | null> {
+    static async getTimetableById(
+        yearId: string,
+        termId: string,
+        timetableId: string,
+        source: 'default' | 'server' = 'default',
+    ): Promise<TimetableProfile | null> {
         try {
             const docRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
-            const docSnap = await getDoc(docRef);
+            const docSnap = source === 'server'
+                ? await getDocFromServer(docRef)
+                : await getDoc(docRef);
 
             if (docSnap.exists()) {
                 const data = docSnap.data();

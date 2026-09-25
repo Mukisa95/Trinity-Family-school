@@ -6,6 +6,7 @@ import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types'
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useDashboardDataRevisions } from './use-school-settings';
 import { liteRead, liteWrite } from '@/lib/cache/lite-cache';
+import { getRevisionCachePolicy } from '@/lib/cache/revision-cache-policy';
 import { dashboardRevisionKeys } from '@/lib/services/dashboard-cache-revisions.service';
 
 // Keys for caching
@@ -50,11 +51,10 @@ function timetableCacheKey(
     ].join(':');
 }
 
-function readTimetableCache<T>(cacheKey: string, revision: number, revisionsReady: boolean): T | undefined {
+function readTimetableCache<T>(cacheKey: string): TimetableCacheEntry<T> | undefined {
     const entry = liteRead<TimetableCacheEntry<T>>(cacheKey);
     if (!entry || entry.schema !== TIMETABLE_CACHE_SCHEMA) return undefined;
-    if (revisionsReady && entry.revision !== revision) return undefined;
-    return entry.data;
+    return entry;
 }
 
 function writeTimetableCache<T>(cacheKey: string, revision: number, data: T) {
@@ -63,6 +63,21 @@ function writeTimetableCache<T>(cacheKey: string, revision: number, data: T) {
         { schema: TIMETABLE_CACHE_SCHEMA, revision, data } satisfies TimetableCacheEntry<T>,
         TIMETABLE_CACHE_TTL,
     );
+}
+
+async function fetchWithTimetableFallback<T>(
+    fallback: T | undefined,
+    fetcher: () => Promise<T>,
+): Promise<T> {
+    try {
+        return await fetcher();
+    } catch (error) {
+        if (fallback !== undefined) {
+            console.warn('Timetable refresh failed; keeping the cached snapshot.', error);
+            return fallback;
+        }
+        throw error;
+    }
 }
 
 function useTimetableRevision(yearId: string, termId: string) {
@@ -88,7 +103,14 @@ function useTimetableRevision(yearId: string, termId: string) {
 export function useTimetableProfiles(yearId: string, termId: string) {
     const { scope, revision, revisionsReady } = useTimetableRevision(yearId, termId);
     const cacheKey = timetableCacheKey(scope, 'profiles', yearId, termId);
-    const initialData = readTimetableCache<TimetableProfile[]>(cacheKey, revision, revisionsReady);
+    const cacheEntry = readTimetableCache<TimetableProfile[]>(cacheKey);
+    const initialData = cacheEntry?.data;
+    const cachePolicy = getRevisionCachePolicy({
+        hasCachedData: initialData !== undefined,
+        cachedRevision: cacheEntry?.revision,
+        currentRevision: revision,
+        revisionsReady,
+    });
 
     return useQuery({
         queryKey: [
@@ -97,7 +119,7 @@ export function useTimetableProfiles(yearId: string, termId: string) {
             revision,
             revisionsReady ? 'ready' : 'pending',
         ],
-        queryFn: async () => {
+        queryFn: () => fetchWithTimetableFallback(initialData, async () => {
             const profilesQuery = query(collection(db, getTimetablesCollectionPath(yearId, termId)));
             const snapshot = revisionsReady
                 ? await getDocsFromServer(profilesQuery)
@@ -115,17 +137,17 @@ export function useTimetableProfiles(yearId: string, termId: string) {
             profilesList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             writeTimetableCache(cacheKey, revisionsReady ? revision : -1, profilesList);
             return profilesList;
-        },
+        }),
         enabled: !!yearId && !!termId && !!scope &&
-            (revisionsReady || initialData === undefined),
-        staleTime: STALE_TIME,
+            cachePolicy.shouldFetch,
+        staleTime: cachePolicy.shouldFetch ? 0 : STALE_TIME,
         gcTime: GC_TIME,
-        refetchOnMount: false,
+        refetchOnMount: cachePolicy.shouldFetch,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        placeholderData: (prev) => prev,
+        refetchOnReconnect: cachePolicy.shouldFetch,
+        placeholderData: (prev) => prev ?? initialData,
         initialData,
-        initialDataUpdatedAt: initialData ? Date.now() : undefined,
+        initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
     });
 }
 
@@ -133,18 +155,27 @@ export function useTimetableProfile(yearId: string, termId: string, timetableId:
     const queryClient = useQueryClient();
     const { scope, revision, revisionsReady } = useTimetableRevision(yearId, termId);
     const cacheKey = timetableCacheKey(scope, 'profile', yearId, termId, timetableId);
-    const cachedProfile = readTimetableCache<TimetableProfile | null>(cacheKey, revision, revisionsReady);
+    const cachedProfileEntry = readTimetableCache<TimetableProfile | null>(cacheKey);
     const profilesCacheKey = timetableCacheKey(scope, 'profiles', yearId, termId);
-    const cachedProfiles =
-        queryClient.getQueryData<TimetableProfile[]>([
+    const memoryProfiles = queryClient.getQueryData<TimetableProfile[]>([
             ...timetableKeys.allProfiles(yearId, termId),
             scope,
             revision,
             revisionsReady ? 'ready' : 'pending',
-        ]) ?? readTimetableCache<TimetableProfile[]>(profilesCacheKey, revision, revisionsReady);
-    const initialData = cachedProfile !== undefined
-        ? cachedProfile
+        ]);
+    const cachedProfilesEntry = readTimetableCache<TimetableProfile[]>(profilesCacheKey);
+    const cachedProfiles = memoryProfiles ?? cachedProfilesEntry?.data;
+    const initialData = cachedProfileEntry !== undefined
+        ? cachedProfileEntry.data
         : cachedProfiles?.find(profile => profile.id === timetableId);
+    const cachedRevision = cachedProfileEntry?.revision ??
+        (memoryProfiles !== undefined ? revision : cachedProfilesEntry?.revision);
+    const cachePolicy = getRevisionCachePolicy({
+        hasCachedData: initialData !== undefined,
+        cachedRevision,
+        currentRevision: revision,
+        revisionsReady,
+    });
 
     return useQuery({
         queryKey: [
@@ -153,18 +184,24 @@ export function useTimetableProfile(yearId: string, termId: string, timetableId:
             revision,
             revisionsReady ? 'ready' : 'pending',
         ],
-        queryFn: async () => {
-            const profile = await TimetableService.getTimetableById(yearId, termId, timetableId);
+        queryFn: () => fetchWithTimetableFallback(initialData, async () => {
+            const profile = await TimetableService.getTimetableById(
+                yearId,
+                termId,
+                timetableId,
+                revisionsReady ? 'server' : 'default',
+            );
             writeTimetableCache(cacheKey, revisionsReady ? revision : -1, profile);
             return profile;
-        },
+        }),
         enabled: !!yearId && !!termId && !!timetableId && !!scope &&
-            (revisionsReady || initialData === undefined),
-        staleTime: STALE_TIME,
+            cachePolicy.shouldFetch,
+        staleTime: cachePolicy.shouldFetch ? 0 : STALE_TIME,
         gcTime: GC_TIME,
-        refetchOnMount: false,
+        refetchOnMount: cachePolicy.shouldFetch,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        refetchOnReconnect: cachePolicy.shouldFetch,
+        placeholderData: (prev) => prev ?? initialData,
         initialData,
         initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
     });
@@ -176,7 +213,14 @@ export function useTimetableProfile(yearId: string, termId: string, timetableId:
 export function useTimetablePeriods(yearId: string, termId: string, timetableId: string) {
     const { scope, revision, revisionsReady } = useTimetableRevision(yearId, termId);
     const cacheKey = timetableCacheKey(scope, 'periods', yearId, termId, timetableId);
-    const initialData = readTimetableCache<GeneratedPeriod[]>(cacheKey, revision, revisionsReady);
+    const cacheEntry = readTimetableCache<GeneratedPeriod[]>(cacheKey);
+    const initialData = cacheEntry?.data;
+    const cachePolicy = getRevisionCachePolicy({
+        hasCachedData: initialData !== undefined,
+        cachedRevision: cacheEntry?.revision,
+        currentRevision: revision,
+        revisionsReady,
+    });
 
     return useQuery({
         queryKey: [
@@ -185,7 +229,7 @@ export function useTimetablePeriods(yearId: string, termId: string, timetableId:
             revision,
             revisionsReady ? 'ready' : 'pending',
         ],
-        queryFn: async () => {
+        queryFn: () => fetchWithTimetableFallback(initialData, async () => {
             const periodsQuery = query(
                 collection(db, getPeriodsCollectionPath(yearId, termId, timetableId)),
             );
@@ -198,17 +242,17 @@ export function useTimetablePeriods(yearId: string, termId: string, timetableId:
             })) as GeneratedPeriod[];
             writeTimetableCache(cacheKey, revisionsReady ? revision : -1, periods);
             return periods;
-        },
+        }),
         enabled: !!yearId && !!termId && !!timetableId && !!scope &&
-            (revisionsReady || initialData === undefined),
-        staleTime: STALE_TIME,
+            cachePolicy.shouldFetch,
+        staleTime: cachePolicy.shouldFetch ? 0 : STALE_TIME,
         gcTime: GC_TIME,
-        refetchOnMount: false,
+        refetchOnMount: cachePolicy.shouldFetch,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        placeholderData: (prev) => prev,
+        refetchOnReconnect: cachePolicy.shouldFetch,
+        placeholderData: (prev) => prev ?? initialData,
         initialData,
-        initialDataUpdatedAt: initialData ? Date.now() : undefined,
+        initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
     });
 }
 
@@ -218,7 +262,14 @@ export function useTimetablePeriods(yearId: string, termId: string, timetableId:
 export function useTimetableEntries(yearId: string, termId: string, timetableId: string) {
     const { scope, revision, revisionsReady } = useTimetableRevision(yearId, termId);
     const cacheKey = timetableCacheKey(scope, 'entries', yearId, termId, timetableId);
-    const initialData = readTimetableCache<TimetableEntry[]>(cacheKey, revision, revisionsReady);
+    const cacheEntry = readTimetableCache<TimetableEntry[]>(cacheKey);
+    const initialData = cacheEntry?.data;
+    const cachePolicy = getRevisionCachePolicy({
+        hasCachedData: initialData !== undefined,
+        cachedRevision: cacheEntry?.revision,
+        currentRevision: revision,
+        revisionsReady,
+    });
 
     return useQuery({
         queryKey: [
@@ -227,7 +278,7 @@ export function useTimetableEntries(yearId: string, termId: string, timetableId:
             revision,
             revisionsReady ? 'ready' : 'pending',
         ],
-        queryFn: async () => {
+        queryFn: () => fetchWithTimetableFallback(initialData, async () => {
             const entriesQuery = query(
                 collection(db, getEntriesCollectionPath(yearId, termId, timetableId)),
             );
@@ -244,17 +295,17 @@ export function useTimetableEntries(yearId: string, termId: string, timetableId:
             });
             writeTimetableCache(cacheKey, revisionsReady ? revision : -1, entries);
             return entries;
-        },
+        }),
         enabled: !!yearId && !!termId && !!timetableId && !!scope &&
-            (revisionsReady || initialData === undefined),
-        staleTime: STALE_TIME,
+            cachePolicy.shouldFetch,
+        staleTime: cachePolicy.shouldFetch ? 0 : STALE_TIME,
         gcTime: GC_TIME,
-        refetchOnMount: false,
+        refetchOnMount: cachePolicy.shouldFetch,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        placeholderData: (prev) => prev,
+        refetchOnReconnect: cachePolicy.shouldFetch,
+        placeholderData: (prev) => prev ?? initialData,
         initialData,
-        initialDataUpdatedAt: initialData ? Date.now() : undefined,
+        initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
     });
 }
 
@@ -265,16 +316,25 @@ export function useClassTimetableEntries(yearId: string, termId: string, timetab
     const { scope, revision, revisionsReady } = useTimetableRevision(yearId, termId);
     const cacheKey = timetableCacheKey(scope, 'class-entries', yearId, termId, `${timetableId}:${classId}`);
     const queryClient = useQueryClient();
-    const cachedClassEntries = readTimetableCache<TimetableEntry[]>(cacheKey, revision, revisionsReady);
+    const cachedClassEntry = readTimetableCache<TimetableEntry[]>(cacheKey);
     const allEntriesCacheKey = timetableCacheKey(scope, 'entries', yearId, termId, timetableId);
-    const allEntries =
-        queryClient.getQueryData<TimetableEntry[]>([
+    const memoryEntries = queryClient.getQueryData<TimetableEntry[]>([
             ...timetableKeys.entries(yearId, termId, timetableId),
             scope,
             revision,
             revisionsReady ? 'ready' : 'pending',
-        ]) ?? readTimetableCache<TimetableEntry[]>(allEntriesCacheKey, revision, revisionsReady);
-    const initialData = cachedClassEntries ?? allEntries?.filter(entry => entry.classId === classId);
+        ]);
+    const allEntriesCache = readTimetableCache<TimetableEntry[]>(allEntriesCacheKey);
+    const allEntries = memoryEntries ?? allEntriesCache?.data;
+    const initialData = cachedClassEntry?.data ?? allEntries?.filter(entry => entry.classId === classId);
+    const cachedRevision = cachedClassEntry?.revision ??
+        (memoryEntries !== undefined ? revision : allEntriesCache?.revision);
+    const cachePolicy = getRevisionCachePolicy({
+        hasCachedData: initialData !== undefined,
+        cachedRevision,
+        currentRevision: revision,
+        revisionsReady,
+    });
 
     return useQuery({
         queryKey: [
@@ -283,7 +343,7 @@ export function useClassTimetableEntries(yearId: string, termId: string, timetab
             revision,
             revisionsReady ? 'ready' : 'pending',
         ],
-        queryFn: async () => {
+        queryFn: () => fetchWithTimetableFallback(initialData, async () => {
             const classEntriesQuery = query(
                 collection(db, getEntriesCollectionPath(yearId, termId, timetableId)),
                 where('classId', '==', classId),
@@ -301,23 +361,24 @@ export function useClassTimetableEntries(yearId: string, termId: string, timetab
             });
             writeTimetableCache(cacheKey, revisionsReady ? revision : -1, entries);
             return entries;
-        },
+        }),
         enabled: !!yearId && !!termId && !!timetableId && !!classId && !!scope &&
-            (revisionsReady || initialData === undefined),
-        staleTime: STALE_TIME,
+            cachePolicy.shouldFetch,
+        staleTime: cachePolicy.shouldFetch ? 0 : STALE_TIME,
         gcTime: GC_TIME,
-        refetchOnMount: false,
+        refetchOnMount: cachePolicy.shouldFetch,
         refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-        placeholderData: (prev) => prev,
+        refetchOnReconnect: cachePolicy.shouldFetch,
+        placeholderData: (prev) => prev ?? initialData,
         initialData,
-        initialDataUpdatedAt: initialData ? Date.now() : undefined,
+        initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
     });
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
-// All mutations call invalidateQueries on the relevant key, which causes the
-// next read to re-fetch from Firestore — ensuring correctness after any write.
+// Service mutations publish the term revision atomically. Local invalidation
+// updates observers without forcing a read; the revision reconciles other
+// devices when an actual timetable change occurs.
 
 export function useCreateTimetable() {
     const queryClient = useQueryClient();
