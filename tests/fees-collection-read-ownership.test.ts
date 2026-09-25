@@ -57,6 +57,18 @@ test('missing academic-year data is not described as a valid empty period', () =
   assert.match(page, /Fee information could not be verified[\s\S]*?Retry loading/);
 });
 
+test('pupil controls render while financial cells wait for verified inputs', () => {
+  const page = read('src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx');
+  assert.doesNotMatch(page, /shouldShowFullLoading/);
+  assert.match(page, /const isFinancialDataLoading = isPupilFeesLoading \|\| isLoadingAcademicYears \|\| isWaitingForTermYear/);
+  assert.match(page, /if \(isFinancialDataLoading\) \{[\s\S]*?Verifying fee amounts and payment history/);
+  assert.match(page, /hasTermSelectionError \? '—' : isFinancialDataLoading \? <span/);
+  assert.match(page, /disabled=\{isFinancialDataLoading \|\| isPaymentDataLoading\}/);
+  assert.match(page, /!isFinancialDataLoading && pupil && selectedAcademicYear && \(/);
+  assert.match(page, /isUniformTrackingModalOpen && pupil && \(/);
+  assert.match(page, /if \(pupilFees\.length === 0 && schoolPayGeneralPayments\.length === 0\)/);
+});
+
 test('a graduated pupil recovers a term cleared during the year switch', () => {
   const page = read('src/app/fees/collect/[id]/PupilFeesCollectionClient.tsx');
   assert.match(page, /if \(selectedAcademicYear && validTerms\.length > 0\) \{[\s\S]*?const isCurrentTermValid = validTerms\.find\(t => t\.id === selectedTermId\);[\s\S]*?if \(!isCurrentTermValid\) \{[\s\S]*?setSelectedTermId\(newestValidTerm\.id\)/);

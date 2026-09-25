@@ -625,6 +625,13 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     feesHolidaysUpdatedAt,
   });
 
+  // Keep the pupil controls visible while these existing reads verify money.
+  // A cached payment snapshot is not authoritative until the server confirms it.
+  const isWaitingForTermYear = !selectedTermId || !selectedAcademicYear;
+  const isFinancialDataLoading = isPupilFeesLoading || isLoadingAcademicYears || isWaitingForTermYear;
+  const hasTermSelectionError = !isLoadingAcademicYears &&
+    (validAcademicYears.length === 0 || (selectedAcademicYear !== null && validTerms.length === 0));
+
   // Check for active assignments and uniform tracking - get actual names and status
   const activeAssignments = useMemo(() => {
     if (!pupil?.assignedFees) return [];
@@ -737,6 +744,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Handler functions
   const handleMakePayment = (fee: any, balance: number, totalPaid: number) => {
+    if (isFinancialDataLoading || isPaymentDataLoading) return;
     const selectedFeeData: SelectedFee = {
       feeId: fee.id,
       name: fee.name,
@@ -780,6 +788,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     }>;
     paidBy: string;
   }) => {
+    if (isFinancialDataLoading || isPaymentDataLoading) {
+      throw new Error('Fee amounts and payment history are still being verified. Please wait before recording a payment.');
+    }
     if (!pupil || !selectedAcademicYear || !user) {
       toast({
         variant: 'destructive',
@@ -1224,6 +1235,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   };
 
   const handlePaymentSubmit = async (data: { amount: number }) => {
+    if (isFinancialDataLoading || isPaymentDataLoading) {
+      throw new Error('Fee amounts and payment history are still being verified. Please wait before recording a payment.');
+    }
     if (!selectedFee || !pupil || !selectedAcademicYear || !user) return;
 
     // 🔥 CRITICAL FIX: Remove optimistic updates - wait for real data from database
@@ -1424,6 +1438,9 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     paymentType: 'general' | 'item-specific';
     targetItem?: any;
   }) => {
+    if (isFinancialDataLoading || isPaymentDataLoading) {
+      throw new Error('Fee amounts and payment history are still being verified. Please wait before recording a payment.');
+    }
     if (!selectedFee || !pupil || !selectedAcademicYear) return;
 
     const carryForwardIntent = [
@@ -2153,6 +2170,27 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Render term fees
   const renderTermFees = (term: string) => {
+    if (isFinancialDataLoading) {
+      return (
+        <div role="status" aria-live="polite" className="space-y-3">
+          <p className="text-sm text-indigo-700">Verifying fee amounts and payment history…</p>
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} aria-hidden="true" className="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4">
+              <div className="h-5 w-40 max-w-full animate-pulse rounded bg-slate-200" />
+              <div className="mt-4 grid grid-cols-3 gap-1.5 sm:gap-2">
+                {['Total', 'Paid', 'Balance'].map(label => (
+                  <div key={label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 sm:px-3">
+                    <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500 sm:text-xs">{label}</p>
+                    <div className="mt-1 h-4 w-full max-w-24 animate-pulse rounded bg-slate-200" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     // Find SchoolPay unmatched payments for the selected term/year
     const schoolPayGeneralPayments = (pupilPayments as any[]).filter((p: any) =>
         p.feeStructureId === 'schoolpay-general' &&
@@ -2274,74 +2312,6 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     );
   }
 
-  // Do not render totals or empty fee history until every financial input is ready.
-  const isWaitingForTermYear = !selectedTermId || !selectedAcademicYear;
-  const shouldShowFullLoading = isPupilFeesLoading || (isWaitingForTermYear && isLoadingAcademicYears);
-
-  if (shouldShowFullLoading) {
-    return (
-      <div className="min-h-screen pb-12">
-        <GlassPageTopBar
-          backHref="/fees/collection"
-          backLabel="Back to Fees"
-          backMode="href"
-          title={`Fees Collection - ${pupil.firstName} ${pupil.lastName}`}
-          subtitle={`${pupil.admissionNumber} · ${pupil.className} · ${pupil.section}`}
-        />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="space-y-4 animate-pulse">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="rounded-lg border border-white/55 bg-white/65 p-4 shadow-sm backdrop-blur-sm h-28 relative overflow-hidden">
-                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-pass" />
-                  <div className="h-6 bg-slate-200/70 rounded-full w-12 mb-3"></div>
-                  <div className="h-4 bg-slate-200/70 rounded-full w-24 mb-2"></div>
-                  <div className="h-3 bg-slate-200/70 rounded-full w-32"></div>
-                </div>
-              ))}
-            </div>
-            <div className="rounded-lg border border-white/55 bg-white/65 p-4 shadow-sm backdrop-blur-sm h-64 relative overflow-hidden">
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-pass" />
-              <div className="flex justify-between items-center mb-4">
-                <div className="h-4 bg-slate-200/70 rounded-full w-36"></div>
-                <div className="h-8 bg-slate-200/70 rounded-full w-24"></div>
-              </div>
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-slate-200/70 shrink-0"></div>
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="h-3 bg-slate-200/70 rounded-full w-1/2"></div>
-                      <div className="h-3 bg-slate-200/70 rounded-full w-1/3"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isWaitingForTermYear) {
-    return (
-      <div className="min-h-screen pb-24">
-        <GlassPageTopBar backHref="/fees/collection" backLabel="Back to Fees" backMode="href" title={`Fees Collection - ${pupil.firstName} ${pupil.lastName}`} />
-        <div role="alert" className="mx-auto mt-8 max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
-          {academicYears.length === 0
-            ? 'Academic years could not be loaded. The fee balance cannot be verified while the school data is unavailable.'
-            : 'No valid academic year and term are available for this pupil. No balance can be calculated.'}
-          {academicYears.length === 0 && (
-            <button type="button" onClick={() => window.location.reload()} className="mt-3 block min-h-11 rounded-lg border border-amber-400 px-4 font-medium hover:bg-amber-100">
-              Retry loading
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-12">
       <GlassPageTopBar
@@ -2430,7 +2400,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            {activeAssignments.map((assignment) => {
+            {!isFinancialDataLoading && activeAssignments.map((assignment) => {
               const isDiscount = assignment.category === 'Discount';
               const isActive = assignment.isActiveForCurrentTerm;
               let pillStyles = '';
@@ -2484,7 +2454,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 </span>
               );
             })}
-            {uniformTrackingSummary.map((record) => (
+            {!isFinancialDataLoading && uniformTrackingSummary.map((record) => (
               <span
                 key={`uniform-${record.id}`}
                 className={cn(
@@ -2532,6 +2502,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               tone="emerald"
               icon={<span className="font-bold text-[11px]">Shs.</span>}
               onClick={() => setIsMultiPaymentModalOpen(true)}
+              disabled={isFinancialDataLoading || isPaymentDataLoading}
               title="Pay Multiple Fees"
             />
             {hasSiblings && (
@@ -2580,11 +2551,11 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               tone="violet"
               icon={<Tag className="w-4 h-4" />}
               onClick={() => setIsAssignmentModalOpen(true)}
-              disabled={!pupil?.id}
+              disabled={!pupil?.id || isFinancialDataLoading}
               title="Assignment & Discounts"
             />
             {(() => {
-              const schoolPayCount = (pupilPayments as any[]).filter(
+              const schoolPayCount = isFinancialDataLoading ? 0 : (pupilPayments as any[]).filter(
                 (p: any) => p.source === 'schoolpay' && !p.reverted &&
                   p.termId === selectedTermId && p.academicYearId === selectedAcademicYear?.id
               ).length;
@@ -2597,7 +2568,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                       icon={<Zap className="h-4 w-4" />}
                       badge={schoolPayCount > 0 ? (schoolPayCount > 9 ? '9+' : schoolPayCount) : undefined}
                       title="Wire / SchoolPay Options"
-                      disabled={!pupil?.id}
+                      disabled={!pupil?.id || isFinancialDataLoading}
                     />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" sideOffset={8} className="w-64 p-3 bg-white/95 backdrop-blur-xl border border-violet-100 shadow-2xl rounded-2xl">
@@ -2636,7 +2607,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setIsUniformTrackingModalOpen(true)} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => setIsUniformTrackingModalOpen(true)} disabled={isFinancialDataLoading} className="cursor-pointer">
                   <ClipboardText className="mr-2 h-4 w-4 text-blue-600" weight="bold" />Add Uniform
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { if (pupil?.id) router.push(`/requirement-tracking?id=${pupil.id}`); }} className="cursor-pointer">
@@ -2649,6 +2620,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               tone="rose"
               icon={<Printer className="w-4 h-4" weight="bold" />}
               onClick={() => setIsPrintModalOpen(true)}
+              disabled={isFinancialDataLoading}
               title="Print"
             />
           </GlassActionDock>
@@ -2733,8 +2705,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <span className="sm:hidden">Total</span>
                   <span className="hidden sm:inline">Total Fees:</span>
                 </span>
-                <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
+                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-indigo-600 dark:text-indigo-400">
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-indigo-200 align-middle" role="status" aria-label="Verifying total fees" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalFees)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-green-50/80 dark:bg-green-950/20 border border-green-100/50 dark:border-green-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -2742,8 +2714,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <span className="sm:hidden">Paid</span>
                   <span className="hidden sm:inline">Total Paid:</span>
                 </span>
-                <span className="font-bold text-green-600 dark:text-green-400">
-                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
+                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-green-600 dark:text-green-400">
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-green-200 align-middle" role="status" aria-label="Verifying total paid" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalPaid)}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-red-50/80 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -2751,8 +2723,8 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <span className="sm:hidden">Bal</span>
                   <span className="hidden sm:inline">Balance:</span>
                 </span>
-                <span className="font-bold text-red-650 dark:text-red-400">
-                  {new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
+                <span className="inline-flex min-w-[5.5rem] justify-end font-bold tabular-nums text-red-650 dark:text-red-400">
+                  {hasTermSelectionError ? '—' : isFinancialDataLoading ? <span className="inline-block h-3 w-16 animate-pulse rounded bg-red-200 align-middle" role="status" aria-label="Verifying balance" /> : new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(termTotals.totalBalance)}
                 </span>
               </div>
             </>
@@ -2762,12 +2734,23 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         <div className="max-w-none px-4 sm:px-6 lg:px-8 py-4">
           <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden">
             {/* Term content or empty state */}
-            {selectedAcademicYear && validTerms.length > 0 ? (
+            {hasTermSelectionError ? (
+              <div role="alert" className="m-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:m-6">
+                {academicYears.length === 0
+                  ? 'Academic years could not be loaded. The fee balance cannot be verified while the school data is unavailable.'
+                  : 'No valid academic year and term are available for this pupil. No balance can be calculated.'}
+                {academicYears.length === 0 && (
+                  <button type="button" onClick={() => window.location.reload()} className="mt-3 block min-h-11 rounded-lg border border-amber-400 px-4 font-medium hover:bg-amber-100">
+                    Retry loading
+                  </button>
+                )}
+              </div>
+            ) : selectedAcademicYear && validTerms.length > 0 ? (
               <div className="px-4 pb-4 pt-4 sm:px-6">
                 {validTerms.map((term) => (
                   <TabsContent key={term.id} value={term.id} className="mt-0 focus-visible:outline-none">
                     {/* SchoolPay payment banner for the current term */}
-                    {pupil && selectedAcademicYear && (
+                    {!isFinancialDataLoading && pupil && selectedAcademicYear && (
                       <SchoolPayPaymentBanner
                         payments={pupilPayments}
                         feeStructures={allFeeStructures}
@@ -2782,6 +2765,10 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     {renderTermFees(term.name)}
                   </TabsContent>
                 ))}
+              </div>
+            ) : isLoadingAcademicYears ? (
+              <div className="px-4 pb-4 pt-4 sm:px-6">
+                {renderTermFees('')}
               </div>
             ) : (
               /* Show message if no valid terms */
@@ -2975,7 +2962,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
       )}
 
       {/* Uniform Tracking Modal */}
-      {pupil && (
+      {isUniformTrackingModalOpen && pupil && (
         <UniformTrackingModal
           isOpen={isUniformTrackingModalOpen}
           onClose={() => setIsUniformTrackingModalOpen(false)}
