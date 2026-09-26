@@ -443,6 +443,45 @@ export async function removeParentOfflineAccount(accountId: string): Promise<voi
   notify(accountId);
 }
 
+function deleteSnapshotsForPupils(
+  store: IDBObjectStore,
+  accountId: string,
+  pupilIds: Set<string>,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = store.index('accountId').openCursor(IDBKeyRange.only(accountId));
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve();
+        return;
+      }
+      if (pupilIds.has(String(cursor.value?.pupilId || ''))) cursor.delete();
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error || new Error('Could not remove saved pupil information.'));
+  });
+}
+
+export async function removeParentOfflinePupils(accountId: string, pupilIds: string[]): Promise<void> {
+  const ids = new Set(pupilIds.filter(Boolean));
+  if (!accountId || ids.size === 0 || !canUseOfflineStorage()) return;
+  const database = await openDatabase();
+  try {
+    const transaction = database.transaction([BANKING_STORE, ATTENDANCE_STORE, RESULTS_STORE, FEES_STORE], 'readwrite');
+    await Promise.all([
+      deleteSnapshotsForPupils(transaction.objectStore(BANKING_STORE), accountId, ids),
+      deleteSnapshotsForPupils(transaction.objectStore(ATTENDANCE_STORE), accountId, ids),
+      deleteSnapshotsForPupils(transaction.objectStore(RESULTS_STORE), accountId, ids),
+      deleteSnapshotsForPupils(transaction.objectStore(FEES_STORE), accountId, ids),
+    ]);
+    await complete(transaction);
+  } finally {
+    database.close();
+  }
+  notify(accountId);
+}
+
 export function subscribeToParentOfflineChanges(
   accountId: string,
   listener: () => void,

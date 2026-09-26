@@ -35,7 +35,7 @@ function useOnlineStatus() {
 /**
  * Attendance follows the same local-first contract as banking: show the last
  * complete, parent-authorized projection immediately and only download again
- * after a school-side attendance change advances this family's revision.
+ * after a school-side attendance change advances this account's revision.
  */
 export function useParentAttendance(
   pupilId: string,
@@ -44,7 +44,7 @@ export function useParentAttendance(
   enabled = true,
 ) {
   const online = useOnlineStatus();
-  const { revision: attendanceRevision, isLoading: isRevisionLoading } = useParentDashboardRevision(familyId, 'attendance');
+  const { revision: attendanceRevision, isLoading: isRevisionLoading } = useParentDashboardRevision(accountId, 'attendance');
   const [savedSnapshot, setSavedSnapshot] = useState<ParentOfflineAttendanceSnapshot | null>(null);
   const [isStorageLoading, setIsStorageLoading] = useState(Boolean(accountId && pupilId));
 

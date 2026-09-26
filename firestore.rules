@@ -30,6 +30,13 @@ service cloud.firestore {
         && request.auth.token.familyId == familyId;
     }
 
+    function isParentForPupilRecord(pupilId) {
+      return isActiveApplicationUser()
+        && request.auth.token.role == 'Parent'
+        && resource.data.parentAccountActive == true
+        && resource.data.parentAccountId == request.auth.uid;
+    }
+
     // These are the only documents intentionally displayed before sign-in on
     // the school's public login/landing page. Keep this whitelist narrow: no
     // other collection inherits anonymous access from these rules.
@@ -61,16 +68,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // First collection-specific canary boundary. Parent dashboard queries are
-    // already constrained by `where('familyId', '==', userFamilyId)`, so this
-    // preserves cache-first behaviour while denying a manually requested pupil
-    // from another family. Writes remain transitional until the privileged
-    // write-path map is complete.
+    // Parent reads are constrained by the account marker on each pupil. This
+    // changes immediately when membership changes and covers both families and
+    // standalone pupils without a rule-level document lookup.
     match /pupils/{pupilId} {
       allow read: if isTrustedServerApp()
         || isStaffOrAdmin()
-        || isParentForFamily(resource.data.familyId);
-      allow write: if isActiveApplicationUser();
+        || isParentForPupilRecord(pupilId);
+      // parentAccountId is an authorization boundary, so parent browsers can
+      // never assign or alter it directly.
+      allow write: if isTrustedServerApp() || isStaffOrAdmin();
     }
 
     // Dev Contral reads are administrator-only. Operational telemetry still
@@ -102,11 +109,15 @@ service cloud.firestore {
       allow read, write: if isTrustedServerApp() || isStaffOrAdmin();
     }
 
-    // A parent receives only its family's compact change counters. The
+    // A parent receives only its account's compact change counters. The
     // counters contain no banking values and let an offline dashboard refresh
     // one saved child only after a relevant school-side change.
-    match /parentDashboardRevisions/{familyId} {
-      allow read: if isTrustedServerApp() || isStaffOrAdmin() || isParentForFamily(familyId);
+    match /parentDashboardRevisions/{accountId} {
+      allow read: if isTrustedServerApp()
+        || isStaffOrAdmin()
+        || (isActiveApplicationUser()
+          && request.auth.token.role == 'Parent'
+          && request.auth.uid == accountId);
       allow write: if false;
     }
 
@@ -195,6 +206,13 @@ service cloud.firestore {
 
     match /scheduledNotifications/{scheduleId} {
       allow read, write: if false;
+
+      // The trusted payment API commits a durable push job in the same
+      // transaction as the payment. Browser sessions cannot forge jobs.
+      match /outbox/{eventId} {
+        allow create: if isTrustedServerApp();
+        allow read, update, delete: if false;
+      }
     }
 
     // All schedule mutations go through permission-checked server routes so

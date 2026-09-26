@@ -11,6 +11,7 @@ import {
   isParentOfflineStorageAvailable,
   readParentOfflineFamily,
   removeParentOfflineAccount,
+  removeParentOfflinePupils,
   saveParentOfflineFamily,
   subscribeToParentOfflineChanges,
 } from '@/lib/parent-offline/repository';
@@ -45,6 +46,10 @@ export function useParentOfflineFamily({
   );
   const [error, setError] = useState<string | null>(null);
   const liveFingerprint = useMemo(() => familyFingerprint(liveFamilyMembers || []), [liveFamilyMembers]);
+  const savedPupilIds = useMemo(
+    () => (savedFamily?.pupils || []).map(pupil => pupil.id).sort().join('|'),
+    [savedFamily?.pupils],
+  );
 
   const load = useCallback(async () => {
     if (!accountId) {
@@ -83,10 +88,15 @@ export function useParentOfflineFamily({
   }, [accountId, hasLiveFamilyData, queryClient, savedFamily]);
 
   useEffect(() => {
-    if (!accountId || !hasLiveFamilyData || !liveFamilyMembers?.length) return;
+    if (!accountId || !hasLiveFamilyData || !liveFamilyMembers) return;
     let cancelled = false;
     setState('saving');
-    void saveParentOfflineFamily({ accountId, familyId, pupils: liveFamilyMembers })
+    const liveIds = new Set(liveFamilyMembers.map(pupil => pupil.id));
+    const removedIds = (savedFamily?.pupils || [])
+      .map(pupil => pupil.id)
+      .filter(pupilId => !liveIds.has(pupilId));
+    void removeParentOfflinePupils(accountId, removedIds)
+      .then(() => saveParentOfflineFamily({ accountId, familyId, pupils: liveFamilyMembers }))
       .then(snapshot => {
         if (cancelled) return;
         setSavedFamily(snapshot);
@@ -101,7 +111,7 @@ export function useParentOfflineFamily({
     return () => {
       cancelled = true;
     };
-  }, [accountId, familyId, hasLiveFamilyData, liveFingerprint, liveFamilyMembers]);
+  }, [accountId, familyId, hasLiveFamilyData, liveFingerprint, liveFamilyMembers, savedPupilIds]);
 
   // The interface is saved separately from private records. A failed shell
   // preparation must not discard a successfully saved family snapshot; the

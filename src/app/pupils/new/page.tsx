@@ -453,11 +453,11 @@ function NewPupilContent() {
     const validGuardiansForEmergencyContact = guardians.filter(g => g.firstName && g.lastName && g.relationship && g.phone && g.id);
     const finalEmergencyContactId = emergencyContactGuardianId || (validGuardiansForEmergencyContact.length > 0 ? validGuardiansForEmergencyContact[0].id : undefined);
 
-    // When adding a sibling, use the original pupil's familyId if available, otherwise use the familyId from URL params
-    // If neither is available, create a new familyId (shouldn't happen in normal flow)
+    // Only sibling registration creates/uses a family identity. Ordinary pupil
+    // registration remains standalone until staff explicitly links a family.
     const familyIdToSave = addingSibling 
       ? (originalPupil?.familyId || familyId || `fam-${Date.now()}`)
-      : `fam-${Date.now()}`;
+      : undefined;
 
     const pupilData: Omit<Pupil, 'id' | 'createdAt'> = {
       firstName,
@@ -471,7 +471,7 @@ function NewPupilContent() {
       classCode: classes.find(c => c.id === classId)?.code || "",
       section,
       status,
-      familyId: familyIdToSave,
+      ...(familyIdToSave ? { familyId: familyIdToSave } : {}),
       guardians: guardians.filter(g => g.firstName && g.lastName && g.relationship && g.phone).map(g => ({ ...g, id: g.id || `g_submit_${Date.now()}${Math.random()}` })),
       registrationDate: formatDateForStorage(registrationDate),
       promotionHistory: [],

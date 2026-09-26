@@ -290,6 +290,9 @@ export interface Pupil {
   previousSchool?: string;
   registrationDate?: string; // YYYY-MM-DD
   familyId?: string; // To link siblings
+  /** Denormalized parent-account routing for family and standalone pupils. */
+  parentAccountId?: string | null;
+  parentAccountActive?: boolean;
   transportRouteId?: string;
   payCode?: string; // SchoolPay integration
   houseId?: string; // For schools with house systems
@@ -1374,6 +1377,8 @@ export interface Notification {
   pushIcon?: string;
   pushImage?: string;
   pushUrl?: string;
+  /** Small service-worker/native-app control payload; string values only. */
+  pushData?: Record<string, string>;
 
   // Flow notification specific (rich content)
   richContent?: {
@@ -1472,6 +1477,7 @@ export interface CreateNotificationData {
   pushIcon?: string;
   pushImage?: string;
   pushUrl?: string;
+  pushData?: Record<string, string>;
 
   // Flow notification specific (rich content)
   richContent?: {

@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { updatePupilWithCacheRevision } from '@/lib/server/pupil-cache-revisions.admin';
+import { requireAppUser } from '@/lib/server/app-auth';
+import {
+  sendParentFamilyMembershipNotifications,
+  syncParentScopeClaims,
+  transitionParentFamilyMembership,
+} from '@/lib/server/parent-family-membership';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -51,7 +57,7 @@ export async function PATCH(
 ) {
   try {
     const { id: pupilId } = await params;
-    const body = await request.json();
+    const body = await request.json() as Record<string, any>;
 
     if (!pupilId) {
       return NextResponse.json(
@@ -61,7 +67,29 @@ export async function PATCH(
     }
 
     const db = getFirestore(getFirebaseAdminApp());
-    await updatePupilWithCacheRevision(db, db.collection('pupils').doc(pupilId), body);
+    if (Object.prototype.hasOwnProperty.call(body, 'familyId')) {
+      const actor = await requireAppUser(request);
+      if (actor.user.role !== 'Admin' && actor.user.role !== 'Staff') {
+        return NextResponse.json({ error: 'Permission denied.' }, { status: 403 });
+      }
+      const result = await transitionParentFamilyMembership({
+        pupilIds: [pupilId],
+        familyId: typeof body.familyId === 'string' && body.familyId.trim() ? body.familyId.trim() : null,
+        preferredPupilId: pupilId,
+      }, actor.user);
+      await syncParentScopeClaims(result.claimUpdates);
+      if (result.notifications.length > 0) {
+        after(() => sendParentFamilyMembershipNotifications(result.notifications).catch(error => {
+          console.error('[Pupil API] Family membership push failed:', error);
+        }));
+      }
+      delete body.familyId;
+    }
+    delete body.parentAccountId;
+    delete body.parentAccountActive;
+    if (Object.keys(body).length > 0) {
+      await updatePupilWithCacheRevision(db, db.collection('pupils').doc(pupilId), body);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

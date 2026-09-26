@@ -16,9 +16,9 @@ import {
   runTransaction,
   deleteField,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { ClassesService } from './classes.service';
-import type { Pupil, SubjectCommentType, SubjectStatus } from '@/types';
+import type { Pupil, SubjectCommentType, SubjectStatus, SystemUser } from '@/types';
 import { HousesService } from './houses.service';
 import {
   getDocWithTimeout,
@@ -55,9 +55,41 @@ export type { PupilCacheChange } from '../cache/pupil-cache-changes';
 const COLLECTION_NAME = 'pupils';
 const CACHE_CHANGES_COLLECTION = 'pupilCacheChanges';
 
+async function resolveParentAccountLink(familyId: string | undefined, pupilId?: string): Promise<{
+  parentAccountId: string | null;
+  parentAccountActive: boolean;
+}> {
+  const normalizedFamilyId = familyId?.trim();
+  const accountQueries = [
+    ...(normalizedFamilyId ? [query(
+      collection(db, 'system_users'),
+      where('familyId', '==', normalizedFamilyId),
+    )] : []),
+    ...(pupilId ? [query(
+      collection(db, 'system_users'),
+      where('pupilId', '==', pupilId),
+    )] : []),
+  ];
+  if (accountQueries.length === 0) return { parentAccountId: null, parentAccountActive: false };
+  const accountGroups = await Promise.all(
+    accountQueries.map(accountQuery => getDocsWithTimeout<SystemUser>(accountQuery, 10000)),
+  );
+  const parent = accountGroups.flat().find(user => user.role === 'Parent');
+  return parent
+    ? { parentAccountId: parent.id, parentAccountActive: parent.isActive === true }
+    : { parentAccountId: null, parentAccountActive: false };
+}
+
 export type PupilUpdateResult = {
   photoDeleted: boolean;
   streamCleared: boolean;
+};
+
+export type FamilyMembershipTransitionResult = {
+  success: true;
+  pupilIds: string[];
+  familyId: string | null;
+  parentAccountId: string | null;
 };
 
 export type PupilPerformanceStatus = NonNullable<Pupil['performanceStatus']>;
@@ -313,9 +345,11 @@ export class PupilsService {
         }
       }
 
+      const parentAccountLink = await resolveParentAccountLink(pupilData.familyId);
       const now = new Date().toISOString();
       const newPupil = {
         ...pupilData,
+        ...parentAccountLink,
         createdAt: now,
         updatedAt: now,
         syncUpdatedAt: Timestamp.now()
@@ -345,6 +379,14 @@ export class PupilsService {
           classId: pupilData.classId || '',
         },
       });
+      if (pupilData.familyId?.trim()) {
+        await this.transitionFamilyMembership({
+          pupilIds: [docRef.id],
+          familyId: pupilData.familyId,
+          preferredPupilId: docRef.id,
+          reason: 'registration',
+        });
+      }
       return docRef.id;
     } catch (error) {
       console.error('Error creating pupil:', error);
@@ -358,8 +400,17 @@ export class PupilsService {
   ): Promise<PupilUpdateResult> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
+      const familyWasProvided = Object.prototype.hasOwnProperty.call(pupilData, 'familyId');
+      if (familyWasProvided) {
+        await this.transitionFamilyMembership({
+          pupilIds: [id],
+          familyId: pupilData.familyId?.trim() || null,
+          preferredPupilId: id,
+        });
+      }
+      const { familyId: _familyId, parentAccountId: _parentAccountId, parentAccountActive: _parentAccountActive, ...nonFamilyData } = pupilData;
       const updateData = {
-        ...pupilData,
+        ...nonFamilyData,
         updatedAt: new Date().toISOString(),
         syncUpdatedAt: Timestamp.now()
       };
@@ -451,6 +502,31 @@ export class PupilsService {
       console.error('Error updating pupil:', error);
       throw error;
     }
+  }
+
+  static async transitionFamilyMembership(input: {
+    pupilIds: string[];
+    familyId: string | null;
+    preferredPupilId?: string;
+    reason?: 'membership_change' | 'registration';
+  }): Promise<FamilyMembershipTransitionResult> {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser || firebaseUser.isAnonymous) {
+      throw new Error('Please sign in again to update family membership.');
+    }
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch('/api/pupils/family-membership', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(input),
+      cache: 'no-store',
+    });
+    const payload = await response.json().catch(() => ({})) as Record<string, any>;
+    if (!response.ok) throw new Error(payload.error || 'Could not update family membership.');
+    return payload as FamilyMembershipTransitionResult;
   }
 
   /**

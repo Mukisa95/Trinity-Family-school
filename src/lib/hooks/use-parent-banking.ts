@@ -43,7 +43,7 @@ export function useParentBanking(
   enabled = true,
 ) {
   const online = useOnlineStatus();
-  const { revision: bankingRevision, isLoading: isRevisionLoading } = useParentBankingRevision(familyId);
+  const { revision: bankingRevision, isLoading: isRevisionLoading } = useParentBankingRevision(accountId);
   const [savedSnapshot, setSavedSnapshot] = useState<ParentOfflineBankingSnapshot | null>(null);
   const [isStorageLoading, setIsStorageLoading] = useState(Boolean(accountId && pupilId));
 

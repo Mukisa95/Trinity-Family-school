@@ -50,16 +50,45 @@ export async function GET(request: NextRequest) {
     });
     if (!parsed.success) return json({ error: 'Invalid account target.' }, 400);
 
-    const { linkField } = targetDetails(parsed.data.target);
+    const { collection, linkField } = targetDetails(parsed.data.target);
     const db = getFirestore(getFirebaseAdminApp());
-    const existing = await db
+    const targetSnapshot = await db.collection(collection).doc(parsed.data.targetId).get();
+    if (!targetSnapshot.exists) return json({ error: 'The linked pupil or staff member was not found.' }, 404);
+
+    const directlyLinkedAccounts = await db
       .collection('system_users')
       .where(linkField, '==', parsed.data.targetId)
-      .limit(2)
       .get();
-    if (existing.size > 1) return json({ error: 'More than one account is linked to this record.' }, 409);
+    let accountDocuments = directlyLinkedAccounts.docs;
 
-    const account = existing.docs[0];
+    if (parsed.data.target === 'pupil') {
+      const familyId = String(targetSnapshot.data()?.familyId || '');
+      if (familyId) {
+        const familyPupils = await db.collection('pupils').where('familyId', '==', familyId).get();
+        const familyPupilIds = familyPupils.docs.length > 0
+          ? familyPupils.docs.map(document => document.id)
+          : [parsed.data.targetId];
+        const pupilIdChunks = Array.from(
+          { length: Math.ceil(familyPupilIds.length / 30) },
+          (_, index) => familyPupilIds.slice(index * 30, index * 30 + 30),
+        );
+        const [familyAccounts, ...legacyAccountGroups] = await Promise.all([
+          db.collection('system_users').where('familyId', '==', familyId).get(),
+          ...pupilIdChunks.map(ids => db.collection('system_users').where('pupilId', 'in', ids).get()),
+        ]);
+        const familyAccountDocuments = new Map(
+          [familyAccounts, ...legacyAccountGroups]
+            .flatMap(snapshot => snapshot.docs)
+            .filter(document => document.data().role === 'Parent')
+            .map(document => [document.id, document]),
+        );
+        accountDocuments = Array.from(familyAccountDocuments.values());
+      }
+    }
+
+    if (accountDocuments.length > 1) return json({ error: 'More than one account is linked to this family.' }, 409);
+
+    const account = accountDocuments[0];
     return json({ user: account ? sanitizeSystemUser(account.id, account.data()) : null });
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
@@ -83,26 +112,54 @@ export async function POST(request: NextRequest) {
     const userRef = db.collection('system_users').doc();
     const now = Timestamp.now();
     const user = await db.runTransaction(async transaction => {
-      const [targetSnapshot, duplicateUsername, duplicateLink] = await Promise.all([
+      const [targetSnapshot, duplicateUsername] = await Promise.all([
         transaction.get(targetRef),
         transaction.get(db.collection('system_users').where('username', '==', username).limit(1)),
-        transaction.get(db.collection('system_users').where(linkField, '==', targetId).limit(1)),
       ]);
       if (!targetSnapshot.exists) throw new Error('TARGET_NOT_FOUND');
       if (!duplicateUsername.empty) throw new Error('USERNAME_EXISTS');
-      if (!duplicateLink.empty) throw new Error('LINK_EXISTS');
 
       const targetData = targetSnapshot.data() || {};
-      const parentFamilyId = target === 'pupil'
-        ? String(targetData.familyId || `family-${targetId}`)
-        : null;
+      const parentFamilyId = target === 'pupil' && typeof targetData.familyId === 'string'
+        ? targetData.familyId.trim()
+        : '';
+      let familyPupilDocuments = target === 'pupil' ? [targetSnapshot] : [];
+
+      if (target === 'pupil') {
+        const familyPupils = parentFamilyId
+          ? await transaction.get(db.collection('pupils').where('familyId', '==', parentFamilyId))
+          : null;
+        familyPupilDocuments = familyPupils?.docs.length ? familyPupils.docs : [targetSnapshot];
+        const familyPupilIds = familyPupilDocuments.map(document => document.id);
+        const pupilIdChunks = Array.from(
+          { length: Math.ceil(familyPupilIds.length / 30) },
+          (_, index) => familyPupilIds.slice(index * 30, index * 30 + 30),
+        );
+        const accountGroups = await Promise.all([
+          ...(parentFamilyId
+            ? [transaction.get(db.collection('system_users').where('familyId', '==', parentFamilyId))]
+            : []),
+          ...pupilIdChunks.map(ids => transaction.get(
+            db.collection('system_users').where('pupilId', 'in', ids),
+          )),
+        ]);
+        if (accountGroups
+          .some(snapshot => snapshot.docs.some(document => document.data().role === 'Parent'))) {
+          throw new Error('FAMILY_LINK_EXISTS');
+        }
+      } else {
+        const duplicateLink = await transaction.get(
+          db.collection('system_users').where(linkField, '==', targetId).limit(1),
+        );
+        if (!duplicateLink.empty) throw new Error('LINK_EXISTS');
+      }
       const user = target === 'pupil'
         ? {
             username,
             role: 'Parent' as const,
             isActive: true,
             pupilId: targetId,
-            familyId: parentFamilyId,
+            ...(parentFamilyId ? { familyId: parentFamilyId } : {}),
             guardianId: targetData.guardians?.[0]?.id,
             firstName: 'Parent',
             lastName: `of ${String(targetData.firstName || '').trim()} ${String(targetData.lastName || '').trim()}`.trim(),
@@ -120,10 +177,10 @@ export async function POST(request: NextRequest) {
           };
 
       // Every read must happen before the transaction writes. A pupil that
-      // receives its first family ID also publishes the normal cache revision
-      // so currently open staff dashboards refresh that relationship.
+      // Publish the pupil marker change through the normal revision path so
+      // the canonical pupil cache sees it without an account listener.
       let pupilRevision: number | null = null;
-      if (target === 'pupil' && !targetData.familyId) {
+      if (target === 'pupil') {
         const [operational, settings] = await Promise.all([
           transaction.get(db.collection('settings').doc('data-revisions-operational')),
           transaction.get(db.collection('settings').doc('school-settings')),
@@ -145,8 +202,14 @@ export async function POST(request: NextRequest) {
         algorithm: 'scrypt-v1',
         updatedAt: now,
       });
-      if (pupilRevision !== null && target === 'pupil' && parentFamilyId) {
-        transaction.update(targetRef, { familyId: parentFamilyId, updatedAt: now });
+      if (target === 'pupil') {
+        familyPupilDocuments.forEach(document => transaction.update(document.ref, {
+          parentAccountId: userRef.id,
+          parentAccountActive: true,
+          updatedAt: now,
+        }));
+      }
+      if (pupilRevision !== null && target === 'pupil') {
         transaction.set(db.collection('settings').doc('data-revisions-operational'), {
           pupils: pupilRevision,
         }, { merge: true });
@@ -183,6 +246,9 @@ export async function POST(request: NextRequest) {
       return json({ error: 'The linked pupil or staff member was not found.' }, 404);
     }
     if (message === 'USERNAME_EXISTS') return json({ error: 'That username already exists.' }, 409);
+    if (message === 'FAMILY_LINK_EXISTS') {
+      return json({ error: 'A parent account already exists for this pupil or family.' }, 409);
+    }
     if (message === 'LINK_EXISTS') return json({ error: 'An account is already linked to this record.' }, 409);
     const status = message.includes('AUTH') || message.includes('INACTIVE') ? 401 : 500;
     return json({ error: status === 401 ? 'Authentication is required.' : 'Could not activate the account.' }, status);

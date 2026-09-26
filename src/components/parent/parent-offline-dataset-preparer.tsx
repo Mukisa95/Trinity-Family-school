@@ -40,19 +40,18 @@ function useOnlineStatus() {
 
 /**
  * Prepares the real parent data immediately after sign-in. Each data source is
- * read locally first and only fetches when absent or behind its family-scoped
+ * read locally first and only fetches when absent or behind its account-scoped
  * server revision; reopening the dashboard therefore needs no background poll.
  */
 export function ParentOfflineDatasetPreparer({
   accountId,
-  familyId,
   pupils,
 }: ParentOfflineDatasetPreparerProps) {
   const online = useOnlineStatus();
   const [retryVersion, setRetryVersion] = useState(0);
-  const { revision: bankingRevision } = useParentDashboardRevision(familyId, 'banking');
-  const { revision: attendanceRevision } = useParentDashboardRevision(familyId, 'attendance');
-  const { revision: resultsRevision } = useParentDashboardRevision(familyId, 'results');
+  const { revision: bankingRevision } = useParentDashboardRevision(accountId, 'banking');
+  const { revision: attendanceRevision } = useParentDashboardRevision(accountId, 'attendance');
+  const { revision: resultsRevision } = useParentDashboardRevision(accountId, 'results');
   const pupilIds = pupils.map(pupil => pupil.id).filter(Boolean).sort().join('|');
 
   useEffect(() => {

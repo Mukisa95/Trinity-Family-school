@@ -77,7 +77,7 @@ beforeEach(async () => {
       examId: 'exam-1',
       releasedPupils: ['pupil-1'],
     });
-    await setDoc(doc(db, 'parentDashboardRevisions', 'family-1'), {
+    await setDoc(doc(db, 'parentDashboardRevisions', 'active-parent'), {
       banking: 3,
     });
   });
@@ -178,6 +178,53 @@ test('the trusted Vercel server identity can read pupils for server-side notific
   await assertFails(getDoc(doc(untrustedServerDb, 'pupils', 'pupil-1')));
 });
 
+test('a standalone parent can read only the pupil assigned to the account marker', async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'pupils', 'pupil-1'), {
+      parentAccountId: 'standalone-parent',
+      parentAccountActive: true,
+    }, { merge: true });
+    await setDoc(doc(context.firestore(), 'pupils', 'pupil-2'), {
+      firstName: 'Other',
+      parentAccountId: 'other-parent',
+      parentAccountActive: true,
+    });
+  });
+  const parentDb = testEnv.authenticatedContext('standalone-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    pupilId: 'pupil-1',
+  }).firestore();
+
+  await assertSucceeds(getDoc(doc(parentDb, 'pupils', 'pupil-1')));
+  await assertFails(getDoc(doc(parentDb, 'pupils', 'pupil-2')));
+});
+
+test('changing the pupil account marker immediately removes an already signed-in parent', async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'pupils', 'pupil-1'), {
+      parentAccountId: 'old-parent',
+      parentAccountActive: true,
+    }, { merge: true });
+  });
+  const oldParentDb = testEnv.authenticatedContext('old-parent', {
+    appUser: true,
+    isActive: true,
+    role: 'Parent',
+    familyId: 'stale-family-claim',
+  }).firestore();
+  await assertSucceeds(getDoc(doc(oldParentDb, 'pupils', 'pupil-1')));
+
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'pupils', 'pupil-1'), {
+      parentAccountId: 'new-parent',
+      parentAccountActive: true,
+    }, { merge: true });
+  });
+  await assertFails(getDoc(doc(oldParentDb, 'pupils', 'pupil-1')));
+});
+
 test('parents cannot query raw banking collections', async () => {
   const parentDb = testEnv.authenticatedContext('active-parent', {
     appUser: true,
@@ -246,9 +293,9 @@ test('parents can read only their own compact dashboard revision', async () => {
     familyId: 'family-2',
   }).firestore();
 
-  await assertSucceeds(getDoc(doc(parentDb, 'parentDashboardRevisions', 'family-1')));
-  await assertFails(getDoc(doc(otherParentDb, 'parentDashboardRevisions', 'family-1')));
-  await assertFails(setDoc(doc(parentDb, 'parentDashboardRevisions', 'family-1'), { banking: 999 }));
+  await assertSucceeds(getDoc(doc(parentDb, 'parentDashboardRevisions', 'active-parent')));
+  await assertFails(getDoc(doc(otherParentDb, 'parentDashboardRevisions', 'active-parent')));
+  await assertFails(setDoc(doc(parentDb, 'parentDashboardRevisions', 'active-parent'), { banking: 999 }));
 });
 
 test('push endpoints are user-readable but writable only by the trusted server', async () => {
@@ -316,6 +363,17 @@ test('payment notification outbox remains server-only under existing scheduling 
     await assertFails(setDoc(doc(db, eventPath), { status: 'completed' }, { merge: true }));
     await assertFails(deleteDoc(doc(db, eventPath)));
   }
+
+  const trustedServerDb = testEnv.authenticatedContext('trinity-vercel-server', {
+    appUser: true,
+    isActive: true,
+    role: 'Server',
+    serverApp: true,
+  }).firestore();
+  await assertSucceeds(setDoc(
+    doc(trustedServerDb, 'scheduledNotifications/fee-payment-events/outbox/payment-server-created'),
+    { paymentId: 'server-created', status: 'pending' },
+  ));
 });
 
 test('daily attendance summaries are restricted to staff and administrators', async () => {

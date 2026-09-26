@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { usePupil, usePupilsByFamily } from '@/lib/hooks/use-pupils';
+import { usePupil, usePupils, usePupilsByFamily } from '@/lib/hooks/use-pupils';
 import { useParentOfflineFamily } from '@/lib/hooks/use-parent-offline-family';
 import { ParentBottomNavigation } from './parent-bottom-navigation';
 import { ParentSidebar } from './parent-sidebar';
@@ -19,6 +19,7 @@ interface ParentLayoutProps {
 export function ParentLayout({ children }: ParentLayoutProps) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [currentView, setCurrentView] = useState<'dashboard' | 'home' | 'notifications'>('dashboard');
   const [currentPupilId, setCurrentPupilId] = useState<string | undefined>(user?.pupilId);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -28,29 +29,27 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   const { data: primaryPupil } = usePupil(user?.pupilId || '');
   const fallbackFamilyId = primaryPupil?.familyId;
   const familyId = userFamilyId || fallbackFamilyId;
+  const { data: accountPupils = [], isLoading: accountPupilsLoading } = usePupils();
 
   // Fetch all family members using the family-based relationship
   const familyQuery = usePupilsByFamily(familyId || '');
   const { familyMembers } = useParentOfflineFamily({
     accountId: user?.role === 'Parent' ? user.id : undefined,
     familyId,
-    liveFamilyMembers: familyQuery.data,
+    liveFamilyMembers: familyId ? familyQuery.data : accountPupils,
     // The selector intentionally returns [] while its canonical pupil cache is
     // still empty. Use the query's loading state so a cold offline launch can
     // distinguish that placeholder from a confirmed live empty family.
-    hasLiveFamilyData: !familyQuery.isLoading,
+    hasLiveFamilyData: familyId ? !familyQuery.isLoading : !accountPupilsLoading,
   });
 
-  // Initialize with user's default pupil or first family member
+  // Keep the selected pupil inside the live account scope. If a pupil is
+  // removed while this parent is viewing them, switch immediately to another
+  // accessible pupil instead of leaving stale details on screen.
   useEffect(() => {
-    if (!currentPupilId) {
-      if (user?.pupilId) {
-        setCurrentPupilId(user.pupilId);
-      } else if (familyMembers.length > 0) {
-        // If no specific pupil is linked, default to first family member
-        setCurrentPupilId(familyMembers[0].id);
-      }
-    }
+    if (currentPupilId && familyMembers.some(pupil => pupil.id === currentPupilId)) return;
+    const preferred = familyMembers.find(pupil => pupil.id === user?.pupilId);
+    setCurrentPupilId(preferred?.id || familyMembers[0]?.id);
   }, [user?.pupilId, familyMembers, currentPupilId]);
 
   const handleViewChange = (view: 'dashboard' | 'home' | 'notifications') => {
@@ -71,6 +70,14 @@ export function ParentLayout({ children }: ParentLayoutProps) {
       setCurrentView('home');
     }
   }, [pathname]);
+
+  // Family-membership pushes deep-link directly to the newly accessible pupil.
+  useEffect(() => {
+    const linkedPupilId = searchParams.get('pupilId');
+    if (!linkedPupilId || !familyMembers.some(pupil => pupil.id === linkedPupilId)) return;
+    setCurrentPupilId(linkedPupilId);
+    setCurrentView('dashboard');
+  }, [searchParams, familyMembers]);
 
   // Listen for custom events from child components
   useEffect(() => {

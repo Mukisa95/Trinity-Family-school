@@ -21,8 +21,8 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20260921150512059';
-const BUILD_TIMESTAMP = '2026-09-21T15:05:12.059Z'; // Update this on each build
+const SW_VERSION = 'build-20260926142104679';
+const BUILD_TIMESTAMP = '2026-09-26T14:21:04.679Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
@@ -421,7 +421,17 @@ self.addEventListener('push', (event) => {
     });
   });
 
-  event.waitUntil(notificationPromise);
+  const scopeRefreshPromise = notificationData.data?.type === 'PARENT_SCOPE_CHANGED'
+    ? self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+        clientList.forEach(client => client.postMessage({
+          type: 'PARENT_SCOPE_CHANGED',
+          pupilId: notificationData.data?.pupilId,
+          membership: notificationData.data?.membership,
+        }));
+      })
+    : Promise.resolve();
+
+  event.waitUntil(Promise.all([notificationPromise, scopeRefreshPromise]));
 });
 
 // Browsers may rotate or invalidate a push endpoint independently. Do not try

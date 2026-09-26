@@ -5,9 +5,10 @@ const source = fs.readFileSync(file, 'utf8');
 const parentLayoutSource = fs.readFileSync('src/components/parent/parent-layout.tsx', 'utf8');
 const failures = [];
 
-const familyPupilQueries = source.match(/where\('familyId', '==', userFamilyId\)/g) || [];
-if (familyPupilQueries.length !== 1) {
-  failures.push('Parent preload must have exactly one family-scoped pupils query.');
+const parentAccountQueries = source.match(/where\('parentAccountId', '==', userId\)/g) || [];
+const activeAccountQueries = source.match(/where\('parentAccountActive', '==', true\)/g) || [];
+if (parentAccountQueries.length !== 1 || activeAccountQueries.length !== 1) {
+  failures.push('Parent preload must have exactly one active account-scoped pupils query.');
 }
 
 if (!source.includes('setupPupilsListener(syncParentPupilRecords)')) {
@@ -23,7 +24,7 @@ if (!parentBranch || parentBranch[1].includes('fetchPhotos(')) {
   failures.push('Parent dashboard preload must not fetch photos before the About School view is opened.');
 }
 
-if (!parentLayoutSource.includes('hasLiveFamilyData: !familyQuery.isLoading')) {
+if (!parentLayoutSource.includes('hasLiveFamilyData: familyId ? !familyQuery.isLoading : !accountPupilsLoading')) {
   failures.push('A cold offline launch must use query readiness, not the selector\'s placeholder empty array, before ignoring its saved family.');
 }
 
@@ -37,4 +38,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log('Parent preload contract passed: one family pupil listener, cold-start fallback, and no unused photo preload.');
+console.log('Parent preload contract passed: one active account-scoped pupil listener, cold-start fallback, and no unused photo preload.');

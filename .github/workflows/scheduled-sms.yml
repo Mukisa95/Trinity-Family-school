@@ -34,15 +34,22 @@ jobs:
           BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
           BASE_URL="${BASE_URL%/}"
           DISPATCH_ENDPOINT="$BASE_URL/api/cron/send-scheduled-sms"
+          PAYMENT_NOTIFICATION_ENDPOINT="$BASE_URL/api/cron/process-payment-notifications"
 
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "CRON_SECRET is required for scheduled communication dispatch."
             exit 1
           fi
 
+          FAILED=0
           curl --fail --show-error --silent --location \
             --header "Authorization: Bearer $CRON_SECRET" \
-            "$DISPATCH_ENDPOINT"
+            "$DISPATCH_ENDPOINT" || FAILED=1
+
+          curl --fail --show-error --silent --location \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$PAYMENT_NOTIFICATION_ENDPOINT" || FAILED=1
+          exit "$FAILED"
 
   send-ganda-scheduled-communications:
     if: (github.event_name == 'schedule' && github.event.schedule != '17 1 * * *') || (github.event_name == 'workflow_dispatch' && inputs.action == 'dispatch')
@@ -60,15 +67,22 @@ jobs:
           BASE_URL="${APP_URL:-$DEFAULT_APP_URL}"
           BASE_URL="${BASE_URL%/}"
           DISPATCH_ENDPOINT="$BASE_URL/api/cron/send-scheduled-sms"
+          PAYMENT_NOTIFICATION_ENDPOINT="$BASE_URL/api/cron/process-payment-notifications"
 
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "GANDA_CRON_SECRET is required for scheduled communication dispatch."
             exit 1
           fi
 
+          FAILED=0
           curl --fail --show-error --silent --location \
             --header "Authorization: Bearer $CRON_SECRET" \
-            "$DISPATCH_ENDPOINT"
+            "$DISPATCH_ENDPOINT" || FAILED=1
+
+          curl --fail --show-error --silent --location \
+            --header "Authorization: Bearer $CRON_SECRET" \
+            "$PAYMENT_NOTIFICATION_ENDPOINT" || FAILED=1
+          exit "$FAILED"
 
   backfill-scheduled-communications:
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'migrate'

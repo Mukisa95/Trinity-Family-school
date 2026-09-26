@@ -6,7 +6,8 @@ import { UsersService } from '@/lib/services/users.service';
 import { SecureAuthError, SecureAuthService } from '@/lib/services/secure-auth.service';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { onIdTokenChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import { logger } from '@/lib/utils/logger';
 import { validateCurrentAppSession } from '@/lib/auth/firebase-session';
 import { detachPushSubscriptionForLogout } from '@/lib/push-subscription-client';
@@ -650,6 +651,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLastSessionValidationAt(Date.now());
     }
   };
+
+  // A single listener for the signed-in parent keeps their pupil scope current
+  // when school staff attach or detach pupils. It does not listen to all parent
+  // accounts and is separate from the fee-payment notification pipeline.
+  useEffect(() => {
+    if (user?.role !== 'Parent' || !user.id) return;
+    return onSnapshot(doc(db, 'system_users', user.id), snapshot => {
+      if (!snapshot.exists()) return;
+      const data = snapshot.data() as Partial<SystemUser>;
+      if (data.isActive === false) {
+        clearPrivateParentOfflineData(snapshot.id);
+        clearUserCache();
+        setUser(null);
+        setHasStoredUser(false);
+        setSessionStatus('stale');
+        setSessionMessage('This parent account was replaced by the family account. Contact the school for access.');
+        void firebaseSignOut(auth).catch(() => undefined);
+        return;
+      }
+      setUser(current => {
+        if (!current || current.id !== snapshot.id) return current;
+        const next = {
+          ...current,
+          ...data,
+          id: snapshot.id,
+          familyId: typeof data.familyId === 'string' && data.familyId.trim() ? data.familyId : undefined,
+          pupilId: typeof data.pupilId === 'string' && data.pupilId.trim() ? data.pupilId : undefined,
+        } as SystemUser;
+        if (
+          next.familyId === current.familyId
+          && next.pupilId === current.pupilId
+          && next.isActive === current.isActive
+        ) return current;
+        saveUserCache(next);
+        void auth.currentUser?.getIdToken(true).catch(error => {
+          logger.warn('Parent scope token refresh will retry automatically', error);
+        });
+        return next;
+      });
+    }, error => logger.warn('Parent account scope listener failed', error));
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    const refreshScope = () => {
+      void auth.currentUser?.getIdToken(true).catch(error => {
+        logger.warn('Could not refresh parent scope token from push event', error);
+      });
+    };
+    window.addEventListener('trinity-parent-scope-changed', refreshScope);
+    return () => window.removeEventListener('trinity-parent-scope-changed', refreshScope);
+  }, []);
 
   // Revalidate the signed Firebase session without reading system_users.
   // Firebase also refreshes its ID token automatically; this focus check is a

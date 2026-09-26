@@ -20,14 +20,19 @@ import { useCreateBulkParentAccounts } from '@/lib/hooks/use-users';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import { useClasses } from '@/lib/hooks/use-classes';
 import { Loader2, Users, UserCheck, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
-import type { Pupil, Class } from '@/types';
+import type { SystemUser } from '@/types';
+import {
+  collapsePupilsToParentAccountFamilies,
+  getPupilsWithoutParentAccounts,
+} from '@/lib/users/parent-account-families';
 
 interface BulkParentAccountCreatorProps {
+  parentUsers: SystemUser[];
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAccountCreatorProps) {
+export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: BulkParentAccountCreatorProps) {
   const { toast } = useToast();
   const { data: pupils = [] } = usePupils();
   const { data: classes = [] } = useClasses();
@@ -46,10 +51,12 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSection, setSelectedSection] = useState<string>('');
 
-  // Get pupils that don't have parent accounts yet
+  // Families share one account; standalone pupils remain individually
+  // eligible until their own parent account is created.
   const availablePupils = useMemo(() => {
-    return pupils.filter(pupil => pupil.status === 'Active');
-  }, [pupils]);
+    return getPupilsWithoutParentAccounts(pupils, parentUsers)
+      .filter(pupil => pupil.status === 'Active');
+  }, [parentUsers, pupils]);
 
   // Filter pupils based on search and section
   const filteredPupils = useMemo(() => {
@@ -71,7 +78,7 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
       result = result.filter(pupil => pupil.section === selectedSection);
     }
 
-    return result;
+    return collapsePupilsToParentAccountFamilies(result);
   }, [availablePupils, searchTerm, selectedSection]);
 
   // Get pupils in selected class
@@ -104,9 +111,11 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
   // Get final list of pupils to create accounts for
   const finalSelectedPupils = useMemo(() => {
     if (selectionMode === 'class' && selectedClassId && selectedClassId !== "none") {
-      return pupilsInSelectedClass;
+      return collapsePupilsToParentAccountFamilies(pupilsInSelectedClass);
     }
-    return availablePupils.filter(p => selectedPupilIds.includes(p.id));
+    return collapsePupilsToParentAccountFamilies(
+      availablePupils.filter(p => selectedPupilIds.includes(p.id)),
+    );
   }, [selectionMode, selectedClassId, pupilsInSelectedClass, availablePupils, selectedPupilIds]);
 
   // Handle bulk creation
@@ -124,9 +133,10 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
       `Create Parent Accounts\n\n` +
       `You are about to create ${finalSelectedPupils.length} parent account(s).\n\n` +
       `This will:\n` +
-      `• Generate unique usernames for each parent\n` +
+      `• Generate one login for each selected standalone pupil or family\n` +
+      `• Link siblings only when a real family ID already joins them\n` +
       `• Set default passwords as admission numbers\n` +
-      `• Create family IDs if they don't exist\n\n` +
+      `• Keep pupils without a family as standalone accounts\n\n` +
       `Continue?`
     );
 
@@ -247,7 +257,7 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                Available Pupils ({filteredPupils.length})
+                Pupils or Families Without Parent Accounts ({filteredPupils.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -360,12 +370,12 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
             <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <h3 className="font-medium text-blue-900">
-                  Ready to Create {finalSelectedPupils.length} Parent Account(s)
+                    Ready to Create {finalSelectedPupils.length} Family Account(s)
                 </h3>
                                  <p className="text-sm text-blue-700">
                    {selectionMode === 'class' && selectedClassId && selectedClassId !== "none"
                      ? `All pupils in ${classes.find(c => c.id === selectedClassId)?.name}`
-                     : `${selectedPupilIds.length} pupil(s) selected`
+                      : `${finalSelectedPupils.length} family account(s) selected`
                    }
                  </p>
               </div>
@@ -373,7 +383,7 @@ export function BulkParentAccountCreator({ onSuccess, onCancel }: BulkParentAcco
                 <div className="text-2xl font-bold text-blue-900">
                   {finalSelectedPupils.length}
                 </div>
-                <div className="text-sm text-blue-700">accounts</div>
+                <div className="text-sm text-blue-700">families</div>
               </div>
             </div>
           </CardContent>

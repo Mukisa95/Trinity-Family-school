@@ -162,13 +162,14 @@ test('the parent settings layout does not expose a separate offline viewer card'
   assert.doesNotMatch(settingsSource, /useParentOfflineStatus/);
 });
 
-test('attendance keeps its original reason dialog behind a family-verified write', () => {
+test('attendance keeps its original reason dialog behind an account-marker-verified write', () => {
   const componentSource = readFileSync('src/components/parent/pupil-attendance-section.tsx', 'utf8');
   const functionSource = readFileSync('functions/index.js', 'utf8');
   assert.match(componentSource, /<ModernDialogTitle>Please, tell us why<\/ModernDialogTitle>/);
   assert.match(componentSource, /ParentAttendanceService\.updateRemark/);
   assert.match(functionSource, /exports\.updateParentAttendanceRemark = onCall/);
-  assert.match(functionSource, /userData\.role !== "Parent"/);
-  assert.match(functionSource, /pupil\.data\(\)\?\.familyId !== familyId/);
+  assert.match(functionSource, /request\.auth\.token\.role !== "Parent"/);
+  assert.match(functionSource, /pupilData\.parentAccountActive !== true/);
+  assert.match(functionSource, /projectionString\(pupilData\.parentAccountId\)\.trim\(\) !== request\.auth\.uid/);
   assert.match(functionSource, /attendanceRecord\.data\(\)\?\.pupilId !== pupilId/);
 });

@@ -71,6 +71,10 @@ import { MODULE_ACTIONS } from "@/types/permissions";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { FieldError, FormErrorSummary } from "@/components/ui/form-feedback";
 import { useFormValidation } from "@/lib/utils/form-validation";
+import {
+  getParentAccountChildren,
+  getPupilsWithoutParentAccounts,
+} from "@/lib/users/parent-account-families";
 
 type PermissionSummaryItem = {
   title: string;
@@ -188,8 +192,8 @@ export default function UsersPage() {
   // Get available staff (not yet having user accounts)
   const availableStaff = staff.filter((s: any) => !staffUsers.some(u => u.staffId === s.id));
   
-  // Get available pupils (not yet having parent accounts)
-  const availablePupils = pupils.filter((p: any) => !parentUsers.some(u => u.pupilId === p.id));
+  // Real families share an account; pupils without a family remain separate.
+  const availablePupils = getPupilsWithoutParentAccounts(pupils, parentUsers);
 
   const resetStaffForm = () => {
     setStaffFormData({
@@ -338,7 +342,9 @@ export default function UsersPage() {
       });
       toast({ 
         title: "Parent Account Created", 
-        description: `Secure parent account created for ${selectedPupil.firstName} ${selectedPupil.lastName}'s family` 
+        description: selectedPupil.familyId
+          ? `Secure parent account created for ${selectedPupil.firstName} ${selectedPupil.lastName}'s family`
+          : `Secure parent account created for ${selectedPupil.firstName} ${selectedPupil.lastName}`
       });
       setIsCreateDialogOpen(false);
       resetParentForm();
@@ -447,8 +453,10 @@ export default function UsersPage() {
     if (user.role === 'Staff') {
       return `${user.firstName} ${user.lastName}`;
     } else if (user.role === 'Parent') {
-      const pupil = pupils.find(p => p.id === user.pupilId);
-      return pupil ? `${pupil.firstName} ${pupil.lastName} (Parent)` : 'Parent Account';
+      const children = getParentAccountChildren(user, pupils);
+      return children.length > 0
+        ? `${children.map(pupil => `${pupil.firstName} ${pupil.lastName}`).join(', ')} (Parent)`
+        : 'Parent Account';
     }
     return user.username;
   };
@@ -772,7 +780,7 @@ export default function UsersPage() {
               </div>
               <div className="flex items-center gap-1 bg-amber-50/80 border border-amber-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
                 <span className="font-bold text-amber-700">{availablePupils.length}</span>
-                <span className="text-amber-700/85 font-medium">pupils without parent accounts</span>
+                <span className="text-amber-700/85 font-medium">pupils or families without parent accounts</span>
               </div>
               {currentUser?.role === 'Admin' && (
                 <div className="flex items-center gap-1 bg-emerald-50/80 border border-emerald-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
@@ -957,9 +965,9 @@ export default function UsersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Pupil Name</TableHead>
+                        <TableHead>Family Children</TableHead>
                         <TableHead>Username</TableHead>
-                        <TableHead>Admission Number</TableHead>
+                        <TableHead>Admission Numbers</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Last Login</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -967,12 +975,19 @@ export default function UsersPage() {
                     </TableHeader>
                     <TableBody>
                       {filteredParentUsers.map((user) => {
-                        const pupil = pupils.find(p => p.id === user.pupilId);
+                        const familyChildren = getParentAccountChildren(user, pupils);
                         return (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">
-                              <div>
-                                {pupil ? `${pupil.firstName} ${pupil.lastName}` : 'Unknown Pupil'}
+                              <div className="space-y-1.5">
+                                {familyChildren.length > 0 ? familyChildren.map(pupil => (
+                                  <div key={pupil.id} className="flex flex-wrap items-center gap-2">
+                                    <span>{pupil.firstName} {pupil.lastName}</span>
+                                    {pupil.className && (
+                                      <Badge variant="outline" className="font-normal">{pupil.className}</Badge>
+                                    )}
+                                  </div>
+                                )) : 'Unknown Family'}
                                 <UserSignatureDisplay 
                                   user={user} 
                                   variant="inline" 
@@ -981,7 +996,13 @@ export default function UsersPage() {
                               </div>
                             </TableCell>
                             <TableCell>{user.username}</TableCell>
-                            <TableCell>{pupil?.admissionNumber}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {familyChildren.map(pupil => (
+                                  <div key={pupil.id} className="font-mono text-xs">{pupil.admissionNumber}</div>
+                                ))}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <Badge variant={user.isActive ? 'default' : 'secondary'}>
                                 {user.isActive ? 'Active' : 'Inactive'}
@@ -1451,6 +1472,7 @@ export default function UsersPage() {
                 </div>
                 
                 <BulkParentAccountCreator
+                  parentUsers={parentUsers}
                   onSuccess={() => {
                     setIsCreateDialogOpen(false);
                     resetParentForm();

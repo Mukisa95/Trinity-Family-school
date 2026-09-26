@@ -1515,20 +1515,22 @@ function PupilsContent() {
     setIsLinkSiblingsModalOpen(true);
   };
 
-  // Unlink a sibling: give them a brand-new unique familyId
+  // Unlink a sibling into a true standalone scope. The server keeps the old
+  // family account with remaining siblings or converts it when this was the
+  // last family member.
   const handleUnlinkSibling = async () => {
     if (!unlinkSiblingConfirm) return;
     const { siblingToUnlink } = unlinkSiblingConfirm;
     setIsUnlinking(true);
     try {
-      const newFamilyId = `fam-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      await updatePupilMutation.mutateAsync({
-        id: siblingToUnlink.id,
-        data: { familyId: newFamilyId },
+      await PupilsService.transitionFamilyMembership({
+        pupilIds: [siblingToUnlink.id],
+        familyId: null,
+        preferredPupilId: siblingToUnlink.id,
       });
       toast({
         title: 'Sibling Unlinked',
-        description: `${siblingToUnlink.firstName} ${siblingToUnlink.lastName} has been unlinked and given a new family code.`,
+        description: `${siblingToUnlink.firstName} ${siblingToUnlink.lastName} is now a standalone pupil.`,
       });
       // Close both dialogs
       setUnlinkSiblingConfirm(null);

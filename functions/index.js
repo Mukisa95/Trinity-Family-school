@@ -35,8 +35,8 @@ const PARENT_DATASET_REVISION_COALESCE_MS = 2 * 1000;
 /**
  * Parent datasets remain staff-owned source documents, so they cannot be
  * safely queried by a parent directly. This trigger resolves the affected
- * pupil's family on a source write and advances only that family's tiny
- * offline-sync counter. It never writes financial or attendance data to the
+ * pupil's active parent account on a source write and advances only that
+ * account's tiny offline-sync counter. It never writes financial or attendance data to the
  * counter document.
  */
 async function publishParentDatasetRevision(change, dataset) {
@@ -54,21 +54,22 @@ async function publishParentDatasetRevisionForPupilIds(pupilIds, dataset) {
 
   const db = admin.firestore();
   const pupils = await Promise.all(Array.from(pupilIds).map(pupilId => db.collection("pupils").doc(pupilId).get()));
-  const familyIds = new Set();
+  const accountIds = new Set();
   pupils.forEach(pupil => {
-    const familyId = pupil.data()?.familyId;
-    if (typeof familyId === "string" && familyId.trim()) familyIds.add(familyId);
+    const pupilData = pupil.data() || {};
+    const accountId = projectionString(pupilData.parentAccountId).trim();
+    if (pupilData.parentAccountActive === true && accountId) accountIds.add(accountId);
   });
-  if (!familyIds.size) {
-    logger.warn("Parent dataset change has no resolvable parent family.", {dataset, pupilIds: Array.from(pupilIds)});
+  if (!accountIds.size) {
+    logger.warn("Parent dataset change has no active parent account.", {dataset, pupilIds: Array.from(pupilIds)});
     return;
   }
 
   // One school action can write several related records in the same operation.
-  // same school operation. Coalesce those related trigger invocations so
+  // Coalesce those related trigger invocations so
   // a parent receives one refresh signal for the completed change.
-  await Promise.all(Array.from(familyIds).map(async familyId => {
-    const revisionRef = db.collection(PARENT_DASHBOARD_REVISIONS).doc(familyId);
+  await Promise.all(Array.from(accountIds).map(async accountId => {
+    const revisionRef = db.collection(PARENT_DASHBOARD_REVISIONS).doc(accountId);
     await db.runTransaction(async transaction => {
       const current = await transaction.get(revisionRef);
       const currentData = current.data() || {};
@@ -77,7 +78,10 @@ async function publishParentDatasetRevisionForPupilIds(pupilIds, dataset) {
       const previousChangeAt = Number(currentData[timestampField] || 0);
       const changesAreRelated = now - previousChangeAt >= 0 && now - previousChangeAt < PARENT_DATASET_REVISION_COALESCE_MS;
       transaction.set(revisionRef, {
-        ...(changesAreRelated ? {} : {[dataset]: Number.isFinite(Number(currentData[dataset])) && Number(currentData[dataset]) >= 0 ? Number(currentData[dataset]) + 1 : 1}),
+        // Timestamp revisions are monotonic across the former family-scoped
+        // and current account-scoped namespaces, so an older offline counter
+        // can never hide the first account-scoped change.
+        ...(changesAreRelated ? {} : {[dataset]: now}),
         [timestampField]: now,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, {merge: true});
@@ -141,8 +145,29 @@ function projectionIsoDate(value) {
   return "";
 }
 
+async function requireParentOwnedPupil(request, pupilId, db) {
+  if (
+    !request.auth
+    || request.auth.token.appUser !== true
+    || request.auth.token.isActive !== true
+    || request.auth.token.role !== "Parent"
+  ) {
+    throw new HttpsError("unauthenticated", "A verified parent session is required.");
+  }
+  const pupil = await db.collection("pupils").doc(pupilId).get();
+  const pupilData = pupil.data() || {};
+  if (
+    !pupil.exists
+    || pupilData.parentAccountActive !== true
+    || projectionString(pupilData.parentAccountId).trim() !== request.auth.uid
+  ) {
+    throw new HttpsError("not-found", "The requested child is not available to this account.");
+  }
+  return pupil;
+}
+
 /**
- * The parent application receives this small, family-authorized projection
+ * The parent application receives this small, account-authorized projection
  * through Firebase Functions. It avoids both raw collection access and a
  * Vercel API request during first download or revision-triggered refresh.
  */
@@ -158,17 +183,7 @@ exports.getParentBankingProjection = onCall(
     }
 
     const db = admin.firestore();
-    const user = await db.collection("system_users").doc(request.auth.uid).get();
-    const userData = user.data() || {};
-    const familyId = projectionString(userData.familyId).trim();
-    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
-      throw new HttpsError("permission-denied", "Parent access is required.");
-    }
-
-    const pupil = await db.collection("pupils").doc(pupilId).get();
-    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
-      throw new HttpsError("not-found", "The requested child is not available to this account.");
-    }
+    await requireParentOwnedPupil(request, pupilId, db);
 
     const accounts = await db.collection("bankAccounts").where("pupilId", "==", pupilId).limit(2).get();
     if (accounts.size > 1) {
@@ -249,16 +264,7 @@ exports.getParentAttendanceProjection = onCall(
     }
 
     const db = admin.firestore();
-    const user = await db.collection("system_users").doc(request.auth.uid).get();
-    const userData = user.data() || {};
-    const familyId = projectionString(userData.familyId).trim();
-    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
-      throw new HttpsError("permission-denied", "Parent access is required.");
-    }
-    const pupil = await db.collection("pupils").doc(pupilId).get();
-    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
-      throw new HttpsError("not-found", "The requested child is not available to this account.");
-    }
+    await requireParentOwnedPupil(request, pupilId, db);
 
     const records = await db.collection("attendanceRecords").where("pupilId", "==", pupilId).get();
     return records.docs
@@ -300,20 +306,10 @@ exports.updateParentAttendanceRemark = onCall(
     }
 
     const db = admin.firestore();
-    const user = await db.collection("system_users").doc(request.auth.uid).get();
-    const userData = user.data() || {};
-    const familyId = projectionString(userData.familyId).trim();
-    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
-      throw new HttpsError("permission-denied", "Parent access is required.");
-    }
-
-    const [pupil, attendanceRecord] = await Promise.all([
-      db.collection("pupils").doc(pupilId).get(),
+    const [, attendanceRecord] = await Promise.all([
+      requireParentOwnedPupil(request, pupilId, db),
       db.collection("attendanceRecords").doc(attendanceRecordId).get(),
     ]);
-    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
-      throw new HttpsError("not-found", "The requested child is not available to this account.");
-    }
     if (!attendanceRecord.exists || attendanceRecord.data()?.pupilId !== pupilId) {
       throw new HttpsError("not-found", "The attendance record is not available to this account.");
     }
@@ -359,16 +355,7 @@ exports.getParentResultsProjection = onCall(
     }
 
     const db = admin.firestore();
-    const user = await db.collection("system_users").doc(request.auth.uid).get();
-    const userData = user.data() || {};
-    const familyId = projectionString(userData.familyId).trim();
-    if (!user.exists || userData.isActive === false || userData.role !== "Parent" || !familyId) {
-      throw new HttpsError("permission-denied", "Parent access is required.");
-    }
-    const pupil = await db.collection("pupils").doc(pupilId).get();
-    if (!pupil.exists || pupil.data()?.familyId !== familyId) {
-      throw new HttpsError("not-found", "The requested child is not available to this account.");
-    }
+    await requireParentOwnedPupil(request, pupilId, db);
 
     const releaseDocuments = await db.collection("resultReleases")
       .where("releasedPupils", "array-contains", pupilId)

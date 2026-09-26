@@ -22,6 +22,7 @@ import {
   normalizeNotificationAutomationSettings,
   resolveAutomatedNotificationRecipientIds,
 } from '@/lib/notifications/automation-settings';
+import { getActiveParentAccountId } from '@/lib/users/parent-account-families';
 
 export interface PaymentNotificationDetails {
   paymentId: string;
@@ -61,9 +62,9 @@ class FeesPaymentNotificationServerService {
     );
     if (!isNotificationAutomationEnabled(automationSettings, 'schoolPay')) return [];
 
-    // Parent receipt pushes are intentionally excluded from this policy.
     // Resolve the staff policy once even when a payment was distributed
-    // across several fees.
+    // across several fees. Parent receipt delivery is derived separately from
+    // the denormalized account marker already present on each pupil.
     const eligibleStaff = await this.getUsersWithFeesPermissions();
     const selectedStaffIds = new Set(resolveAutomatedNotificationRecipientIds(
       automationSettings,
@@ -112,25 +113,46 @@ class FeesPaymentNotificationServerService {
     if (notifications.length === 0) return true;
 
     try {
-      const recipients = await (progress?.resolveRecipients || this.createRecipientResolver())();
-
-      if (recipients.length === 0) {
-        console.log('⚠️ [Fees Notification] No recipients found, skipping notification');
-        return true;
-      }
+      const staffRecipients = await (progress?.resolveRecipients || this.createRecipientResolver())();
 
       let successful = true;
       for (const { paymentId, paymentData, pupilDetails, feeDetails, balance } of notifications) {
+        const parentAccountId = getActiveParentAccountId(pupilDetails);
+        const recipientsById = new Map(staffRecipients.map(recipient => [recipient.id, recipient]));
+        if (parentAccountId) {
+          // Push delivery only requires the user ID. The active marker is kept
+          // in sync when the family account is created, disabled or deleted,
+          // so no system_users lookup is needed on the payment path.
+          recipientsById.set(parentAccountId, { id: parentAccountId } as User);
+        }
+        const recipients = [...recipientsById.values()];
+        if (recipients.length === 0) {
+          console.log('⚠️ [Fees Notification] No recipients found, skipping notification');
+          continue;
+        }
         const payload = this.formatPaymentNotification(paymentId, paymentData, pupilDetails, feeDetails, balance);
+        const payloadFor = (recipientId: string) => recipientId === parentAccountId
+          ? { ...payload, pushUrl: `/parent?pupilId=${encodeURIComponent(pupilDetails.id)}` }
+          : payload;
         if (!progress) {
-          const result = await optimizedNotificationService.sendPushOnlyNotification(payload, recipients);
-          successful = successful && result.failed === 0 && result.errors.length === 0;
+          for (const recipient of recipients) {
+            const result = await optimizedNotificationService.sendPushOnlyNotification(
+              payloadFor(recipient.id),
+              [recipient],
+              `fee-${paymentId}`,
+            );
+            successful = successful && result.failed === 0 && result.errors.length === 0;
+          }
           continue;
         }
         for (const recipient of recipients) {
           if (progress.deliveredUserIds.includes(recipient.id)) continue;
           await progress.beforeRecipient();
-          const result = await optimizedNotificationService.sendPushOnlyNotification(payload, [recipient], `fee-${paymentId}`);
+          const result = await optimizedNotificationService.sendPushOnlyNotification(
+            payloadFor(recipient.id),
+            [recipient],
+            `fee-${paymentId}`,
+          );
           if (result.failed > 0 || result.errors.length > 0) {
             successful = false;
           } else {

@@ -115,12 +115,13 @@ export function LinkSiblingsModal({
         familyIdToUse = `fam-${oldestPupil.lastName.toLowerCase()}-${Date.now()}`;
       }
 
-      // Update all pupils with the same family ID
-      await Promise.all(
-        allPupilsToLink.map(pupil => 
-          PupilsService.updatePupil(pupil.id, { familyId: familyIdToUse })
-        )
-      );
+      // One server transaction reconciles every pupil marker and parent
+      // account, preventing partial families or duplicate ownership.
+      await PupilsService.transitionFamilyMembership({
+        pupilIds: allPupilsToLink.map(pupil => pupil.id),
+        familyId: familyIdToUse,
+        preferredPupilId: sourcePupil.id,
+      });
 
       toast({
         title: "Siblings linked successfully!",

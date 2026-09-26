@@ -35,6 +35,7 @@ export interface WebPushPayload {
   tag?: string;
   requireInteraction?: boolean;
   timestamp?: number;
+  data?: Record<string, string>;
 }
 
 const db = () => getFirestore(getFirebaseAdminApp());

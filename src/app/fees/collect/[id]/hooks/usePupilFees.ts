@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { isTermEnded } from '@/lib/utils/academic-year-utils';
+import { getActiveParentAccountId } from '@/lib/users/parent-account-families';
 
 // Optimized hooks
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
@@ -71,6 +72,7 @@ interface UsePupilFeesReturn {
     totalPaid: number;
     totalBalance: number;
   };
+  activeParentAccountId: string | null;
 }
 
 export function mergePupilPayments(
@@ -547,6 +549,10 @@ export function usePupilFees({
     previousBalanceError || snapshotError || uniformTrackingError || uniformsError ||
     feesHolidaysError || null;
   const isError = !!error;
+  // The pupil record is already loaded when this page mounts. Reading this
+  // marker locally avoids a parent-account lookup or listener for pupils that
+  // do not have an active account.
+  const activeParentAccountId = pupil ? getActiveParentAccountId(pupil) : null;
 
   // Reserved for explicit changes to fee definitions, assignments, or history.
   // Payment writes are already reflected by the live listener.
@@ -574,5 +580,6 @@ export function usePupilFees({
     refetch,
     previousBalance,
     termTotals,
+    activeParentAccountId,
   };
 }

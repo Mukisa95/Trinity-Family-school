@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
+import {
+  FieldValue,
+  Timestamp,
+  getFirestore,
+  type DocumentReference,
+  type Firestore,
+} from 'firebase-admin/firestore';
 import { z } from 'zod';
 import {
   canManageUsers,
@@ -31,6 +37,22 @@ async function context(request: NextRequest, action: 'delete') {
   const actor = await requireAppUser(request);
   if (!canManageUsers(actor, action)) throw new Error('PERMISSION_DENIED');
   return actor;
+}
+
+async function getParentFamilyPupilRefs(
+  db: Firestore,
+  userData: Record<string, any>,
+): Promise<DocumentReference[]> {
+  if (userData.role !== 'Parent') return [];
+  const familyId = typeof userData.familyId === 'string' ? userData.familyId.trim() : '';
+  if (familyId) {
+    const familyPupils = await db.collection('pupils').where('familyId', '==', familyId).get();
+    if (!familyPupils.empty) return familyPupils.docs.map(document => document.ref);
+  }
+  const pupilId = typeof userData.pupilId === 'string' ? userData.pupilId.trim() : '';
+  if (!pupilId) return [];
+  const pupil = await db.collection('pupils').doc(pupilId).get();
+  return pupil.exists ? [pupil.ref] : [];
 }
 
 export async function PATCH(
@@ -96,8 +118,17 @@ export async function PATCH(
     }
 
     const now = Timestamp.now();
+    const existingData = existing.data() || {};
+    const parentPupilRefs = cleanUpdates.isActive !== undefined
+      ? await getParentFamilyPupilRefs(db, existingData)
+      : [];
     const batch = db.batch();
     batch.update(userRef, { ...cleanUpdates, updatedAt: now });
+    parentPupilRefs.forEach(pupilRef => batch.update(pupilRef, {
+      parentAccountId: id,
+      parentAccountActive: cleanUpdates.isActive === true,
+      updatedAt: now,
+    }));
     if (password) {
       batch.set(db.collection('authCredentials').doc(id), {
         passwordHash: hashPasswordForServer(password),
@@ -125,7 +156,7 @@ export async function PATCH(
     // the control point for password, permission, role, profile, and active
     // status changes. It uses Firebase Authentication only; no client needs to
     // poll system_users to discover the change.
-    const merged = { ...existing.data(), ...cleanUpdates };
+    const merged = { ...existingData, ...cleanUpdates };
     const adminAuth = getAuth(getFirebaseAdminApp());
     try {
       const firebaseUser = await adminAuth.getUser(id);
@@ -174,9 +205,15 @@ export async function DELETE(
     const existing = await userRef.get();
     if (!existing.exists) return json({ error: 'User not found.' }, 404);
 
+    const parentPupilRefs = await getParentFamilyPupilRefs(db, existing.data() || {});
     const batch = db.batch();
     batch.delete(userRef);
     batch.delete(db.collection('authCredentials').doc(id));
+    parentPupilRefs.forEach(pupilRef => batch.update(pupilRef, {
+      parentAccountId: null,
+      parentAccountActive: false,
+      updatedAt: Timestamp.now(),
+    }));
     batch.set(db.collection('historyLogs').doc(), {
       action: 'delete',
       entity: 'user',

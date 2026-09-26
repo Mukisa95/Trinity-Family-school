@@ -17,6 +17,7 @@ import { HistoryLogService } from './history-log.service';
 
 const PAYMENTS_COLLECTION = 'payments';
 const PAYMENT_OPERATIONS_COLLECTION = 'paymentOperations';
+const PAYMENT_NOTIFICATION_OUTBOX = 'scheduledNotifications/fee-payment-events/outbox';
 const UNIFORM_TRACKING_COLLECTION = 'uniformTracking';
 const MAX_PAYMENT_ALLOCATIONS_PER_OPERATION = 100;
 const PAYMENT_OPERATION_ID_PATTERN = /^[A-Za-z0-9_-]{12,160}$/;
@@ -138,6 +139,7 @@ export class PaymentsService {
     paymentId: string,
     paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>,
     historyContext?: PaymentHistoryContext,
+    enqueueNotification = false,
   ) {
     const newPayment = cleanUndefinedPaymentValues({
       ...paymentData,
@@ -145,6 +147,19 @@ export class PaymentsService {
       paymentDate: paymentData.paymentDate || new Date().toISOString(),
     });
     transaction.set(doc(db, PAYMENTS_COLLECTION, paymentId), newPayment);
+    if (enqueueNotification) {
+      transaction.set(doc(db, PAYMENT_NOTIFICATION_OUTBOX, `payment-${paymentId}`), {
+        kind: 'fee_payment',
+        version: 1,
+        paymentId,
+        status: 'pending',
+        attempts: 0,
+        nextAttemptAt: Timestamp.now(),
+        leaseToken: null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
     HistoryLogService.addToTransaction(transaction, {
       action: 'create',
       entity: 'payment',
@@ -168,6 +183,7 @@ export class PaymentsService {
   static async createPaymentOperation(
     operationId: string,
     allocations: PaymentOperationAllocation[],
+    options?: { enqueueNotifications?: boolean },
   ): Promise<PaymentOperationResult> {
     if (!PAYMENT_OPERATION_ID_PATTERN.test(operationId)) {
       throw new Error('Payment operation ID is invalid');
@@ -236,6 +252,7 @@ export class PaymentsService {
           paymentIds[index],
           allocation.paymentData,
           allocation.historyContext,
+          options?.enqueueNotifications === true,
         );
       });
       uniformSnapshots.forEach(([trackingId, trackingSnapshot]) => {
@@ -289,6 +306,7 @@ export class PaymentsService {
     options?: {
       skipHistoryLog?: boolean;
       historyContext?: PaymentHistoryContext;
+      enqueueNotification?: boolean;
     }
   ): Promise<string> {
     try {
@@ -304,6 +322,19 @@ export class PaymentsService {
       const docRef = doc(collection(db, PAYMENTS_COLLECTION));
       const batch = writeBatch(db);
       batch.set(docRef, cleanedData);
+      if (options?.enqueueNotification) {
+        batch.set(doc(db, PAYMENT_NOTIFICATION_OUTBOX, `payment-${docRef.id}`), {
+          kind: 'fee_payment',
+          version: 1,
+          paymentId: docRef.id,
+          status: 'pending',
+          attempts: 0,
+          nextAttemptAt: Timestamp.now(),
+          leaseToken: null,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+      }
       if (!options?.skipHistoryLog) {
         HistoryLogService.addToBatch(batch, {
           action: 'create',

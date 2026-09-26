@@ -50,7 +50,6 @@ export function GlobalDataPreloader() {
   useExamCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
-  const userFamilyId = user?.familyId;
 
   useEffect(() => {
     // Don't start preloading until user is authenticated
@@ -221,16 +220,20 @@ export function GlobalDataPreloader() {
         };
       };
 
-      // Parents remain constrained to their own family. Staff and admins reuse
-      // the same cache-first owner, so browser consumers can never hang waiting
-      // for a separate revision bootstrap to finish.
-      const baseQuery = (userRole === 'Parent' && userFamilyId)
-        ? firestoreQuery(collection(db, 'pupils'), where('familyId', '==', userFamilyId))
+      // One account-scoped query covers both family pupils and standalone
+      // pupils. Changing the pupil marker makes Firestore add/remove that pupil
+      // from an already-open parent app without rebuilding the listener.
+      const baseQuery = userRole === 'Parent'
+        ? firestoreQuery(
+            collection(db, 'pupils'),
+            where('parentAccountId', '==', userId),
+            where('parentAccountActive', '==', true),
+          )
         : firestoreQuery(collection(db, 'pupils'));
       const projectId =
         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
       const cacheScope = userRole === 'Parent'
-        ? `parent:${userId}:family:${userFamilyId || 'unassigned'}`
+        ? `parent:${userId}:account-scope`
         : `user:${userId}`;
       const persistentCacheKey = persistentCollectionCacheKey(
         projectId,
@@ -238,8 +241,8 @@ export function GlobalDataPreloader() {
         cacheScope,
       );
 
-      if (userRole === 'Parent' && userFamilyId) {
-        console.log(`🎯 PARENT MODE: Loading only pupils for family ${userFamilyId}`);
+      if (userRole === 'Parent') {
+        console.log(`🎯 PARENT MODE: Loading pupils owned by account ${userId}`);
       }
 
       const schedulePersistentPupilCacheWrite = () => {
@@ -592,7 +595,7 @@ export function GlobalDataPreloader() {
     // when membership changes, avoiding a second identical pupils subscription.
     */
     const setupParentRecordsListeners = () => {
-      if (!userFamilyId) return;
+      if (!userId || userRole !== 'Parent') return;
       const childUnsubscribers = new Map<string, Array<() => void>>();
 
       const syncParentPupilRecords = (parentPupilIds: string[]) => {
@@ -687,7 +690,7 @@ export function GlobalDataPreloader() {
   // Re-run when auth state changes so listeners are always tied to the current
   // user. The cleanup (unsubscribers.forEach) tears down old listeners before
   // new ones are created, preventing duplicate subscriptions.
-  }, [queryClient, isAuthenticated, userId, userRole, userFamilyId]);
+  }, [queryClient, isAuthenticated, userId, userRole]);
 
 
   return null; // This component doesn't render anything

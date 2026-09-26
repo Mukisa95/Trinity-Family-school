@@ -145,7 +145,7 @@ class OptimizedNotificationService {
 
   /** Operational alerts (payments, attendance) deliberately do not enter the in-app notification archive. */
   async sendPushOnlyNotification(
-    data: Pick<CreateNotificationData, 'title' | 'description' | 'priority' | 'type' | 'enablePush' | 'pushTitle' | 'pushBody' | 'pushIcon' | 'pushUrl'>,
+    data: Pick<CreateNotificationData, 'title' | 'description' | 'priority' | 'type' | 'enablePush' | 'pushTitle' | 'pushBody' | 'pushIcon' | 'pushUrl' | 'pushData'>,
     users: User[],
     notificationId?: string,
   ): Promise<{ sent: number; failed: number; errors: string[] }> {
@@ -165,6 +165,7 @@ class OptimizedNotificationService {
       pushBody: data.pushBody || data.description || '',
       pushIcon: data.pushIcon,
       pushUrl: data.pushUrl || '/',
+      pushData: data.pushData,
       deliveryStats: { total: users.length, sent: 0, delivered: 0, failed: 0, read: 0 },
       actions: [],
       readBy: [],
@@ -508,7 +509,8 @@ class OptimizedNotificationService {
           notificationId: notification.id,
           url: notification.pushUrl || '/notifications',
           type: notification.type || 'general',
-          priority: notification.priority || 'normal'
+          priority: notification.priority || 'normal',
+          ...(notification.pushData || {}),
         },
         badge: 1
       };
@@ -555,6 +557,7 @@ class OptimizedNotificationService {
         url: notification.pushUrl || '/notifications',
         tag: notification.id.length <= 32 ? notification.id : `n-${notification.id.substring(0, 30)}`,
         requireInteraction: notification.priority === 'urgent',
+        data: notification.pushData,
       });
       results.sent = outcome.accepted;
       results.failed = outcome.failed;

@@ -40,7 +40,7 @@ export function useParentResults(
   enabled = true,
 ) {
   const online = useOnlineStatus();
-  const { revision: resultsRevision, isLoading: isRevisionLoading } = useParentResultsRevision(familyId);
+  const { revision: resultsRevision, isLoading: isRevisionLoading } = useParentResultsRevision(accountId);
   const [savedSnapshot, setSavedSnapshot] = useState<ParentOfflineResultsSnapshot | null>(null);
   const [isStorageLoading, setIsStorageLoading] = useState(Boolean(accountId && pupilId));
 

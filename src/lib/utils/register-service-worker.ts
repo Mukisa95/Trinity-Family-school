@@ -62,6 +62,11 @@ function setupControllerChangeListener(): void {
         }));
       }
     }
+    if (event.data && event.data.type === 'PARENT_SCOPE_CHANGED') {
+      window.dispatchEvent(new CustomEvent('trinity-parent-scope-changed', {
+        detail: event.data,
+      }));
+    }
   });
 
   console.log('✅ Controller change listener registered');

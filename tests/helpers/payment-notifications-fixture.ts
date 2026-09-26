@@ -99,6 +99,7 @@ export function notificationFixture() {
         if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({}) };
         if (name === './payment-notification-outbox') return load('src/lib/server/payment-notification-outbox.ts');
         if (name === '@/lib/services/fees-payment-notification.server') return load('src/lib/services/fees-payment-notification.server.ts');
+        if (name === '@/lib/users/parent-account-families') return load('src/lib/users/parent-account-families.ts');
         if (name === './granular-permissions.service') return { GranularPermissionService: { canAccessPage: () => true } };
         if (name === '@/lib/notifications/automation-settings') return {
           normalizeNotificationAutomationSettings: (v: any) => v,
