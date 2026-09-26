@@ -257,9 +257,23 @@ export function usePupils() {
     refetchInterval: false,
     initialData: cachedData,
     initialDataUpdatedAt: cachedData !== undefined ? Date.now() : undefined,
-    placeholderData: previousData => previousData,
+    // A previous parent's list must never remain visible when auth replaces
+    // this shared query with a fresh account-scoped listener.
   });
   return { ...query, isLoading: query.data === undefined };
+}
+
+export type ParentPupilScopeStatus = 'loading' | 'repairing' | 'ready' | 'error';
+
+export function useParentPupilScopeStatus(accountId?: string) {
+  const query = useQuery({
+    queryKey: ['parentPupilScope', accountId],
+    queryFn: async (): Promise<ParentPupilScopeStatus> => 'loading',
+    enabled: false,
+    initialData: 'loading' as ParentPupilScopeStatus,
+    staleTime: Infinity,
+  });
+  return query.data;
 }
 
 export function useActivePupils() {

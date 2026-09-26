@@ -19,13 +19,20 @@ if (!source.includes('onParentPupilIds?.(persistedPupils.map(pupil => pupil.id))
   failures.push('Persisted parent pupil cache must start record subscriptions without waiting for the network.');
 }
 
+if (!source.includes('snapshot.metadata.fromCache && allPupils.length === 0')
+  || !source.includes('void recoverEmptyParentScope()')
+  || !source.includes("publishPupils(snapshot.docs.map(normalizePupilDoc), 'server')")) {
+  failures.push('An empty local snapshot must wait for the server, and a confirmed empty legacy account must attempt recovery.');
+}
+
 const parentBranch = source.match(/if \(userRole === 'Parent'\) \{([\s\S]*?)\n        \} else \{/);
 if (!parentBranch || parentBranch[1].includes('fetchPhotos(')) {
   failures.push('Parent dashboard preload must not fetch photos before the About School view is opened.');
 }
 
-if (!parentLayoutSource.includes('hasLiveFamilyData: familyId ? !familyQuery.isLoading : !accountPupilsLoading')) {
-  failures.push('A cold offline launch must use query readiness, not the selector\'s placeholder empty array, before ignoring its saved family.');
+if (!parentLayoutSource.includes("hasLiveFamilyData: parentScopeStatus === 'ready'")
+  || !parentLayoutSource.includes('familyId ? !familyQuery.isLoading : !accountPupilsLoading')) {
+  failures.push('A cold offline launch must wait for its account-scoped pupil snapshot before ignoring its saved family.');
 }
 
 if (parentLayoutSource.includes('hasLiveFamilyData: familyQuery.data !== undefined')) {

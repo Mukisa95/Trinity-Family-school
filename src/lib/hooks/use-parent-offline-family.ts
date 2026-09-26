@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Pupil } from '@/types';
 import { pupilsKeys } from '@/lib/hooks/use-pupils';
+import { isParentPupilSnapshotOwnedByAccount } from '@/lib/cache/pupil-session-cache';
 import { prepareParentAppShell } from '@/lib/parent-offline/app-shell';
 import { useParentAppRelease } from '@/lib/hooks/use-parent-app-release';
 import {
@@ -62,8 +63,14 @@ export function useParentOfflineFamily({
     }
     try {
       const snapshot = await readParentOfflineFamily(accountId);
-      setSavedFamily(snapshot);
-      setState(snapshot ? 'ready' : 'loading');
+      // An older account-switch bug could have persisted another parent's
+      // records under this account key. The embedded marker is the final
+      // ownership check before hydrating the dashboard from offline storage.
+      const ownedSnapshot = snapshot
+        && isParentPupilSnapshotOwnedByAccount(accountId, snapshot.pupils)
+        ? snapshot : null;
+      setSavedFamily(ownedSnapshot);
+      setState(ownedSnapshot ? 'ready' : 'loading');
       setError(null);
     } catch (loadError) {
       setState('error');

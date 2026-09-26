@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { collection, query as firestoreQuery, onSnapshot, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { liteWrite, LITE_KEYS } from '@/lib/cache/lite-cache';
 import {
@@ -21,6 +21,7 @@ import { useHouseCacheBootstrap } from '@/lib/hooks/use-house-cache-bootstrap';
 import { useAccessLevelCacheBootstrap } from '@/lib/hooks/use-access-level-cache-bootstrap';
 import { useExamCacheBootstrap } from '@/lib/hooks/use-exam-cache-bootstrap';
 import { PupilsService } from '@/lib/services/pupils.service';
+import { clearPupilSessionQueries, isParentPupilSnapshotOwnedByAccount } from '@/lib/cache/pupil-session-cache';
 import { FeesService } from '@/lib/services/fees.service';
 import { FEES_QUERY_KEYS } from '@/lib/hooks/use-fees';
 import { UniformsService } from '@/lib/services/uniforms.service';
@@ -50,6 +51,7 @@ export function GlobalDataPreloader() {
   useExamCacheBootstrap();
   const userId = user?.id;
   const userRole = user?.role;
+  const lastPupilIdentity = useRef<string | null>(null);
 
   useEffect(() => {
     // Don't start preloading until user is authenticated
@@ -59,6 +61,18 @@ export function GlobalDataPreloader() {
     }
 
     console.log(`🚀 GLOBAL PRELOADER: Starting role-aware listeners for ${userRole}...`);
+
+    // Preserve this same account's offline hydration on a cold PWA launch,
+    // but never carry an earlier signed-in identity into a different account.
+    const pupilIdentity = `${userRole}:${userId}`;
+    if (lastPupilIdentity.current && lastPupilIdentity.current !== pupilIdentity) {
+      clearPupilSessionQueries(queryClient);
+      PupilsService.clearSharedPupils();
+    }
+    lastPupilIdentity.current = pupilIdentity;
+    if (userRole === 'Parent') {
+      queryClient.setQueryData(['parentPupilScope', userId], 'loading');
+    }
 
     // ─── SERVICE-WORKER UPDATE COMPATIBILITY ──────────────────────────────────
     // A new JavaScript bundle does not make school data stale. Source mutations
@@ -275,6 +289,48 @@ export function GlobalDataPreloader() {
 
       let initialSnapshotPublished = false;
       let serverSnapshotSeen = false;
+      let emptyScopeRecoveryStarted = false;
+      const scopeStatus = (status: 'loading' | 'repairing' | 'ready' | 'error') => {
+        if (userRole === 'Parent' && !disposed) {
+          queryClient.setQueryData(['parentPupilScope', userId], status);
+        }
+      };
+      const publishPupils = (pupils: any[], source: 'cache' | 'server') => {
+        if (disposed) return;
+        queryClient.setQueryData(['pupils', 'list'], pupils);
+        PupilsService.hydrateSharedPupils(pupils);
+        onParentPupilIds?.(pupils.map(pupil => pupil.id));
+        scopeStatus('ready');
+        schedulePersistentPupilCacheWrite();
+        performance.mark?.(`trinity:pupils-${source}-ready`);
+      };
+      const recoverEmptyParentScope = async () => {
+        if (emptyScopeRecoveryStarted || disposed) return;
+        emptyScopeRecoveryStarted = true;
+        // An authoritative empty result supersedes stale local family data.
+        clearPupilSessionQueries(queryClient);
+        PupilsService.clearSharedPupils();
+        onParentPupilIds?.([]);
+        scopeStatus('repairing');
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          if (!token || auth.currentUser?.uid !== userId) throw new Error('The parent session changed.');
+          const response = await fetch('/api/pupils/parent-scope-repair', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          });
+          if (!response.ok) throw new Error(`Account-link recovery failed (${response.status}).`);
+          const result = await response.json() as { linked?: number };
+          if (disposed) return;
+          if ((result.linked || 0) > 0) return; // The existing listener receives the repaired pupils.
+          publishPupils([], 'server');
+        } catch (error) {
+          if (disposed) return;
+          console.error('❌ PRELOADER: Parent account-link recovery failed:', error);
+          scopeStatus('error');
+        }
+      };
 
       // Restore the complete normalized list from one asynchronous IndexedDB
       // value while the Firestore listener starts below. Neither source blocks
@@ -288,7 +344,8 @@ export function GlobalDataPreloader() {
           existingPupils?.length ||
           !persistedPupils ||
           !Array.isArray(persistedPupils) ||
-          persistedPupils.length === 0
+          persistedPupils.length === 0 ||
+          (userRole === 'Parent' && !isParentPupilSnapshotOwnedByAccount(userId, persistedPupils))
         ) {
           return;
         }
@@ -296,6 +353,7 @@ export function GlobalDataPreloader() {
         queryClient.setQueryData(['pupils', 'list'], persistedPupils);
         PupilsService.hydrateSharedPupils(persistedPupils);
         onParentPupilIds?.(persistedPupils.map(pupil => pupil.id));
+        scopeStatus('ready');
         performance.mark?.('trinity:pupils-fast-cache-ready');
         console.log(
           `FAST CACHE: Restored ${persistedPupils.length} pupils in ${Math.round(performance.now() - fastCacheStartedAt)}ms`,
@@ -316,7 +374,8 @@ export function GlobalDataPreloader() {
             serverSnapshotSeen ||
             existingPupils?.length ||
             !persistedPupils ||
-            persistedPupils.length === 0
+            persistedPupils.length === 0 ||
+            (userRole === 'Parent' && !isParentPupilSnapshotOwnedByAccount(userId, persistedPupils))
           ) {
             return;
           }
@@ -335,22 +394,21 @@ export function GlobalDataPreloader() {
         baseQuery,
         { includeMetadataChanges: true },
         (snapshot) => {
+          if (disposed) return;
           const source = snapshot.metadata.fromCache ? 'cache' : 'server';
 
           if (!initialSnapshotPublished) {
             initialSnapshotPublished = true;
             serverSnapshotSeen = !snapshot.metadata.fromCache;
             const allPupils = snapshot.docs.map(normalizePupilDoc);
-            const existingPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
-            // An empty local snapshot must not blank a populated in-memory cache.
-            // The following server snapshot will authoritatively add/remove docs.
-            if (!(snapshot.metadata.fromCache && allPupils.length === 0 && existingPupils?.length)) {
-              queryClient.setQueryData(['pupils', 'list'], allPupils);
-              PupilsService.hydrateSharedPupils(allPupils);
-              onParentPupilIds?.(allPupils.map(pupil => pupil.id));
+            // An empty local Firestore snapshot is not proof that this account
+            // has no pupils: the server may still be downloading them.
+            if (snapshot.metadata.fromCache && allPupils.length === 0) return;
+            if (!snapshot.metadata.fromCache && userRole === 'Parent' && allPupils.length === 0) {
+              void recoverEmptyParentScope();
+              return;
             }
-            schedulePersistentPupilCacheWrite();
-            performance.mark?.(`trinity:pupils-${source}-ready`);
+            publishPupils(allPupils, source);
             console.log(`PRELOADER: Loaded ${allPupils.length} pupils from ${source}`);
             return;
           }
@@ -359,24 +417,31 @@ export function GlobalDataPreloader() {
           // The parent record subscriptions only react to membership changes, so
           // reuse this existing family-scoped listener instead of opening a
           // second identical pupils listener.
-          onParentPupilIds?.(snapshot.docs.map(doc => doc.id));
           const changes = snapshot.docChanges({ includeMetadataChanges: false });
           if (!snapshot.metadata.fromCache && !serverSnapshotSeen) {
             serverSnapshotSeen = true;
             performance.mark?.('trinity:pupils-server-synced');
-            if (changes.length > 0) {
-              // Reconcile against the complete authoritative result once. This
-              // removes records that may exist only in an older React Query cache.
-              queryClient.setQueryData(
-                ['pupils', 'list'],
-                snapshot.docs.map(normalizePupilDoc),
-              );
-              PupilsService.hydrateSharedPupils(snapshot.docs.map(normalizePupilDoc));
-              schedulePersistentPupilCacheWrite();
+            if (userRole === 'Parent' && snapshot.empty) {
+              void recoverEmptyParentScope();
+              return;
             }
+            // Always reconcile the complete server result, including a
+            // metadata-only confirmation with zero document changes.
+            publishPupils(snapshot.docs.map(normalizePupilDoc), 'server');
+            return;
+          }
+          if (
+            userRole === 'Parent'
+            && !snapshot.empty
+            && (queryClient.getQueryData(['parentPupilScope', userId]) === 'repairing'
+              || queryClient.getQueryData(['pupils', 'list']) === undefined)
+          ) {
+            publishPupils(snapshot.docs.map(normalizePupilDoc), source);
             return;
           }
           if (changes.length === 0) return;
+
+          onParentPupilIds?.(snapshot.docs.map(doc => doc.id));
 
           applyPupilChangesToQueryCaches(
             queryClient,
@@ -391,6 +456,7 @@ export function GlobalDataPreloader() {
           );
           const currentPupils = queryClient.getQueryData<any[]>(['pupils', 'list']);
           if (currentPupils) PupilsService.hydrateSharedPupils(currentPupils);
+          scopeStatus('ready');
           schedulePersistentPupilCacheWrite();
 
           if (!snapshot.metadata.fromCache) {
@@ -398,7 +464,16 @@ export function GlobalDataPreloader() {
           }
           console.log(`PRELOADER: Applied ${changes.length} live pupil change(s) from ${source}`);
         },
-        (error) => console.error('❌ PRELOADER: Pupils listener error:', error.message)
+        (error) => {
+          if (disposed) return;
+          console.error('❌ PRELOADER: Pupils listener error:', error.message);
+          if (userRole === 'Parent') {
+            clearPupilSessionQueries(queryClient);
+            PupilsService.clearSharedPupils();
+            onParentPupilIds?.([]);
+          }
+          scopeStatus('error');
+        }
       );
       unsubscribers.push(unsubscribe);
       unsubscribers.push(() => PupilsService.clearSharedPupils());

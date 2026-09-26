@@ -10,9 +10,13 @@ assert(
   !authContext.includes('SecureAuthService.verifyCredentials'),
   'Auto-lock resume must not verify username/password.',
 );
+const restorationStart = authContext.indexOf('const initializeAuth = async');
+const restorationEnd = authContext.indexOf('initializeAuth();', restorationStart);
+const restorationSource = authContext.slice(restorationStart, restorationEnd);
 assert(
-  !authContext.includes('firebase/firestore'),
-  'AuthContext session restoration must not read Firestore.',
+  restorationStart !== -1 && restorationEnd > restorationStart
+    && !/\b(?:getDoc|getDocs|onSnapshot)\s*\(/.test(restorationSource),
+  'AuthContext session restoration must not read Firestore (the separate parent-profile listener may).',
 );
 assert(
   authContext.includes('void revalidateSignedSession(false)'),

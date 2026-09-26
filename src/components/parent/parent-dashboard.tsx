@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { usePupil } from '@/lib/hooks/use-pupils';
+import { useParentPupilScopeStatus, usePupil } from '@/lib/hooks/use-pupils';
 import { useParentBanking } from '@/lib/hooks/use-parent-banking';
 import { useParentResults } from '@/lib/hooks/use-parent-results';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
@@ -27,6 +27,7 @@ interface ParentDashboardProps {
 
 export function ParentDashboard({ pupilId }: ParentDashboardProps) {
   const { user, logout } = useAuth();
+  const parentScopeStatus = useParentPupilScopeStatus(user?.id);
   const [currentView, setCurrentView] = useState<'info' | 'fees' | 'requirements' | 'banking' | 'attendance' | 'results'>('info');
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -88,6 +89,10 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
 
   const handleRefresh = async () => {
     try {
+      if (parentScopeStatus === 'error' || parentScopeStatus === 'ready' && !pupil) {
+        window.location.reload();
+        return;
+      }
       await refetch();
     } catch (err) {
       console.error('Error refreshing pupil data:', err);
@@ -111,13 +116,30 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
     }, 800);
   };
 
-  if (loading) {
+  if ((loading && parentScopeStatus !== 'error')
+    || (!pupil && parentScopeStatus !== 'ready' && parentScopeStatus !== 'error')) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading pupil information...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!pupil && parentScopeStatus === 'error') {
+    return (
+      <div className="container mx-auto p-4 sm:p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Unable to synchronize pupil information</AlertTitle>
+          <AlertDescription>Check your internet connection and try again. If the problem continues, contact the school.</AlertDescription>
+        </Alert>
+        <Button onClick={handleRefresh} variant="outline" className="mt-4">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Try Again
+        </Button>
       </div>
     );
   }
@@ -149,7 +171,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>No Data Found</AlertTitle>
-          <AlertDescription>Pupil information could not be loaded. Please contact support.</AlertDescription>
+          <AlertDescription>No pupils are currently linked to this parent account. Please contact the school if this is unexpected.</AlertDescription>
         </Alert>
         <div className="mt-4 space-x-2">
           <Button onClick={handleRefresh} variant="outline">

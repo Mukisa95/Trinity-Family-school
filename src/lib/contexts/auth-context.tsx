@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { SystemUser, UserRole, ModulePermission, Permission } from '@/types';
 import { UsersService } from '@/lib/services/users.service';
 import { SecureAuthError, SecureAuthService } from '@/lib/services/secure-auth.service';
@@ -12,6 +13,9 @@ import { logger } from '@/lib/utils/logger';
 import { validateCurrentAppSession } from '@/lib/auth/firebase-session';
 import { detachPushSubscriptionForLogout } from '@/lib/push-subscription-client';
 import { removeParentOfflineAccount } from '@/lib/parent-offline/repository';
+import { deletePersistentCollection, persistentCollectionCacheKey } from '@/lib/cache/persistent-collection-cache';
+import { PupilsService } from '@/lib/services/pupils.service';
+import { clearPupilSessionQueries } from '@/lib/cache/pupil-session-cache';
 
 const AUTH_CACHE_KEY = 'trinity_user';
 // How often a long-lived tab asks Firebase Authentication for a fresh signed
@@ -79,6 +83,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<SystemUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasStoredUser, setHasStoredUser] = useState(false);
@@ -109,9 +114,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearPrivateParentOfflineData = (accountId?: string) => {
     if (!accountId) return;
+    clearPrivatePupilSession(accountId);
     void removeParentOfflineAccount(accountId).catch(error => {
       logger.warn('Could not clear private parent offline data', error);
     });
+  };
+
+  const clearPrivatePupilSession = (accountId?: string) => {
+    // These canonical queries are not keyed by user. Remove them before a
+    // different parent can observe the previous account's pupil records.
+    clearPupilSessionQueries(queryClient);
+    PupilsService.clearSharedPupils();
+    if (accountId) {
+      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'trinity-family-schools';
+      void deletePersistentCollection(persistentCollectionCacheKey(
+        projectId, 'pupils', `parent:${accountId}:account-scope`,
+      ));
+    }
   };
 
   const readUserCache = (): { user: SystemUser; ageMs: number; isLegacy: boolean } | null => {
@@ -305,6 +324,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               };
 
               logger.debug('Setting user from verified Firebase identity', { username: systemUserData.username });
+              if (restoredCachedUser?.id && restoredCachedUser.id !== systemUserData.id) {
+                clearPrivatePupilSession(restoredCachedUser.id);
+                queryClient.setQueryData(['parentPupilScope', systemUserData.id], 'loading');
+              }
               setUser(systemUserData);
               restoredCachedUser = systemUserData;
               setHasStoredUser(true);
@@ -428,6 +451,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [autoLockEnabled, autoLockAction, user]);
 
   const acceptAuthenticatedUser = (authenticatedUser: SystemUser) => {
+    if (user?.id && user.id !== authenticatedUser.id) clearPrivatePupilSession(user.id);
+    queryClient.setQueryData(['parentPupilScope', authenticatedUser.id], 'loading');
     setUser(authenticatedUser);
     if (typeof window !== 'undefined') {
       saveUserCache(authenticatedUser);
@@ -492,6 +517,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
       await firebaseSignOut(auth);
+      clearPrivatePupilSession(departingUserId);
       setUser(null);
       setHasStoredUser(false);
       setIsLocked(false);
@@ -508,6 +534,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       logger.error('Error signing out from Firebase', error);
       // Even if Firebase logout fails, clear local state
+      clearPrivatePupilSession(departingUserId);
       setUser(null);
       setHasStoredUser(false);
       setIsLocked(false);

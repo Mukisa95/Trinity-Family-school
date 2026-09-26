@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { usePupil, usePupils, usePupilsByFamily } from '@/lib/hooks/use-pupils';
+import { useParentPupilScopeStatus, usePupil, usePupils, usePupilsByFamily } from '@/lib/hooks/use-pupils';
 import { useParentOfflineFamily } from '@/lib/hooks/use-parent-offline-family';
 import { ParentBottomNavigation } from './parent-bottom-navigation';
 import { ParentSidebar } from './parent-sidebar';
@@ -23,6 +23,9 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   const [currentView, setCurrentView] = useState<'dashboard' | 'home' | 'notifications'>('dashboard');
   const [currentPupilId, setCurrentPupilId] = useState<string | undefined>(user?.pupilId);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const parentScopeStatus = useParentPupilScopeStatus(user?.id);
+  const visibleAccountId = user?.role === 'Parent' && !['repairing', 'error'].includes(parentScopeStatus)
+    ? user.id : undefined;
 
   // Get familyId from user account (preferred) or fallback to pupil's familyId
   const userFamilyId = user?.familyId;
@@ -34,14 +37,20 @@ export function ParentLayout({ children }: ParentLayoutProps) {
   // Fetch all family members using the family-based relationship
   const familyQuery = usePupilsByFamily(familyId || '');
   const { familyMembers } = useParentOfflineFamily({
-    accountId: user?.role === 'Parent' ? user.id : undefined,
+    // Once the server confirms this account currently has no pupil marker,
+    // hide any old offline snapshot while its legacy links are repaired.
+    accountId: visibleAccountId,
     familyId,
     liveFamilyMembers: familyId ? familyQuery.data : accountPupils,
     // The selector intentionally returns [] while its canonical pupil cache is
     // still empty. Use the query's loading state so a cold offline launch can
     // distinguish that placeholder from a confirmed live empty family.
-    hasLiveFamilyData: familyId ? !familyQuery.isLoading : !accountPupilsLoading,
+    hasLiveFamilyData: parentScopeStatus === 'ready'
+      && (familyId ? !familyQuery.isLoading : !accountPupilsLoading),
   });
+  const selectedPupilId = familyMembers.some(pupil => pupil.id === currentPupilId)
+    ? currentPupilId
+    : (familyMembers.find(pupil => pupil.id === user?.pupilId)?.id || familyMembers[0]?.id);
 
   // Keep the selected pupil inside the live account scope. If a pupil is
   // removed while this parent is viewing them, switch immediately to another
@@ -105,21 +114,21 @@ export function ParentLayout({ children }: ParentLayoutProps) {
         return <ParentAboutSchool />;
       case 'dashboard':
       default:
-        return <ParentDashboard pupilId={currentPupilId} />;
+        return <ParentDashboard pupilId={selectedPupilId} />;
     }
   };
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <ParentOfflineDatasetPreparer
-        accountId={user?.role === 'Parent' ? user.id : undefined}
+        accountId={visibleAccountId}
         familyId={familyId}
         pupils={familyMembers}
       />
       {/* Desktop Sidebar */}
       <ParentSidebar
         currentView={currentView}
-        currentPupilId={currentPupilId}
+        currentPupilId={selectedPupilId}
         onViewChange={handleViewChange}
         onPupilChange={handlePupilChange}
         familyId={familyId}
@@ -138,7 +147,7 @@ export function ParentLayout({ children }: ParentLayoutProps) {
         <div className="lg:hidden">
           <ParentBottomNavigation
             currentView={currentView}
-            currentPupilId={currentPupilId}
+            currentPupilId={selectedPupilId}
             onViewChange={handleViewChange}
             onPupilChange={handlePupilChange}
             familyId={familyId}
