@@ -349,7 +349,7 @@ test('the credential vault is inaccessible even to active administrators', async
   await assertFails(setDoc(doc(db, 'authCredentials', 'active-admin'), { passwordHash: 'tampered' }));
 });
 
-test('payment notification outbox remains server-only under existing scheduling rules', async () => {
+test('payment notification outbox denies every Web SDK client including the server custom token', async () => {
   const eventPath = 'scheduledNotifications/fee-payment-events/outbox/payment-test';
   await testEnv.withSecurityRulesDisabled(async context => {
     await setDoc(doc(context.firestore(), eventPath), { paymentId: 'test', status: 'pending' });
@@ -358,22 +358,17 @@ test('payment notification outbox remains server-only under existing scheduling 
     testEnv.unauthenticatedContext().firestore(),
     testEnv.authenticatedContext('active-admin', { appUser: true, isActive: true, role: 'Admin' }).firestore(),
     testEnv.authenticatedContext('active-parent', { appUser: true, isActive: true, role: 'Parent', familyId: 'family-1' }).firestore(),
+    testEnv.authenticatedContext('trinity-vercel-server', {
+      appUser: true, isActive: true, role: 'Server', serverApp: true,
+    }).firestore(),
   ]) {
     await assertFails(getDoc(doc(db, eventPath)));
     await assertFails(setDoc(doc(db, eventPath), { status: 'completed' }, { merge: true }));
     await assertFails(deleteDoc(doc(db, eventPath)));
+    await assertFails(setDoc(doc(db, 'scheduledNotifications/fee-payment-events/outbox/payment-new'), {
+      paymentId: 'new', status: 'pending',
+    }));
   }
-
-  const trustedServerDb = testEnv.authenticatedContext('trinity-vercel-server', {
-    appUser: true,
-    isActive: true,
-    role: 'Server',
-    serverApp: true,
-  }).firestore();
-  await assertSucceeds(setDoc(
-    doc(trustedServerDb, 'scheduledNotifications/fee-payment-events/outbox/payment-server-created'),
-    { paymentId: 'server-created', status: 'pending' },
-  ));
 });
 
 test('daily attendance summaries are restricted to staff and administrators', async () => {

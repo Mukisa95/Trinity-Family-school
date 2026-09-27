@@ -90,7 +90,7 @@ function loadPaymentsService() {
         paymentData: Record<string, unknown>;
         historyContext?: Record<string, unknown>;
         uniformTracking?: { trackingId: string; paymentAmount: number; paymentDate: string };
-      }>, options?: { enqueueNotifications?: boolean }) => Promise<{ paymentIds: string[]; wasReplay: boolean }>;
+      }>, options?: { paymentIds?: string[] }) => Promise<{ paymentIds: string[]; wasReplay: boolean }>;
       getAllPaymentsByTerm: (academicYearId: string, termId: string) => Promise<unknown[]>;
     },
     writes,
@@ -195,24 +195,33 @@ test('uniform payment updates its tracking balance in the same operation', async
   assert.equal([...subject.documents.keys()].filter(key => key.startsWith('payments/')).length, 1);
 });
 
-test('the server payment command atomically creates one durable notification event per payment', async () => {
+test('the server payment command uses preallocated IDs without a Web SDK outbox write', async () => {
   const subject = loadPaymentsService();
+  const paymentIds = ['preallocated-payment-1', 'preallocated-payment-2'];
   const result = await subject.PaymentsService.createPaymentOperation(
     'fee-notification-operation-001',
     [allocation(250), {
       ...allocation(150),
       paymentData: { ...allocation(150).paymentData, feeStructureId: 'fee-2' },
     }],
-    { enqueueNotifications: true },
+    { paymentIds },
   );
 
+  assert.deepEqual(result.paymentIds, paymentIds);
   for (const paymentId of result.paymentIds) {
     assert.ok(subject.documents.has(`payments/${paymentId}`));
-    assert.equal(
-      subject.documents.get(`scheduledNotifications/fee-payment-events/outbox/payment-${paymentId}`)?.paymentId,
-      paymentId,
-    );
   }
+  assert.equal([...subject.documents.keys()].filter(key => key.startsWith('scheduledNotifications/')).length, 0);
+  const replay = await subject.PaymentsService.createPaymentOperation(
+    'fee-notification-operation-001',
+    [allocation(250), {
+      ...allocation(150),
+      paymentData: { ...allocation(150).paymentData, feeStructureId: 'fee-2' },
+    }],
+    { paymentIds: ['another-valid-payment-1', 'another-valid-payment-2'] },
+  );
+  assert.equal(replay.wasReplay, true);
+  assert.deepEqual(replay.paymentIds, paymentIds, 'replay must retain the committed IDs');
 });
 
 test('one individual mixed-fee operation commits regular, uniform and carry-forward records together', async () => {

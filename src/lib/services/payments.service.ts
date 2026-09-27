@@ -17,7 +17,6 @@ import { HistoryLogService } from './history-log.service';
 
 const PAYMENTS_COLLECTION = 'payments';
 const PAYMENT_OPERATIONS_COLLECTION = 'paymentOperations';
-const PAYMENT_NOTIFICATION_OUTBOX = 'scheduledNotifications/fee-payment-events/outbox';
 const UNIFORM_TRACKING_COLLECTION = 'uniformTracking';
 const MAX_PAYMENT_ALLOCATIONS_PER_OPERATION = 100;
 const PAYMENT_OPERATION_ID_PATTERN = /^[A-Za-z0-9_-]{12,160}$/;
@@ -81,6 +80,18 @@ function stablePaymentOperationFingerprint(value: unknown): string {
   )).join(',')}}`;
 }
 
+export function validatePaymentOperationInput(operationId: string, allocations: PaymentOperationAllocation[]) {
+  if (!PAYMENT_OPERATION_ID_PATTERN.test(operationId)) {
+    throw new Error('Payment operation ID is invalid');
+  }
+  if (!Array.isArray(allocations) || allocations.length === 0 || allocations.length > MAX_PAYMENT_ALLOCATIONS_PER_OPERATION) {
+    throw new Error(`A payment operation must contain between 1 and ${MAX_PAYMENT_ALLOCATIONS_PER_OPERATION} allocations`);
+  }
+  if (allocations.some(({ paymentData }) => !Number.isFinite(paymentData?.amount) || paymentData.amount <= 0)) {
+    throw new Error('Each payment allocation must have a positive amount');
+  }
+}
+
 export class PaymentsService {
   private static paymentsByYearCache = new Map<string, PaymentRecord[]>();
   private static paymentsByYearInFlight = new Map<string, Promise<PaymentRecord[]>>();
@@ -139,7 +150,6 @@ export class PaymentsService {
     paymentId: string,
     paymentData: Omit<PaymentRecord, 'id' | 'createdAt'>,
     historyContext?: PaymentHistoryContext,
-    enqueueNotification = false,
   ) {
     const newPayment = cleanUndefinedPaymentValues({
       ...paymentData,
@@ -147,19 +157,6 @@ export class PaymentsService {
       paymentDate: paymentData.paymentDate || new Date().toISOString(),
     });
     transaction.set(doc(db, PAYMENTS_COLLECTION, paymentId), newPayment);
-    if (enqueueNotification) {
-      transaction.set(doc(db, PAYMENT_NOTIFICATION_OUTBOX, `payment-${paymentId}`), {
-        kind: 'fee_payment',
-        version: 1,
-        paymentId,
-        status: 'pending',
-        attempts: 0,
-        nextAttemptAt: Timestamp.now(),
-        leaseToken: null,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      });
-    }
     HistoryLogService.addToTransaction(transaction, {
       action: 'create',
       entity: 'payment',
@@ -183,16 +180,13 @@ export class PaymentsService {
   static async createPaymentOperation(
     operationId: string,
     allocations: PaymentOperationAllocation[],
-    options?: { enqueueNotifications?: boolean },
+    options?: { paymentIds?: string[] },
   ): Promise<PaymentOperationResult> {
-    if (!PAYMENT_OPERATION_ID_PATTERN.test(operationId)) {
-      throw new Error('Payment operation ID is invalid');
-    }
-    if (allocations.length === 0 || allocations.length > MAX_PAYMENT_ALLOCATIONS_PER_OPERATION) {
-      throw new Error(`A payment operation must contain between 1 and ${MAX_PAYMENT_ALLOCATIONS_PER_OPERATION} allocations`);
-    }
-    if (allocations.some(({ paymentData }) => !Number.isFinite(paymentData.amount) || paymentData.amount <= 0)) {
-      throw new Error('Each payment allocation must have a positive amount');
+    validatePaymentOperationInput(operationId, allocations);
+    if (options?.paymentIds && (options.paymentIds.length !== allocations.length
+      || new Set(options.paymentIds).size !== options.paymentIds.length
+      || options.paymentIds.some(id => !PAYMENT_OPERATION_ID_PATTERN.test(id)))) {
+      throw new Error('Preallocated payment IDs are invalid');
     }
 
     const fingerprint = stablePaymentOperationFingerprint(allocations.map(allocation => ({
@@ -245,14 +239,13 @@ export class PaymentsService {
         ] as const),
       );
 
-      const paymentIds = allocations.map(() => doc(collection(db, PAYMENTS_COLLECTION)).id);
+      const paymentIds = options?.paymentIds || allocations.map(() => doc(collection(db, PAYMENTS_COLLECTION)).id);
       allocations.forEach((allocation, index) => {
         this.addPaymentToTransaction(
           transaction,
           paymentIds[index],
           allocation.paymentData,
           allocation.historyContext,
-          options?.enqueueNotifications === true,
         );
       });
       uniformSnapshots.forEach(([trackingId, trackingSnapshot]) => {
@@ -306,7 +299,7 @@ export class PaymentsService {
     options?: {
       skipHistoryLog?: boolean;
       historyContext?: PaymentHistoryContext;
-      enqueueNotification?: boolean;
+      paymentId?: string;
     }
   ): Promise<string> {
     try {
@@ -319,22 +312,14 @@ export class PaymentsService {
       // Clean undefined values before sending to Firebase
       const cleanedData = cleanUndefinedPaymentValues(newPayment);
       
-      const docRef = doc(collection(db, PAYMENTS_COLLECTION));
+      if (options?.paymentId && !PAYMENT_OPERATION_ID_PATTERN.test(options.paymentId)) {
+        throw new Error('Preallocated payment ID is invalid');
+      }
+      const docRef = options?.paymentId
+        ? doc(db, PAYMENTS_COLLECTION, options.paymentId)
+        : doc(collection(db, PAYMENTS_COLLECTION));
       const batch = writeBatch(db);
       batch.set(docRef, cleanedData);
-      if (options?.enqueueNotification) {
-        batch.set(doc(db, PAYMENT_NOTIFICATION_OUTBOX, `payment-${docRef.id}`), {
-          kind: 'fee_payment',
-          version: 1,
-          paymentId: docRef.id,
-          status: 'pending',
-          attempts: 0,
-          nextAttemptAt: Timestamp.now(),
-          leaseToken: null,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-      }
       if (!options?.skipHistoryLog) {
         HistoryLogService.addToBatch(batch, {
           action: 'create',

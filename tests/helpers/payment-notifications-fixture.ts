@@ -32,6 +32,10 @@ export function notificationFixture() {
   };
   const doc = (path: string) => ({
     path, id: path.split('/').at(-1),
+    create: async (value: any) => {
+      if (documents.has(path)) throw Object.assign(new Error('already exists'), { code: 6 });
+      write(path, value);
+    },
     get: async () => {
       counts[path] = (counts[path] || 0) + 1;
       if (failedReads.has(path)) throw new Error('read unavailable');
@@ -87,7 +91,7 @@ export function notificationFixture() {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
     }).outputText;
     vm.runInNewContext(output, {
-      module, exports: module.exports, Date,
+      module, exports: module.exports, Date, process: { env: {} },
       console: { log() {}, error() {} },
       require: (name: string) => {
         if (name === 'server-only') return {};
@@ -96,7 +100,7 @@ export function notificationFixture() {
           getFirestore: () => db, Timestamp: { fromMillis: stamp },
           FieldValue: { delete: () => ({ op: 'delete' }), serverTimestamp: () => stamp(Date.now()), arrayUnion: (...values: any[]) => ({ op: 'union', values }) },
         };
-        if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({}) };
+        if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({ options: {} }) };
         if (name === './payment-notification-outbox') return load('src/lib/server/payment-notification-outbox.ts');
         if (name === '@/lib/services/fees-payment-notification.server') return load('src/lib/services/fees-payment-notification.server.ts');
         if (name === '@/lib/users/parent-account-families') return load('src/lib/users/parent-account-families.ts');

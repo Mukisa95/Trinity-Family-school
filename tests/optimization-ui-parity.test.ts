@@ -44,8 +44,9 @@ for (const file of [
   });
 }
 
-test('authentication, rules and SchoolPay verification implementations are unchanged by this release', () => {
-  for (const file of ['firestore.rules', 'middleware.ts', 'src/middleware.ts', 'src/lib/server/ensure-server-firestore-auth.ts', 'src/lib/server/app-auth.ts', 'src/lib/server/firestore-rest-auth.ts', 'src/lib/contexts/auth-context.tsx']) {
+test('server authentication and SchoolPay verification implementations are unchanged by this release', () => {
+  // Parent-account scope and payment outbox rules changed in later releases.
+  for (const file of ['middleware.ts', 'src/middleware.ts', 'src/lib/server/ensure-server-firestore-auth.ts', 'src/lib/server/app-auth.ts', 'src/lib/server/firestore-rest-auth.ts']) {
     if (!fs.existsSync(file)) continue;
     assert.equal(execFileSync('git', ['diff', releaseBaseRef, '--', file], { encoding: 'utf8' }), '');
   }

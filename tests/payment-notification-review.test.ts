@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+import * as crypto from 'node:crypto';
 import { notificationFixture } from './helpers/payment-notifications-fixture';
 
 test('grouped preparation shares reads and preserves the non-reverted ledger balance', async () => {
@@ -28,6 +31,15 @@ test('concurrent workers and repeated enqueue do not send completed jobs again',
   const event = f.documents.get('scheduledNotifications/fee-payment-events/outbox/payment-payment-1');
   assert.equal(event.status, 'completed');
   assert.equal(event.attempts, 1);
+  assert.equal(f.counts['scheduledNotifications/fee-payment-events/outbox/payment-payment-1'], undefined,
+    'create-only retries must not read the outbox document');
+});
+
+test('a prepared job cannot notify anyone when its payment never commits', async () => {
+  const f = notificationFixture();
+  await f.enqueue([{ paymentId: 'uncommitted' }]);
+  await f.process();
+  assert.equal(f.sent.length, 0);
 });
 
 test('recipient failure retries only unconfirmed recipients with the same payload and ID', async () => {
@@ -127,6 +139,20 @@ test('active pupil parent marker adds the family account without another user lo
   assert.equal(f.counts.system_users, 1, 'parent routing must use the pupil marker, not query system_users again');
 });
 
+test('standalone pupil parent marker receives the same fee-payment push', async () => {
+  const f = notificationFixture();
+  await f.enqueue([f.seed()]);
+  Object.assign(f.documents.get('pupils/pupil-1'), {
+    parentAccountId: 'standalone-parent', parentAccountActive: true,
+  });
+
+  await f.process();
+
+  assert.deepEqual(f.sent.map(item => item.userId).sort(), ['staff', 'standalone-parent']);
+  assert.equal(f.sent.find(item => item.userId === 'standalone-parent')?.payload.pushUrl,
+    '/parent?pupilId=pupil-1');
+});
+
 test('missing or inactive parent marker does not attempt parent delivery', async () => {
   const f = notificationFixture();
   await f.enqueue([f.seed()]);
@@ -147,4 +173,78 @@ test('payment route hands initial delivery and replay to the same worker after r
   assert.match(source, /processPendingPaymentNotificationEvents/);
   assert.doesNotMatch(source, /sendPaymentNotifications\(|!operation(?:\?)?\.wasReplay/);
   assert.match(source, /after\(\(\) => notifyPaymentsCreatedAfterResponse/);
+});
+
+test('payment route prepares an Admin-only job before the financial write and stops if preparation fails', async () => {
+  const calls: string[] = [];
+  const afterTasks: Array<() => Promise<void>> = [];
+  let failPreparation = false;
+  const service = {
+    createPaymentOperation: async (_operationId: string, allocations: unknown[], options: { paymentIds: string[] }) => {
+      calls.push('payment-operation');
+      assert.equal(options.paymentIds.length, allocations.length);
+      return { paymentIds: options.paymentIds, wasReplay: false };
+    },
+    createPayment: async (_payment: unknown, options: { paymentId: string }) => {
+      calls.push('single-payment');
+      return options.paymentId;
+    },
+  };
+  const source = ts.transpileModule(fs.readFileSync('src/app/api/payments/create/route.ts', 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  }).outputText;
+  const module = { exports: {} as { POST: (request: unknown) => Promise<{ body: any; status: number }> } };
+  vm.runInNewContext(source, {
+    module, exports: module.exports, performance: { now: () => 0 }, setTimeout, clearTimeout,
+    console: { log() {}, warn() {}, error() {} },
+    require(name: string) {
+      if (name === 'next/server') return {
+        after: (callback: () => Promise<void>) => afterTasks.push(callback),
+        NextResponse: { json: (body: any, options?: { status?: number }) => ({ body, status: options?.status || 200 }) },
+      };
+      if (name === 'node:crypto') return crypto;
+      if (name === '@/lib/services/payments.service') return {
+        PaymentsService: service,
+        validatePaymentOperationInput: (id: string, allocations: unknown[]) => {
+          assert.ok(id);
+          assert.ok(allocations.length > 0);
+        },
+      };
+      if (name === '@/lib/server/ensure-server-firestore-auth') return {
+        ensureServerFirestoreAuth: async () => { calls.push('auth'); },
+      };
+      if (name === '@/lib/server/payment-notification-outbox') return {
+        enqueuePaymentNotificationEvents: async () => {
+          calls.push('admin-job');
+          if (failPreparation) throw new Error('Admin unavailable');
+        },
+      };
+      if (name === '@/lib/server/payment-notification-worker') return {
+        processPendingPaymentNotificationEvents: async () => {},
+      };
+      throw new Error(`Unexpected import: ${name}`);
+    },
+  });
+  const paymentData = { pupilId: 'pupil-1', amount: 100 };
+  const request = (body: unknown) => ({ json: async () => body });
+
+  const grouped = await module.exports.POST(request({
+    operationId: 'payment-op-123', allocations: [{ paymentData }],
+  }));
+  assert.equal(grouped.status, 200);
+  assert.deepEqual(calls, ['auth', 'admin-job', 'payment-operation']);
+  assert.equal(afterTasks.length, 1);
+
+  calls.length = 0;
+  failPreparation = true;
+  const failed = await module.exports.POST(request(paymentData));
+  assert.equal(failed.status, 500);
+  assert.deepEqual(calls, ['auth', 'admin-job']);
+  assert.equal(afterTasks.length, 1);
+
+  calls.length = 0;
+  failPreparation = false;
+  const single = await module.exports.POST(request(paymentData));
+  assert.equal(single.status, 200);
+  assert.deepEqual(calls, ['auth', 'admin-job', 'single-payment']);
 });

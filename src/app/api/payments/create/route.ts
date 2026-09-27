@@ -1,5 +1,6 @@
 import { after, NextRequest, NextResponse } from 'next/server';
-import { PaymentHistoryContext, PaymentsService } from '@/lib/services/payments.service';
+import { createHash, randomUUID } from 'node:crypto';
+import { PaymentHistoryContext, PaymentsService, validatePaymentOperationInput } from '@/lib/services/payments.service';
 import type { PaymentRecord } from '@/types';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
 import { enqueuePaymentNotificationEvents } from '@/lib/server/payment-notification-outbox';
@@ -9,18 +10,19 @@ const PAYMENT_NOTIFICATION_TIMEOUT_MS = 8_000;
 
 type PaymentNotificationTarget = {
   paymentId: string;
-  paymentData: PaymentRecord;
 };
+
+function paymentIdsForOperation(operationId: string, count: number): string[] {
+  return Array.from({ length: count }, (_, index) => `pay-${createHash('sha256')
+    .update(`fee-payment:${operationId}:${index}`)
+    .digest('hex')}`);
+}
 
 async function notifyPaymentsCreatedAfterResponse(
   targets: PaymentNotificationTarget[],
-  ensureEnqueued = false,
 ) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    // New payments create their outbox document atomically with the financial
-    // write. Only a replay from before that rollout needs this repair step.
-    if (ensureEnqueued) await enqueuePaymentNotificationEvents(targets);
     await Promise.race([
       processPendingPaymentNotificationEvents(25, targets.map(target => target.paymentId)),
       new Promise<void>((resolve) => {
@@ -44,9 +46,10 @@ async function notifyPaymentsCreatedAfterResponse(
  * API Route: POST /api/payments/create
  *
  * Server-side payment creation endpoint that:
- * 1. Creates payment record in database
- * 2. Returns as soon as the financial record and history entry are committed
- * 3. Hands push notifications to a leased worker after the response
+ * 1. Creates an Admin-only notification job before the payment write
+ * 2. Creates the payment record in the database
+ * 3. Returns as soon as the financial record and history entry are committed
+ * 4. Hands push notifications to a leased worker after the response
  * Notifications remain durable and retryable after the response completes.
  * This ensures notifications run on the server where Node.js modules are available.
  */
@@ -81,20 +84,20 @@ export async function POST(request: NextRequest) {
       if (!operationId) {
         throw new Error('A grouped payment request requires an operation ID');
       }
+      validatePaymentOperationInput(operationId, allocations);
+      const intendedIds = paymentIdsForOperation(operationId, allocations.length);
+      await enqueuePaymentNotificationEvents(intendedIds.map(paymentId => ({ paymentId })));
       const operation = await PaymentsService.createPaymentOperation(operationId, allocations, {
-        enqueueNotifications: true,
+        paymentIds: intendedIds,
       });
+      // Operations saved by older deployments used random payment IDs.
+      if (operation.wasReplay && operation.paymentIds.some((id, index) => id !== intendedIds[index])) {
+        await enqueuePaymentNotificationEvents(operation.paymentIds.map(paymentId => ({ paymentId })));
+      }
       const paymentCommittedAt = performance.now();
-      const committedPayments = allocations.map((allocation, index) => ({
-        id: operation.paymentIds[index],
-        ...allocation.paymentData,
-        createdAt: new Date(),
-        paymentDate: allocation.paymentData.paymentDate || new Date().toISOString(),
-      }));
       {
         after(() => notifyPaymentsCreatedAfterResponse(
-          committedPayments.map(payment => ({ paymentId: payment.id, paymentData: payment })),
-          operation.wasReplay,
+          operation.paymentIds.map(paymentId => ({ paymentId })),
         ));
       }
 
@@ -123,29 +126,32 @@ export async function POST(request: NextRequest) {
     console.log(`   Amount: ${paymentData.amount}`);
     console.log(`${'='.repeat(80)}\n`);
 
-    // Keep the client-reachable PaymentsService free of Node-only imports.
+    // The Admin SDK can write this job under the existing denied scheduling
+    // rules. The worker checks the saved payment before any delivery.
+    if (!Number.isFinite(paymentData.amount) || paymentData.amount <= 0) {
+      throw new Error('Payment amount must be positive');
+    }
+    if (operationId) validatePaymentOperationInput(operationId, [{ paymentData, historyContext }]);
+    const intendedId = operationId ? paymentIdsForOperation(operationId, 1)[0] : randomUUID();
+    await enqueuePaymentNotificationEvents([{ paymentId: intendedId }]);
     const operation = operationId
       ? await PaymentsService.createPaymentOperation(operationId, [{ paymentData, historyContext }], {
-          enqueueNotifications: true,
+          paymentIds: [intendedId],
         })
       : null;
     const paymentId = operation?.paymentIds[0] || await PaymentsService.createPayment(paymentData, {
       skipHistoryLog,
       historyContext,
-      enqueueNotification: true,
+      paymentId: intendedId,
     });
+    if (operation?.wasReplay && paymentId !== intendedId) {
+      await enqueuePaymentNotificationEvents([{ paymentId }]);
+    }
     const paymentCommittedAt = performance.now();
-
-    const committedPayment = {
-      id: paymentId,
-      ...paymentData,
-      createdAt: new Date(),
-      paymentDate: paymentData.paymentDate || new Date().toISOString(),
-    };
     {
       after(() => notifyPaymentsCreatedAfterResponse([
-        { paymentId, paymentData: committedPayment },
-      ], operation?.wasReplay === true));
+        { paymentId },
+      ]));
     }
 
     console.log(`✅ [Payment API] Payment created successfully: ${paymentId}\n`);
