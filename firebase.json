@@ -4,16 +4,23 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
+    "site": "trinityfamilyschool",
     "public": "out",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
+    "redirects": [
       {
-        "source": "**",
-        "destination": "/index.html"
+        "source": "/",
+        "destination": "https://trinityfamilyschool.vercel.app/",
+        "type": 301
+      },
+      {
+        "source": "/:path*",
+        "destination": "https://trinityfamilyschool.vercel.app/:path",
+        "type": 301
       }
     ]
   },
