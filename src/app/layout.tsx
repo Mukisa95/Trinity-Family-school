@@ -18,44 +18,80 @@ import { OperationalAuditProvider } from '@/components/providers/operational-aud
 const geistSans = GeistSans;
 const geistMono = GeistMono;
 
-// Metadata configuration with custom Trinity School icon
+const siteUrl = 'https://trinityfamilyschool.vercel.app';
+const schoolName = 'Trinity Family Nursery & Primary School';
+const siteDescription = 'Official website and school portal for Trinity Family Nursery & Primary School in Kawaala, Kampala, Uganda. Learn about the school, admissions, nursery and primary education, and access the Trinity Family School portal.';
+
+const schoolStructuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'School',
+      '@id': `${siteUrl}/#school`,
+      name: schoolName,
+      alternateName: [
+        'Trinity Family School',
+        'Trinity Family Primary School',
+        'Trinity Family School Kawaala',
+        'Trinity School Kawaala',
+      ],
+      url: siteUrl,
+      description: siteDescription,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${siteUrl}/trinity-logo-512.png`,
+        width: 512,
+        height: 512,
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Kawaala',
+        addressRegion: 'Kampala',
+        addressCountry: 'UG',
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: 'Trinity Family School',
+      alternateName: 'Trinity Family School Kawaala',
+      publisher: {
+        '@id': `${siteUrl}/#school`,
+      },
+      inLanguage: 'en-UG',
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   title: {
-    default: 'Trinity School Online - Comprehensive School Management System',
-    template: '%s | Trinity School Online'
+    default: 'Trinity Family Nursery & Primary School | Kawaala, Kampala',
+    template: '%s | Trinity Family School'
   },
-  description: 'Trinity School Online - Modern school management system for efficient administration, student tracking, attendance management, fee collection, and academic performance monitoring. Official Trinity School digital platform.',
+  description: siteDescription,
   keywords: [
-    'trinity school online',
     'trinity school',
-    'trinity school management',
-    'trinity school portal',
-    'trinity school system',
-    'school management system',
-    'student information system',
-    'education software',
-    'school administration',
-    'attendance tracking',
-    'fee management',
-    'academic performance',
-    'student portal',
-    'teacher dashboard',
-    'school ERP',
-    'educational technology',
-    'school software',
-    'trinity education',
-    'trinity academy',
-    'trinity learning'
+    'trinity family school',
+    'trinity family kawaala',
+    'trinity family school kawaala',
+    'trinity family nursery and primary school',
+    'trinity family primary school',
+    'trinity kawaala',
+    'trinity school kawaala',
+    'nursery school in kawaala',
+    'primary school in kawaala',
+    'school in kawaala kampala',
   ],
-  authors: [{ name: 'Trinity School Online Team' }],
-  creator: 'Trinity School Online',
-  publisher: 'Trinity School Online',
+  authors: [{ name: schoolName }],
+  creator: schoolName,
+  publisher: schoolName,
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://trinityfamilyschool.vercel.app'),
+  metadataBase: new URL(siteUrl),
   alternates: {
     canonical: '/',
   },
@@ -80,26 +116,25 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   openGraph: {
     type: 'website',
-    locale: 'en_US',
-    url: 'https://trinityfamilyschool.vercel.app',
-    title: 'Trinity School Online - Comprehensive School Management System',
-    description: 'Trinity School Online - Modern school management system for efficient administration, student tracking, attendance management, fee collection, and academic performance monitoring.',
-    siteName: 'Trinity School Online',
+    locale: 'en_UG',
+    url: siteUrl,
+    title: 'Trinity Family Nursery & Primary School | Kawaala, Kampala',
+    description: siteDescription,
+    siteName: 'Trinity Family School',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Trinity School Online - School Management System',
+        alt: 'Trinity Family Nursery & Primary School in Kawaala, Kampala',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Trinity School Online - Comprehensive School Management System',
-    description: 'Trinity School Online - Modern school management system for efficient administration, student tracking, attendance management, fee collection, and academic performance monitoring.',
+    title: 'Trinity Family Nursery & Primary School | Kawaala, Kampala',
+    description: siteDescription,
     images: ['/og-image.jpg'],
-    creator: '@trinityschoolonline',
   },
   robots: {
     index: true,
@@ -131,38 +166,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#000000" />
-        {/* Structured data script - uncomment when ready to use
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              "name": "Trinity School Online",
-              "alternateName": ["Trinity School Management System", "Trinity School Portal"],
-              "description": "Comprehensive school management system for Trinity School - efficient administration, student tracking, and academic performance monitoring",
-              "applicationCategory": "EducationalApplication",
-              "operatingSystem": "Web Browser",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-              },
-              "provider": {
-                "@type": "Organization",
-                "name": "Trinity School Online",
-                "alternateName": "Trinity School",
-                "url": "https://trinityfamilyschool.vercel.app",
-                "sameAs": [
-                  "https://facebook.com/trinityschool",
-                  "https://twitter.com/trinityschool"
-                ]
-              },
-              "keywords": "trinity school online, trinity school, school management system, student portal, education software"
-            })
+            __html: JSON.stringify(schoolStructuredData).replace(/</g, '\\u003c'),
           }}
         />
-        */}
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <QueryProvider>

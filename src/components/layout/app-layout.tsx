@@ -269,7 +269,7 @@ const MemoizedAppLayout = memo(function MemoizedAppLayout({
   const [showSwipeHint, setShowSwipeHint] = useState(false);
 
   // Check if this is a public route
-  const publicRoutes = ['/login', '/admin/setup', '/test-firebase'];
+  const publicRoutes = ['/login', '/about-trinity', '/admin/setup', '/test-firebase'];
   const isPublicRoute = pathname ? (publicRoutes.includes(pathname) || publicRoutes.some((route: string) => pathname.startsWith(route + '/'))) : false;
 
   // Check if this is a parent route (should use its own layout)
@@ -639,7 +639,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     sessionMessage,
   } = useAuth();
   const { data: schoolSettings, isLoading: isLoadingSettings, error: settingsError } = useSchoolSettings();
-  const isPublicRoute = Boolean(pathname && ['/login', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
+  const isPublicRoute = Boolean(pathname && ['/login', '/about-trinity', '/admin/setup', '/test-firebase'].some((route) => pathname === route || pathname.startsWith(`${route}/`)));
   const isNonLoginPublicRoute = isPublicRoute && pathname !== '/login';
   const [startupPhase, setStartupPhase] = useState<'visible' | 'fading' | 'complete'>(() => (
     isNonLoginPublicRoute ? 'complete' : 'visible'

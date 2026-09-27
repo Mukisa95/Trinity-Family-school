@@ -1528,6 +1528,8 @@ export default function LoginPage() {
           <a href={`mailto:${settings.contact.email || "info@trinityschool.ac.ug"}`}>
             {settings.contact.email || "info@trinityschool.ac.ug"}
           </a>
+          {" · "}
+          <a href="/about-trinity">About Trinity Family School</a>
         </footer>
 
         {/* ────────── GLASSMORPHISM LOGIN MODAL ───────────────────────────── */}
