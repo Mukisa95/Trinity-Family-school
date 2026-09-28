@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { usePhotos } from '@/lib/hooks/use-photos';
@@ -30,10 +31,12 @@ import {
   Instagram,
   Linkedin,
   Loader2,
+  ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AcademicProgressTile } from './academic-progress-tile';
+import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
 
 // Note: motion() factory is deprecated but still works
 // Will migrate to new API in future framer-motion update
@@ -46,6 +49,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [resumeSlideshowOnClose, setResumeSlideshowOnClose] = useState(false);
 
   // Filter active photos
   const activePhotos = useMemo(() => {
@@ -63,25 +67,12 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
     return () => clearInterval(interval);
   }, [isPlaying, activePhotos.length]);
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % activePhotos.length);
+  const showPrevious = () => {
+    setCurrentSlide((previous) => (previous - 1 + activePhotos.length) % activePhotos.length);
   };
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + activePhotos.length) % activePhotos.length);
-  };
-
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-  };
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
-
-  const handleCenterClick = () => {
-    setIsPlaying(!isPlaying);
-    toggleFullscreen();
+  const showNext = () => {
+    setCurrentSlide((previous) => (previous + 1) % activePhotos.length);
   };
 
   if (!activePhotos.length) {
@@ -146,136 +137,59 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             ))}
           </div>
 
-          {/* Invisible Click Zones */}
-          {activePhotos.length > 1 && (
-            <>
-              {/* Left click zone for previous */}
-              <div 
-                className="absolute left-0 top-0 w-1/3 h-full z-10 cursor-pointer"
-                onClick={prevSlide}
-              />
-              
-              {/* Right click zone for next */}
-              <div 
-                className="absolute right-0 top-0 w-1/3 h-full z-10 cursor-pointer"
-                onClick={nextSlide}
-              />
-            </>
-          )}
+          <button
+            type="button"
+            aria-label={`Open ${activePhotos[currentSlide].title || 'school photo'} in a larger viewer`}
+            className="absolute inset-0 z-10 cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            onClick={() => {
+              setResumeSlideshowOnClose(isPlaying);
+              setIsPlaying(false);
+              setIsFullscreen(true);
+            }}
+          >
+            <span className="sr-only">Open photo</span>
+          </button>
 
-          {/* Center click zone for pause/play and fullscreen */}
-          <div 
-            className="absolute left-1/3 top-0 w-1/3 h-full z-10 cursor-pointer"
-            onClick={handleCenterClick}
-          />
+          {activePhotos.length > 1 && (
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 opacity-100 sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover:opacity-100">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={showPrevious}
+                aria-label="Show previous dashboard photo"
+                className="pointer-events-auto h-9 w-9 rounded-full border border-white/20 bg-black/35 text-white shadow-md backdrop-blur-md hover:bg-black/55 hover:text-white"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={showNext}
+                aria-label="Show next dashboard photo"
+                className="pointer-events-auto h-9 w-9 rounded-full border border-white/20 bg-black/35 text-white shadow-md backdrop-blur-md hover:bg-black/55 hover:text-white"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
 
-      {/* Fullscreen Modal */}
-      <AnimatePresence>
-        {isFullscreen && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="relative w-full h-full flex items-center justify-center">
-              {/* Close button */}
-              <motion.button
-                className="absolute top-4 right-4 w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all duration-300 z-20"
-                onClick={toggleFullscreen}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </motion.button>
-
-              {/* Fullscreen slideshow */}
-              <div className="relative w-full h-full max-w-6xl max-h-[90vh] mx-4">
-                {activePhotos.map((photo, index) => (
-                  <motion.div
-                    key={photo.id}
-                    className="absolute inset-0"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{
-                      opacity: index === currentSlide ? 1 : 0,
-                      scale: index === currentSlide ? 1 : 0.9,
-                    }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.title || 'School moment'}
-                      className="w-full h-full object-contain"
-                    />
-                  </motion.div>
-                ))}
-
-                {/* Fullscreen navigation */}
-                {activePhotos.length > 1 && (
-                  <>
-                    {/* Left navigation area */}
-                    <div 
-                      className="absolute left-0 top-0 w-1/3 h-full z-10 cursor-pointer flex items-center justify-start pl-8"
-                      onClick={prevSlide}
-                    >
-                      <motion.div
-                        className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity duration-300"
-                        whileHover={{ scale: 1.1 }}
-                      >
-                        <ChevronRight className="w-6 h-6 rotate-180" />
-                      </motion.div>
-                    </div>
-                    
-                    {/* Right navigation area */}
-                    <div 
-                      className="absolute right-0 top-0 w-1/3 h-full z-10 cursor-pointer flex items-center justify-end pr-8"
-                      onClick={nextSlide}
-                    >
-                      <motion.div
-                        className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity duration-300"
-                        whileHover={{ scale: 1.1 }}
-                      >
-                        <ChevronRight className="w-6 h-6" />
-                      </motion.div>
-                    </div>
-                  </>
-                )}
-
-                {/* Fullscreen play/pause area */}
-                <div 
-                  className="absolute left-1/3 top-0 w-1/3 h-full z-10 cursor-pointer flex items-center justify-center"
-                  onClick={() => setIsPlaying(!isPlaying)}
-                >
-                  <motion.div
-                    className="w-16 h-16 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity duration-300"
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    {isPlaying ? (
-                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    )}
-                  </motion.div>
-                </div>
-
-                {/* Photo info */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 text-white text-sm font-medium">
-                  {currentSlide + 1} / {activePhotos.length}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PhotoViewerDialog
+        open={isFullscreen}
+        onOpenChange={(open) => {
+          setIsFullscreen(open);
+          if (!open && resumeSlideshowOnClose) {
+            setIsPlaying(true);
+            setResumeSlideshowOnClose(false);
+          }
+        }}
+        photos={activePhotos}
+        currentIndex={currentSlide}
+        onCurrentIndexChange={setCurrentSlide}
+      />
     </Card>
   );
 };
@@ -758,4 +672,4 @@ export function ParentAboutSchool() {
       </motion.div>
     </div>
   );
-} 
+}

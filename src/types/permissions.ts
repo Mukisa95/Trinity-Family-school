@@ -856,6 +856,7 @@ const ROUTE_PAGE_ALIASES: RoutePagePermission[] = [
   { moduleId: 'notifications', pageId: 'list', pattern: /^\/push-notifications$/ },
   { moduleId: 'events', pageId: 'calendar', pattern: /^\/events\/[^/]+\/(attendance|view-attendance)$/ },
   { moduleId: 'settings', pageId: 'school', pattern: /^\/(settings\/(account|general)|about-trinity|nameorder)$/ },
+  { moduleId: 'settings', pageId: 'school', pattern: /^\/photos$/ },
 ];
 
 export function getRoutePagePermission(pathname: string): RoutePagePermission | undefined {

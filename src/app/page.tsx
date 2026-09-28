@@ -35,9 +35,7 @@ import {
   ImageIcon,
   ChevronLeft,
   Pause,
-  Play,
-  Minimize2,
-  Maximize2
+  Play
 } from 'lucide-react';
 import quotes from '@/data/quotes.json';
 import {
@@ -77,6 +75,7 @@ import { TermScheduleCard } from '@/components/dashboard/TermScheduleCard';
 import { MonthCalendarCard } from '@/components/dashboard/MonthCalendarCard';
 import { DashboardLiveTracker } from '@/components/dashboard/DashboardLiveTracker';
 import { ClassAttendanceSummaryDialog } from '@/components/dashboard/class-attendance-summary-dialog';
+import { PhotoViewerDialog } from '@/components/common/photo-viewer-dialog';
 
 const dashboardEase = [0.16, 1, 0.3, 1] as const;
 
@@ -2050,6 +2049,8 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
 const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
+  const [resumeSlideshowOnClose, setResumeSlideshowOnClose] = useState(false);
   const [direction, setDirection] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
@@ -2131,6 +2132,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
   };
 
   return (
+    <>
     <Card className="h-full border-0 rounded-xl bg-gray-900 group relative overflow-visible" style={{
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
       transform: 'translateZ(0)',
@@ -2203,6 +2205,19 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             </motion.div>
           </AnimatePresence>
 
+          <button
+            type="button"
+            aria-label={`Open ${activePhotos[currentSlide].title || 'school photo'} in a larger viewer`}
+            onClick={() => {
+              setResumeSlideshowOnClose(isPlaying);
+              setIsPlaying(false);
+              setIsPhotoViewerOpen(true);
+            }}
+            className="absolute inset-0 z-20 cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/90"
+          >
+            <span className="sr-only">Open photo</span>
+          </button>
+
           {/* Glassmorphic Controls - Visible on Hover */}
           <div className="absolute inset-0 flex items-center justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30 pointer-events-none">
             <Button
@@ -2254,6 +2269,20 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
         </div>
       </CardContent>
     </Card>
+    <PhotoViewerDialog
+      open={isPhotoViewerOpen}
+      onOpenChange={(open) => {
+        setIsPhotoViewerOpen(open);
+        if (!open && resumeSlideshowOnClose) {
+          setIsPlaying(true);
+          setResumeSlideshowOnClose(false);
+        }
+      }}
+      photos={activePhotos}
+      currentIndex={currentSlide}
+      onCurrentIndexChange={setCurrentSlide}
+    />
+    </>
   );
 };
 

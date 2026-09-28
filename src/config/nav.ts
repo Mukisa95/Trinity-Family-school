@@ -1,5 +1,5 @@
 import type { NavigationItem } from '@/types';
-import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList, LockKeyhole, Activity } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare, BookOpen, Presentation, Settings, GraduationCap, ArrowRightLeft, Info, CalendarDays, FileText, CheckSquare, DollarSign, Shirt, Package, CreditCard, Receipt, MessageSquare, Mail, ShoppingCart, Calendar, History, TrendingUp, MessageCircle, Shield, Tag, Bed, Warehouse, TableProperties, Zap, Bell, Gauge, Sprout, ServerCog, Files, WalletCards, ClipboardList, LockKeyhole, Activity, Images } from 'lucide-react';
 import { DEV_CONTROL_PATHS } from './dev-control';
 
 export const navItems: NavigationItem[] = [
@@ -191,6 +191,11 @@ export const navItems: NavigationItem[] = [
         title: 'About School',
         href: '/about-school',
         icon: Info,
+      },
+      {
+        title: 'Photos',
+        href: '/photos',
+        icon: Images,
       },
       {
         title: 'History Log',
