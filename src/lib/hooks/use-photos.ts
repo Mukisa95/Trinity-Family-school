@@ -1,7 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { PhotosService } from '@/lib/services/photos.service';
-import { liteRead, liteWrite, liteInvalidate, LITE_KEYS, LITE_TTL } from '@/lib/cache/lite-cache';
+import { getRevisionCachePolicy } from '@/lib/cache/revision-cache-policy';
+import {
+  nextPhotoCacheRevision,
+  readPhotoCache,
+  removePhotoFromList,
+  setPrimaryPhotoInList,
+  updatePhotoInList,
+  upsertPhotoInList,
+  writePhotoCache,
+} from '@/lib/cache/photo-cache';
+import {
+  dashboardDataRevisionKeys,
+  type DashboardDataRevisions,
+  useDashboardDataRevisions,
+} from './use-school-settings';
+import { useAuth } from '@/lib/contexts/auth-context';
 import type { Photo, PhotoCategory, PhotoUsage } from '@/types';
 
 // Query keys
@@ -17,9 +32,34 @@ const QUERY_KEYS = {
 
 type PhotoList = Awaited<ReturnType<typeof PhotosService.getAllPhotos>>;
 
-function writePhotosCache(queryClient: ReturnType<typeof useQueryClient>, photos: PhotoList) {
+function getCachedPhotos(queryClient: ReturnType<typeof useQueryClient>): PhotoList | undefined {
+  return queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) ?? readPhotoCache()?.data;
+}
+
+function writePhotosCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  revision: number,
+  photos: PhotoList,
+) {
   queryClient.setQueryData(QUERY_KEYS.photos, photos);
-  liteWrite(LITE_KEYS.photos, photos, LITE_TTL.photos);
+  writePhotoCache(revision, photos);
+}
+
+function patchPhotosAfterMutation(
+  queryClient: ReturnType<typeof useQueryClient>,
+  currentRevision: number,
+  patch: (photos: PhotoList) => PhotoList,
+) {
+  const persisted = readPhotoCache();
+  const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) ?? persisted?.data;
+  // A mutation result must never turn a cold cache into a partial collection.
+  // Leave it cold so the newly published revision performs one complete read.
+  if (existing === undefined) return;
+  writePhotosCache(
+    queryClient,
+    nextPhotoCacheRevision(currentRevision, persisted?.revision),
+    patch(existing),
+  );
 }
 
 function usePhotoSelector<T>(
@@ -39,33 +79,47 @@ function usePhotoSelector<T>(
 // Hook for getting all photos
 export function usePhotos(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
-
-  // Read synchronously from lite sessionStorage cache — this is the initial render
-  // value so there is zero loading flash on warm page loads (photos visible instantly).
-  const litePhotos = liteRead<Awaited<ReturnType<typeof PhotosService.getAllPhotos>>>(LITE_KEYS.photos);
+  const { isAuthenticated } = useAuth();
+  const revisionsQuery = useDashboardDataRevisions({ enabled: isAuthenticated });
+  const persisted = readPhotoCache();
+  const cachedData = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) ?? persisted?.data;
+  const currentRevision = revisionsQuery.data?.photos ?? 0;
+  const revisionsReady = isAuthenticated && revisionsQuery.data !== undefined;
+  const cachePolicy = getRevisionCachePolicy({
+    hasCachedData: cachedData !== undefined,
+    cachedRevision: persisted?.revision,
+    currentRevision,
+    revisionsReady,
+  });
+  const enabled = options?.enabled ?? true;
 
   return useQuery({
     queryKey: QUERY_KEYS.photos,
     queryFn: async () => {
-      // Check React Query in-memory cache first (populated by preloader)
-      const cachedData = queryClient.getQueryData(QUERY_KEYS.photos);
-      if (cachedData) return cachedData as Awaited<ReturnType<typeof PhotosService.getAllPhotos>>;
-      // Fallback to service
-      return PhotosService.getAllPhotos();
+      const currentCache = getCachedPhotos(queryClient);
+      try {
+        const photos = await PhotosService.getAllPhotos(revisionsReady ? 'server' : 'default');
+        const latestRevisions = queryClient.getQueryData<DashboardDataRevisions>(dashboardDataRevisionKeys.all);
+        const fetchedRevision = isAuthenticated && latestRevisions !== undefined
+          ? latestRevisions.photos ?? 0
+          : -1;
+        writePhotosCache(queryClient, fetchedRevision, photos);
+        return photos;
+      } catch (error) {
+        console.error('Photo cache reconciliation failed:', error);
+        if (currentCache !== undefined) return currentCache;
+        throw error;
+      }
     },
-    enabled: options?.enabled !== undefined ? options.enabled : true,
-    staleTime: Infinity,
+    enabled: enabled && cachePolicy.shouldFetch,
+    staleTime: cachePolicy.shouldFetch ? 0 : Infinity,
     gcTime: Infinity,
-    refetchOnMount: false,
+    refetchOnMount: cachePolicy.shouldFetch,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    // Lite cache provides instant data so the component renders without a loading state
-    initialData: () => {
-      const mem = queryClient.getQueryData(QUERY_KEYS.photos);
-      if (mem) return mem as Awaited<ReturnType<typeof PhotosService.getAllPhotos>>;
-      return litePhotos || undefined;
-    },
-    initialDataUpdatedAt: litePhotos ? Date.now() : undefined,
+    refetchOnReconnect: cachePolicy.shouldFetch,
+    retry: 1,
+    initialData: cachedData,
+    initialDataUpdatedAt: cachedData !== undefined ? Date.now() : undefined,
     placeholderData: (prev) => prev,
   });
 }
@@ -184,6 +238,7 @@ function usePhotoWithDedicatedQuery(id: string) {
 // Hook for uploading photos
 export function useUploadPhoto() {
   const queryClient = useQueryClient();
+  const currentRevision = useDashboardDataRevisions().data?.photos ?? 0;
 
   return useMutation({
     mutationFn: (data: {
@@ -199,22 +254,11 @@ export function useUploadPhoto() {
       };
     }) => PhotosService.uploadPhoto(data.file, data.metadata),
     onSuccess: (newPhoto) => {
-      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
-      writePhotosCache(queryClient, [newPhoto, ...existing.filter(photo => photo.id !== newPhoto.id)]);
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByCategory(newPhoto.category) });
-      
-      // Invalidate usage queries
-      newPhoto.usage.forEach(usage => {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByUsage(usage) });
-        queryClient.invalidateQueries({ queryKey: ['photos', 'random', usage] });
-      });
-
-      // If it's a primary photo, invalidate primary photo query
-      if (newPhoto.isPrimary) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.primaryPhoto(newPhoto.category) });
-      }
+      patchPhotosAfterMutation(
+        queryClient,
+        currentRevision,
+        photos => upsertPhotoInList(photos, newPhoto),
+      );
     },
   });
 }
@@ -222,6 +266,7 @@ export function useUploadPhoto() {
 // Hook for uploading photos (hybrid proxy, bypasses CORS)
 export function useUploadPhotoHybrid() {
   const queryClient = useQueryClient();
+  const currentRevision = useDashboardDataRevisions().data?.photos ?? 0;
 
   return useMutation({
     mutationFn: (data: {
@@ -237,22 +282,11 @@ export function useUploadPhotoHybrid() {
       };
     }) => PhotosService.uploadPhotoHybrid(data.file, data.metadata),
     onSuccess: (newPhoto) => {
-      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
-      writePhotosCache(queryClient, [newPhoto, ...existing.filter(photo => photo.id !== newPhoto.id)]);
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByCategory(newPhoto.category) });
-      
-      // Invalidate usage queries
-      newPhoto.usage.forEach(usage => {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByUsage(usage) });
-        queryClient.invalidateQueries({ queryKey: ['photos', 'random', usage] });
-      });
-
-      // If it's a primary photo, invalidate primary photo query
-      if (newPhoto.isPrimary) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.primaryPhoto(newPhoto.category) });
-      }
+      patchPhotosAfterMutation(
+        queryClient,
+        currentRevision,
+        photos => upsertPhotoInList(photos, newPhoto),
+      );
     },
   });
 }
@@ -260,31 +294,17 @@ export function useUploadPhotoHybrid() {
 // Hook for updating photos
 export function useUpdatePhoto() {
   const queryClient = useQueryClient();
+  const currentRevision = useDashboardDataRevisions().data?.photos ?? 0;
 
   return useMutation({
     mutationFn: (data: { id: string; updates: Partial<Omit<Photo, 'id' | 'uploadedAt' | 'url' | 'fileName'>> }) =>
       PhotosService.updatePhoto(data.id, data.updates),
     onSuccess: (_, variables) => {
-      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
-      writePhotosCache(
+      patchPhotosAfterMutation(
         queryClient,
-        existing.map(photo => photo.id === variables.id ? { ...photo, ...variables.updates } : photo),
+        currentRevision,
+        photos => updatePhotoInList(photos, variables.id, variables.updates),
       );
-      // Invalidate all photo queries to ensure consistency
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photo(variables.id) });
-      
-      // Invalidate category and usage queries if they might have changed
-      if (variables.updates.category) {
-        queryClient.invalidateQueries({ queryKey: ['photos', 'category'] });
-      }
-      if (variables.updates.usage) {
-        queryClient.invalidateQueries({ queryKey: ['photos', 'usage'] });
-        queryClient.invalidateQueries({ queryKey: ['photos', 'random'] });
-      }
-      if (variables.updates.isPrimary !== undefined) {
-        queryClient.invalidateQueries({ queryKey: ['photos', 'primary'] });
-      }
     },
   });
 }
@@ -292,22 +312,17 @@ export function useUpdatePhoto() {
 // Hook for setting primary photo
 export function useSetPrimaryPhoto() {
   const queryClient = useQueryClient();
+  const currentRevision = useDashboardDataRevisions().data?.photos ?? 0;
 
   return useMutation({
     mutationFn: (data: { id: string; category: PhotoCategory }) =>
       PhotosService.setPrimaryPhoto(data.id, data.category),
     onSuccess: (_, variables) => {
-      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
-      writePhotosCache(
+      patchPhotosAfterMutation(
         queryClient,
-        existing.map(photo => photo.category === variables.category
-          ? { ...photo, isPrimary: photo.id === variables.id }
-          : photo),
+        currentRevision,
+        photos => setPrimaryPhotoInList(photos, variables.id, variables.category),
       );
-      // Invalidate primary photo queries for this category
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.primaryPhoto(variables.category) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photosByCategory(variables.category) });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
     },
   });
 }
@@ -315,18 +330,16 @@ export function useSetPrimaryPhoto() {
 // Hook for deleting photos (soft delete)
 export function useDeletePhoto() {
   const queryClient = useQueryClient();
+  const currentRevision = useDashboardDataRevisions().data?.photos ?? 0;
 
   return useMutation({
     mutationFn: (id: string) => PhotosService.deletePhoto(id),
     onSuccess: (_, id) => {
-      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
-      writePhotosCache(queryClient, existing.filter(photo => photo.id !== id));
-      // Invalidate all photo queries
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
-      queryClient.invalidateQueries({ queryKey: ['photos', 'category'] });
-      queryClient.invalidateQueries({ queryKey: ['photos', 'usage'] });
-      queryClient.invalidateQueries({ queryKey: ['photos', 'primary'] });
-      queryClient.invalidateQueries({ queryKey: ['photos', 'random'] });
+      patchPhotosAfterMutation(
+        queryClient,
+        currentRevision,
+        photos => removePhotoFromList(photos, id),
+      );
     },
   });
 }
@@ -334,15 +347,16 @@ export function useDeletePhoto() {
 // Hook for permanently deleting photos
 export function usePermanentlyDeletePhoto() {
   const queryClient = useQueryClient();
+  const currentRevision = useDashboardDataRevisions().data?.photos ?? 0;
 
   return useMutation({
     mutationFn: (id: string) => PhotosService.permanentlyDeletePhoto(id),
     onSuccess: (_, id) => {
-      const existing = queryClient.getQueryData<PhotoList>(QUERY_KEYS.photos) || liteRead<PhotoList>(LITE_KEYS.photos) || [];
-      writePhotosCache(queryClient, existing.filter(photo => photo.id !== id));
-      // Invalidate all photo queries
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photos });
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      patchPhotosAfterMutation(
+        queryClient,
+        currentRevision,
+        photos => removePhotoFromList(photos, id),
+      );
     },
   });
 }

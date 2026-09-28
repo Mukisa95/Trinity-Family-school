@@ -28,8 +28,9 @@ export const LITE_TTL = {
   // Events/calendar are refreshed by their shared revision signal. Keeping the
   // snapshot removes time-based reads for data that may not change all term.
   events: Number.MAX_SAFE_INTEGER,
-  // Photos rarely change — 24-hour TTL
-  photos: 24 * 60 * 60 * 1000,
+  // Photos refresh only when their shared revision changes. Keep the last
+  // complete snapshot across browser restarts so dashboards paint instantly.
+  photos: Number.MAX_SAFE_INTEGER,
   // Attendance summaries are published after a recording session and are
   // reconciled by the shared attendance revision. Keep a warm daily snapshot
   // available across reloads without turning attendance into a daily query.

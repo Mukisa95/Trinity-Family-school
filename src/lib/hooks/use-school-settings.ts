@@ -251,7 +251,7 @@ function mergeDashboardRevisions(
     const value = maxRevision(reference[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
   });
-  (['pupils', 'attendance', 'events'] as const).forEach(key => {
+  (['pupils', 'attendance', 'events', 'photos'] as const).forEach(key => {
     const value = maxRevision(operational[key], legacy?.[key]);
     if (value !== undefined) result[key] = value;
   });
@@ -374,9 +374,13 @@ function subscribeToDashboardRevisions(queryClient: QueryClient) {
 }
 
 /** A tiny, separate invalidation channel for cache-owned data collections. */
-export function useDashboardDataRevisions() {
+export function useDashboardDataRevisions(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
-  useEffect(() => subscribeToDashboardRevisions(queryClient), [queryClient]);
+  const enabled = options?.enabled ?? true;
+  useEffect(() => {
+    if (!enabled) return;
+    return subscribeToDashboardRevisions(queryClient);
+  }, [enabled, queryClient]);
 
   return useQuery({
     queryKey: dashboardDataRevisionKeys.all,

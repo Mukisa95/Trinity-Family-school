@@ -433,6 +433,7 @@ export interface SchoolSettings {
   dataRevisions?: {
     timetable?: Record<string, number>;
     events?: number;
+    photos?: number;
     classes?: number;
     academicYears?: number;
     staff?: number;

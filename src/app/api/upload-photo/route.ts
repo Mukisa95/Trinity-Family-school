@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+import { bumpPhotosRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
 import type { PhotoCategory, PhotoUsage } from '@/types';
 
 const STORAGE_PATH = 'school-photos';
@@ -190,7 +191,11 @@ export async function POST(request: NextRequest) {
       storageType // Track which storage method was used
     };
 
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), photoData);
+    const docRef = doc(collection(db, COLLECTION_NAME));
+    const batch = writeBatch(db);
+    batch.set(docRef, photoData);
+    bumpPhotosRevisionInBatch(batch);
+    await batch.commit();
     console.log(`✅ Photo metadata saved to database with ID: ${docRef.id}`);
 
     return NextResponse.json({

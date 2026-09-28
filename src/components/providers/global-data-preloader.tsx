@@ -35,7 +35,8 @@ import { UniformsService } from '@/lib/services/uniforms.service';
  * - Revision-owned persistent caches for independent reference data: classes,
  *   academic years, staff, subjects, houses, access levels, and exams
  * - One-time reads (getDocs) for dependent module data that changes rarely:
- *   fees, requirements, uniforms, photos, and events
+ *   fees, requirements, uniforms, and events. Photos are owned by usePhotos,
+ *   which restores its persistent snapshot and reconciles by revision.
  * 
  * This dramatically reduces Firestore reads to prevent quota exhaustion.
  */
@@ -530,42 +531,6 @@ export function GlobalDataPreloader() {
       }
     };
 
-    // 9. 📸 PHOTOS - One-time read with smart re-fetch on new uploads
-    // No persistent listener — photos are cached and only refreshed when count changes.
-    const fetchPhotos = async () => {
-      try {
-        
-
-        const cached = queryClient.getQueryData<any[]>(['photos']);
-        const serverCount = cached?.length ?? 0;
-        
-
-        
-
-        // Skip full fetch if counts match — nothing new has been added
-        if (cached && cached.length > 0) {
-          console.log(`⚡ PRELOADER: Photos count unchanged (${serverCount}), using cache`);
-          return;
-        }
-
-        // Count differs — fetch the full list once
-        const snapshot = await getDocs(collection(db, 'photos'));
-        const photos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Keep only active Cloudinary photos (same filter as before)
-        const validPhotos = photos.filter((photo: any) =>
-          photo.url?.includes('cloudinary.com') && photo.isActive !== false
-        );
-
-        queryClient.setQueryData(['photos'], validPhotos);
-        // Persist to lite cache so usePhotos() has instant initialData on warm loads
-        liteWrite(LITE_KEYS.photos, validPhotos);
-        console.log(`⚡ PRELOADER: Loaded ${validPhotos.length} photos (one-time read, server=${serverCount})`);
-      } catch (error: any) {
-        console.error('❌ PRELOADER: Photos fetch error:', error.message);
-      }
-    };
-
     // 10. 👤 USERS - One-time read (rarely changes)
     /*
      * Users, access levels, and events are feature-owned. Keeping their old
@@ -735,7 +700,6 @@ export function GlobalDataPreloader() {
           console.log('👥 ADMIN/STAFF MODE: Loading dashboard data first...');
           setupPupilsListener().catch(e => console.error('❌ PRELOADER: Pupils load error:', e));
           deferredTimer = setTimeout(() => {
-            void fetchPhotos();
             void fetchFees();
             void fetchRequirements();
             void fetchUniforms();

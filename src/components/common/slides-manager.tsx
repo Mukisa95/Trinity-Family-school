@@ -8,7 +8,8 @@ import {
   useDeletePhoto, 
   usePermanentlyDeletePhoto,
   useSetPrimaryPhoto,
-  useSearchPhotos 
+  useSearchPhotos,
+  useUploadPhotoHybrid,
 } from '@/lib/hooks/use-photos';
 import type { Photo, PhotoCategory, PhotoUsage } from '@/types';
 import { sanitizePhotoUrl } from '@/lib/utils/photo-url-helper';
@@ -129,6 +130,7 @@ export function SlidesManager() {
   const deleteMutation = useDeletePhoto();
   const permanentDeleteMutation = usePermanentlyDeletePhoto();
   const setPrimaryMutation = useSetPrimaryPhoto();
+  const uploadMutation = useUploadPhotoHybrid();
 
   // Filter photos
   const displayPhotos = searchTerm.length > 2 
@@ -268,29 +270,22 @@ export function SlidesManager() {
         const compressedFile = await compressImage(photoFile.file, 4);
         console.log(`✅ Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
         
-        // Use the new Cloudinary API route directly
-        const formData = new FormData();
-        formData.append('file', compressedFile);
-        formData.append('title', photoFile.metadata.title);
-        formData.append('description', photoFile.metadata.description);
-        formData.append('category', photoFile.metadata.category);
-        formData.append('usage', JSON.stringify(photoFile.metadata.usage));
-        formData.append('uploadedBy', user.id);
-        formData.append('tags', photoFile.metadata.tags);
-        formData.append('isPrimary', (photoFile.metadata.isPrimary && i === 0).toString());
-
-        const response = await fetch('/api/upload-photo', {
-          method: 'POST',
-          body: formData,
+        const uploaded = await uploadMutation.mutateAsync({
+          file: compressedFile,
+          metadata: {
+            title: photoFile.metadata.title,
+            description: photoFile.metadata.description,
+            category: photoFile.metadata.category,
+            usage: photoFile.metadata.usage,
+            uploadedBy: user.id,
+            tags: photoFile.metadata.tags
+              .split(',')
+              .map(tag => tag.trim())
+              .filter(Boolean),
+            isPrimary: photoFile.metadata.isPrimary && i === 0,
+          },
         });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Upload failed');
-        }
-
-        const result = await response.json();
-        console.log('✅ Photo uploaded successfully:', result.photo.id);
+        console.log('✅ Photo uploaded successfully:', uploaded.id);
 
         setUploadProgress(prev => ({ ...prev, [photoFile.id]: 100 }));
       }
@@ -313,8 +308,6 @@ export function SlidesManager() {
         fileInputRef.current.value = '';
       }
       
-      // Manually refresh the photos list
-      window.location.reload();
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -1142,4 +1135,4 @@ export function SlidesManager() {
       </ModernDialog>
     </div>
   );
-} 
+}

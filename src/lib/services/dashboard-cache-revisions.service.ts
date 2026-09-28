@@ -119,6 +119,11 @@ export function bumpEventsRevisionInBatch(batch: WriteBatch) {
   writeRevision(batch, 'operational', { events: increment(1) });
 }
 
+/** Add a school-photo revision bump to the same batch as its source mutation. */
+export function bumpPhotosRevisionInBatch(batch: WriteBatch) {
+  writeRevision(batch, 'operational', { photos: increment(1) });
+}
+
 /** Publish exam-definition and optionally event revisions in one source batch. */
 export function bumpExamDefinitionRevisionsInBatch(
   batch: WriteBatch,

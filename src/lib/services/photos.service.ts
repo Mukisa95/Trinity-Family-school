@@ -2,10 +2,9 @@ import {
   collection, 
   doc, 
   getDocs, 
+  getDocsFromServer,
   getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+  writeBatch,
   query, 
   where, 
   orderBy, 
@@ -23,6 +22,7 @@ import {
 import { db, storage } from '@/lib/firebase';
 import type { Photo, PhotoCategory, PhotoUsage } from '@/types';
 import { auth } from '@/lib/firebase';
+import { bumpPhotosRevisionInBatch } from './dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'photos';
 const STORAGE_PATH = 'school-photos';
@@ -138,7 +138,11 @@ export class PhotosService {
       };
 
       // Save to Firestore
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), photoData);
+      const docRef = doc(collection(db, COLLECTION_NAME));
+      const batch = writeBatch(db);
+      batch.set(docRef, photoData);
+      bumpPhotosRevisionInBatch(batch);
+      await batch.commit();
       console.log('✅ Photo saved to database with ID:', docRef.id);
 
       return {
@@ -238,13 +242,15 @@ export class PhotosService {
   /**
    * Get all photos (Cloudinary only, no filtering needed)
    */
-  static async getAllPhotos(): Promise<Photo[]> {
+  static async getAllPhotos(source: 'default' | 'server' = 'default'): Promise<Photo[]> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
         orderBy('uploadedAt', 'desc')
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = source === 'server'
+        ? await getDocsFromServer(q)
+        : await getDocs(q);
       
       // Filter to only show Cloudinary photos and active photos
       return querySnapshot.docs
@@ -375,10 +381,13 @@ export class PhotosService {
   static async updatePhoto(id: string, updates: Partial<Omit<Photo, 'id' | 'uploadedAt' | 'url' | 'fileName'>>): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, {
+      const batch = writeBatch(db);
+      batch.update(docRef, {
         ...updates,
         updatedAt: new Date().toISOString()
       });
+      bumpPhotosRevisionInBatch(batch);
+      await batch.commit();
     } catch (error) {
       console.error('Error updating photo:', error);
       throw new Error('Failed to update photo');
@@ -397,17 +406,23 @@ export class PhotosService {
         where('isPrimary', '==', true)
       );
       const querySnapshot = await getDocs(q);
-      
-      const batch = [];
-      for (const docSnapshot of querySnapshot.docs) {
-        batch.push(updateDoc(doc(db, COLLECTION_NAME, docSnapshot.id), { isPrimary: false }));
+      const otherPrimaryPhotos = querySnapshot.docs.filter(snapshot => snapshot.id !== id);
+      if (otherPrimaryPhotos.length > 497) {
+        throw new Error('Too many primary photos exist in this category to correct atomically.');
       }
       
-      // Wait for all updates to complete
-      await Promise.all(batch);
-      
-      // Set the new primary photo
-      await this.updatePhoto(id, { isPrimary: true });
+      const batch = writeBatch(db);
+      for (const docSnapshot of otherPrimaryPhotos) {
+        batch.update(doc(db, COLLECTION_NAME, docSnapshot.id), { isPrimary: false });
+      }
+
+      // Publish every primary-flag change with one revision in one commit.
+      batch.update(doc(db, COLLECTION_NAME, id), {
+        isPrimary: true,
+        updatedAt: new Date().toISOString(),
+      });
+      bumpPhotosRevisionInBatch(batch);
+      await batch.commit();
     } catch (error) {
       console.error('Error setting primary photo:', error);
       throw new Error('Failed to set primary photo');
@@ -475,7 +490,10 @@ export class PhotosService {
       }
       
       // Delete from Firestore
-      await deleteDoc(docRef);
+      const batch = writeBatch(db);
+      batch.delete(docRef);
+      bumpPhotosRevisionInBatch(batch);
+      await batch.commit();
       console.log('✅ Photo permanently deleted from database');
     } catch (error) {
       console.error('Error permanently deleting photo:', error);

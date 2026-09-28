@@ -1,10 +1,11 @@
 import { 
   collection, 
   getDocs, 
-  deleteDoc, 
-  doc 
+  doc,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { bumpPhotosRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'photos';
 
@@ -31,6 +32,7 @@ export async function cleanupLocalPhotoRecords() {
     let deletedCount = 0;
     let errorCount = 0;
     let keptCount = 0;
+    const localPhotoRefs: ReturnType<typeof doc>[] = [];
     
     for (const docSnap of querySnapshot.docs) {
       const photoData = docSnap.data() as PhotoDoc;
@@ -41,11 +43,8 @@ export async function cleanupLocalPhotoRecords() {
         if (photoData.url && photoData.url.startsWith('/uploads/photos/')) {
           console.log(`🗑️  Deleting local photo record: ${photoData.title}`);
           
-          // Delete the document from Firestore
           const docRef = doc(db, COLLECTION_NAME, photoId);
-          await deleteDoc(docRef);
-          
-          console.log(`✅ Deleted record for: ${photoData.title}`);
+          localPhotoRefs.push(docRef);
           deletedCount++;
         } else if (photoData.url && photoData.url.includes('cloudinary.com')) {
           console.log(`☁️  Keeping Cloudinary photo: ${photoData.title}`);
@@ -61,6 +60,15 @@ export async function cleanupLocalPhotoRecords() {
         console.error(`❌ Error processing photo ${photoData.title}:`, error);
         errorCount++;
       }
+    }
+
+    // Each chunk leaves room for the two revision writes. Every deletion and
+    // its cache invalidation signal therefore become visible atomically.
+    for (let offset = 0; offset < localPhotoRefs.length; offset += 498) {
+      const batch = writeBatch(db);
+      localPhotoRefs.slice(offset, offset + 498).forEach(photoRef => batch.delete(photoRef));
+      bumpPhotosRevisionInBatch(batch);
+      await batch.commit();
     }
     
     console.log('\n🎉 Local photo cleanup completed!');
@@ -93,4 +101,4 @@ if (require.main === module) {
       console.error('❌ Cleanup failed:', error);
       process.exit(1);
     });
-} 
+}

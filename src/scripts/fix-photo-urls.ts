@@ -1,14 +1,15 @@
 import { 
   collection, 
   getDocs, 
-  updateDoc, 
-  doc 
+  doc,
+  writeBatch,
 } from 'firebase/firestore';
 import { 
   ref, 
   getDownloadURL 
 } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
+import { bumpPhotosRevisionInBatch } from '@/lib/services/dashboard-cache-revisions.service';
 
 const COLLECTION_NAME = 'photos';
 const STORAGE_PATH = 'school-photos';
@@ -36,6 +37,7 @@ export async function fixPhotoUrls() {
     
     let fixedCount = 0;
     let errorCount = 0;
+    const pendingUpdates: Array<{ ref: ReturnType<typeof doc>; url: string }> = [];
     
     for (const docSnap of querySnapshot.docs) {
       const photoData = docSnap.data() as PhotoDoc;
@@ -53,11 +55,8 @@ export async function fixPhotoUrls() {
           // Get the correct download URL
           const newUrl = await getDownloadURL(storageRef);
           
-          // Update the document with the correct URL
           const docRef = doc(db, COLLECTION_NAME, photoId);
-          await updateDoc(docRef, {
-            url: newUrl
-          });
+          pendingUpdates.push({ ref: docRef, url: newUrl });
           
           console.log(`✅ Fixed URL for: ${photoData.title}`);
           fixedCount++;
@@ -72,9 +71,7 @@ export async function fixPhotoUrls() {
             try {
               const newUrl = await getDownloadURL(storageRef);
               const docRef = doc(db, COLLECTION_NAME, photoId);
-              await updateDoc(docRef, {
-                url: newUrl
-              });
+              pendingUpdates.push({ ref: docRef, url: newUrl });
               
               console.log(`✅ Generated missing URL for: ${photoData.title}`);
               fixedCount++;
@@ -90,6 +87,15 @@ export async function fixPhotoUrls() {
         console.error(`❌ Error processing photo ${photoData.title}:`, error);
         errorCount++;
       }
+    }
+
+    for (let offset = 0; offset < pendingUpdates.length; offset += 498) {
+      const batch = writeBatch(db);
+      pendingUpdates.slice(offset, offset + 498).forEach(update => {
+        batch.update(update.ref, { url: update.url });
+      });
+      bumpPhotosRevisionInBatch(batch);
+      await batch.commit();
     }
     
     console.log('\n🎉 Photo URL migration completed!');
@@ -120,4 +126,4 @@ if (require.main === module) {
       console.error('Migration failed:', error);
       process.exit(1);
     });
-} 
+}
