@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods } from "@/lib/hooks/use-timetable";
+import { useTimetablePeriods, useTimetableEntries, useSaveTimetableEntries, useDeleteTimetableEntry, useTimetableProfiles, useSaveTimetablePeriods, useSetTimetableClassStreamMode } from "@/lib/hooks/use-timetable";
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
 import { useStaff } from "@/lib/hooks/use-staff";
-import { Loader2, Plus, GripVertical, Info, Clock, User, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, GripVertical, Info, Clock, User, AlertTriangle, GitBranch, Rows3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,7 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { parse, format, addMinutes, differenceInMinutes, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff } from "@/types";
+import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, ClassStream, TimetableProfile } from "@/types";
+import { getActiveClassStreams } from "@/lib/utils/class-streams";
+import { findTimetableEntryForRow, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 const BASE_PX_PER_MIN = 1.8; // base: 60min = 108px — compact default
 
@@ -164,6 +166,7 @@ export function TimetableGrid({
     const saveMutation = useSaveTimetableEntries();
     const deleteMutation = useDeleteTimetableEntry();
     const savePeriodsMutation = useSaveTimetablePeriods();
+    const streamModeMutation = useSetTimetableClassStreamMode();
 
     const currentDayOfWeek = new Date().getDay() || 7;
     const [internalSelectedDay, setInternalSelectedDay] = React.useState<number>(initialDay ?? currentDayOfWeek);
@@ -182,7 +185,7 @@ export function TimetableGrid({
         if (initialDay !== undefined && !setExternalSelectedDay) setInternalSelectedDay(initialDay);
     }, [initialDay, setExternalSelectedDay]);
 
-    const [activeCell, setActiveCell] = React.useState<{ classId: string; periodId: string } | null>(null);
+    const [activeCell, setActiveCell] = React.useState<{ classId: string; periodId: string; streamId?: string } | null>(null);
     const [editingPeriod, setEditingPeriod] = React.useState<{ id: string, newStartTime: string, newEndTime: string } | null>(null);
     const [currentTime, setCurrentTime] = React.useState(new Date());
     const pxPerMin = BASE_PX_PER_MIN * zoom;
@@ -245,6 +248,10 @@ export function TimetableGrid({
     const dayPeriods = React.useMemo(() => {
         return periods.filter(p => p.dayOfWeek === selectedDay).sort((a, b) => a.startTime.localeCompare(b.startTime));
     }, [periods, selectedDay]);
+    const hasStreamColumn = React.useMemo(
+        () => classesToRender.some(classItem => getActiveClassStreams(classItem, yearId).length > 1),
+        [classesToRender, yearId],
+    );
 
     // Pre-compute grouped activities using linkedClassIds (set by the "Group Activity" toggle)
     // A grouped activity entry has linkedClassIds pointing to its partner class entries.
@@ -280,14 +287,14 @@ export function TimetableGrid({
 
     const handleAssignSubject = async (
         classId: string, periodId: string, subjectId: string, teacherId: string, periodSpan: number = 1,
-        optionalSubjectId?: string, optionalTeacherId?: string
+        optionalSubjectId?: string, optionalTeacherId?: string, stream?: ClassStream
     ) => {
         // 1. Collision detection front-end check
         const existingConflict = entries.find(e =>
             teacherId !== 'UNASSIGNED' &&
             e.periodId === periodId &&
             e.teacherId === teacherId &&
-            e.classId !== classId
+            (e.classId !== classId || e.streamId !== stream?.id)
         );
 
         if (existingConflict) {
@@ -301,7 +308,7 @@ export function TimetableGrid({
         }
 
         // 2. See if there is an existing entry for this cell
-        const existingEntry = entries.find(e => e.classId === classId && e.periodId === periodId);
+        const existingEntry = entries.find(e => e.classId === classId && e.periodId === periodId && e.streamId === stream?.id);
 
         try {
             if (existingEntry) {
@@ -310,13 +317,13 @@ export function TimetableGrid({
                     existingEntry.optionalSubjectId === optionalSubjectId && existingEntry.optionalTeacherId === optionalTeacherId) return; // No change
                 await saveMutation.mutateAsync({
                     yearId, termId, timetableId: profileId,
-                    entries: [{ id: existingEntry.id, classId, periodId, subjectId, teacherId, periodSpan, optionalSubjectId, optionalTeacherId }]
+                    entries: [{ id: existingEntry.id, classId, periodId, subjectId, teacherId, periodSpan, optionalSubjectId, optionalTeacherId, streamId: stream?.id, streamName: stream?.name, streamCode: stream?.code }]
                 });
             } else {
                 // Create
                 await saveMutation.mutateAsync({
                     yearId, termId, timetableId: profileId,
-                    entries: [{ classId, periodId, subjectId, teacherId, periodSpan, optionalSubjectId, optionalTeacherId }]
+                    entries: [{ classId, periodId, subjectId, teacherId, periodSpan, optionalSubjectId, optionalTeacherId, streamId: stream?.id, streamName: stream?.name, streamCode: stream?.code }]
                 });
             }
             setActiveCell(null);
@@ -325,8 +332,8 @@ export function TimetableGrid({
         }
     };
 
-    const handleClearCell = async (classId: string, periodId: string) => {
-        const existingEntry = entries.find(e => e.classId === classId && e.periodId === periodId);
+    const handleClearCell = async (classId: string, periodId: string, streamId?: string) => {
+        const existingEntry = entries.find(e => e.classId === classId && e.periodId === periodId && e.streamId === streamId);
         if (existingEntry) {
             try {
                 await deleteMutation.mutateAsync({ yearId, termId, timetableId: profileId, entryId: existingEntry.id });
@@ -336,6 +343,52 @@ export function TimetableGrid({
             }
         }
         setActiveCell(null);
+    };
+
+    const handleSetStreamMode = async (
+        classItem: Class,
+        mode: TimetableStreamMode,
+        scope: 'timetable' | 'day' | 'period',
+        periodId?: string,
+        sourceEntryId?: string,
+    ) => {
+        const streams = getActiveClassStreams(classItem, yearId);
+        if (mode === 'consolidated') {
+            const retained = sourceEntryId
+                ? 'The lesson from the stream you selected will be kept.'
+                : `Where streams differ, the first available lesson (starting with ${streams[0]?.name || 'the first stream'}) will be kept.`;
+            const scopeLabel = scope === 'period' ? 'this lesson' : scope === 'day' ? DAYS[selectedDay - 1] : 'the whole timetable';
+            if (!window.confirm(`Consolidate ${scopeLabel} for ${classItem.name}?\n\n${retained}`)) return;
+        }
+        try {
+            await streamModeMutation.mutateAsync({
+                yearId,
+                termId,
+                timetableId: profileId,
+                classId: classItem.id,
+                mode,
+                scope,
+                streams,
+                dayId: selectedDay,
+                periodId,
+                sourceEntryId,
+            });
+            setActiveCell(null);
+            toast({
+                title: mode === 'separate' ? 'Streams separated' : 'Streams consolidated',
+                description: scope === 'period'
+                    ? mode === 'separate' ? 'The current lesson was copied to each stream. Review teacher assignments for clashes.' : 'This lesson was updated.'
+                    : scope === 'day'
+                        ? `${DAYS[selectedDay - 1]} was updated for ${classItem.name}.`
+                        : `The full timetable was updated for ${classItem.name}.`,
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Could not change stream layout',
+                description: error instanceof Error ? error.message : 'Please try again.',
+            });
+        }
     };
 
     const handleAssignActivity = async (
@@ -404,6 +457,44 @@ export function TimetableGrid({
             });
         } catch (e) {
             toast({ variant: "destructive", title: "Error", description: "Failed to save activity" });
+        }
+    };
+
+    const handleAssignStreamActivity = async (
+        classId: string,
+        periodId: string,
+        stream: ClassStream,
+        activityName: string,
+        teacherId: string,
+        periodSpan: number,
+    ) => {
+        const existing = entries.find(entry => (
+            entry.classId === classId && entry.periodId === periodId && entry.streamId === stream.id
+        ));
+        const payload = {
+            classId,
+            periodId,
+            streamId: stream.id,
+            streamName: stream.name,
+            streamCode: stream.code,
+            subjectId: 'ACTIVITY',
+            teacherId: teacherId || 'UNASSIGNED',
+            entryType: 'activity' as const,
+            activityName,
+            linkedClassIds: [],
+            periodSpan,
+        };
+        try {
+            await saveMutation.mutateAsync({
+                yearId,
+                termId,
+                timetableId: profileId,
+                entries: [existing ? { id: existing.id, ...payload } : payload],
+            });
+            setActiveCell(null);
+            toast({ title: 'Activity saved', description: `${activityName} was assigned to ${stream.name}.` });
+        } catch {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to save activity.' });
         }
     };
 
@@ -513,6 +604,11 @@ export function TimetableGrid({
                             <th className="p-1.5 font-semibold text-gray-600 border-r w-[80px] sticky top-0 left-0 bg-slate-50 z-40 shadow-[1px_1px_0_0_#e5e7eb] text-[10px]">
                                 CLASS
                             </th>
+                            {hasStreamColumn && (
+                                <th className="sticky left-[80px] top-0 z-40 w-[58px] min-w-[58px] border-r bg-indigo-50 p-1 text-center text-[9px] font-semibold text-indigo-600 shadow-[1px_1px_0_0_#e5e7eb]">
+                                    STREAM
+                                </th>
+                            )}
                             {dayPeriods.map(period => {
                                 const pStartMins = parseTimeStr(period.startTime);
                                 const pEndMins = parseTimeStr(period.endTime);
@@ -643,12 +739,44 @@ export function TimetableGrid({
                     </thead>
                     <tbody>
                         {classesToRender.map((cls, clsIdx) => {
+                            const activeStreams = getActiveClassStreams(cls, yearId);
+                            const usesStreamRows = Boolean(profile && activeStreams.length > 1);
+                            if (usesStreamRows) {
+                                return (
+                                    <StreamedClassRows
+                                        key={cls.id}
+                                        classItem={cls}
+                                        streams={activeStreams}
+                                        periods={dayPeriods}
+                                        entries={entries}
+                                        subjects={subjects}
+                                        staffList={staffList}
+                                        allClasses={classesToRender}
+                                        profile={profile!}
+                                        selectedDay={selectedDay}
+                                        currentTime={currentTime}
+                                        isEditing={isEditing}
+                                        activeCell={activeCell}
+                                        setActiveCell={setActiveCell}
+                                        onAssign={(stream, periodId, subjectId, teacherId, span, optSubId, optTId) => handleAssignSubject(cls.id, periodId, subjectId, teacherId, span, optSubId, optTId, stream)}
+                                        onAssignActivity={(stream, periodId, name, teacherId, linkedIds, span) => stream
+                                            ? handleAssignStreamActivity(cls.id, periodId, stream, name, teacherId, span)
+                                            : handleAssignActivity(cls.id, periodId, name, teacherId, linkedIds, span)}
+                                        onClear={(streamId, periodId) => handleClearCell(cls.id, periodId, streamId)}
+                                        onSetMode={(mode, scope, periodId, sourceEntryId) => handleSetStreamMode(cls, mode, scope, periodId, sourceEntryId)}
+                                        streamModePending={streamModeMutation.isPending}
+                                    />
+                                );
+                            }
                             let skipCells = 0;
                             return (
                                 <tr key={cls.id} className="border-b border-gray-100 hover:bg-slate-50/50 transition-colors">
                                     <td className="py-1 px-1.5 font-bold text-gray-800 border-r whitespace-nowrap sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#f3f4f6] text-[10px] leading-tight max-w-[80px] truncate">
                                         {cls.code || cls.name}
                                     </td>
+                                    {hasStreamColumn && (
+                                        <td className="sticky left-[80px] z-10 w-[58px] min-w-[58px] border-r bg-slate-50/70 p-1 text-center text-[8px] font-medium text-gray-400">—</td>
+                                    )}
                                     {dayPeriods.map(period => {
                                         if (skipCells > 0) { skipCells--; return null; }
 
@@ -890,17 +1018,208 @@ export function TimetableGrid({
     );
 }
 
+function StreamedClassRows({
+    classItem,
+    streams,
+    periods,
+    entries,
+    subjects,
+    staffList,
+    allClasses,
+    profile,
+    selectedDay,
+    currentTime,
+    isEditing,
+    activeCell,
+    setActiveCell,
+    onAssign,
+    onAssignActivity,
+    onClear,
+    onSetMode,
+    streamModePending,
+}: {
+    classItem: Class;
+    streams: ClassStream[];
+    periods: GeneratedPeriod[];
+    entries: TimetableEntry[];
+    subjects: Subject[];
+    staffList: Staff[];
+    allClasses: Class[];
+    profile: TimetableProfile;
+    selectedDay: number;
+    currentTime: Date;
+    isEditing: boolean;
+    activeCell: { classId: string; periodId: string; streamId?: string } | null;
+    setActiveCell: React.Dispatch<React.SetStateAction<{ classId: string; periodId: string; streamId?: string } | null>>;
+    onAssign: (stream: ClassStream | undefined, periodId: string, subId: string, teacherId: string, span: number, optSubId?: string, optTeacherId?: string) => void;
+    onAssignActivity: (stream: ClassStream | undefined, periodId: string, name: string, teacherId: string, linkedIds: string[], span: number) => void;
+    onClear: (streamId: string | undefined, periodId: string) => void;
+    onSetMode: (mode: TimetableStreamMode, scope: 'timetable' | 'day' | 'period', periodId?: string, sourceEntryId?: string) => void;
+    streamModePending: boolean;
+}) {
+    return (
+        <>
+            {streams.map((stream, streamIndex) => {
+                let skipCells = 0;
+                return (
+                    <tr key={`${classItem.id}-${stream.id}`} className="border-b border-indigo-100 bg-white hover:bg-indigo-50/30">
+                        {streamIndex === 0 && (
+                            <td
+                                rowSpan={streams.length}
+                                className="sticky left-0 z-20 w-[80px] max-w-[96px] border-r border-indigo-100 bg-white px-1.5 py-1 align-middle shadow-[1px_0_0_0_#eef2ff]"
+                            >
+                                <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 text-center">
+                                    <span className="text-[10px] font-black leading-tight text-gray-800">{classItem.code || classItem.name}</span>
+                                    {isEditing && (
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    aria-label={`Manage stream layout for ${classItem.name}`}
+                                                    className="inline-flex min-h-7 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 text-[9px] font-bold text-indigo-700 hover:bg-indigo-100"
+                                                >
+                                                    <Rows3 className="h-3 w-3" /> Streams
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent align="start" className="w-64 p-3">
+                                                <p className="text-xs font-bold text-gray-900">Stream layout</p>
+                                                <p className="mt-0.5 text-[10px] leading-4 text-gray-500">Change every lesson for this class or only {DAYS[selectedDay - 1]}.</p>
+                                                {streamModePending && (
+                                                    <div role="status" className="mt-2 flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1.5 text-[10px] font-semibold text-indigo-700">
+                                                        <Loader2 className="h-3 w-3 animate-spin" /> Updating stream lessons…
+                                                    </div>
+                                                )}
+                                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('consolidated', 'day')}>
+                                                        <span className="font-bold">Day together</span><span className="font-normal text-gray-500">One shared row</span>
+                                                    </Button>
+                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('separate', 'day')}>
+                                                        <span className="font-bold">Day separate</span><span className="font-normal text-gray-500">A row per stream</span>
+                                                    </Button>
+                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('consolidated', 'timetable')}>
+                                                        <span className="font-bold">All together</span><span className="font-normal text-gray-500">Whole timetable</span>
+                                                    </Button>
+                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('separate', 'timetable')}>
+                                                        <span className="font-bold">All separate</span><span className="font-normal text-gray-500">Whole timetable</span>
+                                                    </Button>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    )}
+                                </div>
+                            </td>
+                        )}
+                        <td className="sticky left-[80px] z-10 w-[58px] min-w-[58px] border-r border-indigo-100 bg-indigo-50/80 px-1 py-1 text-center text-[9px] font-bold text-indigo-700">
+                            <span className="block truncate" title={stream.name}>{stream.code || stream.name}</span>
+                        </td>
+                        {periods.map(period => {
+                            if (skipCells > 0) { skipCells--; return null; }
+                            const isFirstStream = streamIndex === 0;
+                            const isBreak = period.type === 'break' || period.type === 'lunch';
+                            if (isBreak) {
+                                if (!isFirstStream) return null;
+                                return (
+                                    <td key={period.id} rowSpan={streams.length} className="border-r bg-gray-100/80 p-0 text-center align-middle">
+                                        <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400">{period.customLabel || period.type}</span>
+                                    </td>
+                                );
+                            }
+                            const mode = getTimetableStreamMode(profile, classItem.id, selectedDay, period.id);
+                            const rowSpan = mode === 'consolidated' ? streams.length : undefined;
+                            if (mode === 'consolidated' && !isFirstStream) return null;
+
+                            const scopedStream = mode === 'separate' ? stream : undefined;
+                            const entry = findTimetableEntryForRow(entries, classItem.id, period.id, mode, scopedStream?.id);
+                            const subject = entry ? subjects.find(item => item.id === entry.subjectId) : undefined;
+                            const teacher = entry ? staffList.find(item => item.id === entry.teacherId) : undefined;
+                            if (entry?.periodSpan && entry.periodSpan > 1) skipCells = entry.periodSpan - 1;
+
+                            const activeStr = format(currentTime, 'HH:mm');
+                            const today = currentTime.getDay() || 7;
+                            const state: PeriodState = selectedDay === today
+                                ? activeStr >= period.startTime && activeStr < period.endTime
+                                    ? 'active'
+                                    : activeStr >= period.endTime ? 'past' : 'upcoming'
+                                : 'upcoming';
+                            const cellStyle = entry && entry.entryType !== 'activity' && subject
+                                ? getSubjectCellStyle(subject.name, state, false, isEditing)
+                                : undefined;
+                            const isOpen = activeCell?.classId === classItem.id
+                                && activeCell.periodId === period.id
+                                && activeCell.streamId === scopedStream?.id;
+                            const content = (
+                                <div
+                                    style={cellStyle}
+                                    className={`absolute inset-0 m-px flex flex-col items-center justify-center rounded border p-1 text-center transition-colors ${
+                                        entry ? 'border-transparent' : isEditing ? 'border-dashed border-indigo-200 hover:bg-indigo-50' : 'border-transparent'
+                                    } ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
+                                >
+                                    {entry ? entry.entryType === 'activity' ? (
+                                        <>
+                                            <span className="text-[9px] font-black uppercase leading-tight text-purple-700">{entry.activityName || 'ACT'}</span>
+                                            <span className="text-[8px] text-purple-500">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="w-full truncate text-[10px] font-bold leading-tight">{subject?.code || subject?.name || '?'}</span>
+                                            <span className="max-w-full truncate text-[8px] opacity-75">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}</span>
+                                        </>
+                                    ) : isEditing ? <Plus className="h-3.5 w-3.5 text-indigo-300" /> : null}
+                                </div>
+                            );
+                            return (
+                                <td key={period.id} rowSpan={rowSpan} colSpan={entry?.periodSpan || 1} className="group relative h-[42px] border-r p-0 align-middle">
+                                    {isEditing ? (
+                                        <Popover
+                                            open={isOpen}
+                                            onOpenChange={open => setActiveCell(open ? { classId: classItem.id, periodId: period.id, streamId: scopedStream?.id } : null)}
+                                        >
+                                            <PopoverTrigger asChild>{content}</PopoverTrigger>
+                                            <PopoverContent className="w-80 border border-gray-200 p-0 shadow-xl" align="start">
+                                                <AssignmentPopup
+                                                    classItem={classItem}
+                                                    streamName={scopedStream?.name}
+                                                    streamMode={mode}
+                                                    period={period}
+                                                    currentEntry={entry}
+                                                    subjects={subjects}
+                                                    staffList={staffList}
+                                                    allClasses={mode === 'separate' ? [] : allClasses}
+                                                    onAssign={(subId, teacherId, span, optSubId, optTeacherId) => onAssign(scopedStream, period.id, subId, teacherId, span, optSubId, optTeacherId)}
+                                                    onAssignActivity={(name, teacherId, linkedIds, span) => onAssignActivity(scopedStream, period.id, name, teacherId, linkedIds, span)}
+                                                    onClear={() => onClear(scopedStream?.id, period.id)}
+                                                    onClose={() => setActiveCell(null)}
+                                                    onStreamModeChange={target => onSetMode(target, 'period', period.id, entry?.id)}
+                                                    streamModePending={streamModePending}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    ) : content}
+                                </td>
+                            );
+                        })}
+                    </tr>
+                );
+            })}
+        </>
+    );
+}
+
 // Sub-component for assignment popup
 function AssignmentPopup({
-    classItem, period, currentEntry, subjects, staffList, allClasses,
-    onAssign, onAssignActivity, onClear, onClose
+    classItem, streamName, streamMode, period, currentEntry, subjects, staffList, allClasses,
+    onAssign, onAssignActivity, onClear, onClose, onStreamModeChange, streamModePending
 }: {
     classItem: Class; period: GeneratedPeriod; currentEntry?: TimetableEntry;
+    streamName?: string;
+    streamMode?: TimetableStreamMode;
     subjects: Subject[]; staffList: Staff[]; allClasses: Class[];
     onAssign: (subId: string, tId: string, span: number, optSubId?: string, optTId?: string) => void;
     onAssignActivity: (name: string, teacherId: string, linkedClassIds: string[], span: number) => void;
     onClear: () => void;
     onClose: () => void;
+    onStreamModeChange?: (mode: TimetableStreamMode) => void;
+    streamModePending?: boolean;
 }) {
     const assignments = classItem.subjectAssignments || [];
     const [isDouble, setIsDouble] = React.useState(currentEntry?.periodSpan === 2);
@@ -934,7 +1253,7 @@ function AssignmentPopup({
             {/* Header */}
             <div className="p-3 border-b bg-white flex justify-between items-center bg-gradient-to-r from-blue-50/50 to-white">
                 <div>
-                    <h4 className="font-bold text-sm text-gray-800">{classItem.name}</h4>
+                    <h4 className="font-bold text-sm text-gray-800">{classItem.name}{streamName ? ` · ${streamName}` : ''}</h4>
                     <span className="text-xs text-gray-500 block font-mono">
                         {period.startTime} - {period.endTime}
                     </span>
@@ -943,6 +1262,33 @@ function AssignmentPopup({
                     Lesson {period.periodNumber}
                 </Badge>
             </div>
+
+            {onStreamModeChange && streamMode && (
+                <div className="flex items-center justify-between gap-2 border-b border-indigo-100 bg-indigo-50 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                        <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-indigo-600" />
+                        <span className="truncate text-[10px] font-semibold text-indigo-900">
+                            {streamMode === 'separate' ? 'Separate stream lesson' : 'Shared stream lesson'}
+                        </span>
+                    </div>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={streamModePending}
+                        className="h-8 flex-shrink-0 border-indigo-200 bg-white px-2 text-[10px] text-indigo-700"
+                        onClick={() => onStreamModeChange(streamMode === 'separate' ? 'consolidated' : 'separate')}
+                    >
+                        {streamModePending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                        {streamMode === 'separate' ? 'Combine this lesson' : 'Separate this lesson'}
+                    </Button>
+                </div>
+            )}
+            {onStreamModeChange && streamMode === 'separate' && (
+                <p className="border-b border-indigo-100 bg-indigo-50/60 px-3 pb-2 text-[9px] leading-3 text-indigo-700">
+                    Combining keeps the lesson from the stream you opened and removes the other stream copies.
+                </p>
+            )}
 
             {/* Tab Switcher */}
             <div className="flex border-b bg-white">

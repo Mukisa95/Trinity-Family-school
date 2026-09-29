@@ -134,6 +134,16 @@ function WeekGridView({
         return entries.find(e => e.classId === classId && e.periodId === dayPeriod.id);
     };
 
+    const getCellEntries = (classId: string, dayId: number, templatePeriod: GeneratedPeriod): TimetableEntry[] => {
+        const dayPeriod = periods.find(p => (
+            p.dayOfWeek === dayId
+            && p.type === templatePeriod.type
+            && p.periodNumber === templatePeriod.periodNumber
+        ));
+        if (!dayPeriod) return [];
+        return entries.filter(entry => entry.classId === classId && entry.periodId === dayPeriod.id);
+    };
+
     const isHighlighted = (entry: TimetableEntry | undefined): boolean => {
         if (!entry || !filterId) return false;
         if (filterMode === "teacher") return entry.teacherId === filterId;
@@ -399,7 +409,28 @@ function WeekGridView({
                                                     }
                                                 }
 
-                                                const entry = getEntry(cls.id, day.id, templatePeriod);
+                                                const cellEntries = getCellEntries(cls.id, day.id, templatePeriod);
+                                                if (cellEntries.length > 1) {
+                                                    const span = Math.max(...cellEntries.map(item => item.periodSpan || 1));
+                                                    if (span > 1) skipCells = span - 1;
+                                                    return (
+                                                        <td key={templatePeriod.id} colSpan={span} className="h-[38px] border-r border-gray-100 p-0 align-middle text-center">
+                                                            <div className="flex h-full flex-col divide-y divide-indigo-100 overflow-hidden rounded-sm bg-indigo-50/60">
+                                                                {cellEntries.map(streamEntry => {
+                                                                    const streamSubject = subjects.find(item => item.id === streamEntry.subjectId);
+                                                                    return (
+                                                                        <div key={streamEntry.id} className="flex min-h-0 flex-1 items-center justify-center gap-1 px-1 text-[8px] leading-none text-indigo-900">
+                                                                            <span className="font-black text-indigo-600">{streamEntry.streamCode || streamEntry.streamName || 'Stream'}</span>
+                                                                            <span className="max-w-[70%] truncate font-bold">{streamEntry.entryType === 'activity' ? streamEntry.activityName || 'ACT' : streamSubject?.code || streamSubject?.name || '?'}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                }
+
+                                                const entry = cellEntries[0] || getEntry(cls.id, day.id, templatePeriod);
                                                 const subject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
                                                 const teacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
                                                 const highlighted = isHighlighted(entry);

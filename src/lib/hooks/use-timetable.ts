@@ -467,6 +467,39 @@ export function useSaveTimetableEntries() {
     });
 }
 
+export function useSetTimetableClassStreamMode() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ yearId, termId, timetableId, ...args }: {
+            yearId: string;
+            termId: string;
+            timetableId: string;
+            classId: string;
+            mode: 'consolidated' | 'separate';
+            scope: 'timetable' | 'day' | 'period';
+            streams: import('@/types').ClassStream[];
+            dayId?: number;
+            periodId?: string;
+            sourceEntryId?: string;
+        }) => TimetableService.setClassStreamMode(yearId, termId, timetableId, args),
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: timetableKeys.allProfiles(variables.yearId, variables.termId),
+                refetchType: 'none',
+            });
+            queryClient.invalidateQueries({
+                queryKey: timetableKeys.entries(variables.yearId, variables.termId, variables.timetableId),
+                refetchType: 'none',
+            });
+            queryClient.invalidateQueries({
+                predicate: (q) => q.queryKey[0] === 'timetable' && q.queryKey[1] === 'entries' && q.queryKey[2] === 'class',
+                refetchType: 'none',
+            });
+        },
+    });
+}
+
 export function useSaveTimetablePeriods() {
     const queryClient = useQueryClient();
 

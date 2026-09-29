@@ -12,7 +12,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { TimetableProfile, GeneratedPeriod, TimetableEntry } from '@/types';
+import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream } from '@/types';
 import { bumpTimetableRevisionInBatch } from './dashboard-cache-revisions.service';
 
 // Path constructor for academic term scoped timetables
@@ -128,8 +128,10 @@ export class TimetableService {
         generatedPeriods: Omit<GeneratedPeriod, 'id'>[]
     ): Promise<void> {
         try {
-            // Read the old period references first, then publish the profile,
-            // replacement periods, and revision as one atomic change.
+            // Keep period document ids stable by matching the ordered blocks for
+            // each day. Lesson entries and per-period stream overrides point at
+            // these ids, so deleting and recreating every period would silently
+            // orphan an already populated timetable.
             const profileRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
             const periodsCol = collection(db, getPeriodsCollectionPath(yearId, termId, timetableId));
             const existingPeriods = await getDocs(periodsCol);
@@ -140,10 +142,46 @@ export class TimetableService {
 
             const batch = writeBatch(db);
             batch.update(profileRef, { ...profileData, updatedAt: new Date().toISOString() });
-            existingPeriods.forEach(periodDoc => batch.delete(periodDoc.ref));
-            for (const period of generatedPeriods) {
-                const newRef = doc(periodsCol);
-                batch.set(newRef, { ...period, id: newRef.id, createdAt: new Date().toISOString() });
+
+            const existingByDay = new Map<number, typeof existingPeriods.docs>();
+            existingPeriods.docs.forEach(periodDoc => {
+                const day = Number(periodDoc.data().dayOfWeek);
+                existingByDay.set(day, [...(existingByDay.get(day) || []), periodDoc]);
+            });
+            existingByDay.forEach(dayPeriods => dayPeriods.sort((a, b) => (
+                String(a.data().startTime).localeCompare(String(b.data().startTime))
+            )));
+
+            const generatedByDay = new Map<number, Omit<GeneratedPeriod, 'id'>[]>();
+            generatedPeriods.forEach(period => {
+                generatedByDay.set(period.dayOfWeek, [...(generatedByDay.get(period.dayOfWeek) || []), period]);
+            });
+            generatedByDay.forEach(dayPeriods => dayPeriods.sort((a, b) => a.startTime.localeCompare(b.startTime)));
+
+            const allDays = new Set([...existingByDay.keys(), ...generatedByDay.keys()]);
+            for (const day of allDays) {
+                const oldPeriods = existingByDay.get(day) || [];
+                const newPeriods = generatedByDay.get(day) || [];
+                const sharedLength = Math.min(oldPeriods.length, newPeriods.length);
+                for (let index = 0; index < sharedLength; index++) {
+                    const periodRef = oldPeriods[index].ref;
+                    batch.set(periodRef, this.cleanUndefinedValues({
+                        ...newPeriods[index],
+                        id: periodRef.id,
+                        updatedAt: Timestamp.now(),
+                    }), { merge: true });
+                }
+                for (let index = sharedLength; index < oldPeriods.length; index++) {
+                    batch.delete(oldPeriods[index].ref);
+                }
+                for (let index = sharedLength; index < newPeriods.length; index++) {
+                    const newRef = doc(periodsCol);
+                    batch.set(newRef, this.cleanUndefinedValues({
+                        ...newPeriods[index],
+                        id: newRef.id,
+                        createdAt: Timestamp.now(),
+                    }));
+                }
             }
             bumpTimetableRevisionInBatch(batch, yearId, termId);
             await batch.commit();
@@ -225,11 +263,6 @@ export class TimetableService {
             activeDays: srcProfile.activeDays || [1, 2, 3, 4, 5],
         };
         const cloneBatch = writeBatch(db);
-        cloneBatch.set(newProfileRef, {
-            ...newProfileData,
-            id: newProfileRef.id,
-            createdAt: new Date().toISOString(),
-        });
         const newTimetableId = newProfileRef.id;
 
         // 4. Clone periods, building old->new id map
@@ -245,6 +278,27 @@ export class TimetableService {
                 createdAt: new Date().toISOString(),
             });
         }
+
+        const remappedStreamLayouts = srcProfile.streamLayouts
+            ? Object.fromEntries(Object.entries(srcProfile.streamLayouts).map(([classId, layout]) => [
+                classId,
+                {
+                    ...layout,
+                    periodModes: Object.fromEntries(
+                        Object.entries(layout.periodModes || {}).flatMap(([oldPeriodId, mode]) => {
+                            const newPeriodId = periodIdMap[oldPeriodId];
+                            return newPeriodId ? [[newPeriodId, mode]] : [];
+                        })
+                    ),
+                },
+            ]))
+            : undefined;
+        cloneBatch.set(newProfileRef, this.cleanUndefinedValues({
+            ...newProfileData,
+            streamLayouts: remappedStreamLayouts,
+            id: newProfileRef.id,
+            createdAt: new Date().toISOString(),
+        }));
 
         // 5. Optionally clone entries, remapping periodIds
         if (includeEntries) {
@@ -433,6 +487,138 @@ export class TimetableService {
             console.error('Error saving timetable entries batch:', error);
             throw error;
         }
+    }
+
+    /**
+     * Change one streamed class between consolidated and per-stream lessons.
+     * Profile rules and affected entry documents are committed together so the
+     * grid can never observe a new layout with the old set of lessons.
+     */
+    static async setClassStreamMode(
+        yearId: string,
+        termId: string,
+        timetableId: string,
+        args: {
+            classId: string;
+            mode: 'consolidated' | 'separate';
+            scope: 'timetable' | 'day' | 'period';
+            streams: ClassStream[];
+            dayId?: number;
+            periodId?: string;
+            sourceEntryId?: string;
+        }
+    ): Promise<void> {
+        if (args.streams.length < 2) {
+            throw new Error('At least two active streams are required to separate lessons.');
+        }
+        if (args.scope === 'day' && args.dayId === undefined) throw new Error('A day is required.');
+        if (args.scope === 'period' && !args.periodId) throw new Error('A lesson period is required.');
+
+        const [profile, periods, entries] = await Promise.all([
+            this.getTimetableById(yearId, termId, timetableId),
+            this.getPeriods(yearId, termId, timetableId),
+            this.getEntries(yearId, termId, timetableId),
+        ]);
+        if (!profile) throw new Error('Timetable not found.');
+
+        const targetPeriodIds = new Set(
+            periods
+                .filter(period => (
+                    period.type === 'lesson'
+                    && (args.scope !== 'day' || period.dayOfWeek === args.dayId)
+                    && (args.scope !== 'period' || period.id === args.periodId)
+                ))
+                .map(period => period.id)
+        );
+        const targetEntries = entries.filter(entry => (
+            entry.classId === args.classId && targetPeriodIds.has(entry.periodId)
+        ));
+
+        const classLayout = profile.streamLayouts?.[args.classId] || { defaultMode: 'consolidated' as const };
+        const nextLayout = {
+            ...classLayout,
+            dayModes: { ...(classLayout.dayModes || {}) },
+            periodModes: { ...(classLayout.periodModes || {}) },
+        };
+        if (args.scope === 'timetable') {
+            nextLayout.defaultMode = args.mode;
+            nextLayout.dayModes = {};
+            nextLayout.periodModes = {};
+        } else if (args.scope === 'day') {
+            nextLayout.dayModes[String(args.dayId)] = args.mode;
+            periods
+                .filter(period => period.dayOfWeek === args.dayId)
+                .forEach(period => delete nextLayout.periodModes[period.id]);
+        } else if (args.periodId) {
+            nextLayout.periodModes[args.periodId] = args.mode;
+        }
+
+        const replacementEntries: Array<Omit<TimetableEntry, 'id' | 'createdAt'> & { createdAt?: unknown }> = [];
+        for (const periodId of targetPeriodIds) {
+            const cellEntries = targetEntries.filter(entry => entry.periodId === periodId);
+            if (cellEntries.length === 0) continue;
+
+            const toReplacement = (entry: TimetableEntry, stream?: ClassStream) => {
+                const { id: _id, createdAt: _createdAt, ...lesson } = entry;
+                const base = {
+                    ...lesson,
+                    classId: args.classId,
+                    periodId,
+                    createdAt: Timestamp.now(),
+                };
+                if (!stream) {
+                    delete base.streamId;
+                    delete base.streamName;
+                    delete base.streamCode;
+                    return base;
+                }
+                return {
+                    ...base,
+                    streamId: stream.id,
+                    streamName: stream.name,
+                    streamCode: stream.code,
+                    ...(base.entryType === 'activity' ? { linkedClassIds: [] } : {}),
+                };
+            };
+
+            if (args.mode === 'separate') {
+                const consolidated = cellEntries.find(entry => !entry.streamId);
+                for (const stream of args.streams) {
+                    const source = cellEntries.find(entry => entry.streamId === stream.id) || consolidated || cellEntries[0];
+                    replacementEntries.push(toReplacement(source, stream));
+                }
+            } else {
+                const selectedSource = args.sourceEntryId
+                    ? cellEntries.find(entry => entry.id === args.sourceEntryId)
+                    : undefined;
+                const source = selectedSource
+                    || cellEntries.find(entry => !entry.streamId)
+                    || args.streams.map(stream => cellEntries.find(entry => entry.streamId === stream.id)).find(Boolean)
+                    || cellEntries[0];
+                replacementEntries.push(toReplacement(source));
+            }
+        }
+
+        const writeCount = 2 + targetEntries.length + replacementEntries.length;
+        if (writeCount > 500) {
+            throw new Error('This conversion is too large for one safe update. Convert one day at a time.');
+        }
+
+        const batch = writeBatch(db);
+        const profileRef = doc(db, getTimetablesCollectionPath(yearId, termId), timetableId);
+        batch.update(profileRef, this.cleanUndefinedValues({
+            streamLayouts: {
+                ...(profile.streamLayouts || {}),
+                [args.classId]: nextLayout,
+            },
+            updatedAt: Timestamp.now(),
+        }));
+
+        const entriesRef = collection(db, getEntriesCollectionPath(yearId, termId, timetableId));
+        targetEntries.forEach(entry => batch.delete(doc(entriesRef, entry.id)));
+        replacementEntries.forEach(entry => batch.set(doc(entriesRef), this.cleanUndefinedValues(entry)));
+        bumpTimetableRevisionInBatch(batch, yearId, termId);
+        await batch.commit();
     }
 
     static async deleteEntry(yearId: string, termId: string, timetableId: string, entryId: string): Promise<void> {

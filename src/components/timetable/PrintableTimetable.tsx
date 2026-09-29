@@ -93,6 +93,14 @@ export function PrintableTimetable({
         return entries.find((e) => e.classId === classId && e.periodId === dayPeriod.id);
     };
 
+    const getCellEntries = (classId: string, dayId: number, tp: GeneratedPeriod): TimetableEntry[] => {
+        const dayPeriod = periods.find(
+            (p) => p.dayOfWeek === dayId && p.type === tp.type && p.periodNumber === tp.periodNumber
+        );
+        if (!dayPeriod) return [];
+        return entries.filter((entry) => entry.classId === classId && entry.periodId === dayPeriod.id);
+    };
+
     // ── PDF generation ────────────────────────────────────────────────────────
     const generatePDF = async () => {
         if (!captureRef.current || status === "generating") return;
@@ -389,7 +397,26 @@ export function PrintableTimetable({
                                                 }
                                             }
 
-                                            const entry = getEntry(cls.id, day.id, tp);
+                                            const cellEntries = getCellEntries(cls.id, day.id, tp);
+                                            if (cellEntries.length > 1) {
+                                                const span = Math.max(...cellEntries.map(item => item.periodSpan || 1));
+                                                if (span > 1) skipCells = span - 1;
+                                                return (
+                                                    <td key={tp.id} colSpan={span} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", padding: 1 }}>
+                                                        {cellEntries.map(streamEntry => {
+                                                            const streamSubject = subjects.find(subjectItem => subjectItem.id === streamEntry.subjectId);
+                                                            return (
+                                                                <div key={streamEntry.id} style={{ display: 'flex', justifyContent: 'center', gap: 3, borderBottom: '1px solid #d1d5db', fontSize: Math.max(8, lessonFs - 3), lineHeight: 1.15, padding: '1px 0' }}>
+                                                                    <strong>{streamEntry.streamCode || streamEntry.streamName || 'Stream'}:</strong>
+                                                                    <span>{streamEntry.entryType === 'activity' ? streamEntry.activityName || 'ACT' : streamSubject?.code || streamSubject?.name || '?'}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </td>
+                                                );
+                                            }
+
+                                            const entry = cellEntries[0] || getEntry(cls.id, day.id, tp);
                                             const subject = entry ? subjects.find((s) => s.id === entry.subjectId) : null;
 
                                             if (entry && entry.periodSpan && entry.periodSpan > 1) {

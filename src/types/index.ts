@@ -2387,6 +2387,16 @@ export interface TimetableProfile {
   firstLessonStart: string; // e.g. "06:30"
   lessonDuration: number; // in minutes
   timeFormat?: '12h' | '24h';
+  /**
+   * Stream presentation rules are stored on the timetable, not on the Class.
+   * This keeps one canonical class document while allowing a timetable to be
+   * consolidated by default and overridden for a day or individual lesson.
+   */
+  streamLayouts?: Record<string, {
+    defaultMode: 'consolidated' | 'separate';
+    dayModes?: Record<string, 'consolidated' | 'separate'>;
+    periodModes?: Record<string, 'consolidated' | 'separate'>;
+  }>;
 
   // Dynamic blocks (replacing fixed fields)
   timeBlocks?: {
@@ -2425,6 +2435,11 @@ export interface GeneratedPeriod {
 export interface TimetableEntry {
   id: string;
   classId: string;
+  /** Present only when this lesson belongs to one class stream. */
+  streamId?: string;
+  /** Immutable display snapshots for historical timetable readability. */
+  streamName?: string;
+  streamCode?: string;
   periodId: string; // References GeneratedPeriod
   periodSpan?: number; // E.g. 2 for a Double Period
   /** 'subject' = normal lesson, 'activity' = co-curricular / group activity */

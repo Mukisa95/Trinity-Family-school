@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Save, CalendarRange, Clock, Trash2, Plus, Download, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { PeriodType, GeneratedPeriod } from "@/types";
+import type { PeriodType, GeneratedPeriod, TimetableProfile } from "@/types";
+import { getActiveClassStreams } from "@/lib/utils/class-streams";
 
 function formatDisplayTime(timeStr: string, _fmt?: '12h' | '24h'): string {
     if (!timeStr) return '';
@@ -206,6 +207,9 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
 
     const [name, setName] = React.useState(editingProfile?.name || "Main Timetable");
     const [selectedClasses, setSelectedClasses] = React.useState<string[]>(editingProfile?.classIds || []);
+    const [streamLayouts, setStreamLayouts] = React.useState<NonNullable<TimetableProfile['streamLayouts']>>(
+        editingProfile?.streamLayouts || {}
+    );
     const [firstLessonStart, setFirstLessonStart] = React.useState(editingProfile?.firstLessonStart || "06:30");
     const [timeFormat] = React.useState<'12h'>('12h'); // Force 12h system only
     const [lessonDuration, setLessonDuration] = React.useState(editingProfile?.lessonDuration || 60);
@@ -249,6 +253,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
         if (isOpen && isEditing && editingProfile) {
             setName(editingProfile.name || "Main Timetable");
             setSelectedClasses(editingProfile.classIds || []);
+            setStreamLayouts(editingProfile.streamLayouts || {});
             setFirstLessonStart(editingProfile.firstLessonStart || "06:30");
             // timeFormat is forced to 12h
             setLessonDuration(editingProfile.lessonDuration || 60);
@@ -272,6 +277,7 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
             // Reset to defaults for new timetable
             setName("Main Timetable");
             setSelectedClasses([]);
+            setStreamLayouts({});
             setFirstLessonStart("06:30");
             // setTimeFormat removed
             setLessonDuration(60);
@@ -403,6 +409,13 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                 name, classIds: selectedClasses,
                 academicYearId: targetYearId, termId: targetTermId,
                 firstLessonStart, lessonDuration, timeFormat, timeBlocks, activeDays,
+                streamLayouts: Object.fromEntries(
+                    selectedClasses.flatMap(classId => {
+                        const schoolClass = classes.find(item => item.id === classId);
+                        if (!schoolClass || getActiveClassStreams(schoolClass, targetYearId).length < 2) return [];
+                        return [[classId, streamLayouts[classId] || { defaultMode: 'consolidated' }]];
+                    })
+                ),
             };
 
             if (isEditing && editingProfile) {
@@ -543,6 +556,61 @@ export function StructureGenerator({ isOpen, onClose, yearId: defaultYearId, ter
                                     </label>
                                 ))}
                             </div>
+                            {!isEditing && selectedClasses.some(classId => {
+                                const schoolClass = classes.find(item => item.id === classId);
+                                return schoolClass && getActiveClassStreams(schoolClass, targetYearId).length > 1;
+                            }) && (
+                                <div className="mt-3 space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+                                    <div>
+                                        <p className="text-xs font-bold text-indigo-900">Stream lesson layout</p>
+                                        <p className="text-[11px] leading-4 text-indigo-700/80">
+                                            Choose the starting layout. You can still change a whole day or one lesson while managing the timetable.
+                                        </p>
+                                    </div>
+                                    {selectedClasses.map(classId => {
+                                        const schoolClass = classes.find(item => item.id === classId);
+                                        if (!schoolClass) return null;
+                                        const activeStreams = getActiveClassStreams(schoolClass, targetYearId);
+                                        if (activeStreams.length < 2) return null;
+                                        const mode = streamLayouts[classId]?.defaultMode || 'consolidated';
+                                        return (
+                                            <fieldset key={classId} className="rounded-lg border border-indigo-100 bg-white p-2">
+                                                <legend className="px-1 text-[11px] font-bold text-gray-800">{schoolClass.name}</legend>
+                                                <p className="mb-2 text-[10px] text-gray-500">
+                                                    {activeStreams.map(stream => stream.name).join(' · ')}
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {([
+                                                        ['consolidated', 'Together', 'One lesson shared by every stream'],
+                                                        ['separate', 'Separate', 'One sub-row and lesson per stream'],
+                                                    ] as const).map(([value, label, description]) => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            aria-pressed={mode === value}
+                                                            onClick={() => setStreamLayouts(current => ({
+                                                                ...current,
+                                                                [classId]: {
+                                                                    ...(current[classId] || {}),
+                                                                    defaultMode: value,
+                                                                },
+                                                            }))}
+                                                            className={`min-h-11 rounded-lg border px-2 py-1.5 text-left transition-colors ${
+                                                                mode === value
+                                                                    ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm'
+                                                                    : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50'
+                                                            }`}
+                                                        >
+                                                            <span className="block text-[11px] font-bold">{label}</span>
+                                                            <span className={`block text-[9px] leading-3 ${mode === value ? 'text-indigo-100' : 'text-gray-500'}`}>{description}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </fieldset>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         {/* School Days */}
