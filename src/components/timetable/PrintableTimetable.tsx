@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { format, parse } from "date-fns";
-import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff } from "@/types";
+import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
+import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 const DAYS = [
     { id: 1, label: "MON" },
@@ -28,6 +29,8 @@ interface PrintableTimetableProps {
     classes: Class[];
     subjects: Subject[];
     staffList: Staff[];
+    academicYearId: string;
+    profile?: Pick<TimetableProfile, "streamLayouts">;
     timeFormat?: "12h" | "24h";
     onClose: () => void;
 }
@@ -43,6 +46,8 @@ export function PrintableTimetable({
     classes,
     subjects,
     staffList,
+    academicYearId,
+    profile,
     timeFormat,
     onClose,
 }: PrintableTimetableProps) {
@@ -83,7 +88,22 @@ export function PrintableTimetable({
         [periods]
     );
 
-    const visibleDays = DAYS.filter((d) => periods.some((p) => p.dayOfWeek === d.id));
+    const visibleDays = React.useMemo(
+        () => DAYS.filter((day) => periods.some((period) => period.dayOfWeek === day.id)),
+        [periods],
+    );
+
+    const rowsByDay = React.useMemo(
+        () => new Map(visibleDays.map(day => ([
+            day.id,
+            buildTimetableClassRowsForDay(classes, profile, academicYearId, day.id, periods),
+        ] as const))),
+        [academicYearId, classes, periods, profile, visibleDays],
+    );
+
+    const getDayPeriod = (dayId: number, tp: GeneratedPeriod): GeneratedPeriod | undefined => periods.find(
+        (period) => period.dayOfWeek === dayId && period.type === tp.type && period.periodNumber === tp.periodNumber
+    );
 
     const getEntry = (classId: string, dayId: number, tp: GeneratedPeriod): TimetableEntry | undefined => {
         const dayPeriod = periods.find(
@@ -91,14 +111,6 @@ export function PrintableTimetable({
         );
         if (!dayPeriod) return undefined;
         return entries.find((e) => e.classId === classId && e.periodId === dayPeriod.id);
-    };
-
-    const getCellEntries = (classId: string, dayId: number, tp: GeneratedPeriod): TimetableEntry[] => {
-        const dayPeriod = periods.find(
-            (p) => p.dayOfWeek === dayId && p.type === tp.type && p.periodNumber === tp.periodNumber
-        );
-        if (!dayPeriod) return [];
-        return entries.filter((entry) => entry.classId === classId && entry.periodId === dayPeriod.id);
     };
 
     // ── PDF generation ────────────────────────────────────────────────────────
@@ -186,7 +198,7 @@ export function PrintableTimetable({
     const logoUrl = schoolSettings?.generalInfo?.logo;
 
     // ── Dynamic sizing based on table dimensions ──────────────────────────────
-    const totalRows = visibleDays.length * classes.length;
+    const totalRows = Array.from(rowsByDay.values()).reduce((sum, dayRows) => sum + dayRows.length, 0);
     // Lesson cells: bigger when fewer rows, capped so text always fits
     const lessonFs = Math.max(11, Math.min(18, Math.round(900 / totalRows)));
     // Class name column: slightly smaller than lesson
@@ -287,176 +299,157 @@ export function PrintableTimetable({
                 </thead>
 
                 <tbody>
-                    {/* tr has NO borderBottom — each td manages its own bottom border
-                         so that spanning day/break cells don't get internal row lines */}
-                    {visibleDays.map((day, dayIdx) => (
-                        <React.Fragment key={day.id}>
-                            {classes.map((cls, clsIdx) => {
-                                const isLastClassInDay = clsIdx === classes.length - 1;
-                                const rowBottomBorder = isLastClassInDay ? bdBold : bd;
-                                let skipCells = 0;
-                                return (
-                                    <tr key={`${day.id}-${cls.id}`}>
-                                        {/* Day label — spans all class rows, no internal row lines */}
-                                        {clsIdx === 0 && (
-                                            <td
-                                                rowSpan={classes.length}
-                                                style={{
-                                                    borderTop: dayIdx === 0 ? bdBold : "none",
-                                                    borderBottom: bdBold,
-                                                    borderLeft: bdBold,
-                                                    borderRight: bdBold,
-                                                    fontWeight: 900,
-                                                    textAlign: "center",
-                                                    verticalAlign: "middle",
-                                                    padding: 0,
-                                                    overflow: "hidden",
-                                                }}
-                                            >
-                                                {/* CSS rotate is more reliable than writing-mode for html2canvas */}
-                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", minHeight: 60 }}>
-                                                    <span style={{ transform: "rotate(-90deg)", whiteSpace: "nowrap", display: "inline-block", fontSize: dayFs, letterSpacing: 3, fontWeight: 900 }}>
-                                                        {day.label}
-                                                    </span>
-                                                </div>
+                    {/* Stream rows are day-aware: a class expands only when that day contains a separated lesson. */}
+                    {visibleDays.map((day, dayIdx) => {
+                        const dayRows = rowsByDay.get(day.id) || [];
+                        return (
+                            <React.Fragment key={day.id}>
+                                {dayRows.map((row, rowIdx) => {
+                                    const cls = row.classItem;
+                                    const isLastRowInDay = rowIdx === dayRows.length - 1;
+                                    const rowBottomBorder = isLastRowInDay ? bdBold : bd;
+                                    const spanningBottomBorder = rowIdx + row.streamCount === dayRows.length ? bdBold : bd;
+                                    let skipCells = 0;
+                                    return (
+                                        <tr key={`${day.id}-${cls.id}-${row.stream?.id || 'all'}`}>
+                                            {rowIdx === 0 && (
+                                                <td
+                                                    rowSpan={dayRows.length}
+                                                    style={{
+                                                        borderTop: dayIdx === 0 ? bdBold : "none",
+                                                        borderBottom: bdBold,
+                                                        borderLeft: bdBold,
+                                                        borderRight: bdBold,
+                                                        fontWeight: 900,
+                                                        textAlign: "center",
+                                                        verticalAlign: "middle",
+                                                        padding: 0,
+                                                        overflow: "hidden",
+                                                    }}
+                                                >
+                                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", minHeight: 60 }}>
+                                                        <span style={{ transform: "rotate(-90deg)", whiteSpace: "nowrap", display: "inline-block", fontSize: dayFs, letterSpacing: 3, fontWeight: 900 }}>
+                                                            {day.label}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                            )}
+
+                                            <td style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, fontWeight: 700, textAlign: "center", padding: "0 2px", fontSize: classFs, whiteSpace: "nowrap", overflow: "hidden", verticalAlign: "middle" }}>
+                                                {row.stream && <strong style={{ color: "#4338ca" }}>{row.stream.code || row.stream.name}{' '}</strong>}
+                                                {cls.code || cls.name}
                                             </td>
-                                        )}
 
-                                        {/* Class name */}
-                                        <td style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, fontWeight: 700, textAlign: "center", padding: "0 2px", fontSize: classFs, whiteSpace: "nowrap", overflow: "hidden", verticalAlign: "middle" }}>
-                                            {cls.code || cls.name}
-                                        </td>
+                                            {templatePeriods.map((tp) => {
+                                                if (skipCells > 0) { skipCells--; return null; }
+                                                const isBreak = tp.type === "break" || tp.type === "lunch" || tp.type === "assembly";
 
-                                        {/* Period cells */}
-                                        {templatePeriods.map((tp) => {
-                                            if (skipCells > 0) { skipCells--; return null; }
-                                            const isBreak = tp.type === "break" || tp.type === "lunch" || tp.type === "assembly";
-
-                                            if (isBreak) {
-                                                // ── Render once spanning ALL days (dayIdx===0 && clsIdx===0) ──
-                                                if (dayIdx === 0 && clsIdx === 0) {
-                                                    return (
-                                                        <td
-                                                            key={tp.id}
-                                                            rowSpan={visibleDays.length * classes.length}
-                                                            style={{
-                                                                borderTop: bdBold,
-                                                                borderBottom: bdBold,
-                                                                borderLeft: bd,
-                                                                borderRight: bd,
-                                                                background: "#e8e8e8",
-                                                                textAlign: "center",
-                                                                verticalAlign: "middle",
-                                                                padding: 0,
-                                                                overflow: "hidden",
-                                                            }}
-                                                        >
-                                                            {/* Single rotated word, letter-spacing fills the column height */}
-                                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                                                                <span style={{
-                                                                    transform: "rotate(-90deg)",
-                                                                    display: "inline-block",
-                                                                    whiteSpace: "nowrap",
-                                                                    letterSpacing: breakLs,
-                                                                    fontSize: breakFs,
-                                                                    fontWeight: 900,
-                                                                    textTransform: "uppercase",
-                                                                    lineHeight: 1,
-                                                                }}>
-                                                                    {(tp.customLabel || tp.type).toUpperCase()}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                }
-                                                // Already rendered — skip for all other rows
-                                                return null;
-                                            }
-
-                                            // Group activities
-                                            const groupEntry = classes
-                                                .map((c) => getEntry(c.id, day.id, tp))
-                                                .find((e) => e?.entryType === "activity" && e?.linkedClassIds && e.linkedClassIds.length > 0);
-
-                                            if (groupEntry) {
-                                                const groupIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
-                                                if (groupIds.includes(cls.id)) {
-                                                    const firstIdx = classes.findIndex((c) => groupIds.includes(c.id));
-                                                    if (clsIdx === firstIdx) {
-                                                        const span = classes.filter((c) => groupIds.includes(c.id)).length;
-                                                        if (groupEntry.periodSpan && groupEntry.periodSpan > 1) {
-                                                            skipCells = groupEntry.periodSpan - 1;
-                                                        }
+                                                if (isBreak) {
+                                                    if (dayIdx === 0 && rowIdx === 0) {
                                                         return (
-                                                            <td key={tp.id} rowSpan={span} colSpan={groupEntry.periodSpan || 1} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
-                                                                {groupEntry.activityName || "ACT"}
+                                                            <td
+                                                                key={tp.id}
+                                                                rowSpan={totalRows}
+                                                                style={{
+                                                                    borderTop: bdBold,
+                                                                    borderBottom: bdBold,
+                                                                    borderLeft: bd,
+                                                                    borderRight: bd,
+                                                                    background: "#e8e8e8",
+                                                                    textAlign: "center",
+                                                                    verticalAlign: "middle",
+                                                                    padding: 0,
+                                                                    overflow: "hidden",
+                                                                }}
+                                                            >
+                                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                                                                    <span style={{
+                                                                        transform: "rotate(-90deg)",
+                                                                        display: "inline-block",
+                                                                        whiteSpace: "nowrap",
+                                                                        letterSpacing: breakLs,
+                                                                        fontSize: breakFs,
+                                                                        fontWeight: 900,
+                                                                        textTransform: "uppercase",
+                                                                        lineHeight: 1,
+                                                                    }}>
+                                                                        {(tp.customLabel || tp.type).toUpperCase()}
+                                                                    </span>
+                                                                </div>
                                                             </td>
                                                         );
                                                     }
                                                     return null;
                                                 }
-                                            }
 
-                                            const cellEntries = getCellEntries(cls.id, day.id, tp);
-                                            if (cellEntries.length > 1) {
-                                                const span = Math.max(...cellEntries.map(item => item.periodSpan || 1));
-                                                if (span > 1) skipCells = span - 1;
-                                                return (
-                                                    <td key={tp.id} colSpan={span} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", padding: 1 }}>
-                                                        {cellEntries.map(streamEntry => {
-                                                            const streamSubject = subjects.find(subjectItem => subjectItem.id === streamEntry.subjectId);
+                                                const groupEntry = classes
+                                                    .map((schoolClass) => getEntry(schoolClass.id, day.id, tp))
+                                                    .find((candidate) => candidate?.entryType === "activity" && candidate?.linkedClassIds && candidate.linkedClassIds.length > 0);
+
+                                                if (groupEntry) {
+                                                    const groupIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
+                                                    if (groupIds.includes(cls.id)) {
+                                                        const firstIdx = dayRows.findIndex(candidate => groupIds.includes(candidate.classItem.id));
+                                                        if (rowIdx === firstIdx) {
+                                                            const span = dayRows.filter(candidate => groupIds.includes(candidate.classItem.id)).length;
+                                                            if (groupEntry.periodSpan && groupEntry.periodSpan > 1) skipCells = groupEntry.periodSpan - 1;
                                                             return (
-                                                                <div key={streamEntry.id} style={{ display: 'flex', justifyContent: 'center', gap: 3, borderBottom: '1px solid #d1d5db', fontSize: Math.max(8, lessonFs - 3), lineHeight: 1.15, padding: '1px 0' }}>
-                                                                    <strong>{streamEntry.streamCode || streamEntry.streamName || 'Stream'}:</strong>
-                                                                    <span>{streamEntry.entryType === 'activity' ? streamEntry.activityName || 'ACT' : streamSubject?.code || streamSubject?.name || '?'}</span>
-                                                                </div>
+                                                                <td key={tp.id} rowSpan={span} colSpan={groupEntry.periodSpan || 1} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
+                                                                    {groupEntry.activityName || "ACT"}
+                                                                </td>
                                                             );
-                                                        })}
-                                                    </td>
-                                                );
-                                            }
+                                                        }
+                                                        return null;
+                                                    }
+                                                }
 
-                                            const entry = cellEntries[0] || getEntry(cls.id, day.id, tp);
-                                            const subject = entry ? subjects.find((s) => s.id === entry.subjectId) : null;
+                                                const dayPeriod = getDayPeriod(day.id, tp);
+                                                if (!dayPeriod) return <td key={tp.id} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd }} />;
+                                                const mode = getTimetableStreamMode(profile, cls.id, day.id, dayPeriod.id);
+                                                if (row.stream && mode === "consolidated" && row.streamIndex > 0) return null;
 
-                                            if (entry && entry.periodSpan && entry.periodSpan > 1) {
-                                                skipCells = entry.periodSpan - 1;
-                                            }
+                                                const scopedStream = mode === "separate" ? row.stream : undefined;
+                                                const entry = findTimetableEntryForRow(entries, cls.id, dayPeriod.id, mode, scopedStream?.id);
+                                                const subject = entry ? subjects.find((subjectItem) => subjectItem.id === entry.subjectId) : null;
+                                                const rowSpan = row.stream && mode === "consolidated" ? row.streamCount : undefined;
+                                                const cellBottomBorder = rowSpan ? spanningBottomBorder : rowBottomBorder;
 
-                                            if (entry?.entryType === "activity") {
-                                                return (
-                                                    <td key={tp.id} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
-                                                        {entry.activityName || "ACT"}
-                                                    </td>
-                                                );
-                                            }
+                                                if (entry?.periodSpan && entry.periodSpan > 1) skipCells = entry.periodSpan - 1;
 
-                                            if (entry && subject) {
-                                                // Split subject — render inline as MAIN/OPT
-                                                if (entry.optionalSubjectId) {
-                                                    const optSub = subjects.find((s) => s.id === entry.optionalSubjectId);
-                                                    const mainCode = subject.code || subject.name.substring(0, 5);
-                                                    const optCode = optSub?.code || optSub?.name?.substring(0, 5) || "";
+                                                if (entry?.entryType === "activity") {
                                                     return (
-                                                        <td key={tp.id} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
-                                                            {mainCode}/{optCode}
+                                                        <td key={tp.id} rowSpan={rowSpan} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
+                                                            {entry.activityName || "ACT"}
                                                         </td>
                                                     );
                                                 }
-                                                return (
-                                                    <td key={tp.id} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
-                                                        {subject.code || subject.name}
-                                                    </td>
-                                                );
-                                            }
 
-                                            return <td key={tp.id} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd }} />;
-                                        })}
-                                    </tr>
-                                );
-                            })}
-                        </React.Fragment>
-                    ))}
+                                                if (entry && subject) {
+                                                    if (entry.optionalSubjectId) {
+                                                        const optSub = subjects.find((subjectItem) => subjectItem.id === entry.optionalSubjectId);
+                                                        const mainCode = subject.code || subject.name.substring(0, 5);
+                                                        const optCode = optSub?.code || optSub?.name?.substring(0, 5) || "";
+                                                        return (
+                                                            <td key={tp.id} rowSpan={rowSpan} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
+                                                                {mainCode}/{optCode}
+                                                            </td>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <td key={tp.id} rowSpan={rowSpan} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
+                                                            {subject.code || subject.name}
+                                                        </td>
+                                                    );
+                                                }
+
+                                                return <td key={tp.id} rowSpan={rowSpan} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd }} />;
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </React.Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
