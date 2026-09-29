@@ -596,7 +596,7 @@ export function TimetableGrid({
                 <table ref={tableRef} className="w-full text-sm text-left border-collapse min-w-[max-content]">
                     <thead>
                         <tr className="bg-slate-50 border-b border-gray-200">
-                            <th className="p-1.5 font-semibold text-gray-600 border-r w-[80px] sticky top-0 left-0 bg-slate-50 z-40 shadow-[1px_1px_0_0_#e5e7eb] text-[10px]">
+                            <th className="sticky left-0 top-0 z-40 w-[104px] min-w-[104px] border-r bg-slate-50 p-1.5 text-[10px] font-semibold text-gray-600 shadow-[1px_1px_0_0_#e5e7eb]">
                                 CLASS
                             </th>
                             {dayPeriods.map(period => {
@@ -767,7 +767,7 @@ export function TimetableGrid({
                             let skipCells = 0;
                             return (
                                 <tr key={cls.id} className="border-b border-gray-100 hover:bg-slate-50/50 transition-colors">
-                                    <td className="sticky left-0 z-10 max-w-[80px] whitespace-nowrap border-r bg-white px-1 py-1 text-[10px] font-bold leading-tight text-gray-800 shadow-[1px_0_0_0_#f3f4f6]">
+                                    <td className="sticky left-0 z-10 w-[104px] min-w-[104px] max-w-[104px] whitespace-nowrap border-r bg-white px-1 py-1 text-[10px] font-bold leading-tight text-gray-800 shadow-[1px_0_0_0_#f3f4f6]">
                                         <div className="flex min-h-[34px] items-center justify-center gap-1">
                                             <span className="min-w-0 truncate">{cls.code || cls.name}</span>
                                             {activeStreams.length > 1 && (
@@ -1123,29 +1123,39 @@ function StreamedClassRows({
                         {streamIndex === 0 && (
                             <td
                                 rowSpan={streams.length}
-                                className="sticky left-0 z-20 w-[80px] max-w-[96px] border-r border-indigo-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff]"
+                                className="sticky left-0 z-20 w-[104px] min-w-[104px] max-w-[104px] border-r border-indigo-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff]"
                             >
-                                <div className="flex flex-col" style={{ minHeight: streams.length * 42 }}>
-                                    {streams.map((labelStream, labelIndex) => (
-                                        <div
-                                            key={labelStream.id}
-                                            className={`flex min-h-[42px] flex-1 items-center justify-center gap-1 px-1 text-center ${labelIndex < streams.length - 1 ? 'border-b border-indigo-100' : ''}`}
-                                        >
-                                            <span className="min-w-0 truncate text-[10px] font-black leading-tight" title={`${labelStream.name} ${classItem.name}`}>
-                                                <span className="text-indigo-700">{labelStream.code || labelStream.name}</span>{' '}
-                                                <span className="text-gray-800">{classItem.code || classItem.name}</span>
-                                            </span>
-                                            {labelIndex === 0 && (
-                                                <StreamLayoutControl
-                                                    classItem={classItem}
-                                                    selectedDay={selectedDay}
-                                                    isEditing={isEditing}
-                                                    streamModePending={streamModePending}
-                                                    onSetMode={onSetMode}
-                                                />
-                                            )}
+                                <div
+                                    className="grid"
+                                    style={{ minHeight: streams.length * 42, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
+                                >
+                                    <div className="relative flex items-center justify-center border-r border-indigo-100 px-1 text-center">
+                                        <span className="min-w-0 truncate text-[10px] font-black leading-tight text-gray-800" title={classItem.name}>
+                                            {classItem.code || classItem.name}
+                                        </span>
+                                        <div className="absolute bottom-1 right-1">
+                                            <StreamLayoutControl
+                                                classItem={classItem}
+                                                selectedDay={selectedDay}
+                                                isEditing={isEditing}
+                                                streamModePending={streamModePending}
+                                                onSetMode={onSetMode}
+                                            />
                                         </div>
-                                    ))}
+                                    </div>
+                                    <div className="flex min-w-0 flex-col bg-indigo-50/60">
+                                        {streams.map((labelStream, labelIndex) => (
+                                            <div
+                                                key={labelStream.id}
+                                                className={`flex min-h-[42px] flex-1 items-center justify-center px-1 text-center ${labelIndex < streams.length - 1 ? 'border-b border-indigo-100' : ''}`}
+                                                title={labelStream.name}
+                                            >
+                                                <span className="block max-w-full truncate text-[9px] font-bold leading-tight text-indigo-700">
+                                                    {labelStream.code || labelStream.name}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </td>
                         )}

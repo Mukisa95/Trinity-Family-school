@@ -269,7 +269,7 @@ export function PrintableTimetable({
             >
                 <colgroup>
                     <col style={{ width: 65 }} /> {/* Day — wider for big rotated text */}
-                    <col style={{ width: 56 }} /> {/* Class */}
+                    <col style={{ width: 82 }} /> {/* Composite class / stream labels */}
                     {templatePeriods.map((p) => {
                         const isBreak = p.type === "break" || p.type === "lunch" || p.type === "assembly";
                         return <col key={p.id} style={{ width: isBreak ? 58 : undefined }} />;
@@ -306,6 +306,9 @@ export function PrintableTimetable({
                             <React.Fragment key={day.id}>
                                 {dayRows.map((row, rowIdx) => {
                                     const cls = row.classItem;
+                                    const classStreamRows = row.stream
+                                        ? dayRows.filter(candidate => candidate.classItem.id === cls.id && candidate.stream)
+                                        : [];
                                     const isLastRowInDay = rowIdx === dayRows.length - 1;
                                     const rowBottomBorder = isLastRowInDay ? bdBold : bd;
                                     const spanningBottomBorder = rowIdx + row.streamCount === dayRows.length ? bdBold : bd;
@@ -335,10 +338,57 @@ export function PrintableTimetable({
                                                 </td>
                                             )}
 
-                                            <td style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, fontWeight: 700, textAlign: "center", padding: "0 2px", fontSize: classFs, whiteSpace: "nowrap", overflow: "hidden", verticalAlign: "middle" }}>
-                                                {row.stream && <strong style={{ color: "#4338ca" }}>{row.stream.code || row.stream.name}{' '}</strong>}
-                                                {cls.code || cls.name}
-                                            </td>
+                                            {(!row.stream || row.streamIndex === 0) && (
+                                                <td
+                                                    rowSpan={row.stream ? row.streamCount : undefined}
+                                                    style={{
+                                                        borderTop: "none",
+                                                        borderBottom: row.stream ? spanningBottomBorder : rowBottomBorder,
+                                                        borderLeft: bd,
+                                                        borderRight: bd,
+                                                        fontWeight: 700,
+                                                        textAlign: "center",
+                                                        padding: 0,
+                                                        fontSize: classFs,
+                                                        whiteSpace: "nowrap",
+                                                        overflow: "hidden",
+                                                        verticalAlign: "middle",
+                                                    }}
+                                                >
+                                                    {row.stream ? (
+                                                        <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.8fr", height: "100%", minHeight: row.streamCount * 24 }}>
+                                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", borderRight: bd, padding: "0 2px", overflow: "hidden" }}>
+                                                                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{cls.code || cls.name}</span>
+                                                            </div>
+                                                            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, background: "#eef2ff" }}>
+                                                                {classStreamRows.map((streamRow, streamRowIndex) => (
+                                                                    <div
+                                                                        key={streamRow.stream!.id}
+                                                                        style={{
+                                                                            display: "flex",
+                                                                            flex: 1,
+                                                                            alignItems: "center",
+                                                                            justifyContent: "center",
+                                                                            minHeight: 24,
+                                                                            padding: "0 1px",
+                                                                            borderBottom: streamRowIndex < classStreamRows.length - 1 ? bd : "none",
+                                                                            color: "#4338ca",
+                                                                            fontSize: Math.max(8, classFs - 2),
+                                                                            overflow: "hidden",
+                                                                        }}
+                                                                    >
+                                                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{streamRow.stream!.code || streamRow.stream!.name}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: "0 2px" }}>
+                                                            {cls.code || cls.name}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            )}
 
                                             {templatePeriods.map((tp) => {
                                                 if (skipCells > 0) { skipCells--; return null; }
