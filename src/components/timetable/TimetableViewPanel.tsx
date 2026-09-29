@@ -203,8 +203,8 @@ function WeekGridView({
         dayStartMins !== null && dayEndMins !== null &&
         currentMins >= dayStartMins && currentMins <= dayEndMins;
 
-    // Sticky cols: 48px (day) + 72px (class if shown)
-    const stickyOffset = showClassCol ? 120 : 48;
+    // Sticky cols: 48px (day) + 104px (composite class/stream cell if shown)
+    const stickyOffset = showClassCol ? 152 : 48;
 
     // Sum column widths exactly as the table renders them — no drift
     let liveOffsetPx: number | null = null;
@@ -253,7 +253,7 @@ function WeekGridView({
                             <th className="sticky top-0 left-0 z-40 bg-slate-50 border-r border-b border-gray-200 w-[48px] min-w-[48px] shadow-[1px_1px_0_0_#e5e7eb]" />
                             {/* Class column — sticky left-[48px], hidden when a specific class is selected */}
                             {showClassCol && (
-                                <th className="sticky top-0 left-[48px] z-40 bg-slate-50 p-2 text-xs font-semibold text-gray-500 border-r border-b border-gray-200 w-[72px] min-w-[72px] text-center shadow-[1px_1px_0_0_#e5e7eb]">CLASS</th>
+                                <th className="sticky left-[48px] top-0 z-40 w-[104px] min-w-[104px] border-r border-b border-gray-200 bg-slate-50 p-2 text-center text-xs font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb]">CLASS</th>
                             )}
                             {/* Period columns */}
                             {templatePeriods.map(p => {
@@ -329,6 +329,9 @@ function WeekGridView({
                             >
                                 {dayRows.map((row, rowIdx) => {
                                     const cls = row.classItem;
+                                    const classStreamRows = row.stream
+                                        ? dayRows.filter(candidate => candidate.classItem.id === cls.id && candidate.stream)
+                                        : [];
                                     let skipCells = 0;
                                     return (
                                         <tr
@@ -352,11 +355,37 @@ function WeekGridView({
                                                     </div>
                                                 </td>
                                             )}
-                                            {/* Class name — hidden when filtering by one class */}
-                                            {showClassCol && (
-                                                <td className={`sticky left-[48px] z-10 py-0.5 px-1 border-r border-b border-gray-200 text-[10px] font-bold text-gray-700 whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}>
-                                                    {row.stream && <span className="text-indigo-700">{row.stream.code || row.stream.name}{' '}</span>}
-                                                    {cls.code || cls.name}
+                                            {/* Composite class cell: class spans the stream-name mini-cells. */}
+                                            {showClassCol && (!row.stream || row.streamIndex === 0) && (
+                                                <td
+                                                    rowSpan={row.stream ? row.streamCount : undefined}
+                                                    className={`sticky left-[48px] z-10 w-[104px] min-w-[104px] border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}
+                                                >
+                                                    {row.stream ? (
+                                                        <div
+                                                            className="grid h-full"
+                                                            style={{ minHeight: row.streamCount * 38, gridTemplateColumns: 'minmax(54px, 1fr) minmax(34px, 0.7fr)' }}
+                                                        >
+                                                            <div className="flex items-center justify-center border-r border-indigo-100 px-1 text-center">
+                                                                <span className="block max-w-full truncate" title={cls.name}>{cls.code || cls.name}</span>
+                                                            </div>
+                                                            <div className="flex min-w-0 flex-col bg-indigo-50/60">
+                                                                {classStreamRows.map((streamRow, streamRowIndex) => (
+                                                                    <div
+                                                                        key={streamRow.stream!.id}
+                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-indigo-700 ${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-indigo-100' : ''}`}
+                                                                        title={streamRow.stream!.name}
+                                                                    >
+                                                                        <span className="block max-w-full truncate">{streamRow.stream!.code || streamRow.stream!.name}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex min-h-[38px] items-center justify-center px-1 text-center">
+                                                            <span className="block max-w-full truncate" title={cls.name}>{cls.code || cls.name}</span>
+                                                        </div>
+                                                    )}
                                                 </td>
                                             )}
                                             {/* Period cells */}
