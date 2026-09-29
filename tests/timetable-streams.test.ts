@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { Class, GeneratedPeriod, TimetableEntry, TimetableProfile } from '../src/types';
 import {
   buildTimetableClassRowsForDay,
+  classUsesStreamRowsForDay,
   findTimetableEntryForRow,
   getTimetableStreamMode,
 } from '../src/lib/utils/timetable-streams';
@@ -20,6 +21,7 @@ const schoolClass = {
 const periods = [
   { id: 'mon-1', dayOfWeek: 1, periodNumber: 1, startTime: '08:00', endTime: '09:00', type: 'lesson' },
   { id: 'tue-1', dayOfWeek: 2, periodNumber: 1, startTime: '08:00', endTime: '09:00', type: 'lesson' },
+  { id: 'fri-1', dayOfWeek: 5, periodNumber: 1, startTime: '08:00', endTime: '09:00', type: 'lesson' },
 ] satisfies GeneratedPeriod[];
 
 const profile = {
@@ -46,6 +48,13 @@ test('a separated day expands one class into ordered stream sub-rows', () => {
 
   const legacyRows = buildTimetableClassRowsForDay([schoolClass], undefined, '2026', 1, periods);
   assert.equal(legacyRows.length, 1);
+});
+
+test('a fully consolidated day keeps one class row and hides stream labels', () => {
+  assert.equal(classUsesStreamRowsForDay(schoolClass, profile, '2026', 5, periods), false);
+  const fridayRows = buildTimetableClassRowsForDay([schoolClass], profile, '2026', 5, periods);
+  assert.equal(fridayRows.length, 1);
+  assert.equal(fridayRows[0].stream, undefined);
 });
 
 test('entry lookup keeps consolidated and stream lessons distinct', () => {

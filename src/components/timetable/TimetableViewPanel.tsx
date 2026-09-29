@@ -9,7 +9,8 @@ import { Loader2, CalendarDays, AlignJustify } from "lucide-react";
 import { format, parse } from "date-fns";
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
-import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff } from "@/types";
+import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
+import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const DAYS = [
@@ -85,13 +86,15 @@ interface TimetableViewPanelProps {
 // ─── Week Grid View ───────────────────────────────────────────────────────────
 // Renders all days as row-groups (like the reference image) with periods as columns.
 function WeekGridView({
-    entries, periods, classes, subjects, staffList, filterMode, filterId, timeFormat, externalZoom
+    entries, periods, classes, subjects, staffList, filterMode, filterId, timeFormat, externalZoom, academicYearId, profile
 }: {
     entries: TimetableEntry[]; periods: GeneratedPeriod[]; classes: Class[];
     subjects: Subject[]; staffList: Staff[];
     filterMode: FilterMode; filterId: string;
     timeFormat?: '12h' | '24h';
     externalZoom?: number;
+    academicYearId: string;
+    profile?: Pick<TimetableProfile, 'streamLayouts'>;
 }) {
     const zoom = externalZoom ?? 1;
     const pxPerMin = PIXELS_PER_MINUTE * zoom;
@@ -117,7 +120,18 @@ function WeekGridView({
     }, [classes, filterMode, filterId]);
 
     // Days that actually have periods
-    const visibleDays = DAYS.filter(d => periods.some(p => p.dayOfWeek === d.id));
+    const visibleDays = React.useMemo(
+        () => DAYS.filter(day => periods.some(period => period.dayOfWeek === day.id)),
+        [periods],
+    );
+
+    const rowsByDay = React.useMemo(
+        () => new Map(visibleDays.map(day => ([
+            day.id,
+            buildTimetableClassRowsForDay(visibleClasses, profile, academicYearId, day.id, periods),
+        ] as const))),
+        [academicYearId, periods, profile, visibleClasses, visibleDays],
+    );
 
     if (templatePeriods.length === 0) {
         return <p className="text-gray-400 text-sm text-center py-10">No periods found. Generate a timetable structure first.</p>;
@@ -134,15 +148,11 @@ function WeekGridView({
         return entries.find(e => e.classId === classId && e.periodId === dayPeriod.id);
     };
 
-    const getCellEntries = (classId: string, dayId: number, templatePeriod: GeneratedPeriod): TimetableEntry[] => {
-        const dayPeriod = periods.find(p => (
-            p.dayOfWeek === dayId
-            && p.type === templatePeriod.type
-            && p.periodNumber === templatePeriod.periodNumber
-        ));
-        if (!dayPeriod) return [];
-        return entries.filter(entry => entry.classId === classId && entry.periodId === dayPeriod.id);
-    };
+    const getDayPeriod = (dayId: number, templatePeriod: GeneratedPeriod): GeneratedPeriod | undefined => periods.find(period => (
+        period.dayOfWeek === dayId
+        && period.type === templatePeriod.type
+        && period.periodNumber === templatePeriod.periodNumber
+    ));
 
     const isHighlighted = (entry: TimetableEntry | undefined): boolean => {
         if (!entry || !filterId) return false;
@@ -157,7 +167,8 @@ function WeekGridView({
     };
 
     // Hide the class column when a single class is selected — it's redundant
-    const showClassCol = !(filterMode === "class" && filterId);
+    const hasVisibleStreamRows = Array.from(rowsByDay.values()).some(dayRows => dayRows.some(row => row.stream));
+    const showClassCol = hasVisibleStreamRows || !(filterMode === "class" && filterId);
 
     const [currentTime, setCurrentTime] = React.useState(new Date());
     React.useEffect(() => {
@@ -308,22 +319,24 @@ function WeekGridView({
                         </tr>
                     </thead>
                     {visibleDays.map((day, dayIdx) => {
-                        const rowCount = visibleClasses.length;
+                        const dayRows = rowsByDay.get(day.id) || [];
+                        const rowCount = dayRows.length;
                         const isToday = day.id === todayDayOfWeek;
                         return (
                             <tbody
                                 key={day.id}
                                 className={isToday ? "relative z-10 outline outline-2 outline-indigo-500 -outline-offset-[2px] shadow-[0_4px_20px_rgba(99,102,241,0.2)]" : ""}
                             >
-                                {visibleClasses.map((cls, clsIdx) => {
+                                {dayRows.map((row, rowIdx) => {
+                                    const cls = row.classItem;
                                     let skipCells = 0;
                                     return (
                                         <tr
-                                            key={`${day.id}-${cls.id}`}
+                                            key={`${day.id}-${cls.id}-${row.stream?.id || 'all'}`}
                                             className={`${isToday ? (dayIdx % 2 === 0 ? "bg-indigo-50/30" : "bg-indigo-50/50") : (dayIdx % 2 === 0 ? "bg-white" : "bg-slate-50/40")} border-b border-gray-100`}
                                         >
-                                            {/* Day label cell — only on first class row, spans all class rows */}
-                                            {clsIdx === 0 && (
+                                            {/* Day label cell — only on first visual row, spans class and stream rows */}
+                                            {rowIdx === 0 && (
                                                 <td
                                                     rowSpan={rowCount}
                                                     className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black ${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600'}`}
@@ -342,6 +355,7 @@ function WeekGridView({
                                             {/* Class name — hidden when filtering by one class */}
                                             {showClassCol && (
                                                 <td className={`sticky left-[48px] z-10 py-0.5 px-1 border-r border-b border-gray-200 text-[10px] font-bold text-gray-700 whitespace-nowrap shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}>
+                                                    {row.stream && <span className="text-indigo-700">{row.stream.code || row.stream.name}{' '}</span>}
                                                     {cls.code || cls.name}
                                                 </td>
                                             )}
@@ -353,7 +367,7 @@ function WeekGridView({
 
                                                 if (isBreak) {
                                                     // Only render break cell on first class row, spanning all
-                                                    if (clsIdx === 0) {
+                                                    if (rowIdx === 0) {
                                                         return (
                                                             <td
                                                                 key={templatePeriod.id}
@@ -385,9 +399,9 @@ function WeekGridView({
                                                     const groupClassIds = [groupEntry.classId, ...(groupEntry.linkedClassIds || [])];
                                                     const isInGroup = groupClassIds.includes(cls.id);
                                                     if (isInGroup) {
-                                                        const firstGroupClsIdx = visibleClasses.findIndex(c => groupClassIds.includes(c.id));
-                                                        if (clsIdx === firstGroupClsIdx) {
-                                                            const groupRowSpan = visibleClasses.filter(c => groupClassIds.includes(c.id)).length;
+                                                        const firstGroupRowIdx = dayRows.findIndex(candidate => groupClassIds.includes(candidate.classItem.id));
+                                                        if (rowIdx === firstGroupRowIdx) {
+                                                            const groupRowSpan = dayRows.filter(candidate => groupClassIds.includes(candidate.classItem.id)).length;
                                                             const actTeacher = staffList.find(s => s.id === groupEntry.teacherId);
                                                             if (groupEntry.periodSpan && groupEntry.periodSpan > 1) {
                                                                 skipCells = groupEntry.periodSpan - 1;
@@ -409,28 +423,14 @@ function WeekGridView({
                                                     }
                                                 }
 
-                                                const cellEntries = getCellEntries(cls.id, day.id, templatePeriod);
-                                                if (cellEntries.length > 1) {
-                                                    const span = Math.max(...cellEntries.map(item => item.periodSpan || 1));
-                                                    if (span > 1) skipCells = span - 1;
-                                                    return (
-                                                        <td key={templatePeriod.id} colSpan={span} className="h-[38px] border-r border-gray-100 p-0 align-middle text-center">
-                                                            <div className="flex h-full flex-col divide-y divide-indigo-100 overflow-hidden rounded-sm bg-indigo-50/60">
-                                                                {cellEntries.map(streamEntry => {
-                                                                    const streamSubject = subjects.find(item => item.id === streamEntry.subjectId);
-                                                                    return (
-                                                                        <div key={streamEntry.id} className="flex min-h-0 flex-1 items-center justify-center gap-1 px-1 text-[8px] leading-none text-indigo-900">
-                                                                            <span className="font-black text-indigo-600">{streamEntry.streamCode || streamEntry.streamName || 'Stream'}</span>
-                                                                            <span className="max-w-[70%] truncate font-bold">{streamEntry.entryType === 'activity' ? streamEntry.activityName || 'ACT' : streamSubject?.code || streamSubject?.name || '?'}</span>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                }
+                                                const dayPeriod = getDayPeriod(day.id, templatePeriod);
+                                                if (!dayPeriod) return <td key={templatePeriod.id} className="h-[38px] border-r border-gray-100" />;
+                                                const mode = getTimetableStreamMode(profile, cls.id, day.id, dayPeriod.id);
+                                                if (row.stream && mode === 'consolidated' && row.streamIndex > 0) return null;
 
-                                                const entry = cellEntries[0] || getEntry(cls.id, day.id, templatePeriod);
+                                                const scopedStream = mode === 'separate' ? row.stream : undefined;
+                                                const entry = findTimetableEntryForRow(entries, cls.id, dayPeriod.id, mode, scopedStream?.id);
+                                                const rowSpan = row.stream && mode === 'consolidated' ? row.streamCount : undefined;
                                                 const subject = entry ? subjects.find(s => s.id === entry.subjectId) : null;
                                                 const teacher = entry ? staffList.find(s => s.id === entry.teacherId) : null;
                                                 const highlighted = isHighlighted(entry);
@@ -453,7 +453,7 @@ function WeekGridView({
                                                     const actTeacher = staffList.find(s => s.id === entry.teacherId);
                                                     const isActiveActivity = periodState === 'active';
                                                     return (
-                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && clsIdx === 0 ? activeColRef : null} colSpan={entry?.periodSpan || 1} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0">
+                                                        <td key={templatePeriod.id} ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null} rowSpan={rowSpan} colSpan={entry?.periodSpan || 1} className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0">
                                                             <div
                                                                 className="absolute inset-0 m-px rounded border flex flex-col items-center justify-center"
                                                                 style={isActiveActivity
@@ -475,7 +475,8 @@ function WeekGridView({
                                                 return (
                                                     <td
                                                         key={templatePeriod.id}
-                                                        ref={isActivePeriodForToday && clsIdx === 0 ? activeColRef : null}
+                                                        ref={isActivePeriodForToday && rowIdx === 0 ? activeColRef : null}
+                                                        rowSpan={rowSpan}
                                                         colSpan={entry?.periodSpan || 1}
                                                         className="border-r border-gray-100 text-center align-middle relative h-[38px] p-0"
                                                     >
@@ -543,7 +544,7 @@ function WeekGridView({
                                 })}
                                 {/* Day separator */}
                                 <tr className="h-[2px] bg-gray-300" key={`sep-${day.id}`}>
-                                    <td colSpan={2 + templatePeriods.length} className="bg-gray-300 p-0" />
+                                    <td colSpan={1 + (showClassCol ? 1 : 0) + templatePeriods.length} className="bg-gray-300 p-0" />
                                 </tr>
                             </tbody>
                         );
@@ -687,6 +688,8 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                     classes={profileClasses}
                     subjects={subjects}
                     staffList={staffList}
+                    academicYearId={yearId}
+                    profile={currentProfile}
                     timeFormat={currentProfile?.timeFormat}
                     onClose={() => setIsPrinting(false)}
                 />
@@ -830,6 +833,8 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                         staffList={staffList}
                         filterMode={filterMode}
                         filterId={filterId}
+                        academicYearId={yearId}
+                        profile={currentProfile}
                         timeFormat={currentProfile?.timeFormat}
                         externalZoom={zoom}
                     />

@@ -15,7 +15,7 @@ import { parse, format, addMinutes, differenceInMinutes, isSameDay } from "date-
 import { useToast } from "@/hooks/use-toast";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, ClassStream, TimetableProfile } from "@/types";
 import { getActiveClassStreams } from "@/lib/utils/class-streams";
-import { findTimetableEntryForRow, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 const BASE_PX_PER_MIN = 1.8; // base: 60min = 108px — compact default
 
@@ -248,11 +248,6 @@ export function TimetableGrid({
     const dayPeriods = React.useMemo(() => {
         return periods.filter(p => p.dayOfWeek === selectedDay).sort((a, b) => a.startTime.localeCompare(b.startTime));
     }, [periods, selectedDay]);
-    const hasStreamColumn = React.useMemo(
-        () => classesToRender.some(classItem => getActiveClassStreams(classItem, yearId).length > 1),
-        [classesToRender, yearId],
-    );
-
     // Pre-compute grouped activities using linkedClassIds (set by the "Group Activity" toggle)
     // A grouped activity entry has linkedClassIds pointing to its partner class entries.
     const sharedActivityMap = React.useMemo(() => {
@@ -604,11 +599,6 @@ export function TimetableGrid({
                             <th className="p-1.5 font-semibold text-gray-600 border-r w-[80px] sticky top-0 left-0 bg-slate-50 z-40 shadow-[1px_1px_0_0_#e5e7eb] text-[10px]">
                                 CLASS
                             </th>
-                            {hasStreamColumn && (
-                                <th className="sticky left-[80px] top-0 z-40 w-[58px] min-w-[58px] border-r bg-indigo-50 p-1 text-center text-[9px] font-semibold text-indigo-600 shadow-[1px_1px_0_0_#e5e7eb]">
-                                    STREAM
-                                </th>
-                            )}
                             {dayPeriods.map(period => {
                                 const pStartMins = parseTimeStr(period.startTime);
                                 const pEndMins = parseTimeStr(period.endTime);
@@ -740,7 +730,13 @@ export function TimetableGrid({
                     <tbody>
                         {classesToRender.map((cls, clsIdx) => {
                             const activeStreams = getActiveClassStreams(cls, yearId);
-                            const usesStreamRows = Boolean(profile && activeStreams.length > 1);
+                            const usesStreamRows = classUsesStreamRowsForDay(
+                                cls,
+                                profile,
+                                yearId,
+                                selectedDay,
+                                dayPeriods,
+                            );
                             if (usesStreamRows) {
                                 return (
                                     <StreamedClassRows
@@ -771,12 +767,20 @@ export function TimetableGrid({
                             let skipCells = 0;
                             return (
                                 <tr key={cls.id} className="border-b border-gray-100 hover:bg-slate-50/50 transition-colors">
-                                    <td className="py-1 px-1.5 font-bold text-gray-800 border-r whitespace-nowrap sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#f3f4f6] text-[10px] leading-tight max-w-[80px] truncate">
-                                        {cls.code || cls.name}
+                                    <td className="sticky left-0 z-10 max-w-[80px] whitespace-nowrap border-r bg-white px-1 py-1 text-[10px] font-bold leading-tight text-gray-800 shadow-[1px_0_0_0_#f3f4f6]">
+                                        <div className="flex min-h-[34px] items-center justify-center gap-1">
+                                            <span className="min-w-0 truncate">{cls.code || cls.name}</span>
+                                            {activeStreams.length > 1 && (
+                                                <StreamLayoutControl
+                                                    classItem={cls}
+                                                    selectedDay={selectedDay}
+                                                    isEditing={isEditing}
+                                                    streamModePending={streamModeMutation.isPending}
+                                                    onSetMode={(mode, scope) => handleSetStreamMode(cls, mode, scope)}
+                                                />
+                                            )}
+                                        </div>
                                     </td>
-                                    {hasStreamColumn && (
-                                        <td className="sticky left-[80px] z-10 w-[58px] min-w-[58px] border-r bg-slate-50/70 p-1 text-center text-[8px] font-medium text-gray-400">—</td>
-                                    )}
                                     {dayPeriods.map(period => {
                                         if (skipCells > 0) { skipCells--; return null; }
 
@@ -1018,6 +1022,59 @@ export function TimetableGrid({
     );
 }
 
+function StreamLayoutControl({
+    classItem,
+    selectedDay,
+    isEditing,
+    streamModePending,
+    onSetMode,
+}: {
+    classItem: Class;
+    selectedDay: number;
+    isEditing: boolean;
+    streamModePending: boolean;
+    onSetMode: (mode: TimetableStreamMode, scope: 'timetable' | 'day') => void;
+}) {
+    if (!isEditing) return null;
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    aria-label={`Manage stream layout for ${classItem.name}`}
+                    title="Manage stream layout"
+                    className="inline-flex h-5 w-5 flex-none items-center justify-center rounded border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                >
+                    <Rows3 className="h-3 w-3" />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-3">
+                <p className="text-xs font-bold text-gray-900">Stream layout</p>
+                <p className="mt-0.5 text-[10px] leading-4 text-gray-500">Change every lesson for this class or only {DAYS[selectedDay - 1]}.</p>
+                {streamModePending && (
+                    <div role="status" className="mt-2 flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1.5 text-[10px] font-semibold text-indigo-700">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Updating stream lessons…
+                    </div>
+                )}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('consolidated', 'day')}>
+                        <span className="font-bold">Day together</span><span className="font-normal text-gray-500">One shared row</span>
+                    </Button>
+                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('separate', 'day')}>
+                        <span className="font-bold">Day separate</span><span className="font-normal text-gray-500">A row per stream</span>
+                    </Button>
+                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('consolidated', 'timetable')}>
+                        <span className="font-bold">All together</span><span className="font-normal text-gray-500">Whole timetable</span>
+                    </Button>
+                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('separate', 'timetable')}>
+                        <span className="font-bold">All separate</span><span className="font-normal text-gray-500">Whole timetable</span>
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 function StreamedClassRows({
     classItem,
     streams,
@@ -1066,52 +1123,32 @@ function StreamedClassRows({
                         {streamIndex === 0 && (
                             <td
                                 rowSpan={streams.length}
-                                className="sticky left-0 z-20 w-[80px] max-w-[96px] border-r border-indigo-100 bg-white px-1.5 py-1 align-middle shadow-[1px_0_0_0_#eef2ff]"
+                                className="sticky left-0 z-20 w-[80px] max-w-[96px] border-r border-indigo-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff]"
                             >
-                                <div className="flex min-h-[44px] flex-col items-center justify-center gap-1 text-center">
-                                    <span className="text-[10px] font-black leading-tight text-gray-800">{classItem.code || classItem.name}</span>
-                                    {isEditing && (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    aria-label={`Manage stream layout for ${classItem.name}`}
-                                                    className="inline-flex min-h-7 items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 text-[9px] font-bold text-indigo-700 hover:bg-indigo-100"
-                                                >
-                                                    <Rows3 className="h-3 w-3" /> Streams
-                                                </button>
-                                            </PopoverTrigger>
-                                            <PopoverContent align="start" className="w-64 p-3">
-                                                <p className="text-xs font-bold text-gray-900">Stream layout</p>
-                                                <p className="mt-0.5 text-[10px] leading-4 text-gray-500">Change every lesson for this class or only {DAYS[selectedDay - 1]}.</p>
-                                                {streamModePending && (
-                                                    <div role="status" className="mt-2 flex items-center gap-1.5 rounded-md bg-indigo-50 px-2 py-1.5 text-[10px] font-semibold text-indigo-700">
-                                                        <Loader2 className="h-3 w-3 animate-spin" /> Updating stream lessons…
-                                                    </div>
-                                                )}
-                                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('consolidated', 'day')}>
-                                                        <span className="font-bold">Day together</span><span className="font-normal text-gray-500">One shared row</span>
-                                                    </Button>
-                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('separate', 'day')}>
-                                                        <span className="font-bold">Day separate</span><span className="font-normal text-gray-500">A row per stream</span>
-                                                    </Button>
-                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('consolidated', 'timetable')}>
-                                                        <span className="font-bold">All together</span><span className="font-normal text-gray-500">Whole timetable</span>
-                                                    </Button>
-                                                    <Button disabled={streamModePending} variant="outline" size="sm" className="h-auto min-h-10 flex-col text-[10px]" onClick={() => onSetMode('separate', 'timetable')}>
-                                                        <span className="font-bold">All separate</span><span className="font-normal text-gray-500">Whole timetable</span>
-                                                    </Button>
-                                                </div>
-                                            </PopoverContent>
-                                        </Popover>
-                                    )}
+                                <div className="flex flex-col" style={{ minHeight: streams.length * 42 }}>
+                                    {streams.map((labelStream, labelIndex) => (
+                                        <div
+                                            key={labelStream.id}
+                                            className={`flex min-h-[42px] flex-1 items-center justify-center gap-1 px-1 text-center ${labelIndex < streams.length - 1 ? 'border-b border-indigo-100' : ''}`}
+                                        >
+                                            <span className="min-w-0 truncate text-[10px] font-black leading-tight" title={`${labelStream.name} ${classItem.name}`}>
+                                                <span className="text-indigo-700">{labelStream.code || labelStream.name}</span>{' '}
+                                                <span className="text-gray-800">{classItem.code || classItem.name}</span>
+                                            </span>
+                                            {labelIndex === 0 && (
+                                                <StreamLayoutControl
+                                                    classItem={classItem}
+                                                    selectedDay={selectedDay}
+                                                    isEditing={isEditing}
+                                                    streamModePending={streamModePending}
+                                                    onSetMode={onSetMode}
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </td>
                         )}
-                        <td className="sticky left-[80px] z-10 w-[58px] min-w-[58px] border-r border-indigo-100 bg-indigo-50/80 px-1 py-1 text-center text-[9px] font-bold text-indigo-700">
-                            <span className="block truncate" title={stream.name}>{stream.code || stream.name}</span>
-                        </td>
                         {periods.map(period => {
                             if (skipCells > 0) { skipCells--; return null; }
                             const isFirstStream = streamIndex === 0;
