@@ -141,6 +141,7 @@ export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrac
         // Shorten standard class names e.g. "Senior 1" -> "S.1" if possible, otherwise use name
         let classCode = cls?.code || cls?.name || "Class";
         classCode = classCode.replace(/Senior\s+/i, "S").replace(/Primary\s+/i, "P");
+        if (e.streamCode || e.streamName) classCode = `${classCode} ${e.streamCode || e.streamName}`;
 
         return {
             id: e.id,
