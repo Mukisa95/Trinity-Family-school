@@ -10,7 +10,7 @@ import { format, parse } from "date-fns";
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
-import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const DAYS = [
@@ -169,6 +169,7 @@ function WeekGridView({
     // Hide the class column when a single class is selected — it's redundant
     const hasVisibleStreamRows = Array.from(rowsByDay.values()).some(dayRows => dayRows.some(row => row.stream));
     const showClassCol = hasVisibleStreamRows || !(filterMode === "class" && filterId);
+    const classColumnWidth = getTimetableClassColumnWidth(hasVisibleStreamRows);
 
     const [currentTime, setCurrentTime] = React.useState(new Date());
     React.useEffect(() => {
@@ -203,8 +204,8 @@ function WeekGridView({
         dayStartMins !== null && dayEndMins !== null &&
         currentMins >= dayStartMins && currentMins <= dayEndMins;
 
-    // Sticky cols: 48px (day) + 104px (composite class/stream cell if shown)
-    const stickyOffset = showClassCol ? 152 : 48;
+    // Sticky columns track the compact or streamed class width exactly.
+    const stickyOffset = showClassCol ? 48 + classColumnWidth : 48;
 
     // Sum column widths exactly as the table renders them — no drift
     let liveOffsetPx: number | null = null;
@@ -253,7 +254,12 @@ function WeekGridView({
                             <th className="sticky top-0 left-0 z-40 bg-slate-50 border-r border-b border-gray-200 w-[48px] min-w-[48px] shadow-[1px_1px_0_0_#e5e7eb]" />
                             {/* Class column — sticky left-[48px], hidden when a specific class is selected */}
                             {showClassCol && (
-                                <th className="sticky left-[48px] top-0 z-40 w-[104px] min-w-[104px] border-r border-b border-gray-200 bg-slate-50 p-2 text-center text-xs font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb]">CLASS</th>
+                                <th
+                                    className="sticky left-[48px] top-0 z-40 border-r border-b border-gray-200 bg-slate-50 p-2 text-center text-xs font-semibold text-gray-500 shadow-[1px_1px_0_0_#e5e7eb]"
+                                    style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
+                                >
+                                    CLASS
+                                </th>
                             )}
                             {/* Period columns */}
                             {templatePeriods.map(p => {
@@ -359,7 +365,8 @@ function WeekGridView({
                                             {showClassCol && (!row.stream || row.streamIndex === 0) && (
                                                 <td
                                                     rowSpan={row.stream ? row.streamCount : undefined}
-                                                    className={`sticky left-[48px] z-10 w-[104px] min-w-[104px] border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}
+                                                    className={`sticky left-[48px] z-10 border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] ${dayIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}
+                                                    style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                                                 >
                                                     {row.stream ? (
                                                         <div

@@ -16,6 +16,15 @@ export type TimetableClassRow = {
   streamCount: number;
 };
 
+export const COMPACT_TIMETABLE_CLASS_COLUMN_WIDTH = 64;
+export const STREAMED_TIMETABLE_CLASS_COLUMN_WIDTH = 104;
+
+export function getTimetableClassColumnWidth(hasVisibleStreamRows: boolean): number {
+  return hasVisibleStreamRows
+    ? STREAMED_TIMETABLE_CLASS_COLUMN_WIDTH
+    : COMPACT_TIMETABLE_CLASS_COLUMN_WIDTH;
+}
+
 export function getTimetableStreamMode(
   profile: Pick<TimetableProfile, 'streamLayouts'> | null | undefined,
   classId: string,
@@ -77,4 +86,28 @@ export function findTimetableEntryForRow(
 
 export function entryMatchesTimetableRow(entry: TimetableEntry, streamId?: string): boolean {
   return streamId ? entry.streamId === streamId : !entry.streamId;
+}
+
+export function getTimetableRenderedPeriodSpan(
+  periods: GeneratedPeriod[],
+  startIndex: number,
+  requestedSpan?: number,
+): number {
+  const desiredSpan = Math.max(1, requestedSpan || 1);
+  if (startIndex < 0 || startIndex >= periods.length || desiredSpan === 1) return 1;
+
+  let renderedSpan = 1;
+  while (renderedSpan < desiredSpan && startIndex + renderedSpan < periods.length) {
+    const nextPeriod = periods[startIndex + renderedSpan];
+    if (nextPeriod.type === 'break' || nextPeriod.type === 'lunch' || nextPeriod.type === 'assembly') break;
+    renderedSpan += 1;
+  }
+  return renderedSpan;
+}
+
+export function getTimetableBreakLabelFontSize(dayCount: number, columnWidth = 64): number {
+  const visibleDayCount = Math.max(1, Math.min(7, dayCount || 1));
+  const widthLimit = Math.round(columnWidth * 0.6);
+  const dayScaledSize = Math.round(40 - ((visibleDayCount - 1) * 1.6));
+  return Math.max(24, Math.min(38, widthLimit, dayScaledSize));
 }
