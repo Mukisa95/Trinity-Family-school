@@ -124,30 +124,40 @@ test('screen class column expands only for visible stream sub-rows', () => {
   assert.equal(getTimetableClassColumnWidth(true), 104);
 });
 
-test('screen timetable views use the dynamic class width and inline mobile selectors', () => {
+test('screen timetable views use dynamic class widths and floating mobile header selectors', () => {
   const dayGrid = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
   const weekGrid = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
   const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
 
   assert.match(dayGrid, /getTimetableClassColumnWidth\(hasVisibleStreamRows\)/);
   assert.match(weekGrid, /getTimetableClassColumnWidth\(hasVisibleStreamRows\)/);
-  assert.match(page, /meta=\{/);
+  assert.match(page, /meta=\{desktopHeaderSelectors\}/);
+  assert.match(page, /actionsLeading=\{mobileHeaderSelectors\}/);
   assert.doesNotMatch(page, /titleControls=\{/);
-  assert.match(page, /max-w-\[28vw\]/);
-  assert.match(page, /max-w-\[22vw\]/);
+  assert.match(page, /max-w-\[31vw\]/);
+  assert.match(page, /max-w-\[26vw\]/);
+  assert.match(page, /id="timetable-mobile-view-control"/);
+  assert.match(page, /id="timetable-mobile-filter-control"/);
+  assert.match(page, /id="timetable-mobile-filter-value-control"/);
 });
 
-test('mobile timetable controls use compact labels and keep the day selector beside them', () => {
+test('mobile view and filter controls live in the action island while weekdays remain a visible bar', () => {
   const source = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
 
+  assert.match(source, /createPortal/);
+  assert.match(source, /timetable-mobile-view-control/);
+  assert.match(source, /timetable-mobile-filter-control/);
+  assert.match(source, /timetable-mobile-filter-value-control/);
   assert.match(source, /<option value="day">Day<\/option>/);
   assert.match(source, /<option value="week">Week<\/option>/);
   assert.match(source, /mobileLabel: "Classes"/);
   assert.match(source, /mobileLabel: "Class"/);
   assert.match(source, /mobileLabel: "Tr"/);
   assert.match(source, /mobileLabel: "Sub"/);
-  assert.match(source, /aria-label="Select day of the week"/);
-  assert.match(source, /sm:hidden/);
+  assert.match(source, /aria-label=\{`Show \$\{dayName\}`\}/);
+  assert.match(source, /aria-pressed=\{selectedDay === dayId\}/);
+  assert.match(source, /justify-between/);
+  assert.doesNotMatch(source, /aria-label="Select day of the week"/);
 });
 
 test('ordinary printable class labels avoid percentage-height wrappers that html2canvas clips', () => {
