@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { Class, GeneratedPeriod, TimetableEntry, TimetableProfile } from '../src/types';
 import {
   buildTimetableClassRowsForDay,
   classUsesStreamRowsForDay,
   findTimetableEntryForRow,
+  getTimetableBreakLabelFontSize,
+  getTimetableClassColumnWidth,
+  getTimetableRenderedPeriodSpan,
   getTimetableStreamMode,
 } from '../src/lib/utils/timetable-streams';
 
@@ -65,4 +69,67 @@ test('entry lookup keeps consolidated and stream lessons distinct', () => {
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'mon-1', 'consolidated')?.id, 'all');
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'tue-1', 'separate', 'east')?.id, 'east');
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'tue-1', 'separate', 'west'), undefined);
+});
+
+test('printable stream labels use a capture-safe layout without text ellipsis', () => {
+  const source = readFileSync('src/components/timetable/PrintableTimetable.tsx', 'utf8');
+
+  assert.doesNotMatch(source, /gridTemplateColumns: "1\.05fr 0\.8fr"/);
+  assert.match(source, /const CLASS_COLUMN_WIDTH = 118/);
+  assert.match(source, /flex: "0 0 67%"/);
+  assert.match(source, /overflowWrap: "anywhere"/);
+});
+
+test('printable headers and break labels keep balanced spacing', () => {
+  const source = readFileSync('src/components/timetable/PrintableTimetable.tsx', 'utf8');
+
+  assert.match(source, /const headerHeight = clamp/);
+  assert.match(source, /flex: "1 1 50%"/);
+  assert.match(source, /justifyContent: "space-evenly"/);
+  assert.match(source, /data-printable-break-cell="true"/);
+  assert.match(source, /data-printable-break-label="true"/);
+  assert.match(source, /position: "absolute"/);
+  assert.match(source, /inset: 0/);
+  assert.doesNotMatch(source, /letterSpacing: breakLs/);
+});
+
+test('printable period spans stop at breaks and never create a trailing column', () => {
+  const printablePeriods = [
+    { id: 'lesson-1', dayOfWeek: 1, periodNumber: 1, startTime: '08:00', endTime: '09:00', type: 'lesson' },
+    { id: 'break', dayOfWeek: 1, periodNumber: 2, startTime: '09:00', endTime: '09:30', type: 'break' },
+    { id: 'lesson-2', dayOfWeek: 1, periodNumber: 3, startTime: '09:30', endTime: '10:30', type: 'lesson' },
+    { id: 'lesson-3', dayOfWeek: 1, periodNumber: 4, startTime: '10:30', endTime: '11:30', type: 'lesson' },
+  ] satisfies GeneratedPeriod[];
+
+  assert.equal(getTimetableRenderedPeriodSpan(printablePeriods, 0, 2), 1);
+  assert.equal(getTimetableRenderedPeriodSpan(printablePeriods, 2, 2), 2);
+  assert.equal(getTimetableRenderedPeriodSpan(printablePeriods, 3, 2), 1);
+});
+
+test('printable break labels resize with the number of visible days', () => {
+  const threeDaySize = getTimetableBreakLabelFontSize(3);
+  const fiveDaySize = getTimetableBreakLabelFontSize(5);
+  const sevenDaySize = getTimetableBreakLabelFontSize(7);
+
+  assert.ok(threeDaySize > fiveDaySize);
+  assert.ok(fiveDaySize > sevenDaySize);
+  assert.equal(getTimetableBreakLabelFontSize(0), getTimetableBreakLabelFontSize(1));
+});
+
+test('screen class column expands only for visible stream sub-rows', () => {
+  assert.equal(getTimetableClassColumnWidth(false), 64);
+  assert.equal(getTimetableClassColumnWidth(true), 104);
+});
+
+test('screen timetable views use the dynamic class width and inline mobile selectors', () => {
+  const dayGrid = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
+  const weekGrid = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
+  const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
+
+  assert.match(dayGrid, /getTimetableClassColumnWidth\(hasVisibleStreamRows\)/);
+  assert.match(weekGrid, /getTimetableClassColumnWidth\(hasVisibleStreamRows\)/);
+  assert.match(page, /meta=\{/);
+  assert.doesNotMatch(page, /titleControls=\{/);
+  assert.match(page, /max-w-\[28vw\]/);
+  assert.match(page, /max-w-\[22vw\]/);
 });

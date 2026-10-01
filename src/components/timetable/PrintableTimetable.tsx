@@ -5,7 +5,13 @@ import { format, parse } from "date-fns";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import { usePDFViewer } from "@/lib/hooks/use-pdf-viewer";
-import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
+import {
+    buildTimetableClassRowsForDay,
+    findTimetableEntryForRow,
+    getTimetableBreakLabelFontSize,
+    getTimetableRenderedPeriodSpan,
+    getTimetableStreamMode,
+} from "@/lib/utils/timetable-streams";
 
 const DAYS = [
     { id: 1, label: "MON" },
@@ -39,6 +45,13 @@ interface PrintableTimetableProps {
 // RENDER_HEIGHT is calculated to match A4 landscape with 5mm margins: 287/200 aspect
 const RENDER_WIDTH = 1400;
 const RENDER_HEIGHT = 976;
+const DAY_COLUMN_WIDTH = 65;
+const CLASS_COLUMN_WIDTH = 118;
+const BREAK_COLUMN_WIDTH = 64;
+
+function clamp(value: number, minimum: number, maximum: number): number {
+    return Math.max(minimum, Math.min(maximum, value));
+}
 
 export function PrintableTimetable({
     entries,
@@ -197,20 +210,26 @@ export function PrintableTimetable({
 
     const logoUrl = schoolSettings?.generalInfo?.logo;
 
-    // ── Dynamic sizing based on table dimensions ──────────────────────────────
+    // ── Dynamic sizing based on both table dimensions ─────────────────────────
     const totalRows = Array.from(rowsByDay.values()).reduce((sum, dayRows) => sum + dayRows.length, 0);
-    // Lesson cells: bigger when fewer rows, capped so text always fits
-    const lessonFs = Math.max(11, Math.min(18, Math.round(900 / totalRows)));
-    // Class name column: slightly smaller than lesson
-    const classFs  = Math.max(10, Math.min(16, Math.round(820 / totalRows)));
+    const breakPeriodCount = templatePeriods.filter(period => period.type === "break" || period.type === "lunch" || period.type === "assembly").length;
+    const lessonPeriodCount = Math.max(1, templatePeriods.length - breakPeriodCount);
+    const availableLessonWidth = RENDER_WIDTH - 24 - DAY_COLUMN_WIDTH - CLASS_COLUMN_WIDTH - (breakPeriodCount * BREAK_COLUMN_WIDTH);
+    const estimatedLessonColumnWidth = Math.max(48, availableLessonWidth / lessonPeriodCount);
+    const timeFs = clamp(Math.round(estimatedLessonColumnWidth / 6.2), 11, 22);
+    const breakTimeFs = clamp(Math.round(BREAK_COLUMN_WIDTH / 4.8), 10, 14);
+    const headerHeight = clamp(Math.round(timeFs * 2.35 + 12), 54, 72);
+    const estimatedBodyHeight = RENDER_HEIGHT - 20 - 42 - headerHeight;
+    const estimatedRowHeight = estimatedBodyHeight / Math.max(1, totalRows);
+    // Sparse timetables gain larger type while dense timetables retain a safe minimum.
+    const lessonFs = clamp(Math.round(Math.min(estimatedRowHeight * 0.42, estimatedLessonColumnWidth / 5.2)), 11, 28);
+    const classFs = clamp(Math.round(Math.min(estimatedRowHeight * 0.38, 20)), 10, 20);
+    const streamFs = Math.max(10, classFs - 1);
     // Day label: scaled by number of days
-    const dayFs    = Math.max(18, Math.min(36, Math.round(240 / visibleDays.length)));
-    // Break text: single rotated word with letter-spacing that fills the column height
-    const breakFs = Math.max(18, Math.min(36, Math.round(280 / visibleDays.length)));
-    // Letter spacing grows with more rows so the word spans the full cell height
-    const breakLs = Math.max(10, Math.min(120, Math.round(totalRows * 5)));
-    // Header time labels — bigger cap, always uses fmt() so 12h/24h is correct
-    const timeFs   = Math.max(10, Math.min(17, Math.round(800 / templatePeriods.length)));
+    const dayFs = clamp(Math.round(240 / visibleDays.length), 18, 36);
+    // Vertical break letters fill the column; fewer visible days receive larger type.
+    const breakFs = getTimetableBreakLabelFontSize(visibleDays.length, BREAK_COLUMN_WIDTH);
+    const breakVerticalPadding = clamp(Math.round(28 - (visibleDays.length * 2)), 10, 24);
     // Table-level base size (also controls thead CLASS cell)
     const tableFs  = lessonFs;
 
@@ -268,29 +287,32 @@ export function PrintableTimetable({
                 }}
             >
                 <colgroup>
-                    <col style={{ width: 65 }} /> {/* Day — wider for big rotated text */}
-                    <col style={{ width: 82 }} /> {/* Composite class / stream labels */}
+                    <col style={{ width: DAY_COLUMN_WIDTH }} /> {/* Day — wider for big rotated text */}
+                    <col style={{ width: CLASS_COLUMN_WIDTH }} /> {/* Composite class / stream labels */}
                     {templatePeriods.map((p) => {
                         const isBreak = p.type === "break" || p.type === "lunch" || p.type === "assembly";
-                        return <col key={p.id} style={{ width: isBreak ? 58 : undefined }} />;
+                        return <col key={p.id} style={{ width: isBreak ? BREAK_COLUMN_WIDTH : undefined }} />;
                     })}
                 </colgroup>
 
                 <thead>
-                    <tr>
-                        <th style={{ border: bdBold }} />
-                        <th style={{ border: bd, fontSize: 12, fontWeight: 700, textAlign: "center", padding: "2px 2px", verticalAlign: "bottom" }}>
+                    <tr style={{ height: headerHeight }}>
+                        <th style={{ border: bdBold, height: headerHeight, padding: 0 }} />
+                        <th style={{ border: bd, height: headerHeight, padding: 0 }}>
                             {/* Intentionally left blank */}
                         </th>
                         {templatePeriods.map((p) => {
                             const isBreak = p.type === "break" || p.type === "lunch" || p.type === "assembly";
+                            const periodTimeFs = isBreak ? breakTimeFs : timeFs;
                             return (
-                                <th key={p.id} style={{ border: bd, fontWeight: 700, textAlign: "center", padding: "2px 3px", verticalAlign: "middle", background: isBreak ? "#e8e8e8" : "#fff" }}>
-                                    <div style={{ fontSize: timeFs, borderBottom: "1px solid #aaa", paddingBottom: 1, marginBottom: 1 }}>
-                                        {isBreak ? fmtShort(p.startTime) : fmt(p.startTime)}
-                                    </div>
-                                    <div style={{ fontSize: timeFs }}>
-                                        {isBreak ? fmtShort(p.endTime) : fmt(p.endTime)}
+                                <th key={p.id} style={{ border: bd, height: headerHeight, padding: 0, fontWeight: 700, textAlign: "center", verticalAlign: "middle", background: isBreak ? "#e8e8e8" : "#fff", overflow: "hidden" }}>
+                                    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: headerHeight, lineHeight: 1, boxSizing: "border-box" }}>
+                                        <div style={{ display: "flex", flex: "1 1 50%", alignItems: "center", justifyContent: "center", minHeight: 0, padding: "2px 1px", borderBottom: "1px solid #aaa", boxSizing: "border-box", fontSize: periodTimeFs, whiteSpace: "nowrap" }}>
+                                            {isBreak ? fmtShort(p.startTime) : fmt(p.startTime)}
+                                        </div>
+                                        <div style={{ display: "flex", flex: "1 1 50%", alignItems: "center", justifyContent: "center", minHeight: 0, padding: "2px 1px", boxSizing: "border-box", fontSize: periodTimeFs, whiteSpace: "nowrap" }}>
+                                            {isBreak ? fmtShort(p.endTime) : fmt(p.endTime)}
+                                        </div>
                                     </div>
                                 </th>
                             );
@@ -350,47 +372,75 @@ export function PrintableTimetable({
                                                         textAlign: "center",
                                                         padding: 0,
                                                         fontSize: classFs,
-                                                        whiteSpace: "nowrap",
-                                                        overflow: "hidden",
+                                                        whiteSpace: "normal",
                                                         verticalAlign: "middle",
                                                     }}
                                                 >
                                                     {row.stream ? (
-                                                        <div style={{ display: "grid", gridTemplateColumns: "1.05fr 0.8fr", height: "100%", minHeight: row.streamCount * 24 }}>
-                                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", borderRight: bd, padding: "0 2px", overflow: "hidden" }}>
-                                                                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{cls.code || cls.name}</span>
+                                                        <div
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "stretch",
+                                                                width: "100%",
+                                                                height: "100%",
+                                                                minHeight: row.streamCount * 24,
+                                                                boxSizing: "border-box",
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    display: "flex",
+                                                                    flex: "0 0 67%",
+                                                                    minWidth: 0,
+                                                                    alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    borderRight: bd,
+                                                                    padding: "1px 3px",
+                                                                    boxSizing: "border-box",
+                                                                    overflow: "hidden",
+                                                                }}
+                                                            >
+                                                                <span style={{ display: "block", maxWidth: "100%", lineHeight: 1.05, overflowWrap: "anywhere" }}>
+                                                                    {cls.code || cls.name}
+                                                                </span>
                                                             </div>
-                                                            <div style={{ display: "flex", flexDirection: "column", minWidth: 0, background: "#eef2ff" }}>
+                                                            <div style={{ display: "flex", flex: "1 1 33%", flexDirection: "column", minWidth: 0, background: "#eef2ff" }}>
                                                                 {classStreamRows.map((streamRow, streamRowIndex) => (
                                                                     <div
                                                                         key={streamRow.stream!.id}
                                                                         style={{
                                                                             display: "flex",
-                                                                            flex: 1,
+                                                                            flex: "1 1 0",
+                                                                            minWidth: 0,
                                                                             alignItems: "center",
                                                                             justifyContent: "center",
-                                                                            minHeight: 24,
-                                                                            padding: "0 1px",
+                                                                            padding: "1px 2px",
+                                                                            boxSizing: "border-box",
                                                                             borderBottom: streamRowIndex < classStreamRows.length - 1 ? bd : "none",
                                                                             color: "#4338ca",
-                                                                            fontSize: Math.max(8, classFs - 2),
+                                                                            fontSize: streamFs,
+                                                                            lineHeight: 1,
                                                                             overflow: "hidden",
                                                                         }}
                                                                     >
-                                                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{streamRow.stream!.code || streamRow.stream!.name}</span>
+                                                                        <span style={{ display: "block", maxWidth: "100%", overflowWrap: "anywhere" }}>
+                                                                            {streamRow.stream!.code || streamRow.stream!.name}
+                                                                        </span>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: "0 2px" }}>
-                                                            {cls.code || cls.name}
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: "1px 3px", boxSizing: "border-box", overflow: "hidden" }}>
+                                                            <span style={{ display: "block", maxWidth: "100%", lineHeight: 1.05, overflowWrap: "anywhere" }}>
+                                                                {cls.code || cls.name}
+                                                            </span>
                                                         </div>
                                                     )}
                                                 </td>
                                             )}
 
-                                            {templatePeriods.map((tp) => {
+                                            {templatePeriods.map((tp, templatePeriodIndex) => {
                                                 if (skipCells > 0) { skipCells--; return null; }
                                                 const isBreak = tp.type === "break" || tp.type === "lunch" || tp.type === "assembly";
 
@@ -400,6 +450,7 @@ export function PrintableTimetable({
                                                             <td
                                                                 key={tp.id}
                                                                 rowSpan={totalRows}
+                                                                data-printable-break-cell="true"
                                                                 style={{
                                                                     borderTop: bdBold,
                                                                     borderBottom: bdBold,
@@ -410,21 +461,33 @@ export function PrintableTimetable({
                                                                     verticalAlign: "middle",
                                                                     padding: 0,
                                                                     overflow: "hidden",
+                                                                    position: "relative",
                                                                 }}
                                                             >
-                                                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                                                                    <span style={{
-                                                                        transform: "rotate(-90deg)",
-                                                                        display: "inline-block",
-                                                                        whiteSpace: "nowrap",
-                                                                        letterSpacing: breakLs,
+                                                                <div
+                                                                    data-printable-break-label="true"
+                                                                    style={{
+                                                                        position: "absolute",
+                                                                        inset: 0,
+                                                                        display: "flex",
+                                                                        flexDirection: "column",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "space-evenly",
+                                                                        width: "100%",
+                                                                        height: "100%",
+                                                                        padding: `${breakVerticalPadding}px 0`,
+                                                                        boxSizing: "border-box",
                                                                         fontSize: breakFs,
                                                                         fontWeight: 900,
-                                                                        textTransform: "uppercase",
                                                                         lineHeight: 1,
-                                                                    }}>
-                                                                        {(tp.customLabel || tp.type).toUpperCase()}
-                                                                    </span>
+                                                                    }}
+                                                                    aria-label={(tp.customLabel || tp.type).toUpperCase()}
+                                                                >
+                                                                    {Array.from((tp.customLabel || tp.type).toUpperCase()).map((letter, letterIndex) => (
+                                                                        <span key={`${tp.id}-${letterIndex}`} aria-hidden="true" style={{ display: "block" }}>
+                                                                            {letter === " " ? "\u00A0" : letter}
+                                                                        </span>
+                                                                    ))}
                                                                 </div>
                                                             </td>
                                                         );
@@ -442,9 +505,10 @@ export function PrintableTimetable({
                                                         const firstIdx = dayRows.findIndex(candidate => groupIds.includes(candidate.classItem.id));
                                                         if (rowIdx === firstIdx) {
                                                             const span = dayRows.filter(candidate => groupIds.includes(candidate.classItem.id)).length;
-                                                            if (groupEntry.periodSpan && groupEntry.periodSpan > 1) skipCells = groupEntry.periodSpan - 1;
+                                                            const renderedPeriodSpan = getTimetableRenderedPeriodSpan(templatePeriods, templatePeriodIndex, groupEntry.periodSpan);
+                                                            if (renderedPeriodSpan > 1) skipCells = renderedPeriodSpan - 1;
                                                             return (
-                                                                <td key={tp.id} rowSpan={span} colSpan={groupEntry.periodSpan || 1} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
+                                                                <td key={tp.id} rowSpan={span} colSpan={renderedPeriodSpan} style={{ borderTop: "none", borderBottom: rowBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
                                                                     {groupEntry.activityName || "ACT"}
                                                                 </td>
                                                             );
@@ -463,12 +527,13 @@ export function PrintableTimetable({
                                                 const subject = entry ? subjects.find((subjectItem) => subjectItem.id === entry.subjectId) : null;
                                                 const rowSpan = row.stream && mode === "consolidated" ? row.streamCount : undefined;
                                                 const cellBottomBorder = rowSpan ? spanningBottomBorder : rowBottomBorder;
+                                                const renderedPeriodSpan = getTimetableRenderedPeriodSpan(templatePeriods, templatePeriodIndex, entry?.periodSpan);
 
-                                                if (entry?.periodSpan && entry.periodSpan > 1) skipCells = entry.periodSpan - 1;
+                                                if (renderedPeriodSpan > 1) skipCells = renderedPeriodSpan - 1;
 
                                                 if (entry?.entryType === "activity") {
                                                     return (
-                                                        <td key={tp.id} rowSpan={rowSpan} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
+                                                        <td key={tp.id} rowSpan={rowSpan} colSpan={renderedPeriodSpan} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, background: "#e8e8e8", textAlign: "center", fontWeight: 700, verticalAlign: "middle", fontSize: lessonFs }}>
                                                             {entry.activityName || "ACT"}
                                                         </td>
                                                     );
@@ -480,13 +545,13 @@ export function PrintableTimetable({
                                                         const mainCode = subject.code || subject.name.substring(0, 5);
                                                         const optCode = optSub?.code || optSub?.name?.substring(0, 5) || "";
                                                         return (
-                                                            <td key={tp.id} rowSpan={rowSpan} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
+                                                            <td key={tp.id} rowSpan={rowSpan} colSpan={renderedPeriodSpan} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
                                                                 {mainCode}/{optCode}
                                                             </td>
                                                         );
                                                     }
                                                     return (
-                                                        <td key={tp.id} rowSpan={rowSpan} colSpan={entry.periodSpan || 1} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
+                                                        <td key={tp.id} rowSpan={rowSpan} colSpan={renderedPeriodSpan} style={{ borderTop: "none", borderBottom: cellBottomBorder, borderLeft: bd, borderRight: bd, textAlign: "center", verticalAlign: "middle", fontWeight: 600, fontSize: lessonFs, padding: "2px 3px" }}>
                                                             {subject.code || subject.name}
                                                         </td>
                                                     );

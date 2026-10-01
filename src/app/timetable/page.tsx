@@ -119,14 +119,14 @@ export default function TimetablePage() {
                 subtitle="Manage class schedules and teacher assignments"
                 backHref="/dashboard"
                 backLabel="Dashboard"
-                titleControls={
-                    <div className="flex min-w-0 items-center gap-1.5">
-                        <div className="sm:hidden">
+                meta={
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:flex-initial sm:justify-start sm:gap-1.5">
+                        <div className="min-w-0 flex-[1.15] sm:hidden">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
-                                        className="flex h-8 max-w-[42vw] items-center gap-1 rounded-full border border-blue-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                        className="flex h-7 w-full max-w-[28vw] items-center gap-1 rounded-full border border-blue-200/70 bg-white/95 px-2 text-[9px] font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                         aria-label={`Select academic year and term. Current selection: ${selectedPeriodLabel}`}
                                     >
                                         <CalendarRange className="h-3.5 w-3.5 shrink-0" />
@@ -189,12 +189,12 @@ export default function TimetablePage() {
                             <>
                                 <div className="mx-0.5 hidden h-5 w-px bg-white/40 sm:block" />
 
-                                <div className="sm:hidden">
+                                <div className="min-w-0 flex-1 sm:hidden">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <button
                                                 type="button"
-                                                className="flex h-8 max-w-[34vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-2.5 text-[10px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                                                className="flex h-7 w-full max-w-[22vw] items-center gap-1 rounded-full border border-violet-200/70 bg-white/95 px-2 text-[9px] font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                                                 aria-label={`Choose timetable. Current selection: ${selectedTimetableLabel}`}
                                             >
                                                 <TableProperties className="h-3.5 w-3.5 shrink-0" />

@@ -15,7 +15,7 @@ import { parse, format, addMinutes, differenceInMinutes, isSameDay } from "date-
 import { useToast } from "@/hooks/use-toast";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, ClassStream, TimetableProfile } from "@/types";
 import { getActiveClassStreams } from "@/lib/utils/class-streams";
-import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { classUsesStreamRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode, type TimetableStreamMode } from "@/lib/utils/timetable-streams";
 
 const BASE_PX_PER_MIN = 1.8; // base: 60min = 108px — compact default
 
@@ -248,6 +248,11 @@ export function TimetableGrid({
     const dayPeriods = React.useMemo(() => {
         return periods.filter(p => p.dayOfWeek === selectedDay).sort((a, b) => a.startTime.localeCompare(b.startTime));
     }, [periods, selectedDay]);
+    const hasVisibleStreamRows = React.useMemo(
+        () => classesToRender.some(cls => classUsesStreamRowsForDay(cls, profile, yearId, selectedDay, dayPeriods)),
+        [classesToRender, dayPeriods, profile, selectedDay, yearId],
+    );
+    const classColumnWidth = getTimetableClassColumnWidth(hasVisibleStreamRows);
     // Pre-compute grouped activities using linkedClassIds (set by the "Group Activity" toggle)
     // A grouped activity entry has linkedClassIds pointing to its partner class entries.
     const sharedActivityMap = React.useMemo(() => {
@@ -596,7 +601,10 @@ export function TimetableGrid({
                 <table ref={tableRef} className="w-full text-sm text-left border-collapse min-w-[max-content]">
                     <thead>
                         <tr className="bg-slate-50 border-b border-gray-200">
-                            <th className="sticky left-0 top-0 z-40 w-[104px] min-w-[104px] border-r bg-slate-50 p-1.5 text-[10px] font-semibold text-gray-600 shadow-[1px_1px_0_0_#e5e7eb]">
+                            <th
+                                className="sticky left-0 top-0 z-40 border-r bg-slate-50 p-1.5 text-[10px] font-semibold text-gray-600 shadow-[1px_1px_0_0_#e5e7eb]"
+                                style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
+                            >
                                 CLASS
                             </th>
                             {dayPeriods.map(period => {
@@ -761,13 +769,17 @@ export function TimetableGrid({
                                         onClear={(streamId, periodId) => handleClearCell(cls.id, periodId, streamId)}
                                         onSetMode={(mode, scope, periodId, sourceEntryId) => handleSetStreamMode(cls, mode, scope, periodId, sourceEntryId)}
                                         streamModePending={streamModeMutation.isPending}
+                                        classColumnWidth={classColumnWidth}
                                     />
                                 );
                             }
                             let skipCells = 0;
                             return (
                                 <tr key={cls.id} className="border-b border-gray-100 hover:bg-slate-50/50 transition-colors">
-                                    <td className="sticky left-0 z-10 w-[104px] min-w-[104px] max-w-[104px] whitespace-nowrap border-r bg-white px-1 py-1 text-[10px] font-bold leading-tight text-gray-800 shadow-[1px_0_0_0_#f3f4f6]">
+                                    <td
+                                        className="sticky left-0 z-10 whitespace-nowrap border-r bg-white px-1 py-1 text-[10px] font-bold leading-tight text-gray-800 shadow-[1px_0_0_0_#f3f4f6]"
+                                        style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
+                                    >
                                         <div className="flex min-h-[34px] items-center justify-center gap-1">
                                             <span className="min-w-0 truncate">{cls.code || cls.name}</span>
                                             {activeStreams.length > 1 && (
@@ -1094,6 +1106,7 @@ function StreamedClassRows({
     onClear,
     onSetMode,
     streamModePending,
+    classColumnWidth,
 }: {
     classItem: Class;
     streams: ClassStream[];
@@ -1113,6 +1126,7 @@ function StreamedClassRows({
     onClear: (streamId: string | undefined, periodId: string) => void;
     onSetMode: (mode: TimetableStreamMode, scope: 'timetable' | 'day' | 'period', periodId?: string, sourceEntryId?: string) => void;
     streamModePending: boolean;
+    classColumnWidth: number;
 }) {
     return (
         <>
@@ -1123,7 +1137,8 @@ function StreamedClassRows({
                         {streamIndex === 0 && (
                             <td
                                 rowSpan={streams.length}
-                                className="sticky left-0 z-20 w-[104px] min-w-[104px] max-w-[104px] border-r border-indigo-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff]"
+                                className="sticky left-0 z-20 border-r border-indigo-100 bg-white p-0 align-middle shadow-[1px_0_0_0_#eef2ff]"
+                                style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                             >
                                 <div
                                     className="grid"
