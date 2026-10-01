@@ -316,7 +316,7 @@ export default function ClassStreamSetupPage() {
           </span>
         }
         title={schoolClass.name}
-        subtitle={`Assign every active pupil for ${activeAcademicYear?.name || 'the active academic year'}.`}
+        recordDetails={activeAcademicYear?.name}
         backHref={`/class-detail?id=${encodeURIComponent(classId)}`}
         backLabel="Back to class details"
         meta={

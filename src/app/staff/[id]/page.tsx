@@ -234,7 +234,7 @@ export default function StaffDetailsPage({ params }: { params: Promise<{ id: str
     <div className="min-h-screen">
       <GlassPageTopBar
         title={`${staff.firstName} ${staff.lastName}`}
-        subtitle={`Employee ID: ${staff.employeeId || 'N/A'} • ${formatStaffRoles(staff.role)}`}
+        recordDetails={`Employee ID: ${staff.employeeId || 'N/A'} • ${formatStaffRoles(staff.role)}`}
         backHref="/staff"
         backLabel="Back to staff list"
         meta={

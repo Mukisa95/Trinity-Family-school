@@ -3833,7 +3833,7 @@ function PupilDetailContent() {
     <>
       <GlassPageTopBar
         title={`${formatPupilDisplayName(pupil)}'s Profile`}
-        subtitle={`${pupilWithClass?.classCode || getClassCode(pupil?.classId, classes)} • ${pupil?.section || 'N/A'} • ${pupil?.admissionNumber || 'N/A'}`}
+        recordDetails={`${pupilWithClass?.classCode || getClassCode(pupil?.classId, classes)} • ${pupil?.section || 'N/A'} • ${pupil?.admissionNumber || 'N/A'}`}
         meta={
           <Badge variant="outline" className={`text-xs border shadow-sm ${
             pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300' :

@@ -57,6 +57,8 @@ const actionToneClasses: Record<GlassActionTone, string> = {
 interface GlassPageTopBarProps {
   title: ReactNode;
   subtitle?: ReactNode;
+  /** Record identifiers, status, and academic context; generic subtitles stay hidden. */
+  recordDetails?: ReactNode;
   eyebrow?: ReactNode;
   backHref?: string;
   backLabel?: string;
@@ -78,6 +80,7 @@ interface GlassPageTopBarProps {
 
 export function GlassPageTopBar({
   title,
+  recordDetails,
   eyebrow,
   backHref,
   backLabel = "Back",
@@ -206,6 +209,11 @@ export function GlassPageTopBar({
                     </div>
                   )}
                 </div>
+                {recordDetails && (
+                  <div className="mt-0.5 break-words text-xs font-medium leading-relaxed text-slate-600 sm:text-sm">
+                    {recordDetails}
+                  </div>
+                )}
               </div>
 
               {isSmallScreen && !mobileControlsFloating && actionsLeading && (

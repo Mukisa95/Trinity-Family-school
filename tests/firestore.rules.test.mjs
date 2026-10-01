@@ -371,6 +371,24 @@ test('payment notification outbox denies every Web SDK client including the serv
   }
 });
 
+test('fee promises and parent phone numbers remain server-only for all browser roles', async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'feeReminders', 'test-promise'), {
+      pupilId: 'pupil-1', phone: '+256700123456', promisedAmount: 20000,
+    });
+  });
+  for (const db of [
+    testEnv.unauthenticatedContext().firestore(),
+    testEnv.authenticatedContext('active-admin', { appUser: true, isActive: true, role: 'Admin' }).firestore(),
+    testEnv.authenticatedContext('fee-staff', { appUser: true, isActive: true, role: 'Staff' }).firestore(),
+    testEnv.authenticatedContext('active-parent', { appUser: true, isActive: true, role: 'Parent', familyId: 'family-1' }).firestore(),
+  ]) {
+    await assertFails(getDoc(doc(db, 'feeReminders', 'test-promise')));
+    await assertFails(setDoc(doc(db, 'feeReminders', 'test-promise'), { promisedAmount: 0 }, { merge: true }));
+    await assertFails(deleteDoc(doc(db, 'feeReminders', 'test-promise')));
+  }
+});
+
 test('daily attendance summaries are restricted to staff and administrators', async () => {
   const adminDb = testEnv.authenticatedContext('active-admin', {
     appUser: true,

@@ -561,15 +561,11 @@ function NewPupilContent() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <GlassPageTopBar
         title={addingSibling ? 'Add Sibling' : 'Register New Pupil'}
-        subtitle={
-          addingSibling
-            ? isLoadingOriginalPupil
-              ? 'Loading family information...'
-              : originalPupil
-                ? `Adding a sibling to ${originalPupil.firstName} ${originalPupil.lastName}'s family`
-                : 'Adding a sibling to family'
-            : 'Complete the form below to register a new pupil'
-        }
+        recordDetails={addingSibling && !isLoadingOriginalPupil
+          ? originalPupil
+            ? `Family of ${originalPupil.firstName} ${originalPupil.lastName}`
+            : familyId ? `Family ID: ${familyId}` : undefined
+          : undefined}
         backHref="/pupils"
         backLabel="Back to Pupils"
         actions={

@@ -219,6 +219,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Fee promises and parent contact details are served by authenticated Fees APIs.
+    match /feeReminders/{reminderId} {
+      allow read, write: if false;
+    }
+
     // Canonical SchoolPay callbacks are written only by trusted server routes.
     match /schoolPayInboundTransactions/{transactionId} {
       allow read: if isStaffOrAdmin();
@@ -304,6 +309,7 @@ service cloud.firestore {
         && collection != 'scheduledNotifications'
         && collection != 'scheduledSMS'
         && collection != 'scheduledDispatchQueue'
+        && collection != 'feeReminders'
         && collection != 'schoolPayInboundTransactions'
         && collection != 'schoolPayReconciliationState'
         && collection != 'schoolPaySyncLogs'

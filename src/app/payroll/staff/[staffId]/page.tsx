@@ -233,7 +233,7 @@ export default function StaffPayrollDetailPage({
     <div className="min-h-screen">
       <GlassPageTopBar
         title={staffName}
-        subtitle={`Salary profile · ${staff?.employeeId || "Staff payroll"}`}
+        recordDetails={staff?.employeeId ? `Employee ID: ${staff.employeeId}` : undefined}
         backHref="/payroll"
         backLabel="Back to payroll"
         meta={

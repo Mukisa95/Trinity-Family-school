@@ -4237,7 +4237,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
 
         <GlassPageTopBar
           title={examDetails?.name || 'Loading...'}
-          subtitle={`${scopedClassLabel} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
+          recordDetails={`${scopedClassLabel} | ${academicInfo.academicYearName} - ${academicInfo.termName} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : ''} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : ''}`}
           backHref="/exams"
           className="mb-1.5"
           meta={
@@ -6269,7 +6269,7 @@ function PerformanceAnalysisPage({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-purple-50/50">
       <GlassPageTopBar
         title="Performance Analysis"
-        subtitle={`${examDetails?.name || 'Exam'} | ${className} | ${academicYearName} - ${termName}`}
+        recordDetails={`${examDetails?.name || 'Exam'} | ${className} | ${academicYearName} - ${termName}`}
         backHref={resultsHref}
         className="mb-2"
         actions={

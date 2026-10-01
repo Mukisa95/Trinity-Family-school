@@ -1824,7 +1824,7 @@ export default function RecordResultsView() {
 
       <GlassPageTopBar
           title={examDetails?.name || getHeaderContent().title}
-          subtitle={`${scopedClassLabel} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
+          recordDetails={`${scopedClassLabel} | ${examDetails?.startDate ? new Date(examDetails.startDate).toLocaleDateString() : 'N/A'} - ${examDetails?.endDate ? new Date(examDetails.endDate).toLocaleDateString() : 'N/A'}`}
         leading={
           <button
             type="button"

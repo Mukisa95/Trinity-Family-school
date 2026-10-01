@@ -1033,7 +1033,7 @@ export default function NotificationsPage() {
       {/* ── Top bar ──────────────────────────────────────────────────────────── */}
       <GlassPageTopBar
         title="Notifications"
-        subtitle={`${unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}`}
+        recordDetails={`${unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}`}
         backHref="/dashboard"
         backLabel="Dashboard"
         meta={

@@ -237,7 +237,7 @@ Division: ${pupilResult.division}`;
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 animate-in fade-in duration-500">
       <GlassPageTopBar
         title={`PLE Performance - ${pleRecord.year}`}
-        subtitle={`Detailed PLE examination results for ${formatPupilDisplayName(pupilResult)}`}
+        recordDetails={formatPupilDisplayName(pupilResult)}
         backHref={`/exams/ple-results/${pleId}/view-results`}
         backLabel="Back to results"
         actions={

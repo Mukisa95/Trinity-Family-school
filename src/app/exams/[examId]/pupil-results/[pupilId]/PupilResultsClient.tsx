@@ -1412,7 +1412,7 @@ export default function PupilResultsClient() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
       <GlassPageTopBar
         title="Individual Results"
-        subtitle={examDetails?.name ? `${examDetails.name} | ${academicInfo.academicYearName} - ${academicInfo.termName}` : 'Individual Results Details'}
+        recordDetails={examDetails?.name ? `${examDetails.name} | ${academicInfo.academicYearName} - ${academicInfo.termName}` : undefined}
         backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
         backLabel="Back to exam results"
         actions={

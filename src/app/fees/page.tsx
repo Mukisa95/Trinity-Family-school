@@ -1409,15 +1409,11 @@ export function FeesManagementPageContent() {
                     activeSettingTab === 'uniforms' ? 'Uniform Management' :
                     'Requirement Management';
 
-  const pageSubtitle = activeSettingTab === 'fees' ? (
+  const feeRecordDetails = activeSettingTab === 'fees' ? (
     selectedAcademicYear
-      ? `Manage ${selectedAcademicYear.name} fees${selectedAcademicYear.id !== currentAcademicYear?.id ? ' (Future Year)' : ''}.`
-      : `Manage ${currentAcademicYear?.name || "current academic year"} fees.`
-  ) : activeSettingTab === 'uniforms' ? (
-    'Manage school uniform items, pricing, and availability for different classes and sections'
-  ) : (
-    'Configure standard school requirements for pupils'
-  );
+      ? `${selectedAcademicYear.name}${selectedAcademicYear.id !== currentAcademicYear?.id ? ' (Future Year)' : ''}`
+      : currentAcademicYear?.name
+  ) : undefined;
 
   const renderFeeSettingsControls = (className: string) => (
     <div className={className}>
@@ -1467,7 +1463,7 @@ export function FeesManagementPageContent() {
     <div className="min-h-screen pb-12">
       <GlassPageTopBar
         title={pageTitle}
-        subtitle={pageSubtitle}
+        recordDetails={feeRecordDetails}
         className="mb-1.5"
         backHref="/dashboard"
         backLabel="Dashboard"

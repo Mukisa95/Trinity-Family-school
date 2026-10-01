@@ -543,7 +543,7 @@ export default function FamilyFeesCollection() {
         return (
           <GlassPageTopBar
             title="Family Fees Summary"
-            subtitle={"Family ID: " + familyId}
+            recordDetails={"Family ID: " + familyId}
             backHref="/fees/collection"
             backLabel="Fees"
             titleControls={

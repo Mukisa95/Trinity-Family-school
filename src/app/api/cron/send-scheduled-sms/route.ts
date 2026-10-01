@@ -16,6 +16,8 @@ import {
 } from '@/lib/scheduler/schedule-times';
 import { findAcademicYearForTermDate } from '@/lib/scheduler/academic-term-status';
 import { SCHEDULED_DISPATCH_QUEUE } from '@/lib/server/scheduled-dispatch-queue';
+import { dispatchFeeReminder } from '@/lib/server/fee-reminders';
+import { FEE_REMINDER_COLLECTION } from '@/lib/fees/fee-reminders';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = false;
@@ -28,7 +30,7 @@ const LEASE_MS = 10 * 60 * 1000;
 const RETRY_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
 
-type QueueChannel = 'sms' | 'push' | 'attendance';
+type QueueChannel = 'sms' | 'push' | 'attendance' | 'fee_reminder';
 type DispatchOutcome = {
   terminal: boolean;
   nextRunAt?: Date | null;
@@ -335,6 +337,7 @@ async function claimQueueJob(id: string, now: Date) {
       sourceId: String(data.sourceId || ''),
       dueAt,
       attempts,
+      notificationVersion: Number(data.notificationVersion || 0),
     };
   });
 }
@@ -362,22 +365,33 @@ export async function GET(request: NextRequest) {
 
     for (const document of dueSnapshot.docs) {
       const claimed = await claimQueueJob(document.id, now);
-      if (!claimed || !claimed.sourceId || !['sms', 'push', 'attendance'].includes(claimed.channel)) continue;
+      if (!claimed || !claimed.sourceId || !['sms', 'push', 'attendance', 'fee_reminder'].includes(claimed.channel)) continue;
       const queueRef = db.collection(SCHEDULED_DISPATCH_QUEUE).doc(document.id);
       try {
-        const outcome = claimed.channel === 'sms'
+        const outcome: DispatchOutcome = claimed.channel === 'sms'
           ? await dispatchSms(claimed.sourceId, claimed.dueAt)
           : claimed.channel === 'push'
             ? await dispatchPush(request, claimed.sourceId)
-            : await dispatchAttendance(request, claimed.sourceId, claimed.dueAt, now);
+            : claimed.channel === 'fee_reminder'
+              ? await dispatchFeeReminder(claimed.sourceId, now, claimed.notificationVersion)
+              : await dispatchAttendance(request, claimed.sourceId, claimed.dueAt, now);
         if (outcome.terminal) {
-          await queueRef.set({
-            status: 'completed',
+          const terminalQueueState = {
+            status: 'completed' as string,
             leaseUntil: null,
             completedAt: FieldValue.serverTimestamp(),
             lastOutcome: outcome.reason || 'sent',
             updatedAt: FieldValue.serverTimestamp(),
-          }, { merge: true });
+          };
+          if (claimed.channel === 'fee_reminder') {
+            await db.runTransaction(async transaction => {
+              const note = await transaction.get(db.collection(FEE_REMINDER_COLLECTION).doc(claimed.sourceId));
+              if (Number(note.data()?.notificationVersion || 0) !== claimed.notificationVersion) return;
+              transaction.set(queueRef, { ...terminalQueueState,
+                status: ['fulfilled', 'cancelled'].includes(note.data()?.reminderStatus) ? 'cancelled' : 'completed',
+              }, { merge: true });
+            });
+          } else await queueRef.set(terminalQueueState, { merge: true });
         } else {
           if (!outcome.nextRunAt) throw new Error('Recurring dispatch did not provide its next run time.');
           await queueRef.set({
@@ -410,21 +424,39 @@ export async function GET(request: NextRequest) {
             updatedAt: FieldValue.serverTimestamp(),
           }, { merge: true });
         } else {
-          await queueRef.set({
+          const retryQueueState = {
             status: exhausted ? 'failed' : 'scheduled',
             dueAt: exhausted ? claimed.dueAt : Timestamp.fromMillis(now.getTime() + RETRY_MS),
             leaseUntil: null,
             lastError: message.slice(0, 500),
             updatedAt: FieldValue.serverTimestamp(),
-          }, { merge: true });
+          };
+          if (claimed.channel === 'fee_reminder') {
+            await db.runTransaction(async transaction => {
+              const note = await transaction.get(db.collection(FEE_REMINDER_COLLECTION).doc(claimed.sourceId));
+              if (Number(note.data()?.notificationVersion || 0) !== claimed.notificationVersion) return;
+              transaction.set(queueRef, { ...retryQueueState,
+                status: ['fulfilled', 'cancelled'].includes(note.data()?.reminderStatus) ? 'cancelled' : retryQueueState.status,
+              }, { merge: true });
+            });
+          } else await queueRef.set(retryQueueState, { merge: true });
         }
-        const sourceCollection = claimed.channel === 'sms' ? 'scheduledSMS' : claimed.channel === 'push' ? 'scheduledNotifications' : null;
+        const sourceCollection = claimed.channel === 'sms' ? 'scheduledSMS' : claimed.channel === 'push' ? 'scheduledNotifications'
+          : claimed.channel === 'fee_reminder' ? FEE_REMINDER_COLLECTION : null;
         if (sourceCollection && exhausted) {
-          await db.collection(sourceCollection).doc(claimed.sourceId).set({
-            status: claimed.channel === 'push' ? 'failed' : 'error',
+          const sourceRef = db.collection(sourceCollection).doc(claimed.sourceId);
+          const errorState = {
             lastError: message.slice(0, 500),
             updatedAt: FieldValue.serverTimestamp(),
-          }, { merge: true });
+          };
+          if (claimed.channel === 'fee_reminder') {
+            await db.runTransaction(async transaction => {
+              const note = await transaction.get(sourceRef);
+              if (['fulfilled', 'cancelled'].includes(note.data()?.reminderStatus)) return;
+              if (Number(note.data()?.notificationVersion || 0) !== claimed.notificationVersion) return;
+              transaction.set(sourceRef, { ...errorState, reminderStatus: 'failed' }, { merge: true });
+            });
+          } else await sourceRef.set({ ...errorState, status: claimed.channel === 'push' ? 'failed' : 'error' }, { merge: true });
         }
         results.push({ id: document.id, channel: claimed.channel, sent: false, error: message });
       }

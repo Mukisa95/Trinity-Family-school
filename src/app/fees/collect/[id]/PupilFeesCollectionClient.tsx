@@ -39,11 +39,13 @@ import {
   ClipboardText,
   IdentificationCard
 } from '@phosphor-icons/react';
-import { Tag, BarChart3, Zap, AlertTriangle, Loader2 } from 'lucide-react';
+import { Tag, BarChart3, Zap, AlertTriangle, Loader2, StickyNote } from 'lucide-react';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from '@/components/common/glass-page-top-bar';
 import { GlassSummaryBar } from '@/components/common/glass-summary-bar';
 import { GlassPageRouteSkeleton } from '@/components/common/glass-page-loading';
 import { ManagePayCodeModal } from '@/components/pupils/manage-pay-code-modal';
+import { FeeNotesModal } from './components/FeeNotesModal';
+import { canReadFeeReminders } from '@/lib/fees/fee-reminders';
 import { SchoolPayPaymentsModal } from './components/SchoolPayPaymentsModal';
 import { SchoolPayPaymentBanner, type GroupedSchoolPayTx } from './components/SchoolPayPaymentBanner';
 import { SchoolPayRedistributeModal } from './components/SchoolPayRedistributeModal';
@@ -290,6 +292,10 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
   // Modal states
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isFeeNotesOpen, setIsFeeNotesOpen] = useState(() => searchParams?.get('notes') === 'open');
+  useEffect(() => {
+    if (searchParams?.get('notes') === 'open') setIsFeeNotesOpen(true);
+  }, [searchParams]);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isCarryForwardPaymentModalOpen, setIsCarryForwardPaymentModalOpen] = useState(false);
   const [isMultiPaymentModalOpen, setIsMultiPaymentModalOpen] = useState(false);
@@ -2329,7 +2335,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             </Link>
           ) : 'Loading...'
         }
-        subtitle={pupil ? `${pupil.admissionNumber} · ${historicalPupilInfo ? (classes.find(c => c.id === historicalPupilInfo.classId)?.code || historicalPupilInfo.className) : (pupil.classCode || pupil.className || '')} · ${historicalPupilInfo ? historicalPupilInfo.section : (pupil.section || 'N/A')}` : undefined}
+        recordDetails={pupil ? `${pupil.admissionNumber || 'N/A'} · ${historicalPupilInfo ? (classes.find(c => c.id === historicalPupilInfo.classId)?.code || historicalPupilInfo.className) : (pupil.classCode || pupil.className || 'N/A')} · ${historicalPupilInfo ? historicalPupilInfo.section : (pupil.section || 'N/A')}` : undefined}
         meta={
           (() => {
             const payCode = getSchoolPayCode(pupil);
@@ -2497,6 +2503,15 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }
         actions={
           <GlassActionDock>
+            {canReadFeeReminders(user) && (
+              <GlassActionButton
+                label="Notes"
+                tone="blue"
+                icon={<StickyNote className="h-4 w-4" />}
+                onClick={() => setIsFeeNotesOpen(true)}
+                title="Payment promises and reminders"
+              />
+            )}
             <GlassActionButton
               label="Pay"
               tone="emerald"
@@ -2627,6 +2642,20 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }
       />
 
+      {canReadFeeReminders(user) && selectedAcademicYear && (
+        <FeeNotesModal
+          key={pupil.id}
+          open={isFeeNotesOpen}
+          onOpenChange={setIsFeeNotesOpen}
+          pupil={pupil}
+          fees={pupilFees}
+          payments={pupilPayments}
+          academicYear={selectedAcademicYear}
+          termId={selectedTermId}
+          previousBalance={previousBalance}
+          isPaymentDataLoading={isPaymentDataLoading}
+        />
+      )}
       <Tabs value={selectedTermId} onValueChange={setSelectedTermId} className="w-full">
         <GlassSummaryBar
           left={

@@ -21,12 +21,14 @@
 
 // ⚠️ IMPORTANT: Increment this version number with EVERY deployment
 // This ensures users get the latest version of your app
-const SW_VERSION = 'build-20260927113718452';
-const BUILD_TIMESTAMP = '2026-09-27T11:37:18.452Z'; // Update this on each build
+const SW_VERSION = 'build-20261001115250260';
+const BUILD_TIMESTAMP = '2026-10-01T11:52:50.260Z'; // Update this on each build
 
 const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${SW_VERSION}`;
+const FEE_REMINDER_STATE_CACHE = 'trinity-fee-reminder-state';
+let feeReminderPushWork = Promise.resolve();
 const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
 const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
@@ -101,7 +103,7 @@ self.addEventListener('activate', (event) => {
             // Delete ALL caches that don't match the current version
             if (
               cacheName !== STATIC_CACHE &&
-              cacheName !== DYNAMIC_CACHE &&
+              cacheName !== FEE_REMINDER_STATE_CACHE && cacheName !== DYNAMIC_CACHE &&
               !retainedParentShellCaches.has(cacheName)
             ) {
               console.log('🗑️ Deleting old cache:', cacheName);
@@ -344,7 +346,57 @@ async function syncContent() {
  * - Browser must be running (even in background)
  * - Notification permission must be granted
  */
+async function handleFeeReminderPush(payload) {
+  const { reminderId, version, type } = payload.data;
+  if (!/^[A-Za-z0-9_-]{1,160}$/.test(reminderId || '')) return;
+  const incoming = Number(version || 0);
+  if (!Number.isSafeInteger(incoming) || incoming < 0) return;
+  const cache = await caches.open(FEE_REMINDER_STATE_CACHE);
+  const stateUrl = `${self.location.origin}/__fee-reminder-state/${encodeURIComponent(reminderId)}`;
+  const previous = await cache.match(stateUrl);
+  const state = previous ? await previous.json() : { version: -1, dismissed: false };
+  const terminal = ['FEE_REMINDER_DISMISS', 'FEE_REMINDER_RESOLVED'].includes(type);
+  if (incoming < state.version || (incoming === state.version && state.dismissed && !terminal)) return;
+  const tag = `fee-reminder-${reminderId}`;
+  if (terminal) {
+    const alreadyShown = state.version === incoming && state.resolutionShown === true;
+    await cache.put(stateUrl, new Response(JSON.stringify({version: incoming, dismissed: true,
+      ...(alreadyShown ? {resolutionShown: true} : {})})));
+    const notifications = await self.registration.getNotifications({tag});
+    notifications.forEach(notification => notification.close());
+    if (type === 'FEE_REMINDER_RESOLVED' && !alreadyShown) {
+      await self.registration.showNotification(payload.title, {
+        body: payload.body, tag: `fee-reminder-update-${reminderId}-v${incoming}`,
+        icon: payload.icon || '/trinity-logo-192.png', badge: payload.badge || '/icons/trinity-badge-72.png',
+        data: {...payload.data, url: payload.url || '/notifications'}, requireInteraction: false,
+        timestamp: Date.now(), renotify: false,
+      });
+      await cache.put(stateUrl, new Response(JSON.stringify({version: incoming, dismissed: true, resolutionShown: true})));
+    }
+  } else {
+    await cache.put(stateUrl, new Response(JSON.stringify({version: incoming, dismissed: false})));
+    await self.registration.showNotification(payload.title, {
+      body: payload.body, tag, icon: payload.icon || '/trinity-logo-192.png',
+      badge: payload.badge || '/icons/trinity-badge-72.png', requireInteraction: true,
+      data: {...payload.data, url: payload.url || '/notifications'},
+      timestamp: Date.now(), renotify: true,
+    });
+  }
+  const clients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+  clients.forEach(client => client.postMessage({type: 'FEE_REMINDER_UPDATED', reminderId}));
+}
+
 self.addEventListener('push', (event) => {
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      if (['FEE_REMINDER_DISMISS', 'FEE_REMINDER_ALERT', 'FEE_REMINDER_RESOLVED'].includes(payload.data?.type)) {
+        feeReminderPushWork = feeReminderPushWork.catch(() => {}).then(() => handleFeeReminderPush(payload));
+        event.waitUntil(feeReminderPushWork);
+        return;
+      }
+    } catch { /* Preserve the existing handler for non-JSON messages. */ }
+  }
   console.log('🔔🔔🔔 PUSH EVENT RECEIVED! 🔔🔔🔔');
   console.log('Push event object:', event);
   console.log('Has data:', !!event.data);
