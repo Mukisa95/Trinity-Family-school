@@ -84,7 +84,10 @@ test('printable headers and break labels keep balanced spacing', () => {
   const source = readFileSync('src/components/timetable/PrintableTimetable.tsx', 'utf8');
 
   assert.match(source, /const headerHeight = clamp/);
-  assert.match(source, /flex: "1 1 50%"/);
+  assert.match(source, /data-printable-time-cell="start"/);
+  assert.match(source, /data-printable-time-cell="end"/);
+  assert.match(source, /rowSpan=\{2\}/);
+  assert.doesNotMatch(source, /flex: "1 1 50%"/);
   assert.match(source, /justifyContent: "space-evenly"/);
   assert.match(source, /data-printable-break-cell="true"/);
   assert.match(source, /data-printable-break-label="true"/);
@@ -132,4 +135,25 @@ test('screen timetable views use the dynamic class width and inline mobile selec
   assert.doesNotMatch(page, /titleControls=\{/);
   assert.match(page, /max-w-\[28vw\]/);
   assert.match(page, /max-w-\[22vw\]/);
+});
+
+test('mobile timetable controls use compact labels and keep the day selector beside them', () => {
+  const source = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
+
+  assert.match(source, /<option value="day">Day<\/option>/);
+  assert.match(source, /<option value="week">Week<\/option>/);
+  assert.match(source, /mobileLabel: "Classes"/);
+  assert.match(source, /mobileLabel: "Class"/);
+  assert.match(source, /mobileLabel: "Tr"/);
+  assert.match(source, /mobileLabel: "Sub"/);
+  assert.match(source, /aria-label="Select day of the week"/);
+  assert.match(source, /sm:hidden/);
+});
+
+test('ordinary printable class labels avoid percentage-height wrappers that html2canvas clips', () => {
+  const source = readFileSync('src/components/timetable/PrintableTimetable.tsx', 'utf8');
+
+  assert.match(source, /data-printable-class-label="true"/);
+  assert.match(source, /lineHeight: 1\.25/);
+  assert.match(source, /padding: row\.stream \? 0 : "2px 3px"/);
 });
