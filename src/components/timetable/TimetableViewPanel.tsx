@@ -633,10 +633,10 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     React.useEffect(() => { setFilterId(""); }, [filterMode]);
 
     const FILTER_OPTIONS = [
-        { id: "all" as FilterMode, label: "All Classes" },
-        { id: "class" as FilterMode, label: "By Class" },
-        { id: "teacher" as FilterMode, label: "By Teacher" },
-        { id: "subject" as FilterMode, label: "By Subject" },
+        { id: "all" as FilterMode, label: "All Classes", mobileLabel: "Classes" },
+        { id: "class" as FilterMode, label: "By Class", mobileLabel: "Class" },
+        { id: "teacher" as FilterMode, label: "By Teacher", mobileLabel: "Tr" },
+        { id: "subject" as FilterMode, label: "By Subject", mobileLabel: "Sub" },
     ];
 
     // Compute the initialDay prop for TimetableGrid when in day view + class filter
@@ -733,19 +733,20 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
 
             {/* ── Unified Control Toolbar ── */}
             <div className="flex-shrink-0 flex bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden">
-                <div className="flex flex-row items-center gap-2 w-full overflow-x-auto hide-scrollbar custom-scrollbar-mobile pb-0.5 min-w-0">
+                <div className="flex w-full min-w-0 flex-row items-center gap-2 overflow-x-auto pb-0.5 hide-scrollbar custom-scrollbar-mobile">
 
                     {/* Unified Pill: View Mode + Filters */}
-                    <div className="flex flex-nowrap flex-shrink-0 items-center bg-white rounded-full border border-gray-200 p-0.5 shadow-sm divide-x divide-gray-200">
+                    <div className="flex min-w-0 flex-nowrap items-center divide-x divide-gray-200 rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:flex-shrink-0">
                         {/* View Mode Toggle */}
                         <div className="flex items-center px-1">
                             <select
                                 value={viewMode}
                                 onChange={(e) => setViewMode(e.target.value as ViewMode)}
-                                className="sm:hidden text-xs font-semibold text-gray-700 bg-transparent focus:outline-none appearance-none cursor-pointer py-1"
+                                aria-label="Choose week or day view"
+                                className="h-11 w-[46px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-semibold text-gray-700 focus:outline-none sm:hidden"
                             >
-                                <option value="day">Day View</option>
-                                <option value="week">Week View</option>
+                                <option value="day">Day</option>
+                                <option value="week">Week</option>
                             </select>
                             <div className="hidden sm:flex items-center">
                                 <button
@@ -779,7 +780,20 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                             <select
                                 value={filterMode}
                                 onChange={e => setFilterMode(e.target.value as FilterMode)}
-                                className="text-xs font-medium text-gray-700 focus:outline-none bg-transparent appearance-none cursor-pointer py-1.5 px-1"
+                                aria-label="Filter timetable by classes, class, teacher, or subject"
+                                className="h-11 w-[54px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-medium text-gray-700 focus:outline-none sm:hidden"
+                            >
+                                {FILTER_OPTIONS.map(opt => (
+                                    <option key={opt.id} value={opt.id}>
+                                        {opt.mobileLabel}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                value={filterMode}
+                                onChange={e => setFilterMode(e.target.value as FilterMode)}
+                                aria-label="Filter timetable"
+                                className="hidden h-8 cursor-pointer appearance-none bg-transparent px-1 text-xs font-medium text-gray-700 focus:outline-none sm:block"
                             >
                                 {FILTER_OPTIONS.map(opt => (
                                     <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -813,24 +827,39 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
 
                     {/* Compact Day Chips (Only on Day View) */}
                     {viewMode === "day" && (
-                        <div className="flex flex-nowrap flex-shrink-0 items-center bg-white rounded-full border border-gray-200 p-0.5 shadow-sm ml-auto sm:ml-2">
-                            {DAYS.map((dayName, idx) => {
-                                const dayId = idx + 1;
-                                const hasPeriods = periods.some(p => p.dayOfWeek === dayId);
-                                if (!hasPeriods && dayId > 5) return null;
-                                return (
-                                    <button
-                                        key={dayId}
-                                        onClick={() => setSelectedDay(dayId)}
-                                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${selectedDay === dayId
-                                            ? "bg-blue-600 text-white shadow-sm"
-                                            : "text-gray-500 hover:bg-gray-50"
-                                            }`}
-                                    >
-                                        {dayName.substring(0, 3)}
-                                    </button>
-                                );
-                            })}
+                        <div className="ml-auto flex flex-shrink-0 flex-nowrap items-center rounded-full border border-gray-200 bg-white p-0.5 shadow-sm sm:ml-2">
+                            <select
+                                value={selectedDay}
+                                onChange={event => setSelectedDay(Number(event.target.value))}
+                                aria-label="Select day of the week"
+                                className="h-11 w-[48px] cursor-pointer appearance-none bg-transparent px-1 text-center text-[11px] font-bold text-blue-700 focus:outline-none sm:hidden"
+                            >
+                                {DAYS.map((dayName, idx) => {
+                                    const dayId = idx + 1;
+                                    const hasPeriods = periods.some(period => period.dayOfWeek === dayId);
+                                    if (!hasPeriods && dayId > 5) return null;
+                                    return <option key={dayId} value={dayId}>{dayName.substring(0, 3)}</option>;
+                                })}
+                            </select>
+                            <div className="hidden sm:flex sm:flex-nowrap sm:items-center">
+                                {DAYS.map((dayName, idx) => {
+                                    const dayId = idx + 1;
+                                    const hasPeriods = periods.some(p => p.dayOfWeek === dayId);
+                                    if (!hasPeriods && dayId > 5) return null;
+                                    return (
+                                        <button
+                                            key={dayId}
+                                            onClick={() => setSelectedDay(dayId)}
+                                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors whitespace-nowrap flex-shrink-0 ${selectedDay === dayId
+                                                ? "bg-blue-600 text-white shadow-sm"
+                                                : "text-gray-500 hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            {dayName.substring(0, 3)}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

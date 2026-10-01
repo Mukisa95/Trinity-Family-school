@@ -296,24 +296,60 @@ export function PrintableTimetable({
                 </colgroup>
 
                 <thead>
-                    <tr style={{ height: headerHeight }}>
-                        <th style={{ border: bdBold, height: headerHeight, padding: 0 }} />
-                        <th style={{ border: bd, height: headerHeight, padding: 0 }}>
+                    <tr style={{ height: headerHeight / 2 }}>
+                        <th rowSpan={2} style={{ border: bdBold, height: headerHeight, padding: 0 }} />
+                        <th rowSpan={2} style={{ border: bd, height: headerHeight, padding: 0 }}>
                             {/* Intentionally left blank */}
                         </th>
                         {templatePeriods.map((p) => {
                             const isBreak = p.type === "break" || p.type === "lunch" || p.type === "assembly";
                             const periodTimeFs = isBreak ? breakTimeFs : timeFs;
                             return (
-                                <th key={p.id} style={{ border: bd, height: headerHeight, padding: 0, fontWeight: 700, textAlign: "center", verticalAlign: "middle", background: isBreak ? "#e8e8e8" : "#fff", overflow: "hidden" }}>
-                                    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: headerHeight, lineHeight: 1, boxSizing: "border-box" }}>
-                                        <div style={{ display: "flex", flex: "1 1 50%", alignItems: "center", justifyContent: "center", minHeight: 0, padding: "2px 1px", borderBottom: "1px solid #aaa", boxSizing: "border-box", fontSize: periodTimeFs, whiteSpace: "nowrap" }}>
-                                            {isBreak ? fmtShort(p.startTime) : fmt(p.startTime)}
-                                        </div>
-                                        <div style={{ display: "flex", flex: "1 1 50%", alignItems: "center", justifyContent: "center", minHeight: 0, padding: "2px 1px", boxSizing: "border-box", fontSize: periodTimeFs, whiteSpace: "nowrap" }}>
-                                            {isBreak ? fmtShort(p.endTime) : fmt(p.endTime)}
-                                        </div>
-                                    </div>
+                                <th
+                                    key={p.id}
+                                    data-printable-time-cell="start"
+                                    style={{
+                                        border: bd,
+                                        height: headerHeight / 2,
+                                        padding: "3px 1px",
+                                        boxSizing: "border-box",
+                                        fontWeight: 700,
+                                        fontSize: periodTimeFs,
+                                        lineHeight: 1.2,
+                                        textAlign: "center",
+                                        verticalAlign: "middle",
+                                        whiteSpace: "nowrap",
+                                        background: isBreak ? "#e8e8e8" : "#fff",
+                                    }}
+                                >
+                                    {isBreak ? fmtShort(p.startTime) : fmt(p.startTime)}
+                                </th>
+                            );
+                        })}
+                    </tr>
+                    <tr style={{ height: headerHeight / 2 }}>
+                        {templatePeriods.map((p) => {
+                            const isBreak = p.type === "break" || p.type === "lunch" || p.type === "assembly";
+                            const periodTimeFs = isBreak ? breakTimeFs : timeFs;
+                            return (
+                                <th
+                                    key={p.id}
+                                    data-printable-time-cell="end"
+                                    style={{
+                                        border: bd,
+                                        height: headerHeight / 2,
+                                        padding: "3px 1px",
+                                        boxSizing: "border-box",
+                                        fontWeight: 700,
+                                        fontSize: periodTimeFs,
+                                        lineHeight: 1.2,
+                                        textAlign: "center",
+                                        verticalAlign: "middle",
+                                        whiteSpace: "nowrap",
+                                        background: isBreak ? "#e8e8e8" : "#fff",
+                                    }}
+                                >
+                                    {isBreak ? fmtShort(p.endTime) : fmt(p.endTime)}
                                 </th>
                             );
                         })}
@@ -370,7 +406,7 @@ export function PrintableTimetable({
                                                         borderRight: bd,
                                                         fontWeight: 700,
                                                         textAlign: "center",
-                                                        padding: 0,
+                                                        padding: row.stream ? 0 : "2px 3px",
                                                         fontSize: classFs,
                                                         whiteSpace: "normal",
                                                         verticalAlign: "middle",
@@ -431,11 +467,18 @@ export function PrintableTimetable({
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", padding: "1px 3px", boxSizing: "border-box", overflow: "hidden" }}>
-                                                            <span style={{ display: "block", maxWidth: "100%", lineHeight: 1.05, overflowWrap: "anywhere" }}>
-                                                                {cls.code || cls.name}
-                                                            </span>
-                                                        </div>
+                                                        <span
+                                                            data-printable-class-label="true"
+                                                            style={{
+                                                                display: "inline-block",
+                                                                maxWidth: "100%",
+                                                                padding: "1px 0",
+                                                                lineHeight: 1.25,
+                                                                overflowWrap: "anywhere",
+                                                            }}
+                                                        >
+                                                            {cls.code || cls.name}
+                                                        </span>
                                                     )}
                                                 </td>
                                             )}
