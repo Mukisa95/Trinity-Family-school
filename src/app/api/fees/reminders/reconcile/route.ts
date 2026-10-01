@@ -13,7 +13,14 @@ export async function POST(request: NextRequest) {
     const actor = await requireAppUser(request);
     // Requests only ask the server to recompute committed data; they cannot
     // supply balances, payment amounts, recipients, or a notification message.
-    if (!canReceiveFeeReminders(actor.user)) return NextResponse.json({error: 'Fees access is required.'}, {status: 403});
+    // Staff who change pupil assignments or uniform charges may not have
+    // Fees inbox access. They can request a recalculation of committed data;
+    // note visibility and delivery recipients still require Fees access.
+    const mutationAccess = actor.user.role !== 'Parent' && actor.user.isActive !== false && (
+      actor.user.modulePermissions?.some(module => ['pupils', 'uniforms'].includes(module.module) && ['edit', 'full_access'].includes(module.permission))
+      || actor.user.granularPermissions?.some(module => ['pupils', 'uniforms'].includes(module.moduleId)
+        && module.pages.some(page => page.canAccess && page.actions.some(action => action.allowed && /^(edit|update|assign|record|collect|create|delete|remove)/.test(action.actionId)))));
+    if (!canReceiveFeeReminders(actor.user) && !mutationAccess) return NextResponse.json({error: 'Fees or pupil charge editing access is required.'}, {status: 403});
     const body = await request.json();
     if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({error: 'Invalid fee change.'}, {status: 400});
     const change: FeeReminderChange = {reversal: body.reversal === true};

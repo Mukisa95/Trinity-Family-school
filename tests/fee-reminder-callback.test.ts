@@ -12,17 +12,17 @@ function load(file: string, imports: Record<string, any>, globals = {}) {
   return module.exports;
 }
 function routeFixture() {
-  let authError = '', allowed = true, fail = false; const calls: any[] = [];
+  let authError = '', allowed = true, fail = false, user: any = {}; const calls: any[] = [];
   const route = load('src/app/api/fees/reminders/reconcile/route.ts', {
     'next/server': {NextResponse: {json: (body: any, options: any) => ({body, status: options?.status || 200})}},
     'firebase-admin/firestore': {getFirestore: () => ({collection: () => ({doc: () => ({get: async () => ({data: () => ({pupilId: 'actual-pupil'})})})})})},
     '@/lib/firebase-admin': {getFirebaseAdminApp: () => ({})},
-    '@/lib/server/app-auth': {requireAppUser: async () => {if (authError) throw Error(authError); return {user: {}};}},
+    '@/lib/server/app-auth': {requireAppUser: async () => {if (authError) throw Error(authError); return {user};}},
     '@/lib/fees/fee-reminders': {canReceiveFeeReminders: () => allowed},
     '@/lib/server/fee-reminders': {processFeeReminderChange: async (change: any) => {calls.push(change); if (fail) throw Error('temporary');}},
   });
   return {calls, post: (body: any) => route.POST({json: async () => body}),
-    auth: (error: string) => {authError = error;}, allow: (value: boolean) => {allowed = value;}, fail: () => {fail = true;}};
+    auth: (error: string) => {authError = error;}, allow: (value: boolean) => {allowed = value;}, user: (value: any) => {user = value;}, fail: () => {fail = true;}};
 }
 test('payment callbacks require signed active Fees access and validate identifiers', async () => {
   const f = routeFixture(); f.auth('AUTH_REQUIRED'); assert.equal((await f.post({pupilIds: ['pupil']})).status, 401);
@@ -37,6 +37,15 @@ test('callbacks use authoritative source identities and never accept supplied ba
   const f = routeFixture(); assert.equal((await f.post({pupilIds: ['previous-pupil'], source: {collection: 'uniformTracking', id: 'record'}, amount: 999, recipientIds: ['forged']})).status, 200);
   assert.deepEqual(JSON.parse(JSON.stringify(f.calls[0])), {reversal: false, pupilIds: ['previous-pupil', 'actual-pupil']});
   f.fail(); assert.equal((await f.post({pupilIds: ['pupil']})).status, 503);
+});
+test('staff assignment and uniform editors can recalculate without Fees inbox access; parents cannot', async () => {
+  const f = routeFixture(); f.allow(false);
+  f.user({role: 'Staff', modulePermissions: [{module: 'pupils', permission: 'edit'}]});
+  assert.equal((await f.post({pupilIds: ['pupil']})).status, 200);
+  f.user({role: 'Staff', granularPermissions: [{moduleId: 'uniforms', pages: [{canAccess: true, actions: [{actionId: 'record_collection', allowed: true}]}]}]});
+  assert.equal((await f.post({source: {collection: 'uniformTracking', id: 'record'}})).status, 200);
+  f.user({role: 'Parent', modulePermissions: [{module: 'pupils', permission: 'edit'}]});
+  assert.equal((await f.post({pupilIds: ['pupil']})).status, 403);
 });
 test('browser callbacks preserve failed work, recover on reconnect, and keep pending work per account', async () => {
   const storage = new Map<string, string>(); const auth = {currentUser: {uid: 'cashier', isAnonymous: false, getIdToken: async () => 'signed'}};
