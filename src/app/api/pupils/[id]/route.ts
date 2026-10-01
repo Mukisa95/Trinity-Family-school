@@ -1,3 +1,4 @@
+import {processFeeReminderChangeSafely} from '@/lib/server/fee-reminders';
 import { after, NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -91,6 +92,7 @@ export async function PATCH(
       await updatePupilWithCacheRevision(db, db.collection('pupils').doc(pupilId), body);
     }
 
+    if (['assignedFees', 'classId', 'section'].some(key => Object.prototype.hasOwnProperty.call(body, key))) await processFeeReminderChangeSafely({pupilIds: [pupilId]});
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating pupil:', error);

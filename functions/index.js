@@ -18,9 +18,6 @@ const admin = require("firebase-admin");
 const {getFunctions} = require("firebase-admin/functions");
 const {createHash} = require("crypto");
 const webpush = require("web-push");
-const {reconcilePupilFeeReminders, deliverFeeReminderResolution} = require("./fee-reminder-lifecycle");
-const {reconcileCustomFeeNotes, evaluateCustomFeeNote, deliverCustomFeeNote} = require('./custom-fee-notes');
-const {customNotePushBody} = require('./fee-custom-engine');
 
 if (!admin.apps.length) admin.initializeApp();
 
@@ -34,84 +31,6 @@ const ATTENDANCE_REMINDER_TASK_FUNCTION = "locations/us-central1/functions/atten
 const ENABLE_FIREBASE_ATTENDANCE_REMINDERS = process.env.ENABLE_FIREBASE_ATTENDANCE_REMINDERS === "true";
 const PARENT_DASHBOARD_REVISIONS = "parentDashboardRevisions";
 const PARENT_DATASET_REVISION_COALESCE_MS = 2 * 1000;
-
-// Covers payments from collection, family collection, SchoolPay, and reversals.
-// Reminder failures retry independently and never roll back a financial write.
-exports.feeReminderPaymentChanged = onDocumentWritten({
-  document: "payments/{paymentId}", region: "us-central1", memory: "256MiB",
-  timeoutSeconds: 120, retry: true,
-}, async event => {
-  const pupilIds = new Set([event.data?.before.data()?.pupilId, event.data?.after.data()?.pupilId].filter(Boolean));
-  const db = admin.firestore();
-  for (const pupilId of pupilIds) {
-    await reconcilePupilFeeReminders({
-    db, FieldValue: admin.firestore.FieldValue, pupilId,
-    sendDismissals: sendFeeReminderResolutionPush,
-    });
-    await reconcileCustomFeeNotes({db, FieldValue: admin.firestore.FieldValue, pupilId, sendAlert: sendFeeReminderResolutionPush});
-  }
-});
-
-
-exports.feeReminderStatusChanged = onDocumentWritten({
-  document: 'feeReminders/{reminderId}', region: 'us-central1', memory: '256MiB',
-  timeoutSeconds: 120, retry: true,
-}, async event => {
-  const before = event.data?.before.data();
-  const after = event.data?.after.data();
-  if (after?.kind === 'custom' && after.reminderStatus !== 'cancelled') {
-    if (after.customDeliveryPending && (!before?.customDeliveryPending || JSON.stringify(before.recipientIds) !== JSON.stringify(after.recipientIds))) {
-      await deliverCustomFeeNote({db: admin.firestore(), FieldValue: admin.firestore.FieldValue,
-        id: event.params.reminderId, sendAlert: sendFeeReminderResolutionPush});
-    } else if (!before) {
-      await evaluateCustomFeeNote({db: admin.firestore(), FieldValue: admin.firestore.FieldValue,
-        id: event.params.reminderId, sendAlert: sendFeeReminderResolutionPush});
-    }
-    return;
-  }
-  if (!after?.dismissalPending || !['cancelled', 'fulfilled'].includes(after.reminderStatus)) return;
-  // Lease writes must not generate new delivery attempts. The original event retries failures.
-  if (before?.resolutionNotificationId === after.resolutionNotificationId && before?.dismissalPending === true) return;
-  await deliverFeeReminderResolution({db: admin.firestore(), FieldValue: admin.firestore.FieldValue,
-    id: event.params.reminderId, sendDismissals: sendFeeReminderResolutionPush});
-});
-
-// Waivers, assignments and uniform adjustments can also clear a selected balance.
-for (const [name, path] of [
-  ['feeReminderHolidayChanged', 'feesHolidays/{id}'],
-  ['feeReminderUniformChanged', 'uniformTracking/{id}'],
-  ['feeReminderPupilChanged', 'pupils/{id}'],
-  ['feeReminderStructureChanged', 'feeStructures/{id}'],
-  ['feeReminderAdjustmentChanged', 'feeAdjustments/{id}'],
-]) {
-  exports[name] = onDocumentWritten({document: path, region: 'us-central1', memory: '256MiB',
-    timeoutSeconds: 120, retry: true, }, async event => {
-    const db = admin.firestore();
-    if (path.startsWith('pupils/')) {
-      const before = event.data?.before.data(), after = event.data?.after.data();
-      if (!after || JSON.stringify([before?.assignedFees, before?.classId, before?.section]) === JSON.stringify([after.assignedFees, after.classId, after.section])) return;
-      await reconcileCustomFeeNotes({db, FieldValue: admin.firestore.FieldValue, pupilId: event.params.id, sendAlert: sendFeeReminderResolutionPush});
-    } else if (path.startsWith('feesHolidays/') || path.startsWith('uniformTracking/')) {
-      const ids = new Set([event.data?.before.data()?.pupilId, event.data?.after.data()?.pupilId].filter(Boolean));
-      for (const pupilId of ids) await reconcileCustomFeeNotes({db, FieldValue: admin.firestore.FieldValue, pupilId, sendAlert: sendFeeReminderResolutionPush});
-    } else {
-      const feeIds = path.startsWith('feeStructures/') ? [event.params.id]
-        : [event.data?.before.data()?.feeStructureId, event.data?.after.data()?.feeStructureId].filter(Boolean);
-      const notes = await db.collection('feeReminders').where('kind', '==', 'custom').get();
-      for (const note of notes.docs) if (['scheduled', 'failed'].includes(note.data().reminderStatus)
-        && note.data().scopes?.some(scope => feeIds.includes(scope.feeStructureId))) {
-        await evaluateCustomFeeNote({db, FieldValue: admin.firestore.FieldValue, id: note.id, sendAlert: sendFeeReminderResolutionPush});
-      }
-    }
-  });
-}
-
-async function sendFeeReminderResolutionPush(delivery) {
-  if (!delivery.recipientIds.length) return;
-  const {sendFeeReminderWebsitePush} = require('./fee-reminder-web-push');
-  const projectId = admin.app().options.projectId || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT;
-  await sendFeeReminderWebsitePush(projectId, {type: 'FEE_REMINDER_RESOLVED', ...delivery});
-}
 
 /**
  * Parent datasets remain staff-owned source documents, so they cannot be

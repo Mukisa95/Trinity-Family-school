@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PaymentHistoryContext, PaymentsService, validatePaymentOperationInput } from '@/lib/services/payments.service';
 import type { PaymentRecord } from '@/types';
+import { processRecordedFeePayments } from '@/lib/server/fee-reminders';
+
 import { ensureServerFirestoreAuth } from '@/lib/server/ensure-server-firestore-auth';
+
+export const maxDuration = 60;
 
 /**
  * API Route: POST /api/payments/create
  *
  * Server-side payment creation endpoint that:
  * Creates the payment record and returns after the financial record and
- * history entry are committed. Fee-payment push alerts are not sent.
+ * history entry are committed. Fee note updates run after commit and cannot fail the payment.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +48,7 @@ export async function POST(request: NextRequest) {
       validatePaymentOperationInput(operationId, allocations);
       const operation = await PaymentsService.createPaymentOperation(operationId, allocations);
       const paymentCommittedAt = performance.now();
+      await updateReminderNotesAfterPayment(allocations);
 
       return NextResponse.json({
         success: true,
@@ -82,6 +87,7 @@ export async function POST(request: NextRequest) {
       historyContext,
     });
     const paymentCommittedAt = performance.now();
+    await updateReminderNotesAfterPayment([{paymentData}]);
 
     console.log(`✅ [Payment API] Payment created successfully: ${paymentId}\n`);
 
@@ -111,4 +117,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function updateReminderNotesAfterPayment(allocations: Parameters<typeof processRecordedFeePayments>[0]) {
+  try { await processRecordedFeePayments(allocations); }
+  catch (error) { console.error('Payment committed; reminder update awaits recovery:', error); }
 }

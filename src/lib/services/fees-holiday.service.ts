@@ -1,3 +1,4 @@
+import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import {
   collection,
   doc,
@@ -171,6 +172,7 @@ export class FeesHolidayService {
       }
 
       const docRef = await addDoc(collection(db, FEES_HOLIDAY_COLLECTION), holidayData);
+      await notifyFeeReminderChange({pupilIds: [data.pupilId]});
       
       return {
         id: docRef.id,
@@ -193,6 +195,7 @@ export class FeesHolidayService {
   ): Promise<void> {
     try {
       const docRef = doc(db, FEES_HOLIDAY_COLLECTION, id);
+      const previous = data.pupilId ? await this.getFeesHolidayById(id) : null;
       
       // Validate percentage discount if being updated
       if (data.discountType === 'percentage' && data.discountValue !== undefined) {
@@ -240,6 +243,7 @@ export class FeesHolidayService {
       }
 
       await updateDoc(docRef, updateData);
+      await notifyFeeReminderChange({source: {collection: 'feesHolidays', id}, ...(previous ? {pupilIds: [previous.pupilId]} : {})});
     } catch (error) {
       console.error('Error updating fees holiday:', error);
       throw error;
@@ -252,7 +256,9 @@ export class FeesHolidayService {
   static async deleteFeesHoliday(id: string): Promise<void> {
     try {
       const docRef = doc(db, FEES_HOLIDAY_COLLECTION, id);
+      const previous = await this.getFeesHolidayById(id);
       await deleteDoc(docRef);
+      if (previous) await notifyFeeReminderChange({pupilIds: [previous.pupilId]});
     } catch (error) {
       console.error('Error deleting fees holiday:', error);
       throw error;
@@ -271,6 +277,7 @@ export class FeesHolidayService {
         disabledBy,
         updatedAt: Timestamp.fromDate(new Date()),
       });
+      await notifyFeeReminderChange({source: {collection: 'feesHolidays', id}});
     } catch (error) {
       console.error('Error disabling fees holiday:', error);
       throw error;
@@ -290,6 +297,7 @@ export class FeesHolidayService {
         updatedAt: Timestamp.fromDate(new Date()),
         updatedBy,
       });
+      await notifyFeeReminderChange({source: {collection: 'feesHolidays', id}});
     } catch (error) {
       console.error('Error enabling fees holiday:', error);
       throw error;

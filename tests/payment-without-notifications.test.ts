@@ -6,7 +6,7 @@ import ts from 'typescript';
 
 const routePath = 'src/app/api/payments/create/route.ts';
 
-test('fee payment route has no notification preparation or delivery dependency', () => {
+test('fee payment route keeps the old payment-notification outbox removed', () => {
   const route = fs.readFileSync(routePath, 'utf8');
   const scheduler = fs.readFileSync('.github/workflows/scheduled-sms.yml', 'utf8');
   assert.doesNotMatch(route, /payment-notification|enqueuePaymentNotificationEvents|processPendingPaymentNotificationEvents|\bafter\(/i);
@@ -14,7 +14,7 @@ test('fee payment route has no notification preparation or delivery dependency',
   assert.equal(fs.existsSync('src/app/api/cron/process-payment-notifications/route.ts'), false);
 });
 
-test('single and family-style grouped payments commit without a notification check', async () => {
+test('single and family payments commit before a non-fatal note update', async () => {
   const calls: string[] = [];
   const service = {
     createPaymentOperation: async (id: string, allocations: unknown[]) => {
@@ -34,6 +34,7 @@ test('single and family-style grouped payments commit without a notification che
     module, exports: module.exports, performance: { now: () => 0 },
     console: { log() {}, error() {} },
     require(name: string) {
+      if (name === '@/lib/server/fee-reminders') return {processRecordedFeePayments: async () => {calls.push('reminder-update'); throw new Error('Push temporarily unavailable');}};
       if (name === 'next/server') return {
         NextResponse: { json: (body: any, options?: { status?: number }) => ({ body, status: options?.status || 200 }) },
       };
@@ -55,7 +56,7 @@ test('single and family-style grouped payments commit without a notification che
   const single = await module.exports.POST(request(paymentData));
   assert.equal(single.status, 200);
   assert.equal(single.body.paymentId, 'single-payment-id');
-  assert.deepEqual(calls, ['auth', 'single-payment']);
+  assert.deepEqual(calls, ['auth', 'single-payment', 'reminder-update']);
 
   calls.length = 0;
   const grouped = await module.exports.POST(request({
@@ -64,5 +65,5 @@ test('single and family-style grouped payments commit without a notification che
   }));
   assert.equal(grouped.status, 200);
   assert.deepEqual(Array.from(grouped.body.paymentIds), ['payment-1', 'payment-2']);
-  assert.deepEqual(calls, ['auth', 'operation:family-payment-1:2']);
+  assert.deepEqual(calls, ['auth', 'operation:family-payment-1:2', 'reminder-update']);
 });

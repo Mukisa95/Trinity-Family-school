@@ -1,3 +1,4 @@
+import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import { 
   collection, 
   doc, 
@@ -135,6 +136,7 @@ export class UniformTrackingService {
       const cleanedData = this.cleanUndefinedValues(newRecord);
       
       const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanedData);
+      await notifyFeeReminderChange({pupilIds: [trackingData.pupilId]});
       return docRef.id;
     } catch (error) {
       console.error('Error creating uniform tracking record:', error);
@@ -144,6 +146,7 @@ export class UniformTrackingService {
 
   static async updateTrackingRecord(id: string, trackingData: UpdateUniformTrackingData): Promise<void> {
     try {
+      const previous = trackingData.pupilId ? await this.getTrackingRecordById(id) : null;
       const docRef = doc(db, COLLECTION_NAME, id);
       const updateData = {
         ...trackingData,
@@ -154,6 +157,7 @@ export class UniformTrackingService {
       const cleanedData = this.cleanUndefinedValues(updateData);
       
       await updateDoc(docRef, cleanedData);
+      await notifyFeeReminderChange({source: {collection: 'uniformTracking', id}, ...(previous ? {pupilIds: [previous.pupilId]} : {})});
     } catch (error) {
       console.error('Error updating uniform tracking record:', error);
       throw error;
@@ -170,6 +174,7 @@ export class UniformTrackingService {
     stockReductions: UniformStockReduction[]
   ): Promise<UniformTracking> {
     try {
+      const previous = trackingData.pupilId ? await this.getTrackingRecordById(id) : null;
       const trackingRef = doc(db, COLLECTION_NAME, id);
       const reductionsByUniform = new Map<string, Map<string, number>>();
 
@@ -188,7 +193,7 @@ export class UniformTrackingService {
         ref: doc(db, UNIFORM_INVENTORY_COLLECTION, uniformId),
       }));
 
-      return await runTransaction(db, async transaction => {
+      const result = await runTransaction(db, async transaction => {
         // Firestore transactions require every read to happen before any write.
         const inventorySnapshots = await Promise.all(
           inventoryRefs.map(({ ref }) => transaction.get(ref))
@@ -257,6 +262,8 @@ export class UniformTrackingService {
             updateData.updatedAt?.toDate?.()?.toISOString() || updateData.updatedAt,
         } as UniformTracking;
       });
+      await notifyFeeReminderChange({source: {collection: 'uniformTracking', id}, ...(previous ? {pupilIds: [previous.pupilId]} : {})});
+      return result;
     } catch (error) {
       console.error('Error atomically updating uniform collection and stock:', error);
       throw error;
@@ -266,7 +273,9 @@ export class UniformTrackingService {
   static async deleteTrackingRecord(id: string): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
+      const previous = await this.getTrackingRecordById(id);
       await deleteDoc(docRef);
+      if (previous) await notifyFeeReminderChange({pupilIds: [previous.pupilId]});
     } catch (error) {
       console.error('Error deleting uniform tracking record:', error);
       throw error;

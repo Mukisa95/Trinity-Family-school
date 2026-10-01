@@ -1,3 +1,4 @@
+import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import { 
   collection, 
   doc, 
@@ -117,6 +118,7 @@ export class FeesService {
       const cleanedData = cleanUndefinedValues(updateData);
       
       await updateDoc(docRef, cleanedData);
+      await notifyFeeReminderChange({feeIds: [id]});
     } catch (error) {
       console.error('Error updating fee structure:', error);
       throw error;
@@ -127,6 +129,7 @@ export class FeesService {
     try {
       const docRef = doc(db, FEE_STRUCTURES_COLLECTION, id);
       await deleteDoc(docRef);
+      await notifyFeeReminderChange({feeIds: [id]});
     } catch (error) {
       console.error('Error deleting fee structure:', error);
       throw error;
@@ -179,6 +182,7 @@ export class FeesService {
       const cleanedData = cleanUndefinedValues(newAdjustment);
       
       const docRef = await addDoc(collection(db, FEE_ADJUSTMENTS_COLLECTION), cleanedData);
+      await notifyFeeReminderChange({feeIds: [adjustmentData.feeStructureId]});
       return docRef.id;
     } catch (error) {
       console.error('Error creating fee adjustment:', error);

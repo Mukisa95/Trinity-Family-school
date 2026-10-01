@@ -71,6 +71,7 @@ function loadPaymentsService() {
     module,
     exports: module.exports,
     require(name: string) {
+      if (name === '@/lib/fees/fee-reminder-change-client') return {notifyFeeReminderChange: async () => {}};
       if (name === 'firebase/firestore') return firestore;
       if (name === '../firebase') return { db };
       if (name === './history-log.service') {

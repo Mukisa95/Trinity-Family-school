@@ -16,7 +16,7 @@ import {
 } from '@/lib/scheduler/schedule-times';
 import { findAcademicYearForTermDate } from '@/lib/scheduler/academic-term-status';
 import { SCHEDULED_DISPATCH_QUEUE } from '@/lib/server/scheduled-dispatch-queue';
-import { dispatchFeeReminder } from '@/lib/server/fee-reminders';
+import { dispatchFeeReminder, dispatchFeeReconciliation } from '@/lib/server/fee-reminders';
 import { FEE_REMINDER_COLLECTION } from '@/lib/fees/fee-reminders';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +30,7 @@ const LEASE_MS = 10 * 60 * 1000;
 const RETRY_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
 
-type QueueChannel = 'sms' | 'push' | 'attendance' | 'fee_reminder';
+type QueueChannel = 'sms' | 'push' | 'attendance' | 'fee_reminder' | 'fee_reconcile';
 type DispatchOutcome = {
   terminal: boolean;
   nextRunAt?: Date | null;
@@ -338,6 +338,7 @@ async function claimQueueJob(id: string, now: Date) {
       dueAt,
       attempts,
       notificationVersion: Number(data.notificationVersion || 0),
+      reminderIds: Array.isArray(data.reminderIds) ? data.reminderIds.filter((id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id)) : [],
     };
   });
 }
@@ -365,13 +366,15 @@ export async function GET(request: NextRequest) {
 
     for (const document of dueSnapshot.docs) {
       const claimed = await claimQueueJob(document.id, now);
-      if (!claimed || !claimed.sourceId || !['sms', 'push', 'attendance', 'fee_reminder'].includes(claimed.channel)) continue;
+      if (!claimed || !claimed.sourceId || !['sms', 'push', 'attendance', 'fee_reminder', 'fee_reconcile'].includes(claimed.channel)) continue;
       const queueRef = db.collection(SCHEDULED_DISPATCH_QUEUE).doc(document.id);
       try {
         const outcome: DispatchOutcome = claimed.channel === 'sms'
           ? await dispatchSms(claimed.sourceId, claimed.dueAt)
           : claimed.channel === 'push'
             ? await dispatchPush(request, claimed.sourceId)
+            : claimed.channel === 'fee_reconcile'
+              ? await dispatchFeeReconciliation(claimed.sourceId, claimed.reminderIds)
             : claimed.channel === 'fee_reminder'
               ? await dispatchFeeReminder(claimed.sourceId, now, claimed.notificationVersion)
               : await dispatchAttendance(request, claimed.sourceId, claimed.dueAt, now);

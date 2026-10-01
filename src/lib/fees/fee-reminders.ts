@@ -2,7 +2,7 @@ import type { PaymentRecord, SystemUser } from '@/types';
 import type { CustomNoteSpec, CustomFeeRow } from './custom-fee-notes';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import { paymentMatchesReminderScope as matchesScope, getFeeReminderProgress as calculateProgress,
-  canAccessFeeReminderPage, canReceiveFeeReminders as receivesFeeReminders } from '../../../functions/fee-reminder-progress';
+  canAccessFeeReminderPage, canReceiveFeeReminders as receivesFeeReminders } from './reminder-engine/fee-reminder-progress';
 
 export const FEE_REMINDER_TIMEZONE = 'Africa/Nairobi';
 export const FEE_REMINDER_COLLECTION = 'feeReminders';

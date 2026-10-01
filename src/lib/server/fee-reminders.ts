@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { FieldValue, Timestamp, getFirestore, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import type { AcademicYear, FeeAdjustmentEntry, FeeStructure, FeesHoliday, PaymentRecord, Pupil, SystemUser, UniformTracking } from '@/types';
@@ -17,9 +17,9 @@ import { isFeeApplicableInYear } from '@/lib/utils/fee-applicability';
 import { SCHEDULED_DISPATCH_QUEUE } from '@/lib/server/scheduled-dispatch-queue';
 import { getServerPushSubscriptionsForUsers, sendServerWebPush } from '@/lib/server/push-notifications';
 import { reconcilePupilFeeReminders, makeFeeReminderResolution, writeFeeReminderResolution,
-  deliverFeeReminderResolution, type FeeReminderResolutionDelivery } from '../../../functions/fee-reminder-lifecycle';
+  deliverFeeReminderResolution, type FeeReminderResolutionDelivery } from '../fees/reminder-engine/fee-reminder-lifecycle';
 import { validateCustomNoteInput, customFeeRows, renderCustomNote, customNotePushBody, type CreateCustomFeeNoteInput } from '@/lib/fees/custom-fee-notes';
-import { readCustomFeeContext, evaluateCustomFeeNote, reconcileCustomFeeNotes, type CustomFeeDelivery } from '../../../functions/custom-fee-notes';
+import { readCustomFeeContext, evaluateCustomFeeNote, reconcileCustomFeeNotes, type CustomFeeDelivery } from '../fees/reminder-engine/custom-fee-notes';
 
 export class FeeReminderError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -51,11 +51,18 @@ async function selectedRecipientNames(ids: string[] | null): Promise<string[]> {
   return ids.map(id => eligible.find(user => user.id === id)!.name);
 }
 
-export async function reconcileFeeReminders(pupilId: string, now = new Date()): Promise<void> {
-  await reconcilePupilFeeReminders({ db: getFirestore(getFirebaseAdminApp()), FieldValue, pupilId, now,
-    sendDismissals: sendFeeReminderResolutionPush,
-  });
-  await reconcileCustomFeeNotes({db: getFirestore(getFirebaseAdminApp()), FieldValue, pupilId, now, sendAlert: sendCustomFeeNotePush});
+export async function reconcileFeeReminders(pupilId: string, now = new Date(), noteIds?: string[]): Promise<void> {
+  if (noteIds && !noteIds.length) return;
+  const db = getFirestore(getFirebaseAdminApp());
+  const notes = noteIds ? await db.getAll(...noteIds.map(id => db.collection(FEE_REMINDER_COLLECTION).doc(id)))
+    : (await db.collection(FEE_REMINDER_COLLECTION).where('pupilId', '==', pupilId).get()).docs;
+  const owned = notes.filter(note => note.exists && note.data()?.pupilId === pupilId);
+  for (const note of owned) if (note.data()?.dismissalPending && ['cancelled', 'fulfilled'].includes(note.data()?.reminderStatus)) {
+    await deliverFeeReminderResolution({db, FieldValue, id: note.id, sendDismissals: sendFeeReminderResolutionPush});
+  }
+  await reconcilePupilFeeReminders({db, FieldValue, pupilId, now, noteSnapshots: owned, sendDismissals: sendFeeReminderResolutionPush});
+  await reconcileCustomFeeNotes({db, FieldValue, pupilId, now, noteSnapshots: owned, sendAlert: sendCustomFeeNotePush});
+  if (owned.length) await refreshFeeReminderTargets(pupilId, owned.map(note => note.id));
 }
 
 export async function sendCustomFeeNotePush(delivery: CustomFeeDelivery): Promise<void> {
@@ -197,6 +204,7 @@ export async function createFeeReminder(input: CreateFeeReminderInput | CreateCu
   const recipientNames = await selectedRecipientNames(recipientIds);
   return db.runTransaction(async transaction => {
     const existing = await transaction.get(ref);
+    const target = await transaction.get(db.collection(FEE_REMINDER_TARGETS).doc(input.pupilId));
     if (existing.exists) {
       if (existing.data()?.createdBy !== actor.id || existing.data()?.requestFingerprint !== fingerprint) {
         throw new FeeReminderError('This request was already used for a different reminder.', 409);
@@ -303,6 +311,7 @@ export async function createFeeReminder(input: CreateFeeReminderInput | CreateCu
       createdBy: actor.id, createdByName: `${actor.firstName || ''} ${actor.lastName || ''}`.trim() || actor.username,
       reminderStatus: 'scheduled', recipientIds, recipientNames, notificationVersion: 1,
     };
+    writeFeeReminderTarget(transaction, db, input.pupilId, target.data(), note);
     transaction.create(ref, { ...note, createdAt: Timestamp.fromDate(now), dueAt: Timestamp.fromDate(dueAt), requestFingerprint: fingerprint });
     transaction.create(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(feeReminderQueueId(ref.id)), {
       channel: 'fee_reminder', sourceId: ref.id, status: 'scheduled', dueAt: Timestamp.fromDate(dueAt),
@@ -320,6 +329,7 @@ async function createCustomFeeNote(input: CreateCustomFeeNoteInput, actor: Syste
   const recipientIds = validateFeeReminderRecipients(input.recipientIds), recipientNames = await selectedRecipientNames(recipientIds);
   const note = await db.runTransaction(async tx => {
     const existing = await tx.get(ref);
+    const target = await tx.get(db.collection(FEE_REMINDER_TARGETS).doc(input.pupilId));
     if (existing.exists) {
       if (existing.data()?.createdBy !== actor.id || existing.data()?.requestFingerprint !== fingerprint) throw new FeeReminderError('This request was already used for a different reminder.', 409);
       return serializeFeeReminder(existing);
@@ -344,14 +354,18 @@ async function createCustomFeeNote(input: CreateCustomFeeNoteInput, actor: Syste
       recipientIds, recipientNames, reminderStatus: 'scheduled', notificationVersion: 1};
     try { renderCustomNote(result, rows, context.className, now); }
     catch (error) { throw new FeeReminderError((error as Error).message); }
+    writeFeeReminderTarget(tx, db, input.pupilId, target.data(), result);
+    writeFeeReconcileJob(tx, db, `fee-reconcile-created-${ref.id}`, input.pupilId, [ref.id]);
     tx.create(ref, {...result, createdAt: Timestamp.fromDate(now), dueAt: Timestamp.fromDate(due), requestFingerprint: fingerprint});
     tx.create(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(feeReminderQueueId(ref.id)), {channel: 'fee_reminder', sourceId: ref.id,
       status: 'scheduled', dueAt: Timestamp.fromDate(due), notificationVersion: 1, leaseUntil: null, attempts: 0,
       createdBy: actor.id, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp()});
     return result;
   });
-  // The creation trigger evaluates already-met conditions and retries independently.
-  return note;
+  // The website evaluates immediately; the atomic queue job survives a failed request.
+  try { await reconcileFeeReminders(note.pupilId, new Date(), [note.id]); }
+  catch (error) { console.error('Custom note evaluation queued for retry:', error); }
+  return serializeFeeReminder(await ref.get());
 }
 
 export async function withLiveCustomFeeDetails(notes: FeeReminder[], pupilId: string): Promise<FeeReminder[]> {
@@ -410,6 +424,7 @@ export async function cancelFeeReminder(id: string, actor: SystemUser, reason = 
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     writeFeeReminderResolution(transaction, { db, FieldValue, note, resolution });
+    writeFeeReconcileJob(transaction, db, `fee-reconcile-cancelled-${id}-v${version}`, note.pupilId, [id]);
   });
   try {
     await deliverFeeReminderResolution({ db, FieldValue, id, sendDismissals: sendFeeReminderResolutionPush });
@@ -518,4 +533,133 @@ export async function dispatchFeeReminder(id: string, now = new Date(), expected
   // Catch a concurrent payment after preparing/sending the reminder.
   await reconcileFeeReminders(note.pupilId, now);
   return { terminal: true, result: { ...result, notificationId: notificationRef.id, inAppSent: recipients.length } };
+}
+
+// Server-owned index: ordinary payments consult one pupil marker instead of
+// searching fee notes or loading unrelated ledgers. Fulfilled promises remain
+// indexed for reversals, but are skipped for ordinary new payments.
+export const FEE_REMINDER_TARGETS = 'feeReminderTargets';
+type TargetEntry = {
+  scopes: Array<Pick<FeeReminderScope, 'feeStructureId' | 'academicYearId' | 'termId'>>;
+  kind: string; status: string; immediate: boolean; pending: boolean;
+};
+export type FeeReminderChange = {
+  pupilIds?: string[];
+  feeIds?: string[];
+  scopes?: Array<Pick<FeeReminderScope, 'feeStructureId' | 'academicYearId' | 'termId'>>;
+  reversal?: boolean;
+};
+function targetEntry(note: FeeReminder): TargetEntry | null {
+  if (note.reminderStatus === 'cancelled' && !note.dismissalPending) return null;
+  if (note.kind === 'custom' && ['sent', 'not_triggered'].includes(note.reminderStatus) && !note.customDeliveryPending) return null;
+  return {scopes: note.scopes.map(({feeStructureId, academicYearId, termId}) => ({feeStructureId, academicYearId, termId})),
+    kind: note.kind, status: note.reminderStatus, pending: !!(note.dismissalPending || note.customDeliveryPending),
+    immediate: note.kind !== 'custom' || ['cleared', 'paid_at_least'].includes(note.custom?.condition.type || '')};
+}
+function targetData(entries: Record<string, TargetEntry>) {
+  return {entries, feeIds: [...new Set(Object.values(entries).flatMap(entry => entry.scopes.map(scope => scope.feeStructureId)))],
+    updatedAt: FieldValue.serverTimestamp()};
+}
+function writeFeeReminderTarget(transaction: any, db: any, pupilId: string, previous: any, note: FeeReminder) {
+  const entries = {...(previous?.entries || {})};
+  const entry = targetEntry(note);
+  if (entry) entries[note.id] = entry; else delete entries[note.id];
+  transaction.set(db.collection(FEE_REMINDER_TARGETS).doc(pupilId), targetData(entries));
+}
+function writeFeeReconcileJob(transaction: any, db: any, id: string, pupilId: string, noteIds: string[]) {
+  transaction.set(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(id), {
+    channel: 'fee_reconcile', sourceId: pupilId, reminderIds: noteIds,
+    status: 'scheduled', dueAt: Timestamp.fromDate(new Date()), leaseUntil: null, attempts: 0,
+    createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+async function readFeeReminderTarget(pupilId: string) {
+  const db = getFirestore(getFirebaseAdminApp()), ref = db.collection(FEE_REMINDER_TARGETS).doc(pupilId);
+  return db.runTransaction(async tx => {
+    const target = await tx.get(ref);
+    if (target.exists) return target.data()!;
+    // One-time lazy migration for notes created before this index existed.
+    // Reading/writing the marker in the same transaction as creation prevents
+    // a concurrent new note from being overwritten by an empty index.
+    const notes = await tx.get(db.collection(FEE_REMINDER_COLLECTION).where('pupilId', '==', pupilId));
+    const entries: Record<string, TargetEntry> = {};
+    notes.docs.forEach(note => {const entry = targetEntry(serializeFeeReminder(note)); if (entry) entries[note.id] = entry;});
+    const data = targetData(entries); tx.set(ref, data); return data;
+  });
+}
+async function refreshFeeReminderTargets(pupilId: string, ids: string[]) {
+  const db = getFirestore(getFirebaseAdminApp()), ref = db.collection(FEE_REMINDER_TARGETS).doc(pupilId);
+  await db.runTransaction(async tx => {
+    const [target, ...notes] = await Promise.all([tx.get(ref), ...ids.map(id => tx.get(db.collection(FEE_REMINDER_COLLECTION).doc(id)))]);
+    const entries = {...(target.data()?.entries || {})};
+    notes.forEach(note => {
+      const entry = note.exists && note.data()?.pupilId === pupilId ? targetEntry(serializeFeeReminder(note)) : null;
+      if (entry) entries[note.id] = entry; else delete entries[note.id];
+    });
+    tx.set(ref, targetData(entries));
+  });
+}
+export async function dispatchFeeReconciliation(pupilId: string, noteIds: string[]) {
+  await reconcileFeeReminders(pupilId, new Date(), noteIds.length ? noteIds : undefined);
+  return {terminal: true, skipped: false};
+}
+export async function processFeeReminderChange(change: FeeReminderChange): Promise<void> {
+  const db = getFirestore(getFirebaseAdminApp());
+  const pupils = new Set(change.pupilIds || []);
+  // Catalog edits target only pupils whose indexed notes reference that fee.
+  for (const feeId of new Set(change.feeIds || [])) {
+    const targets = await db.collection(FEE_REMINDER_TARGETS).where('feeIds', 'array-contains', feeId).get();
+    targets.docs.forEach(target => pupils.add(target.id));
+  }
+  const errors: unknown[] = [];
+  for (const pupilId of pupils) {
+    let retrySaved = false;
+    try {
+      const target = await readFeeReminderTarget(pupilId);
+      const ids = Object.entries(target.entries || {}).filter(([, raw]) => {
+        const entry = raw as TargetEntry;
+        if (entry.pending) return true;
+        if (!entry.immediate || entry.status === 'cancelled') return false;
+        if (entry.kind !== 'custom' && entry.status === 'fulfilled' && !change.reversal) return false;
+        if (change.feeIds?.length && !entry.scopes.some(scope => change.feeIds!.includes(scope.feeStructureId))) return false;
+        // Previous-balance allocations can refer to an original fee by ID or
+        // name. The trusted ledger matcher resolves that identity after the
+        // pupil marker, rather than rejecting it as an unrelated synthetic fee.
+        return !change.scopes?.length || change.scopes.some(scope => scope.feeStructureId === 'previous-balance')
+          || entry.scopes.some(scope => change.scopes!.some(payment => feeReminderScopeKey(scope) === feeReminderScopeKey(payment)));
+      }).map(([id]) => id);
+      if (!ids.length) continue;
+      const job = db.collection(SCHEDULED_DISPATCH_QUEUE).doc(`fee-reconcile-${pupilId}-${randomUUID()}`);
+      // Persist only relevant work, before attempting the immediate update.
+      // A failed delivery stays in the existing scheduler queue for retry.
+      const batch = db.batch(); writeFeeReconcileJob(batch, db, job.id, pupilId, ids); await batch.commit();
+      retrySaved = true;
+      await dispatchFeeReconciliation(pupilId, ids);
+      await job.set({status: 'completed', leaseUntil: null, completedAt: FieldValue.serverTimestamp()}, {merge: true});
+    } catch (error) {
+      errors.push(error);
+      // If even the marker read failed, preserve the pupil identity for a
+      // scheduler repair. Ordinary payments without notes never write a job.
+      if (!retrySaved) {
+        try {
+          const batch = db.batch();
+          writeFeeReconcileJob(batch, db, `fee-reconcile-recovery-${pupilId}-${randomUUID()}`, pupilId, []);
+          await batch.commit();
+        } catch (retryError) { console.error('Unable to persist reminder recovery:', retryError); }
+      }
+    }
+  }
+  if (errors.length) throw errors[0];
+}
+export async function processFeeReminderChangeSafely(change: FeeReminderChange): Promise<void> {
+  try { await processFeeReminderChange(change); }
+  catch (error) { console.error('Financial change saved; fee reminder update will retry:', error); }
+}
+export async function processRecordedFeePayments(allocations: Array<{paymentData: Pick<PaymentRecord, 'pupilId' | 'feeStructureId' | 'academicYearId' | 'termId'>}>): Promise<void> {
+  const groups = new Map<string, FeeReminderChange['scopes']>();
+  allocations.forEach(({paymentData}) => {
+    const scopes = groups.get(paymentData.pupilId) || [];
+    scopes.push(paymentData); groups.set(paymentData.pupilId, scopes);
+  });
+  for (const [pupilId, scopes] of groups) await processFeeReminderChangeSafely({pupilIds: [pupilId], scopes});
 }

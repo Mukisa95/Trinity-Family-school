@@ -1,4 +1,4 @@
-/* Shared by the app and payment-change trigger to keep promise accounting identical. */
+/* Shared by the app and website payment backend to keep promise accounting identical. */
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paymentMatchesReminderScope = paymentMatchesReminderScope;

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import {recoverFeeReminderChanges} from '@/lib/fees/fee-reminder-change-client';
 import dynamic from 'next/dynamic';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -60,6 +61,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   // getQueryClient() returns the browser singleton, so navigations don't reset
   // the in-memory cache.
   const [queryClient] = React.useState(getQueryClient);
+  React.useEffect(recoverFeeReminderChanges, []);
 
   return (
     <QueryClientProvider client={queryClient}>

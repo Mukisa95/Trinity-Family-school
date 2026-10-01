@@ -119,9 +119,9 @@ async function evaluateCustomFeeNote({db, FieldValue, id, now = new Date(), mode
   return {terminal: true, skipped: !prepared};
 }
 
-async function reconcileCustomFeeNotes({db, FieldValue, pupilId, now = new Date(), sendAlert}) {
-  const notes = await db.collection('feeReminders').where('pupilId', '==', pupilId).get();
-  for (const note of notes.docs) if (note.data()?.kind === 'custom') {
+async function reconcileCustomFeeNotes({db, FieldValue, pupilId, now = new Date(), sendAlert, noteSnapshots}) {
+  const notes = noteSnapshots ? {docs: noteSnapshots} : await db.collection('feeReminders').where('pupilId', '==', pupilId).get();
+  for (const note of notes.docs) if (note.exists && note.data()?.kind === 'custom') {
     await evaluateCustomFeeNote({db, FieldValue, id: note.id, now, mode: 'live', sendAlert});
   }
 }

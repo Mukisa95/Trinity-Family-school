@@ -1,3 +1,4 @@
+import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import {
   collection,
   doc,
@@ -497,6 +498,7 @@ export class PupilsService {
           console.warn('Cache invalidation failed for pupil update:', cacheError);
         }
       }
+      if (['assignedFees', 'classId', 'section'].some(key => Object.prototype.hasOwnProperty.call(pupilData, key))) await notifyFeeReminderChange({pupilIds: [id]});
       return { photoDeleted, streamCleared };
     } catch (error) {
       console.error('Error updating pupil:', error);

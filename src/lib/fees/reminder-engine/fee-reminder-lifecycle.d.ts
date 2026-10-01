@@ -1,6 +1,6 @@
-import type { Firestore, Transaction } from 'firebase-admin/firestore';
-import type { FeeReminder, FeeReminderProgress } from '../src/lib/fees/fee-reminders';
-import type { SystemUser } from '../src/types';
+import type { Firestore, Transaction, DocumentSnapshot } from 'firebase-admin/firestore';
+import type { FeeReminder, FeeReminderProgress } from '../fee-reminders';
+import type { SystemUser } from '../../../types';
 export interface FeeReminderResolutionDelivery {
   id: string; version: number; notificationId: string; title: string; body: string;
   pupilId: string; recipientIds: string[]; collectRecipientIds: string[];
@@ -11,7 +11,7 @@ export interface FeeReminderResolution extends FeeReminderResolutionDelivery {
 type Sender = (result: FeeReminderResolutionDelivery) => Promise<void>;
 type Stamp = { serverTimestamp(): unknown };
 export function reconcilePupilFeeReminders(options: {
-  db: Firestore; FieldValue: Stamp; pupilId: string; now?: Date; sendDismissals?: Sender;
+  db: Firestore; FieldValue: Stamp; pupilId: string; now?: Date; sendDismissals?: Sender; noteSnapshots?: DocumentSnapshot[];
 }): Promise<void>;
 export function makeFeeReminderResolution(note: FeeReminder, options: {
   reason: 'paid' | 'manual'; version: number; now?: Date; settlement?: FeeReminderProgress;

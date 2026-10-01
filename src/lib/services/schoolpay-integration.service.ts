@@ -1,3 +1,4 @@
+import {processFeeReminderChangeSafely} from '@/lib/server/fee-reminders';
 import { createHash, timingSafeEqual } from 'crypto';
 import {
   getFirestore as getAdminFirestore,
@@ -567,6 +568,8 @@ export class SchoolPayIntegrationService {
         paymentType === 'OTHER_FEES'
           ? await this.recordSupplementaryFeePayment(payment, pupil, slot)
           : await this.recordSchoolFeesPayment(payment, pupil, slot, existingPayments);
+
+      await processFeeReminderChangeSafely({pupilIds: [pupil.id]});
 
       await this.storePaymentMapping({
         receiptNumber,

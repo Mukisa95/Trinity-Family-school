@@ -8,14 +8,15 @@ import * as discounts from '../../src/lib/utils/fee-discount-calculation';
 import * as adjustments from '../../src/lib/utils/fee-adjustments';
 import * as assignments from '../../src/lib/utils/fee-assignment-pipeline';
 import * as applicability from '../../src/lib/utils/fee-applicability';
-import * as lifecycle from '../../functions/fee-reminder-lifecycle';
+import * as lifecycle from '../../src/lib/fees/reminder-engine/fee-reminder-lifecycle';
 import * as customModel from '../../src/lib/fees/custom-fee-notes';
-import * as customLifecycle from '../../functions/custom-fee-notes';
+import * as customLifecycle from '../../src/lib/fees/reminder-engine/custom-fee-notes';
 
 export function feeReminderFixture() {
   const documents = new Map<string, any>();
   const versions = new Map<string, number>();
   const pushes: any[] = [];
+  const reads: string[] = [];
   const failPushUsers = new Set<string>();
   const failReads = new Set<string>();
   let beforePush: (() => void | Promise<void>) | undefined;
@@ -34,7 +35,7 @@ export function feeReminderFixture() {
     documents.set(path, data); versions.set(path, (versions.get(path) || 0) + 1);
   };
   const doc = (path: string): any => ({ path, id: path.split('/').at(-1),
-    get: async () => { if (failReads.has(path)) throw new Error('read unavailable'); return snapshot(path); },
+    get: async () => { reads.push(path); if (failReads.has(path)) throw new Error('read unavailable'); return snapshot(path); },
     set: async (data: any, options?: any) => write(path, data, options?.merge),
     update: async (data: any) => write(path, data, true),
   });
@@ -43,9 +44,10 @@ export function feeReminderFixture() {
     doc: (id: string) => doc(`${name}/${id}`),
     where: (field: string, operator: string, value: any) => collection(name, [...filters, [field, operator, value]]),
     get: async () => {
+      reads.push(name);
       if (failReads.has(name)) throw new Error('query unavailable');
       return { docs: [...documents].filter(([path, data]) => path.startsWith(`${name}/`) && path.split('/').length === 2
-        && filters.every(([field, operator, value]) => operator === 'in' ? value.includes(data[field]) : data[field] === value)).map(([path]) => snapshot(path)) };
+        && filters.every(([field, operator, value]) => operator === 'in' ? value.includes(data[field]) : operator === 'array-contains' ? data[field]?.includes(value) : data[field] === value)).map(([path]) => snapshot(path)) };
     },
   });
   const makeBatch = () => {
@@ -88,9 +90,9 @@ export function feeReminderFixture() {
       if (name === '@/lib/utils/fee-assignment-pipeline') return assignments;
       if (name === '@/lib/utils/fee-applicability') return applicability;
       if (name === '@/lib/server/scheduled-dispatch-queue') return { SCHEDULED_DISPATCH_QUEUE: 'scheduledDispatchQueue' };
-      if (name === '../../../functions/fee-reminder-lifecycle') return lifecycle;
+      if (name === '../fees/reminder-engine/fee-reminder-lifecycle') return lifecycle;
       if (name === '@/lib/fees/custom-fee-notes') return customModel;
-      if (name === '../../../functions/custom-fee-notes') return customLifecycle;
+      if (name === '../fees/reminder-engine/custom-fee-notes') return customLifecycle;
       if (name === '@/lib/server/push-notifications') return {
         getServerPushSubscriptionsForUsers: async (ids: string[]) => ids.filter(id => documents.has(`subscriptions/${id}`)).map(id => ({ userId: id, id })),
         sendServerWebPush: async (targets: any[], payload: any) => {
@@ -103,6 +105,6 @@ export function feeReminderFixture() {
       throw new Error(`Unexpected server import: ${name}`);
     },
   });
-  return { documents, pushes, failPushUsers, failReads, db, stamp, server: module.exports,
+  return { documents, pushes, reads, failPushUsers, failReads, db, stamp, server: module.exports,
     setBeforePush: (value: () => void | Promise<void>) => { beforePush = value; }, seed: (path: string, data: any) => write(path, data) };
 }

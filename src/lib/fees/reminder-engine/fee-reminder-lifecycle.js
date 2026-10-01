@@ -116,9 +116,10 @@ async function deliverFeeReminderResolution({db, FieldValue, id, sendDismissals}
 }
 
 /** Financial writes stay independent. Re-read the ledger in a transaction for every affected note. */
-async function reconcilePupilFeeReminders({db, FieldValue, pupilId, now = new Date(), sendDismissals}) {
-  const notes = await db.collection('feeReminders').where('pupilId', '==', pupilId).get();
+async function reconcilePupilFeeReminders({db, FieldValue, pupilId, now = new Date(), sendDismissals, noteSnapshots}) {
+  const notes = noteSnapshots ? {docs: noteSnapshots} : await db.collection('feeReminders').where('pupilId', '==', pupilId).get();
   for (const document of notes.docs) {
+    if (!document.exists || document.data()?.kind === 'custom' || document.data()?.reminderStatus === 'cancelled') continue;
     const ref = db.collection('feeReminders').doc(document.id);
     const queue = db.collection('scheduledDispatchQueue').doc(`fee-reminder-${document.id}`);
     const inbox = db.collection('notifications').doc(`fee-reminder-${document.id}`);

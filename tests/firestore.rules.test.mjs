@@ -413,6 +413,18 @@ test('daily attendance summaries are restricted to staff and administrators', as
   ));
 });
 
+test('fee reminder markers cannot be read or forged by browser accounts', async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), 'feeReminderTargets', 'pupil-1'), {entries: {}, feeIds: []});
+  });
+  for (const role of ['Admin', 'Staff', 'Parent']) {
+    const db = testEnv.authenticatedContext(`marker-${role}`, {appUser: true, isActive: true, role}).firestore();
+    await assertFails(getDoc(doc(db, 'feeReminderTargets', 'pupil-1')));
+    await assertFails(setDoc(doc(db, 'feeReminderTargets', 'pupil-1'), {entries: {forged: {}}}));
+    await assertFails(deleteDoc(doc(db, 'feeReminderTargets', 'pupil-1')));
+  }
+});
+
 test('pupil cache deltas are restricted to staff and administrators', async () => {
   const adminDb = testEnv.authenticatedContext('active-admin', {
     appUser: true,

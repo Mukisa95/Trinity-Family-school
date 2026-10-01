@@ -4,7 +4,7 @@ import { calculateFeeAmountAfterDiscounts } from '@/lib/utils/fee-discount-calcu
 import { calculateFeeAmountForAcademicYear } from '@/lib/utils/fee-adjustments';
 import { isAssignmentValidForContext } from '@/lib/utils/fee-assignment-pipeline';
 import { isFeeApplicableInYear } from '@/lib/utils/fee-applicability';
-import { paymentMatchesReminderScope } from '../../../functions/fee-reminder-progress';
+import { paymentMatchesReminderScope } from './reminder-engine/fee-reminder-progress';
 
 export const CUSTOM_NOTE_CONDITIONS = {
   scheduled: 'At the chosen date and time',

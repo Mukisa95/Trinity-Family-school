@@ -1,3 +1,4 @@
+import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
 import { 
   collection, 
   doc, 
@@ -290,6 +291,9 @@ export class PaymentsService {
     });
 
     allocations.forEach(({ paymentData }) => this.clearYearPaymentsCache(paymentData.academicYearId));
+    const pupils = new Set(allocations.map(({paymentData}) => paymentData.pupilId));
+    for (const pupilId of pupils) await notifyFeeReminderChange({pupilIds: [pupilId],
+      scopes: allocations.filter(item => item.paymentData.pupilId === pupilId).map(({paymentData: {feeStructureId, academicYearId, termId}}) => ({feeStructureId, academicYearId, termId}))});
     return { operationId, ...result };
   }
 
@@ -338,6 +342,7 @@ export class PaymentsService {
       const paymentId = docRef.id;
       this.clearYearPaymentsCache(paymentData.academicYearId);
       
+      await notifyFeeReminderChange({pupilIds: [paymentData.pupilId], scopes: [{feeStructureId: paymentData.feeStructureId, academicYearId: paymentData.academicYearId, termId: paymentData.termId}]});
       return paymentId;
     } catch (error) {
       console.error('Error creating payment:', error);
@@ -556,6 +561,7 @@ export class PaymentsService {
       });
       await batch.commit();
       this.clearYearPaymentsCache();
+      if (paymentData) await notifyFeeReminderChange({pupilIds: [paymentData.pupilId], reversal: true});
     } catch (error) {
       console.error('Error reverting payment:', error);
       throw error;

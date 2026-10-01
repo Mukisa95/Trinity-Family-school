@@ -5,7 +5,7 @@ import {feeReminderFixture} from './helpers/fee-reminders-fixture';
 import {customFeeRows, renderCustomNote, customConditionMet, customNotePushBody, validateCustomNoteInput, type CustomFeeContext, type CreateCustomFeeNoteInput} from '../src/lib/fees/custom-fee-notes';
 import {reminderLocalDate, type FeeReminder} from '../src/lib/fees/fee-reminders';
 import type {SystemUser} from '../src/types';
-const require = createRequire(import.meta.url), bundled = require('../functions/fee-custom-engine');
+const require = createRequire(import.meta.url), bundled = require('../src/lib/fees/reminder-engine/fee-custom-engine');
 const actor = {id: 'cashier', username: 'cashier', firstName: 'Fee', lastName: 'Collector', role: 'Staff', isActive: true,
   modulePermissions: [{module: 'fees', permission: 'edit'}], createdAt: ''} as SystemUser;
 const scope = {feeStructureId: 'tuition', academicYearId: 'year', termId: 'term', feeName: 'Tuition', academicYearName: '2026', termName: 'Term 3'};

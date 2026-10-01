@@ -220,6 +220,10 @@ service cloud.firestore {
     }
 
     // Fee promises and parent contact details are served by authenticated Fees APIs.
+    match /feeReminderTargets/{pupilId} {
+      allow read, write: if false;
+    }
+
     match /feeReminders/{reminderId} {
       allow read, write: if false;
     }
@@ -310,6 +314,7 @@ service cloud.firestore {
         && collection != 'scheduledSMS'
         && collection != 'scheduledDispatchQueue'
         && collection != 'feeReminders'
+        && collection != 'feeReminderTargets'
         && collection != 'schoolPayInboundTransactions'
         && collection != 'schoolPayReconciliationState'
         && collection != 'schoolPaySyncLogs'
