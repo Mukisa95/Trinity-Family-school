@@ -617,6 +617,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     isPaymentDataLoading,
     refetch,
     termTotals,
+    previousBalance,
     error: pupilFeesError
   } = usePupilFees({
     pupilId,
