@@ -146,7 +146,7 @@ export class UniformTrackingService {
 
   static async updateTrackingRecord(id: string, trackingData: UpdateUniformTrackingData): Promise<void> {
     try {
-      const previous = trackingData.pupilId ? await this.getTrackingRecordById(id) : null;
+      const previous = trackingData.pupilId ? (await getDocFromCache(doc(db, COLLECTION_NAME, id)).catch(() => null))?.data() : null;
       const docRef = doc(db, COLLECTION_NAME, id);
       const updateData = {
         ...trackingData,
@@ -174,7 +174,7 @@ export class UniformTrackingService {
     stockReductions: UniformStockReduction[]
   ): Promise<UniformTracking> {
     try {
-      const previous = trackingData.pupilId ? await this.getTrackingRecordById(id) : null;
+      const previous = trackingData.pupilId ? (await getDocFromCache(doc(db, COLLECTION_NAME, id)).catch(() => null))?.data() : null;
       const trackingRef = doc(db, COLLECTION_NAME, id);
       const reductionsByUniform = new Map<string, Map<string, number>>();
 
@@ -273,7 +273,7 @@ export class UniformTrackingService {
   static async deleteTrackingRecord(id: string): Promise<void> {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
-      const previous = await this.getTrackingRecordById(id);
+      const previous = (await getDocFromCache(doc(db, COLLECTION_NAME, id)).catch(() => null))?.data();
       await deleteDoc(docRef);
       if (previous) await notifyFeeReminderChange({pupilIds: [previous.pupilId]});
     } catch (error) {

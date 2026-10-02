@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { requireAppUser } from '@/lib/server/app-auth';
@@ -20,10 +21,11 @@ function errorResponse(error: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
-    const actor = await requireAppUser(request);
-    if (!canReadFeeReminders(actor.user)) return NextResponse.json({ error: 'Fees collection access is required.' }, { status: 403 });
     const pupilId = request.nextUrl.searchParams.get('pupilId') || '';
     if (!/^[A-Za-z0-9_-]{1,160}$/.test(pupilId)) throw new FeeReminderError('Choose a valid pupil.');
+    if (!(await readFeeNotesGate()).isEnabled(pupilId)) return NextResponse.json({enabled: false, notes: [], recipients: []});
+    const actor = await requireAppUser(request);
+    if (!canReadFeeReminders(actor.user)) return NextResponse.json({ error: 'Fees collection access is required.' }, { status: 403 });
     if (request.nextUrl.searchParams.get('includeRecipients') === 'true') {
       if (!canManageFeeReminders(actor.user)) return NextResponse.json({ error: 'Permission to manage fee payments is required.' }, { status: 403 });
       return NextResponse.json({ recipients: await listFeeReminderRecipients() });
@@ -41,9 +43,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const input = validateFeeReminderInput(await request.json());
+    if (!(await readFeeNotesGate()).isEnabled(input.pupilId)) return NextResponse.json({error: 'Turn on Notes for this pupil first.'}, {status: 403});
     const actor = await requireAppUser(request);
     if (!canManageFeeReminders(actor.user)) return NextResponse.json({ error: 'Permission to record fee payments is required to create reminders.' }, { status: 403 });
-    const input = validateFeeReminderInput(await request.json());
     const note = await createFeeReminder(input, actor.user);
     return NextResponse.json({ note }, { status: 201 });
   } catch (error) { return errorResponse(error); }

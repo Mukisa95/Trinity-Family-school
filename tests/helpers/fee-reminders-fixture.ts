@@ -20,12 +20,15 @@ export function feeReminderFixture() {
   const failPushUsers = new Set<string>();
   const failReads = new Set<string>();
   let beforePush: (() => void | Promise<void>) | undefined;
+  let enabledPupils: Set<string> | null = null;
+  const readFeeNotesGate = async () => ({anyEnabled: enabledPupils === null || enabledPupils.size > 0,
+    isEnabled: (id: string) => enabledPupils === null || enabledPupils.has(id)});
   const stamp = (value: Date) => ({ toDate: () => value, toMillis: () => value.getTime() });
   const clone = (value: any): any => {
     if (!value || typeof value !== 'object' || value.toDate) return value;
     return Array.isArray(value) ? value.map(clone) : Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)]));
   };
-  const snapshot = (path: string) => ({ id: path.split('/').at(-1)!, exists: documents.has(path), data: () => clone(documents.get(path)) });
+  const snapshot = (path: string) => ({ id: path.split('/').at(-1)!, ref: doc(path), exists: documents.has(path), data: () => clone(documents.get(path)) });
   const write = (path: string, input: any, merge = false) => {
     const data = merge ? clone(documents.get(path) || {}) : {};
     for (const [key, value] of Object.entries(input) as any) {
@@ -53,6 +56,7 @@ export function feeReminderFixture() {
   const makeBatch = () => {
     const writes: any[] = [];
     return { set: (ref: any, data: any, options?: any) => writes.push([ref.path, data, options?.merge]),
+      update: (ref: any, data: any) => writes.push([ref.path, data, true]),
       commit: async () => writes.forEach(([path, data, merge]) => write(path, data, merge)) };
   };
   const db = { collection, batch: makeBatch, getAll: async (...refs: any[]) => Promise.all(refs.map(ref => ref.get())),
@@ -84,6 +88,7 @@ export function feeReminderFixture() {
       if (name === 'firebase-admin/firestore') return { getFirestore: () => db, Timestamp: { fromDate: stamp },
         FieldValue: { serverTimestamp: () => stamp(new Date()), delete: () => ({ op: 'delete' }) } };
       if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({}) };
+      if (name === '@/lib/server/fee-notes-gate') return {readFeeNotesGate};
       if (name === '@/lib/fees/fee-reminders') return model;
       if (name === '@/lib/utils/fee-discount-calculation') return discounts;
       if (name === '@/lib/utils/fee-adjustments') return adjustments;
@@ -106,5 +111,6 @@ export function feeReminderFixture() {
     },
   });
   return { documents, pushes, reads, failPushUsers, failReads, db, stamp, server: module.exports,
+    readFeeNotesGate, setEnabledFeeNotesPupils: (ids: string[]) => {enabledPupils = new Set(ids);},
     setBeforePush: (value: () => void | Promise<void>) => { beforePush = value; }, seed: (path: string, data: any) => write(path, data) };
 }

@@ -380,6 +380,7 @@ test('the APIs allow collectors without unrelated notification-send permissions 
       if (name === '@/lib/firebase-admin') return { getFirebaseAdminApp: () => ({}) };
       if (name === '@/lib/server/app-auth') return { requireAppUser: async () => ({ user: currentActor }) };
       if (name === '@/lib/fees/fee-reminders') return model;
+      if (name === '@/lib/server/fee-notes-gate') return {readFeeNotesGate: f.readFeeNotesGate};
       if (name === '@/lib/server/fee-reminders') return f.server;
       throw new Error(name);
     },
@@ -408,6 +409,7 @@ test('the recipient update API checks collector authority, ownership, request co
       if (name === 'next/server') return {NextResponse: {json: (body: any, options?: any) => ({body, status: options?.status || 200})}};
       if (name === '@/lib/server/app-auth') return {requireAppUser: async () => ({user: currentActor})};
       if (name === '@/lib/fees/fee-reminders') return model;
+      if (name === '@/lib/server/fee-notes-gate') return {readFeeNotesGate: f.readFeeNotesGate};
       if (name === '@/lib/server/fee-reminders') return f.server;
       throw new Error(name);
     },
@@ -430,7 +432,7 @@ test('the existing scheduler dispatches due notes, marks exhaustion, and keeps r
   const cron = fs.readFileSync('src/app/api/cron/send-scheduled-sms/route.ts', 'utf8');
   const rules = fs.readFileSync('firestore.rules', 'utf8');
   assert.match(cron, /suppliedSecret !== cronSecret/); assert.match(cron, /claimed\.channel === 'fee_reminder'/);
-  assert.match(cron, /dispatchFeeReminder\(claimed\.sourceId, now, claimed\.notificationVersion\)/); assert.match(cron, /reminderStatus: 'failed'/);
+  assert.match(cron, /dispatchFeeReminder\(claimed\.sourceId, now, claimed\.notificationVersion, claimed\.pupilId\)/); assert.match(cron, /reminderStatus: 'failed'/);
   assert.match(rules, /match \/feeReminders\/\{reminderId\} \{\s*allow read, write: if false/);
   assert.match(rules, /collection != 'feeReminders'/);
   const paymentRoute = fs.readFileSync('src/app/api/payments/create/route.ts', 'utf8');

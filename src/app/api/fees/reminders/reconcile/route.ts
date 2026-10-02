@@ -1,6 +1,5 @@
 import {NextRequest, NextResponse} from 'next/server';
-import {getFirestore} from 'firebase-admin/firestore';
-import {getFirebaseAdminApp} from '@/lib/firebase-admin';
+import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import {requireAppUser} from '@/lib/server/app-auth';
 import {canReceiveFeeReminders} from '@/lib/fees/fee-reminders';
 import {processFeeReminderChange, type FeeReminderChange} from '@/lib/server/fee-reminders';
@@ -10,6 +9,11 @@ export const maxDuration = 60;
 const validId = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(value);
 export async function POST(request: NextRequest) {
   try {
+    const gate = await readFeeNotesGate();
+    if (!gate.anyEnabled) return NextResponse.json({success: true, skipped: true});
+    const body = await request.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({error: 'Invalid fee change.'}, {status: 400});
+    if (Array.isArray(body.pupilIds) && !body.feeIds?.length && !body.pupilIds.some((id: unknown) => typeof id === 'string' && gate.isEnabled(id))) return NextResponse.json({success: true, skipped: true});
     const actor = await requireAppUser(request);
     // Requests only ask the server to recompute committed data; they cannot
     // supply balances, payment amounts, recipients, or a notification message.
@@ -21,8 +25,6 @@ export async function POST(request: NextRequest) {
       || actor.user.granularPermissions?.some(module => ['pupils', 'uniforms'].includes(module.moduleId)
         && module.pages.some(page => page.canAccess && page.actions.some(action => action.allowed && /^(edit|update|assign|record|collect|create|delete|remove)/.test(action.actionId)))));
     if (!canReceiveFeeReminders(actor.user) && !mutationAccess) return NextResponse.json({error: 'Fees or pupil charge editing access is required.'}, {status: 403});
-    const body = await request.json();
-    if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({error: 'Invalid fee change.'}, {status: 400});
     const change: FeeReminderChange = {reversal: body.reversal === true};
     for (const key of ['pupilIds', 'feeIds'] as const) if (body[key] !== undefined) {
       if (!Array.isArray(body[key]) || body[key].length > 100 || body[key].some((id: unknown) => !validId(id))) return NextResponse.json({error: 'Invalid change identifiers.'}, {status: 400});
@@ -34,8 +36,8 @@ export async function POST(request: NextRequest) {
     }
     if (body.source) {
       if (!['feesHolidays', 'uniformTracking'].includes(body.source.collection) || !validId(body.source.id)) return NextResponse.json({error: 'Invalid fee change source.'}, {status: 400});
-      const source = await getFirestore(getFirebaseAdminApp()).collection(body.source.collection).doc(body.source.id).get();
-      if (validId(source.data()?.pupilId)) change.pupilIds = [...new Set([...(change.pupilIds || []), source.data()!.pupilId])];
+      // The caller supplies the pupil identity from its existing source cache.
+      // Recompute committed pupil data only; source lookup would add an off-pupil read.
     }
     if (!change.pupilIds?.length && !change.feeIds?.length) return NextResponse.json({success: true, skipped: true});
     await processFeeReminderChange(change);

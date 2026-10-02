@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {Switch} from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { useFeeReminders } from '@/lib/hooks/use-fee-reminders';
+import { useFeeReminders, useFeeNotesSwitch } from '@/lib/hooks/use-fee-reminders';
 import {
   canManageFeeReminders, feeReminderPromiseText, feeReminderOutcomeText, getFeeReminderProgress, getFeeReminderSettlement,
   normalizeReminderPhone, parseFeeReminderSchedule, reminderLocalDate, reminderAmountLabel,
@@ -163,9 +164,12 @@ function FeePromiseCard({ note, payments, now, canCancel, cancelling, onCancel, 
 }
 
 export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, academicYear, termId, previousBalance, isPaymentDataLoading }: FeeNotesModalProps) {
+  const [featureEnabled, setFeatureEnabled] = useState(pupil.feeNotesEnabled === true);
+  const featureSwitch = useFeeNotesSwitch(pupil);
+  useEffect(() => {setFeatureEnabled(pupil.feeNotesEnabled === true);}, [pupil.id, pupil.feeNotesEnabled]);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { notes, create, cancel, recipients, updateRecipients } = useFeeReminders(pupil.id, open);
+  const { notes, create, cancel, recipients, updateRecipients } = useFeeReminders(pupil.id, open, featureEnabled);
   const canManage = canManageFeeReminders(user);
   const [view, setView] = useState<'notes' | 'create' | 'custom'>('notes');
   const [feeId, setFeeId] = useState('');
@@ -193,20 +197,20 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
   })).filter(guardian => guardian.name);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !featureEnabled) return;
     setView('notes');
     setFormError('');
     setNow(new Date());
     const interval = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(interval);
-  }, [open]);
+  }, [open, featureEnabled]);
 
   useEffect(() => {
-    if (open && !isPaymentDataLoading) void notes.refetch();
-  }, [open, payments, isPaymentDataLoading, notes.refetch]);
+    if (featureEnabled && open && !isPaymentDataLoading) void notes.refetch();
+  }, [featureEnabled, open, payments, isPaymentDataLoading, notes.refetch]);
 
   useEffect(() => {
-    if (isPaymentDataLoading || !notes.data || !('serviceWorker' in navigator)) return;
+    if (!featureEnabled || isPaymentDataLoading || !notes.data || !('serviceWorker' in navigator)) return;
     const paidNotes = notes.data.filter(note => note.kind !== 'custom' && getFeeReminderSettlement(note, payments).status === 'paid');
     if (!paidNotes.length) return;
     // Close this device's displayed reminders immediately when its live ledger updates.
@@ -217,7 +221,7 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
         displayed.forEach(notification => notification.close());
       }
     }).catch(error => console.warn('Unable to close paid fee reminders on this device:', error));
-  }, [notes.data, payments, isPaymentDataLoading]);
+  }, [featureEnabled, notes.data, payments, isPaymentDataLoading]);
 
   useEffect(() => {
     if (!feeId && feeOptions.length) setFeeId(feeOptions[0].id);
@@ -292,10 +296,27 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
     recipients={recipients} savingRecipients={updateRecipients.isPending && updateRecipients.variables?.id === note.id}
     onSaveRecipients={async value => { await updateRecipients.mutateAsync({ id: note.id, recipientIds: value }); }} />;
   return (
-    <Dialog open={open} onOpenChange={value => { if (!create.isPending && !cancel.isPending && !updateRecipients.isPending) onOpenChange(value); }}>
+    <Dialog open={open} onOpenChange={value => { if (!featureSwitch.isPending && !create.isPending && !cancel.isPending && !updateRecipients.isPending) onOpenChange(value); }}>
       <DialogContent className="max-w-2xl gap-4 p-4 sm:p-6">
         <DialogTitle className="flex items-center gap-2 pr-8"><StickyNote className="h-5 w-5 text-indigo-600" aria-hidden="true" />Notes · {pupil.firstName} {pupil.lastName}</DialogTitle>
-        <DialogDescription>Promises and custom notes for this pupil. Fee details and payment conditions update automatically.</DialogDescription>
+        <DialogDescription>Control Notes and reminders for this pupil.</DialogDescription>
+        <div className="flex min-h-20 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="min-w-0"><Label htmlFor="pupil-fee-notes-switch" className="text-sm font-semibold text-slate-900">Notes and reminders</Label>
+            <p className="mt-1 text-sm leading-5 text-slate-600">{featureEnabled ? 'On for this pupil. Promise and custom note reminders are active.' : 'Off for this pupil. Saved notes and reminders are paused.'}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3"><span className="text-sm font-medium">{featureSwitch.isPending ? 'Saving…' : featureEnabled ? 'On' : 'Off'}</span>
+            <Switch id="pupil-fee-notes-switch" checked={featureEnabled} disabled={!canManage || featureSwitch.isPending || create.isPending || cancel.isPending || updateRecipients.isPending}
+              className="h-7 w-12" onCheckedChange={async enabled => {
+                try {await featureSwitch.mutateAsync(enabled); setFeatureEnabled(enabled); setView('notes');}
+                catch (error) {toast({title: 'Unable to change Notes', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive'});}
+              }} />
+          </div>
+        </div>
+        {!featureEnabled ? <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+          <StickyNote className="mx-auto h-7 w-7 text-slate-400" aria-hidden="true" /><p className="mt-3 font-semibold text-slate-900">Notes are switched off</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Turn on the switch to view saved notes, create a Promise or custom note, and receive reminders for this pupil.</p>
+          {!canManage && <p className="mt-2 text-xs leading-5 text-slate-500">A staff member with permission to record fee payments can change this switch.</p>}
+        </div> : <>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
           <Button variant={view === 'notes' ? 'default' : 'outline'} className="min-h-11 rounded-full" disabled={create.isPending} onClick={() => setView('notes')}>
             Active notes {isPaymentDataLoading ? '' : `(${activeNotes.length})`}
@@ -364,6 +385,7 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
                   </>}
           </div>
         )}
+        </>}
       </DialogContent>
     </Dialog>
   );

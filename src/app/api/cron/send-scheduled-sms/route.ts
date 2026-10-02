@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { sanitizeSystemUser } from '@/lib/server/app-auth';
@@ -339,6 +340,7 @@ async function claimQueueJob(id: string, now: Date) {
       attempts,
       notificationVersion: Number(data.notificationVersion || 0),
       reminderIds: Array.isArray(data.reminderIds) ? data.reminderIds.filter((id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id)) : [],
+      pupilId: typeof data.pupilId === 'string' ? data.pupilId : undefined,
     };
   });
 }
@@ -363,8 +365,23 @@ export async function GET(request: NextRequest) {
       .limit(50)
       .get();
     const results: Array<{ id: string; channel?: QueueChannel; sent: boolean; error?: string; skipped?: boolean }> = [];
+    let feeGate: Awaited<ReturnType<typeof readFeeNotesGate>> | null = null;
+    if (dueSnapshot.docs.some(doc => ['fee_reminder', 'fee_reconcile'].includes(doc.data().channel))) {
+      try {feeGate = await readFeeNotesGate();}
+      catch (error) {console.error('Notes switch unavailable; fee jobs will wait without blocking other notifications:', error);}
+    }
 
     for (const document of dueSnapshot.docs) {
+      const queued = document.data();
+      if (['fee_reminder', 'fee_reconcile'].includes(queued.channel) && !feeGate) {
+        results.push({id: document.id, channel: queued.channel, sent: false, skipped: true, error: 'Notes switch unavailable; retry on the next run.'});
+        continue;
+      }
+      if (feeGate && ['fee_reminder', 'fee_reconcile'].includes(queued.channel)
+        && (!feeGate.anyEnabled || !queued.pupilId || !feeGate.isEnabled(queued.pupilId))) {
+        await document.ref.set({status: 'cancelled', leaseUntil: null, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
+        continue;
+      }
       const claimed = await claimQueueJob(document.id, now);
       if (!claimed || !claimed.sourceId || !['sms', 'push', 'attendance', 'fee_reminder', 'fee_reconcile'].includes(claimed.channel)) continue;
       const queueRef = db.collection(SCHEDULED_DISPATCH_QUEUE).doc(document.id);
@@ -376,7 +393,7 @@ export async function GET(request: NextRequest) {
             : claimed.channel === 'fee_reconcile'
               ? await dispatchFeeReconciliation(claimed.sourceId, claimed.reminderIds)
             : claimed.channel === 'fee_reminder'
-              ? await dispatchFeeReminder(claimed.sourceId, now, claimed.notificationVersion)
+              ? await dispatchFeeReminder(claimed.sourceId, now, claimed.notificationVersion, claimed.pupilId)
               : await dispatchAttendance(request, claimed.sourceId, claimed.dueAt, now);
         if (outcome.terminal) {
           const terminalQueueState = {

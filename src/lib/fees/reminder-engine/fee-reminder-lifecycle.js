@@ -143,7 +143,7 @@ async function reconcilePupilFeeReminders({db, FieldValue, pupilId, now = new Da
         if (data.reminderStatus === 'fulfilled') {
           transaction.update(ref, {reminderStatus: 'scheduled', settledAt: null, dismissalPending: false,
             notificationVersion, resolutionLeaseUntilMs: 0, updatedAt: FieldValue.serverTimestamp()});
-          transaction.set(queue, {channel: 'fee_reminder', sourceId: document.id, status: 'scheduled',
+          transaction.set(queue, {channel: 'fee_reminder', sourceId: document.id, pupilId, status: 'scheduled',
             dueAt: data.dueAt, leaseUntil: null, attempts: 0, notificationVersion, updatedAt: FieldValue.serverTimestamp()}, {merge: true});
         }
         return null;

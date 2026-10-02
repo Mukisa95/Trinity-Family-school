@@ -1,5 +1,6 @@
-import {auth} from '@/lib/firebase';
+import {auth, db} from '@/lib/firebase';
 import {onAuthStateChanged} from 'firebase/auth';
+import {doc, getDocFromCache} from 'firebase/firestore';
 
 export type FeeReminderClientChange = {
   pupilIds?: string[]; feeIds?: string[]; reversal?: boolean;
@@ -23,10 +24,19 @@ export async function flushFeeReminderChanges(): Promise<void> {
   flushing = (async () => {
     for (const item of pending(key)) {
       try {
+        let change = item;
+        if (item.source) {
+          // Source ownership comes from the cache populated by the ordinary
+          // fee screen, never from an extra server read to check disabled Notes.
+          const cached = await getDocFromCache(doc(db, item.source.collection, item.source.id)).catch(() => null);
+          const pupilId = cached?.data()?.pupilId;
+          if (typeof pupilId === 'string') change = {...item, pupilIds: [...new Set([...(item.pupilIds || []), pupilId])]};
+          if (!change.pupilIds?.length) continue;
+        }
         const token = await user.getIdToken();
         const response = await fetch('/api/fees/reminders/reconcile', {method: 'POST',
           headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
-          body: JSON.stringify(item), signal: AbortSignal.timeout(20_000)});
+          body: JSON.stringify(change), signal: AbortSignal.timeout(20_000)});
         if (!response.ok && ![400, 403].includes(response.status)) break;
         save(key, pending(key).filter(other => JSON.stringify(other) !== JSON.stringify(item)));
       } catch {break;}

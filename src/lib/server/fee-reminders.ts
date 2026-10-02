@@ -3,6 +3,7 @@ import 'server-only';
 import { createHash, randomUUID } from 'crypto';
 import { FieldValue, Timestamp, getFirestore, type DocumentSnapshot } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
+import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import type { AcademicYear, FeeAdjustmentEntry, FeeStructure, FeesHoliday, PaymentRecord, Pupil, SystemUser, UniformTracking } from '@/types';
 import {
   FEE_REMINDER_COLLECTION, canReadFeeReminders, canReceiveFeeReminders, feeReminderScopeKey,
@@ -52,6 +53,7 @@ async function selectedRecipientNames(ids: string[] | null): Promise<string[]> {
 }
 
 export async function reconcileFeeReminders(pupilId: string, now = new Date(), noteIds?: string[]): Promise<void> {
+  if (!(await readFeeNotesGate()).isEnabled(pupilId)) return;
   if (noteIds && !noteIds.length) return;
   const db = getFirestore(getFirebaseAdminApp());
   const notes = noteIds ? await db.getAll(...noteIds.map(id => db.collection(FEE_REMINDER_COLLECTION).doc(id)))
@@ -66,6 +68,7 @@ export async function reconcileFeeReminders(pupilId: string, now = new Date(), n
 }
 
 export async function sendCustomFeeNotePush(delivery: CustomFeeDelivery): Promise<void> {
+  if (!(await readFeeNotesGate()).isEnabled(delivery.pupilId)) return;
   const subscriptions = await getServerPushSubscriptionsForUsers(delivery.recipientIds);
   for (const canCollect of [true, false]) {
     const targets = subscriptions.filter(subscription => delivery.collectRecipientIds.includes(subscription.userId) === canCollect);
@@ -78,7 +81,8 @@ export async function sendCustomFeeNotePush(delivery: CustomFeeDelivery): Promis
   }
 }
 
-export async function sendFeeReminderResolutionPush({ id, title, body, recipientIds, collectRecipientIds, version, pupilId }: FeeReminderResolutionDelivery): Promise<void> {
+export async function sendFeeReminderResolutionPush({ id, title, body, recipientIds, collectRecipientIds, version, pupilId, allowWhileDisabled }: FeeReminderResolutionDelivery & {allowWhileDisabled?: boolean}): Promise<void> {
+  if (!allowWhileDisabled && !(await readFeeNotesGate()).isEnabled(pupilId)) return;
   const subscriptions = await getServerPushSubscriptionsForUsers(recipientIds);
   for (const canCollect of [true, false]) {
     const targets = subscriptions.filter(subscription => collectRecipientIds.includes(subscription.userId) === canCollect);
@@ -196,6 +200,7 @@ export function serializeFeeReminder(document: DocumentSnapshot): FeeReminder {
 export const feeReminderQueueId = (id: string) => `fee-reminder-${id}`;
 
 export async function createFeeReminder(input: CreateFeeReminderInput | CreateCustomFeeNoteInput, actor: SystemUser): Promise<FeeReminder> {
+  if (!(await readFeeNotesGate()).isEnabled(input.pupilId)) throw new FeeReminderError('Turn on Notes for this pupil before creating a note.', 403);
   if (input.kind === 'custom') return createCustomFeeNote(input, actor);
   const db = getFirestore(getFirebaseAdminApp());
   const ref = db.collection(FEE_REMINDER_COLLECTION).doc(input.requestId);
@@ -314,7 +319,7 @@ export async function createFeeReminder(input: CreateFeeReminderInput | CreateCu
     writeFeeReminderTarget(transaction, db, input.pupilId, target.data(), note);
     transaction.create(ref, { ...note, createdAt: Timestamp.fromDate(now), dueAt: Timestamp.fromDate(dueAt), requestFingerprint: fingerprint });
     transaction.create(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(feeReminderQueueId(ref.id)), {
-      channel: 'fee_reminder', sourceId: ref.id, status: 'scheduled', dueAt: Timestamp.fromDate(dueAt),
+      channel: 'fee_reminder', sourceId: ref.id, pupilId: input.pupilId, status: 'scheduled', dueAt: Timestamp.fromDate(dueAt),
       notificationVersion: 1,
       leaseUntil: null, attempts: 0, createdBy: actor.id,
       createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
@@ -357,7 +362,7 @@ async function createCustomFeeNote(input: CreateCustomFeeNoteInput, actor: Syste
     writeFeeReminderTarget(tx, db, input.pupilId, target.data(), result);
     writeFeeReconcileJob(tx, db, `fee-reconcile-created-${ref.id}`, input.pupilId, [ref.id]);
     tx.create(ref, {...result, createdAt: Timestamp.fromDate(now), dueAt: Timestamp.fromDate(due), requestFingerprint: fingerprint});
-    tx.create(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(feeReminderQueueId(ref.id)), {channel: 'fee_reminder', sourceId: ref.id,
+    tx.create(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(feeReminderQueueId(ref.id)), {channel: 'fee_reminder', sourceId: ref.id, pupilId: input.pupilId,
       status: 'scheduled', dueAt: Timestamp.fromDate(due), notificationVersion: 1, leaseUntil: null, attempts: 0,
       createdBy: actor.id, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp()});
     return result;
@@ -369,6 +374,7 @@ async function createCustomFeeNote(input: CreateCustomFeeNoteInput, actor: Syste
 }
 
 export async function withLiveCustomFeeDetails(notes: FeeReminder[], pupilId: string): Promise<FeeReminder[]> {
+  if (!(await readFeeNotesGate()).isEnabled(pupilId)) return [];
   if (!notes.some(note => note.kind === 'custom')) return notes;
   const db = getFirestore(getFirebaseAdminApp());
   const context = await db.runTransaction(tx => readCustomFeeContext(db, tx, pupilId));
@@ -436,7 +442,9 @@ export async function cancelFeeReminder(id: string, actor: SystemUser, reason = 
 }
 
 /** Called only by the authenticated due-job dispatcher, independently of payment writes. */
-export async function dispatchFeeReminder(id: string, now = new Date(), expectedVersion?: number) {
+export async function dispatchFeeReminder(id: string, now = new Date(), expectedVersion?: number, pupilId?: string) {
+  const gate = await readFeeNotesGate();
+  if (!gate.anyEnabled || pupilId && !gate.isEnabled(pupilId)) return {terminal: true, skipped: true, reason: 'Notes are switched off.'};
   const db = getFirestore(getFirebaseAdminApp());
   const ref = db.collection(FEE_REMINDER_COLLECTION).doc(id);
   const document = await ref.get();
@@ -444,6 +452,7 @@ export async function dispatchFeeReminder(id: string, now = new Date(), expected
     return { terminal: true, skipped: true, reason: 'Reminder is no longer scheduled.' };
   }
   const note = serializeFeeReminder(document);
+  if (!gate.isEnabled(note.pupilId)) return {terminal: true, skipped: true, reason: 'Notes are switched off.'};
   if (note.kind === 'custom') return evaluateCustomFeeNote({db, FieldValue, id, now, mode: 'deadline', expectedVersion, sendAlert: sendCustomFeeNotePush});
   if (expectedVersion !== undefined && (note.notificationVersion || 0) !== expectedVersion) {
     return { terminal: true, skipped: true, reason: 'The reminder changed after this dispatch was claimed.' };
@@ -568,7 +577,7 @@ function writeFeeReminderTarget(transaction: any, db: any, pupilId: string, prev
 }
 function writeFeeReconcileJob(transaction: any, db: any, id: string, pupilId: string, noteIds: string[]) {
   transaction.set(db.collection(SCHEDULED_DISPATCH_QUEUE).doc(id), {
-    channel: 'fee_reconcile', sourceId: pupilId, reminderIds: noteIds,
+    channel: 'fee_reconcile', sourceId: pupilId, pupilId, reminderIds: noteIds,
     status: 'scheduled', dueAt: Timestamp.fromDate(new Date()), leaseUntil: null, attempts: 0,
     createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
   });
@@ -604,12 +613,15 @@ export async function dispatchFeeReconciliation(pupilId: string, noteIds: string
   return {terminal: true, skipped: false};
 }
 export async function processFeeReminderChange(change: FeeReminderChange): Promise<void> {
+  const gate = await readFeeNotesGate();
+  if (!gate.anyEnabled) return;
   const db = getFirestore(getFirebaseAdminApp());
-  const pupils = new Set(change.pupilIds || []);
+  const pupils = new Set((change.pupilIds || []).filter(gate.isEnabled));
+  if (!pupils.size && !change.feeIds?.length) return;
   // Catalog edits target only pupils whose indexed notes reference that fee.
   for (const feeId of new Set(change.feeIds || [])) {
     const targets = await db.collection(FEE_REMINDER_TARGETS).where('feeIds', 'array-contains', feeId).get();
-    targets.docs.forEach(target => pupils.add(target.id));
+    targets.docs.forEach(target => {if (gate.isEnabled(target.id)) pupils.add(target.id);});
   }
   const errors: unknown[] = [];
   for (const pupilId of pupils) {
@@ -656,8 +668,11 @@ export async function processFeeReminderChangeSafely(change: FeeReminderChange):
   catch (error) { console.error('Financial change saved; fee reminder update will retry:', error); }
 }
 export async function processRecordedFeePayments(allocations: Array<{paymentData: Pick<PaymentRecord, 'pupilId' | 'feeStructureId' | 'academicYearId' | 'termId'>}>): Promise<void> {
+  const gate = await readFeeNotesGate();
+  if (!gate.anyEnabled) return;
   const groups = new Map<string, FeeReminderChange['scopes']>();
   allocations.forEach(({paymentData}) => {
+    if (!gate.isEnabled(paymentData.pupilId)) return;
     const scopes = groups.get(paymentData.pupilId) || [];
     scopes.push(paymentData); groups.set(paymentData.pupilId, scopes);
   });

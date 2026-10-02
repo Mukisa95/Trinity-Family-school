@@ -20,7 +20,7 @@ const note: reminders.FeeReminder = {
 
 function renderModal({ view = 'notes', ledger = [] as any[], loading = false, viewer = false, recipientIds = null as string[] | null,
   effects = undefined as undefined | Array<() => unknown>, stateChanges = undefined as undefined | any[],
-  notePatch = {} as Partial<reminders.FeeReminder>, confirmCancel = false } = {}) {
+  notePatch = {} as Partial<reminders.FeeReminder>, confirmCancel = false, featureEnabled = true } = {}) {
   const source = fs.readFileSync('src/app/fees/collect/[id]/components/FeeNotesModal.tsx', 'utf8');
   const output = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX,
@@ -28,7 +28,7 @@ function renderModal({ view = 'notes', ledger = [] as any[], loading = false, vi
   const module = { exports: {} as any };
   let stateIndex = 0;
   let cardStateIndex = 0;
-  const states = [view, 'tuition', '20000', 'Rose Kagwa', '+256700123456', '2026-10-03', '09:00', '', '', new Date(note.dueAt), recipientIds];
+  const states = [featureEnabled, view, 'tuition', '20000', 'Rose Kagwa', '+256700123456', '2026-10-03', '09:00', '', '', new Date(note.dueAt), recipientIds];
   const tag = (name: string) => ({ children, ...props }: any) => {
     delete props.variant; delete props.open; delete props.onOpenChange;
     return React.createElement(name, props, children);
@@ -52,12 +52,13 @@ function renderModal({ view = 'notes', ledger = [] as any[], loading = false, vi
       if (name === '@/components/ui/button') return { Button: tag('button') };
       if (name === '@/components/ui/input') return { Input: tag('input') };
       if (name === '@/components/ui/label') return { Label: tag('label') };
+      if (name === '@/components/ui/switch') return {Switch: ({checked, ...props}: any) => React.createElement('button', {...props, role: 'switch', 'aria-checked': checked})};
       if (name === '@/components/ui/textarea') return { Textarea: tag('textarea') };
       if (name === '@/hooks/use-toast') return { useToast: () => ({ toast() {} }) };
       if (name === '@/lib/contexts/auth-context') return { useAuth: () => ({ user: {
         id: 'cashier', role: 'Staff', isActive: true, modulePermissions: [{ module: 'fees', permission: viewer ? 'view_only' : 'edit' }],
       } }) };
-      if (name === '@/lib/hooks/use-fee-reminders') return { useFeeReminders: () => ({
+      if (name === '@/lib/hooks/use-fee-reminders') return {useFeeNotesSwitch: () => ({isPending: false, mutateAsync: async () => ({enabled: true})}), useFeeReminders: () => ({
         notes: { data: [{...note, ...notePatch}], isLoading: false, isError: false, refetch() {} }, create: { isPending: false }, cancel: { isPending: false },
         recipients: { data: [{id: 'cashier', name: 'Fee Collector', role: 'Staff'}, {id: 'head', name: 'Head Teacher', role: 'Admin'}], isLoading: false },
         updateRecipients: { isPending: false },
@@ -66,7 +67,7 @@ function renderModal({ view = 'notes', ledger = [] as any[], loading = false, vi
     },
   });
   return renderToStaticMarkup(React.createElement(module.exports.FeeNotesModal, {
-    open: true, onOpenChange() {}, pupil: { id: 'joan', firstName: 'Joan', lastName: 'Kagwa', guardians: [] },
+    open: true, onOpenChange() {}, pupil: { id: 'joan', firstName: 'Joan', lastName: 'Kagwa', guardians: [], ...(featureEnabled ? {feeNotesEnabled: true} : {}) },
     fees: [{ id: 'tuition', name: 'Tuition', balance: 40000 }, { id: 'cleared', name: 'Already cleared fee', balance: 0 }],
     payments: ledger, academicYear: { id: 'year', name: '2026', terms: [{ id: 'term3', name: 'Term 3' }] }, termId: 'term3',
     previousBalance: null, isPaymentDataLoading: loading,
@@ -81,6 +82,13 @@ test('the reminder form includes every promised field, defaults to Promise, and 
   assert.match(html, /value="promise" selected=""/); assert.doesNotMatch(html, /Already cleared fee/);
   assert.match(html, /Rose Kagwa.*Joan Kagwa/); assert.match(html, /20,000 shillings/);
   assert.match(html, /All active users with Fees access/); assert.match(html, /East Africa time/);
+});
+
+test('an unset pupil switch renders Off and hides note details, recipients and forms', () => {
+  const html = renderModal({featureEnabled: false, view: 'create'});
+  assert.match(html, /role="switch" aria-checked="false"/);
+  assert.match(html, /Notes are switched off/);
+  assert.doesNotMatch(html, /id="fee-note-amount"|20,000 shillings|Active notes ·|Who receives the push reminder/);
 });
 
 test('a partial note card shows its shortfall and a working telephone link', () => {

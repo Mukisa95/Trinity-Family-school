@@ -255,6 +255,8 @@ export interface FeesHoliday {
 }
 
 export interface Pupil {
+  /** Display copy of the server-owned, off-by-default Notes switch. */
+  feeNotesEnabled?: boolean;
   id: string;
   firstName: string;
   lastName: string;

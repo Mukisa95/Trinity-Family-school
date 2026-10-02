@@ -17,6 +17,7 @@ function routeFixture() {
     'next/server': {NextResponse: {json: (body: any, options: any) => ({body, status: options?.status || 200})}},
     'firebase-admin/firestore': {getFirestore: () => ({collection: () => ({doc: () => ({get: async () => ({data: () => ({pupilId: 'actual-pupil'})})})})})},
     '@/lib/firebase-admin': {getFirebaseAdminApp: () => ({})},
+    '@/lib/server/fee-notes-gate': {readFeeNotesGate: async () => ({anyEnabled: true, isEnabled: () => true})},
     '@/lib/server/app-auth': {requireAppUser: async () => {if (authError) throw Error(authError); return {user};}},
     '@/lib/fees/fee-reminders': {canReceiveFeeReminders: () => allowed},
     '@/lib/server/fee-reminders': {processFeeReminderChange: async (change: any) => {calls.push(change); if (fail) throw Error('temporary');}},
@@ -33,9 +34,9 @@ test('payment callbacks require signed active Fees access and validate identifie
   }
   assert.equal(f.calls.length, 0);
 });
-test('callbacks use authoritative source identities and never accept supplied balances or recipients', async () => {
+test('callbacks recompute supplied pupil identities from committed data and never accept balances or recipients', async () => {
   const f = routeFixture(); assert.equal((await f.post({pupilIds: ['previous-pupil'], source: {collection: 'uniformTracking', id: 'record'}, amount: 999, recipientIds: ['forged']})).status, 200);
-  assert.deepEqual(JSON.parse(JSON.stringify(f.calls[0])), {reversal: false, pupilIds: ['previous-pupil', 'actual-pupil']});
+  assert.deepEqual(JSON.parse(JSON.stringify(f.calls[0])), {reversal: false, pupilIds: ['previous-pupil']});
   f.fail(); assert.equal((await f.post({pupilIds: ['pupil']})).status, 503);
 });
 test('staff assignment and uniform editors can recalculate without Fees inbox access; parents cannot', async () => {
@@ -52,6 +53,7 @@ test('browser callbacks preserve failed work, recover on reconnect, and keep pen
   let status = 503, online: (() => void) | undefined; const calls: any[] = [];
   const client = load('src/lib/fees/fee-reminder-change-client.ts', {
     '@/lib/firebase': {auth}, 'firebase/auth': {onAuthStateChanged: () => () => {}},
+    'firebase/firestore': {doc: () => ({}), getDocFromCache: async () => ({data: () => ({pupilId: 'joan'})})},
   }, {window: {addEventListener: (_: string, fn: () => void) => {online = fn;}, removeEventListener: () => {}},
     localStorage: {getItem: (key: string) => storage.get(key), setItem: (key: string, value: string) => storage.set(key, value)},
     fetch: async (_: string, request: any) => {calls.push(JSON.parse(request.body)); return {ok: status === 200, status};}});

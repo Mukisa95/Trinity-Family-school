@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {readFeeNotesGate} from '@/lib/server/fee-notes-gate';
 import { requireAppUser } from '@/lib/server/app-auth';
 import { canManageFeeReminders } from '@/lib/fees/fee-reminders';
 import { cancelFeeReminder, updateFeeReminderRecipients, FeeReminderError } from '@/lib/server/fee-reminders';
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const body = await request.json();
+    const gate = await readFeeNotesGate();
+    if (!gate.anyEnabled || typeof body?.pupilId === 'string' && !gate.isEnabled(body.pupilId)) return NextResponse.json({error: 'Notes are switched off for this pupil.'}, {status: 403});
     const actor = await requireAppUser(request);
     if (!canManageFeeReminders(actor.user)) return NextResponse.json({ error: 'Permission to manage fee payments is required.' }, { status: 403 });
-    const body = await request.json();
     if (!['cancel', 'recipients'].includes(body?.action)) return NextResponse.json({ error: 'Choose a valid reminder action.' }, { status: 400 });
     const { id } = await context.params;
     if (body.action === 'recipients') {

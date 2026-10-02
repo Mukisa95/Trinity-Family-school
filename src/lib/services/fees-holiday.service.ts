@@ -4,6 +4,7 @@ import {
   doc,
   getDocs,
   getDoc,
+  getDocFromCache,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -195,7 +196,7 @@ export class FeesHolidayService {
   ): Promise<void> {
     try {
       const docRef = doc(db, FEES_HOLIDAY_COLLECTION, id);
-      const previous = data.pupilId ? await this.getFeesHolidayById(id) : null;
+      const previous = data.pupilId ? (await getDocFromCache(docRef).catch(() => null))?.data() : null;
       
       // Validate percentage discount if being updated
       if (data.discountType === 'percentage' && data.discountValue !== undefined) {
@@ -256,7 +257,7 @@ export class FeesHolidayService {
   static async deleteFeesHoliday(id: string): Promise<void> {
     try {
       const docRef = doc(db, FEES_HOLIDAY_COLLECTION, id);
-      const previous = await this.getFeesHolidayById(id);
+      const previous = (await getDocFromCache(docRef).catch(() => null))?.data();
       await deleteDoc(docRef);
       if (previous) await notifyFeeReminderChange({pupilIds: [previous.pupilId]});
     } catch (error) {
@@ -304,4 +305,3 @@ export class FeesHolidayService {
     }
   }
 }
-

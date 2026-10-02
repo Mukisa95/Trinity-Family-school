@@ -2643,7 +2643,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         }
       />
 
-      {canReadFeeReminders(user) && selectedAcademicYear && (
+      {isFeeNotesOpen && canReadFeeReminders(user) && selectedAcademicYear && (
         <FeeNotesModal
           key={pupil.id}
           open={isFeeNotesOpen}
