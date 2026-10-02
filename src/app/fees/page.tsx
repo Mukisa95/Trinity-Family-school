@@ -124,7 +124,8 @@ export function FeesManagementPageContent() {
   };
 
   // Uniform/Requirements hooks and stats
-  const { data: uniforms = [] } = useUniforms();
+  const { data: uniforms = [], isLoading: uniformsLoading, isFetching: uniformsFetching, error: uniformsError } = useUniforms();
+  const uniformSummaryLoading = uniformsLoading || (uniformsFetching && uniforms.length === 0);
   const uniqueUniformGroups = Array.from(new Set(uniforms.map(u => u.group).filter(Boolean))).sort();
   const totalUniforms = uniforms.length;
   const activeUniforms = uniforms.filter(u => u.isActive).length;
@@ -1549,6 +1550,11 @@ export function FeesManagementPageContent() {
               )}
 
               {activeSettingTab === 'uniforms' && (
+                uniformSummaryLoading ? (
+                  <span className="text-xs text-purple-700" role="status">Loading uniform items...</span>
+                ) : uniformsError ? (
+                  <span className="text-xs text-red-700">Uniform data unavailable</span>
+                ) : (
                 <>
                   <div className="flex items-center gap-1 bg-purple-50/80 border border-purple-100/50 px-2 py-0.5 rounded-md text-[10px] sm:text-xs">
                     <span className="font-bold text-purple-700">{totalUniforms}</span>
@@ -1567,6 +1573,7 @@ export function FeesManagementPageContent() {
                     <span className="font-bold text-amber-700">{formatCurrency(averageUniformPrice)}</span>
                   </div>
                 </>
+                )
               )}
 
               {activeSettingTab === 'requirements' && (

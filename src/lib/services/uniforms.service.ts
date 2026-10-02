@@ -1,7 +1,8 @@
 import { 
   collection, 
   doc, 
-  getDocs, 
+  getDocsFromServer,
+  getDocsFromCache,
   getDoc, 
   addDoc, 
   updateDoc, 
@@ -9,12 +10,29 @@ import {
   query, 
   orderBy,
   where,
-  Timestamp 
+  Timestamp,
+  type Query,
+  type DocumentData,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { UniformItem, CreateUniformData, UpdateUniformData, UniformGender, UniformSection } from '@/types';
 
 const COLLECTION_NAME = 'uniforms';
+
+async function getUniformQuerySnapshot(uniformQuery: Query<DocumentData>) {
+  try {
+    return await getDocsFromServer(uniformQuery);
+  } catch (error) {
+    try {
+      const cached = await getDocsFromCache(uniformQuery);
+      if (!cached.empty) return cached;
+    } catch {
+      // An unavailable cache must not replace the original read error.
+    }
+    // An empty offline cache does not prove that the server catalogue is empty.
+    throw error;
+  }
+}
 
 export class UniformsService {
   static async getAllUniforms(): Promise<UniformItem[]> {
@@ -23,7 +41,7 @@ export class UniformsService {
         collection(db, COLLECTION_NAME), 
         orderBy('name', 'asc')
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getUniformQuerySnapshot(q);
       
       const uniforms = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -51,7 +69,7 @@ export class UniformsService {
         collection(db, COLLECTION_NAME), 
         where('isActive', '==', true)
       );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getUniformQuerySnapshot(q);
       
       const uniforms = querySnapshot.docs.map(doc => ({
         id: doc.id,
@@ -85,7 +103,7 @@ export class UniformsService {
         where('isActive', '==', true)
       );
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getUniformQuerySnapshot(q);
       let uniforms = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -230,4 +248,4 @@ export class UniformsService {
     
     return obj;
   }
-} 
+}

@@ -72,10 +72,10 @@ export function useUniformTrackingByPupil(pupilId: string) {
     enabled: !!pupilId,
     staleTime: 5 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
-    // At most one pupil-scoped refresh after the five-minute stale window.
-    refetchOnMount: true,
+    // A newly opened tracking screen always checks this pupil's assignments.
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
     refetchOnWindowFocus: false,
-    placeholderData: previousData => previousData,
     // The service already falls back to Firestore's persistent cache.
     // Retrying quota exhaustion only produces repeated reads and console noise.
     retry: false,

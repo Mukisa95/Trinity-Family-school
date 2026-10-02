@@ -22,7 +22,8 @@ interface UniformManagementProps {
 
 export function UniformManagement({ showFilters, addTrigger }: UniformManagementProps) {
   const { toast } = useToast();
-  const { data: uniforms = [], isLoading, error } = useUniforms();
+  const { data: uniforms = [], isLoading, isFetching, error, refetch } = useUniforms();
+  const catalogueLoading = isLoading || (isFetching && uniforms.length === 0);
   const { data: classes = [] } = useClasses();
   const createUniform = useCreateUniform();
   const updateUniform = useUpdateUniform();
@@ -47,7 +48,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
     }
   }, [addTrigger]);
 
-  const selectedUniformInitialData: UniformFormData | undefined = selectedUniform
+  const selectedUniformInitialData = React.useMemo<UniformFormData | undefined>(() => selectedUniform
     ? {
         name: selectedUniform.name,
         price: String(selectedUniform.price),
@@ -59,7 +60,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
         section: selectedUniform.section,
         description: selectedUniform.description,
       }
-    : undefined;
+    : undefined, [selectedUniform]);
 
   const handleOpenAddModal = () => {
     setModalMode('add');
@@ -113,11 +114,8 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
       handleCloseModal();
     } catch (error) {
       logger.error('Error saving uniform', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save uniform item",
-      });
+      // UniformModal owns submission feedback and must remain open on failure.
+      throw error;
     }
   };
 
@@ -223,6 +221,16 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
     return section ? `${section} Section` : 'Unknown Section';
   };
 
+  const uniformModal = (
+    <UniformModal
+      isOpen={isModalOpen}
+      onClose={handleCloseModal}
+      onSubmit={handleSubmit}
+      initialData={selectedUniformInitialData}
+      mode={modalMode}
+    />
+  );
+
   if (error) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -233,12 +241,14 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Uniforms</h2>
           <p className="text-gray-600 mb-6">Failed to load uniforms. Please try again later.</p>
           <Button 
-            onClick={() => window.location.reload()} 
+            onClick={() => void refetch()}
+            disabled={isFetching}
             className="bg-blue-600 hover:bg-blue-700"
           >
             Retry
           </Button>
         </div>
+        {uniformModal}
       </div>
     );
   }
@@ -322,13 +332,17 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
           <div>
             <CardTitle className="text-lg font-semibold text-gray-900">Uniform Items</CardTitle>
             <p className="text-sm text-gray-600">
-              {filteredUniforms.length} of {totalUniforms} uniforms
-              {filteredUniforms.length !== totalUniforms && ' (filtered)'}
+              {catalogueLoading ? 'Loading uniforms...' : (
+                <>
+                  {filteredUniforms.length} of {totalUniforms} uniforms
+                  {filteredUniforms.length !== totalUniforms && ' (filtered)'}
+                </>
+              )}
             </p>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          {catalogueLoading ? (
             <div className="p-6 space-y-4">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="animate-pulse">
@@ -489,6 +503,7 @@ export function UniformManagement({ showFilters, addTrigger }: UniformManagement
       </Card>
 
       <ConfirmDialog />
+      {uniformModal}
     </div>
   );
 }

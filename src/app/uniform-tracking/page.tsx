@@ -78,7 +78,7 @@ function UniformTrackingContent() {
 
   // Hooks
   const { data: pupil, isLoading: pupilLoading } = usePupil(pupilId || '');
-  const { data: trackingRecords = [], isLoading: trackingLoading } = useUniformTrackingByPupil(pupilId || '');
+  const { data: trackingRecords = [], isLoading: trackingLoading, isFetching: trackingFetching, error: trackingError } = useUniformTrackingByPupil(pupilId || '');
 
   // Get eligible uniforms based on pupil's gender, class, and section
   const getUniformGender = (pupilGender: string | undefined): UniformGender | undefined => {
@@ -94,15 +94,20 @@ function UniformTrackingContent() {
     return undefined;
   };
 
-  const { data: eligibleUniforms = [], isLoading: uniformsLoading, error: uniformsError } = useUniformsByFilter({
+  const { data: eligibleUniforms = [], isLoading: uniformsLoading, isFetching: uniformsFetching, error: uniformsError } = useUniformsByFilter({
     gender: getUniformGender(pupil?.gender),
     classId: pupil?.classId,
     section: getUniformSection(pupil?.section)
   }, !!pupil);
 
-  // Fallback to all active uniforms if filtering fails or returns empty
-  const { data: allActiveUniforms = [] } = useActiveUniforms();
+  // Preserve the existing active-uniform fallback for an empty eligible list.
+  const { data: allActiveUniforms = [], isLoading: activeUniformsLoading, isFetching: activeUniformsFetching, error: activeUniformsError } = useActiveUniforms();
   const finalEligibleUniforms = eligibleUniforms.length > 0 ? eligibleUniforms : allActiveUniforms;
+  const catalogueLoading = uniformsLoading || activeUniformsLoading
+    || (uniformsFetching && eligibleUniforms.length === 0)
+    || (activeUniformsFetching && allActiveUniforms.length === 0);
+  const catalogueError = uniformsError || activeUniformsError;
+  const recordsLoading = trackingLoading || (trackingFetching && trackingRecords.length === 0);
 
   // Mutations
   const createTrackingMutation = useCreateUniformTracking();
@@ -589,10 +594,14 @@ function UniformTrackingContent() {
 
               <Button
                 onClick={handleOpenTrackingModal}
+                disabled={catalogueLoading || !!catalogueError || recordsLoading || !!trackingError}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-300"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Uniform
+                {catalogueLoading || recordsLoading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading uniforms...</>
+                ) : (
+                  <><Plus className="mr-2 h-4 w-4" />Add Uniform</>
+                )}
               </Button>
             </div>
 
@@ -619,8 +628,13 @@ function UniformTrackingContent() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {catalogueError && (
+          <Alert variant="destructive">
+            <AlertDescription>Unable to load the uniform catalogue. Existing assignments have not been removed.</AlertDescription>
+          </Alert>
+        )}
         {/* Summary Cards */}
-        {trackingRecords.length > 0 && (
+        {trackingRecords.length > 0 && !catalogueLoading && !catalogueError && !trackingError && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Assigned */}
             <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
@@ -700,7 +714,7 @@ function UniformTrackingContent() {
             <p className="text-sm text-gray-600">Track uniform assignments, payments, and collections</p>
           </CardHeader>
           <CardContent className="p-0">
-            {trackingLoading ? (
+            {recordsLoading || catalogueLoading ? (
               <div className="p-6 space-y-4">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="animate-pulse">
@@ -717,6 +731,12 @@ function UniformTrackingContent() {
                   </div>
                 ))}
               </div>
+            ) : trackingError ? (
+              <Alert variant="destructive" className="m-4">
+                <AlertDescription>Unable to load uniform records. Existing assignments have not been removed.</AlertDescription>
+              </Alert>
+            ) : catalogueError ? (
+              <p className="p-6 text-sm text-muted-foreground">Uniform records will be shown when the catalogue is available.</p>
             ) : trackingRecords.length === 0 ? (
               <div className="text-center py-12">
                 <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">

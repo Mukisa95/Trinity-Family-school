@@ -15,9 +15,10 @@ export function useUniforms() {
     queryFn: UniformsService.getAllUniforms,
     staleTime: Infinity,
     gcTime: Infinity, // Keep in cache forever
-    refetchOnMount: false,
+    // Keep the last list visible, but check the server whenever a screen opens.
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnReconnect: 'always',
     placeholderData: (previousData) => previousData,
     initialData: () => {
       const cached = queryClient.getQueryData([UNIFORMS_QUERY_KEY]);
@@ -30,6 +31,8 @@ export function useActiveUniforms() {
   return useQuery({
     queryKey: [UNIFORMS_QUERY_KEY, 'active'],
     queryFn: UniformsService.getActiveUniforms,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
   });
 }
 
@@ -42,6 +45,8 @@ export function useUniformsByFilter(filters: {
     queryKey: [UNIFORMS_QUERY_KEY, 'filtered', filters],
     queryFn: () => UniformsService.getUniformsByFilter(filters),
     enabled: enabled,
+    refetchOnMount: 'always',
+    refetchOnReconnect: 'always',
   });
 }
 

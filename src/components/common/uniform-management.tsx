@@ -17,7 +17,7 @@ import type { UniformItem, UniformFormData, UniformGender, UniformSection } from
 
 export function UniformManagement() {
   const { toast } = useToast();
-  const { data: uniforms = [], isLoading, error } = useUniforms();
+  const { data: uniforms = [], isLoading, isFetching, error, refetch } = useUniforms();
   const { data: classes = [] } = useClasses();
   const createUniform = useCreateUniform();
   const updateUniform = useUpdateUniform();
@@ -178,7 +178,7 @@ export function UniformManagement() {
     return section ? `${section} Section` : 'Unknown Section';
   };
 
-  if (isLoading) {
+  if (isLoading || (isFetching && uniforms.length === 0)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -194,6 +194,9 @@ export function UniformManagement() {
       <Alert variant="destructive">
         <AlertDescription>
           Failed to load uniforms. Please try again later.
+          <Button variant="outline" size="sm" className="ml-2" onClick={() => void refetch()} disabled={isFetching}>
+            Retry
+          </Button>
         </AlertDescription>
       </Alert>
     );
@@ -453,4 +456,4 @@ export function UniformManagement() {
       />
     </div>
   );
-} 
+}

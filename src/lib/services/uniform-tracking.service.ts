@@ -3,6 +3,7 @@ import {
   collection, 
   doc, 
   getDocs, 
+  getDocsFromServer,
   getDoc, 
   getDocsFromCache,
   getDocFromCache,
@@ -35,7 +36,7 @@ export class UniformTrackingService {
     );
 
     try {
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocsFromServer(q);
       
       const records = querySnapshot.docs.map(doc => {
         const data = doc.data();
