@@ -2237,6 +2237,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             onRevertPayment={handleRevertPayment}
             selectedTerm={selectedTermId}
             selectedAcademicYear={selectedAcademicYear}
+            allUniforms={allUniforms}
             isPaymentDataLoading={isPaymentDataLoading}
             uniformTrackingRecord={
               (fee as any).uniformTrackingRecord ||

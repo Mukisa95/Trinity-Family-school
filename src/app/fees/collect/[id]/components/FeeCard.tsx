@@ -6,7 +6,6 @@ import { useSchoolSettings } from '@/lib/hooks/use-school-settings';
 import { useStaffById } from '@/lib/hooks/use-staff';
 import { UniformFeesIntegrationService } from '@/lib/services/uniform-fees-integration.service';
 import { useUpdateUniformTracking } from '@/lib/hooks/use-uniform-tracking';
-import { useUniforms } from '@/lib/hooks/use-uniforms';
 import { useUniformInventory, useIncrementStockBatch } from '@/lib/hooks/use-uniform-inventory';
 import { CollectionModal } from '@/components/common/collection-modal';
 import { PaymentSignatureDisplay } from './PaymentSignatureDisplay';
@@ -14,7 +13,7 @@ import { PaymentReceiptSmsDialog } from './PaymentReceiptSmsDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
-import type { AcademicYear, PaymentRecord, Pupil, UniformTracking } from '@/types';
+import type { AcademicYear, PaymentRecord, Pupil, UniformItem, UniformTracking } from '@/types';
 import { getCollectedUniformItemIds } from '../utils/uniformCollectionState';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +54,7 @@ interface FeeCardProps {
   onRevertPayment?: (payment: PaymentRecord, fee: PupilFee) => void;
   selectedTerm: string;
   selectedAcademicYear: AcademicYear | null;
+  allUniforms: UniformItem[];
   isPaymentDataLoading?: boolean; // When true, payment buttons should be disabled
   uniformTrackingRecord?: UniformTracking | null;
   isUniformTrackingLoading?: boolean;
@@ -68,6 +68,7 @@ export function FeeCard({
   onRevertPayment,
   selectedTerm,
   selectedAcademicYear,
+  allUniforms,
   isPaymentDataLoading = false,
   uniformTrackingRecord = null,
   isUniformTrackingLoading = false,
@@ -90,9 +91,6 @@ export function FeeCard({
   const uniformTrackingId = UniformFeesIntegrationService.isUniformFee(fee)
     ? (fee as any).uniformTrackingId
     : null;
-
-  // Fetch uniforms for collection modal
-  const { data: allUniforms = [] } = useUniforms();
 
   // Update uniform tracking mutation
   const updateUniformTracking = useUpdateUniformTracking();

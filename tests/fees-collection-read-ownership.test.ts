@@ -43,6 +43,9 @@ test('an offline fee read fails instead of accepting an empty local catalogue', 
         getDocsFromServer: async () => { throw new Error('backend unavailable'); },
       };
       if (name === '../firebase') return { db: {} };
+      if (name === '@/lib/fees/fee-reminder-change-client') return {
+        notifyFeeReminderChange: () => { throw new Error('A catalogue read must not notify fee reminders'); },
+      };
       throw new Error(`Unexpected import: ${name}`);
     },
   });
