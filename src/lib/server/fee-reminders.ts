@@ -15,6 +15,7 @@ import { calculateFeeAmountAfterDiscounts } from '@/lib/utils/fee-discount-calcu
 import { calculateFeeAmountForAcademicYear } from '@/lib/utils/fee-adjustments';
 import { isAssignmentValidForContext } from '@/lib/utils/fee-assignment-pipeline';
 import { isFeeApplicableInYear } from '@/lib/utils/fee-applicability';
+import { isoValues } from '../fees/reminder-engine/firestore-values';
 import { SCHEDULED_DISPATCH_QUEUE } from '@/lib/server/scheduled-dispatch-queue';
 import { getServerPushSubscriptionsForUsers, sendServerWebPush } from '@/lib/server/push-notifications';
 import { reconcilePupilFeeReminders, makeFeeReminderResolution, writeFeeReminderResolution,
@@ -180,16 +181,6 @@ export function validateFeeReminderInput(body: unknown, now = new Date()): Creat
     additionalNote: cleanText(input.additionalNote, 'additional note', 1000, false),
     scheduleDate, scheduleTime, recipientIds: validateFeeReminderRecipients(input.recipientIds), ...(scopes ? { scopes } : {}),
   };
-}
-
-function isoValues(value: any): any {
-  if (typeof value?.toDate === 'function') return value.toDate().toISOString();
-  if (value instanceof Date) return value.toISOString();
-  if (Array.isArray(value)) return value.map(isoValues);
-  if (value && typeof value === 'object') return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, isoValues(item)]),
-  );
-  return value;
 }
 
 export function serializeFeeReminder(document: DocumentSnapshot): FeeReminder {

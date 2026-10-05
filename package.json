@@ -109,7 +109,7 @@
     "repopulate-academic-years": "npx tsx src/scripts/repopulate-academic-years.ts",
     "fix-academic-year-term-dates": "npx tsx src/scripts/fix-academic-year-term-dates.ts",
     "convert-term-dates-to-iso": "npx tsx src/scripts/convert-term-dates-to-iso.ts",
-    "test:fee-reminders": "node scripts/build-custom-fee-engine.cjs && node --import tsx --test tests/fee-reminders.test.ts tests/fee-reminders-server.test.ts tests/fee-reminders-ui.test.ts tests/fee-reminders-worker.test.ts tests/fee-reminders-events.test.ts tests/fee-reminder-callback.test.ts tests/custom-fee-notes.test.ts tests/fee-notes-switch.test.ts"
+    "test:fee-reminders": "node scripts/build-custom-fee-engine.cjs && node --import tsx --test tests/fee-reminders.test.ts tests/fee-reminders-server.test.ts tests/fee-reminders-ui.test.ts tests/fee-reminders-worker.test.ts tests/fee-reminders-events.test.ts tests/fee-reminder-callback.test.ts tests/custom-fee-notes.test.ts tests/fee-notes-switch.test.ts tests/fee-note-date-normalization.test.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

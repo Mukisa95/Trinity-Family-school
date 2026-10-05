@@ -8,6 +8,7 @@ import * as discounts from '../../src/lib/utils/fee-discount-calculation';
 import * as adjustments from '../../src/lib/utils/fee-adjustments';
 import * as assignments from '../../src/lib/utils/fee-assignment-pipeline';
 import * as applicability from '../../src/lib/utils/fee-applicability';
+import * as firestoreValues from '../../src/lib/fees/reminder-engine/firestore-values';
 import * as lifecycle from '../../src/lib/fees/reminder-engine/fee-reminder-lifecycle';
 import * as customModel from '../../src/lib/fees/custom-fee-notes';
 import * as customLifecycle from '../../src/lib/fees/reminder-engine/custom-fee-notes';
@@ -94,6 +95,7 @@ export function feeReminderFixture() {
       if (name === '@/lib/utils/fee-adjustments') return adjustments;
       if (name === '@/lib/utils/fee-assignment-pipeline') return assignments;
       if (name === '@/lib/utils/fee-applicability') return applicability;
+      if (name === '../fees/reminder-engine/firestore-values') return firestoreValues;
       if (name === '@/lib/server/scheduled-dispatch-queue') return { SCHEDULED_DISPATCH_QUEUE: 'scheduledDispatchQueue' };
       if (name === '../fees/reminder-engine/fee-reminder-lifecycle') return lifecycle;
       if (name === '@/lib/fees/custom-fee-notes') return customModel;

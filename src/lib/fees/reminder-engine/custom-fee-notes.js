@@ -1,7 +1,6 @@
 const engine = require('./fee-custom-engine');
 const {canReceiveFeeReminders, canAccessFeeReminderPage} = require('./fee-reminder-progress');
-const iso = value => typeof value?.toDate === 'function' ? value.toDate().toISOString() : value instanceof Date ? value.toISOString()
-  : Array.isArray(value) ? value.map(iso) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, iso(item)])) : value;
+const {isoValues: iso} = require('./firestore-values');
 const rows = snapshot => snapshot.docs.map(doc => iso({...doc.data(), id: doc.id}));
 
 async function readCustomFeeContext(db, transaction, pupilId) {
