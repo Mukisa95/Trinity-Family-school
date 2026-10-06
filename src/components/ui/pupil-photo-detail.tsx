@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhotoCropEditor } from "@/components/ui/photo-crop-editor";
-import { createPupilPhotoDataUrl, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
+import { createImage, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
 import type { Pupil } from "@/types";
 import Image from "next/image";
 
@@ -125,11 +125,13 @@ export function PupilPhotoDetail({
 
       try {
         const dataUrl = await readFileAsDataUrl(file);
+        await createImage(dataUrl);
         setImgSrc(dataUrl.trim() || null);
         resetCropState();
         setMode("crop");
       } catch (error) {
         console.error("Error reading selected image:", error);
+        alert("Unable to open this photo. Choose a supported image or take another photo.");
       }
     },
     [resetCropState],
@@ -152,7 +154,7 @@ export function PupilPhotoDetail({
     downloadImage(effectiveSrc, filename);
   };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (preparedPhoto: string) => {
     if (!imgSrc || !croppedAreaPixels) {
       return;
     }
@@ -160,8 +162,7 @@ export function PupilPhotoDetail({
     setIsProcessing(true);
 
     try {
-      const compressedDataUrl = await createPupilPhotoDataUrl(imgSrc, croppedAreaPixels);
-      onPhotoChange(compressedDataUrl);
+      onPhotoChange(preparedPhoto);
       setIsDialogOpen(false);
       resetDialog();
     } catch (error) {

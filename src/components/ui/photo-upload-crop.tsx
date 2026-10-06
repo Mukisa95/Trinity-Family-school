@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Camera, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { PhotoCropEditor } from "@/components/ui/photo-crop-editor";
-import { createPupilPhotoDataUrl, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
+import { createImage, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
 
 interface PhotoUploadCropProps {
   onPhotoChange: (photo: string | undefined) => void;
@@ -64,11 +64,13 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
 
       try {
         const dataUrl = await readFileAsDataUrl(file);
+        await createImage(dataUrl);
         setImgSrc(dataUrl);
         resetCropState();
         setMode("crop");
       } catch (error) {
         console.error("Error reading selected image:", error);
+        alert("Unable to open this photo. Choose a supported image or take another photo.");
       }
     },
     [resetCropState],
@@ -81,7 +83,7 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
     [handleSelectedFile],
   );
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (preparedPhoto: string) => {
     if (!imgSrc || !croppedAreaPixels) {
       return;
     }
@@ -89,8 +91,7 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
     setIsProcessing(true);
 
     try {
-      const compressedDataUrl = await createPupilPhotoDataUrl(imgSrc, croppedAreaPixels);
-      onPhotoChange(compressedDataUrl);
+      onPhotoChange(preparedPhoto);
       setIsDialogOpen(false);
       resetDialog();
     } catch (error) {

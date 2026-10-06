@@ -28,6 +28,8 @@ const CACHE_NAME = `trinity-schools-${SW_VERSION}`;
 const STATIC_CACHE = `static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${SW_VERSION}`;
 const FEE_REMINDER_STATE_CACHE = 'trinity-fee-reminder-state';
+// Public, versioned portrait-processing assets; no pupil images are stored here.
+const PHOTO_TOOLS_CACHE = 'trinity-photo-tools-v1';
 let feeReminderPushWork = Promise.resolve();
 const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
@@ -104,6 +106,7 @@ self.addEventListener('activate', (event) => {
             if (
               cacheName !== STATIC_CACHE &&
               cacheName !== FEE_REMINDER_STATE_CACHE && cacheName !== DYNAMIC_CACHE &&
+              cacheName !== PHOTO_TOOLS_CACHE &&
               !retainedParentShellCaches.has(cacheName)
             ) {
               console.log('🗑️ Deleting old cache:', cacheName);
@@ -581,6 +584,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(event.request.url);
+
+  if (url.origin === self.location.origin && url.pathname.startsWith('/photo-tools/v1/')) {
+    event.respondWith(caches.open(PHOTO_TOOLS_CACHE).then(async cache => {
+      const cached = await cache.match(event.request);
+      if (cached) return cached;
+      const response = await fetch(event.request);
+      if (response.ok) await cache.put(event.request, response.clone());
+      return response;
+    }));
+    return;
+  }
 
   if (url.origin === self.location.origin && PARENT_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
     event.respondWith(

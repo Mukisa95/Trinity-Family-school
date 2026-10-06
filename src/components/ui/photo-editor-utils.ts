@@ -1,6 +1,8 @@
 "use client";
 
 import type { Area } from "react-easy-crop";
+import type { PhotoToolsClient } from "@/lib/photo/photo-tools-client";
+import type { PhotoFace, PhotoSettings } from "@/lib/photo/photo-processing";
 
 export interface CropCanvasOptions {
   outputSize: number;
@@ -23,7 +25,7 @@ export async function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-async function createImage(src: string): Promise<HTMLImageElement> {
+export async function createImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
@@ -56,15 +58,24 @@ export async function createSquareCropCanvas(
     );
   }
 
+  if (!Number.isFinite(croppedAreaPixels.x) || !Number.isFinite(croppedAreaPixels.y) ||
+      croppedAreaPixels.x < -1 || croppedAreaPixels.y < -1 ||
+      croppedAreaPixels.x + cropSize > image.naturalWidth + 1 ||
+      croppedAreaPixels.y + cropSize > image.naturalHeight + 1) {
+    throw new Error("The crop extends outside the photo. Reposition it and try again.");
+  }
+
   canvas.width = options.outputSize;
   canvas.height = options.outputSize;
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(
     image,
-    croppedAreaPixels.x,
-    croppedAreaPixels.y,
+    Math.max(0, croppedAreaPixels.x),
+    Math.max(0, croppedAreaPixels.y),
     cropSize,
     cropSize,
     0,
@@ -120,6 +131,11 @@ export async function createPupilPhotoDataUrl(
     minimumSourceSize: PUPIL_PHOTO_OUTPUT_SIZE,
   });
 
+  return encodePupilPhotoCanvas(canvas);
+}
+
+export async function encodePupilPhotoCanvas(canvas: HTMLCanvasElement): Promise<string> {
+
   let quality = PUPIL_PHOTO_INITIAL_QUALITY;
   let blob = await canvasToJpegBlob(canvas, quality);
 
@@ -141,4 +157,25 @@ export async function createPupilPhotoDataUrl(
   }
 
   return dataUrl;
+}
+
+export async function createEnhancedPupilPhoto(
+  imageSrc: string, area: Area, settings: PhotoSettings, tools: PhotoToolsClient, face?: PhotoFace,
+) {
+  const canvas = await createSquareCropCanvas(imageSrc, area, {
+    outputSize: PUPIL_PHOTO_OUTPUT_SIZE, minimumSourceSize: PUPIL_PHOTO_OUTPUT_SIZE,
+  });
+  const ctx = canvas.getContext("2d")!;
+  const original = await encodePupilPhotoCanvas(canvas);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const scale = canvas.width / Math.min(area.width, area.height);
+  const region = face ? { x: (face.x - area.x) * scale, y: (face.y - area.y) * scale,
+    width: face.width * scale, height: face.height * scale } : undefined;
+  const result = await tools.enhance(imageData.data, canvas.width, canvas.height, settings, region);
+  if (face && (face.x < area.x || face.y < area.y || face.x + face.width > area.x + area.width || face.y + face.height > area.y + area.height)) {
+    result.warnings.push({ code: "face-cut-off", message: "Part of the face is outside the crop. Reposition the photo before saving." });
+  }
+  imageData.data.set(result.pixels);
+  ctx.putImageData(imageData, 0, 0);
+  return { photo: await encodePupilPhotoCanvas(canvas), original, warnings: result.warnings };
 }
