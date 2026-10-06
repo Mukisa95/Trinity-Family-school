@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analysePhoto, applyWhiteBackground, findHeadTop, enhancePhoto, suggestFaceCrop, DEFAULT_PHOTO_SETTINGS, photoQualityWarnings } from '../src/lib/photo/photo-processing';
+import { analysePhoto, applyWhiteBackground, findHeadTop, refinePersonMask, enhancePhoto, suggestFaceCrop, DEFAULT_PHOTO_SETTINGS, PHOTO_FILTERS, photoQualityWarnings } from '../src/lib/photo/photo-processing';
 
 function image(width: number, height: number, sample: (x: number, y: number) => number[]) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -108,4 +108,88 @@ test('manual warmth, brightness, and extreme inputs remain bounded with alpha in
   assert.equal(result[0], 153); assert.equal(result[1], 144); assert.equal(result[2], 135);
   assert.equal(result[3], 255);
   assert.throws(() => enhancePhoto(new Uint8ClampedArray(4), 64, 64, DEFAULT_PHOTO_SETTINGS));
+});
+
+test('all passport presets keep a square crop around the full head and upper shoulders', () => {
+  const face = { x: 900, y: 700, width: 300, height: 360 }, crown = 500;
+  const crops = ['tight', 'standard', 'headroom'].map(framing => suggestFaceCrop(face, 4000, 3000, crown, framing as 'tight' | 'standard' | 'headroom'));
+  assert.ok(crops[0].width < crops[1].width && crops[1].width < crops[2].width);
+  for (const crop of crops) {
+    assert.equal(crop.width, crop.height);
+    assert.ok((face.y + face.height - crop.y) / crop.height >= 0.77, 'Keep most of the body outside the crop');
+    assert.ok((crown - crop.y) / crop.height >= 0.079, 'Keep the crown clear of the top');
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 50) {
+      const x = face.x + face.width / 2 + Math.cos(a) * face.width * 0.65;
+      const y = (crown + face.y + face.height) / 2 + Math.sin(a) * (face.y + face.height - crown) / 2;
+      assert.ok(Math.hypot(x - crop.x - crop.width / 2, y - crop.y - crop.height / 2) < crop.width / 2);
+    }
+  }
+});
+
+test('filter presets change the JPEG pixels without changing the source, and B&W is neutral', () => {
+  const source = image(64, 64, (x, y) => [65 + x * 2, 70 + y, 60 + x]);
+  const original = source.slice();
+  const natural = enhancePhoto(source, 64, 64, { ...DEFAULT_PHOTO_SETTINGS, auto: false }).pixels;
+  assert.deepEqual(natural, source);
+  for (const filter of PHOTO_FILTERS.filter(filter => filter.id !== 'natural')) {
+    const result = enhancePhoto(source, 64, 64, { ...DEFAULT_PHOTO_SETTINGS, auto: false, filter: filter.id }).pixels;
+    assert.notDeepEqual(result, natural, filter.label);
+    if (filter.id === 'mono') for (let i = 0; i < result.length; i += 4) {
+      assert.equal(result[i], result[i + 1]); assert.equal(result[i], result[i + 2]);
+    }
+  }
+  assert.deepEqual(source, original);
+});
+
+test('shadows and highlights target their own tones; corrected quality warnings can disappear', () => {
+  const source = image(64, 64, x => x < 32 ? [25, 25, 25] : [230, 230, 230]);
+  const shadows = enhancePhoto(source, 64, 64, { auto: false, brightness: 0, warmth: 0, shadows: 40 }).pixels;
+  const highlights = enhancePhoto(source, 64, 64, { auto: false, brightness: 0, warmth: 0, highlights: -40 }).pixels;
+  assert.ok(shadows[0] - 25 > shadows[60 * 4] - 230);
+  assert.ok(230 - highlights[60 * 4] > 25 - highlights[0]);
+  const dark = image(64, 64, () => [38, 38, 38]);
+  assert.ok(enhancePhoto(dark, 64, 64, { auto: false, brightness: 0, warmth: 0 }).warnings.some(w => w.code === 'dark'));
+  assert.ok(!enhancePhoto(dark, 64, 64, { auto: false, brightness: 30, warmth: 0 }).warnings.some(w => w.code === 'dark'));
+});
+
+test('guided refinement reduces a blurred matte halo at a source edge while preserving confident pixels', () => {
+  const width = 64, height = 32;
+  const source = image(width, height, x => x < 32 ? [220, 220, 220] : [40, 40, 40]);
+  const confidence = Float32Array.from({ length: width * height }, (_, i) => Math.max(0, Math.min(1, ((i % width) - 26) / 12)));
+  const before = confidence.slice();
+  const refined = refinePersonMask(source, width, height, { width, height, confidence });
+  const left = 16 * width + 31, right = left + 1;
+  assert.ok(refined.confidence[left] < confidence[left], 'Reduce background leakage');
+  assert.ok(refined.confidence[right] > confidence[right], 'Preserve the subject edge');
+  assert.ok(refined.confidence[16 * width + 10] <= 0.01);
+  assert.ok(refined.confidence[16 * width + 50] >= 0.99);
+  assert.deepEqual(confidence, before);
+});
+
+test('refinement removes a distant speck and preserves disconnected hair close to the subject', () => {
+  const width = 64, height = 64;
+  const confidence = new Float32Array(width * height);
+  for (let y = 15; y < 60; y++) for (let x = 20; x < 45; x++) confidence[y * width + x] = 1;
+  confidence[3 * width + 3] = 1; confidence[12 * width + 30] = 1;
+  const result = refinePersonMask(image(width, height, () => [100, 100, 100]), width, height, { width, height, confidence });
+  assert.ok(result.confidence[3 * width + 3] <= 0.01);
+  assert.ok(result.confidence[12 * width + 30] >= 0.99);
+});
+
+test('background colour, edge and feather controls work, and removal never silently saves an absent subject', () => {
+  const source = image(3, 3, () => [50, 60, 70]);
+  const mask = { width: 3, height: 3, confidence: new Float32Array([0, 0.35, 1, 0, 0.35, 1, 0, 0.35, 1]) };
+  const blue = applyWhiteBackground(source, 3, 3, mask, { backgroundColor: 'blue' });
+  assert.deepEqual([...blue.slice(0, 4)], [220, 235, 248, 255]);
+  const contracted = applyWhiteBackground(source, 3, 3, mask, { backgroundEdge: 20 });
+  const expanded = applyWhiteBackground(source, 3, 3, mask, { backgroundEdge: -20 });
+  assert.ok(contracted[4] > expanded[4]);
+  const soft = applyWhiteBackground(source, 3, 3, mask, { backgroundFeather: 100 });
+  const hard = applyWhiteBackground(source, 3, 3, mask, { backgroundFeather: 0 });
+  assert.ok(soft[4] < hard[4]);
+  assert.deepEqual([...blue.slice(8, 12)], [...source.slice(8, 12)]);
+  const settings = { ...DEFAULT_PHOTO_SETTINGS, removeBackground: true };
+  assert.throws(() => enhancePhoto(source, 3, 3, settings), /mask unavailable/);
+  assert.throws(() => enhancePhoto(source, 3, 3, settings, undefined, { ...mask, confidence: new Float32Array(9) }), /No clear subject/);
+  assert.throws(() => refinePersonMask(source, 3, 3, { ...mask, confidence: new Float32Array(9).fill(NaN) }), /confidence/);
 });

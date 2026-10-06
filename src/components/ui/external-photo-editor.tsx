@@ -44,21 +44,20 @@ export function ExternalPhotoEditor({ imageSrc, onImport, disabled }: { imageSrc
       // The file is prepared ahead of time: share() runs in the click gesture.
       if (hasNativePhotoBridge()) await nativePhotoRequest("share", { dataUrl: ready.dataUrl }, signal);
       else await navigator.share({ files: [ready.file], title: "Edit photo" });
-      if (!signal.aborted) setMessage("After editing, export a JPEG in that app and use Import edited photo below.");
+      if (!signal.aborted) setMessage("Ready to import your edited photo.");
     } catch (cause) {
-      if (!signal.aborted && !isPhotoActionCancelled(cause)) setMessage("Could not open an editor. Download the source photo, edit it in your app, then import its exported JPEG.");
+      if (!signal.aborted && !isPhotoActionCancelled(cause)) setMessage("Could not open an editor. Download the photo instead.");
     } finally { if (!signal.aborted) setSharing(false); }
   }
-  return <details className="rounded-lg border border-white/10 px-3" onToggle={event => { if (event.currentTarget.open) setEnabled(true); }}>
-    <summary className="flex min-h-11 cursor-pointer items-center text-sm">Use another photo editor</summary>
-    <div className="h-56 space-y-2 overflow-y-auto pb-2">
-      <p className="text-xs text-slate-300">Choose a compatible app, such as Snapseed, from your phone’s share menu. Export the finished photo as JPEG, then import it here to frame and save.</p>
+  return <details className="rounded-xl border border-white/10 px-3" onToggle={event => { if (event.currentTarget.open) setEnabled(true); }}>
+    <summary className="flex min-h-11 cursor-pointer items-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">Use another editor</summary>
+    <div className="space-y-2 pb-3">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" className="min-h-11 bg-transparent text-white" disabled={disabled || sharing || !ready || !canSharePhoto(ready.file)} onClick={share}>{sharing ? "Opening…" : "Open in another editor"}</Button>
-        <Button type="button" variant="outline" className="min-h-11 bg-transparent text-white" disabled={disabled || sharing} onClick={() => input.current?.click()}>Import edited photo</Button>
+        <Button type="button" variant="outline" className="min-h-11 w-full rounded-lg border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white" disabled={disabled || sharing || !ready || !canSharePhoto(ready.file)} onClick={share}>{sharing ? "Opening…" : "Open in another editor"}</Button>
+        <Button type="button" variant="outline" className="min-h-11 w-full rounded-lg border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white" disabled={disabled || sharing} onClick={() => input.current?.click()}>Import edited photo</Button>
         {ready && !hasNativePhotoBridge() && <a href={ready.url} download="portrait-source.jpg" className="inline-flex min-h-11 items-center rounded-md px-3 text-sm underline">Download source photo</a>}
       </div>
-      <p role="status" className="text-xs text-slate-300">{message || (!ready ? "Preparing source photo…" : !canSharePhoto(ready.file) ? "This browser cannot share photos to apps. Download the source photo and open it in your editor." : "The share menu lists apps installed on this phone that accept photos.")}</p>
+      {(message || !ready || !canSharePhoto(ready.file)) && <p role="status" className="text-xs text-slate-300">{message || (!ready ? "Preparing photo…" : "Photo sharing unavailable")}</p>}
     </div>
     <input ref={input} type="file" accept="image/*" className="hidden" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; void onImport(file); }} />
   </details>;

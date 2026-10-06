@@ -2,7 +2,7 @@
 
 import type { Area } from "react-easy-crop";
 import type { PhotoToolsClient } from "@/lib/photo/photo-tools-client";
-import { applyWhiteBackground, type PhotoFace, type PhotoSettings } from "@/lib/photo/photo-processing";
+import { type PersonMask, type PhotoFace, type PhotoSettings } from "@/lib/photo/photo-processing";
 
 export interface CropCanvasOptions {
   outputSize: number;
@@ -171,15 +171,15 @@ export async function createEnhancedPupilPhoto(
   const scale = canvas.width / Math.min(area.width, area.height);
   const region = face ? { x: (face.x - area.x) * scale, y: (face.y - area.y) * scale,
     width: face.width * scale, height: face.height * scale } : undefined;
-  const result = await tools.enhance(imageData.data, canvas.width, canvas.height, settings, region);
+  let mask: PersonMask | undefined;
   if (settings.removeBackground) {
     try {
-      const mask = await tools.segment(canvas, { source: imageSrc, area });
-      result.pixels = applyWhiteBackground(result.pixels, canvas.width, canvas.height, mask);
+      mask = await tools.segment(canvas, { source: imageSrc, area });
     } catch {
       throw new Error("Background removal is unavailable. Connect and try again, or turn off Remove background to keep editing.");
     }
   }
+  const result = await tools.enhance(imageData.data, canvas.width, canvas.height, settings, region, mask);
   if (face && (face.x < area.x || face.y < area.y || face.x + face.width > area.x + area.width || face.y + face.height > area.y + area.height)) {
     result.warnings.push({ code: "face-cut-off", message: "Part of the face is outside the crop. Reposition the photo before saving." });
   }

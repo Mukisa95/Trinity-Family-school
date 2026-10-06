@@ -152,7 +152,7 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
           </div>
 
           {mode === "crop" && imgSrc ? (
-            <ModernDialogContent size="full" noPadding className="mx-0 h-[100vh] max-h-[100vh] w-screen max-w-none rounded-none border-0">
+            <ModernDialogContent size="full" noPadding className="mx-0 h-[100vh] max-h-[100vh] w-screen max-w-none rounded-none border-0 [&>button]:hidden">
               <PhotoCropEditor
                 imageSrc={imgSrc}
                 title="Crop Photo"

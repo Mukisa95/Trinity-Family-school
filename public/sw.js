@@ -588,7 +588,7 @@ self.addEventListener('fetch', (event) => {
   // Native captures are private, short-lived files, never offline assets.
   if (url.origin === self.location.origin && url.pathname.startsWith('/__native_photo/')) return;
 
-  if (url.origin === self.location.origin && /^\/photo-tools\/v[12]\//.test(url.pathname)) {
+  if (url.origin === self.location.origin && /^\/photo-tools\/v[123]\//.test(url.pathname)) {
     event.respondWith(caches.open(PHOTO_TOOLS_CACHE).then(async cache => {
       const cached = await cache.match(event.request);
       if (cached) return cached;

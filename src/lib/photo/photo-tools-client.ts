@@ -1,7 +1,7 @@
 import { enhancePhoto, type PersonMask, type PhotoFace, type PhotoRegion, type PhotoSettings } from './photo-processing';
 
 export const PHOTO_TOOL_ASSETS = [
-  '/photo-tools/v2/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
+  '/photo-tools/v3/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
   '/photo-tools/v1/wasm/vision_wasm_nosimd_internal.js', '/photo-tools/v1/wasm/vision_wasm_nosimd_internal.wasm',
 ];
 export const PHOTO_TOOLS_CACHE = 'trinity-photo-tools-v1';
@@ -48,7 +48,7 @@ export class PhotoToolsClient {
     if (this.disposed) return Promise.reject(new Error('Photo editor closed.'));
     if (!this.worker) {
       clearTimeout(idleTimer);
-      this.worker = idleWorker ?? new Worker('/photo-tools/v2/photo-worker.js');
+      this.worker = idleWorker ?? new Worker('/photo-tools/v3/photo-worker.js');
       idleWorker = undefined;
       this.worker.onmessage = event => {
         const item = this.pending.get(event.data.id);
@@ -89,18 +89,18 @@ export class PhotoToolsClient {
     }
     return result;
   }
-  async enhance(pixels: Uint8ClampedArray, width: number, height: number, settings: PhotoSettings, region?: PhotoRegion): Promise<ReturnType<typeof enhancePhoto>> {
+  async enhance(pixels: Uint8ClampedArray, width: number, height: number, settings: PhotoSettings, region?: PhotoRegion, mask?: PersonMask): Promise<ReturnType<typeof enhancePhoto>> {
     if (typeof Worker === 'undefined') {
       await new Promise(resolve => setTimeout(resolve, 0));
-      return enhancePhoto(pixels, width, height, settings, region);
+      return enhancePhoto(pixels, width, height, settings, region, mask);
     }
     // Keep the original pixels for comparison and a local fallback.
     const copy = new Uint8ClampedArray(pixels);
-    try { return await this.request('enhance', { pixels: copy, width, height, settings, region }, [copy.buffer]); }
+    try { return await this.request('enhance', { pixels: copy, width, height, settings, region, mask }, [copy.buffer]); }
     catch (error) {
       if (this.disposed) throw error;
       await new Promise(resolve => setTimeout(resolve, 0));
-      return enhancePhoto(pixels, width, height, settings, region);
+      return enhancePhoto(pixels, width, height, settings, region, mask);
     }
   }
   private stopWorker(error: Error) {

@@ -1,4 +1,4 @@
-import { enhancePhoto, type PhotoSettings, type PhotoRegion } from './photo-processing';
+import { enhancePhoto, type PhotoSettings, type PhotoRegion, type PersonMask } from './photo-processing';
 
 declare const Vision: {
   FaceDetector: { createFromOptions: (files: unknown, options: unknown) => Promise<{ detect: (image: ImageBitmap) => { detections: Array<{ boundingBox: { originX: number; originY: number; width: number; height: number }; keypoints: Array<{ x: number; y: number }> }> } }> };
@@ -11,7 +11,7 @@ declare function importScripts(...urls: string[]): void;
 let detector: ReturnType<typeof Vision.FaceDetector.createFromOptions> | undefined;
 let segmenter: ReturnType<typeof Vision.ImageSegmenter.createFromOptions> | undefined;
 let visionLoaded = false;
-// Reuse the immutable v1 runtime and detector; only the new worker/model are v2.
+// The v3 worker reuses the immutable v1 runtime/detector and v2 segmenter.
 const base = new URL('/photo-tools/v1/', globalThis.location.href).href;
 function files() {
   if (!visionLoaded) {
@@ -43,8 +43,8 @@ globalThis.onmessage = async (event: MessageEvent) => {
   const { id, type } = event.data;
   try {
     if (type === 'enhance') {
-      const { pixels, width, height, settings, region } = event.data as { pixels: Uint8ClampedArray; width: number; height: number; settings: PhotoSettings; region?: PhotoRegion };
-      const result = enhancePhoto(pixels, width, height, settings, region);
+      const { pixels, width, height, settings, region, mask } = event.data as { pixels: Uint8ClampedArray; width: number; height: number; settings: PhotoSettings; region?: PhotoRegion; mask?: PersonMask };
+      const result = enhancePhoto(pixels, width, height, settings, region, mask);
       postMessage({ id, result }, { transfer: [result.pixels.buffer] });
     } else if (type === 'detect') {
       const bitmap = event.data.bitmap as ImageBitmap;
