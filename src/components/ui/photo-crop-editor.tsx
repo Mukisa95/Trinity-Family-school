@@ -5,7 +5,8 @@ import Cropper, { type Area, type Point, type Size } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { Button } from "@/components/ui/button";
 import { ExternalPhotoEditor } from "./external-photo-editor";
-import { RotateCcw, Check, X, ScanFace, ArrowLeft, Crop, SlidersHorizontal, Palette, Eraser, Eye, AlertTriangle, Loader2 } from "lucide-react";
+import { PhotoZoomControl } from "./photo-zoom-control";
+import { RotateCcw, Check, X, Circle, Square, ArrowLeft, Crop, SlidersHorizontal, Palette, Eraser, Eye, AlertTriangle, Loader2 } from "lucide-react";
 import { createEnhancedPupilPhoto, createImage } from "./photo-editor-utils";
 import { PhotoToolsClient } from "@/lib/photo/photo-tools-client";
 import { DEFAULT_PHOTO_SETTINGS, PHOTO_FILTERS, findHeadTop, suggestFaceCrop, type PhotoFace, type PhotoSettings, type PassportFraming } from "@/lib/photo/photo-processing";
@@ -123,7 +124,6 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
     return () => { clearTimeout(timer); generation.current++; };
   }, [imageSrc, area, settings, face, retry]);
 
-  const suggested = face && sourceSize ? suggestFaceCrop(face, sourceSize.width, sourceSize.height, headTop, framing) as Area : undefined;
   function applyFraming(value: PassportFraming) {
     setFraming(value); framingRef.current = value; setShowOriginal(false);
     if (face && sourceSize) {
@@ -208,7 +208,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
         {error && <div role="alert" className="absolute inset-x-3 bottom-12 z-20 rounded-xl border border-red-300/20 bg-slate-950/95 p-3 text-sm text-red-200">{error}<Button type="button" variant="ghost" className="ml-2 min-h-11 text-white" onClick={() => setRetry(value => value + 1)}>Try again</Button></div>}
       </div>
 
-      <section className="photo-editor-controls flex h-[clamp(210px,38dvh,320px)] shrink-0 flex-col overflow-hidden border-t border-white/10 bg-slate-950" aria-label="Photo tools">
+      <section className="photo-editor-controls flex h-[clamp(264px,38dvh,320px)] shrink-0 flex-col overflow-hidden border-t border-white/10 bg-slate-950" aria-label="Photo tools">
         <div role="tablist" aria-label="Photo tools" className="grid shrink-0 grid-cols-4 gap-1 border-b border-white/10 p-2">
           {PANELS.map(({ id: value, label, icon: Icon }, index) => <button key={value} id={`${id}-tab-${value}`} type="button" role="tab" aria-selected={panel === value} aria-controls={`${id}-panel`} tabIndex={panel === value ? 0 : -1} disabled={isProcessing}
             className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:opacity-50 ${panel === value ? "bg-sky-400/15 text-sky-200" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}
@@ -221,28 +221,34 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
         </div>
         <div ref={panelScroll} role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-tab-${panel}`} className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
           {panel === "crop" && <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {([['auto', 'Auto enhance'], ['removeBackground', 'Remove background']] as const).map(([key, label]) => <label key={key} className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl border px-2 text-xs font-medium ${settings[key] ? selected : 'border-white/15 bg-white/5 text-slate-200'}`}>
+                <span>{label}</span><input type="checkbox" checked={!!settings[key]} disabled={isProcessing} onChange={event => update(key, event.target.checked)} className="h-4 w-4 shrink-0 accent-sky-400" />
+              </label>)}
+            </div>
             <div className="grid grid-cols-3 gap-2" role="group" aria-label="Passport framing">
               {([['tight', 'Tight'], ['standard', 'Standard'], ['headroom', 'Headroom']] as const).map(([value, label]) => <Button key={value} type="button" variant="outline" aria-pressed={framing === value} disabled={isProcessing} className={`${secondary} px-2 ${framing === value ? selected : ""}`} onClick={() => applyFraming(value)}>{label}</Button>)}
             </div>
             <div className="flex items-center gap-3">
-              <label htmlFor={`${id}-zoom`} className="text-sm">Zoom</label><input id={`${id}-zoom`} aria-label="Zoom" type="range" min={1} max={16} step={0.01} value={zoom} disabled={isProcessing} className="h-11 min-w-0 flex-1 cursor-pointer accent-sky-400" onChange={event => { userPositioned.current = true; onZoomChange(Number(event.target.value)); }} />
-              <Button type="button" variant="outline" className={`${secondary} px-3`} aria-label="Frame head" disabled={!suggested || isProcessing} onClick={() => applyFraming(framing)}><ScanFace className="h-4 w-4" /></Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Crop guide">
-              {([['circle', 'Circle'], ['square', 'Square']] as const).map(([value, label]) => <Button key={value} type="button" variant="outline" className={`${secondary} ${guide === value ? selected : ""}`} aria-pressed={guide === value} disabled={isProcessing} onClick={() => setGuide(value)}>{label}</Button>)}
+              <PhotoZoomControl zoom={zoom} disabled={isProcessing} onInteraction={setInteracting} onChange={value => { userPositioned.current = true; onZoomChange(value); }} />
+              <div className="flex shrink-0 gap-2" role="group" aria-label="Crop guide">
+                {([['circle', 'Circle', Circle], ['square', 'Square', Square]] as const).map(([value, label, Icon]) => <Button key={value} type="button" variant="outline" className={`${secondary} w-11 px-0 ${guide === value ? selected : ""}`} aria-label={`${label} crop guide`} aria-pressed={guide === value} disabled={isProcessing} onClick={() => setGuide(value)}><Icon aria-hidden className="h-5 w-5" /></Button>)}
+              </div>
             </div>
           </div>}
           {panel === "enhance" && <div className="space-y-3">
-            <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm font-medium"><span>Auto enhance</span><input type="checkbox" checked={settings.auto} disabled={isProcessing} onChange={event => update("auto", event.target.checked)} className="h-5 w-5 accent-sky-400" /></label>
             {ADJUSTMENTS.map(([key, label, min, max]) => slider(key, label, min, max))}
           </div>}
-          {panel === "filters" && <div className="grid grid-cols-3 gap-2" role="group" aria-label="Photo filters">
+          {panel === "filters" && <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Photo filters">
             {PHOTO_FILTERS.map(filter => <button key={filter.id} type="button" disabled={isProcessing} aria-pressed={settings.filter === filter.id} className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border px-2 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 disabled:opacity-50 ${settings.filter === filter.id ? selected : "border-white/10 bg-white/5 hover:bg-white/10"}`} onClick={() => update("filter", filter.id)}>
-              <span aria-hidden className={`h-7 w-7 rounded-full ${filter.id === 'mono' ? 'bg-gradient-to-r from-slate-200 to-slate-700' : filter.id === 'warm' ? 'bg-gradient-to-br from-amber-200 to-rose-300' : filter.id === 'cool' ? 'bg-gradient-to-br from-sky-200 to-indigo-300' : filter.id === 'vivid' ? 'bg-gradient-to-br from-rose-300 to-sky-300' : filter.id === 'soft' ? 'bg-gradient-to-br from-stone-100 to-rose-100' : filter.id === 'clean' ? 'bg-gradient-to-br from-sky-100 to-white' : 'bg-gradient-to-br from-amber-100 to-stone-300'}`} />{filter.label}
+              <span aria-hidden className={`h-7 w-7 rounded-full ${filter.id === 'warm' ? 'bg-gradient-to-br from-amber-200 to-rose-300' : filter.id === 'bright' ? 'bg-gradient-to-br from-sky-100 to-amber-100' : filter.id === 'vivid' ? 'bg-gradient-to-br from-rose-300 to-sky-300' : filter.id === 'beauty' ? 'bg-gradient-to-br from-stone-100 to-rose-100' : filter.id === 'portrait' ? 'bg-gradient-to-br from-rose-200 to-amber-100' : filter.id === 'clean' ? 'bg-gradient-to-br from-sky-100 to-white' : 'bg-gradient-to-br from-amber-100 to-stone-300'}`} />{filter.label}
             </button>)}
+            </div>
+            {slider("filterIntensity", "Filter strength", 0, 100)}
+            <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm"><span>Preserve skin tones</span><input type="checkbox" checked={settings.protectSkin !== false} disabled={isProcessing} onChange={event => update("protectSkin", event.target.checked)} className="h-5 w-5 accent-sky-400" /></label>
           </div>}
           {panel === "background" && <div className="space-y-3">
-            <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm font-medium"><span>Remove background</span><input type="checkbox" checked={!!settings.removeBackground} disabled={isProcessing} onChange={event => update("removeBackground", event.target.checked)} className="h-5 w-5 accent-sky-400" /></label>
             <fieldset disabled={!settings.removeBackground || isProcessing} className="space-y-3 disabled:opacity-40">
               <div className="grid grid-cols-3 gap-2" role="group" aria-label="Background colour">{([['white', 'White', 'bg-white'], ['grey', 'Grey', 'bg-slate-200'], ['blue', 'Blue', 'bg-sky-100']] as const).map(([value, label, color]) => <Button key={value} type="button" variant="outline" aria-pressed={settings.backgroundColor === value} className={`${secondary} gap-2 px-2 ${settings.backgroundColor === value ? selected : ""}`} onClick={() => update("backgroundColor", value)}><span aria-hidden className={`h-3 w-3 shrink-0 rounded-full ${color}`} />{label}</Button>)}</div>
               {slider("backgroundEdge", "Edge", -20, 20)}{slider("backgroundFeather", "Feather", 0, 100)}
@@ -254,7 +260,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
 
       <footer className="photo-editor-actions shrink-0 border-t border-white/10 px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2">
-          <Button type="button" variant="outline" className={`${secondary} px-3 text-xs sm:text-sm`} onClick={onCancel} disabled={isProcessing}>Retake / upload</Button>
+          <Button type="button" variant="outline" className={`${secondary} min-w-0 whitespace-normal px-3 text-center text-xs leading-tight sm:text-sm`} onClick={onCancel} disabled={isProcessing}>Retake / upload</Button>
           <div className="flex shrink-0 gap-2"><Button type="button" variant="outline" className={`${secondary} w-11 px-0`} onClick={reset} disabled={isProcessing} aria-label="Reset photo adjustments"><RotateCcw className="h-4 w-4" /></Button>
             <Button type="button" disabled={busy || !preview} className="min-h-11 rounded-xl bg-sky-400 px-3 text-sm font-semibold text-slate-950 hover:bg-sky-300" onClick={() => { userPositioned.current = true; if (stage === "crop") setStage("review"); else if (preview) onSave(preview.photo); }}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Check className="h-4 w-4" />}{busy ? "Processing…" : stage === "crop" ? "Review photo" : "Save photo"}

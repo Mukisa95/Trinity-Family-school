@@ -1,7 +1,7 @@
 import { enhancePhoto, type PersonMask, type PhotoFace, type PhotoRegion, type PhotoSettings } from './photo-processing';
 
 export const PHOTO_TOOL_ASSETS = [
-  '/photo-tools/v3/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
+  '/photo-tools/v4/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
   '/photo-tools/v1/wasm/vision_wasm_nosimd_internal.js', '/photo-tools/v1/wasm/vision_wasm_nosimd_internal.wasm',
 ];
 export const PHOTO_TOOLS_CACHE = 'trinity-photo-tools-v1';
@@ -48,7 +48,7 @@ export class PhotoToolsClient {
     if (this.disposed) return Promise.reject(new Error('Photo editor closed.'));
     if (!this.worker) {
       clearTimeout(idleTimer);
-      this.worker = idleWorker ?? new Worker('/photo-tools/v3/photo-worker.js');
+      this.worker = idleWorker ?? new Worker('/photo-tools/v4/photo-worker.js');
       idleWorker = undefined;
       this.worker.onmessage = event => {
         const item = this.pending.get(event.data.id);

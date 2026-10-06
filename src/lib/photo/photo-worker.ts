@@ -11,7 +11,7 @@ declare function importScripts(...urls: string[]): void;
 let detector: ReturnType<typeof Vision.FaceDetector.createFromOptions> | undefined;
 let segmenter: ReturnType<typeof Vision.ImageSegmenter.createFromOptions> | undefined;
 let visionLoaded = false;
-// The v3 worker reuses the immutable v1 runtime/detector and v2 segmenter.
+// The v4 worker reuses the immutable v1 runtime/detector and v2 segmenter.
 const base = new URL('/photo-tools/v1/', globalThis.location.href).href;
 function files() {
   if (!visionLoaded) {
