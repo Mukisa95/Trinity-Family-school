@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,8 +10,8 @@ import {
   ModernDialogTitle,
   ModernDialogTrigger,
 } from "@/components/ui/modern-dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Upload, X } from "lucide-react";
+import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
+import { Camera, X } from "lucide-react";
 import Image from "next/image";
 import { PhotoCropEditor } from "@/components/ui/photo-crop-editor";
 import { createImage, readFileAsDataUrl } from "@/components/ui/photo-editor-utils";
@@ -31,17 +31,8 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const uploadInputRef = useRef<HTMLInputElement>(null);
-
-  const clearInputs = useCallback(() => {
-    if (cameraInputRef.current) {
-      cameraInputRef.current.value = "";
-    }
-    if (uploadInputRef.current) {
-      uploadInputRef.current.value = "";
-    }
-  }, []);
+  const selectionGeneration = useRef(0);
+  useEffect(() => { selectionGeneration.current++; return () => { selectionGeneration.current++; }; }, [isDialogOpen]);
 
   const resetCropState = useCallback(() => {
     setCrop({ x: 0, y: 0 });
@@ -50,11 +41,11 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
   }, []);
 
   const resetDialog = useCallback(() => {
+    selectionGeneration.current++;
     setMode("select");
     setImgSrc("");
     resetCropState();
-    clearInputs();
-  }, [clearInputs, resetCropState]);
+  }, [resetCropState]);
 
   const handleSelectedFile = useCallback(
     async (file?: File) => {
@@ -62,25 +53,21 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
         return;
       }
 
+      const request = ++selectionGeneration.current;
       try {
         const dataUrl = await readFileAsDataUrl(file);
         await createImage(dataUrl);
+        if (request !== selectionGeneration.current) return;
         setImgSrc(dataUrl);
         resetCropState();
         setMode("crop");
       } catch (error) {
+        if (request !== selectionGeneration.current) return;
         console.error("Error reading selected image:", error);
         alert("Unable to open this photo. Choose a supported image or take another photo.");
       }
     },
     [resetCropState],
-  );
-
-  const handleInputChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      await handleSelectedFile(event.target.files?.[0]);
-    },
-    [handleSelectedFile],
   );
 
   const handleSave = useCallback(async (preparedPhoto: string) => {
@@ -176,13 +163,14 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
                 onZoomChange={setZoom}
                 onCropComplete={(_, areaPixels) => setCroppedAreaPixels(areaPixels)}
                 onCancel={() => {
+                  selectionGeneration.current++;
                   setMode("select");
                   setImgSrc("");
                   resetCropState();
-                  clearInputs();
                 }}
                 onReset={resetCropState}
                 onSave={handleSave}
+                onImportEdited={handleSelectedFile}
               />
             </ModernDialogContent>
           ) : (
@@ -192,48 +180,11 @@ export function PhotoUploadCrop({ onPhotoChange, currentPhoto, className }: Phot
               </ModernDialogHeader>
 
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <Card
-                    className="cursor-pointer border-blue-100 transition-colors hover:bg-blue-50 dark:hover:bg-gray-800"
-                    onClick={() => cameraInputRef.current?.click()}
-                  >
-                    <CardContent className="flex flex-col items-center justify-center p-6">
-                      <Camera className="mb-2 h-12 w-12 text-blue-600" />
-                      <span className="font-medium">Take Photo</span>
-                      <span className="text-center text-sm text-gray-500">Open your device camera</span>
-                    </CardContent>
-                  </Card>
-                  <Card
-                    className="cursor-pointer border-green-100 transition-colors hover:bg-green-50 dark:hover:bg-gray-800"
-                    onClick={() => uploadInputRef.current?.click()}
-                  >
-                    <CardContent className="flex flex-col items-center justify-center p-6">
-                      <Upload className="mb-2 h-12 w-12 text-green-600" />
-                      <span className="font-medium">Upload File</span>
-                      <span className="text-center text-sm text-gray-500">Choose from device</span>
-                    </CardContent>
-                  </Card>
-                </div>
+                <PhotoSourcePicker onFile={handleSelectedFile} />
               </div>
             </ModernDialogContent>
           )}
         </ModernDialog>
-
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleInputChange}
-          className="hidden"
-        />
-        <input
-          ref={uploadInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleInputChange}
-          className="hidden"
-        />
       </div>
     </div>
   );

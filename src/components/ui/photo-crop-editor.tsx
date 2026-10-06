@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Cropper, { type Area, type Point, type Size } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { Button } from "@/components/ui/button";
+import { ExternalPhotoEditor } from "./external-photo-editor";
 import { RotateCcw, Check, X, ScanFace, ArrowLeft } from "lucide-react";
 import { createEnhancedPupilPhoto, createImage } from "./photo-editor-utils";
 import { PhotoToolsClient } from "@/lib/photo/photo-tools-client";
@@ -21,10 +22,11 @@ interface PhotoCropEditorProps {
   onCancel: () => void;
   onReset: () => void;
   onSave: (photo: string) => void;
+  onImportEdited?: (file?: File) => Promise<void>;
 }
 
 export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = false,
-  onCropChange, onZoomChange, onCropComplete, onCancel, onReset, onSave }: PhotoCropEditorProps) {
+  onCropChange, onZoomChange, onCropComplete, onCancel, onReset, onSave, onImportEdited }: PhotoCropEditorProps) {
   const tools = useRef<PhotoToolsClient | null>(null);
   const userPositioned = useRef(false);
   const [settings, setSettings] = useState({ ...DEFAULT_PHOTO_SETTINGS });
@@ -198,6 +200,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
             Remove background <span className="text-xs text-slate-300">White</span>
           </label>
           {settings.removeBackground && <p className="text-xs text-slate-300">Check the hair edges. Turn this off to keep the original background.</p>}
+          {onImportEdited && <ExternalPhotoEditor imageSrc={imageSrc} onImport={onImportEdited} disabled={isProcessing} />}
           <details className="rounded-lg border border-white/10 px-3">
             <summary className="flex min-h-11 cursor-pointer items-center text-sm">Photo adjustments</summary>
             <div className="grid gap-2 pb-2 sm:grid-cols-2">
