@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { 
   collection, 
   doc, 
@@ -919,7 +920,7 @@ export class BankingService {
 
         results.push({
           pupilId,
-          pupilName: `${pupil.firstName} ${pupil.lastName}`,
+          pupilName: `${formatPupilDisplayName(pupil)}`,
           processed: result.processed,
           message: result.message,
           amount: amount > 0 ? amount : undefined

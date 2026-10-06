@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import 'server-only';
 
 import { createHash, randomUUID } from 'crypto';
@@ -296,7 +297,7 @@ export async function createFeeReminder(input: CreateFeeReminderInput | CreateCu
     const dueAt = parseFeeReminderSchedule(input.scheduleDate, input.scheduleTime, now);
     const note: FeeReminder = {
       id: ref.id, kind: 'promise', pupilId: pupil.id,
-      pupilName: `${pupil.firstName} ${pupil.lastName}`.trim(),
+      pupilName: `${formatPupilDisplayName(pupil)}`.trim(),
       feeId: input.feeId, feeName: input.feeId === 'previous-balance' ? 'Previous Term Balances' : scopes[0].feeName,
       academicYearId: selectedYear.id, termId: selectedTerm.id,
       academicYearName: selectedYear.name, termName: selectedTerm.name, scopes,
@@ -341,7 +342,7 @@ async function createCustomFeeNote(input: CreateCustomFeeNoteInput, actor: Syste
     try { rows = customFeeRows({scopes, pupilId: input.pupilId, academicYearId: input.academicYearId, termId: input.termId, createdAt: now.toISOString(), baselinePaymentIds}, context, now, true); }
     catch (error) { throw new FeeReminderError((error as Error).message); }
     const result: FeeReminder = {id: ref.id, kind: 'custom', pupilId: input.pupilId,
-      pupilName: `${context.pupil.firstName} ${context.pupil.lastName}`.trim(), className: context.className,
+      pupilName: `${formatPupilDisplayName(context.pupil)}`.trim(), className: context.className,
       feeId: 'custom-selection', feeName: rows.map(row => row.feeName).join(', '), academicYearId: year.id, termId: term.id,
       academicYearName: year.name, termName: term.name, scopes: rows.map(({feeStructureId, academicYearId, termId, feeName, academicYearName, termName}) => ({feeStructureId, academicYearId, termId, feeName, academicYearName, termName})),
       promisedAmount: 0, promisedBy: '', phone: '', additionalNote: '', balanceAtCreation: rows.reduce((sum, row) => sum + row.balance, 0),
@@ -373,7 +374,7 @@ export async function withLiveCustomFeeDetails(notes: FeeReminder[], pupilId: st
     if (note.kind !== 'custom') return note;
     try {
       const now = new Date(), liveFees = customFeeRows(note, context, now);
-      const pupilName = `${context.pupil.firstName} ${context.pupil.lastName}`.trim();
+      const pupilName = `${formatPupilDisplayName(context.pupil)}`.trim();
       return {...note, className: context.className, liveFees,
         liveMessage: renderCustomNote({...note, pupilName}, liveFees, context.className, now)};
     } catch { return {...note, liveMessage: 'Current fee details are unavailable. Refresh after checking the selected items.'}; }

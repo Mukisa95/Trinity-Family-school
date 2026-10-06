@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,16 +47,7 @@ export function LinkSiblingsModal({
   ), [pupils, sourcePupil.familyId, sourcePupil.id]);
 
   // Filter pupils based on search term
-  const filteredPupils = availablePupils.filter(pupil => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      pupil.firstName.toLowerCase().includes(searchLower) ||
-      pupil.lastName.toLowerCase().includes(searchLower) ||
-      (pupil.otherNames && pupil.otherNames.toLowerCase().includes(searchLower)) ||
-      pupil.admissionNumber.toLowerCase().includes(searchLower) ||
-      (pupil.className && pupil.className.toLowerCase().includes(searchLower))
-    );
-  });
+  const filteredPupils = availablePupils.filter(pupil => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber, pupil.className]));
 
   const handlePupilSelect = (pupilId: string, isSelected: boolean) => {
     if (isSelected) {
@@ -164,7 +156,7 @@ export function LinkSiblingsModal({
                   Link Siblings
                 </DialogTitle>
                 <div className="text-xs font-normal text-gray-600">
-                  to {sourcePupil.firstName} {sourcePupil.lastName}
+                  to {formatPupilDisplayName(sourcePupil)}
                 </div>
               </div>
             </div>
@@ -298,7 +290,7 @@ export function LinkSiblingsModal({
                           {pupil.photo && pupil.photo.trim() !== '' && pupil.photo.startsWith('http') ? (
                             <AvatarImage 
                               src={pupil.photo} 
-                              alt={`${pupil.firstName} ${pupil.lastName}`}
+                              alt={`${formatPupilDisplayName(pupil)}`}
                             />
                           ) : null}
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm">
@@ -311,7 +303,7 @@ export function LinkSiblingsModal({
                             <div className="flex-1">
                               <div className="flex items-center space-x-2">
                                 <h4 className="text-sm font-semibold text-gray-900 truncate">
-                                  {pupil.firstName} {pupil.lastName} {pupil.otherNames || ''}
+                                  {formatPupilDisplayName(pupil)}
                                 </h4>
                                 <Badge 
                                   variant={pupil.status === 'Active' ? 'default' : 'secondary'}

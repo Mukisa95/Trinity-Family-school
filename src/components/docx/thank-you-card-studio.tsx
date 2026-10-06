@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { useMemo, useState } from 'react';
 import {
   AlertTriangle,
@@ -49,7 +50,7 @@ type CardPair = [Pupil, Pupil?];
 type PrintSide = 'front' | 'back';
 
 function pupilName(pupil: Pupil) {
-  return [pupil.firstName, pupil.lastName, pupil.otherNames].filter(Boolean).join(' ');
+  return formatPupilDisplayName(pupil);
 }
 
 function pupilInitials(pupil: Pupil) {
@@ -426,9 +427,7 @@ export function ThankYouCardStudio() {
       .filter((pupil) => photoFilter === 'all' || (photoFilter === 'with' ? Boolean(pupil.photo) : !pupil.photo))
       .filter((pupil) => {
         if (!normalizedSearch) return true;
-        return `${pupilName(pupil)} ${pupil.admissionNumber} ${pupil.className || ''}`
-          .toLowerCase()
-          .includes(normalizedSearch);
+        return matchesPupilSearch(pupil, search, [pupil.admissionNumber, pupil.className]);
       })
       .sort((left, right) => pupilName(left).localeCompare(pupilName(right)));
   }, [classFilter, genderFilter, photoFilter, pupils, search, sectionFilter, statusFilter]);

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -600,6 +601,7 @@ export default function RecordResultsView() {
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
       return enrichExamPupilStreamIdentity({
         ...snap,
+        name: formatPupilName(actualPupil, { fallback: snap.name }),
         dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth, // Use snapshot first, fallback to actual pupil
         ageAtExam: snap.ageAtExam // Keep the ageAtExam from snapshot
       }, actualPupil, examClass, examDetails?.academicYearId || examResultData?.academicYearId);
@@ -902,8 +904,7 @@ export default function RecordResultsView() {
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
       filtered = pupilSnaps.filter(pupil => 
-        pupil.name.toLowerCase().includes(searchLower) ||
-        pupil.admissionNumber.toLowerCase().includes(searchLower)
+        matchesPupilSearch({ otherNames: pupil.name }, searchTerm, [pupil.admissionNumber])
       );
     }
     

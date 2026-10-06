@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import {
   collection,
   doc,
@@ -432,7 +433,7 @@ export class PLEResultsService {
           }
 
           // Debug logging for certificate data
-          console.log(`Certificate data for ${currentPupil.firstName} ${currentPupil.lastName}:`, {
+          console.log(`Certificate data for ${formatPupilDisplayName(currentPupil)}:`, {
             admissionNumber: currentPupil.admissionNumber,
             indexNumber: indexNumber || 'Not found',
             learnerIdentificationNumber: learnerIdentificationNumber || 'Not found',
@@ -596,7 +597,7 @@ export class PLEResultsService {
         continue;
       }
 
-      const pupilName = `${currentPupilData.firstName} ${currentPupilData.lastName}`;
+      const pupilName = `${formatPupilDisplayName(currentPupilData)}`;
 
       // Call progress callback if provided
       if (onProgress) {

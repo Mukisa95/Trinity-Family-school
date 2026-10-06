@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { 
   collection, 
   doc, 
@@ -274,10 +275,10 @@ export class UsersService {
       
       // If user already exists for this pupil, return error
       if (collision && collision.pupilId === pupilId) {
-        throw new Error(`Parent account already exists for pupil: ${pupil.firstName} ${pupil.lastName}`);
+        throw new Error(`Parent account already exists for pupil: ${formatPupilDisplayName(pupil)}`);
       }
       
-      console.log(`Generated parent username: ${finalUsername} for pupil: ${pupil.firstName} ${pupil.lastName}`);
+      console.log(`Generated parent username: ${finalUsername} for pupil: ${formatPupilDisplayName(pupil)}`);
       
       // Generate familyId if pupil doesn't have one
       let familyIdToUse = pupil.familyId;
@@ -300,7 +301,7 @@ export class UsersService {
         
         // Store additional metadata for easier identification
         firstName: 'Parent',
-        lastName: `of ${pupil.firstName} ${pupil.lastName}`,
+        lastName: `of ${formatPupilDisplayName(pupil)}`,
         email: undefined, // Parents typically don't have email in this system
       };
       
@@ -370,7 +371,7 @@ export class UsersService {
           if (existingParent) {
             results.failed.push({
               pupilId,
-              error: `Parent account already exists for ${pupil.firstName} ${pupil.lastName}`
+              error: `Parent account already exists for ${formatPupilDisplayName(pupil)}`
             });
             results.failedCount++;
             continue;
@@ -421,7 +422,7 @@ export class UsersService {
             guardianId,
             password: pupil.admissionNumber,
             firstName: 'Parent',
-            lastName: `of ${pupil.firstName} ${pupil.lastName}`,
+            lastName: `of ${formatPupilDisplayName(pupil)}`,
             email: undefined,
           };
 
@@ -430,7 +431,7 @@ export class UsersService {
           results.success.push({
             userId,
             pupilId,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             admissionNumber: pupil.admissionNumber,
             username: finalUsername
           });

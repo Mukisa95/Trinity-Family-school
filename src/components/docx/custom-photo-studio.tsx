@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch } from '@/lib/utils/name-formatter';
 import {
   useCallback,
   useEffect,
@@ -627,7 +628,7 @@ export function CustomPhotoStudio({ pupils, schoolSettings, schoolBadge, onClose
       if (photoFilter === 'with' && !hasPhoto) return false;
       if (photoFilter === 'without' && hasPhoto) return false;
       if (!query) return true;
-      return `${pupilDisplayName(pupil)} ${pupil.admissionNumber || ''} ${pupil.className || ''}`.toLowerCase().includes(query);
+      return matchesPupilSearch(pupil, pupilSearch, [pupil.admissionNumber, pupil.className]);
     });
   }, [classFilter, photoFilter, pupilSearch, pupils, statusFilter]);
   const allFilteredSelected = filteredPupils.length > 0 && filteredPupils.every((pupil) => selectedPupilIds.has(pupil.id));

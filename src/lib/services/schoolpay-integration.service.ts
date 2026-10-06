@@ -1,4 +1,5 @@
 import {processFeeReminderChangeSafely} from '@/lib/server/fee-reminders';
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { createHash, timingSafeEqual } from 'crypto';
 import {
   getFirestore as getAdminFirestore,
@@ -603,7 +604,7 @@ export class SchoolPayIntegrationService {
       try {
         await this.sendSchoolPayPushNotification({
           receiptNumber,
-          pupilName: payment.studentName || `${pupil.firstName} ${pupil.lastName}`,
+          pupilName: payment.studentName || `${formatPupilDisplayName(pupil)}`,
           amount: this.parseAmount(payment.amount),
           breakdown: recordingResult.distributionBreakdown,
           source: context.source,
@@ -1061,7 +1062,7 @@ export class SchoolPayIntegrationService {
           paymentDate: this.resolvePaymentDate(payment),
           paidBy: {
             id: 'schoolpay-system',
-            name: payment.studentName || pupil.firstName + ' ' + pupil.lastName,
+            name: payment.studentName || formatPupilDisplayName(pupil),
             role: 'Parent/Guardian',
           },
           notes: this.buildPaymentNotes(payment, description),
@@ -1116,7 +1117,7 @@ export class SchoolPayIntegrationService {
         paymentDate: this.resolvePaymentDate(payment),
         paidBy: {
           id: 'schoolpay-system',
-          name: payment.studentName || pupil.firstName + ' ' + pupil.lastName,
+          name: payment.studentName || formatPupilDisplayName(pupil),
           role: 'Parent/Guardian',
         },
         notes: this.buildPaymentNotes(payment, `${fee.name} (SchoolPay)`),
@@ -1237,7 +1238,7 @@ export class SchoolPayIntegrationService {
             paymentDate: this.resolvePaymentDate(payment),
             paidBy: {
               id: 'schoolpay-system',
-              name: payment.studentName || pupil.firstName + ' ' + pupil.lastName,
+              name: payment.studentName || formatPupilDisplayName(pupil),
               role: 'Parent/Guardian',
             },
             notes: this.buildPaymentNotes(
@@ -1306,7 +1307,7 @@ export class SchoolPayIntegrationService {
       paymentDate: this.resolvePaymentDate(payment),
       paidBy: {
         id: 'schoolpay-system',
-        name: payment.studentName || pupil.firstName + ' ' + pupil.lastName,
+        name: payment.studentName || formatPupilDisplayName(pupil),
         role: 'Parent/Guardian',
       },
       notes: this.buildPaymentNotes(payment, description, [

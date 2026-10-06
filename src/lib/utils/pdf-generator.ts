@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DutyRota, DutyTimeline, DutyPeriod, DutyAssignment } from '@/types/duty-service';
@@ -84,7 +85,7 @@ export const generateDutyRotaPDF = async ({
       if (member) {
         // Try different possible class field names
         const classInfo = member.classCode || member.className || member.class || 'No Class';
-        return `${member.firstName} ${member.lastName} (${classInfo})`;
+        return `${formatPupilDisplayName(member)} (${classInfo})`;
       }
       return `Pupil ID: ${memberId}`;
     }

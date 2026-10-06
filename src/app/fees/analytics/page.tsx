@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -282,11 +283,7 @@ export default function CollectionAnalyticsPage() {
         const pupil = allPupils.find(p => p.id === pupilId);
 
         // Try different name fields
-        const pupilName = pupil?.fullName ||
-          (pupil?.firstName && pupil?.lastName ? `${pupil.firstName} ${pupil.lastName}` : '') ||
-          pupil?.firstName ||
-          pupil?.lastName ||
-          'Unknown';
+        const pupilName = pupil ? formatPupilDisplayName(pupil) : 'Unknown';
 
         paymentsByPupil.set(pupilId, {
           pupilId,
@@ -862,11 +859,7 @@ export default function CollectionAnalyticsPage() {
                       .filter(p => p.classId === classData.classId)
                       .map(p => {
                         const feesInfo = pupilFeesInfo[p.id];
-                        const pupilName = p.fullName ||
-                          (p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : '') ||
-                          p.firstName ||
-                          p.lastName ||
-                          'Unknown';
+                        const pupilName = formatPupilDisplayName(p);
                         return {
                           ...p,
                           displayName: pupilName,
@@ -899,7 +892,7 @@ export default function CollectionAnalyticsPage() {
                     // Filter pupils based on search term
                     const searchTerm = pupilSearchTerm[classData.classId] || '';
                     const filteredPupils = searchTerm
-                      ? classPupils.filter(pupil => pupil.displayName.toLowerCase().includes(searchTerm.toLowerCase()))
+                      ? classPupils.filter(pupil => matchesPupilSearch(pupil, searchTerm))
                       : classPupils;
 
                     return (

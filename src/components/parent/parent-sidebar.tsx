@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
@@ -162,14 +163,14 @@ export function ParentSidebar({
                 >
                   <div className="flex items-center space-x-3">
                                          <Avatar className="h-8 w-8">
-                       <AvatarImage src={currentPupil?.photo || undefined} alt={`${currentPupil?.firstName} ${currentPupil?.lastName}`} />
+                       <AvatarImage src={currentPupil?.photo || undefined} alt={`${formatPupilDisplayName(currentPupil ?? {})}`} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm font-semibold">
                         {currentPupil?.firstName?.charAt(0) || 'S'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-left">
                       <div className="font-semibold text-sm text-gray-900 dark:text-white">
-                        {currentPupil ? `${currentPupil.firstName} ${currentPupil.lastName}` : 'Select Student'}
+                        {currentPupil ? `${formatPupilDisplayName(currentPupil)}` : 'Select Student'}
             </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {currentPupil?.className || 'Choose a student'}
@@ -197,14 +198,14 @@ export function ParentSidebar({
                       onClick={() => handlePupilChange(pupil.id)}
                     >
                                              <Avatar className="h-10 w-10 mr-3">
-                         <AvatarImage src={pupil.photo || undefined} alt={`${pupil.firstName} ${pupil.lastName}`} />
+                         <AvatarImage src={pupil.photo || undefined} alt={`${formatPupilDisplayName(pupil)}`} />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
                           {pupil.firstName?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-left">
                         <div className="font-semibold text-gray-900 dark:text-white">
-                          {`${pupil.firstName} ${pupil.lastName}`}
+                          {`${formatPupilDisplayName(pupil)}`}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           {pupil.className}

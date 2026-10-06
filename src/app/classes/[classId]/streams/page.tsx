@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -67,7 +68,7 @@ export default function ClassStreamSetupPage() {
   const activePupils = React.useMemo(
     () => allPupils
       .filter(pupil => pupil.classId === classId && pupil.status === 'Active')
-      .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`)),
+      .sort((a, b) => `${formatPupilDisplayName(a)}`.localeCompare(`${formatPupilDisplayName(b)}`)),
     [allPupils, classId],
   );
   const definitions = schoolClass?.streams || [];
@@ -164,7 +165,7 @@ export default function ClassStreamSetupPage() {
     const query = search.trim().toLocaleLowerCase();
     if (!query) return activePupils;
     return activePupils.filter(pupil => (
-      `${pupil.firstName} ${pupil.lastName} ${pupil.otherNames || ''} ${pupil.admissionNumber}`
+      `${formatPupilDisplayName(pupil)} ${pupil.admissionNumber}`
         .toLocaleLowerCase()
         .includes(query)
     ));
@@ -403,18 +404,18 @@ export default function ClassStreamSetupPage() {
                     <div key={pupil.id} className="grid min-h-16 items-center gap-3 px-3 py-2 hover:bg-slate-50 sm:grid-cols-[2.25rem_minmax(0,1fr)_15rem] sm:px-4">
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-bold tabular-nums text-slate-600">{index + 1}</span>
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-slate-900">{pupil.firstName} {pupil.lastName} {pupil.otherNames || ''}</p>
+                        <p className="truncate font-semibold text-slate-900">{formatPupilDisplayName(pupil)}</p>
                         <p className="truncate text-xs text-slate-500">{pupil.admissionNumber}</p>
                       </div>
                       {activeStreams.length === 2 ? (
                         <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3">
-                          <Checkbox checked={focusChecked} onCheckedChange={checked => toggleTwoStreamPupil(pupil.id, checked === true)} aria-label={`Assign ${pupil.firstName} ${pupil.lastName} to ${activeStreams.find(stream => stream.id === focusStreamId)?.name}`} />
+                          <Checkbox checked={focusChecked} onCheckedChange={checked => toggleTwoStreamPupil(pupil.id, checked === true)} aria-label={`Assign ${formatPupilDisplayName(pupil)} to ${activeStreams.find(stream => stream.id === focusStreamId)?.name}`} />
                           <span className="min-w-0 flex-1 truncate text-sm font-medium">{assignedStream?.name || 'Choose stream'}</span>
                           {assignedStream ? <Check className="h-4 w-4 text-emerald-600" /> : null}
                         </label>
                       ) : activeStreams.length > 2 ? (
                         <Select value={assignedStreamId || undefined} onValueChange={value => { setAssignments(current => ({ ...current, [pupil.id]: value })); setErrors([]); }}>
-                          <SelectTrigger className="h-11 bg-white" aria-label={`Choose stream for ${pupil.firstName} ${pupil.lastName}`} aria-invalid={!assignedStreamId}><SelectValue placeholder="Choose stream" /></SelectTrigger>
+                          <SelectTrigger className="h-11 bg-white" aria-label={`Choose stream for ${formatPupilDisplayName(pupil)}`} aria-invalid={!assignedStreamId}><SelectValue placeholder="Choose stream" /></SelectTrigger>
                           <SelectContent>{activeStreams.map(stream => <SelectItem key={stream.id} value={stream.id}>{stream.name} ({stream.code})</SelectItem>)}</SelectContent>
                         </Select>
                       ) : (

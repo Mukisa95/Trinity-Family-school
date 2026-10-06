@@ -511,7 +511,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
             let matchesText = true;
             if (searchTerms.length > 0) {
               // Create a searchable string containing all relevant fields
-              const searchableText = `${pupil.lastName} ${pupil.firstName} ${pupil.otherNames || ''} ${pupil.admissionNumber}`.toLowerCase();
+              const searchableText = `${formatPupilDisplayName(pupil)} ${pupil.admissionNumber}`.toLowerCase();
               matchesText = searchTerms.every(t => searchableText.includes(t));
             }
 

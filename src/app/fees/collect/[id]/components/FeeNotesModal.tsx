@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Bell, CheckCircle2, Clock, Loader2, Phone, Plus, StickyNote } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -239,7 +240,7 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
   const previewDate = new Date(`${scheduleDate}T${scheduleTime}:00+03:00`);
   if (selectedFee && Number(amount) > 0 && promisedBy.trim() && Number.isFinite(previewDate.getTime())) {
     preview = feeReminderPromiseText({
-      pupilName: `${pupil.firstName} ${pupil.lastName}`.trim(), feeName: selectedFee.name,
+      pupilName: `${formatPupilDisplayName(pupil)}`.trim(), feeName: selectedFee.name,
       promisedAmount: Number(amount), promisedBy: promisedBy.trim(), createdAt: now.toISOString(), dueAt: previewDate.toISOString(),
     }, now);
   }
@@ -298,7 +299,7 @@ export function FeeNotesModal({ open, onOpenChange, pupil, fees, payments, acade
   return (
     <Dialog open={open} onOpenChange={value => { if (!featureSwitch.isPending && !create.isPending && !cancel.isPending && !updateRecipients.isPending) onOpenChange(value); }}>
       <DialogContent className="max-w-2xl gap-4 p-4 sm:p-6">
-        <DialogTitle className="flex items-center gap-2 pr-8"><StickyNote className="h-5 w-5 text-indigo-600" aria-hidden="true" />Notes · {pupil.firstName} {pupil.lastName}</DialogTitle>
+        <DialogTitle className="flex items-center gap-2 pr-8"><StickyNote className="h-5 w-5 text-indigo-600" aria-hidden="true" />Notes · {formatPupilDisplayName(pupil)}</DialogTitle>
         <DialogDescription>Control Notes and reminders for this pupil.</DialogDescription>
         <div className="flex min-h-20 items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="min-w-0"><Label htmlFor="pupil-fee-notes-switch" className="text-sm font-semibold text-slate-900">Notes and reminders</Label>

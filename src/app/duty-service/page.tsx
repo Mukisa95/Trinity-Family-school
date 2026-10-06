@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -136,7 +137,7 @@ export default function DutyServicePage() {
       return member ? `${member.firstName} ${member.lastName} (${member.employeeId})` : `Staff ID: ${memberId}`;
     } else if (memberType === 'prefects' || memberType === 'pupils') {
       const member = pupils.find(p => p.id === memberId);
-      return member ? `${member.firstName} ${member.lastName} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
+      return member ? `${formatPupilDisplayName(member)} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
     }
     return `Unknown ID: ${memberId}`;
   };
@@ -183,7 +184,7 @@ export default function DutyServicePage() {
         return member ? `${member.firstName} ${member.lastName}` : `Staff ID: ${assignment.memberId}`;
       } else if (teamType === 'prefects' || teamType === 'pupils') {
         const member = pupils.find(p => p.id === assignment.memberId);
-        return member ? `${member.firstName} ${member.lastName}` : `Pupil ID: ${assignment.memberId}`;
+        return member ? `${formatPupilDisplayName(member)}` : `Pupil ID: ${assignment.memberId}`;
       }
       return `Unknown ID: ${assignment.memberId}`;
     });
@@ -281,7 +282,7 @@ export default function DutyServicePage() {
                   selectedTermId={selectedLeadershipTermId === 'all' ? undefined : selectedLeadershipTermId}
                   getPupilName={(pupilId) => {
                     const pupil = pupils.find(p => p.id === pupilId);
-                    return pupil ? `${pupil.firstName} ${pupil.lastName}` : `Pupil ${pupilId.slice(0, 8)}`;
+                    return pupil ? `${formatPupilDisplayName(pupil)}` : `Pupil ${pupilId.slice(0, 8)}`;
                   }}
                   getPupilClass={(pupilId) => {
                     const pupil = pupils.find(p => p.id === pupilId);

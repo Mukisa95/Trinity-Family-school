@@ -1,3 +1,4 @@
+import { matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { useState, useMemo, useCallback } from 'react';
 import { usePupils } from './use-pupils';
 import {
@@ -73,10 +74,7 @@ export function useClassPupils({
     for (let i = 0; i < classPupils.length; i++) {
       const pupil = classPupils[i];
 
-      if (pupil.firstName.toLowerCase().includes(query) ||
-        pupil.lastName.toLowerCase().includes(query) ||
-        pupil.admissionNumber.toLowerCase().includes(query) ||
-        (pupil.otherNames && pupil.otherNames.toLowerCase().includes(query))) {
+      if (matchesPupilSearch(pupil, query, [pupil.admissionNumber])) {
         results.push(pupil);
       }
     }
@@ -205,10 +203,7 @@ export function useClassPupilsWithoutPhotos({
     for (let i = 0; i < classPupils.length; i++) {
       const pupil = classPupils[i];
 
-      if (pupil.firstName.toLowerCase().includes(query) ||
-        pupil.lastName.toLowerCase().includes(query) ||
-        pupil.admissionNumber.toLowerCase().includes(query) ||
-        (pupil.otherNames && pupil.otherNames.toLowerCase().includes(query))) {
+      if (matchesPupilSearch(pupil, query, [pupil.admissionNumber])) {
         results.push(pupil);
       }
     }
@@ -293,10 +288,11 @@ export function useClassPupilsMinimal(classId?: string) {
     const selected = classId === 'all'
       ? pupilsQuery.data ?? []
       : selectPupilsWithFilters(pupilsQuery.data, classId);
-    return selected.map(({ id, firstName, lastName, admissionNumber, classId: pupilClassId, status }) => ({
+    return selected.map(({ id, firstName, lastName, otherNames, admissionNumber, classId: pupilClassId, status }) => ({
       id,
       firstName,
       lastName,
+      otherNames,
       admissionNumber,
       classId: pupilClassId,
       status,

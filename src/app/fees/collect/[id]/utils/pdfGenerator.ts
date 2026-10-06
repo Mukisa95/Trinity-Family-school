@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import type { Pupil, AcademicYear, SchoolSettings } from '@/types';
 import type { PupilFee } from '../types';
 import { PDFSignatureService } from '@/lib/services/pdf-signature.service';
@@ -63,7 +64,7 @@ export async function createFeeStatementPDFBlob(options: PDFGenerationOptions): 
   const totalPaid = fees.reduce((sum, fee) => sum + (fee.paid || 0), 0);
   const totalBalance = totalFees - totalPaid;
   const schoolName = schoolSettings?.generalInfo?.name || 'TRINITY FAMILY SCHOOL';
-  const pupilName = `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() || 'Pupil';
+  const pupilName = `${formatPupilDisplayName(pupil)}`.trim() || 'Pupil';
 
   doc.setFillColor(30, 64, 175);
   doc.roundedRect(margin, 12, contentWidth, 31, 4, 4, 'F');
@@ -233,7 +234,7 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Fee Statement - ${pupil.firstName} ${pupil.lastName}</title>
+      <title>Fee Statement - ${formatPupilDisplayName(pupil)}</title>
       <style>
         * {
           margin: 0;
@@ -626,7 +627,7 @@ export async function generateFeeStatementPDF(options: PDFGenerationOptions): Pr
         <div class="info-grid">
           <div class="info-item">
             <span class="info-label">Full Name</span>
-            <span class="info-value">${pupil.firstName} ${pupil.lastName}</span>
+            <span class="info-value">${formatPupilDisplayName(pupil)}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Admission Number</span>
@@ -957,7 +958,7 @@ export async function generatePaymentReceiptPDF(options: ReceiptOptions): Promis
         <div class="section-header">STUDENT INFORMATION</div>
         <div class="section-content">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="info-row">Name: ${pupil.firstName} ${pupil.lastName}</div>
+            <div class="info-row">Name: ${formatPupilDisplayName(pupil)}</div>
             <div class="info-row">Class: ${pupil.className}</div>
             <div class="info-row">Admission No: ${pupil.admissionNumber}</div>
             <div class="info-row">Section: ${pupil.section || 'N/A'}</div>
@@ -997,7 +998,7 @@ export async function generatePaymentReceiptPDF(options: ReceiptOptions): Promis
             
             const qrData = JSON.stringify({
               receiptNo: '${receiptNumber}',
-              studentName: '${pupil.firstName} ${pupil.lastName}',
+              studentName: '${formatPupilDisplayName(pupil)}',
               amount: ${paymentAmount},
               date: '${new Date(paymentDate).toLocaleDateString()}',
               fee: '${fee.name}',
@@ -1208,7 +1209,7 @@ export async function generateFamilyFeeStatementPDF(
         return `
           <div class="student-section">
             <div class="student-header">
-              ${student.pupil.firstName} ${student.pupil.lastName} 
+              ${formatPupilDisplayName(student.pupil)}
               (${student.pupil.admissionNumber}) - ${student.pupil.className}
               <span style="float: right;">
                 Total: ${formatCurrency(studentTotal)} | 

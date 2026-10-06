@@ -10,7 +10,7 @@ import { useClasses } from '@/lib/hooks/use-classes';
 import { useAcademicYears } from '@/lib/hooks/use-academic-years';
 import { PupilSnapshotsService } from '@/lib/services/pupil-snapshots.service';
 import { getTermStatus } from '@/lib/utils/academic-year-utils';
-import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import type { Pupil, AcademicYear, Term, Class, PupilTermSnapshot } from '@/types';
 
 interface PupilWithSnapshot extends Pupil {
@@ -110,10 +110,7 @@ export function PupilHistoricalSelector({
     return enhancedPupils.filter(pupil => {
       // Search filter
       if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const fullName = formatPupilDisplayName(pupil).toLowerCase();
-        const admissionNumber = pupil.admissionNumber.toLowerCase();
-        if (!fullName.includes(searchLower) && !admissionNumber.includes(searchLower)) {
+        if (!matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber])) {
           return false;
         }
       }

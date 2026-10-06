@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import React, { useState, useMemo } from 'react';
@@ -101,11 +102,11 @@ export default function NameOrderPage() {
 
   // Helper functions
   const getCurrentDisplayName = (data: { firstName: string; lastName: string; otherNames?: string }) => {
-    return `${data.firstName} ${data.lastName}${data.otherNames ? ` ${data.otherNames}` : ''}`;
+    return formatPupilDisplayName(data);
   };
 
   const getCorrectDisplayName = (data: { firstName: string; lastName: string; otherNames?: string }) => {
-    return `${data.lastName}, ${data.firstName}${data.otherNames ? ` ${data.otherNames}` : ''}`;
+    return formatPupilDisplayName(data);
   };
 
   const swapFirstAndLastName = (pupilId: string) => {

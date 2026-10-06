@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -151,11 +152,7 @@ function NewPupilContent() {
       try {
         if (allPupils) {
           // Filter pupils based on first name similarity
-          const filtered = allPupils.filter((pupil: Pupil) => {
-            const searchString = `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNumber}`.toLowerCase();
-            return searchString.includes(firstName.toLowerCase()) || 
-                   pupil.firstName.toLowerCase().includes(firstName.toLowerCase());
-          });
+          const filtered = allPupils.filter(pupil => matchesPupilSearch(pupil, firstName, [pupil.admissionNumber]));
 
           setNameSearchResults(filtered);
           setShowNameResults(filtered.length > 0);
@@ -511,7 +508,7 @@ function NewPupilContent() {
       () => createPupilMutation.mutateAsync(pupilData),
       {
         successTitle: "Pupil Registered",
-        successMessage: `${pupilData.lastName}, ${pupilData.firstName} successfully registered.`,
+        successMessage: `${formatPupilDisplayName(pupilData)} successfully registered.`,
         errorTitle: "Registration Failed",
         errorMessage: "Failed to register pupil. Please check your data and try again.",
         onSuccess: () => {
@@ -533,7 +530,7 @@ function NewPupilContent() {
       () => createPupilMutation.mutateAsync(pupilData),
       {
         successTitle: "Pupil Registered",
-        successMessage: `${pupilData.lastName}, ${pupilData.firstName} successfully registered. Opening sibling form...`,
+        successMessage: `${formatPupilDisplayName(pupilData)} successfully registered. Opening sibling form...`,
         errorTitle: "Registration Failed",
         errorMessage: "Failed to register pupil. Please check your data and try again.",
         onSuccess: (savedPupil) => {
@@ -563,7 +560,7 @@ function NewPupilContent() {
         title={addingSibling ? 'Add Sibling' : 'Register New Pupil'}
         recordDetails={addingSibling && !isLoadingOriginalPupil
           ? originalPupil
-            ? `Family of ${originalPupil.firstName} ${originalPupil.lastName}`
+            ? `Family of ${formatPupilDisplayName(originalPupil)}`
             : familyId ? `Family ID: ${familyId}` : undefined
           : undefined}
         backHref="/pupils"
@@ -623,11 +620,8 @@ function NewPupilContent() {
                   {(firstName || lastName) && (
                     <div className="space-y-1">
                       <p className="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                        {lastName}{lastName && firstName && ', '}{firstName}
+                        {formatPupilDisplayName({ lastName, firstName, otherNames })}
                       </p>
-                      {otherNames && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{otherNames}</p>
-                      )}
                     </div>
                   )}
                   {gender && (
@@ -757,7 +751,7 @@ function NewPupilContent() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-medium text-gray-900">
-                                    {pupil.firstName} {pupil.lastName}
+                                    {formatPupilDisplayName(pupil)}
                                   </p>
                                   {pupil.status === 'Graduated' && (
                                     <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">

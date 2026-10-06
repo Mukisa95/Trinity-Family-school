@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import Link from 'next/link';
 import { PencilSimple, Trash, Power, DotsThree } from '@phosphor-icons/react';
@@ -86,7 +87,7 @@ export function PupilTableRow({
               {pupil.photo ? (
                 <img 
                   src={pupil.photo} 
-                  alt={`${pupil.firstName} ${pupil.lastName}`} 
+                  alt={`${formatPupilDisplayName(pupil)}`}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -102,8 +103,7 @@ export function PupilTableRow({
               href={`/pupil-detail?id=${pupil.id}`}
               className={`text-xs sm:text-sm font-medium text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-600 hover:text-${pupil.gender === 'Female' ? 'pink' : 'indigo'}-800 transition-colors block truncate`}
             >
-              {pupil.firstName} {pupil.lastName}
-              {pupil.otherNames && ` ${pupil.otherNames}`}
+              {formatPupilDisplayName(pupil)}
             </Link>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs text-gray-500">
               <span className="truncate">{pupil.learnerIdentificationNumber || pupil.admissionNumber}</span>
@@ -198,7 +198,7 @@ export function PupilTableRow({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={() => onDelete(pupil.id, `${pupil.firstName} ${pupil.lastName}`)}
+              onClick={() => onDelete(pupil.id, `${formatPupilDisplayName(pupil)}`)}
               className="text-red-600"
             >
               <Trash className="mr-2 h-4 w-4" />

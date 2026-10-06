@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1090,7 +1091,7 @@ export default function RequirementTrackingPage() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900">
-                  {pupil.firstName} {pupil.lastName}
+                  {formatPupilDisplayName(pupil)}
                 </h1>
                 <div className="flex items-center gap-3 text-xs text-gray-600">
                   <span className="flex items-center gap-1">

@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { NextRequest, NextResponse } from 'next/server';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -115,7 +116,7 @@ export async function POST(
       a: 'update',
       e: 'schoolpay_inbox',
       rid: id,
-      rl: `Assigned SchoolPay code to ${pupilData.firstName || ''} ${pupilData.lastName || ''}`.trim(),
+      rl: `Assigned SchoolPay code to ${formatPupilDisplayName(pupilData)}`.trim(),
       m: {
         pupilId,
         receiptNumber: `${inbox.receiptNumber || ''}`.slice(0, 40),

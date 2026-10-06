@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ModernDialog,
@@ -72,15 +73,7 @@ export function ClassRequirementsOverviewModal({
     }
   }, [isOpen]);
 
-  const filteredPupils = pupils.filter(pupil => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      pupil.firstName.toLowerCase().includes(searchLower) ||
-      pupil.lastName.toLowerCase().includes(searchLower) ||
-      pupil.admissionNumber?.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredPupils = pupils.filter(pupil => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber]));
 
   const getRequirementDetails = (record: RequirementTracking) => {
     const requirements = Array.isArray(record.requirementId)
@@ -536,7 +529,7 @@ function PupilRequirementsCard({
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-gray-400" />
             <div>
-              <div className="font-semibold text-sm">{pupil.firstName} {pupil.lastName}</div>
+              <div className="font-semibold text-sm">{formatPupilDisplayName(pupil)}</div>
               <div className="text-xs text-gray-500">Please select academic year and term</div>
             </div>
           </div>
@@ -553,7 +546,7 @@ function PupilRequirementsCard({
             <div className="flex items-center gap-2 mb-2">
               <User className="w-4 h-4 text-gray-600" />
               <div>
-                <div className="font-semibold text-sm">{pupil.firstName} {pupil.lastName}</div>
+                <div className="font-semibold text-sm">{formatPupilDisplayName(pupil)}</div>
                 {pupil.admissionNumber && (
                   <div className="text-xs text-gray-500">Adm: {pupil.admissionNumber}</div>
                 )}

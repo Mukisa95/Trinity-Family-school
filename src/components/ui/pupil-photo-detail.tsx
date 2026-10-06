@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilName } from '@/lib/utils/name-formatter';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Area, Point } from "react-easy-crop";
 import {
@@ -74,9 +75,8 @@ export function PupilPhotoDetail({
       return pupilName.trim();
     }
 
-    const names = [pupil?.firstName, pupil?.lastName].filter(Boolean).join(" ").trim();
-    return names || "Pupil";
-  }, [pupil?.firstName, pupil?.lastName, pupilName]);
+    return formatPupilName(pupil ?? {}, { fallback: "Pupil" });
+  }, [pupil?.firstName, pupil?.lastName, pupil?.otherNames, pupilName]);
 
   const effectiveSrc = useMemo(() => {
     const candidate = pupilPhoto ?? pupil?.photo;

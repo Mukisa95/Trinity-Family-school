@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useMemo, useState } from "react";
 import { format, parseISO, isValid, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, differenceInYears, compareAsc, isSameDay } from "date-fns";
 import { ArrowLeft, Calendar, CalendarDays, ChevronLeft, ChevronRight, Clock, Sparkles, Users } from "lucide-react";
@@ -78,7 +79,7 @@ function normalizeBirthdayPupils(pupils: Pupil[]): NormalizedBirthdayPupil[] {
       return [
         {
           id: pupil.id,
-          fullName: `${pupil.firstName} ${pupil.lastName}`.trim(),
+          fullName: `${formatPupilDisplayName(pupil)}`.trim(),
           admissionNumber: pupil.admissionNumber,
           className: pupil.classCode || pupil.className || "Unassigned",
           birthDate,

@@ -90,6 +90,7 @@ import { format } from 'date-fns';
 import PLEResultsCard from '@/components/ple/PLEResultsCard';
 import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { getPupilClassDisplay } from '@/lib/utils/class-streams';
+import { getPupilGraduationDisplay } from '@/lib/utils/pupil-graduation-display';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { usePrint } from '@/lib/contexts/print-context';
@@ -476,7 +477,7 @@ function PupilDetailContent() {
       });
       toast({
         title: 'Sibling Unlinked',
-        description: `${siblingToUnlink.firstName} ${siblingToUnlink.lastName} has been unlinked and given a new family ID.`
+        description: `${formatPupilDisplayName(siblingToUnlink)} has been unlinked and given a new family ID.`
       });
       setUnlinkSiblingConfirm(null);
       queryClient.invalidateQueries({ queryKey: ['pupils'] });
@@ -508,6 +509,12 @@ function PupilDetailContent() {
       classCode: classDisplay.code,
     };
   }, [pupil, classes]);
+
+  const graduationDisplay = React.useMemo(() => (
+    pupil?.status === 'Graduated' ? getPupilGraduationDisplay(pupil, classes) : null
+  ), [pupil, classes]);
+  const profileClassName = graduationDisplay?.name || pupilWithClass?.className || getClassNameMemo(pupil?.classId);
+  const academicInformationTitle = graduationDisplay?.academicTitle || 'Academic Information';
 
   const selectedPupilSmsContent = React.useMemo(() => {
     if (!pupil || !selectedPupilSmsTemplate) return null;
@@ -1035,7 +1042,7 @@ function PupilDetailContent() {
       // Create QR code data
       const qrData = {
         id: pupil.admissionNumber || '',
-        name: `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim(),
+        name: `${formatPupilDisplayName(pupil)}`.trim(),
         class: pupilWithClass?.className || getClassName(pupil.classId, classes),
         section: pupil.section || ''
       };
@@ -1435,8 +1442,7 @@ function PupilDetailContent() {
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>PUPIL'S NAME:</Text>
                     <Text style={styles.value}>
-                      {pupil.firstName} {pupil.lastName}
-                      {pupil.otherNames && ` ${pupil.otherNames}`}
+                      {formatPupilDisplayName(pupil)}
                     </Text>
                   </View>
 
@@ -1871,8 +1877,7 @@ function PupilDetailContent() {
                   <View style={styles.row}>
                     <Text style={styles.label}>Full Name:</Text>
                     <Text style={styles.value}>
-                      {pupil.firstName} {pupil.lastName}
-                      {pupil.otherNames && ` ${pupil.otherNames}`}
+                      {formatPupilDisplayName(pupil)}
                     </Text>
                   </View>
 
@@ -3833,7 +3838,14 @@ function PupilDetailContent() {
     <>
       <GlassPageTopBar
         title={`${formatPupilDisplayName(pupil)}'s Profile`}
-        recordDetails={`${pupilWithClass?.classCode || getClassCode(pupil?.classId, classes)} • ${pupil?.section || 'N/A'} • ${pupil?.admissionNumber || 'N/A'}`}
+        recordDetails={
+          <>
+            {graduationDisplay?.href ? (
+              <Link href={graduationDisplay.href} className="hover:underline">{graduationDisplay.name}</Link>
+            ) : graduationDisplay?.name || pupilWithClass?.classCode || getClassCode(pupil.classId, classes)}
+            {` • ${pupil.section || 'N/A'} • ${pupil.admissionNumber || 'N/A'}`}
+          </>
+        }
         meta={
           <Badge variant="outline" className={`text-xs border shadow-sm ${
             pupil?.status === 'Active' ? 'bg-green-100 text-green-800 border-green-300' :
@@ -4151,7 +4163,7 @@ function PupilDetailContent() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
           <div className="xl:col-span-1 space-y-4 lg:space-y-6">
             <Card className="shadow-lg overflow-hidden" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
-              <CardContent className="relative pt-6 flex flex-col items-center bg-card">
+              <CardContent className={`relative flex flex-col items-center bg-card ${isInactivePupil ? 'pt-12' : 'pt-6'}`}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -4184,18 +4196,19 @@ function PupilDetailContent() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Avatar row — graduation badge sits beside it at same size when graduated */}
-                <div className={isGraduatedPupil ? 'flex items-center gap-5' : ''}>
+                {/* Graduated and inactive pupils no longer have a photo control. */}
+                {!isGraduatedPupil && !isInactivePupil && (
                   <PupilPhotoDetail
                     pupilPhoto={pupil.photo}
                     pupilName={formatPupilDisplayName(pupil)}
                     onPhotoChange={handlePhotoChange}
                     ringColor={currentHouse?.themeColor}
                   />
-
-                  {/* Graduation cap badge — same visual weight as the avatar */}
-                  {isGraduatedPupil && (
+                )}
+                {isGraduatedPupil && (
                     <div
+                      role="img"
+                      aria-label="Graduated pupil"
                       className="flex-shrink-0 flex items-center justify-center rounded-full shadow-2xl"
                       style={{
                         width: '120px',
@@ -4214,10 +4227,9 @@ function PupilDetailContent() {
                         }}
                       />
                     </div>
-                  )}
-                </div>
+                )}
                 {isEditMode ? (
-                  <div className="mt-4 w-full space-y-2">
+                  <div className={`${isInactivePupil ? '' : 'mt-4 '}w-full space-y-2`}>
                     <Input
                       value={editableFields.firstName || pupil?.firstName || ''}
                       onChange={(e) => setEditableFields(prev => ({ ...prev, firstName: e.target.value }))}
@@ -4239,7 +4251,7 @@ function PupilDetailContent() {
                   </div>
                 ) : (
                   <>
-                    <h2 className="mt-4 text-2xl font-bold text-center text-card-foreground">
+                    <h2 className={`${isInactivePupil ? '' : 'mt-4 '}text-2xl font-bold text-center text-card-foreground`}>
                       {formatPupilDisplayName(pupil)}
                     </h2>
 
@@ -4316,17 +4328,17 @@ function PupilDetailContent() {
                         <BookOpen className="mr-1 h-3 w-3" />
                         PLE
                       </Badge>
-                      {pupil.graduationYear && pupil.graduationClassId ? (
+                      {graduationDisplay?.href ? (
                         <Link
-                          href={`/classes/graduates/${pupil.graduationClassId}`}
+                          href={graduationDisplay.href}
                           className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-md text-xs text-yellow-700 hover:bg-yellow-100 transition-colors duration-200"
                         >
                           <Award className="h-3 w-3" />
-                          <span>Class of {pupil.graduationYear}</span>
+                          <span>{graduationDisplay.name}</span>
                         </Link>
                       ) : (
                         <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-600 border-yellow-200">
-                          Class of {pupil.graduationYear || 'Unknown'}
+                          {graduationDisplay?.name}
                         </Badge>
                       )}
                       {pupil.graduationDate && (
@@ -4343,7 +4355,7 @@ function PupilDetailContent() {
                     <Badge variant={pupil.status === 'Active' ? 'default' : pupil.status === 'Inactive' ? 'secondary' : 'outline'} className="text-xs">{pupil.status}</Badge>
                   )}
                   <Badge variant="outline" className="text-xs">{pupil.section}</Badge>
-                  {pupil.classId ? (
+                  {!isGraduatedPupil && (pupil.classId ? (
                     <Link href={`/class-detail?id=${pupil.classId}`}>
                       <Badge variant="outline" className="text-xs hover:bg-primary hover:text-primary-foreground cursor-pointer transition-colors">
                         {pupilWithClass?.className || getClassNameMemo(pupil.classId)}
@@ -4351,7 +4363,7 @@ function PupilDetailContent() {
                     </Link>
                   ) : (
                     <Badge variant="outline" className="text-xs">{pupilWithClass?.className || getClassNameMemo(pupil.classId)}</Badge>
-                  )}
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -4700,7 +4712,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                               <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                                 <div className="flex items-center gap-2">
                                   <Link href={`/pupil-detail?id=${sibling.id}`} className="text-primary hover:underline font-medium">
-                                    {sibling.firstName} {sibling.lastName} {sibling.otherNames || ''}
+                                    {formatPupilDisplayName(sibling)}
                                   </Link>
                                   <Badge variant={sibling.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] py-0 px-1.5 h-4">
                                     {sibling.status}
@@ -4802,7 +4814,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                               <Avatar className="h-12 w-12 border-2 border-primary/20">
                                 <AvatarImage
                                   src={sibling.photo && sibling.photo.trim() !== '' ? sibling.photo : undefined}
-                                  alt={`${sibling.firstName} ${sibling.lastName}`}
+                                  alt={`${formatPupilDisplayName(sibling)}`}
                                   data-ai-hint="sibling photo"
                                 />
                                 <AvatarFallback className="text-xs bg-muted text-muted-foreground">
@@ -4831,12 +4843,12 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                     {unlinkSiblingConfirm && (
                       <>
                         The system will unlink{' '}
-                        <strong>{unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}</strong>{' '}
+                        <strong>{formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}</strong>{' '}
                         from{' '}
                         <strong>
                           {unlinkSiblingConfirm.remainingSiblings.length > 0
-                            ? unlinkSiblingConfirm.remainingSiblings.map(s => `${s.firstName} ${s.lastName}`).join(', ')
-                            : `${pupil?.firstName} ${pupil?.lastName}`}
+                            ? unlinkSiblingConfirm.remainingSiblings.map(s => `${formatPupilDisplayName(s)}`).join(', ')
+                            : `${formatPupilDisplayName(pupil ?? {})}`}
                         </strong>.
                         {' '}They will be given a new independent family ID.
                       </>
@@ -4854,7 +4866,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-gray-900">{unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}</p>
+                      <p className="font-semibold text-gray-900">{formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}</p>
                       <p className="text-xs text-gray-500">{unlinkSiblingConfirm.siblingToUnlink.admissionNumber}</p>
                     </div>
                   </div>
@@ -5349,7 +5361,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             <Avatar className="h-8 w-8 border">
                               <AvatarImage
                                 src={sibling.photo && sibling.photo.trim() !== '' ? sibling.photo : undefined}
-                                alt={`${sibling.firstName} ${sibling.lastName}`}
+                                alt={`${formatPupilDisplayName(sibling)}`}
                               />
                               <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
                                 {sibling.firstName?.[0] || 'S'}{sibling.lastName?.[0] || 'S'}
@@ -5357,7 +5369,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                             </Avatar>
                             <div className="text-left">
                               <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
-                                {sibling.firstName} {sibling.lastName}
+                                {formatPupilDisplayName(sibling)}
                               </p>
                               <p className="text-xs text-muted-foreground font-mono">
                                 {getClassCode(sibling.classId, classes)} • {sibling.admissionNumber}
@@ -5384,14 +5396,20 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
           <div className="xl:col-span-2 space-y-4 lg:space-y-6">
             <Card className="shadow-lg" style={{ borderLeft: currentHouse?.themeColor ? `4px solid ${currentHouse.themeColor}` : undefined }}>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg lg:text-xl"><AcademicIcon className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> Academic Information</CardTitle>
+                <CardTitle className="flex items-center text-lg lg:text-xl"><AcademicIcon className="mr-2 lg:mr-3 h-5 w-5 lg:h-6 lg:w-6 text-primary" /> {academicInformationTitle}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1 text-sm">
                 <DetailItem
                   key="class"
-                  label="Current Class"
+                  label={isGraduatedPupil ? 'Grad Class' : 'Current Class'}
                   value={
-                    !isEditMode && pupil.classId ? (
+                    isGraduatedPupil ? (
+                      graduationDisplay?.href ? (
+                        <Link href={graduationDisplay.href} className="text-primary hover:underline font-medium text-right">
+                          {profileClassName}
+                        </Link>
+                      ) : profileClassName
+                    ) : !isEditMode && pupil.classId ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="text-primary hover:underline font-medium cursor-pointer text-right">
@@ -5415,7 +5433,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
                       pupilWithClass?.className || getClassNameMemo(pupil.classId)
                     )
                   }
-                  isEditMode={isEditMode}
+                  isEditMode={isEditMode && !isGraduatedPupil}
                   fieldName="classId"
                   onValueChange={(value) => {
                     const selectedClass = classes.find(c => c.id === value);
@@ -6068,7 +6086,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
           <ModernDialogHeader>
             <ModernDialogTitle>Change Class</ModernDialogTitle>
             <ModernDialogDescription>
-              Select a new class for {pupil.firstName} {pupil.lastName}
+              Select a new class for {formatPupilDisplayName(pupil)}
             </ModernDialogDescription>
           </ModernDialogHeader>
           <div className="space-y-4">
@@ -6120,7 +6138,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
           <ModernDialogHeader>
             <ModernDialogTitle>Edit Guardian Information</ModernDialogTitle>
             <ModernDialogDescription>
-              Update guardian details for {pupil.firstName} {pupil.lastName}. You can edit existing guardians or add a secondary guardian.
+              Update guardian details for {formatPupilDisplayName(pupil)}. You can edit existing guardians or add a secondary guardian.
             </ModernDialogDescription>
           </ModernDialogHeader>
           <div className="space-y-6 py-4">
@@ -6937,7 +6955,7 @@ Emergency Contact: ${emergencyContactGuardian ? emergencyContactGuardian.phone :
         currentPayCode={
           getSchoolPayCode(pupil) || null
         }
-        pupilName={pupil ? `${pupil.firstName} ${pupil.lastName}` : ''}
+        pupilName={pupil ? `${formatPupilDisplayName(pupil)}` : ''}
       />
 
       {pupil && selectedPupilSmsContent && (

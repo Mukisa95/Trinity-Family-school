@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useState, useMemo, useEffect } from 'react';
 import { Trophy, Calendar, TrendingUp, Award, GraduationCap, BookOpen, BarChart3, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -370,7 +371,7 @@ export function PupilResultsSection({ pupilId, pupilName, className = '' }: Pupi
             {pupil?.photo && pupil.photo.trim() !== '' ? (
               <AvatarImage 
                 src={pupil.photo} 
-                alt={`${pupil.firstName} ${pupil.lastName}`}
+                alt={`${formatPupilDisplayName(pupil)}`}
                 onError={(e) => {
                   console.log('Avatar image failed to load:', pupil.photo);
                   e.currentTarget.style.display = 'none';

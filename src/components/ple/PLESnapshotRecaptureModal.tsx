@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo } from 'react';
 import {
     Dialog,
@@ -275,7 +276,7 @@ export function PLESnapshotRecaptureModal({
                                         />
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm text-gray-900">
-                                                {pupil.firstName} {pupil.lastName} {pupil.otherNames || ''}
+                                                {formatPupilDisplayName(pupil)}
                                             </div>
                                             <div className="text-xs text-gray-500">
                                                 {pupil.admissionNumber} • {pupil.gender} • Class: {pupil.classId}

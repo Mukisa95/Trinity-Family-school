@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import {
   ModernDialog,
@@ -720,7 +721,7 @@ export function PupilRequirementsModal({
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-gray-600" />
-                  <span className="font-bold">{pupil.firstName} {pupil.lastName}</span>
+                  <span className="font-bold">{formatPupilDisplayName(pupil)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-600 mt-1">
                   <span className="flex items-center gap-1">

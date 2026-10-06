@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -158,7 +159,7 @@ export default function GraduateClassPage() {
     // Sort pupils within each year by name
     Object.keys(grouped).forEach(year => {
       grouped[parseInt(year)].sort((a, b) => 
-        `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+        formatPupilDisplayName(a).localeCompare(formatPupilDisplayName(b))
       );
     });
     
@@ -543,7 +544,7 @@ export default function GraduateClassPage() {
                                             href={`/pupil-detail?id=${pupil.id}`}
                                             className="font-semibold text-gray-900 hover:text-primary hover:underline cursor-pointer transition-colors"
                                           >
-                                            {pupil.firstName} {pupil.lastName}
+                                            {formatPupilDisplayName(pupil)}
                                           </Link>
                                           {pupil.otherNames && (
                                             <p className="text-sm text-gray-500">{pupil.otherNames}</p>

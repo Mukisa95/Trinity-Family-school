@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -84,16 +85,7 @@ export function AssignPupilToPostModal({ post, open, onOpenChange, trigger, sele
   const getFilteredPupils = () => {
     return pupils
       .filter(p => p.status === 'Active') // Fixed: use 'Active' instead of 'active'
-      .filter(p => {
-        if (!searchTerm) return true;
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          p.firstName.toLowerCase().includes(searchLower) ||
-          p.lastName.toLowerCase().includes(searchLower) ||
-          p.admissionNumber.toLowerCase().includes(searchLower) ||
-          (p.className && p.className.toLowerCase().includes(searchLower))
-        );
-      })
+      .filter(p => matchesPupilSearch(p, searchTerm, [p.admissionNumber, p.className]))
       .sort((a, b) => {
         // Sort by class name first, then by first name
         if (a.className && b.className) {
@@ -148,7 +140,7 @@ export function AssignPupilToPostModal({ post, open, onOpenChange, trigger, sele
                   <Users className="h-4 w-4 text-green-600" />
                   <div>
                     <p className="font-medium text-green-800">
-                      {selectedPupil.firstName} {selectedPupil.lastName}
+                      {formatPupilDisplayName(selectedPupil)}
                     </p>
                     <p className="text-sm text-green-600">
                       {selectedPupil.admissionNumber} • {selectedPupil.className}
@@ -184,7 +176,7 @@ export function AssignPupilToPostModal({ post, open, onOpenChange, trigger, sele
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">
-                            {pupil.firstName} {pupil.lastName}
+                            {formatPupilDisplayName(pupil)}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {pupil.admissionNumber} • {pupil.className}

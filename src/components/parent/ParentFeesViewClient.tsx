@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -350,7 +351,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
       printWindow.document.write(`
         <html>
           <head>
-            <title>Fee Summary - ${pupil?.firstName} ${pupil?.lastName}</title>
+            <title>Fee Summary - ${formatPupilDisplayName(pupil ?? {})}</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; font-size: 12px; }
               .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 15px; }
@@ -367,7 +368,7 @@ export default function ParentFeesViewClient({ pupilId }: ParentFeesViewClientPr
           <body>
             <div class="header">
               <h2>Fee Summary Report</h2>
-              <p><strong>${pupil?.firstName} ${pupil?.lastName}</strong> | ID: ${pupil?.admissionNumber}</p>
+              <p><strong>${formatPupilDisplayName(pupil ?? {})}</strong> | ID: ${pupil?.admissionNumber}</p>
               <p>Class: ${pupil?.className} | Academic Year: ${selectedAcademicYear?.name}</p>
             </div>
             <div class="totals">

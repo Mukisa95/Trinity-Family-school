@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, User } from 'lucide-react';
 import { usePupils } from '@/lib/hooks/use-pupils';
 import type { Pupil } from '@/types';
-import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 
 interface PupilSelectorProps {
   onSelect: (pupil: Pupil | null) => void;
@@ -27,16 +27,7 @@ export default function PupilSelector({ onSelect, selectedPupilId }: PupilSelect
       return pupils;
     }
 
-    return pupils.filter(pupil => {
-      const fullName = formatPupilDisplayName(pupil).toLowerCase();
-      const searchLower = searchTerm.toLowerCase();
-      
-      return (
-        fullName.includes(searchLower) ||
-        pupil.admissionNumber.toLowerCase().includes(searchLower) ||
-        pupil.className?.toLowerCase().includes(searchLower)
-      );
-    });
+    return pupils.filter(pupil => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber, pupil.className]));
   }, [pupils, searchTerm]);
 
   const handlePupilSelect = (pupil: Pupil) => {

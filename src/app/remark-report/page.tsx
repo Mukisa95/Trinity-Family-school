@@ -52,7 +52,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { SubjectCommentType, SubjectStatus } from '@/types';
 import { SUBJECT_COMMENT_TYPES, SUBJECT_STATUS_OPTIONS } from '@/lib/constants/subject-comments';
 import {
@@ -330,12 +330,7 @@ export default function RemarkReportPage() {
     // Filter by search term (case-insensitive)
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
-      pupils = pupils.filter((pupil: Pupil) =>
-      (pupil.firstName?.toLowerCase().includes(lowerSearchTerm) ||
-        pupil.lastName?.toLowerCase().includes(lowerSearchTerm) ||
-        pupil.admissionNumber?.toLowerCase().includes(lowerSearchTerm) ||
-        pupil.learnerIdentificationNumber?.toLowerCase().includes(lowerSearchTerm)
-      )
+      pupils = pupils.filter((pupil: Pupil) => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber, pupil.learnerIdentificationNumber])
       );
     }
 

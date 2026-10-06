@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
+import * as pupilNames from '../src/lib/utils/name-formatter';
 
 test('term snapshot loader returns all active snapshots from one Firestore query', async () => {
   let reads = 0;
@@ -21,6 +22,7 @@ test('term snapshot loader returns all active snapshots from one Firestore query
     exports: module.exports,
     require(name: string) {
       if (name === '@/lib/firebase') return { db: {} };
+      if (name === '@/lib/utils/name-formatter') return pupilNames;
       if (name === 'firebase/firestore') {
         return {
           collection: () => ({}), doc: () => ({}), addDoc: async () => ({ id: 'new' }),

@@ -1,5 +1,6 @@
 'use client';
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import { CheckCircle2, CircleAlert, Loader2, Plus, Search, Sprout, Trash2, UserRoundPlus } from 'lucide-react';
@@ -115,7 +116,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
       const pupil = pupilsById.get(record.pupilId);
       return pupil ? [{ record, pupil }] : [];
     })
-    .filter(({ pupil }) => `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNumber}`.toLowerCase().includes(search.trim().toLowerCase())),
+    .filter(({ pupil }) => matchesPupilSearch(pupil, search, [pupil.admissionNumber])),
     [pupilsById, search, seedRecords]
   );
 
@@ -258,7 +259,7 @@ export function HistoricalPupilSeedingWorkspace({ canCreate }: HistoricalPupilSe
               {seededPupils.map(({ record, pupil }) => (
                 <div key={record.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900">{`${pupil.firstName} ${pupil.lastName}`.trim()}</p>
+                    <p className="truncate font-semibold text-slate-900">{`${formatPupilDisplayName(pupil)}`.trim()}</p>
                     <p className="mt-0.5 text-sm text-muted-foreground">Registered: {displayDate(pupil.registrationDate)} · {pupil.className || 'No class recorded'}</p>
                   </div>
                   <div className="flex items-center gap-3">

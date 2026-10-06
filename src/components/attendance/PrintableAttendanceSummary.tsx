@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { format } from "date-fns";
 import type { Pupil, AttendanceRecord, Class, SchoolSettings, ExcludedDay } from "@/types";
@@ -27,7 +28,7 @@ export function PrintableAttendanceSummary({
     const summaryData = filteredPupils.map(pupil => {
       const pr = records.filter(r => r.pupilId === pupil.id);
       return {
-        name: `${pupil.lastName || ""} ${pupil.firstName || ""} ${pupil.otherNames || ""}`.trim().toUpperCase(),
+        name: `${formatPupilDisplayName(pupil)}`.trim().toUpperCase(),
         genderExt: pupil.gender ? ` (${pupil.gender.charAt(0).toUpperCase()})` : " (-)",
         present: pr.filter(r => r.status === "Present").length,
         absent:  pr.filter(r => r.status === "Absent").length,

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { PlusCircle, MoreHorizontal, Edit, Trash2, Book, Users, GraduationCap, Baby, School, Crown, Award, Clock, ChevronDown, Save, History, User, GitBranch } from "lucide-react";
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
@@ -126,10 +127,10 @@ function SearchablePupilSelector({
                 None
               </CommandItem>
               {availablePupils.map((pupil: any) => {
-                const searchValue = `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNumber} ${pupil.className || ''}`;
+                const searchValue = `${formatPupilDisplayName(pupil)} ${pupil.admissionNumber} ${pupil.className || ''}`;
                 const label = editingClass 
-                  ? `${pupil.firstName} ${pupil.lastName} (${pupil.admissionNumber})`
-                  : `${pupil.firstName} ${pupil.lastName} (${pupil.admissionNumber}) - ${pupil.className || 'Unassigned'}`;
+                  ? `${formatPupilDisplayName(pupil)} (${pupil.admissionNumber})`
+                  : `${formatPupilDisplayName(pupil)} (${pupil.admissionNumber}) - ${pupil.className || 'Unassigned'}`;
                 return (
                   <CommandItem
                     key={pupil.id}
@@ -1069,7 +1070,7 @@ export default function ClassesPage() {
                           return (
                             <>
                               <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                              <span className="text-sm text-amber-700 font-medium truncate">{selectedPupil.firstName} {selectedPupil.lastName}</span>
+                              <span className="text-sm text-amber-700 font-medium truncate">{formatPupilDisplayName(selectedPupil)}</span>
                             </>
                           );
                         }
@@ -1106,7 +1107,7 @@ export default function ClassesPage() {
                           return (
                             <>
                               <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                              <span className="text-sm text-amber-700 font-medium truncate">{selectedPupil.firstName} {selectedPupil.lastName}</span>
+                              <span className="text-sm text-amber-700 font-medium truncate">{formatPupilDisplayName(selectedPupil)}</span>
                             </>
                           );
                         }

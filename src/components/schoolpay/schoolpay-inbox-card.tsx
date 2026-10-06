@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Check, Clipboard, Link2, Loader2, Search, UserRoundPlus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -68,11 +69,7 @@ function AssignSchoolPayCodeDialog({
       if (section !== 'all' && pupil.section !== section) return false;
       if (gender !== 'all' && pupil.gender !== gender) return false;
       if (!term) return true;
-      const text = [
-        pupil.firstName, pupil.lastName, pupil.otherNames, pupil.admissionNumber,
-        pupil.learnerIdentificationNumber, getSchoolPayCode(pupil),
-      ].filter(Boolean).join(' ').toLowerCase();
-      return text.includes(term);
+      return matchesPupilSearch(pupil, term, [pupil.admissionNumber, pupil.learnerIdentificationNumber, getSchoolPayCode(pupil)]);
     }).slice(0, 80);
   }, [classId, gender, pupils, search, section]);
 
@@ -92,7 +89,7 @@ function AssignSchoolPayCodeDialog({
 
       toast({
         title: 'Payment assigned and recorded',
-        description: `${money(record.amount)} was added to ${selected.firstName} ${selected.lastName}.`,
+        description: `${money(record.amount)} was added to ${formatPupilDisplayName(selected)}.`,
       });
       onOpenChange(false);
       router.push(`/fees/collect/${selected.id}`);
@@ -182,7 +179,7 @@ function AssignSchoolPayCodeDialog({
                     {isSelected && <Check className="h-3.5 w-3.5" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-sm text-slate-900 truncate">{pupil.firstName} {pupil.lastName} {pupil.otherNames || ''}</span>
+                    <span className="block font-semibold text-sm text-slate-900 truncate">{formatPupilDisplayName(pupil)}</span>
                     <span className="block text-xs text-slate-500 truncate">{pupil.admissionNumber} · {classNames.get(pupil.classId) || pupil.className || 'No class'} · {pupil.section || 'No section'} · {pupil.gender || 'No gender'}</span>
                   </span>
                   {payCode && <span className="text-[11px] font-mono text-slate-600">Current: {payCode}</span>}

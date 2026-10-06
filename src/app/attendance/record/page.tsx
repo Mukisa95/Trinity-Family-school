@@ -1,4 +1,5 @@
 "use client";
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 import { ClassSelector } from "@/components/common/class-selector";
 import { GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
@@ -141,7 +142,7 @@ const DesktopPupilRow = React.memo(function DesktopPupilRow({
       <TableCell>
         <div className="space-y-1">
           <div className="font-semibold text-gray-900 dark:text-gray-100">
-            {pupil.lastName} {pupil.firstName}
+            {formatPupilDisplayName(pupil)}
           </div>
           {pupil.otherNames && (
             <div className="text-sm text-gray-500 dark:text-gray-400">{pupil.otherNames}</div>
@@ -198,7 +199,7 @@ const MobilePupilCard = React.memo(function MobilePupilCard({
         </span>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
-            {pupil.lastName} {pupil.firstName} {pupil.otherNames && `(${pupil.otherNames})`}
+            {formatPupilDisplayName(pupil)}
           </h4>
         </div>
       </div>
@@ -359,11 +360,7 @@ export default function RecordAttendancePage() {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.firstName?.toLowerCase().includes(query) ||
-        p.lastName?.toLowerCase().includes(query) ||
-        p.otherNames?.toLowerCase().includes(query) ||
-        p.admissionNumber?.toLowerCase().includes(query)
+      filtered = filtered.filter(p => matchesPupilSearch(p, searchQuery, [p.admissionNumber])
       );
     }
 

@@ -1,4 +1,5 @@
 import type { Pupil } from '@/types';
+import { matchesPupilSearch } from '../utils/name-formatter';
 
 export type PupilFilters = {
   status?: string;
@@ -64,14 +65,11 @@ export function selectPupilsWithFilters(
 export function searchPupilSnapshot(pupils: Pupil[] | undefined, searchTerm: string): Pupil[] {
   const term = searchTerm.trim().toLowerCase();
   if (!term) return [];
-  return (pupils ?? []).filter(pupil => [
-    pupil.firstName,
-    pupil.lastName,
-    pupil.otherNames,
+  return (pupils ?? []).filter(pupil => matchesPupilSearch(pupil, term, [
     pupil.admissionNumber,
     pupil.className,
     pupil.classCode,
-  ].some(value => value?.toLowerCase().includes(term)));
+  ]));
 }
 
 export function selectPupilPhoto(pupils: Pupil[] | undefined, pupilId: string) {

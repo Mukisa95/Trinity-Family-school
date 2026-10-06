@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -262,7 +263,7 @@ function EditPupilContent() {
       await updatePupilMutation.mutateAsync({ id: pupilId, data: updatedPupilData });
       toast({
         title: "Pupil Updated",
-        description: `${updatedPupilData.lastName}, ${updatedPupilData.firstName} successfully updated.`,
+        description: `${formatPupilDisplayName(updatedPupilData)} successfully updated.`,
       });
       router.push(`/pupil-detail?id=${pupilId}`);
     } catch (error) {
@@ -338,7 +339,7 @@ function EditPupilContent() {
               Edit Pupil Details
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg">
-              Update {pupil.lastName}, {pupil.firstName}'s information
+              Update {formatPupilDisplayName(pupil)}'s information
             </p>
           </div>
         </div>

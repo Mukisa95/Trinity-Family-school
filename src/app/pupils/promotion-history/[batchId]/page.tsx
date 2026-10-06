@@ -1,4 +1,5 @@
 "use client";
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -96,10 +97,7 @@ export default function PromotionBatchDetailPage() {
         if (!searchTerm) return batchPupils;
 
         const term = searchTerm.toLowerCase();
-        return batchPupils.filter(pupil =>
-            pupil.firstName.toLowerCase().includes(term) ||
-            pupil.lastName.toLowerCase().includes(term) ||
-            pupil.admissionNumber.toLowerCase().includes(term)
+        return batchPupils.filter(pupil => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber])
         );
     }, [batchPupils, searchTerm]);
 
@@ -144,7 +142,7 @@ export default function PromotionBatchDetailPage() {
 
             toast({
                 title: "Promotion Undone",
-                description: `${selectedPupilForUndo.firstName} ${selectedPupilForUndo.lastName} has been moved back to ${batch.fromClassName}.`,
+                description: `${formatPupilDisplayName(selectedPupilForUndo)} has been moved back to ${batch.fromClassName}.`,
             });
 
             setUndoDialogOpen(false);
@@ -321,7 +319,7 @@ export default function PromotionBatchDetailPage() {
                                     <TableRow key={pupil.id}>
                                         <TableCell className="font-medium">{pupil.admissionNumber}</TableCell>
                                         <TableCell>
-                                            {pupil.firstName} {pupil.lastName}
+                                            {formatPupilDisplayName(pupil)}
                                         </TableCell>
                                         <TableCell>{pupil.gender || 'N/A'}</TableCell>
                                         <TableCell>{pupil.className || 'N/A'}</TableCell>
@@ -359,7 +357,7 @@ export default function PromotionBatchDetailPage() {
                         <AlertDialogDescription>
                             Are you sure you want to undo the {batch.type.toLowerCase()} for{" "}
                             <strong>
-                                {selectedPupilForUndo?.firstName} {selectedPupilForUndo?.lastName}
+                                {formatPupilDisplayName(selectedPupilForUndo ?? {})}
                             </strong>?
                             <br />
                             <br />

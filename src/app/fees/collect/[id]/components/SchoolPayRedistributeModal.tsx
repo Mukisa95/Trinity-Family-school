@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -279,7 +280,7 @@ export function SchoolPayRedistributeModal({
                 skipHistoryLog: true,
                 historyContext: {
                   feeName,
-                  pupilName: `${pupil.firstName} ${pupil.lastName}`,
+                  pupilName: `${formatPupilDisplayName(pupil)}`,
                   paymentMethod: transaction.paymentMethod,
                   source: 'schoolpay_redistribution',
                   paidByName: transaction.payerName,
@@ -296,7 +297,7 @@ export function SchoolPayRedistributeModal({
               meta: {
                 amount: n,
                 feeName,
-                pupilName: `${pupil.firstName} ${pupil.lastName}`,
+                pupilName: `${formatPupilDisplayName(pupil)}`,
                 method: transaction.paymentMethod,
                 source: 'schoolpay_redistribution',
               },
@@ -339,11 +340,11 @@ export function SchoolPayRedistributeModal({
                 schoolPayTransactionId: transaction.txRef,
                 schoolPayPaymentCode: transaction.payCode,
                 source: 'schoolpay',
-                notes: `${feeName} (SchoolPay – family redistribution) | For: ${targetPupil.firstName} ${targetPupil.lastName} | Payer: ${transaction.payerName} | Transaction: ${transaction.txRef || ''} | Date: ${fmtDate(transaction.paymentDate)}`,
+                notes: `${feeName} (SchoolPay – family redistribution) | For: ${formatPupilDisplayName(targetPupil)} | Payer: ${transaction.payerName} | Transaction: ${transaction.txRef || ''} | Date: ${fmtDate(transaction.paymentDate)}`,
                 skipHistoryLog: true,
                 historyContext: {
                   feeName,
-                  pupilName: `${targetPupil.firstName} ${targetPupil.lastName}`,
+                  pupilName: `${formatPupilDisplayName(targetPupil)}`,
                   paymentMethod: transaction.paymentMethod,
                   source: 'schoolpay_family_redistribution',
                   paidByName: transaction.payerName,
@@ -359,7 +360,7 @@ export function SchoolPayRedistributeModal({
               meta: {
                 amount,
                 feeName,
-                pupilName: `${targetPupil.firstName} ${targetPupil.lastName}`,
+                pupilName: `${formatPupilDisplayName(targetPupil)}`,
                 method: transaction.paymentMethod,
                 source: 'schoolpay_family_redistribution',
               },
@@ -576,7 +577,7 @@ export function SchoolPayRedistributeModal({
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className={`text-sm font-bold ${isMainPupil ? 'text-violet-800' : 'text-indigo-800'}`}>
-                          {person.firstName} {person.lastName}
+                          {formatPupilDisplayName(person)}
                         </span>
                         {isMainPupil && (
                           <span className="ml-2 text-[10px] bg-violet-200 text-violet-700 rounded-full px-2 py-0.5">This pupil</span>

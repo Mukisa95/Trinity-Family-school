@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -98,7 +99,7 @@ export function EditAssignmentModal({ assignment, open, onOpenChange }: EditAssi
     } else if (memberType === 'prefects' || memberType === 'pupils') {
       return pupils.filter(p => p.status === 'Active').map(p => ({
         id: p.id,
-        name: `${p.firstName} ${p.lastName} - ${p.className || 'No Class'}`
+        name: `${formatPupilDisplayName(p)} - ${p.className || 'No Class'}`
       }));
     }
     return [];

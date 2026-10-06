@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useEffect, useMemo, useState } from 'react';
 import { HistoryLogRecord, HistoryLogService } from '@/lib/services/history-log.service';
 import { FeeStructuresService } from '@/lib/services/fee-structures.service';
@@ -203,7 +204,7 @@ export default function HistoryLogPage() {
 
   useEffect(() => {
     setPupilsMap(Object.fromEntries(
-      pupils.map(pupil => [pupil.id, `${pupil.firstName} ${pupil.lastName}`.trim()]),
+      pupils.map(pupil => [pupil.id, `${formatPupilDisplayName(pupil)}`.trim()]),
     ));
   }, [pupils]);
 

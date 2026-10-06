@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { Printer } from '@phosphor-icons/react';
 import { Printer as LucidePrinter } from 'lucide-react';
@@ -40,7 +41,7 @@ export function PrintModal({
   const totalBalance = totalAmount - totalPaid;
   const allSelected = fees.length > 0 && selectedFees.length === fees.length;
   const scope = pupil
-    ? `${`${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() || 'Pupil'} · ${selectedAcademicYear?.name || 'Current academic year'}`
+    ? `${`${formatPupilDisplayName(pupil)}`.trim() || 'Pupil'} · ${selectedAcademicYear?.name || 'Current academic year'}`
     : `${fees.length} available fee${fees.length === 1 ? '' : 's'}`;
 
   const handleToggleFee = (feeId: string) => {

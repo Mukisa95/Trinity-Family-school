@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,14 +65,7 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
 
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      result = result.filter(pupil => {
-        const fullName = `${pupil.firstName} ${pupil.lastName} ${pupil.otherNames || ''}`.toLowerCase();
-        return (
-          fullName.includes(searchLower) ||
-          pupil.admissionNumber.toLowerCase().includes(searchLower) ||
-          pupil.className?.toLowerCase().includes(searchLower)
-        );
-      });
+      result = result.filter(pupil => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber, pupil.className]));
     }
 
     if (selectedSection && selectedSection !== "all") {
@@ -281,8 +275,7 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
                       />
                       <div className="flex-1">
                         <div className="font-medium">
-                          {pupil.firstName} {pupil.lastName}
-                          {pupil.otherNames && ` ${pupil.otherNames}`}
+                          {formatPupilDisplayName(pupil)}
                         </div>
                         <div className="text-sm text-gray-500">
                           {pupil.admissionNumber} • {pupil.className} • {pupil.section}
@@ -343,8 +336,7 @@ export function BulkParentAccountCreator({ parentUsers, onSuccess, onCancel }: B
                         <CheckCircle className="w-5 h-5 text-blue-600" />
                         <div className="flex-1">
                           <div className="font-medium">
-                            {pupil.firstName} {pupil.lastName}
-                            {pupil.otherNames && ` ${pupil.otherNames}`}
+                            {formatPupilDisplayName(pupil)}
                           </div>
                           <div className="text-sm text-gray-500">
                             {pupil.admissionNumber} • {pupil.section}

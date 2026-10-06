@@ -2,10 +2,10 @@
  * Utility functions for formatting pupil and staff names consistently
  * throughout the application. Uses surname-first format.
  * 
- * IMPORTANT: After database migration, firstName and lastName fields are correctly aligned:
+ * Name fields retain their storage meanings:
  * - firstName contains the actual first name
  * - lastName contains the actual surname
- * - Display format is "Surname, FirstName" (lastName, firstName)
+ * - Pupil display format is "Surname FirstName OtherNames"
  */
 
 export interface NameData {
@@ -18,10 +18,10 @@ export interface NameData {
  * Formats a pupil's full name in surname-first format
  * @param nameData - Object containing firstName (actual first name), lastName (actual surname), and optionally otherNames
  * @param options - Formatting options
- * @returns Formatted name string in "Surname, FirstName" format
+ * @returns Formatted name string in surname-first order
  */
 export function formatPupilName(
-  nameData: NameData, 
+  nameData: NameData | null | undefined,
   options: {
     includeOtherNames?: boolean;
     separator?: string;
@@ -29,35 +29,15 @@ export function formatPupilName(
   } = {}
 ): string {
   const { 
-    includeOtherNames = false, 
-    separator = ', ', 
+    includeOtherNames = true,
+    separator = ' ',
     fallback = 'Unknown' 
   } = options;
 
-  const { firstName = '', lastName = '', otherNames = '' } = nameData;
-
-  // Handle missing names
-  if (!firstName && !lastName) {
-    return fallback;
-  }
-  
-  if (!lastName) {
-    return firstName;
-  }
-  
-  if (!firstName) {
-    return lastName;
-  }
-
-  // Build name: "Surname, FirstName" or "Surname, FirstName OtherNames"
-  // After migration: lastName = surname, firstName = first name
-  let formattedName = `${lastName}${separator}${firstName}`;
-  
-  if (includeOtherNames && otherNames) {
-    formattedName += ` ${otherNames}`;
-  }
-
-  return formattedName;
+  const clean = (value?: string) => (value || '').trim().replace(/\s+/g, ' ');
+  const primaryNames = [clean(nameData?.lastName), clean(nameData?.firstName)].filter(Boolean);
+  const otherNames = includeOtherNames ? clean(nameData?.otherNames) : '';
+  return [primaryNames.join(separator), otherNames].filter(Boolean).join(' ') || fallback;
 }
 
 /**
@@ -65,7 +45,7 @@ export function formatPupilName(
  * @param nameData - Object containing firstName, lastName, and optionally otherNames
  * @returns Formatted name string suitable for display
  */
-export function formatPupilDisplayName(nameData: NameData): string {
+export function formatPupilDisplayName(nameData: NameData | null | undefined): string {
   return formatPupilName(nameData, {
     includeOtherNames: true,
     separator: ' ',
@@ -78,7 +58,7 @@ export function formatPupilDisplayName(nameData: NameData): string {
  * @param nameData - Object containing firstName, lastName, and optionally otherNames
  * @returns Full formatted name string
  */
-export function formatPupilFullName(nameData: NameData): string {
+export function formatPupilFullName(nameData: NameData | null | undefined): string {
   return formatPupilName(nameData, {
     includeOtherNames: true,
     separator: ' ',
@@ -164,8 +144,33 @@ export function formatGuardianName(nameData: NameData): string {
  * @returns Lowercase search string
  */
 export function createPupilSearchString(nameData: NameData): string {
-  const { firstName = '', lastName = '', otherNames = '' } = nameData;
-  return `${lastName} ${firstName} ${otherNames}`.toLowerCase().trim();
+  return normalizePupilNameSearch([nameData.lastName, nameData.firstName, nameData.otherNames].filter(Boolean).join(' '));
+}
+
+function normalizePupilNameSearch(value: string): string {
+  return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+/** Every entered name part must match; name order and separators do not matter. */
+export function matchesPupilName(nameData: NameData, query: string): boolean {
+  if (!query.trim()) return true;
+  const tokens = normalizePupilNameSearch(query).split(' ').filter(Boolean);
+  const name = createPupilSearchString(nameData);
+  return tokens.length > 0 && tokens.every(token => name.includes(token));
+}
+
+/** Name matching plus a screen's explicitly supported identifiers or labels.
+ * Identifier punctuation remains significant (e.g. TFS-001 vs TFS/001).
+ */
+export function matchesPupilSearch(
+  nameData: NameData,
+  query: string,
+  additionalFields: ReadonlyArray<string | null | undefined> = [],
+): boolean {
+  if (matchesPupilName(nameData, query)) return true;
+  const term = query.trim().toLowerCase().replace(/\s+/g, ' ');
+  return additionalFields.some(value => value?.trim().toLowerCase().replace(/\s+/g, ' ').includes(term));
 }
 
 /**
@@ -184,4 +189,4 @@ export function sortPupilsByName<T extends NameData>(pupils: T[]): T[] {
     // If lastNames are equal, compare by firstName
     return (a.firstName || '').localeCompare(b.firstName || '');
   });
-} 
+}

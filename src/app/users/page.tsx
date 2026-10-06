@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { useState } from "react";
 import { PlusCircle, MoreHorizontal, Edit, Trash2, UserCheck, Users, Shield, Eye, EyeOff, Key, Search, X, Filter, Save, Copy } from "lucide-react";
@@ -331,7 +332,7 @@ export default function UsersPage() {
     if (!selectedPupil) return;
 
     // FIXED: Use complete pupil name with proper spacing for authentication compatibility
-    const pupilName = `${selectedPupil.firstName} ${selectedPupil.lastName}${selectedPupil.otherNames ? ` ${selectedPupil.otherNames}` : ''}`.trim();
+    const pupilName = `${formatPupilDisplayName(selectedPupil)}`.trim();
 
     try {
       await createParentAccountMutation.mutateAsync({
@@ -343,8 +344,8 @@ export default function UsersPage() {
       toast({ 
         title: "Parent Account Created", 
         description: selectedPupil.familyId
-          ? `Secure parent account created for ${selectedPupil.firstName} ${selectedPupil.lastName}'s family`
-          : `Secure parent account created for ${selectedPupil.firstName} ${selectedPupil.lastName}`
+          ? `Secure parent account created for ${formatPupilDisplayName(selectedPupil)}'s family`
+          : `Secure parent account created for ${formatPupilDisplayName(selectedPupil)}`
       });
       setIsCreateDialogOpen(false);
       resetParentForm();
@@ -455,7 +456,7 @@ export default function UsersPage() {
     } else if (user.role === 'Parent') {
       const children = getParentAccountChildren(user, pupils);
       return children.length > 0
-        ? `${children.map(pupil => `${pupil.firstName} ${pupil.lastName}`).join(', ')} (Parent)`
+        ? `${children.map(pupil => `${formatPupilDisplayName(pupil)}`).join(', ')} (Parent)`
         : 'Parent Account';
     }
     return user.username;
@@ -982,7 +983,7 @@ export default function UsersPage() {
                               <div className="space-y-1.5">
                                 {familyChildren.length > 0 ? familyChildren.map(pupil => (
                                   <div key={pupil.id} className="flex flex-wrap items-center gap-2">
-                                    <span>{pupil.firstName} {pupil.lastName}</span>
+                                    <span>{formatPupilDisplayName(pupil)}</span>
                                     {pupil.className && (
                                       <Badge variant="outline" className="font-normal">{pupil.className}</Badge>
                                     )}

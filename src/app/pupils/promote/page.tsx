@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { Button } from "@/components/ui/button";
@@ -96,10 +97,7 @@ export default function PromotePupilsPage() {
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const filtered = classPupils.filter(p => {
-        const fullName = `${p.firstName} ${p.lastName} ${p.otherNames || ''}`.toLowerCase();
-        return fullName.includes(query);
-      });
+      const filtered = classPupils.filter(p => matchesPupilSearch(p, searchQuery));
       // Sort alphabetically by lastName
       return filtered.sort((a, b) => a.lastName.localeCompare(b.lastName));
     }
@@ -799,10 +797,10 @@ export default function PromotePupilsPage() {
                                     <Checkbox
                                       checked={previousYearsPupilIds.includes(pupil.id)}
                                       onCheckedChange={(checked) => handleSelectPupilPreviousYears(pupil.id, checked)}
-                                      aria-label={`Select ${pupil.firstName} ${pupil.lastName}`}
+                                      aria-label={`Select ${formatPupilDisplayName(pupil)}`}
                                     />
                                   </TableCell>
-                                  <TableCell className="font-medium">{pupil.lastName} {pupil.firstName}{pupil.otherNames ? ` ${pupil.otherNames}` : ''}</TableCell>
+                                  <TableCell className="font-medium">{formatPupilDisplayName(pupil)}</TableCell>
                                   <TableCell className="text-sm text-gray-600">
                                     {pupil.registrationDate ? new Date(pupil.registrationDate).toLocaleDateString() : 'N/A'}
                                   </TableCell>
@@ -850,10 +848,10 @@ export default function PromotePupilsPage() {
                                       <Checkbox
                                         checked={currentYearPupilIds.includes(pupil.id)}
                                         onCheckedChange={(checked) => handleSelectPupilCurrentYear(pupil.id, checked)}
-                                        aria-label={`Select ${pupil.firstName} ${pupil.lastName}`}
+                                        aria-label={`Select ${formatPupilDisplayName(pupil)}`}
                                       />
                                     </TableCell>
-                                    <TableCell className="font-medium">{pupil.lastName} {pupil.firstName}{pupil.otherNames ? ` ${pupil.otherNames}` : ''}</TableCell>
+                                    <TableCell className="font-medium">{formatPupilDisplayName(pupil)}</TableCell>
                                     <TableCell className="text-sm text-blue-700">
                                       {pupil.registrationDate ? new Date(pupil.registrationDate).toLocaleDateString() : 'N/A'}
                                     </TableCell>
@@ -889,10 +887,10 @@ export default function PromotePupilsPage() {
                               <Checkbox
                                 checked={selectedPupilIds.includes(pupil.id)}
                                 onCheckedChange={(checked) => handleSelectPupil(pupil.id, checked)}
-                                aria-label={`Select ${pupil.firstName} ${pupil.lastName}`}
+                                aria-label={`Select ${formatPupilDisplayName(pupil)}`}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">{pupil.lastName} {pupil.firstName}{pupil.otherNames ? ` ${pupil.otherNames}` : ''}</TableCell>
+                            <TableCell className="font-medium">{formatPupilDisplayName(pupil)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

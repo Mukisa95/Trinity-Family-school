@@ -14,6 +14,7 @@
  * - Who received payment
  */
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { PaymentRecord, User, Pupil, FeeStructure } from '@/types';
@@ -49,7 +50,7 @@ class FeesPaymentNotificationService {
       console.log(`\n${'='.repeat(80)}`);
       console.log(`💳 [Fees Notification] Starting payment notification`);
       console.log(`   Payment ID: ${paymentId}`);
-      console.log(`   Pupil: ${pupilDetails.firstName} ${pupilDetails.lastName}`);
+      console.log(`   Pupil: ${formatPupilDisplayName(pupilDetails)}`);
       console.log(`   Fee: ${feeDetails.name}`);
       console.log(`   Amount: ${paymentData.amount}`);
       console.log(`${'='.repeat(80)}\n`);
@@ -247,7 +248,7 @@ class FeesPaymentNotificationService {
     feeStructure: FeeStructure,
     balance: number
   ): any {
-    const pupilName = `${pupil.firstName} ${pupil.lastName}`;
+    const pupilName = `${formatPupilDisplayName(pupil)}`;
     const feeItemName = feeStructure.name;
     const amountPaid = paymentData.amount;
     const actualAmount = feeStructure.amount;

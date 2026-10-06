@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useMemo, useState } from "react";
 import { useActivePupils } from "@/lib/hooks/use-pupils";
 import { PageHeader } from "@/components/common/page-header";
@@ -209,7 +210,7 @@ export default function BoardingListPage() {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <a className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors block truncate" href={`/pupil-detail?id=${p.id}`}>
-                                        {(p.firstName || '').toUpperCase()} {(p.lastName || '').toUpperCase()}
+                                        {formatPupilDisplayName(p).toUpperCase()}
                                       </a>
                                       <div className="flex items-center gap-2 text-xs text-gray-500">
                                         <span className="truncate">{p.admissionNumber || ''}</span>
@@ -232,7 +233,7 @@ export default function BoardingListPage() {
                                         onClick={(e) => {
                                           e.preventDefault();
                                           setSelectedPupilGuardians({
-                                            pupilName: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+                                            pupilName: formatPupilDisplayName(p),
                                             guardians: (p.guardians as Guardian[]) || [],
                                             emergencyContactId: ''
                                           });
@@ -247,7 +248,7 @@ export default function BoardingListPage() {
                                           e.preventDefault();
                                           const siblings = siblingsMap.get(p.id) || [];
                                           setSelectedPupilSiblings({
-                                            pupilName: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+                                            pupilName: formatPupilDisplayName(p),
                                             siblings
                                           });
                                         }}
@@ -314,7 +315,7 @@ export default function BoardingListPage() {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <a className="text-xs sm:text-sm font-medium text-pink-600 hover:text-pink-800 transition-colors block truncate" href={`/pupil-detail?id=${p.id}`}>
-                                        {(p.firstName || '').toUpperCase()} {(p.lastName || '').toUpperCase()}
+                                        {formatPupilDisplayName(p).toUpperCase()}
                                       </a>
                                       <div className="flex items-center gap-2 text-xs text-gray-500">
                                         <span className="truncate">{p.admissionNumber || ''}</span>
@@ -337,7 +338,7 @@ export default function BoardingListPage() {
                                         onClick={(e) => {
                                           e.preventDefault();
                                           setSelectedPupilGuardians({
-                                            pupilName: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+                                            pupilName: formatPupilDisplayName(p),
                                             guardians: (p.guardians as Guardian[]) || [],
                                             emergencyContactId: ''
                                           });
@@ -352,7 +353,7 @@ export default function BoardingListPage() {
                                           e.preventDefault();
                                           const siblings = siblingsMap.get(p.id) || [];
                                           setSelectedPupilSiblings({
-                                            pupilName: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+                                            pupilName: formatPupilDisplayName(p),
                                             siblings
                                           });
                                         }}
@@ -389,7 +390,7 @@ export default function BoardingListPage() {
             {selectedPupilGuardians?.guardians?.length ? (
               selectedPupilGuardians.guardians.map((g, idx) => (
                 <div key={idx} className="text-sm">
-                  <div className="font-medium">{g.firstName} {g.lastName}</div>
+                  <div className="font-medium">{formatPupilDisplayName(g)}</div>
                   <div className="text-xs text-gray-500">{g.phone}</div>
                 </div>
               ))
@@ -414,7 +415,7 @@ export default function BoardingListPage() {
             {selectedPupilSiblings?.siblings?.length ? (
               selectedPupilSiblings.siblings.map((s, idx) => (
                 <a key={idx} href={`/pupil-detail?id=${s.id}`} className="block text-sm hover:underline">
-                  {s.firstName} {s.lastName}
+                  {formatPupilDisplayName(s)}
                   <span className="text-xs text-gray-500"> • {s.classCode || s.className || ''}</span>
                   {s.section ? (
                     <span className="text-xs text-gray-500">

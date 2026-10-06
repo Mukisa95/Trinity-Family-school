@@ -1,3 +1,4 @@
+import { formatPupilName } from '@/lib/utils/name-formatter';
 import type { Firestore } from 'firebase-admin/firestore';
 
 import type { SystemUser } from '@/types';
@@ -36,7 +37,7 @@ async function getParentContext(
   }
 
   const pupilNames = pupils
-    .map(({ data }) => [text(data.firstName), text(data.lastName)].filter(Boolean).join(' '))
+    .map(({ data }) => formatPupilName({ firstName: text(data.firstName), lastName: text(data.lastName), otherNames: text(data.otherNames) }, { fallback: '' }))
     .filter(Boolean);
   const guardian = guardianId
     ? pupils.flatMap(({ data }) => Array.isArray(data.guardians) ? data.guardians : [])

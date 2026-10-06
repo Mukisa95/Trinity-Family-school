@@ -1,5 +1,7 @@
 "use client";
 
+import { formatPupilName } from '@/lib/utils/name-formatter';
+import { usePupils } from '@/lib/hooks/use-pupils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { DatePicker } from '@/components/common/date-picker';
@@ -20,6 +22,7 @@ import {
   Bookmark,
   Download,
   ChevronLeft,
+  ChevronDown,
   History,
   ArrowUpRight,
   ArrowDownRight,
@@ -241,9 +244,11 @@ export default function PupilResultsClient() {
     error: examResultError
   } = useExamResultByExamId(examId);
 
+  const { data: allPupils = [] } = usePupils();
+
   // Extract data from exam results
   const classSnap: ExamClassInfoSnapshot | undefined = useMemo(() => examResultData?.classSnapshot, [examResultData]);
-  const pupilSnaps: ExamRecordPupilInfo[] = useMemo(() => examResultData?.pupilSnapshots || [], [examResultData]);
+  const pupilSnaps: ExamRecordPupilInfo[] = useMemo(() => (examResultData?.pupilSnapshots || []).map(snap => ({ ...snap, name: formatPupilName(allPupils.find(pupil => pupil.id === snap.pupilId), { fallback: snap.name }) })), [examResultData, allPupils]);
   const subjectSnaps: ExamRecordSubjectInfo[] = useMemo(() => examResultData?.subjectSnapshots || [], [examResultData]);
   const actualResults: Record<string, Record<string, PupilSubjectResult>> = useMemo(() => examResultData?.results || {}, [examResultData]);
 
@@ -1407,11 +1412,16 @@ export default function PupilResultsClient() {
   }
 
   const academicInfo = getAcademicYearAndTerm(examDetails?.academicYearId || '', examDetails?.termId || '');
+  // Copy before sorting so summary highlights do not reorder the subject results.
+  const subjectsByMarks = [...pupilResults.subjectResults].sort((a, b) => (b.marks ?? 0) - (a.marks ?? 0));
+  const bestSubject = subjectsByMarks[0];
+  const weakestSubject = subjectsByMarks[subjectsByMarks.length - 1];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
+    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-in fade-in duration-500">
       <GlassPageTopBar
         title="Individual Results"
+        className="mb-3 sm:mb-4"
         recordDetails={examDetails?.name ? `${examDetails.name} | ${academicInfo.academicYearName} - ${academicInfo.termName}` : undefined}
         backHref={examId ? `/exams/${examId}/view-results` : '/exams'}
         backLabel="Back to exam results"
@@ -1434,327 +1444,151 @@ export default function PupilResultsClient() {
         }
       />
 
-      <div className="max-w-7xl mx-auto px-4 pb-12">
-        {/* Pupil Information Card */}
-        <Card className="shadow-xl border-2 border-primary/10 bg-gradient-to-br from-card via-card to-muted/5 rounded-2xl overflow-hidden backdrop-blur-sm mb-6">
-          <CardContent className="p-4 sm:p-6">
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 sm:p-6 border border-gray-100">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-                {/* Pupil Avatar */}
-                <div className="relative">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
-                    <User className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md">
-                    <Award className="w-4 h-4 text-yellow-500" />
-                  </div>
-                </div>
-
-                {/* Pupil Details */}
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Student Name</p>
-                    <p className="text-sm sm:text-base font-bold text-gray-900">{pupilDetails.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Admission No.</p>
-                    <p className="text-sm sm:text-base font-semibold text-gray-700">{pupilDetails.admissionNumber}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Class</p>
-                    <p className="text-sm sm:text-base font-semibold text-gray-700">{classSnap?.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Position</p>
-                    <div className="flex items-center gap-2">
-                      <Medal className="w-4 h-4 text-yellow-500" />
-                      <p className="text-sm sm:text-base font-semibold text-gray-700">{position}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      <div className="mx-auto max-w-7xl pb-4 sm:pb-6">
+        <section aria-label="Pupil and results summary" className="mb-3 overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm sm:mb-4">
+          <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600" aria-hidden="true">
+              <User className="h-5 w-5" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Performance Analytics Tiles - Enhanced */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          {/* Total Marks */}
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-2 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Marks</p>
-                <p className="text-2xl sm:text-3xl font-bold text-blue-600">{pupilResults.totalMarks}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Average: {pupilResults.averageMarks.toFixed(1)}%</span>
-              <div className="flex items-center text-green-600">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span className="font-medium">Above average</span>
-              </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words text-base font-bold leading-snug text-gray-900 sm:text-lg">{pupilDetails.name}</h2>
+              <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:text-sm">
+                <div className="flex min-w-0 gap-1"><dt>Admission:</dt><dd className="break-all font-medium text-gray-900">{pupilDetails.admissionNumber}</dd></div>
+                <div className="flex gap-1"><dt>Class:</dt><dd className="font-medium text-gray-900">{classSnap?.name}</dd></div>
+                <div className="flex items-center gap-1"><dt>Position:</dt><dd className="font-semibold text-indigo-700">{position}</dd></div>
+              </dl>
             </div>
           </div>
 
-          {/* Total Aggregates */}
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-2 rounded-lg">
-                <Target className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Aggregates</p>
-                <p className="text-2xl sm:text-3xl font-bold text-purple-600">{pupilResults.totalAggregates}</p>
-              </div>
+          <dl className="grid grid-cols-2 border-t border-indigo-100 bg-indigo-50/40 sm:grid-cols-4">
+            <div className="min-w-0 border-r border-indigo-100 px-3 py-2.5 sm:px-4">
+              <dt className="text-xs font-medium text-gray-600">Total marks</dt>
+              <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-2xl font-bold leading-tight tabular-nums text-blue-700">{pupilResults.totalMarks}</span>
+                <span className="text-xs text-gray-600">Avg. {pupilResults.averageMarks.toFixed(1)}%</span>
+              </dd>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Out of {subjectSnaps.length * 9}</span>
-              <Badge className={`${getDivisionColor(pupilResults.division)} text-xs px-2 py-1 border-0`}>
-                Division {pupilResults.division}
-              </Badge>
+            <div className="min-w-0 border-indigo-100 px-3 py-2.5 sm:border-r sm:px-4">
+              <dt className="text-xs font-medium text-gray-600">Aggregates <span className="font-normal">/ {subjectSnaps.length * 9}</span></dt>
+              <dd className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-2xl font-bold leading-tight tabular-nums text-purple-700">{pupilResults.totalAggregates}</span>
+                <Badge className={`${getDivisionColor(pupilResults.division)} border-0 px-2 py-0.5 text-xs`}>Division {pupilResults.division}</Badge>
+              </dd>
             </div>
-          </div>
+            <div className="min-w-0 border-r border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5">
+              <dt className="text-[11px] font-medium text-gray-500 sm:text-xs">Best subject</dt>
+              <dd className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:mt-1.5 sm:text-sm">
+                <span className="break-words font-semibold text-green-700">{bestSubject?.code || 'N/A'}</span>
+                {bestSubject && <><span className="tabular-nums text-gray-600">{bestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(bestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{bestSubject.grade || 'F9'}</Badge></>}
+              </dd>
+            </div>
+            <div className="min-w-0 border-t border-indigo-100 bg-white px-3 py-2 sm:border-t-0 sm:px-4 sm:py-2.5">
+              <dt className="text-[11px] font-medium text-gray-500 sm:text-xs">Needs focus</dt>
+              <dd className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:mt-1.5 sm:text-sm">
+                <span className="break-words font-semibold text-orange-700">{weakestSubject?.code || 'N/A'}</span>
+                {weakestSubject && <><span className="tabular-nums text-gray-600">{weakestSubject.marks ?? 0}%</span><Badge className={`${getGradeColor(weakestSubject.grade || 'F9')} border-0 px-1.5 py-0 text-[11px]`}>{weakestSubject.grade || 'F9'}</Badge></>}
+              </dd>
+            </div>
+          </dl>
+        </section>
 
-          {/* Best Subject */}
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="bg-gradient-to-br from-green-500 to-green-600 p-2 rounded-lg">
-                <Star className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Best Subject</p>
-                <p className="text-sm sm:text-base font-bold text-green-600">
-                  {pupilResults.subjectResults.sort((a, b) => (b.marks || 0) - (a.marks || 0))[0]?.code || 'N/A'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">
-                {pupilResults.subjectResults.sort((a, b) => (b.marks || 0) - (a.marks || 0))[0]?.marks || 0}%
-              </span>
-              <Badge className={`${getGradeColor(pupilResults.subjectResults.sort((a, b) => (b.marks || 0) - (a.marks || 0))[0]?.grade || 'F9')} text-xs px-2 py-1 border-0`}>
-                {pupilResults.subjectResults.sort((a, b) => (b.marks || 0) - (a.marks || 0))[0]?.grade || 'F9'}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Weakest Subject */}
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-white" />
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Needs Focus</p>
-                <p className="text-sm sm:text-base font-bold text-orange-600">
-                  {pupilResults.subjectResults.sort((a, b) => (a.marks || 0) - (b.marks || 0))[0]?.code || 'N/A'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">
-                {pupilResults.subjectResults.sort((a, b) => (a.marks || 0) - (b.marks || 0))[0]?.marks || 0}%
-              </span>
-              <Badge className={`${getGradeColor(pupilResults.subjectResults.sort((a, b) => (a.marks || 0) - (b.marks || 0))[0]?.grade || 'F9')} text-xs px-2 py-1 border-0`}>
-                {pupilResults.subjectResults.sort((a, b) => (a.marks || 0) - (b.marks || 0))[0]?.grade || 'F9'}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Modern Tabs with Enhanced Styling */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 border-b border-gray-200">
-              <TabsList className="w-full h-auto p-2 bg-transparent">
-                <TabsTrigger
-                  value="current"
-                  className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-gray-200 rounded-lg py-3 px-6 text-sm font-medium transition-all duration-200"
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
+            <div className="border-b border-gray-200 bg-gray-50/80 p-1">
+              <TabsList aria-label="Pupil results" className="grid h-auto w-full grid-cols-2 gap-1 bg-transparent p-0">
+                <TabsTrigger value="current" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm">
+                  <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Current Results
                 </TabsTrigger>
-                <TabsTrigger
-                  value="history"
-                  className="flex-1 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-gray-200 rounded-lg py-3 px-6 text-sm font-medium transition-all duration-200"
-                >
-                  <History className="w-4 h-4 mr-2" />
+                <TabsTrigger value="history" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm">
+                  <History className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Exam History
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* Current Results Tab */}
-            <TabsContent value="current" className="p-0 mt-0">
-              <div className="p-4 sm:p-6">
-                <div className="grid gap-4">
-                  {pupilResults.subjectResults.map((subject, index) => (
-                    <div
-                      key={subject.subjectId}
-                      className="group bg-gradient-to-r from-white via-gray-50 to-white p-4 sm:p-6 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-300"
-                    >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        {/* Subject Info */}
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-3 rounded-lg">
-                            <BookOpen className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                              {subject.name}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-500 font-medium">
-                              {subject.code}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Performance Metrics */}
-                        <div className="flex items-center gap-4 sm:gap-6">
-                          {/* Marks */}
-                          <div className="text-center">
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Marks</p>
-                            <p className="text-xl sm:text-2xl font-bold text-gray-900">{subject.marks || 0}</p>
-                          </div>
-
-                          {/* Grade & Aggregates */}
-                          <div className="text-center">
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Grade</p>
-                            <div className="flex items-center gap-2">
-                              <Badge className={`${getGradeColor(subject.grade || 'F9')} text-sm px-3 py-1 border-0 font-bold`}>
-                                {subject.grade || 'F9'}
-                              </Badge>
-                              <span className="text-xs text-gray-500 font-medium">({subject.aggregates || 9})</span>
-                            </div>
-                          </div>
-
-                          {/* Remarks */}
-                          <div className="text-center hidden sm:block">
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Remarks</p>
-                            <p className="text-sm font-medium text-gray-700">{getRemarks(subject.marks || 0)}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Mobile Remarks */}
-                      <div className="mt-3 sm:hidden">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Remarks</p>
-                        <p className="text-sm font-medium text-gray-700">{getRemarks(subject.marks || 0)}</p>
-                      </div>
-                    </div>
+            <TabsContent value="current" className="mt-0 p-0">
+              <table className="w-full table-fixed text-sm">
+                <caption className="sr-only">Subject results for {pupilDetails.name}: marks, grade, aggregates and remarks.</caption>
+                <thead className="border-b border-gray-100 bg-gray-50/50 text-xs text-gray-500">
+                  <tr>
+                    <th scope="col" className="px-3 py-2 text-left font-medium sm:px-4">Subject</th>
+                    <th scope="col" className="w-14 px-1 py-2 text-right font-medium sm:w-20 sm:px-3">Marks</th>
+                    <th scope="col" className="w-20 px-2 py-2 text-right font-medium sm:w-28 sm:px-4">Grade<span className="block text-[10px] font-normal">Aggregate</span></th>
+                    <th scope="col" className="hidden w-40 px-4 py-2 text-left font-medium md:table-cell">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pupilResults.subjectResults.map(subject => (
+                    <tr key={subject.subjectId} className="hover:bg-indigo-50/40">
+                      <th scope="row" className="px-3 py-2.5 text-left font-normal sm:px-4">
+                        <span className="block break-words font-semibold leading-snug text-gray-900">{subject.name}</span>
+                        <span className="mt-0.5 block break-words text-[11px] leading-snug text-gray-500">{subject.code}<span className="md:hidden"> · {getRemarks(subject.marks || 0)}</span></span>
+                      </th>
+                      <td className="px-1 py-2.5 text-right align-middle font-bold tabular-nums text-gray-900 sm:px-3">{subject.marks ?? 0}</td>
+                      <td className="px-2 py-2.5 text-right align-middle sm:px-4">
+                        <Badge className={`${getGradeColor(subject.grade || 'F9')} border-0 px-2 py-0.5 text-xs font-bold`}>{subject.grade || 'F9'}</Badge>
+                        <span className="mt-0.5 block text-[11px] tabular-nums text-gray-500">{subject.aggregates ?? 9}</span>
+                      </td>
+                      <td className="hidden px-4 py-2.5 text-xs text-gray-600 md:table-cell">{getRemarks(subject.marks || 0)}</td>
+                    </tr>
                   ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             </TabsContent>
 
-            {/* Exam History Tab */}
-            <TabsContent value="history" className="p-0 mt-0">
-              <div className="p-4 sm:p-6">
-                {isLoadingHistory ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                    <span className="ml-2 text-gray-600">Loading exam history...</span>
-                  </div>
-                ) : examHistory.length === 0 ? (
-                  <div className="text-center py-12">
-                    <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Exam History</h3>
-                    <p className="text-gray-500">This pupil has no previous exam records.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4">
-                    {examHistory.map((exam, index) => (
-                      <div
-                        key={exam.examId}
-                        className="group bg-gradient-to-r from-white via-gray-50 to-white p-4 sm:p-6 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-300"
-                      >
-                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                          {/* Exam Info */}
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-3 rounded-lg">
-                              <GraduationCap className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-base sm:text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                {exam.examName}
-                              </h3>
-                              <p className="text-xs sm:text-sm text-gray-500 font-medium">
-                                {new Date(exam.examDate).toLocaleDateString()}
-                              </p>
-                            </div>
-                            {/* Trend Indicator */}
-                            <div className="flex items-center">
-                              {exam.trend === 'up' && (
-                                <div className="bg-green-100 p-1 rounded-full">
-                                  <ArrowUpRight className="w-4 h-4 text-green-600" />
-                                </div>
-                              )}
-                              {exam.trend === 'down' && (
-                                <div className="bg-red-100 p-1 rounded-full">
-                                  <ArrowDownRight className="w-4 h-4 text-red-600" />
-                                </div>
-                              )}
-                              {exam.trend === 'same' && (
-                                <div className="bg-gray-100 p-1 rounded-full">
-                                  <Minus className="w-4 h-4 text-gray-600" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Performance Metrics */}
-                          <div className="flex items-center gap-4 sm:gap-6">
-                            <div className="text-center">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Total</p>
-                              <p className="text-lg sm:text-xl font-bold text-gray-900">{exam.totalMarks}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Agg</p>
-                              <p className="text-lg sm:text-xl font-bold text-gray-900">{exam.totalAggregates}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Division</p>
-                              <Badge className={`${getDivisionColor(exam.division)} text-sm px-3 py-1 border-0 font-bold`}>
-                                {exam.division}
-                              </Badge>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Position</p>
-                              <p className="text-sm font-medium text-gray-700">{exam.position}</p>
-                            </div>
-                          </div>
+            <TabsContent value="history" className="mt-0 p-3 sm:p-4">
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center gap-2 py-8" role="status">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" aria-hidden="true" />
+                  <span className="text-sm text-gray-600">Loading exam history...</span>
+                </div>
+              ) : examHistory.length === 0 ? (
+                <div className="py-8 text-center">
+                  <History className="mx-auto mb-2 h-8 w-8 text-gray-300" aria-hidden="true" />
+                  <h3 className="text-sm font-semibold text-gray-900">No Exam History</h3>
+                  <p className="mt-1 text-xs text-gray-500">This pupil has no previous exam records.</p>
+                </div>
+              ) : (
+                <div className="grid gap-2.5">
+                  {examHistory.map(exam => (
+                    <article key={exam.examId} className="min-w-0 rounded-lg border border-gray-200">
+                      <div className="flex items-start justify-between gap-2 px-3 pt-3">
+                        <div className="min-w-0">
+                          <h3 className="break-words text-sm font-semibold leading-snug text-gray-900">{exam.examName}</h3>
+                          <p className="mt-0.5 text-xs text-gray-500">{new Date(exam.examDate).toLocaleDateString()}</p>
                         </div>
-
-                        {/* Subject Performance - Expandable */}
-                        <div className="mt-4 border-t border-gray-100 pt-4">
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Subject Performance</p>
-                          <div className="flex flex-wrap gap-2">
-                            {Object.entries(exam.subjects).slice(0, 6).map(([code, subject]: [string, any]) => (
-                              <div key={code} className="bg-gray-100 rounded-lg px-3 py-1 flex items-center gap-2">
-                                <span className="text-xs font-medium text-gray-700">{code}</span>
-                                <span className="text-xs text-gray-600">{subject.marks}</span>
-                                <Badge className={`${getGradeColor(subject.grade)} text-xs px-1 py-0 border-0`}>
-                                  {subject.grade}
-                                </Badge>
-                              </div>
-                            ))}
-                            {Object.keys(exam.subjects).length > 6 && (
-                              <div className="bg-gray-100 rounded-lg px-3 py-1">
-                                <span className="text-xs text-gray-500">
-                                  +{Object.keys(exam.subjects).length - 6} more
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <span className="shrink-0 rounded-full bg-gray-50 p-1" aria-label={exam.trend === 'up' ? 'Total marks increased' : exam.trend === 'down' ? 'Total marks decreased' : 'Total marks unchanged'}>
+                          {exam.trend === 'up' && <ArrowUpRight className="h-4 w-4 text-green-600" />}
+                          {exam.trend === 'down' && <ArrowDownRight className="h-4 w-4 text-red-600" />}
+                          {exam.trend === 'same' && <Minus className="h-4 w-4 text-gray-500" />}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <dl className="grid grid-cols-4 gap-1 px-3 py-2.5 text-xs">
+                        <div><dt className="text-[11px] text-gray-500">Total</dt><dd className="mt-0.5 font-bold tabular-nums text-gray-900">{exam.totalMarks}</dd></div>
+                        <div><dt className="text-[11px] text-gray-500">Aggregates</dt><dd className="mt-0.5 font-bold tabular-nums text-gray-900">{exam.totalAggregates}</dd></div>
+                        <div><dt className="text-[11px] text-gray-500">Division</dt><dd className="mt-0.5"><Badge className={`${getDivisionColor(exam.division)} border-0 px-1.5 py-0 text-xs`}>{exam.division}</Badge></dd></div>
+                        <div><dt className="text-[11px] text-gray-500">Position</dt><dd className="mt-0.5 break-words font-medium text-gray-900">{exam.position}</dd></div>
+                      </dl>
+                      <details className="group border-t border-gray-100">
+                        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-xs font-medium text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 [&::-webkit-details-marker]:hidden">
+                          <span>Subject results ({Object.keys(exam.subjects).length})</span>
+                          <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" />
+                        </summary>
+                        <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                          {Object.entries(exam.subjects).map(([code, subject]: [string, any]) => (
+                            <div key={code} className="flex items-center gap-1.5 rounded-md bg-gray-50 px-2 py-1 text-xs">
+                              <span className="break-all font-medium text-gray-700">{code}</span>
+                              <span className="tabular-nums text-gray-600">{subject.marks}</span>
+                              <Badge className={`${getGradeColor(subject.grade)} border-0 px-1 py-0 text-[11px]`}>{subject.grade}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </article>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

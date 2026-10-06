@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo } from 'react';
 import { Plus, X, Search, Users, Save, UserPlus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,13 +65,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
     
     const searchLower = pupilSearchTerm.toLowerCase().trim();
     const filteredPupils = allPupils.filter(pupil => {
-      const fullName = `${pupil.firstName} ${pupil.lastName} ${pupil.otherNames || ''}`.toLowerCase();
-      const className = allClasses.find(cls => cls.id === pupil.classId)?.name || '';
-      return (
-        fullName.includes(searchLower) || 
-        className.toLowerCase().includes(searchLower) ||
-        pupil.id.toLowerCase().includes(searchLower)
-      );
+      return matchesPupilSearch(pupil, pupilSearchTerm, [allClasses.find(cls => cls.id === pupil.classId)?.name, pupil.id]);
     });
 
     return filteredPupils.slice(0, 10); // Limit to 10 results
@@ -80,7 +75,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
     const className = allClasses.find(cls => cls.id === pupil.classId)?.name || 'Unknown Class';
     const selectedPupil: SelectedPupil = {
       pupilId: pupil.id,
-      pupilName: `${pupil.firstName} ${pupil.lastName}`,
+      pupilName: `${formatPupilDisplayName(pupil)}`,
       className,
     };
 
@@ -307,7 +302,7 @@ export function ParentAttendanceForm({ eventId, event }: ParentAttendanceFormPro
                           onClick={() => !isSelected && addPupilToSelection(pupil)}
                         >
                           <div className="font-medium">
-                            {pupil.firstName} {pupil.lastName}
+                            {formatPupilDisplayName(pupil)}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             Class: {className} • ID: {pupil.id}

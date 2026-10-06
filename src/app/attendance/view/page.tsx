@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 import { GlassActionButton, GlassActionDock, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
@@ -599,7 +600,7 @@ export default function ViewAttendanceReportsPage() {
           date: format(interval.start, "yyyy-MM-dd"),
           trend,
           pupilId: pupil.id,
-          pupilName: `${pupil.lastName?.charAt(0).toUpperCase() + pupil.lastName?.slice(1).toLowerCase() || ''} ${pupil.firstName?.charAt(0).toUpperCase() + pupil.firstName?.slice(1).toLowerCase() || ''}`.trim(),
+          pupilName: formatPupilDisplayName(pupil).trim(),
           admissionNumber: pupil.admissionNumber
         });
       });
@@ -700,7 +701,7 @@ export default function ViewAttendanceReportsPage() {
 
           const pupilInfo = {
             id: pupil.id,
-            name: `${pupil.lastName?.charAt(0).toUpperCase() + pupil.lastName?.slice(1).toLowerCase() || ''} ${pupil.firstName?.charAt(0).toUpperCase() + pupil.firstName?.slice(1).toLowerCase() || ''}`.trim(),
+            name: formatPupilDisplayName(pupil).trim(),
             admissionNumber: pupil.admissionNumber
           };
 
@@ -903,8 +904,8 @@ export default function ViewAttendanceReportsPage() {
           }
         })
         .sort((a, b) => {
-          const nameA = `${a.lastName || ''} ${a.firstName || ''} ${a.otherNames || ''}`.trim().toLowerCase();
-          const nameB = `${b.lastName || ''} ${b.firstName || ''} ${b.otherNames || ''}`.trim().toLowerCase();
+          const nameA = `${formatPupilDisplayName(a)}`.trim().toLowerCase();
+          const nameB = `${formatPupilDisplayName(b)}`.trim().toLowerCase();
           return nameA.localeCompare(nameB);
         });
       if (classPupils.length === 0) return [];
@@ -994,7 +995,7 @@ export default function ViewAttendanceReportsPage() {
 
         return {
           pupilId: pupil.id,
-          pupilName: `${pupil.lastName?.charAt(0).toUpperCase() + pupil.lastName?.slice(1).toLowerCase() || ''} ${pupil.firstName?.charAt(0).toUpperCase() + pupil.firstName?.slice(1).toLowerCase() || ''}`.trim(),
+          pupilName: formatPupilDisplayName(pupil).trim(),
           admissionNumber: pupil.admissionNumber,
           periods: pupilPeriods
         };
@@ -1936,13 +1937,13 @@ export default function ViewAttendanceReportsPage() {
                         return true;
                       })
                       ?.sort((a, b) => {
-                        const nameA = `${a.lastName || ''} ${a.firstName || ''}`.trim().toLowerCase();
-                        const nameB = `${b.lastName || ''} ${b.firstName || ''}`.trim().toLowerCase();
+                        const nameA = `${formatPupilDisplayName(a)}`.trim().toLowerCase();
+                        const nameB = `${formatPupilDisplayName(b)}`.trim().toLowerCase();
                         return nameA.localeCompare(nameB);
                       })
                       ?.map((pupil) => (
                         <SelectItem key={pupil.id} value={pupil.id} className="rounded-lg text-sm">
-                          {pupil.lastName} {pupil.firstName}
+                          {formatPupilDisplayName(pupil)}
                         </SelectItem>
                       )) || []}
                   </SelectContent>
@@ -2386,13 +2387,13 @@ export default function ViewAttendanceReportsPage() {
                       return true;
                     })
                     ?.sort((a, b) => {
-                      const nameA = `${a.lastName || ''} ${a.firstName || ''}`.trim().toLowerCase();
-                      const nameB = `${b.lastName || ''} ${b.firstName || ''}`.trim().toLowerCase();
+                      const nameA = `${formatPupilDisplayName(a)}`.trim().toLowerCase();
+                      const nameB = `${formatPupilDisplayName(b)}`.trim().toLowerCase();
                       return nameA.localeCompare(nameB);
                     })
                     ?.map((pupil) => (
                       <SelectItem key={pupil.id} value={pupil.id} className="rounded-lg text-sm">
-                        {pupil.lastName} {pupil.firstName}
+                        {formatPupilDisplayName(pupil)}
                       </SelectItem>
                     )) || []}
                 </SelectContent>

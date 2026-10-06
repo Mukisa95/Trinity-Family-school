@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -924,7 +925,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           {pupil?.photo && pupil.photo.trim() !== '' ? (
             <AvatarImage
               src={pupil.photo}
-              alt={`${pupil.firstName} ${pupil.lastName}`}
+              alt={`${formatPupilDisplayName(pupil)}`}
               onError={(e) => {
                 console.log('Avatar image failed to load:', pupil.photo);
                 e.currentTarget.style.display = 'none';

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useParentPupilScopeStatus, usePupil } from '@/lib/hooks/use-pupils';
@@ -74,7 +75,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
     pupil?.className || 
     '';
 
-  const fullName = `${pupil?.firstName || ''} ${pupil?.lastName || ''} ${pupil?.otherNames || ''}`.trim();
+  const fullName = `${formatPupilDisplayName(pupil ?? {})}`.trim();
 
   // Dynamic font sizing inline style to guarantee name fits on 1 line without wrapping
   const nameLen = Math.max(fullName.length, 5); // Avoid division by zero
@@ -513,7 +514,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
                   {pupil.photo && pupil.photo.trim() !== '' ? (
                     <img 
                       src={pupil.photo} 
-                      alt={`${pupil.firstName} ${pupil.lastName}`}
+                      alt={`${formatPupilDisplayName(pupil)}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         console.log('Avatar image failed to load:', pupil.photo);
@@ -592,7 +593,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
             {currentView === 'results' && (
                 <PupilResultsSection 
                   pupilId={pupil.id} 
-                  pupilName={`${pupil?.firstName || ''} ${pupil?.lastName || ''}`.trim() || 'Student'}
+                  pupilName={`${formatPupilDisplayName(pupil ?? {})}`.trim() || 'Student'}
                 />
             )}
             {currentView === 'banking' && (

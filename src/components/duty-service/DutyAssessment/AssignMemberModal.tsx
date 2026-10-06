@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -191,13 +192,13 @@ export function AssignMemberModal({ trigger, rotaId }: AssignMemberModalProps) {
                     const post = assignment ? prefectoralPosts.find(p => p.id === assignment.postId) : null;
                     return (
                       <SelectItem key={member.id} value={member.id}>
-                        {member.firstName} {member.lastName} - {post?.postName || 'Prefect'} ({member.className || 'No Class'})
+                        {formatPupilDisplayName(member)} - {post?.postName || 'Prefect'} ({member.className || 'No Class'})
                       </SelectItem>
                     );
                   })}
                   {formData.memberType === 'pupils' && activePupils.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
-                      {member.firstName} {member.lastName} - {member.className || 'No Class'}
+                      {formatPupilDisplayName(member)} - {member.className || 'No Class'}
                     </SelectItem>
                   ))}
                 </SelectContent>

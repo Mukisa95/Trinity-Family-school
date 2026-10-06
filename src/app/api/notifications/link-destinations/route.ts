@@ -1,3 +1,4 @@
+import { formatPupilName } from '@/lib/utils/name-formatter';
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirestore } from 'firebase-admin/firestore';
 
@@ -16,9 +17,7 @@ function text(value: unknown) {
 }
 
 function pupilLabel(data: Record<string, unknown>) {
-  const nameFromFields = [text(data.firstName), text(data.lastName), text(data.otherNames)]
-    .filter(Boolean)
-    .join(' ');
+  const nameFromFields = formatPupilName({ firstName: text(data.firstName), lastName: text(data.lastName), otherNames: text(data.otherNames) }, { fallback: '' });
   return nameFromFields || text(data.fullName) || text(data.name) || 'Unnamed pupil';
 }
 

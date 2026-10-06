@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -678,7 +679,7 @@ export default function FamilyFeesCollection() {
                       href={`/pupil-detail?id=${pupil.id}`}
                       className="text-lg sm:text-xl font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate leading-tight block transition-colors"
                     >
-                      {pupil.firstName} {pupil.lastName}
+                      {formatPupilDisplayName(pupil)}
                     </Link>
                     <p className="text-sm sm:text-base text-gray-500">
                       {pupil.classCode || pupil.className || 'N/A'} | {pupil.section} | {pupil.admissionNumber}

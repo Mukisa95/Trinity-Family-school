@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -91,7 +92,7 @@ export function PupilFeesRow({
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {pupil.firstName} {pupil.lastName}
+                  {formatPupilDisplayName(pupil)}
                 </p>
                 {feesInfo?.applicableFees?.some(fee => fee.discount) && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">

@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Pupil, AcademicYear, FeeStructure, PaymentRecord } from '@/types';
@@ -188,7 +189,7 @@ export function useProgressiveFees({
           } catch (error) {
             // CRITICAL ERROR: Cannot proceed without snapshot for ended term
             console.error(`❌ CRITICAL: Failed to load snapshot for pupil ${pupil.id}, term ${selectedTermId}:`, error);
-            throw new Error(`Cannot process fees for ended term without historical snapshot. Pupil: ${pupil.firstName} ${pupil.lastName}, Term: ${selectedTermId}`);
+            throw new Error(`Cannot process fees for ended term without historical snapshot. Pupil: ${formatPupilDisplayName(pupil)}, Term: ${selectedTermId}`);
           }
         }
       }
@@ -211,7 +212,7 @@ export function useProgressiveFees({
       
       // 🔍 DEBUG: Log payment data for first few pupils
       if (Math.random() < 0.05) { // Log ~5% of pupils to avoid spam
-        console.log(`[DEBUG] Pupil ${pupil.firstName} ${pupil.lastName}:`, {
+        console.log(`[DEBUG] Pupil ${formatPupilDisplayName(pupil)}:`, {
           pupilId: pupil.id,
           paymentsFound: termPayments.length,
           termPaymentsDetails: termPayments.map(p => ({
@@ -794,7 +795,7 @@ export function useProgressiveFees({
               snapshotsMap.set(pupil.id, historicalPupil);
               
               if (process.env.NODE_ENV === 'development' && Math.random() < 0.1) {
-                console.log(`📸 Loaded snapshot for pupil ${pupil.firstName} ${pupil.lastName}:`, {
+                console.log(`📸 Loaded snapshot for pupil ${formatPupilDisplayName(pupil)}:`, {
                   currentClass: pupil.classId,
                   historicalClass: historicalPupil.classId,
                   currentSection: pupil.section,
@@ -803,7 +804,7 @@ export function useProgressiveFees({
               }
             } catch (error) {
               // CRITICAL: If snapshot fails, we cannot proceed - log error but continue for other pupils
-              console.error(`❌ CRITICAL: Failed to load snapshot for pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}):`, error);
+              console.error(`❌ CRITICAL: Failed to load snapshot for pupil ${pupil.id} (${formatPupilDisplayName(pupil)}):`, error);
               // Don't add to map - will be handled in processSinglePupilFees with retry
             }
           });

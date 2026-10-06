@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Trash2, Calendar, User, Tag, AlertCircle, Clock, Settings, Power, PowerOff, History, Edit3, Save, RotateCcw, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -669,7 +670,7 @@ export function AssignmentModal({ isOpen, onClose, pupil, onSave }: AssignmentMo
                 Manage Fee Assignments & Discounts
               </ModernDialogTitle>
               <ModernDialogDescription className="text-[11px] font-medium text-gray-500 leading-tight">
-                Assign special fees and discounts to {pupil.firstName} {pupil.lastName} with time management and status control.
+                Assign special fees and discounts to {formatPupilDisplayName(pupil)} with time management and status control.
               </ModernDialogDescription>
             </ModernDialogHeader>
             <div className="flex items-center gap-1.5 pt-0.5 pr-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -339,7 +340,7 @@ export function ParentAboutSchool() {
                   {familyMembers[0].photo && familyMembers[0].photo.trim() !== '' ? (
                     <AvatarImage 
                       src={familyMembers[0].photo} 
-                      alt={`${familyMembers[0].firstName} ${familyMembers[0].lastName}`}
+                      alt={`${formatPupilDisplayName(familyMembers[0])}`}
                       onError={(e) => {
                         console.log('Avatar image failed to load:', familyMembers[0].photo);
                         e.currentTarget.style.display = 'none';
@@ -384,7 +385,7 @@ export function ParentAboutSchool() {
                       {pupil.photo && pupil.photo.trim() !== '' ? (
                         <AvatarImage 
                           src={pupil.photo} 
-                          alt={`${pupil.firstName} ${pupil.lastName}`}
+                          alt={`${formatPupilDisplayName(pupil)}`}
                           onError={(e) => {
                             console.log('Avatar image failed to load:', pupil.photo);
                             e.currentTarget.style.display = 'none';
@@ -447,7 +448,7 @@ export function ParentAboutSchool() {
                       {pupil.photo && pupil.photo.trim() !== '' ? (
                         <AvatarImage 
                           src={pupil.photo} 
-                          alt={`${pupil.firstName} ${pupil.lastName}`}
+                          alt={`${formatPupilDisplayName(pupil)}`}
                           onError={(e) => {
                             console.log('Avatar image failed to load:', pupil.photo);
                             e.currentTarget.style.display = 'none';
@@ -495,9 +496,9 @@ export function ParentAboutSchool() {
           >
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
               {hasSingleChild ? (
-                `Welcome, ${familyMembers[0].firstName} ${familyMembers[0].lastName}`
+                `Welcome, ${formatPupilDisplayName(familyMembers[0])}`
               ) : (
-                `Welcome, ${familyMembers.map(pupil => `${pupil.firstName} ${pupil.lastName}`).join(' & ')}`
+                `Welcome, ${familyMembers.map(pupil => `${formatPupilDisplayName(pupil)}`).join(' & ')}`
               )}
             </p>
             

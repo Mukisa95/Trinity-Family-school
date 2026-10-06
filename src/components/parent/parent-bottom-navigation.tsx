@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import type { Pupil } from '@/types';
@@ -236,14 +237,14 @@ export function ParentBottomNavigation({
                     onClick={() => handlePupilChange(pupil.id)}
                   >
                     <Avatar className="h-12 w-12 mr-4 ring-2 ring-white dark:ring-gray-800 shadow-lg">
-                      <AvatarImage src={pupil.photo || undefined} alt={`${pupil.firstName} ${pupil.lastName}`} />
+                      <AvatarImage src={pupil.photo || undefined} alt={`${formatPupilDisplayName(pupil)}`} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-lg">
                         {pupil.firstName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="text-left flex-1">
                       <div className="font-semibold text-gray-900 dark:text-white text-base">
-                        {`${pupil.firstName} ${pupil.lastName}`}
+                        {`${formatPupilDisplayName(pupil)}`}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
                         {pupil.className}

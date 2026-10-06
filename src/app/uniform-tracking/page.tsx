@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import React, { useState, useEffect, Suspense } from 'react';
@@ -612,7 +613,7 @@ function UniformTrackingContent() {
               </h1>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
-                  <span className="font-medium text-indigo-600">{pupil.firstName} {pupil.lastName}</span>
+                  <span className="font-medium text-indigo-600">{formatPupilDisplayName(pupil)}</span>
                   <span className="text-gray-400">•</span>
                   <span>{pupil.admissionNumber}</span>
                 </div>

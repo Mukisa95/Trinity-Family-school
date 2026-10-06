@@ -124,7 +124,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ExamsService } from '@/lib/services/exams.service';
 import { DEFAULT_GRADING_SCALE } from '@/lib/constants';
-import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, formatPupilName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { cleanSubjectName } from '@/lib/utils/html-entities';
 import { formatTeacherNameWithTitle } from '@/lib/utils/teacher-formatter';
 import { calculatePromotionStatus, isTermThree } from '@/lib/utils/promotion-ranking';
@@ -300,6 +300,7 @@ const prepareResultsWithLivePupilData = async <T extends { pupilInfo: any }>(res
       ...result,
       pupilInfo: {
         ...result.pupilInfo,
+        name: formatPupilName(fetchedPupil, { fallback: result.pupilInfo.name }),
         photo: pickRealPupilPhoto(result.pupilInfo, fetchedPupil),
         schoolPayCode: getSchoolPayCode(fetchedPupil) || result.pupilInfo?.schoolPayCode || '',
       },
@@ -1021,6 +1022,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       const actualPupil = allPupils.find(p => p.id === snap.pupilId);
       return enrichExamPupilStreamIdentity({
         ...snap,
+        name: formatPupilName(actualPupil, { fallback: snap.name }),
         dateOfBirth: snap.dateOfBirth || actualPupil?.dateOfBirth,
         ageAtExam: snap.ageAtExam,
         schoolPayCode: getSchoolPayCode(actualPupil)
@@ -1324,7 +1326,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
       const pupilName = result.pupilInfo?.name || '';
       const admissionNumber = result.pupilInfo?.admissionNumber || '';
 
-      const matchesSearch = pupilName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = matchesPupilSearch({ otherNames: pupilName }, searchTerm) ||
         admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesMarks = isNurseryExam || ((!filters.minMarks || result.totalMarks >= Number(filters.minMarks)) &&
@@ -2576,7 +2578,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         );
         const pupils = streamScopedSnapshots.map((pupil) => ({
           pupilId: pupil.pupilId,
-          name: pupil.name,
+          name: formatPupilName(allPupils.find(candidate => candidate.id === pupil.pupilId), { fallback: pupil.name }),
           admissionNumber: pupil.admissionNumber,
         }));
         const results = Object.fromEntries(pupils.map((pupil) => {
@@ -2710,7 +2712,7 @@ export default function ViewResultsView({ analysisMode = false }: ViewResultsVie
         );
         const pupils = streamScopedSnapshots.map((pupil) => ({
           pupilId: pupil.pupilId,
-          name: pupil.name,
+          name: formatPupilName(allPupils.find(candidate => candidate.id === pupil.pupilId), { fallback: pupil.name }),
           admissionNumber: pupil.admissionNumber,
         }));
         const results = Object.fromEntries(pupils.map((pupil) => {

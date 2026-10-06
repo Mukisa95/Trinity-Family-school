@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { useRouter } from 'next/navigation';
@@ -31,19 +32,7 @@ export default function BankingPage() {
       return accounts;
     }
 
-    return accounts.filter(account => {
-      const pupil = account.pupil;
-      const fullName = `${pupil.firstName} ${pupil.lastName} ${pupil.otherNames || ''}`.toLowerCase();
-      const searchLower = searchTerm.toLowerCase();
-      
-      return (
-        fullName.includes(searchLower) ||
-        pupil.admissionNumber.toLowerCase().includes(searchLower) ||
-        account.accountNumber.toLowerCase().includes(searchLower) ||
-        account.accountName.toLowerCase().includes(searchLower) ||
-        pupil.className?.toLowerCase().includes(searchLower)
-      );
-    });
+    return accounts.filter(account => matchesPupilSearch(account.pupil, searchTerm, [account.pupil.admissionNumber, account.accountNumber, account.accountName, account.pupil.className]));
   }, [accounts, searchTerm]);
 
   const handleAccountClick = (account: AccountWithPupil) => {
@@ -190,7 +179,7 @@ export default function BankingPage() {
                       {account.pupil.photo ? (
                         <img
                           src={account.pupil.photo}
-                          alt={`${account.pupil.firstName} ${account.pupil.lastName}`}
+                          alt={`${formatPupilDisplayName(account.pupil)}`}
                           className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                         />
                       ) : (
@@ -203,7 +192,7 @@ export default function BankingPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-gray-900">
-                            {account.pupil.firstName} {account.pupil.lastName} {account.pupil.otherNames || ''}
+                            {formatPupilDisplayName(account.pupil)}
                           </h3>
                           <Badge variant={account.pupil.status === 'Active' ? 'default' : 'secondary'}>
                             {account.pupil.status}

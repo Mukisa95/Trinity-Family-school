@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { useMemo, useState } from "react";
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
@@ -79,7 +80,7 @@ export default function DormitoriesPage() {
 
   const pupilLeaderOptions: MultiSelectOption[] = useMemo(() => {
     const list = filteredPupilsForLeaders as Pupil[];
-    return list.map(p => ({ value: p.id, label: `${p.firstName} ${p.lastName}`.trim() }));
+    return list.map(p => ({ value: p.id, label: formatPupilDisplayName(p) }));
   }, [filteredPupilsForLeaders]);
 
   const resetForm = () => {

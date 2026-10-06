@@ -10,6 +10,7 @@ if (typeof window !== 'undefined') {
   throw new Error('This module can only be imported on the server side');
 }
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { optimizedNotificationService } from './optimized-notification.service';
@@ -237,7 +238,7 @@ class FeesPaymentNotificationServerService {
     feeStructure: FeeStructure,
     balance: number
   ): any {
-    const pupilName = `${pupil.firstName} ${pupil.lastName}`;
+    const pupilName = `${formatPupilDisplayName(pupil)}`;
     const feeItemName = feeStructure.name;
     const amountPaid = paymentData.amount;
     const actualAmount = feeStructure.amount;

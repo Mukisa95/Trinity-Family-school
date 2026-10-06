@@ -1,4 +1,5 @@
 import {notifyFeeReminderChange} from '@/lib/fees/fee-reminder-change-client';
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import {
   collection,
   doc,
@@ -266,7 +267,7 @@ export class PupilsService {
             applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           } else {
-            console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${pupil.firstName} ${pupil.lastName}`);
+            console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${formatPupilDisplayName(pupil)}`);
           }
         }
       });
@@ -374,7 +375,7 @@ export class PupilsService {
         action: 'create',
         entity: 'pupil',
         recordId: docRef.id,
-        label: `${pupilData.firstName || ''} ${pupilData.lastName || ''}`.trim() || pupilData.admissionNumber,
+        label: `${formatPupilDisplayName(pupilData)}`.trim() || pupilData.admissionNumber,
         meta: {
           admissionNo: pupilData.admissionNumber || '',
           classId: pupilData.classId || '',
@@ -678,7 +679,7 @@ export class PupilsService {
           entity: 'pupil',
           recordId: pupil.id,
           label:
-            `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() ||
+            `${formatPupilDisplayName(pupil)}`.trim() ||
             pupil.admissionNumber ||
             pupil.id,
           changedFields,
@@ -737,7 +738,7 @@ export class PupilsService {
         action: 'delete',
         entity: 'pupil',
         recordId: id,
-        label: `${pupil?.firstName || ''} ${pupil?.lastName || ''}`.trim() || pupil?.admissionNumber || id,
+        label: `${formatPupilDisplayName(pupil ?? {})}`.trim() || pupil?.admissionNumber || id,
         meta: {
           admissionNo: pupil?.admissionNumber || '',
           classId: pupil?.classId || '',
@@ -796,7 +797,7 @@ export class PupilsService {
             applyPupilClassIdentity(pupil, classData);
             populatedCount++;
           } else {
-            console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${pupil.firstName} ${pupil.lastName}`);
+            console.warn(`⚠️ Class ${pupil.classId} not found for pupil ${formatPupilDisplayName(pupil)}`);
           }
         }
       });
@@ -908,15 +909,16 @@ export class PupilsService {
   }
 
   // Optimized method for getting pupils with minimal data (for performance)
-  static async getPupilsMinimal(classId?: string): Promise<Pick<Pupil, 'id' | 'firstName' | 'lastName' | 'admissionNumber' | 'classId' | 'status'>[]> {
+  static async getPupilsMinimal(classId?: string): Promise<Pick<Pupil, 'id' | 'firstName' | 'lastName' | 'otherNames' | 'admissionNumber' | 'classId' | 'status'>[]> {
     if (typeof window !== 'undefined') {
       const pupils = classId && classId !== 'all'
         ? selectPupilsByClass(await this.getAllPupils(), classId)
         : await this.getAllPupils();
-      return pupils.map(({ id, firstName, lastName, admissionNumber, classId: pupilClassId, status }) => ({
+      return pupils.map(({ id, firstName, lastName, otherNames, admissionNumber, classId: pupilClassId, status }) => ({
         id,
         firstName,
         lastName,
+        otherNames,
         admissionNumber,
         classId: pupilClassId,
         status,
@@ -940,6 +942,7 @@ export class PupilsService {
         id: pupil.id,
         firstName: pupil.firstName || '',
         lastName: pupil.lastName || '',
+        otherNames: pupil.otherNames || '',
         admissionNumber: pupil.admissionNumber || '',
         classId: pupil.classId || '',
         status: pupil.status || 'Active'
@@ -1000,11 +1003,7 @@ export class PupilsService {
       const allPupils = await getDocsWithTimeout<Pupil>(q, 30000);
 
       // Filter on client side for now
-      return allPupils.filter(pupil =>
-        pupil.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pupil.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pupil.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      return searchPupilSnapshot(allPupils, searchTerm);
     } catch (error) {
       console.error('Error searching pupils:', error);
       throw error;

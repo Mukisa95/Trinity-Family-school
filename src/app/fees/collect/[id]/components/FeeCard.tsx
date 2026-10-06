@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { CurrencyCircleDollar, Receipt, IdentificationCard, Printer, ChatCircle, ArrowCounterClockwise, TShirt, CaretDown, CaretUp, Package } from '@phosphor-icons/react';
 import jsPDF from 'jspdf';
@@ -289,7 +290,7 @@ export function FeeCard({
 
   const handlePrintReceipt = async (payment: PaymentRecord) => {
     const receiptNumber = payment.id.slice(-8).toUpperCase();
-    const fileName = `receipt-${receiptNumber}-${pupil.firstName}-${pupil.lastName}.pdf`;
+    const fileName = `receipt-${receiptNumber}-${formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9]+/g, '_')}.pdf`;
     await pdfViewer.runPDFJob(
       { fileName, title: `Receipt ${receiptNumber}`, initialMessage: 'Rendering payment receipt…' },
       async ({ updateProgress }) => {
@@ -347,7 +348,7 @@ export function FeeCard({
     doc.setFontSize(7);
 
     // Left column
-    doc.text(`Name: ${pupil.firstName || ''} ${pupil.lastName || ''}`, 5, 41);
+    doc.text(`Name: ${formatPupilDisplayName(pupil)}`, 5, 41);
     doc.text(`Admission No: ${pupil.admissionNumber || 'N/A'}`, 5, 44);
     doc.setFont('helvetica', 'bold');
     doc.text(`Pay Code: ${pupil.payCode || pupil.additionalIdentifiers?.find(id => (id.idType || '').toLowerCase().includes('pay code'))?.idValue || 'N/A'}`, 5, 47);
@@ -397,7 +398,7 @@ export function FeeCard({
       // Generate QR code data
       const qrData = JSON.stringify({
         receiptNo: receiptNumber,
-        studentName: `${pupil.firstName} ${pupil.lastName}`,
+        studentName: `${formatPupilDisplayName(pupil)}`,
         amount: payment.amount,
         date: paymentDate,
         fee: fee.name,

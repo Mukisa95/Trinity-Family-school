@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -85,7 +86,7 @@ export default function ClassEnrollmentDetailsPage() {
 
                 return {
                     id: pupil.id,
-                    name: `${pupil.lastName} ${pupil.firstName} ${pupil.otherNames || ""}`.trim(),
+                    name: `${formatPupilDisplayName(pupil)}`.trim(),
                     firstName: pupil.firstName,
                     lastName: pupil.lastName,
                     admissionNumber: pupil.admissionNumber || 'N/A',

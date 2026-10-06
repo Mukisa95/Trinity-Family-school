@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -138,7 +139,7 @@ export function SummaryModal({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Name:</span>
-                <p className="font-medium">{pupil.firstName} {pupil.lastName}</p>
+                <p className="font-medium">{formatPupilDisplayName(pupil)}</p>
               </div>
               <div>
                 <span className="text-gray-500">Admission No:</span>

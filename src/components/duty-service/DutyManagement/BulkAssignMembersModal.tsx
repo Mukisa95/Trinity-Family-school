@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -73,12 +74,12 @@ export function BulkAssignMembersModal({ rotaId, selectedPeriod, onClose }: Bulk
       if (member) {
         const assignment = postAssignments.find(a => a.pupilId === memberId && a.isActive);
         const post = assignment ? prefectoralPosts.find(p => p.id === assignment.postId) : null;
-        return `${member.firstName} ${member.lastName} - ${post?.postName || 'Prefect'} (${member.className || 'No Class'})`;
+        return `${formatPupilDisplayName(member)} - ${post?.postName || 'Prefect'} (${member.className || 'No Class'})`;
       }
       return `Prefect ID: ${memberId}`;
     } else if (memberType === 'pupils') {
       const member = pupils.find(p => p.id === memberId);
-      return member ? `${member.firstName} ${member.lastName} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
+      return member ? `${formatPupilDisplayName(member)} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
     }
     return `Unknown ID: ${memberId}`;
   };
@@ -285,14 +286,14 @@ export function BulkAssignMembersModal({ rotaId, selectedPeriod, onClose }: Bulk
                         const post = assignment ? prefectoralPosts.find(p => p.id === assignment.postId) : null;
                         return (
                           <SelectItem key={member.id} value={member.id}>
-                            {member.firstName} {member.lastName} - {post?.postName || 'Prefect'} ({member.className || 'No Class'})
+                            {formatPupilDisplayName(member)} - {post?.postName || 'Prefect'} ({member.className || 'No Class'})
                           </SelectItem>
                         );
                       }
                       return (
                         <SelectItem key={member.id} value={member.id}>
-                          {member.firstName} {member.lastName}
-                          {newAssignment.memberType === 'staff' && ` (${member.employeeId})`}
+                          {newAssignment.memberType === 'staff' ? `${member.firstName} ${member.lastName}` : formatPupilDisplayName(member)}
+                           {newAssignment.memberType === 'staff' && ` (${member.employeeId})`}
                           {newAssignment.memberType === 'pupils' ? ` - ${member.className || 'No Class'}` : ''}
                         </SelectItem>
                       );

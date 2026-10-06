@@ -38,7 +38,7 @@ import {
 } from "@/lib/hooks/use-ple-results";
 import { useSchoolSettings } from "@/lib/hooks/use-school-settings";
 import type { PLEPupilResult, PLERecord } from "@/lib/services/ple-results.service";
-import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { PDFViewer } from '@/components/pdf/pdf-viewer';
 import { usePDFViewer } from '@/lib/hooks/use-pdf-viewer';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -216,8 +216,7 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(pupil =>
-        formatPupilDisplayName(pupil).toLowerCase().includes(searchLower) ||
-        pupil.admissionNumber.toLowerCase().includes(searchLower)
+        matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber])
       );
     }
 
@@ -387,13 +386,7 @@ export default function ViewPLEResultsPage({ params }: { params: Promise<{ pleId
       const totalAggregates = pupil.totalAggregate;
 
       // Format name as: LastName, FirstName OtherNames
-      const nameParts = [];
-      if (pupil.lastName) nameParts.push(pupil.lastName);
-      if (pupil.firstName) nameParts.push(pupil.firstName);
-      if (pupil.otherNames) nameParts.push(pupil.otherNames);
-      const fullName = nameParts.length > 0
-        ? nameParts.join(' ')
-        : pupil.firstName || pupil.lastName || '';
+      const fullName = formatPupilDisplayName(pupil);
 
       return {
         pupilInfo: {

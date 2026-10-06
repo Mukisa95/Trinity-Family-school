@@ -1,4 +1,5 @@
 "use client";
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -181,10 +182,7 @@ function ClassRequirementsContent() {
   // Filter pupils based on search and status
   const filteredPupilStats = React.useMemo(() => {
     return pupilStats.filter(stat => {
-      const matchesSearch = !searchQuery ||
-        stat.pupil.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        stat.pupil.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        stat.pupil.admissionNumber.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = matchesPupilSearch(stat.pupil, searchQuery, [stat.pupil.admissionNumber]);
 
       const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'complete' && stat.completionPercentage === 100) ||
@@ -555,7 +553,7 @@ function ClassRequirementsContent() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             {stat.pupil.photo && (
-                              <AvatarImage src={stat.pupil.photo} alt={`${stat.pupil.firstName} ${stat.pupil.lastName}`} />
+                              <AvatarImage src={stat.pupil.photo} alt={`${formatPupilDisplayName(stat.pupil)}`} />
                             )}
                             <AvatarFallback>
                               {stat.pupil.firstName[0]}{stat.pupil.lastName[0]}
@@ -563,7 +561,7 @@ function ClassRequirementsContent() {
                           </Avatar>
                           <div>
                             <div className="font-medium">
-                              {stat.pupil.firstName} {stat.pupil.lastName}
+                              {formatPupilDisplayName(stat.pupil)}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {stat.pupil.admissionNumber}

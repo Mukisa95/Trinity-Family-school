@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilName } from '@/lib/utils/name-formatter';
 import { CheckCircle2, Clock3, UserRoundX } from 'lucide-react';
 import type { AttendanceRecord, Pupil } from '@/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,7 +17,7 @@ type Props = {
 
 const pupilName = (pupil: Pupil | undefined, fallback: string) => {
   if (!pupil) return fallback;
-  return [pupil.firstName, pupil.otherNames, pupil.lastName].filter(Boolean).join(' ') || pupil.admissionNumber || fallback;
+  return formatPupilName(pupil, { fallback: pupil.admissionNumber || fallback });
 };
 
 export function ClassAttendanceSummaryDialog({ open, onOpenChange, date, classId, records, pupils }: Props) {

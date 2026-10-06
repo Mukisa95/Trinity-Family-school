@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { format } from 'date-fns';
@@ -153,7 +154,7 @@ const BankStatementPDF: React.FC<BankStatementPDFProps> = ({
           <Text style={styles.summaryTitle}>Account Information</Text>
           <View style={styles.row}>
             <Text style={styles.label}>Account Holder:</Text>
-            <Text style={styles.value}>{pupil.firstName} {pupil.lastName}</Text>
+            <Text style={styles.value}>{formatPupilDisplayName(pupil)}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Student ID:</Text>

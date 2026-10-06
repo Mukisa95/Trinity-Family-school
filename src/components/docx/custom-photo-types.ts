@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import type { Pupil } from '@/types';
 import type { PupilFeesInfo } from '@/lib/hooks/use-progressive-fees';
 
@@ -555,7 +556,7 @@ function calculateAge(dateOfBirth?: string | Date) {
 }
 
 export function pupilDisplayName(pupil: Pupil) {
-  return [pupil.firstName, pupil.lastName, pupil.otherNames].filter(Boolean).join(' ').trim();
+  return formatPupilDisplayName(pupil);
 }
 
 export function resolvePupilField(field: DynamicField | undefined, data: RenderPupilData) {

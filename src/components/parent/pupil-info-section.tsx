@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
             {pupil.photo && pupil.photo.trim() !== '' ? (
               <AvatarImage 
                 src={pupil.photo} 
-                alt={`${pupil.firstName} ${pupil.lastName}`}
+                alt={`${formatPupilDisplayName(pupil)}`}
                 onError={(e) => {
                   console.log('Avatar image failed to load:', pupil.photo);
                   e.currentTarget.style.display = 'none';
@@ -33,7 +34,7 @@ export function PupilInfoSection({ pupil }: PupilInfoSectionProps) {
           </Avatar>
           <div className="text-center sm:text-left">
             <h2 className="text-xl md:text-2xl mb-2 font-semibold tracking-tight">
-              {pupil.firstName} {pupil.lastName} {pupil.otherNames}
+              {formatPupilDisplayName(pupil)}
             </h2>
             <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
               <Badge variant="secondary" className="text-xs">

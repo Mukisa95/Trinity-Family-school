@@ -36,7 +36,7 @@ import {
 import type { PLEPupilResult, PLERecord } from "@/lib/services/ple-results.service";
 import { useRecordSignatures } from "@/lib/hooks/use-digital-signature";
 import { DigitalSignatureDisplay } from "@/components/common/digital-signature-display";
-import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { PLESubjectsService } from '@/lib/services/ple-subjects.service';
 import { PLESubjectReorderModal } from '@/components/ple/PLESubjectReorderModal';
 
@@ -119,8 +119,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       results = results.filter(pupil =>
-        formatPupilDisplayName(pupil).toLowerCase().includes(searchLower) ||
-        (pupil.admissionNumber || '').toLowerCase().includes(searchLower)
+        matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber])
       );
     }
 

@@ -1,4 +1,5 @@
 'use client';
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { GlassActionButton, GlassActionDock, GlassPageSearchInput, GlassPageTopBar } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 
@@ -150,10 +151,10 @@ function SearchablePupilSelector({
                 None
               </CommandItem>
               {availablePupils.map((pupil: any) => {
-                const searchValue = `${pupil.firstName} ${pupil.lastName} ${pupil.admissionNumber} ${pupil.className || ''}`;
+                const searchValue = `${formatPupilDisplayName(pupil)} ${pupil.admissionNumber} ${pupil.className || ''}`;
                 const label = editingClass
-                  ? `${pupil.firstName} ${pupil.lastName} (${pupil.admissionNumber})`
-                  : `${pupil.firstName} ${pupil.lastName} (${pupil.admissionNumber}) - ${pupil.className || 'Unassigned'}`;
+                  ? `${formatPupilDisplayName(pupil)} (${pupil.admissionNumber})`
+                  : `${formatPupilDisplayName(pupil)} (${pupil.admissionNumber}) - ${pupil.className || 'Unassigned'}`;
                 return (
                   <CommandItem
                     key={pupil.id}
@@ -408,7 +409,7 @@ function PupilCard({
                 <>
                   <AvatarImage
                     src={pupil.photo}
-                    alt={`${pupil.firstName} ${pupil.lastName}`}
+                    alt={`${formatPupilDisplayName(pupil)}`}
                     className={`object-cover transition-opacity duration-500 ${isLoadingPhoto ? 'opacity-30' : 'opacity-100'
                       }`}
                     onError={(e) => {
@@ -441,9 +442,9 @@ function PupilCard({
               <Link
                 href={`/pupil-detail?id=${pupil.id}`}
                 className="font-semibold text-sm hover:text-primary hover:underline cursor-pointer transition-colors truncate"
-                title={`${pupil.firstName} ${pupil.lastName}`}
+                title={`${formatPupilDisplayName(pupil)}`}
               >
-                {pupil.firstName} {pupil.lastName}
+                {formatPupilDisplayName(pupil)}
               </Link>
               {classDetail?.classCaptainId === pupil.id && (
                 <span title="Class Captain"><Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" /></span>
@@ -503,7 +504,7 @@ function PupilListRow({
                 <>
                   <AvatarImage
                     src={pupil.photo}
-                    alt={`${pupil.firstName} ${pupil.lastName}`}
+                    alt={`${formatPupilDisplayName(pupil)}`}
                     className={`object-cover transition-opacity duration-500 ${isLoadingPhoto ? 'opacity-30' : 'opacity-100'
                       }`}
                     onError={(e) => {
@@ -537,7 +538,7 @@ function PupilListRow({
                 href={`/pupil-detail?id=${pupil.id}`}
                 className="font-medium text-sm truncate hover:text-primary hover:underline cursor-pointer transition-colors"
               >
-                {pupil.firstName} {pupil.lastName}
+                {formatPupilDisplayName(pupil)}
               </Link>
               {classDetail?.classCaptainId === pupil.id && (
                 <span title="Class Captain"><Crown className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" /></span>
@@ -1064,7 +1065,7 @@ function ClassDetailContent() {
 
       switch (sortBy) {
         case 'name':
-          comparison = `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+          comparison = `${formatPupilDisplayName(a)}`.localeCompare(`${formatPupilDisplayName(b)}`);
           break;
         case 'section':
           comparison = (a.section || '').localeCompare(b.section || '');
@@ -1089,7 +1090,7 @@ function ClassDetailContent() {
   const filteredPupils = React.useMemo(() => {
     return sortedPupils.filter(pupil => {
       const matchesSearch = !filters.search ||
-        `${pupil.firstName} ${pupil.lastName}`.toLowerCase().includes(filters.search.toLowerCase()) ||
+        matchesPupilSearch(pupil, filters.search) ||
         pupil.guardians?.[0]?.email?.toLowerCase().includes(filters.search.toLowerCase());
 
       const matchesSection = filters.section === 'all' || pupil.section === filters.section;
@@ -1354,7 +1355,7 @@ function ClassDetailContent() {
               <span className="text-amber-700/85 dark:text-amber-300 font-medium">Class Captain:</span>
               {captain ? (
                 <Link href={`/pupil-detail?id=${captain.id}`} className="font-bold text-amber-600 dark:text-amber-400 hover:underline">
-                  {captain.firstName} {captain.lastName}
+                  {formatPupilDisplayName(captain)}
                 </Link>
               ) : (
                 <span className="font-bold text-amber-600 dark:text-amber-400">Not Assigned</span>
@@ -1364,7 +1365,7 @@ function ClassDetailContent() {
               <span className="text-orange-700/85 dark:text-orange-300 font-medium">Assistant Class Captain:</span>
               {assistantCaptain ? (
                 <Link href={`/pupil-detail?id=${assistantCaptain.id}`} className="font-bold text-orange-600 dark:text-orange-400 hover:underline">
-                  {assistantCaptain.firstName} {assistantCaptain.lastName}
+                  {formatPupilDisplayName(assistantCaptain)}
                 </Link>
               ) : (
                 <span className="font-bold text-orange-600 dark:text-orange-400">Not Assigned</span>
@@ -1924,7 +1925,7 @@ function ClassDetailContent() {
                           return (
                             <>
                               <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                              <span className="text-sm text-amber-700 font-medium truncate">{selectedPupil.firstName} {selectedPupil.lastName}</span>
+                              <span className="text-sm text-amber-700 font-medium truncate">{formatPupilDisplayName(selectedPupil)}</span>
                             </>
                           );
                         }
@@ -1961,7 +1962,7 @@ function ClassDetailContent() {
                           return (
                             <>
                               <span className="text-xs text-gray-400 mx-1 flex-shrink-0">-</span>
-                              <span className="text-sm text-amber-700 font-medium truncate">{selectedPupil.firstName} {selectedPupil.lastName}</span>
+                              <span className="text-sm text-amber-700 font-medium truncate">{formatPupilDisplayName(selectedPupil)}</span>
                             </>
                           );
                         }

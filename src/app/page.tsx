@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -385,7 +386,7 @@ const PupilRowWithDetails = ({
       >
         <UserCheck className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0" />
         <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 truncate flex-1">
-          {pupil.firstName} {pupil.lastName}
+          {formatPupilDisplayName(pupil)}
         </span>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {generalStatus && (

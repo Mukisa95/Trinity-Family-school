@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +55,7 @@ export function DutyTimelineView({ rotaId }: DutyTimelineViewProps) {
       return member ? `${member.firstName} ${member.lastName} (${member.employeeId})` : `Staff ID: ${memberId}`;
     } else if (memberType === 'prefects' || memberType === 'pupils') {
       const member = pupils.find(p => p.id === memberId);
-      return member ? `${member.firstName} ${member.lastName} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
+      return member ? `${formatPupilDisplayName(member)} - ${member.className || 'No Class'}` : `Pupil ID: ${memberId}`;
     }
     return `Unknown ID: ${memberId}`;
   };

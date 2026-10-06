@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
@@ -496,7 +497,7 @@ export function BatchRecaptureModal({
                                         />
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-sm text-gray-900">
-                                                {pupil.firstName} {pupil.lastName}
+                                                {formatPupilDisplayName(pupil)}
                                             </div>
                                             <div className="text-xs text-gray-500">
                                                 {pupil.admissionNumber} • {getPupilClassDisplay(pupil, classes.find(c => c.id === pupil.classId)).code || pupil.className} • {pupil.section}

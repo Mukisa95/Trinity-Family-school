@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -817,7 +818,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         totalAmount: paymentData.totalAmount,
         selectedFeesCount: paymentData.selectedFees.length,
         pupilId: pupil.id,
-        pupilName: `${pupil.firstName} ${pupil.lastName}`
+        pupilName: `${formatPupilDisplayName(pupil)}`
       });
 
       const paidByUser = {
@@ -926,7 +927,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
             },
             historyContext: {
               feeName: feeSelection.feeName,
-              pupilName: `${pupil.firstName} ${pupil.lastName}`,
+              pupilName: `${formatPupilDisplayName(pupil)}`,
               paymentMethod: paymentData.paymentMethod,
               source: 'multi_fee_payment',
               paidByName: paymentData.paidBy,
@@ -963,7 +964,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         const signatureResults = await Promise.allSettled(result.paymentIds.map((paymentId: string, index: number) => (
           signAction('fee_payment', paymentId, 'collected', {
             amount: signatureTargets[index].amount,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             feeName: signatureTargets[index].feeName,
             academicYear: selectedAcademicYear.name,
             term: selectedTermId,
@@ -1021,7 +1022,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               },
               historyContext: {
                 feeName: feeSelection.feeName,
-                pupilName: `${pupil.firstName} ${pupil.lastName}`,
+                pupilName: `${formatPupilDisplayName(pupil)}`,
                 paymentMethod: paymentData.paymentMethod,
                 source: 'multi_fee_payment',
                 paidByName: paymentData.paidBy,
@@ -1057,7 +1058,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           const feeSelection = regularSelections[index].feeSelection;
           return signAction('fee_payment', paymentId, 'collected', {
             amount: feeSelection.selectedAmount,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             feeName: feeSelection.feeName,
             academicYear: selectedAcademicYear.name,
             term: selectedTermId,
@@ -1169,7 +1170,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           const signatureResults = await Promise.allSettled(signatureTargets.map(signature =>
             signAction('fee_payment', signature.paymentId, 'collected', {
               amount: signature.amount,
-              pupilName: `${pupil.firstName} ${pupil.lastName}`,
+              pupilName: `${formatPupilDisplayName(pupil)}`,
               feeName: signature.feeName,
               academicYear: selectedAcademicYear.name,
               term: selectedTermId,
@@ -1304,7 +1305,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           notes: `Payment for ${selectedFee.name}`,
           historyContext: {
             feeName: selectedFee.name,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             paymentMethod: 'Cash',
             source: 'single_fee_payment',
             paidByName: user.username,
@@ -1393,7 +1394,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           'collected',
           {
             amount: data.amount,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             feeName: selectedFee.name,
             academicYear: selectedAcademicYear.name,
             term: selectedTermId,
@@ -1813,7 +1814,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
   const handlePrint = (selectedFees: any[]) => {
     if (!pupil || selectedFees.length === 0) return;
 
-    const safePupilName = `${pupil.firstName || ''}_${pupil.lastName || ''}`
+    const safePupilName = formatPupilDisplayName(pupil).replace(/\s+/g, '_')
       .trim()
       .replace(/[^a-zA-Z0-9]+/g, '_')
       .replace(/^_|_$/g, '') || 'pupil';
@@ -1822,7 +1823,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
     void pdfViewer.runPDFJob(
       {
         fileName,
-        title: `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim() || 'Fee statement',
+        title: `${formatPupilDisplayName(pupil)}`.trim() || 'Fee statement',
         initialMessage: 'Preparing fee statement…',
       },
       async ({ signal, updateProgress }) => {
@@ -1920,7 +1921,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
 
       const qrData = {
         id: pupil.admissionNumber || '',
-        name: `${pupil.firstName || ''} ${pupil.lastName || ''}`.trim(),
+        name: `${formatPupilDisplayName(pupil)}`.trim(),
                       payCode: getSchoolPayCode(pupil) || 'N/A'
       };
       const jsonString = JSON.stringify(qrData);
@@ -2131,7 +2132,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <View style={styles.infoRow}>
                     <Text style={styles.label}>NAME:</Text>
                     <Text style={styles.value}>
-                      {pupil.firstName} {pupil.lastName}
+                      {formatPupilDisplayName(pupil)}
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
@@ -2149,7 +2150,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         </Document>
       );
 
-      const safeName = (pupil.firstName + "_" + pupil.lastName).replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
+      const safeName = formatPupilDisplayName(pupil).replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
       const fileName = `${safeName}_Payment_ID.pdf`;
       await pdfViewer.runPDFJob(
         { fileName, title: 'Payment ID Card', initialMessage: 'Rendering payment ID card…' },
@@ -2333,7 +2334,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
               href={`/pupil-detail?id=${pupil.id}`}
               className="text-indigo-900 hover:text-indigo-700 hover:underline transition-all duration-300"
             >
-              {pupil.firstName} {pupil.lastName}
+              {formatPupilDisplayName(pupil)}
             </Link>
           ) : 'Loading...'
         }
@@ -2556,7 +2557,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <div className="px-2 py-1.5 text-sm font-semibold text-gray-900 border-b mb-1">Select Sibling</div>
                   {siblings.map(sibling => (
                     <DropdownMenuItem key={sibling.id} onClick={() => router.push(`/fees/collect/${sibling.id}`)} className="cursor-pointer flex flex-col items-start py-2">
-                      <span className="font-medium text-gray-900">{sibling.firstName} {sibling.lastName}</span>
+                      <span className="font-medium text-gray-900">{formatPupilDisplayName(sibling)}</span>
                       <span className="text-xs text-gray-500">{sibling.className} • {sibling.admissionNumber}</span>
                     </DropdownMenuItem>
                   ))}
@@ -2884,7 +2885,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                   <div className="min-w-0 border-b border-r border-slate-200 px-3 py-2.5">
                     <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Pupil</dt>
                     <dd className="mt-0.5 truncate text-sm font-semibold text-slate-900">
-                    {pupil ? `${pupil.firstName} ${pupil.lastName}` : 'Selected pupil'}
+                    {pupil ? `${formatPupilDisplayName(pupil)}` : 'Selected pupil'}
                     </dd>
                   </div>
                   <div className="min-w-0 border-b border-slate-200 px-3 py-2.5">
@@ -2958,7 +2959,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
         <MultiFeePaymentModal
           isOpen={isMultiPaymentModalOpen}
           onClose={() => setIsMultiPaymentModalOpen(false)}
-          pupilName={`${pupil.firstName} ${pupil.lastName}`}
+          pupilName={`${formatPupilDisplayName(pupil)}`}
           fees={pupilFees.map(fee => ({
             id: fee.id,
             name: fee.name,
@@ -3063,7 +3064,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
           currentPayCode={
             getSchoolPayCode(pupil) || null
           }
-          pupilName={`${pupil.firstName} ${pupil.lastName}`}
+          pupilName={`${formatPupilDisplayName(pupil)}`}
         />
       )}
 

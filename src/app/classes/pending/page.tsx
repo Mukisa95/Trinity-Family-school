@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/page-header";
@@ -55,17 +56,7 @@ function PendingPupilsContent() {
     if (!searchQuery.trim()) return pendingPupils;
 
     const query = searchQuery.toLowerCase();
-    return pendingPupils.filter((pupil) => {
-      const fullName = `${pupil.firstName} ${pupil.lastName} ${pupil.otherNames || ""}`.toLowerCase();
-      const admissionNumber = pupil.admissionNumber.toLowerCase();
-      const className = allClasses.find((c) => c.id === pupil.classId)?.name?.toLowerCase() || "";
-
-      return (
-        fullName.includes(query) ||
-        admissionNumber.includes(query) ||
-        className.includes(query)
-      );
-    });
+    return pendingPupils.filter(pupil => matchesPupilSearch(pupil, searchQuery, [pupil.admissionNumber, allClasses.find(c => c.id === pupil.classId)?.name]));
   }, [pendingPupils, searchQuery, allClasses]);
 
   // Handle activating a pupil (changing status from Pending to Active)
@@ -91,7 +82,7 @@ function PendingPupilsContent() {
 
       toast({
         title: "Pupil Activated",
-        description: `${pupil.firstName} ${pupil.lastName} has been activated and will now appear in all components.`,
+        description: `${formatPupilDisplayName(pupil)} has been activated and will now appear in all components.`,
       });
     } catch (error) {
       toast({
@@ -363,7 +354,7 @@ function PendingPupilsContent() {
                           <Checkbox
                             checked={selectedPupilIds.has(pupil.id)}
                             onCheckedChange={() => handleTogglePupilSelection(pupil.id)}
-                            aria-label={`Select ${pupil.firstName} ${pupil.lastName}`}
+                            aria-label={`Select ${formatPupilDisplayName(pupil)}`}
                           />
                         </TableCell>
                       )}
@@ -374,7 +365,7 @@ function PendingPupilsContent() {
                             {pupil.photo && pupil.photo.trim() !== "" ? (
                               <AvatarImage
                                 src={pupil.photo}
-                                alt={`${pupil.firstName} ${pupil.lastName}`}
+                                alt={`${formatPupilDisplayName(pupil)}`}
                                 className="object-cover"
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
@@ -387,8 +378,7 @@ function PendingPupilsContent() {
                           </Avatar>
                           <div>
                             <div className="font-medium">
-                              {pupil.firstName} {pupil.lastName}
-                              {pupil.otherNames && ` ${pupil.otherNames}`}
+                              {formatPupilDisplayName(pupil)}
                             </div>
                           </div>
                         </div>
@@ -420,7 +410,7 @@ function PendingPupilsContent() {
                               checked={false}
                               onCheckedChange={() => handleActivatePupil(pupil)}
                               disabled={updatePupilMutation.isPending}
-                              aria-label={`Activate ${pupil.firstName} ${pupil.lastName}`}
+                              aria-label={`Activate ${formatPupilDisplayName(pupil)}`}
                             />
                             {updatePupilMutation.isPending && (
                               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

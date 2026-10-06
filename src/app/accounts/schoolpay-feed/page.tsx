@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -169,7 +170,7 @@ function TransactionCard({
   const strip = STRIP_GRADIENT[status];
 
   const pupilName = tx.pupil
-    ? `${tx.pupil.firstName} ${tx.pupil.lastName}`
+    ? `${formatPupilDisplayName(tx.pupil)}`
     : 'Unknown Pupil';
 
   // Prefer classCode, fall back to className, then classId

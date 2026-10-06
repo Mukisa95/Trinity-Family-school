@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { usePupils, useUpdatePupil } from "@/lib/hooks/use-pupils";
 import type { Staff, Pupil } from "@/types";
-import { formatPupilDisplayName } from "@/lib/utils/name-formatter";
+import { formatPupilDisplayName, matchesPupilSearch } from "@/lib/utils/name-formatter";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -59,15 +59,7 @@ export function StaffPupilAssignmentModal({
     }
 
     const searchLower = searchTerm.toLowerCase();
-    return pupils.filter((pupil: Pupil) => {
-      const fullName = formatPupilDisplayName(pupil).toLowerCase();
-      return (
-        fullName.includes(searchLower) ||
-        pupil.admissionNumber.toLowerCase().includes(searchLower) ||
-        pupil.className?.toLowerCase().includes(searchLower) ||
-        pupil.familyId?.toLowerCase().includes(searchLower)
-      );
-    });
+    return pupils.filter((pupil: Pupil) => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber, pupil.className, pupil.familyId]));
   }, [pupils, searchTerm]);
 
   // Group pupils by family

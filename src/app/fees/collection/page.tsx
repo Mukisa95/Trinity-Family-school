@@ -1,4 +1,5 @@
 'use client';
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { GlassPageTopBar, GlassActionDock, GlassActionButton, GlassPageSearchInput } from "@/components/common/glass-page-top-bar";
 import { GlassSummaryBar } from "@/components/common/glass-summary-bar";
 import { GlassPageRouteSkeleton } from "@/components/common/glass-page-loading";
@@ -532,12 +533,7 @@ export default function FeesCollectionPage() {
   const filteredPupils = useMemo(() => {
     return pupils.filter((pupil: Pupil) => {
       // Search filter
-      const matchesSearch = (
-        pupil.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pupil.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pupil.admissionNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (pupil.otherNames && pupil.otherNames.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      const matchesSearch = matchesPupilSearch(pupil, searchQuery, [pupil.admissionNumber]);
 
       // Basic filters
       const matchesSection = !filters.section || filters.section === 'all' ||
@@ -690,12 +686,7 @@ export default function FeesCollectionPage() {
     // Use filteredPupils (before feeItem filter) so we scan all currently shown pupils
     // We need to get the pre-feeItem-filtered pupils for the fee item list
     const pupilsToScan = pupils.filter((pupil: Pupil) => {
-      const matchesSearch = (
-        pupil.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pupil.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pupil.admissionNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (pupil.otherNames && pupil.otherNames.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      const matchesSearch = matchesPupilSearch(pupil, searchQuery, [pupil.admissionNumber]);
       const matchesSection = !filters.section || filters.section === 'all' ||
         pupil.section?.toLowerCase() === filters.section.toLowerCase();
       const matchesClass = !filters.class || filters.class === 'all' || pupil.classId === filters.class;
@@ -1101,8 +1092,7 @@ export default function FeesCollectionPage() {
                       {columnSelection.pupilInfo && (
                         <View style={[styles.tableCol, { width: columnWidths.pupilInfo }]}>
                           <Text style={styles.tableCell}>
-                            {pupil.firstName} {pupil.lastName}
-                            {pupil.otherNames && ` ${pupil.otherNames}`}
+                            {formatPupilDisplayName(pupil)}
                           </Text>
                         </View>
                       )}
@@ -1745,7 +1735,7 @@ export default function FeesCollectionPage() {
                                   <>
                                     <AvatarImage
                                       src={pupil.photo}
-                                      alt={`${pupil.firstName} ${pupil.lastName}`}
+                                      alt={`${formatPupilDisplayName(pupil)}`}
                                       className={`transition-opacity duration-500 ${isLoadingPupils && !pupil.photo ? 'opacity-30' : 'opacity-100'
                                         }`}
                                       onError={(e) => {
@@ -1776,7 +1766,7 @@ export default function FeesCollectionPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-white truncate">
-                                {pupil.firstName} {pupil.lastName}
+                                {formatPupilDisplayName(pupil)}
                               </h3>
                               <div className="flex items-center space-x-2 text-white/80 text-sm">
                                 <span>{pupil.admissionNumber}</span>

@@ -1,4 +1,5 @@
 "use client";
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import React, { useState } from 'react';
@@ -37,14 +38,7 @@ export default function BankingListPage() {
   const reactivateAccountMutation = useReactivateAccount();
 
   // Filter accounts based on search term
-  const filteredAccounts = accounts.filter(account => {
-    const pupilName = `${account.pupil.firstName} ${account.pupil.lastName} ${account.pupil.otherNames || ''}`.toLowerCase();
-    const admissionNumber = account.pupil.admissionNumber?.toLowerCase() || '';
-    const accountNumber = account.accountNumber?.toLowerCase() || '';
-    const search = searchTerm.toLowerCase();
-    
-    return pupilName.includes(search) || admissionNumber.includes(search) || accountNumber.includes(search);
-  });
+  const filteredAccounts = accounts.filter(account => matchesPupilSearch(account.pupil, searchTerm, [account.pupil.admissionNumber, account.accountNumber]));
 
   const handleViewAccount = (pupilId: string) => {
     router.push(`/banking/pupil-banking-details?pupilId=${pupilId}`);
@@ -54,7 +48,7 @@ export default function BankingListPage() {
     try {
       await createAccountMutation.mutateAsync({
         pupilId: pupil.id,
-        accountName: `${pupil.firstName} ${pupil.lastName}`,
+        accountName: `${formatPupilDisplayName(pupil)}`,
         accountNumber: '',
         balance: 0,
       });
@@ -263,7 +257,7 @@ export default function BankingListPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredAccounts.map((account) => {
-                        const pupilName = `${account.pupil.firstName} ${account.pupil.lastName}`;
+                        const pupilName = `${formatPupilDisplayName(account.pupil)}`;
                         const isActive = account.isActive !== false;
                         
                         return (
@@ -361,7 +355,7 @@ export default function BankingListPage() {
                 {/* Mobile Card View */}
                 <div className="lg:hidden divide-y divide-gray-100">
                   {filteredAccounts.map((account) => {
-                    const pupilName = `${account.pupil.firstName} ${account.pupil.lastName}`;
+                    const pupilName = `${formatPupilDisplayName(account.pupil)}`;
                     const isActive = account.isActive !== false;
                     
                     return (

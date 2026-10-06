@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
@@ -501,8 +502,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                   {columnSelection.name && (
                     <View style={[styles.tableCol, { width: columnWidths.name }]}>
                       <Text style={styles.tableCell}>
-                        {pupil.firstName} {pupil.lastName}
-                        {pupil.otherNames && ` ${pupil.otherNames}`}
+                        {formatPupilDisplayName(pupil)}
                       </Text>
                     </View>
                   )}
@@ -568,7 +568,7 @@ const PupilsListPDFDocument: React.FC<PupilsListPDFDocumentProps> = ({
                             const siblingClass = classes.find(c => c.id === sibling.classId);
                             return (
                               <Text key={sibling.id} style={styles.siblingInfo}>
-                                • {sibling.firstName} {sibling.lastName} ({siblingClass?.code || 'N/A'})
+                                • {formatPupilDisplayName(sibling)} ({siblingClass?.code || 'N/A'})
                               </Text>
                             );
                           })}

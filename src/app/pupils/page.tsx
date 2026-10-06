@@ -55,7 +55,7 @@ import { ActionGuard } from "@/components/auth/action-guard";
 import { PupilTableRowSkeleton } from '@/components/pupils/PupilTableRowSkeleton';
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import dynamic from 'next/dynamic';
-import { formatPupilDisplayName, sortPupilsByName } from '@/lib/utils/name-formatter';
+import { formatPupilDisplayName, sortPupilsByName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { useTermStatus } from '@/lib/hooks/use-term-status';
 import { RecessStatusBanner } from '@/components/common/recess-status-banner';
 import { ExportConfigModal, type ExportConfig } from '@/components/pupils/ExportConfigModal';
@@ -501,17 +501,7 @@ function PupilsContent() {
     }
 
     const searchLower = searchQuery.toLowerCase();
-    return pupilsToSearch.filter(pupil => {
-      const fullName = `${pupil.firstName || ''} ${pupil.lastName || ''}`.toLowerCase();
-      const admissionNumber = (pupil.admissionNumber || '').toLowerCase();
-      const className = (pupil.className || '').toLowerCase();
-
-      return (
-        fullName.includes(searchLower) ||
-        admissionNumber.includes(searchLower) ||
-        className.includes(searchLower)
-      );
-    });
+    return pupilsToSearch.filter(pupil => matchesPupilSearch(pupil, searchQuery, [pupil.admissionNumber, pupil.className]));
   }, [pupilsToDisplay, searchQuery]);
 
   // 🚀 OPTIMIZED: Only show loading if we don't have any cached data
@@ -1530,7 +1520,7 @@ function PupilsContent() {
       });
       toast({
         title: 'Sibling Unlinked',
-        description: `${siblingToUnlink.firstName} ${siblingToUnlink.lastName} is now a standalone pupil.`,
+        description: `${formatPupilDisplayName(siblingToUnlink)} is now a standalone pupil.`,
       });
       // Close both dialogs
       setUnlinkSiblingConfirm(null);
@@ -1611,7 +1601,7 @@ function PupilsContent() {
               const otherNames = names.slice(1).join(' ');
               rowData.push(pupil.lastName || '', firstName, otherNames);
             } else {
-              rowData.push(`${pupil.firstName || ''} ${pupil.lastName || ''}`.trim());
+              rowData.push(`${formatPupilDisplayName(pupil)}`.trim());
             }
           } else if (colId === 'class') {
             const cls = classes.find((c: any) => c.id === pupil.classId);
@@ -2189,7 +2179,7 @@ function PupilsContent() {
                                     const siblingClass = classes.find((c: any) => c.id === sibling.classId);
                                     return (
                                       <Text key={sibling.id} style={styles.siblingInfo}>
-                                        • {sibling.firstName} {sibling.lastName} ({siblingClass?.code || 'N/A'})
+                                        • {formatPupilDisplayName(sibling)} ({siblingClass?.code || 'N/A'})
                                       </Text>
                                     );
                                   })}
@@ -4538,7 +4528,7 @@ function PupilsContent() {
                           {sibling.photo && sibling.photo.trim() !== '' && sibling.photo.startsWith('http') ? (
                             <AvatarImage
                               src={sibling.photo}
-                              alt={`${sibling.firstName} ${sibling.lastName}`}
+                              alt={`${formatPupilDisplayName(sibling)}`}
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
@@ -4644,12 +4634,12 @@ function PupilsContent() {
                   <li>
                     The system will unlink{' '}
                     <span className="font-bold">
-                      {unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}
+                      {formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}
                     </span>{' '}
                     from the family of{' '}
                     <span className="font-bold">
                       {unlinkSiblingConfirm.remainingSiblings.length > 0
-                        ? unlinkSiblingConfirm.remainingSiblings.map(s => `${s.firstName} ${s.lastName}`).join(', ')
+                        ? unlinkSiblingConfirm.remainingSiblings.map(s => `${formatPupilDisplayName(s)}`).join(', ')
                         : unlinkSiblingConfirm.viewedPupilName
                       }
                     </span>.
@@ -4657,7 +4647,7 @@ function PupilsContent() {
                   <li>
                     A new family code will be created for{' '}
                     <span className="font-bold">
-                      {unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}
+                      {formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}
                     </span>.
                   </li>
                   <li>This action will <span className="font-bold">not</span> delete any pupil records.</li>
@@ -4675,7 +4665,7 @@ function PupilsContent() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-gray-900">{unlinkSiblingConfirm.siblingToUnlink.firstName} {unlinkSiblingConfirm.siblingToUnlink.lastName}</p>
+                  <p className="font-semibold text-gray-900">{formatPupilDisplayName(unlinkSiblingConfirm.siblingToUnlink)}</p>
                   <p className="text-xs text-gray-500">{unlinkSiblingConfirm.siblingToUnlink.admissionNumber}</p>
                 </div>
               </div>
@@ -4726,7 +4716,7 @@ function PupilsContent() {
               Change Pupil Status
             </ModernDialogTitle>
             <ModernDialogDescription>
-              Change {statusChangeModal.pupil?.firstName} {statusChangeModal.pupil?.lastName}'s status from <strong>{statusChangeModal.pupil?.status}</strong> to a new status.
+              Change {formatPupilDisplayName(statusChangeModal.pupil ?? {})}'s status from <strong>{statusChangeModal.pupil?.status}</strong> to a new status.
             </ModernDialogDescription>
           </ModernDialogHeader>
 
@@ -4881,7 +4871,7 @@ function PupilsContent() {
           <ModernDialogHeader>
             <ModernDialogTitle className="flex items-center">
               <Edit className="mr-2 h-5 w-5 text-orange-600" />
-              Change Class - {classChangeModal.pupil?.firstName} {classChangeModal.pupil?.lastName}
+              Change Class - {formatPupilDisplayName(classChangeModal.pupil ?? {})}
             </ModernDialogTitle>
             <ModernDialogDescription>
               Select a new class for this pupil. This will update their class assignment and create a promotion history record.
@@ -4984,7 +4974,7 @@ function PupilsContent() {
         }}
         onSave={handleSaveIdCodes}
         existingIdentifiers={selectedPupilForIdCodes?.additionalIdentifiers || []}
-        pupilName={selectedPupilForIdCodes ? `${selectedPupilForIdCodes.firstName} ${selectedPupilForIdCodes.lastName}` : ''}
+        pupilName={selectedPupilForIdCodes ? `${formatPupilDisplayName(selectedPupilForIdCodes)}` : ''}
       />
 
       {/* Link Siblings Modal */}
@@ -5632,7 +5622,7 @@ function PupilsContent() {
                       <Avatar className="h-8 w-8 border border-indigo-200">
                         <AvatarImage
                           src={selectedFamilyPupil.photo && selectedFamilyPupil.photo.trim() !== '' ? selectedFamilyPupil.photo : undefined}
-                          alt={`${selectedFamilyPupil.firstName} ${selectedFamilyPupil.lastName}`}
+                          alt={`${formatPupilDisplayName(selectedFamilyPupil)}`}
                         />
                         <AvatarFallback className="text-[10px] bg-indigo-100 text-indigo-700 font-bold">
                           {selectedFamilyPupil.firstName?.[0] || 'P'}{selectedFamilyPupil.lastName?.[0] || 'P'}
@@ -5640,7 +5630,7 @@ function PupilsContent() {
                       </Avatar>
                       <div className="text-left">
                         <p className="font-semibold text-sm text-indigo-900 transition-colors">
-                          {selectedFamilyPupil.firstName} {selectedFamilyPupil.lastName} (Current)
+                          {formatPupilDisplayName(selectedFamilyPupil)} (Current)
                         </p>
                         <p className="text-xs text-indigo-700/80 font-mono">
                           {classes.find(c => c.id === selectedFamilyPupil.classId)?.code || classes.find(c => c.id === selectedFamilyPupil.classId)?.name || 'N/A'} • {selectedFamilyPupil.admissionNumber}
@@ -5663,7 +5653,7 @@ function PupilsContent() {
                       <Avatar className="h-8 w-8 border">
                         <AvatarImage
                           src={sibling.photo && sibling.photo.trim() !== '' ? sibling.photo : undefined}
-                          alt={`${sibling.firstName} ${sibling.lastName}`}
+                          alt={`${formatPupilDisplayName(sibling)}`}
                         />
                         <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">
                           {sibling.firstName?.[0] || 'S'}{sibling.lastName?.[0] || 'S'}
@@ -5671,7 +5661,7 @@ function PupilsContent() {
                       </Avatar>
                       <div className="text-left">
                         <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
-                          {sibling.firstName} {sibling.lastName}
+                          {formatPupilDisplayName(sibling)}
                         </p>
                         <p className="text-xs text-muted-foreground font-mono">
                           {classes.find(c => c.id === sibling.classId)?.code || classes.find(c => c.id === sibling.classId)?.name || 'N/A'} • {sibling.admissionNumber}
@@ -5705,7 +5695,7 @@ function PupilsContent() {
         }
         pupilName={
           selectedPupilForPayCode
-            ? `${selectedPupilForPayCode.firstName} ${selectedPupilForPayCode.lastName}`
+            ? `${formatPupilDisplayName(selectedPupilForPayCode)}`
             : ''
         }
       />

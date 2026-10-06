@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -282,7 +283,7 @@ const BulkSMS: React.FC = () => {
         if (selectedGuardians.includes('primary') && primaryGuardian && isValidPhone(primaryGuardian.phone)) {
           // Add primary phone
           recipients.push({
-            name: `${pupil.firstName} ${pupil.lastName}`,
+            name: `${formatPupilDisplayName(pupil)}`,
             phone: primaryGuardian.phone!.trim(),
             class: className,
             guardianType: 'primary'
@@ -293,7 +294,7 @@ const BulkSMS: React.FC = () => {
             primaryGuardian.additionalPhones.forEach((additionalPhone, index) => {
               if (isValidPhone(additionalPhone)) {
                 recipients.push({
-                  name: `${pupil.firstName} ${pupil.lastName}`,
+                  name: `${formatPupilDisplayName(pupil)}`,
                   phone: additionalPhone.trim(),
                   class: className,
                   guardianType: `primary_${index + 1}`
@@ -306,7 +307,7 @@ const BulkSMS: React.FC = () => {
         if (selectedGuardians.includes('secondary') && secondaryGuardian && isValidPhone(secondaryGuardian.phone)) {
           // Add secondary phone
           recipients.push({
-            name: `${pupil.firstName} ${pupil.lastName}`,
+            name: `${formatPupilDisplayName(pupil)}`,
             phone: secondaryGuardian.phone!.trim(),
             class: className,
             guardianType: 'secondary'
@@ -317,7 +318,7 @@ const BulkSMS: React.FC = () => {
             secondaryGuardian.additionalPhones.forEach((additionalPhone, index) => {
               if (isValidPhone(additionalPhone)) {
                 recipients.push({
-                  name: `${pupil.firstName} ${pupil.lastName}`,
+                  name: `${formatPupilDisplayName(pupil)}`,
                   phone: additionalPhone.trim(),
                   class: className,
                   guardianType: `secondary_${index + 1}`
@@ -460,8 +461,7 @@ const BulkSMS: React.FC = () => {
   const filteredPupils = allPupils.filter((pupil: Pupil) => {
     if (pupil.status !== 'Active') return false;
 
-    const matchesSearch = searchTerm === '' ||
-      `${pupil.firstName} ${pupil.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = matchesPupilSearch(pupil, searchTerm);
 
     return matchesSearch;
   });
@@ -974,7 +974,7 @@ const BulkSMS: React.FC = () => {
                                 onChange={() => handlePupilSelect(pupil.id)}
                                 className="rounded border-gray-300 text-primary focus:ring-primary w-3.5 h-3.5"
                               />
-                              <span className="flex-1 text-sm">{pupil.firstName} {pupil.lastName}</span>
+                              <span className="flex-1 text-sm">{formatPupilDisplayName(pupil)}</span>
                               <div className="flex flex-col items-end">
                                 <span className="text-sm text-gray-500">
                                   {getPupilClassDisplay(pupil, classes.find(c => c.id === pupil.classId)).code || pupil.classId}

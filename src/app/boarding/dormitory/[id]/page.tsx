@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { use, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from '@/lib/contexts/navigation-context';
@@ -67,7 +68,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
   const eligibleOptions: MultiSelectOption[] = useMemo(() => {
     return eligiblePupils.map(p => ({
       value: p.id,
-      label: `${p.firstName} ${p.lastName} — ${p.classCode || p.className || ''}`.trim(),
+      label: `${formatPupilDisplayName(p)} — ${p.classCode || p.className || ''}`.trim(),
     }));
   }, [eligiblePupils]);
 
@@ -90,7 +91,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
   }).filter(Boolean);
   const inChargeNames = (dormitory?.inChargePupilIds || []).map((pid) => {
     const p = pupilMap.get(pid);
-    return p ? `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim() : 'Unknown';
+    return p ? formatPupilDisplayName(p) : 'Unknown';
   }).filter(Boolean);
   const totalCapacity = dormitory?.bedCapacity ?? 0;
   const assignedCount = assignedPupils.length;
@@ -287,7 +288,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                       </div>
                                       <div className="min-w-0 flex-1">
                                         <a className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors block truncate" href={`/pupil-detail?id=${p.id}`}>
-                                          {(p.firstName || '').toUpperCase()} {(p.lastName || '').toUpperCase()}
+                                          {formatPupilDisplayName(p).toUpperCase()}
                                         </a>
                                         <div className="flex items-center gap-2 text-xs text-gray-500">
                                           <span className="truncate">{p.admissionNumber || ''}</span>
@@ -314,7 +315,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                           onClick={(e) => {
                                             e.preventDefault();
                                             setSelectedPupilGuardians({
-                                              pupilName: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+                                              pupilName: `${formatPupilDisplayName(p)}`.trim(),
                                               guardians: (p.guardians as Guardian[]) || [],
                                               emergencyContactId: p.emergencyContactGuardianId || ''
                                             });
@@ -329,7 +330,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
                                             e.preventDefault();
                                             const siblings = getSiblings(p);
                                             setSelectedPupilSiblings({
-                                              pupilName: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+                                              pupilName: `${formatPupilDisplayName(p)}`.trim(),
                                               siblings
                                             });
                                           }}
@@ -363,7 +364,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
               {selectedPupilGuardians?.guardians?.length ? (
                 selectedPupilGuardians.guardians.map((g, idx) => (
                   <div key={idx} className="text-sm">
-                    <div className="font-medium">{g.firstName} {g.lastName}</div>
+                    <div className="font-medium">{formatPupilDisplayName(g)}</div>
                     <div className="text-xs text-gray-500">{g.phone}</div>
                   </div>
                 ))
@@ -387,7 +388,7 @@ export default function DormitoryDetailPage(props: { params: Promise<{ id: strin
               {selectedPupilSiblings?.siblings?.length ? (
                 selectedPupilSiblings.siblings.map((s, idx) => (
                   <a key={idx} href={`/pupil-detail?id=${s.id}`} className="block text-sm hover:underline">
-                    {s.firstName} {s.lastName}
+                    {formatPupilDisplayName(s)}
                     <span className="text-xs text-gray-500"> • {s.classCode || s.className || ''}</span>
                     {s.section ? (
                       <span className="text-xs text-gray-500"> • {s.section}{s.section === 'Boarding' ? ` — ${dormitoryByPupilId.get(s.id) || 'Dormitory N/A'}` : ''}</span>

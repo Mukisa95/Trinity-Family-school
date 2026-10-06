@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -396,7 +397,7 @@ export function FamilyPrintModal({
                 const summary = feesInfo[pupil.id];
                 return `
                   <tr>
-                    <td>${pupil.firstName} ${pupil.lastName}</td>
+                    <td>${formatPupilDisplayName(pupil)}</td>
                     <td>${pupil.className || 'N/A'}</td>
                     <td>${pupil.section || 'N/A'}</td>
                     <td>UGX ${(summary?.totalFees || 0).toLocaleString()}</td>
@@ -792,7 +793,7 @@ export function FamilyPrintModal({
           return `
             <div class="pupil-section">
               <div class="pupil-header">
-                <div class="pupil-name">${pupil.firstName} ${pupil.lastName}</div>
+                <div class="pupil-name">${formatPupilDisplayName(pupil)}</div>
                 <div class="pupil-details">
                   <div><strong>Class:</strong> ${pupil.className || 'N/A'}</div>
                   <div><strong>Section:</strong> ${pupil.section || 'N/A'}</div>

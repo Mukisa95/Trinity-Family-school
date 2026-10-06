@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BookOpen } from 'lucide-react';
@@ -21,7 +22,7 @@ export function PupilFeesSection({ pupilId }: PupilFeesSectionProps) {
             {pupil?.photo && pupil.photo.trim() !== '' ? (
               <AvatarImage 
                 src={pupil.photo} 
-                alt={`${pupil.firstName} ${pupil.lastName}`}
+                alt={`${formatPupilDisplayName(pupil)}`}
                 onError={(e) => {
                   console.log('Avatar image failed to load:', pupil.photo);
                   e.currentTarget.style.display = 'none';

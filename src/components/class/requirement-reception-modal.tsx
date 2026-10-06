@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import {
   ModernDialog,
@@ -577,7 +578,7 @@ export function RequirementReceptionModal({
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-blue-600" />
                   <span className="font-semibold text-gray-900">
-                    {pupil.firstName} {pupil.lastName}
+                    {formatPupilDisplayName(pupil)}
                   </span>
                   <Badge variant="outline" className="text-xs">
                     {pupil.admissionNumber}

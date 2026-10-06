@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { format, eachDayOfInterval, isWeekend } from "date-fns";
 import type { Pupil, AttendanceRecord, Class, SchoolSettings, ExcludedDay } from "@/types";
@@ -52,7 +53,7 @@ export function PrintableAttendanceDetailed({
         }
       });
       return {
-        name: `${pupil.lastName || ""} ${pupil.firstName || ""}`.trim().toUpperCase(),
+        name: `${formatPupilDisplayName(pupil)}`.trim().toUpperCase(),
         daily,
         P, A, E, T,
       };

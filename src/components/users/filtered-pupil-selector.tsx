@@ -1,5 +1,6 @@
 "use client";
 
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -42,14 +43,7 @@ export function FilteredPupilSelector({ onSelect, selectedPupilId, availablePupi
     // Search filter
     if (filters.searchTerm.trim()) {
       const searchLower = filters.searchTerm.toLowerCase();
-      result = result.filter(pupil => {
-        const fullName = `${pupil.firstName} ${pupil.lastName} ${pupil.otherNames || ''}`.toLowerCase();
-        return (
-          fullName.includes(searchLower) ||
-          pupil.admissionNumber.toLowerCase().includes(searchLower) ||
-          pupil.className?.toLowerCase().includes(searchLower)
-        );
-      });
+      result = result.filter(pupil => matchesPupilSearch(pupil, filters.searchTerm, [pupil.admissionNumber, pupil.className]));
     }
 
     // Class filter
@@ -224,7 +218,7 @@ export function FilteredPupilSelector({ onSelect, selectedPupilId, availablePupi
                     {pupil.photo ? (
                       <img
                         src={pupil.photo}
-                        alt={`${pupil.firstName} ${pupil.lastName}`}
+                        alt={`${formatPupilDisplayName(pupil)}`}
                         className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                       />
                     ) : (
@@ -237,7 +231,7 @@ export function FilteredPupilSelector({ onSelect, selectedPupilId, availablePupi
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-gray-900">
-                          {pupil.firstName} {pupil.lastName} {pupil.otherNames || ''}
+                          {formatPupilDisplayName(pupil)}
                         </h3>
                         <Badge variant={pupil.status === 'Active' ? 'default' : 'secondary'}>
                           {pupil.status}

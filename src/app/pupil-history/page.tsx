@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -81,6 +82,7 @@ interface PupilHistoryData {
   id: string;
   firstName: string;
   lastName: string;
+  otherNames?: string;
   fullName: string;
   admissionNumber: string;
   dateOfBirth: string;
@@ -299,7 +301,8 @@ export default function PupilHistoryPage() {
         id: pupil.id,
         firstName: pupil.firstName,
         lastName: pupil.lastName,
-        fullName: `${pupil.firstName} ${pupil.lastName}`,
+        otherNames: pupil.otherNames,
+        fullName: `${formatPupilDisplayName(pupil)}`,
         admissionNumber: pupil.admissionNumber,
         dateOfBirth: pupil.dateOfBirth || '',
         age,
@@ -350,10 +353,7 @@ export default function PupilHistoryPage() {
     // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(pupil => 
-        pupil.fullName.toLowerCase().includes(term) ||
-        pupil.admissionNumber.toLowerCase().includes(term) ||
-        pupil.guardian.name.toLowerCase().includes(term)
+      filtered = filtered.filter(pupil => matchesPupilSearch(pupil, searchTerm, [pupil.admissionNumber, pupil.guardian.name])
       );
     }
 

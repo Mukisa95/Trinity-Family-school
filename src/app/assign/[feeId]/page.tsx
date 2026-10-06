@@ -1,4 +1,5 @@
 "use client";
+import { matchesPupilSearch, formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import { Fragment, useCallback, useMemo, useState, use, useEffect } from "react";
@@ -527,18 +528,10 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
           ? true
           : (pupil.status || "Active").toLowerCase() === filterStatus.toLowerCase()
       )
-      .filter((pupil) => {
-        if (!searchText.trim()) return true;
-        const q = searchText.trim().toLowerCase();
-        return (
-          (pupil.firstName || "").toLowerCase().includes(q) ||
-          (pupil.lastName || "").toLowerCase().includes(q) ||
-          (pupil.admissionNumber || "").toLowerCase().includes(q)
-        );
-      })
+      .filter(pupil => matchesPupilSearch(pupil, searchText, [pupil.admissionNumber]))
       .sort((a, b) => {
-        const nameA = `${a.lastName || ""} ${a.firstName || ""}`.trim().toLowerCase();
-        const nameB = `${b.lastName || ""} ${b.firstName || ""}`.trim().toLowerCase();
+        const nameA = `${formatPupilDisplayName(a)}`.trim().toLowerCase();
+        const nameB = `${formatPupilDisplayName(b)}`.trim().toLowerCase();
         return nameA.localeCompare(nameB);
       });
     return filtered;
@@ -1152,7 +1145,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                             <Checkbox
                               checked={selectedForBulkDeleteIds.has(record.pupil.id)}
                               onCheckedChange={() => toggleBulkSelectOne(record.pupil.id)}
-                              aria-label={`Select ${record.pupil.firstName} ${record.pupil.lastName}`}
+                              aria-label={`Select ${formatPupilDisplayName(record.pupil)}`}
                             />
                           </TableCell>
                         )}
@@ -1162,7 +1155,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                               href={`/fees/collect/${record.pupil.id}`}
                               className="text-blue-600 hover:underline"
                             >
-                              {record.pupil.firstName} {record.pupil.lastName}
+                              {formatPupilDisplayName(record.pupil)}
                             </Link>
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -1245,7 +1238,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                                       return a;
                                     });
                                     await PupilsService.updatePupil(record.pupil.id, { assignedFees: updated });
-                                    toast({ title: "Assignment disabled", description: `${record.pupil.firstName} ${record.pupil.lastName}` });
+                                    toast({ title: "Assignment disabled", description: `${formatPupilDisplayName(record.pupil)}` });
                                     await refreshAssignmentCaches();
                                   } catch (e) {
                                     toast({ variant: "destructive", title: "Disable failed" });
@@ -1256,7 +1249,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={async () => {
-                                  if (!confirm(`Remove this assignment from ${record.pupil.firstName} ${record.pupil.lastName}?`)) return;
+                                  if (!confirm(`Remove this assignment from ${formatPupilDisplayName(record.pupil)}?`)) return;
                                   try {
                                     const current = record.pupil.assignedFees || [];
                                     const updated = current.filter(a => a.feeStructureId !== (feeStructure?.id || ""));
@@ -1432,7 +1425,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                             onCheckedChange={() => toggleSelectedPupil(p.id)}
                           />
                         </td>
-                        <td className="p-2">{p.firstName} {p.lastName}</td>
+                        <td className="p-2">{formatPupilDisplayName(p)}</td>
                         <td className="p-2">{p.classCode || p.className || "N/A"}</td>
                         <td className="p-2">{p.section || "N/A"}</td>
                       </tr>
@@ -1578,7 +1571,7 @@ export default function AssignDetailPage({ params }: FeeDetailPageProps) {
                             onCheckedChange={() => toggleSelectedModifyPupil(p.id)}
                           />
                         </td>
-                        <td className="p-2">{p.firstName} {p.lastName}</td>
+                        <td className="p-2">{formatPupilDisplayName(p)}</td>
                         <td className="p-2">{p.classCode || p.className || "N/A"}</td>
                       </tr>
                     ))}

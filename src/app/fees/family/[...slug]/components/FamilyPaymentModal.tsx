@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useEffect } from 'react';
 import { X, Users, CurrencyDollar, Check } from '@phosphor-icons/react';
 import { toast } from '@/hooks/use-toast';
@@ -469,7 +470,7 @@ export function FamilyPaymentModal({
               return (
                 <div key={pupil.id} className="border border-gray-200 rounded-lg p-3">
                   <h4 className="font-medium text-gray-900 mb-2 text-sm">
-                    {pupil.firstName} {pupil.lastName} - {pupil.className} ({pupil.section})
+                    {formatPupilDisplayName(pupil)} - {pupil.className} ({pupil.section})
                   </h4>
                   
                   <div className="space-y-1.5">
@@ -494,7 +495,7 @@ export function FamilyPaymentModal({
                                 ? 'border-green-500 bg-green-50' 
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
-                            onClick={() => !isRecording && handleFeeSelection(pupil.id, `${pupil.firstName} ${pupil.lastName}`, fee, !isSelected)}
+                            onClick={() => !isRecording && handleFeeSelection(pupil.id, `${formatPupilDisplayName(pupil)}`, fee, !isSelected)}
                           >
                             <div className="flex items-center gap-2">
                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${

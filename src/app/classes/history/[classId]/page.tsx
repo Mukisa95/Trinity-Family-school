@@ -1,4 +1,5 @@
 "use client";
+import { formatPupilDisplayName, matchesPupilSearch } from '@/lib/utils/name-formatter';
 import { SmartBackButton } from "@/components/common/SmartBackButton";
 
 import * as React from "react";
@@ -234,8 +235,7 @@ export default function ClassHistoryPage() {
       const q = searchQuery.toLowerCase();
       list = list.filter(hp => {
         const p = hp.pupil;
-        const full = `${p.firstName} ${p.lastName} ${p.otherNames || ''}`.toLowerCase();
-        return full.includes(q) || p.admissionNumber.toLowerCase().includes(q);
+        return matchesPupilSearch(p, searchQuery, [p.admissionNumber]);
       });
     }
 
@@ -254,7 +254,7 @@ export default function ClassHistoryPage() {
       let cmp = 0;
       switch (sortField) {
         case 'name':
-          cmp = `${a.pupil.firstName} ${a.pupil.lastName}`.localeCompare(`${b.pupil.firstName} ${b.pupil.lastName}`);
+          cmp = `${formatPupilDisplayName(a.pupil)}`.localeCompare(`${formatPupilDisplayName(b.pupil)}`);
           break;
         case 'admissionNumber':
           cmp = a.pupil.admissionNumber.localeCompare(b.pupil.admissionNumber);
@@ -643,7 +643,7 @@ export default function ClassHistoryPage() {
                                 {pupil.photo && pupil.photo.trim() !== '' ? (
                                   <AvatarImage
                                     src={pupil.photo}
-                                    alt={`${pupil.firstName} ${pupil.lastName}`}
+                                    alt={`${formatPupilDisplayName(pupil)}`}
                                     className="object-cover"
                                   />
                                 ) : null}
@@ -656,7 +656,7 @@ export default function ClassHistoryPage() {
                                   href={`/pupil-detail?id=${pupil.id}`}
                                   className="font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-colors text-sm"
                                 >
-                                  {pupil.firstName} {pupil.lastName}
+                                  {formatPupilDisplayName(pupil)}
                                 </Link>
                                 {pupil.otherNames && (
                                   <p className="text-xs text-gray-400">{pupil.otherNames}</p>

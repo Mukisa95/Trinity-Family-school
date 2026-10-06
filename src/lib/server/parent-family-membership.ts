@@ -1,3 +1,4 @@
+import { formatPupilName } from '@/lib/utils/name-formatter';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getFirebaseAdminApp } from '@/lib/firebase-admin';
@@ -226,7 +227,7 @@ export async function transitionParentFamilyMembership(
         || parentAccounts.find(account => text(account.data().pupilId) === document.id)?.id
         || null;
       const newAccountId = canonicalForPupil(document)?.id || null;
-      const pupilName = `${text(data.firstName)} ${text(data.lastName)}`.trim() || 'A pupil';
+      const pupilName = formatPupilName({ firstName: text(data.firstName), lastName: text(data.lastName), otherNames: text(data.otherNames) }, { fallback: 'A pupil' });
       const familyChanged = oldFamilyId !== destinationFamilyId;
       if (oldAccountId && (oldAccountId !== newAccountId || !destinationFamilyId)) {
         notifications.set(`${oldAccountId}:removed:${document.id}`, {

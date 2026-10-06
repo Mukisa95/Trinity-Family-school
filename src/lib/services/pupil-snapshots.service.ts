@@ -1,3 +1,4 @@
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import { db } from '@/lib/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, where, orderBy } from 'firebase/firestore';
 import type { PupilTermSnapshot, Pupil, AcademicYear, Term } from '@/types';
@@ -379,7 +380,7 @@ export class PupilSnapshotsService {
     academicYear: AcademicYear
   ): Promise<PupilTermSnapshot> {
     try {
-      console.log(`📸 Getting/creating snapshot for pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}), term ${termId}`);
+      console.log(`📸 Getting/creating snapshot for pupil ${pupil.id} (${formatPupilDisplayName(pupil)}), term ${termId}`);
 
       // Find the term details
       const term = academicYear.terms.find(t => t.id === termId);
@@ -397,11 +398,11 @@ export class PupilSnapshotsService {
 
         // Validate essential data
         if (!pupil.classId) {
-          throw new Error(`Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) has no classId assigned`);
+          throw new Error(`Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) has no classId assigned`);
         }
 
         if (!pupil.section) {
-          throw new Error(`Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) has no section assigned`);
+          throw new Error(`Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) has no section assigned`);
         }
 
         // Return virtual snapshot based on current pupil data
@@ -459,7 +460,7 @@ export class PupilSnapshotsService {
       const promotionAfterTerm = this.checkIfPupilPromotedAfterTerm(pupil, termEndDate);
 
       if (promotionAfterTerm) {
-        console.warn(`⚠️ WARNING: Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) was promoted AFTER term ${term.name} ended.`);
+        console.warn(`⚠️ WARNING: Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) was promoted AFTER term ${term.name} ended.`);
         console.warn(`   Promotion date: ${promotionAfterTerm.promotionDate.toISOString()}, Term ended: ${termEndDate.toISOString()}`);
         console.warn(`   Promotion: ${promotionAfterTerm.fromClassId} → ${promotionAfterTerm.toClassId}`);
         console.warn(`   Current class: ${pupil.classId} - This may NOT match the class during the term!`);
@@ -522,7 +523,7 @@ export class PupilSnapshotsService {
 
       console.log(`🆕 Creating snapshot with recovered historical data:`, {
         pupilId: pupil.id,
-        pupilName: `${pupil.firstName} ${pupil.lastName}`,
+        pupilName: `${formatPupilDisplayName(pupil)}`,
         termId: term.id,
         termName: term.name,
         historicalClassId: historicalData.classId,
@@ -573,7 +574,7 @@ export class PupilSnapshotsService {
       console.error('❌ CRITICAL ERROR in getOrCreateSnapshot:', error);
       console.error('Context:', {
         pupilId: pupil?.id,
-        pupilName: pupil ? `${pupil.firstName} ${pupil.lastName}` : 'unknown',
+        pupilName: pupil ? `${formatPupilDisplayName(pupil)}` : 'unknown',
         termId,
         academicYearId: academicYear?.id,
         academicYearName: academicYear?.name
@@ -699,7 +700,7 @@ export class PupilSnapshotsService {
     termId: string,
     academicYear: AcademicYear
   ): Promise<PupilTermSnapshot> {
-    console.log(`🔄 Recapturing snapshot for pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}), term ${termId}`);
+    console.log(`🔄 Recapturing snapshot for pupil ${pupil.id} (${formatPupilDisplayName(pupil)}), term ${termId}`);
 
     // Find the term details
     const term = academicYear.terms.find(t => t.id === termId);
@@ -723,11 +724,11 @@ export class PupilSnapshotsService {
 
     // Validate essential data
     if (!pupil.classId) {
-      throw new Error(`Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) has no classId assigned`);
+      throw new Error(`Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) has no classId assigned`);
     }
 
     if (!pupil.section) {
-      throw new Error(`Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) has no section assigned`);
+      throw new Error(`Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) has no section assigned`);
     }
 
     // 🔥 CRITICAL VALIDATION: Check if pupil was promoted after term ended
@@ -736,7 +737,7 @@ export class PupilSnapshotsService {
     const promotionAfterTerm = this.checkIfPupilPromotedAfterTerm(pupil, termEndDate);
 
     if (promotionAfterTerm) {
-      console.warn(`⚠️ RECAPTURE WARNING: Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) was promoted AFTER term ${term.name} ended.`);
+      console.warn(`⚠️ RECAPTURE WARNING: Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) was promoted AFTER term ${term.name} ended.`);
       console.warn(`   Promotion: ${promotionAfterTerm.fromClassId} → ${promotionAfterTerm.toClassId} on ${promotionAfterTerm.promotionDate.toISOString()}`);
       console.warn(`   Term ended: ${termEndDate.toISOString()}`);
       console.warn(`   Current class being used for recapture: ${pupil.classId}`);
@@ -824,7 +825,7 @@ export class PupilSnapshotsService {
 
     for (let i = 0; i < pupils.length; i++) {
       const pupil = pupils[i];
-      const pupilName = `${pupil.firstName} ${pupil.lastName}`;
+      const pupilName = `${formatPupilDisplayName(pupil)}`;
 
       // Call progress callback if provided
       if (onProgress) {
@@ -994,7 +995,7 @@ export class PupilSnapshotsService {
         } else {
           missing.push({
             pupilId: pupil.id,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             termId: term.termId,
             termName: term.termName,
             academicYear: term.academicYear.name
@@ -1086,7 +1087,7 @@ export class PupilSnapshotsService {
             );
 
             created++;
-            console.log(`✅ Created snapshot for ${pupil.firstName} ${pupil.lastName} - ${term.name} (${academicYear.name})`);
+            console.log(`✅ Created snapshot for ${formatPupilDisplayName(pupil)} - ${term.name} (${academicYear.name})`);
 
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1095,7 +1096,7 @@ export class PupilSnapshotsService {
               termId: term.id,
               error: errorMessage
             });
-            console.error(`❌ Failed to create snapshot for ${pupil.firstName} ${pupil.lastName} - ${term.name}:`, error);
+            console.error(`❌ Failed to create snapshot for ${formatPupilDisplayName(pupil)} - ${term.name}:`, error);
           }
         }
       }
@@ -1349,7 +1350,7 @@ export class PupilSnapshotsService {
 
               if (promotionAfterTerm) {
                 // Pupil was promoted after term ended - use historical data recovery instead
-                console.log(`⚠️ Pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) was promoted after term ${term.name} ended. Using historical data recovery instead of current data.`);
+                console.log(`⚠️ Pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) was promoted after term ${term.name} ended. Using historical data recovery instead of current data.`);
                 console.log(`   Promotion date: ${promotionAfterTerm.promotionDate.toISOString()}, Term ended: ${termEndDate.toISOString()}`);
                 console.log(`   Promotion: ${promotionAfterTerm.fromClassId} → ${promotionAfterTerm.toClassId}`);
 
@@ -1495,7 +1496,7 @@ export class PupilSnapshotsService {
               const existingSnapshot = await this.getSnapshot(pupil.id, term.id);
 
               if (!existingSnapshot) {
-                console.log(`🆕 Creating missing snapshot for pupil ${pupil.id} (${pupil.firstName} ${pupil.lastName}) in ended term ${term.id}`);
+                console.log(`🆕 Creating missing snapshot for pupil ${pupil.id} (${formatPupilDisplayName(pupil)}) in ended term ${term.id}`);
 
                 // Try to get historical data first
                 const historicalData = await this.getHistoricalPupilData(pupil, term.id, academicYear);
@@ -1622,7 +1623,7 @@ export class PupilSnapshotsService {
         } else {
           missingDetails.push({
             pupilId: pupil.id,
-            pupilName: `${pupil.firstName} ${pupil.lastName}`,
+            pupilName: `${formatPupilDisplayName(pupil)}`,
             termId: term.id,
             termName: term.name,
             academicYear: academicYear.name

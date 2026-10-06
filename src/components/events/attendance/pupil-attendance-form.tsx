@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, { useState, useMemo } from 'react';
 import { Check, X, Clock, AlertCircle, Users, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -129,7 +130,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
           const pupil = availablePupils.find(p => p.id === record.pupilId);
           return {
             pupilId: record.pupilId,
-            pupilName: pupil ? `${pupil.firstName} ${pupil.lastName}` : 'Unknown',
+            pupilName: pupil ? `${formatPupilDisplayName(pupil)}` : 'Unknown',
             status: record.status,
           };
         }),
@@ -279,7 +280,7 @@ export function PupilAttendanceForm({ eventId, event }: PupilAttendanceFormProps
                         <div key={pupil.id} className="flex items-start justify-between p-3 border rounded-lg">
                           <div className="flex-1">
                             <h4 className="font-medium">
-                              {pupil.firstName} {pupil.lastName}
+                              {formatPupilDisplayName(pupil)}
                             </h4>
                             <p className="text-sm text-muted-foreground">
                               ID: {pupil.id}

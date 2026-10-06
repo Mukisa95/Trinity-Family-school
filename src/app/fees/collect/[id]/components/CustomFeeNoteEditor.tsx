@@ -1,5 +1,6 @@
 'use client';
 
+import { formatPupilDisplayName } from '@/lib/utils/name-formatter';
 import React, {useMemo, useRef, useState, type ReactNode} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -54,7 +55,7 @@ export function CustomFeeNoteEditor({pupil, choices, academicYearId, termId, loa
   const needsTarget = ['paid_at_least', 'paid_below', 'balance_above'].includes(condition);
   const schedule = new Date(`${date}T${time}:00+03:00`);
   let preview = message;
-  try { if (Number.isFinite(schedule.getTime())) preview = renderCustomNote({custom: spec, pupilName: `${pupil.firstName} ${pupil.lastName}`.trim()}, previewRows, pupil.className || '', schedule); } catch { /* Partial editor input is allowed. */ }
+  try { if (Number.isFinite(schedule.getTime())) preview = renderCustomNote({custom: spec, pupilName: `${formatPupilDisplayName(pupil)}`.trim()}, previewRows, pupil.className || '', schedule); } catch { /* Partial editor input is allowed. */ }
   const selectClass = 'min-h-11 min-w-0 max-w-full w-full rounded-xl border border-slate-300 bg-white px-3 text-sm';
   function insert(field: CustomNoteField) {
     const same = fields.find(item => JSON.stringify({...item, label: ''}) === JSON.stringify({...field, label: ''}));
