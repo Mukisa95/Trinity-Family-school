@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Cropper, { type Area, type Point } from "react-easy-crop";
+import Cropper, { type Area, type Point, type Size } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Check, X, ScanFace, ArrowLeft } from "lucide-react";
@@ -30,6 +30,8 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
   const [settings, setSettings] = useState({ ...DEFAULT_PHOTO_SETTINGS });
   const [area, setArea] = useState<Area | null>(null);
   const [stage, setStage] = useState<"crop" | "review">("crop");
+  const [cropSize, setCropSize] = useState<Size>();
+  const [interacting, setInteracting] = useState(false);
   const [face, setFace] = useState<PhotoFace>();
   const [suggested, setSuggested] = useState<Area>();
   const [initialArea, setInitialArea] = useState<Area>();
@@ -70,7 +72,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
       const framing = { ...suggestFaceCrop(sourceFace, image.naturalWidth, image.naturalHeight) } as Area;
       setSuggested(framing);
       if (!userPositioned.current) { setInitialArea(framing); setRevision(value => value + 1); }
-      setFaceStatus(sourceFace.height < 160 ? "The face has little source detail. A closer retake may be clearer." : "Face framing ready. Adjust the crop if needed.");
+      setFaceStatus(sourceFace.height < 160 ? "The face has little source detail. A closer retake may be clearer." : "Head framing ready. Check that all hair and the crown fit inside the circle.");
     })().catch(() => { if (active) setFaceStatus("Automatic framing is unavailable. You can still crop and enhance this photo."); });
     return () => { active = false; generation.current++; client.dispose(); tools.current = null; };
   }, [imageSrc]);
@@ -127,10 +129,27 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
             <Cropper key={revision} image={imageSrc} crop={crop} zoom={zoom} aspect={1} cropShape="round"
               showGrid objectFit="contain" minZoom={1} maxZoom={8} restrictPosition
               initialCroppedAreaPixels={initialArea} onCropChange={onCropChange} onZoomChange={onZoomChange}
+              onCropSizeChange={setCropSize}
+              onInteractionStart={() => setInteracting(true)} onInteractionEnd={() => setInteracting(false)}
+              onCropAreaChange={(_percentages, pixels) => {
+                setArea(previous => previous && previous.x === pixels.x && previous.y === pixels.y && previous.width === pixels.width && previous.height === pixels.height ? previous : pixels);
+              }}
               onCropComplete={(percentages, pixels) => {
                 onCropComplete(percentages, pixels);
                 setArea(previous => previous && previous.x === pixels.x && previous.y === pixels.y && previous.width === pixels.width && previous.height === pixels.height ? previous : pixels);
               }} />
+            {/* Keep the original image and its coordinates for dragging. Display
+                the exact processed JPEG over the settled crop for live feedback. */}
+            {preview && cropSize && !interacting && <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
+              style={{ width: cropSize.width, height: cropSize.height }}>
+              <img src={showOriginal ? preview.original : preview.photo} alt={showOriginal ? "Original crop preview" : "Enhanced crop preview"} className="h-full w-full" />
+              <div aria-hidden="true" className="absolute inset-0 grid grid-cols-3 grid-rows-3 border border-white/50">
+                {Array.from({ length: 9 }, (_, index) => <span key={index} className="border border-white/20" />)}
+              </div>
+            </div>}
+            <span role="status" className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-950/90 px-3 py-1 text-xs">
+              {interacting ? "Adjusting crop…" : !preview ? "Preparing preview…" : showOriginal ? "Original crop" : "Enhanced preview"}
+            </span>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center p-4" aria-busy={isPreparing}>
@@ -150,15 +169,16 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
                 onChange={event => { userPositioned.current = true; onZoomChange(Number(event.target.value)); }} className="h-11 min-w-0 flex-1 accent-blue-400" />
               <Button type="button" variant="outline" className={secondary} disabled={!suggested || isProcessing}
                 onClick={() => { userPositioned.current = true; setInitialArea(suggested); setRevision(value => value + 1); }}>
-                <ScanFace className="h-4 w-4" /><span>Centre face</span>
+                <ScanFace className="h-4 w-4" /><span>Frame head</span>
               </Button>
             </div>
             <p role="status" className="text-xs leading-relaxed text-slate-300">{faceStatus}</p>
-          </> : <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" className={secondary} disabled={isProcessing} onClick={() => { setInitialArea(area ?? undefined); setStage("crop"); }}><ArrowLeft className="h-4 w-4" />Adjust crop</Button>
+          </> : null}
+          <div className="flex flex-wrap gap-2">
+            {stage === "review" && <Button type="button" variant="outline" className={secondary} disabled={isProcessing} onClick={() => { setInitialArea(area ?? undefined); setStage("crop"); }}><ArrowLeft className="h-4 w-4" />Adjust crop</Button>}
             <Button type="button" variant="outline" className={secondary} aria-pressed={showOriginal} disabled={!preview || isProcessing}
-              onClick={() => setShowOriginal(value => !value)}>{showOriginal ? "Show finished" : "Compare original"}</Button>
-          </div>}
+              onClick={() => setShowOriginal(value => !value)}>{showOriginal ? "Show enhanced" : "Compare original"}</Button>
+          </div>
           <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
             <input type="checkbox" checked={settings.auto} disabled={isProcessing} onChange={event => { setShowOriginal(false); setSettings(value => ({ ...value, auto: event.target.checked })); }} className="h-5 w-5 accent-blue-400" />
             Auto enhance <span className="text-xs text-slate-300">Light, colour and gentle smoothing</span>

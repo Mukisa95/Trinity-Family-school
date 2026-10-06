@@ -53,12 +53,18 @@ test('source quality warnings distinguish dark, clipped and a soft tonal gradien
   assert.ok(photoQualityWarnings(analysePhoto(image(64, 64, x => [50 + x * 2, 50 + x * 2, 50 + x * 2]), 64, 64)).some(w => w.code === 'soft'));
   assert.ok(!photoQualityWarnings(analysePhoto(image(64, 64, () => [150, 150, 150]), 64, 64)).some(w => w.code === 'soft'));
 });
-test('face framing uses face proportions across different distances and heights', () => {
+test('head framing keeps the estimated crown and head sides inside the circular avatar at different distances', () => {
   for (const scale of [1, 1.8, 2.4]) {
     const face = { x: 900, y: 700, width: 300 * scale, height: 360 * scale, eyesY: 700 + 130 * scale };
     const crop = suggestFaceCrop(face, 4000, 3000);
-    assert.ok(Math.abs((face.eyesY - crop.y) / crop.height - 0.4) < 0.001);
-    assert.ok(Math.abs(face.height / crop.height - 0.55) < 0.001);
+    // Face boxes can start below the crown. Test a full head outline extending
+    // above and beside the detected face, rather than only the face rectangle.
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 50) {
+      const x = face.x + face.width / 2 + Math.cos(angle) * face.width * 0.7;
+      const y = face.y + face.height * 0.25 + Math.sin(angle) * face.height * 0.8;
+      const distance = Math.hypot(x - crop.x - crop.width / 2, y - crop.y - crop.height / 2);
+      assert.ok(distance < crop.width / 2, 'The head outline must fit inside the circle');
+    }
     assert.ok(crop.width >= 500 && crop.x >= 0 && crop.y >= 0);
   }
 });

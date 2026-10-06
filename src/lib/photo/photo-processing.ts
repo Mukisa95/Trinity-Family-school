@@ -8,10 +8,12 @@ const clamp = (value: number, min = 0, max = 255) => Math.max(min, Math.min(max,
 const luminance = (r: number, g: number, b: number) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
 export function suggestFaceCrop(face: PhotoFace, width: number, height: number): PhotoRegion {
-  const size = Math.min(width, height, Math.max(500, face.height / 0.55, face.width / 0.5));
+  // Face detectors can exclude hair and the crown. Reserve room for the whole
+  // head, including the narrower space near the top of a circular avatar.
+  const size = Math.min(width, height, Math.max(500, face.height / 0.43, face.width / 0.4));
   const eyeY = face.eyesY ?? face.y + face.height * 0.36;
   return { x: clamp(face.x + face.width / 2 - size / 2, 0, width - size),
-    y: clamp(eyeY - size * 0.4, 0, height - size), width: size, height: size };
+    y: clamp(eyeY - size * 0.46, 0, height - size), width: size, height: size };
 }
 
 export function analysePhoto(pixels: Uint8ClampedArray, width: number, height: number, region?: PhotoRegion) {
