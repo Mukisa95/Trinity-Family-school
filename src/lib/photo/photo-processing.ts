@@ -1,19 +1,64 @@
 /** Pure, bounded photo corrections. No network, face recognition, or generated detail. */
-export interface PhotoSettings { auto: boolean; brightness: number; warmth: number }
-export const DEFAULT_PHOTO_SETTINGS: PhotoSettings = { auto: true, brightness: 0, warmth: 0 };
+export interface PhotoSettings { auto: boolean; brightness: number; warmth: number; removeBackground?: boolean }
+export const DEFAULT_PHOTO_SETTINGS: PhotoSettings = { auto: true, brightness: 0, warmth: 0, removeBackground: false };
 export interface PhotoRegion { x: number; y: number; width: number; height: number }
 export interface PhotoFace extends PhotoRegion { eyesY?: number }
 export interface PhotoWarning { code: string; message: string }
+export interface PersonMask { width: number; height: number; confidence: Float32Array }
 const clamp = (value: number, min = 0, max = 255) => Math.max(min, Math.min(max, value));
 const luminance = (r: number, g: number, b: number) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-export function suggestFaceCrop(face: PhotoFace, width: number, height: number): PhotoRegion {
-  // Face detectors can exclude hair and the crown. Reserve room for the whole
-  // head, including the narrower space near the top of a circular avatar.
-  const size = Math.min(width, height, Math.max(500, face.height / 0.43, face.width / 0.4));
-  const eyeY = face.eyesY ?? face.y + face.height * 0.36;
+export function suggestFaceCrop(face: PhotoFace, width: number, height: number, headTop?: number): PhotoRegion {
+  // Place the crown near the top and chin at about 81% of the square. This
+  // preserves the full head while limiting the body to the upper shoulders.
+  const crown = clamp(headTop ?? face.y - face.height * 0.25, 0, face.y);
+  const headHeight = face.y + face.height - crown;
+  const size = Math.min(width, height, Math.max(500, headHeight / 0.72, face.width / 0.56));
   return { x: clamp(face.x + face.width / 2 - size / 2, 0, width - size),
-    y: clamp(eyeY - size * 0.46, 0, height - size), width: size, height: size };
+    y: clamp(crown - size * 0.09, 0, height - size), width: size, height: size };
+}
+
+/** Estimate the crown from the person silhouette above a single detected face. */
+export function findHeadTop(mask: PersonMask, face: PhotoFace, width: number, height: number): number | undefined {
+  const sx = mask.width / width, sy = mask.height / height;
+  const x0 = Math.max(0, Math.floor((face.x - face.width * 0.15) * sx));
+  const x1 = Math.min(mask.width, Math.ceil((face.x + face.width * 1.15) * sx));
+  const y0 = Math.max(0, Math.floor((face.y - face.height * 0.75) * sy));
+  const y1 = Math.min(mask.height, Math.ceil((face.eyesY ?? face.y + face.height * 0.36) * sy));
+  const minimum = Math.max(2, Math.ceil(face.width * sx * 0.12));
+  for (let y = y0; y < y1 - 1; y++) {
+    let count = 0, nextCount = 0;
+    for (let x = x0; x < x1; x++) {
+      if (mask.confidence[y * mask.width + x] > 0.8) count++;
+      if (mask.confidence[(y + 1) * mask.width + x] > 0.8) nextCount++;
+    }
+    if (count >= minimum && nextCount >= minimum) return Math.min(face.y, y / sy);
+  }
+  return undefined;
+}
+
+/** Replace only the background, feathering the silhouette into an opaque white JPEG. */
+export function applyWhiteBackground(pixels: Uint8ClampedArray, width: number, height: number, mask: PersonMask) {
+  if (pixels.length !== width * height * 4 || mask.width < 1 || mask.height < 1 || mask.confidence.length !== mask.width * mask.height) {
+    throw new Error('Invalid background mask.');
+  }
+  const output = new Uint8ClampedArray(pixels);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const mx = clamp((x + 0.5) * mask.width / width - 0.5, 0, mask.width - 1);
+    const my = clamp((y + 0.5) * mask.height / height - 0.5, 0, mask.height - 1);
+    const x0 = Math.floor(mx), y0 = Math.floor(my), x1 = Math.min(x0 + 1, mask.width - 1), y1 = Math.min(y0 + 1, mask.height - 1);
+    const tx = mx - x0, ty = my - y0;
+    const top = mask.confidence[y0 * mask.width + x0] * (1 - tx) + mask.confidence[y0 * mask.width + x1] * tx;
+    const bottom = mask.confidence[y1 * mask.width + x0] * (1 - tx) + mask.confidence[y1 * mask.width + x1] * tx;
+    const confidence = top * (1 - ty) + bottom * ty;
+    if (!Number.isFinite(confidence)) throw new Error('Invalid background confidence.');
+    const t = clamp((confidence - 0.2) / 0.6, 0, 1);
+    const alpha = t * t * (3 - 2 * t);
+    const i = (y * width + x) * 4;
+    for (let channel = 0; channel < 3; channel++) output[i + channel] = pixels[i + channel] * alpha + 255 * (1 - alpha);
+    output[i + 3] = 255;
+  }
+  return output;
 }
 
 export function analysePhoto(pixels: Uint8ClampedArray, width: number, height: number, region?: PhotoRegion) {

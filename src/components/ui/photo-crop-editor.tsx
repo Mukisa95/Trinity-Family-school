@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Check, X, ScanFace, ArrowLeft } from "lucide-react";
 import { createEnhancedPupilPhoto, createImage } from "./photo-editor-utils";
 import { PhotoToolsClient } from "@/lib/photo/photo-tools-client";
-import { DEFAULT_PHOTO_SETTINGS, suggestFaceCrop, type PhotoFace } from "@/lib/photo/photo-processing";
+import { DEFAULT_PHOTO_SETTINGS, findHeadTop, suggestFaceCrop, type PhotoFace } from "@/lib/photo/photo-processing";
 
 interface PhotoCropEditorProps {
   imageSrc: string;
@@ -69,7 +69,16 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
       const sourceFace = { x: detected.x / scale, y: detected.y / scale, width: detected.width / scale,
         height: detected.height / scale, eyesY: detected.eyesY === undefined ? undefined : detected.eyesY / scale };
       setFace(sourceFace);
-      const framing = { ...suggestFaceCrop(sourceFace, image.naturalWidth, image.naturalHeight) } as Area;
+      // The silhouette can locate the crown more accurately than face bounds.
+      // A missing model leaves the face-based passport crop available.
+      let headTop: number | undefined;
+      try {
+        const mask = await client.segment(canvas);
+        const top = findHeadTop(mask, detected, canvas.width, canvas.height);
+        if (top !== undefined) headTop = top / scale;
+      } catch { /* Manual framing and normal enhancements remain available. */ }
+      if (!active) return;
+      const framing = { ...suggestFaceCrop(sourceFace, image.naturalWidth, image.naturalHeight, headTop) } as Area;
       setSuggested(framing);
       if (!userPositioned.current) { setInitialArea(framing); setRevision(value => value + 1); }
       setFaceStatus(sourceFace.height < 160 ? "The face has little source detail. A closer retake may be clearer." : "Head framing ready. Check that all hair and the crown fit inside the circle.");
@@ -114,7 +123,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold sm:text-2xl">{title}</h2>
-            <p className="mt-1 text-sm text-slate-300">{stage === "crop" ? "Frame the whole head and some shoulders." : "Check the finished JPEG before saving."}</p>
+            <p className="mt-1 text-sm text-slate-300">{stage === "crop" ? "Passport-style crop: full head and upper shoulders." : "Check the finished JPEG before saving."}</p>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={onCancel} disabled={isProcessing}
             className="h-11 w-11 shrink-0 text-white hover:bg-white/10 hover:text-white" aria-label="Close photo editor">
@@ -148,7 +157,7 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
               </div>
             </div>}
             <span role="status" className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-950/90 px-3 py-1 text-xs">
-              {interacting ? "Adjusting crop…" : !preview ? "Preparing preview…" : showOriginal ? "Original crop" : "Enhanced preview"}
+              {interacting ? "Adjusting crop…" : error ? "Preview unavailable" : !preview ? "Preparing preview…" : showOriginal ? "Original crop" : "Enhanced preview"}
             </span>
           </div>
         ) : (
@@ -183,6 +192,12 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
             <input type="checkbox" checked={settings.auto} disabled={isProcessing} onChange={event => { setShowOriginal(false); setSettings(value => ({ ...value, auto: event.target.checked })); }} className="h-5 w-5 accent-blue-400" />
             Auto enhance <span className="text-xs text-slate-300">Light, colour and gentle smoothing</span>
           </label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+            <input type="checkbox" checked={!!settings.removeBackground} disabled={isProcessing}
+              onChange={event => { setShowOriginal(false); setSettings(value => ({ ...value, removeBackground: event.target.checked })); }} className="h-5 w-5 accent-blue-400" />
+            Remove background <span className="text-xs text-slate-300">White</span>
+          </label>
+          {settings.removeBackground && <p className="text-xs text-slate-300">Check the hair edges. Turn this off to keep the original background.</p>}
           <details className="rounded-lg border border-white/10 px-3">
             <summary className="flex min-h-11 cursor-pointer items-center text-sm">Photo adjustments</summary>
             <div className="grid gap-2 pb-2 sm:grid-cols-2">
@@ -193,9 +208,17 @@ export function PhotoCropEditor({ imageSrc, title, crop, zoom, isProcessing = fa
               </label>)}
             </div>
           </details>
-          {preview?.warnings.length ? <ul className="space-y-1 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-amber-100" aria-label="Photo quality suggestions">
-            {preview.warnings.map(warning => <li key={warning.code}>{warning.message}</li>)}
-          </ul> : null}
+          <details className="rounded-lg border border-white/10 px-3">
+            <summary className="flex min-h-11 cursor-pointer items-center text-sm">Photo quality{prepared?.warnings.length ? ` · ${prepared.warnings.length} ${prepared.warnings.length === 1 ? "suggestion" : "suggestions"}` : ""}</summary>
+            {/* Keep this panel's height stable as warnings arrive. Changing the
+                cropper height during processing would otherwise change its crop
+                and continuously restart preview generation on some portraits. */}
+            <div className="h-24 overflow-y-auto pb-2">
+              {preview?.warnings.length ? <ul className="space-y-1 text-sm text-amber-100" aria-label="Photo quality suggestions">
+                {preview.warnings.map(warning => <li key={warning.code}>{warning.message}</li>)}
+              </ul> : <p className="text-xs text-slate-300">{busy ? "Checking photo quality…" : "No major quality issues detected. Check the eyes and hair edges before saving."}</p>}
+            </div>
+          </details>
           {error && <div role="alert" className="text-sm text-red-200">{error} <Button type="button" variant="ghost" className="min-h-11 text-white" onClick={() => setRetry(value => value + 1)}>Try again</Button></div>}
         </div>
       </div>

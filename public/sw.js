@@ -585,7 +585,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  if (url.origin === self.location.origin && url.pathname.startsWith('/photo-tools/v1/')) {
+  if (url.origin === self.location.origin && /^\/photo-tools\/v[12]\//.test(url.pathname)) {
     event.respondWith(caches.open(PHOTO_TOOLS_CACHE).then(async cache => {
       const cached = await cache.match(event.request);
       if (cached) return cached;

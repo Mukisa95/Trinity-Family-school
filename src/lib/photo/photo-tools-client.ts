@@ -1,11 +1,24 @@
-import { enhancePhoto, type PhotoFace, type PhotoRegion, type PhotoSettings } from './photo-processing';
+import { enhancePhoto, type PersonMask, type PhotoFace, type PhotoRegion, type PhotoSettings } from './photo-processing';
 
 export const PHOTO_TOOL_ASSETS = [
-  '/photo-tools/v1/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
+  '/photo-tools/v2/photo-worker.js', '/photo-tools/v1/vision.js', '/photo-tools/v1/face-detector.tflite',
   '/photo-tools/v1/wasm/vision_wasm_nosimd_internal.js', '/photo-tools/v1/wasm/vision_wasm_nosimd_internal.wasm',
 ];
 export const PHOTO_TOOLS_CACHE = 'trinity-photo-tools-v1';
+export const PHOTO_BACKGROUND_MODEL = '/photo-tools/v2/selfie-segmenter.tflite';
 let preparation: Promise<void> | undefined;
+let backgroundPreparation: Promise<void> | undefined;
+async function cacheAsset(path: string) {
+  const cache = await caches.open(PHOTO_TOOLS_CACHE);
+  if (await cache.match(path)) return;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(path, { signal: controller.signal });
+    if (!response.ok) throw new Error('Unable to download portrait tools. Connect once and try again.');
+    await cache.put(path, response);
+  } finally { clearTimeout(timer); }
+}
 // Reuse an idle detector between consecutive pupils; release its memory after two minutes.
 let idleWorker: Worker | undefined;
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -13,19 +26,16 @@ let idleTimer: ReturnType<typeof setTimeout> | undefined;
 export function preparePhotoTools(): Promise<void> {
   if (!preparation) preparation = (async () => {
     if (!('caches' in globalThis)) return;
-    const cache = await caches.open(PHOTO_TOOLS_CACHE);
-    await Promise.all(PHOTO_TOOL_ASSETS.map(async path => {
-      if (await cache.match(path)) return;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
-      try {
-        const response = await fetch(path, { signal: controller.signal });
-        if (!response.ok) throw new Error('Unable to download portrait tools.');
-        await cache.put(path, response);
-      } finally { clearTimeout(timer); }
-    }));
+    await Promise.all(PHOTO_TOOL_ASSETS.map(cacheAsset));
   })().catch(error => { preparation = undefined; throw error; });
   return preparation;
+}
+export async function prepareBackgroundTools(): Promise<void> {
+  await preparePhotoTools();
+  if (!backgroundPreparation) backgroundPreparation = (async () => {
+    if ('caches' in globalThis) await cacheAsset(PHOTO_BACKGROUND_MODEL);
+  })().catch(error => { backgroundPreparation = undefined; throw error; });
+  return backgroundPreparation;
 }
 
 export class PhotoToolsClient {
@@ -33,11 +43,12 @@ export class PhotoToolsClient {
   private sequence = 0;
   private pending = new Map<number, { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
   private disposed = false;
+  private lastMask?: { source: string; area: PhotoRegion; result: Promise<PersonMask> };
   private request<T>(type: string, payload: object, transfer: Transferable[] = [], timeout = 15000): Promise<T> {
     if (this.disposed) return Promise.reject(new Error('Photo editor closed.'));
     if (!this.worker) {
       clearTimeout(idleTimer);
-      this.worker = idleWorker ?? new Worker('/photo-tools/v1/photo-worker.js');
+      this.worker = idleWorker ?? new Worker('/photo-tools/v2/photo-worker.js');
       idleWorker = undefined;
       this.worker.onmessage = event => {
         const item = this.pending.get(event.data.id);
@@ -61,6 +72,22 @@ export class PhotoToolsClient {
     const bitmap = await createImageBitmap(canvas);
     try { return await this.request<PhotoFace[]>('detect', { bitmap }, [bitmap], 25000); }
     catch (error) { bitmap.close(); throw error; }
+  }
+  segment(canvas: HTMLCanvasElement, key?: { source: string; area: PhotoRegion }): Promise<PersonMask> {
+    const last = this.lastMask;
+    if (key && last && last.source === key.source && (['x', 'y', 'width', 'height'] as const).every(field => last.area[field] === key.area[field])) return last.result;
+    const result = (async () => {
+      await prepareBackgroundTools();
+      if (this.disposed) throw new Error('Photo editor closed.');
+      const bitmap = await createImageBitmap(canvas);
+      try { return await this.request<PersonMask>('segment', { bitmap }, [bitmap], 25000); }
+      catch (error) { bitmap.close(); throw error; }
+    })();
+    if (key) {
+      this.lastMask = { ...key, result };
+      void result.catch(() => { if (this.lastMask?.result === result) this.lastMask = undefined; });
+    }
+    return result;
   }
   async enhance(pixels: Uint8ClampedArray, width: number, height: number, settings: PhotoSettings, region?: PhotoRegion): Promise<ReturnType<typeof enhancePhoto>> {
     if (typeof Worker === 'undefined') {
