@@ -105,7 +105,9 @@ export function AndroidOfflineProvider() {
   }, [client, session, user?.id, isLocked]);
 
   useEffect(() => {
-    if (!session || isLocked) return;
+    // HTML and immutable assets contain no private records; prepare them even
+    // while the existing session privacy screen is locked.
+    if (!session) return;
     let disposed = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     const prepare = async () => {
