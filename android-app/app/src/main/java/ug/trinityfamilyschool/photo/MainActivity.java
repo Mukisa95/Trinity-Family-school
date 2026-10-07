@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 public final class MainActivity extends Activity {
     private static final int CAMERA_RESULT = 40, FILE_RESULT = 41;
     private WebView web;
+    private OfflineController offline;
     private File exchange;
     private ValueCallback<Uri[]> fileCallback;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -65,8 +66,13 @@ public final class MainActivity extends Activity {
         // Older exchanges are private cache files, never a permanent pupil store.
         File[] old = exchange.listFiles();
         if (old != null) for (File file : old) if (System.currentTimeMillis() - file.lastModified() > 86_400_000L) file.delete();
-        web = new WebView(this); setContentView(web);
-        web.setOnApplyWindowInsetsListener((view, insets) -> {
+        android.widget.LinearLayout frame = new android.widget.LinearLayout(this);
+        frame.setOrientation(android.widget.LinearLayout.VERTICAL);
+        web = new WebView(this);
+        frame.addView(web, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
+        setContentView(frame);
+        offline = new OfflineController(this, web);
+        frame.setOnApplyWindowInsetsListener((view, insets) -> {
             if (android.os.Build.VERSION.SDK_INT >= 30) {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
                 view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
@@ -78,9 +84,14 @@ public final class MainActivity extends Activity {
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                if (OfflinePolicy.local(url)) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+                else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (!request.isForMainFrame()) return false;
                 String url = request.getUrl().toString();
+                if (OfflinePolicy.local(url)) return false;
                 if (PhotoPolicy.trusted(url)) return false;
                 // Outside sites open outside the privileged WebView.
                 if ("https".equals(request.getUrl().getScheme())) {
@@ -88,7 +99,16 @@ public final class MainActivity extends Activity {
                 }
                 return true;
             }
-            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) { return photoResponse(request); }
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                WebResourceResponse saved = offline.intercept(request);
+                return saved != null ? saved : photoResponse(request);
+            }
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                if (request.isForMainFrame() && PhotoPolicy.trusted(request.getUrl().toString())) offline.showSaved(request.getUrl().toString());
+            }
+            @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
+                if (request.isForMainFrame() && response.getStatusCode() >= 500 && PhotoPolicy.trusted(request.getUrl().toString())) offline.showSaved(request.getUrl().toString());
+            }
         });
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
             ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
@@ -123,7 +143,7 @@ public final class MainActivity extends Activity {
         }
         // A restored camera activity cannot associate its photo with a new pupil.
         // Reloading deliberately discards the old pending request instead.
-        web.loadUrl(PhotoPolicy.ORIGIN);
+        offline.start();
     }
 
     private Map<String, ResolveInfo> cameras() {
@@ -175,6 +195,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == OfflineController.UNLOCK_REQUEST) { offline.result(result); return; }
         if (request == FILE_RESULT && fileCallback != null) {
             fileCallback.onReceiveValue(PhotoPolicy.trusted(web.getUrl()) ? WebChromeClient.FileChooserParams.parseResult(result, data) : null);
             fileCallback = null;
@@ -273,7 +294,14 @@ public final class MainActivity extends Activity {
         } catch (Exception ignored) { /* The original document may have closed. */ }
     }
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        if (request == 73) new Thread(() -> TimetableUpdates.refresh(this, new OfflineStore(this))).start();
+    }
+    @Override protected void onPause() { if (offline != null) offline.pause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); if (offline != null) offline.resume(); }
     @Override protected void onDestroy() {
+        if (offline != null) offline.destroy();
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         clearCapture(true); io.shutdownNow();
         for (File file : available.values()) file.delete(); available.clear(); expires.clear();

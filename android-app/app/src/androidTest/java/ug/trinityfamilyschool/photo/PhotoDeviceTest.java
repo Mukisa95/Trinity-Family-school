@@ -50,6 +50,16 @@ public class PhotoDeviceTest {
                     + "TrinityPhoto.postMessage(JSON.stringify({id:'00000000-0000-0000-0000-000000000001',action:'cameras'}));}"
                     + "</script></body></html>";
                 WebViewClient original = web.getWebViewClient();
+                // Existing school service workers may own this URL before WebViewClient sees it.
+                // Intercept only the fixture URL in both paths; leave real app/photo requests alone.
+                if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
+                    androidx.webkit.ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new androidx.webkit.ServiceWorkerClientCompat() {
+                        @Override public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                            if (request.getUrl().toString().equals(origin + "/__device_photo_test")) return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+                            return original.shouldInterceptRequest(web, request);
+                        }
+                    });
+                }
                 web.setWebViewClient(new WebViewClient() {
                     @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                         if (request.getUrl().toString().equals(origin + "/__device_photo_test")) return new WebResourceResponse("text/html", "UTF-8", new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));

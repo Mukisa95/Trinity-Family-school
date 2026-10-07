@@ -1,0 +1,8 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingBottom="8dp">
+ <TextView android:id="@+id/class_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#BFDBFE" android:textSize="12sp" android:textStyle="bold" />
+ <TextView android:id="@+id/current_lesson" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" />
+ <TextView android:id="@+id/lesson_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#E2E8F0" android:textSize="11sp" />
+ <ProgressBar android:id="@+id/lesson_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="6dp" android:progressTint="#60A5FA" android:progressBackgroundTint="#334155" android:max="100" android:visibility="gone" />
+ <TextView android:id="@+id/lesson_agenda" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="#FFFFFF" android:textSize="12sp" />
+ <TextView android:id="@+id/next_lesson" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#BFDBFE" android:textSize="11sp" />
+</LinearLayout>
