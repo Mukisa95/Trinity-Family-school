@@ -8,6 +8,7 @@ import { getAcademicYearCacheScope, readAcademicYearCache } from '@/lib/cache/ac
 import { getStaffCacheScope, readStaffCache } from '@/lib/cache/staff-cache';
 import { getSubjectCacheScope, readSubjectCache } from '@/lib/cache/subject-cache';
 import { liteRead, liteReadMetadata } from '@/lib/cache/lite-cache';
+import { projectOfflinePhotos } from './android-photo-projection';
 
 type Cache<T> = { schema: number; revision: number; data: T };
 const fields = (value: object, names: string[]) => Object.fromEntries(names.filter(name => name in value).map(name => [name, (value as Record<string, unknown>)[name]]));
@@ -20,6 +21,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     const bundle = await readParentOfflineBundle(session.accountId);
     if (!bundle) return null;
     bundle.family.pupils = bundle.family.pupils.filter(pupil => session.pupilIds.includes(pupil.id));
+    await projectOfflinePhotos(session.accountId, bundle.family.pupils as unknown as Record<string, unknown>[]);
     const ids = new Set(bundle.family.pupils.map(pupil => pupil.id));
     bundle.fees = bundle.fees.filter(record => ids.has(record.pupilId));
     bundle.banking = bundle.banking.filter(record => ids.has(record.pupilId));
@@ -39,7 +41,7 @@ export async function exportAndroidCachedSnapshot(session: AndroidOfflineSession
     return { data, revision, preparedAt: key ? new Date(liteReadMetadata(key)?.writtenAt || 0).toISOString() : capturedAt };
   }
   if (session.grants.pupils && pupils && Array.isArray(pupils.data)) result.datasets.pupils = {
-    data: pupils.data.map(pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session)),
+    data: await projectOfflinePhotos(session.accountId, pupils.data.map(pupil => projectOfflinePupil(pupil as unknown as Record<string, unknown>, session))),
     preparedAt: new Date(pupils.writtenAt).toISOString(),
   };
   if (session.grants.pupils || session.grants.timetable || session.grants.dashboard) {

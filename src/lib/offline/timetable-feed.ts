@@ -22,9 +22,10 @@ export function activeTimetableFeed(snapshot: AndroidOfflineSnapshot, timeZone: 
   return (snapshot.datasets.timetables?.data || []).filter(table => table.profile.academicYearId === year?.id && table.profile.termId === term?.id).map(table => {
     const periods = table.periods.filter(period => period.dayOfWeek === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
     const active = periods.find(period => time >= period.startTime && time < period.endTime);
-    const shown = active || periods.find(period => period.startTime > time);
+    const shown = active || periods.find(period => period.startTime > time) || periods.at(-1);
+    const ended = Boolean(shown && time >= shown.endTime);
     const inTerm = Boolean(term?.startDate && term?.endDate && `${parts.year}-${parts.month}-${parts.day}` >= term.startDate.slice(0, 10) && `${parts.year}-${parts.month}-${parts.day}` <= term.endDate.slice(0, 10));
-    const title = !table.complete ? 'Timetable loading' : !inTerm ? 'Outside this school term' : !shown ? 'No more periods today' : shown.type === 'lesson' ? `Lesson ${shown.periodNumber}${active ? '' : ' · upcoming'}` : shown.customLabel || shown.type;
+    const title = !table.complete ? 'Timetable loading' : !inTerm ? 'Outside this school term' : !shown ? 'No more periods today' : shown.type === 'lesson' ? `Lesson ${shown.periodNumber}${active ? '' : ended ? ' · ended' : ' · upcoming'}` : shown.customLabel || shown.type;
     const rows: { className: string; subject: string }[] = [];
     if (table.complete && inTerm && shown?.type === 'lesson') for (const classId of table.profile.classIds) {
       const schoolClass = classes.find(value => value.id === classId);
@@ -42,6 +43,6 @@ export function activeTimetableFeed(snapshot: AndroidOfflineSnapshot, timeZone: 
       }
     }
     const end = shown ? mins(shown.endTime) * 60 : 0, start = shown ? mins(shown.startTime) * 60 : 0;
-    return { id: table.profile.id, name: table.profile.name, title, rows, active: Boolean(active && inTerm), time: shown && inTerm ? `${shown.startTime} – ${shown.endTime}` : '', remaining: Math.max(0, Math.ceil((end - seconds) / 60)), progress: active && inTerm ? Math.max(0, Math.min(100, (seconds - start) * 100 / Math.max(1, end - start))) : 0 };
+    return { id: table.profile.id, name: table.profile.name, title, rows, active: Boolean(active && inTerm), time: shown && inTerm ? `${shown.startTime} – ${shown.endTime}` : '', remaining: Math.max(0, Math.ceil((end - seconds) / 60)), progress: inTerm && shown ? Math.max(0, Math.min(100, (seconds - start) * 100 / Math.max(1, end - start))) : 0 };
   });
 }
