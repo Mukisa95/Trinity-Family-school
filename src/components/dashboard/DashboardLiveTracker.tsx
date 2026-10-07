@@ -9,6 +9,7 @@ import { useStaff } from "@/lib/hooks/use-staff";
 import { ChevronLeft, ChevronRight, BookOpen, Clock, User, X } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { getTimetableStreamInitial } from "@/lib/utils/timetable-streams";
 
 function parseTimeToMins(t: string): number {
     const [h, m] = (t || "00:00").split(":").map(Number);
@@ -197,6 +198,10 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
         const teacherObj = staff.find(t => t.id === e.teacherId);
         let classCode = cls?.code || cls?.name || "Cls";
         classCode = classCode.replace(/Senior\s+/i, "S").replace(/Primary\s+/i, "P");
+        const configuredStream = cls?.streams?.find(stream => stream.id === e.streamId);
+        const streamInitial = getTimetableStreamInitial(e, cls);
+        const streamName = e.streamName || configuredStream?.name || streamInitial;
+        if (streamInitial) classCode = `${classCode} ${streamInitial}`;
         const subjectCode = sub?.code || sub?.name || e.activityName || "—";
         const teacherName = teacherObj
             ? [teacherObj.firstName, teacherObj.lastName].filter(Boolean).join(" ")
@@ -205,7 +210,9 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
         return {
             id: e.id,
             classCode,
-            className: cls?.name || classCode,
+            className: streamInitial
+                ? `${cls?.name || classCode} · ${streamName}`
+                : cls?.name || classCode,
             subjectCode,
             subjectName: sub?.name || e.activityName || "—",
             teacher: teacherName,

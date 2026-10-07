@@ -9,7 +9,8 @@ import {
     orderBy,
     where,
     Timestamp,
-    writeBatch
+    writeBatch,
+    deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { TimetableProfile, GeneratedPeriod, TimetableEntry, ClassStream } from '@/types';
@@ -473,7 +474,27 @@ export class TimetableService {
                     docRef = doc(entriesRef, entry.id);
                     delete entryData.id;
                     // Clean before sending
-                    batch.update(docRef, this.cleanUndefinedValues(entryData));
+                    const cleanedEntryData = this.cleanUndefinedValues(entryData);
+                    const shouldClearAlternatives = entry.entryType === 'activity';
+                    if (
+                        shouldClearAlternatives
+                        || (Object.prototype.hasOwnProperty.call(entry, 'optionalSubjectId') && entry.optionalSubjectId == null)
+                    ) {
+                        cleanedEntryData.optionalSubjectId = deleteField();
+                    }
+                    if (
+                        shouldClearAlternatives
+                        || (Object.prototype.hasOwnProperty.call(entry, 'optionalTeacherId') && entry.optionalTeacherId == null)
+                    ) {
+                        cleanedEntryData.optionalTeacherId = deleteField();
+                    }
+                    if (
+                        shouldClearAlternatives
+                        || (Object.prototype.hasOwnProperty.call(entry, 'coOptionalTeacherId') && entry.coOptionalTeacherId == null)
+                    ) {
+                        cleanedEntryData.coOptionalTeacherId = deleteField();
+                    }
+                    batch.update(docRef, cleanedEntryData);
                 } else {
                     docRef = doc(entriesRef);
                     entryData.createdAt = Timestamp.now() as any;
@@ -485,6 +506,46 @@ export class TimetableService {
             await batch.commit();
         } catch (error) {
             console.error('Error saving timetable entries batch:', error);
+            throw error;
+        }
+    }
+
+    /** Remove every optional/alternative subject assignment from one timetable. */
+    static async clearOptionalSubjects(
+        yearId: string,
+        termId: string,
+        timetableId: string,
+    ): Promise<number> {
+        try {
+            const entries = await this.getEntries(yearId, termId, timetableId);
+            const entriesWithAlternatives = entries.filter(entry => (
+                Object.prototype.hasOwnProperty.call(entry, 'optionalSubjectId')
+                || Object.prototype.hasOwnProperty.call(entry, 'optionalTeacherId')
+                || Object.prototype.hasOwnProperty.call(entry, 'coOptionalTeacherId')
+            ));
+            if (entriesWithAlternatives.length === 0) return 0;
+
+            const entriesRef = collection(db, getEntriesCollectionPath(yearId, termId, timetableId));
+            const maxUpdatesPerBatch = 499;
+            for (let offset = 0; offset < entriesWithAlternatives.length; offset += maxUpdatesPerBatch) {
+                const chunk = entriesWithAlternatives.slice(offset, offset + maxUpdatesPerBatch);
+                const isFinalChunk = offset + maxUpdatesPerBatch >= entriesWithAlternatives.length;
+                const batch = writeBatch(db);
+                chunk.forEach(entry => {
+                    batch.update(doc(entriesRef, entry.id), {
+                        optionalSubjectId: deleteField(),
+                        optionalTeacherId: deleteField(),
+                        coOptionalTeacherId: deleteField(),
+                        updatedAt: Timestamp.now(),
+                    });
+                });
+                if (isFinalChunk) bumpTimetableRevisionInBatch(batch, yearId, termId);
+                await batch.commit();
+            }
+
+            return entriesWithAlternatives.length;
+        } catch (error) {
+            console.error('Error clearing optional timetable subjects:', error);
             throw error;
         }
     }

@@ -88,6 +88,21 @@ export function entryMatchesTimetableRow(entry: TimetableEntry, streamId?: strin
   return streamId ? entry.streamId === streamId : !entry.streamId;
 }
 
+export function getTimetableStreamInitial(
+  entry: Pick<TimetableEntry, 'streamId' | 'streamCode' | 'streamName'>,
+  schoolClass?: Pick<Class, 'streams'>,
+): string {
+  if (!entry.streamId) return '';
+  const configuredStream = schoolClass?.streams?.find(stream => stream.id === entry.streamId);
+  const label = entry.streamCode
+    || configuredStream?.code
+    || entry.streamName
+    || configuredStream?.name
+    || '';
+  const finalWord = label.trim().split(/\s+/).filter(Boolean).at(-1) || '';
+  return finalWord.charAt(0).toUpperCase();
+}
+
 export function getTimetableRenderedPeriodSpan(
   periods: GeneratedPeriod[],
   startIndex: number,

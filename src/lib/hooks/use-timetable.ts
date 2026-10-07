@@ -18,6 +18,43 @@ export const timetableKeys = {
     classEntries: (yearId: string, termId: string, timetableId: string, classId: string) => ['timetable', 'entries', 'class', yearId, termId, timetableId, classId] as const,
 };
 
+const withoutAlternativeFields = (entry: TimetableEntry): TimetableEntry => {
+    const next = { ...entry };
+    delete next.optionalSubjectId;
+    delete next.optionalTeacherId;
+    delete next.coOptionalTeacherId;
+    return next;
+};
+
+const applyEntryPatches = (
+    current: TimetableEntry[] | undefined,
+    patches: Partial<TimetableEntry>[],
+): TimetableEntry[] | undefined => {
+    if (!current) return current;
+    const patchesById = new Map(
+        patches.filter(patch => patch.id).map(patch => [patch.id as string, patch]),
+    );
+    return current.map(entry => {
+        const patch = patchesById.get(entry.id);
+        if (!patch) return entry;
+        const next = { ...entry, ...patch } as TimetableEntry;
+        const clearsAlternatives = patch.entryType === 'activity';
+        if (
+            clearsAlternatives
+            || (Object.prototype.hasOwnProperty.call(patch, 'optionalSubjectId') && patch.optionalSubjectId == null)
+        ) delete next.optionalSubjectId;
+        if (
+            clearsAlternatives
+            || (Object.prototype.hasOwnProperty.call(patch, 'optionalTeacherId') && patch.optionalTeacherId == null)
+        ) delete next.optionalTeacherId;
+        if (
+            clearsAlternatives
+            || (Object.prototype.hasOwnProperty.call(patch, 'coOptionalTeacherId') && patch.coOptionalTeacherId == null)
+        ) delete next.coOptionalTeacherId;
+        return next;
+    });
+};
+
 // ─── Timetable cache TTL ──────────────────────────────────────────────────────
 // Timetables are revision-invalidated by create/edit/delete mutations. The
 // persistent copy intentionally has no time-based refresh: a term may remain
@@ -451,6 +488,23 @@ export function useSaveTimetableEntries() {
             entries: Partial<TimetableEntry>[]
         }) => TimetableService.saveEntriesBatch(yearId, termId, timetableId, entries),
         onSuccess: (_, variables) => {
+            queryClient.setQueriesData<TimetableEntry[]>(
+                { queryKey: timetableKeys.entries(variables.yearId, variables.termId, variables.timetableId) },
+                current => applyEntryPatches(current, variables.entries),
+            );
+            queryClient.setQueriesData<TimetableEntry[]>(
+                {
+                    predicate: query => (
+                        query.queryKey[0] === 'timetable'
+                        && query.queryKey[1] === 'entries'
+                        && query.queryKey[2] === 'class'
+                        && query.queryKey[3] === variables.yearId
+                        && query.queryKey[4] === variables.termId
+                        && query.queryKey[5] === variables.timetableId
+                    ),
+                },
+                current => applyEntryPatches(current, variables.entries),
+            );
             // Invalidate both entries and class-entries so timetable view refreshes
             queryClient.invalidateQueries({
                 queryKey: timetableKeys.entries(variables.yearId, variables.termId, variables.timetableId),
@@ -460,7 +514,59 @@ export function useSaveTimetableEntries() {
                 predicate: (q) =>
                     q.queryKey[0] === 'timetable' &&
                     q.queryKey[1] === 'entries' &&
-                    q.queryKey[2] === 'class',
+                    q.queryKey[2] === 'class' &&
+                    q.queryKey[3] === variables.yearId &&
+                    q.queryKey[4] === variables.termId &&
+                    q.queryKey[5] === variables.timetableId,
+                refetchType: 'none',
+            });
+        },
+    });
+}
+
+export function useClearTimetableOptionalSubjects() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ yearId, termId, timetableId }: {
+            yearId: string;
+            termId: string;
+            timetableId: string;
+        }) => TimetableService.clearOptionalSubjects(yearId, termId, timetableId),
+        onSuccess: (_, variables) => {
+            const clearAlternatives = (current: TimetableEntry[] | undefined) => (
+                current?.map(withoutAlternativeFields)
+            );
+            queryClient.setQueriesData<TimetableEntry[]>(
+                { queryKey: timetableKeys.entries(variables.yearId, variables.termId, variables.timetableId) },
+                clearAlternatives,
+            );
+            queryClient.setQueriesData<TimetableEntry[]>(
+                {
+                    predicate: query => (
+                        query.queryKey[0] === 'timetable'
+                        && query.queryKey[1] === 'entries'
+                        && query.queryKey[2] === 'class'
+                        && query.queryKey[3] === variables.yearId
+                        && query.queryKey[4] === variables.termId
+                        && query.queryKey[5] === variables.timetableId
+                    ),
+                },
+                clearAlternatives,
+            );
+            queryClient.invalidateQueries({
+                queryKey: timetableKeys.entries(variables.yearId, variables.termId, variables.timetableId),
+                refetchType: 'none',
+            });
+            queryClient.invalidateQueries({
+                predicate: query => (
+                    query.queryKey[0] === 'timetable'
+                    && query.queryKey[1] === 'entries'
+                    && query.queryKey[2] === 'class'
+                    && query.queryKey[3] === variables.yearId
+                    && query.queryKey[4] === variables.termId
+                    && query.queryKey[5] === variables.timetableId
+                ),
                 refetchType: 'none',
             });
         },
