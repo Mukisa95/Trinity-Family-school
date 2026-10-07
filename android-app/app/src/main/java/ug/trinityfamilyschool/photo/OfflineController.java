@@ -121,6 +121,7 @@ final class OfflineController {
             reply(reply, id, true, null, null); return;
         }
         if ("openTimetableSettings".equals(action)) { activity.startActivity(new Intent(activity, TimetableSettingsActivity.class)); reply(reply, id, true, null, null); return; }
+        if ("openLessonReminderSettings".equals(action)) { activity.startActivity(new Intent(activity, LessonReminderSettingsActivity.class)); reply(reply, id, true, null, null); return; }
         if (local) {
             if ("unlock".equals(action)) { unlock(id, reply); return; }
             if ("lock".equals(action)) { lock(); reply(reply, id, true, null, null); return; }
@@ -226,7 +227,7 @@ final class OfflineController {
         unlockedAt = 0;
         if (OfflinePolicy.local(web.getUrl())) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-offline-locked'))", null);
     }
-    void resume() { handler.post(this::publishConnectivity); }
+    void resume() { handler.post(this::publishConnectivity); io.execute(() -> LessonReminders.refresh(activity, store)); }
     void pause() { if (!unlockOpen) lock(); }
     void destroy() {
         handler.removeCallbacksAndMessages(null);

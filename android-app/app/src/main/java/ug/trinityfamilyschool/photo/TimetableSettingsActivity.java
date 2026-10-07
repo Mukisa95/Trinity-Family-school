@@ -33,6 +33,7 @@ public final class TimetableSettingsActivity extends Activity {
         content.setPadding(inset, inset, inset, inset); scroll.addView(content); setContentView(scroll);
         TextView title = label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Timetable card" : "Timetable widget"); title.setTextSize(26);
         label("All timetables and classes appear automatically.");
+        button("Lesson reminder settings").setOnClickListener(view -> startActivity(new Intent(this, LessonReminderSettingsActivity.class)));
         message = label("Loading timetable…");
         io.execute(() -> {
             try {

@@ -7,8 +7,8 @@ import java.time.LocalDate;
 final class TimetableUpdates {
     static void select(Context context, OfflineStore store, JSONObject selection) throws Exception { TimetableSurfaces.select(context, store, selection, android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID); }
     static void hideCard(Context context) { TimetableSurfaces.hideCard(context); }
-    static void clear(Context context) { TimetableSurfaces.clear(context); }
-    static void refresh(Context context, OfflineStore store) { TimetableSurfaces.refresh(context, store); }
+    static void clear(Context context) { TimetableSurfaces.clear(context); LessonReminders.clear(context); }
+    static void refresh(Context context, OfflineStore store) { TimetableSurfaces.refresh(context, store); LessonReminders.refresh(context, store); }
     static String mode(JSONObject profile, String classId, int day, String periodId) {
         JSONObject layouts = profile.optJSONObject("streamLayouts");
         JSONObject layout = layouts == null ? null : layouts.optJSONObject(classId);

@@ -1,4 +1,7 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="lesson-reminders" android:enabled="true" android:icon="@drawable/school_icon" android:shortcutShortLabel="@string/lesson_reminders_shortcut">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="ug.trinityfamilyschool.photo" android:targetClass="ug.trinityfamilyschool.photo.LessonReminderSettingsActivity" />
+    </shortcut>
     <shortcut android:shortcutId="class-timetable" android:enabled="true" android:icon="@drawable/school_icon" android:shortcutShortLabel="@string/timetable_shortcut">
         <intent android:action="android.intent.action.VIEW" android:targetPackage="ug.trinityfamilyschool.photo" android:targetClass="ug.trinityfamilyschool.photo.TimetableSettingsActivity" />
     </shortcut>
