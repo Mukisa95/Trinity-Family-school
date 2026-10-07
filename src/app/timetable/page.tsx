@@ -4,11 +4,11 @@ import * as React from "react";
 import { CalendarRange, Check, ChevronDown, PlusCircle, TableProperties, X } from "lucide-react";
 import { useAcademicYears } from "@/lib/hooks/use-academic-years";
 import { getEffectiveTermForDataDisplay } from "@/lib/utils/term-status-utils";
-import { useTimetableProfiles } from "@/lib/hooks/use-timetable";
+import { useClearTimetableOptionalSubjects, useTimetableProfiles } from "@/lib/hooks/use-timetable";
 import { Loader2 } from "lucide-react";
 import { StructureGenerator } from "@/components/timetable/StructureGenerator";
 import { LiveTracker } from "@/components/timetable/LiveTracker";
-import { Trash2, Settings, PencilRuler, Type, Printer } from "lucide-react";
+import { Eraser, Trash2, Settings, PencilRuler, Type, Printer } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,8 +20,10 @@ import {
 import { TimetableViewPanel } from "@/components/timetable/TimetableViewPanel";
 import { CombinedTimelineView } from "@/components/timetable/CombinedTimelineView";
 import { GlassPageTopBar, GlassActionDock, GlassActionButton } from "@/components/common/glass-page-top-bar";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TimetablePage() {
+    const { toast } = useToast();
     const { data: years = [], isLoading: yearsLoading } = useAcademicYears();
 
     const [yearId, setYearId] = React.useState<string>("");
@@ -53,6 +55,7 @@ export default function TimetablePage() {
     }, [viewTerms, termId]);
 
     const { data: profiles = [] } = useTimetableProfiles(yearId, termId);
+    const clearOptionalSubjectsMutation = useClearTimetableOptionalSubjects();
 
     // Default to first profile if available
     const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null);
@@ -95,6 +98,34 @@ export default function TimetablePage() {
         } catch (e) {
             console.error('Error renaming timetable:', e);
             alert("Failed to rename timetable.");
+        }
+    };
+
+    const handleClearOptionalSubjects = async () => {
+        if (!activeProfile) return;
+        const confirmed = window.confirm(
+            `Clear every optional/alternative subject from "${activeProfile.name || 'Main Timetable'}"?\n\nThis removes alternatives from shared and separated stream lessons. Primary subjects will remain.`,
+        );
+        if (!confirmed) return;
+
+        try {
+            const clearedCount = await clearOptionalSubjectsMutation.mutateAsync({
+                yearId,
+                termId,
+                timetableId: activeProfile.id,
+            });
+            toast({
+                title: clearedCount > 0 ? 'Alternatives cleared' : 'No alternatives found',
+                description: clearedCount > 0
+                    ? `${clearedCount} lesson${clearedCount === 1 ? '' : 's'} now use only their primary subject.`
+                    : 'This timetable already has no optional or alternative subjects.',
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Could not clear alternatives',
+                description: error instanceof Error ? error.message : 'Please try again.',
+            });
         }
     };
 
@@ -333,6 +364,17 @@ export default function TimetablePage() {
                                                 <Type className="mr-2 h-4 w-4 text-gray-500" />
                                                 <span>Rename Timetable</span>
                                             </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                disabled={clearOptionalSubjectsMutation.isPending}
+                                                onClick={handleClearOptionalSubjects}
+                                                className="cursor-pointer py-2.5 text-amber-700 focus:bg-amber-50 focus:text-amber-800"
+                                            >
+                                                {clearOptionalSubjectsMutation.isPending
+                                                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    : <Eraser className="mr-2 h-4 w-4" />}
+                                                <span>{clearOptionalSubjectsMutation.isPending ? 'Clearing alternatives…' : 'Clear all alternatives'}</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator className="my-1 border-gray-100" />
                                             <DropdownMenuItem onClick={handleDeleteProfile} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50 py-2.5">
                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                 <span>Delete Timetable</span>

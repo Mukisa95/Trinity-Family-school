@@ -9,6 +9,7 @@ import {
   getTimetableBreakLabelFontSize,
   getTimetableClassColumnWidth,
   getTimetableRenderedPeriodSpan,
+  getTimetableStreamInitial,
   getTimetableStreamMode,
 } from '../src/lib/utils/timetable-streams';
 
@@ -69,6 +70,42 @@ test('entry lookup keeps consolidated and stream lessons distinct', () => {
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'mon-1', 'consolidated')?.id, 'all');
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'tue-1', 'separate', 'east')?.id, 'east');
   assert.equal(findTimetableEntryForRow(entries, 'p1', 'tue-1', 'separate', 'west'), undefined);
+});
+
+test('dashboard lessons identify stream entries with a compact initial', () => {
+  assert.equal(getTimetableStreamInitial({ streamId: 'east', streamCode: 'E' }, schoolClass), 'E');
+  assert.equal(getTimetableStreamInitial({ streamId: 'west' }, schoolClass), 'W');
+  assert.equal(getTimetableStreamInitial({ streamId: 'north', streamName: 'Stream North' }), 'N');
+  assert.equal(getTimetableStreamInitial({}, schoolClass), '');
+
+  const dashboard = readFileSync('src/components/dashboard/DashboardLiveTracker.tsx', 'utf8');
+  assert.match(dashboard, /const streamInitial = getTimetableStreamInitial\(e, cls\)/);
+  assert.match(dashboard, /if \(streamInitial\) classCode = `\$\{classCode\} \$\{streamInitial\}`/);
+});
+
+test('separated stream cells render saved alternative subjects', () => {
+  const source = readFileSync('src/components/timetable/TimetableGrid.tsx', 'utf8');
+
+  assert.match(source, /const optionalSubject = entry\?\.optionalSubjectId/);
+  assert.match(source, /const isSplitSubject = Boolean\(entry && entry\.entryType !== 'activity' && optionalSubject\)/);
+  assert.match(source, /\{optionalSubject\?\.code \|\| optionalSubject\?\.name \|\| '\?'\}/);
+  assert.match(source, /\{optionalTeacher \? `\$\{optionalTeacher\.firstName\[0\]\}\. \$\{optionalTeacher\.lastName\}` : ''\}/);
+});
+
+test('removing an alternative deletes persisted optional fields and supports clearing the timetable', () => {
+  const service = readFileSync('src/lib/services/timetable.service.ts', 'utf8');
+  const hooks = readFileSync('src/lib/hooks/use-timetable.ts', 'utf8');
+  const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
+
+  assert.match(service, /cleanedEntryData\.optionalSubjectId = deleteField\(\)/);
+  assert.match(service, /cleanedEntryData\.optionalTeacherId = deleteField\(\)/);
+  assert.match(service, /static async clearOptionalSubjects/);
+  assert.match(service, /optionalSubjectId: deleteField\(\)/);
+  assert.match(service, /coOptionalTeacherId: deleteField\(\)/);
+  assert.match(hooks, /export function useClearTimetableOptionalSubjects/);
+  assert.match(hooks, /current\?\.map\(withoutAlternativeFields\)/);
+  assert.match(page, /Clear all alternatives/);
+  assert.match(page, /clearOptionalSubjectsMutation\.isPending/);
 });
 
 test('printable stream labels use a capture-safe layout without text ellipsis', () => {

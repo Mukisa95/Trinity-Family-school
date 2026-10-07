@@ -1194,6 +1194,13 @@ function StreamedClassRows({
                             const entry = findTimetableEntryForRow(entries, classItem.id, period.id, mode, scopedStream?.id);
                             const subject = entry ? subjects.find(item => item.id === entry.subjectId) : undefined;
                             const teacher = entry ? staffList.find(item => item.id === entry.teacherId) : undefined;
+                            const optionalSubject = entry?.optionalSubjectId
+                                ? subjects.find(item => item.id === entry.optionalSubjectId)
+                                : undefined;
+                            const optionalTeacher = entry?.optionalTeacherId
+                                ? staffList.find(item => item.id === entry.optionalTeacherId)
+                                : undefined;
+                            const isSplitSubject = Boolean(entry && entry.entryType !== 'activity' && optionalSubject);
                             if (entry?.periodSpan && entry.periodSpan > 1) skipCells = entry.periodSpan - 1;
 
                             const activeStr = format(currentTime, 'HH:mm');
@@ -1206,13 +1213,16 @@ function StreamedClassRows({
                             const cellStyle = entry && entry.entryType !== 'activity' && subject
                                 ? getSubjectCellStyle(subject.name, state, false, isEditing)
                                 : undefined;
+                            const optionalCellStyle = isSplitSubject && optionalSubject
+                                ? getSubjectCellStyle(optionalSubject.name, state, false, isEditing)
+                                : undefined;
                             const isOpen = activeCell?.classId === classItem.id
                                 && activeCell.periodId === period.id
                                 && activeCell.streamId === scopedStream?.id;
                             const content = (
                                 <div
-                                    style={cellStyle}
-                                    className={`absolute inset-0 m-px flex flex-col items-center justify-center rounded border p-1 text-center transition-colors ${
+                                    style={isSplitSubject ? undefined : cellStyle}
+                                    className={`absolute inset-0 m-px flex flex-col items-center justify-center rounded border text-center transition-colors ${isSplitSubject ? 'overflow-hidden border-transparent p-0' : 'p-1'} ${
                                         entry ? 'border-transparent' : isEditing ? 'border-dashed border-indigo-200 hover:bg-indigo-50' : 'border-transparent'
                                     } ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}
                                 >
@@ -1221,6 +1231,25 @@ function StreamedClassRows({
                                             <span className="text-[9px] font-black uppercase leading-tight text-purple-700">{entry.activityName || 'ACT'}</span>
                                             <span className="text-[8px] text-purple-500">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}</span>
                                         </>
+                                    ) : isSplitSubject ? (
+                                        <div className="flex h-full w-full flex-col rounded border" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                                            <div className="flex min-h-0 flex-1 flex-col items-center justify-center border-b border-white/40 px-1 py-0.5" style={cellStyle}>
+                                                <span className="w-full truncate text-[9px] font-bold leading-tight">
+                                                    {subject?.code || subject?.name || '?'}
+                                                </span>
+                                                <span className="max-w-full truncate text-[7.5px] leading-tight opacity-75">
+                                                    {teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : ''}
+                                                </span>
+                                            </div>
+                                            <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-1 py-0.5" style={optionalCellStyle}>
+                                                <span className="w-full truncate text-[9px] font-bold leading-tight">
+                                                    {optionalSubject?.code || optionalSubject?.name || '?'}
+                                                </span>
+                                                <span className="max-w-full truncate text-[7.5px] leading-tight opacity-75">
+                                                    {optionalTeacher ? `${optionalTeacher.firstName[0]}. ${optionalTeacher.lastName}` : ''}
+                                                </span>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <>
                                             <span className="w-full truncate text-[10px] font-bold leading-tight">{subject?.code || subject?.name || '?'}</span>
