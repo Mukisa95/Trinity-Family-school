@@ -3,7 +3,9 @@
 import React from 'react';
 import {recoverFeeReminderChanges} from '@/lib/fees/fee-reminder-change-client';
 import dynamic from 'next/dynamic';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isAndroidOffline } from '@/lib/offline/android-app-shell';
+import { toast } from '@/hooks/use-toast';
+import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query';
 
 const ReactQueryDevtools = dynamic(
   () => import('@tanstack/react-query-devtools').then(module => module.ReactQueryDevtools),
@@ -18,6 +20,12 @@ const ReactQueryDevtools = dynamic(
 // the main thread like createSyncStoragePersister did.
 function makeQueryClient() {
   return new QueryClient({
+    mutationCache: new MutationCache({ onMutate: () => {
+      if (isAndroidOffline()) {
+        toast({ title: 'Connection needed', description: 'Connect to make changes.' });
+        throw new Error('Connect to make changes.');
+      }
+    } }),
     defaultOptions: {
       queries: {
         // Data stays fresh for 5 minutes — no redundant background refetches

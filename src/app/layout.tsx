@@ -1,3 +1,4 @@
+import { AndroidOfflineBoundary } from '@/components/common/android-offline-boundary';
 import { AndroidOfflineProvider } from '@/components/providers/android-offline-provider';
 import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
@@ -185,7 +186,7 @@ export default function RootLayout({
                 <OperationalAuditProvider />
                 <SyncProvider>
                   <AppLayout>
-                    {children}
+                    <AndroidOfflineBoundary>{children}</AndroidOfflineBoundary>
                   </AppLayout>
                   <Toaster />
                 </SyncProvider>

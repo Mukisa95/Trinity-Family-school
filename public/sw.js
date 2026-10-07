@@ -33,6 +33,17 @@ const PHOTO_TOOLS_CACHE = 'trinity-photo-tools-v1';
 let feeReminderPushWork = Promise.resolve();
 const PARENT_APP_SHELL_CACHE = `parent-app-shell-${SW_VERSION}`;
 const PARENT_APP_ROUTES = new Set(['/parent', '/parent/settings']);
+const ANDROID_APP_SHELL_CACHE = `android-app-shell-${SW_VERSION}`;
+const ANDROID_SHELL_IMAGES = new Set(['/images/D.B%20background.png', '/trinity-logo-192.png']);
+const ANDROID_APP_ROUTES = new Set(['/', '/pupils', '/pupil-detail', '/timetable', '/login']);
+
+async function androidShellMatch(request) {
+  const names = (await caches.keys()).filter(name => name.startsWith('android-app-shell-')).sort().reverse();
+  for (const name of names) {
+    const response = await (await caches.open(name)).match(request);
+    if (response) return response;
+  }
+}
 const PARENT_OFFLINE_LAUNCH_ROUTE = '/';
 
 function parentAppRouteRequest(url) {
@@ -93,6 +104,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
+        const retainedAndroidShellCaches = new Set(cacheNames.filter(name => name.startsWith('android-app-shell-')).sort().reverse().slice(0, 2));
         const retainedParentShellCaches = new Set(
           cacheNames
             .filter(cacheName => cacheName.startsWith('parent-app-shell-'))
@@ -107,7 +119,7 @@ self.addEventListener('activate', (event) => {
               cacheName !== STATIC_CACHE &&
               cacheName !== FEE_REMINDER_STATE_CACHE && cacheName !== DYNAMIC_CACHE &&
               cacheName !== PHOTO_TOOLS_CACHE &&
-              !retainedParentShellCaches.has(cacheName)
+              !retainedParentShellCaches.has(cacheName) && !retainedAndroidShellCaches.has(cacheName)
             ) {
               console.log('🗑️ Deleting old cache:', cacheName);
               return caches.delete(cacheName);
@@ -208,6 +220,43 @@ self.addEventListener('message', (event) => {
     if (event.ports && event.ports[0]) {
       event.ports[0].postMessage({ version: CACHE_NAME });
     }
+    return;
+  }
+
+  // Android stores the SAME public HTML shell and hashed assets used online.
+  // Identity and school records remain in their existing account-scoped stores.
+  // This explicit message keeps ordinary browser/PWA navigation unchanged.
+  if (event.data.type === 'CACHE_ANDROID_APP_SHELL') {
+    const routes = Array.isArray(event.data.routes) ? event.data.routes : [];
+    const assets = Array.isArray(event.data.assetUrls) ? event.data.assetUrls : [];
+    event.waitUntil((async () => {
+      const cache = await caches.open(ANDROID_APP_SHELL_CACHE);
+      const saveAsset = async value => {
+        const url = new URL(value, self.location.origin);
+        if (url.origin !== self.location.origin || (!url.pathname.startsWith('/_next/static/') && !ANDROID_SHELL_IMAGES.has(url.pathname))) return;
+        const request = new Request(url.toString(), { credentials: 'same-origin' });
+        if (await cache.match(request)) return;
+        const response = await fetch(request);
+        if (!response.ok) throw new Error('An interface asset could not be prepared.');
+        await cache.put(request, response);
+      };
+      await Promise.all(routes.map(async value => {
+        const url = new URL(value, self.location.origin);
+        if (url.origin !== self.location.origin || !ANDROID_APP_ROUTES.has(url.pathname)) return;
+        const request = parentAppRouteRequest(url);
+        let response = await cache.match(request);
+        if (!response) response = await fetch(request, { cache: 'no-store' });
+        if (!response.ok || response.redirected || !response.headers.get('Content-Type')?.includes('text/html')) {
+          throw new Error('A page could not be prepared.');
+        }
+        const html = await response.clone().text();
+        await Promise.all(parentStaticAssetUrlsFromHtml(html, url.toString()).map(saveAsset));
+        // Publish the page only AFTER all of its referenced assets are ready.
+        await cache.put(request, response);
+      }));
+      await Promise.all(assets.map(saveAsset));
+      event.ports?.[0]?.postMessage({ type: 'ANDROID_APP_SHELL_CACHED' });
+    })().catch(error => event.ports?.[0]?.postMessage({ type: 'ANDROID_APP_SHELL_CACHE_FAILED', message: error.message })));
     return;
   }
 
@@ -599,6 +648,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (url.origin === self.location.origin && ANDROID_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      const request = parentAppRouteRequest(url);
+      // Existing parent installations also fall back to the root shell.
+      const cached = await androidShellMatch(request)
+        || (url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE
+          ? await (await caches.open(PARENT_APP_SHELL_CACHE)).match(request) : undefined);
+      if (cached && self.navigator.onLine === false) return cached;
+      try {
+        const response = await fetch(event.request, { cache: 'no-store' });
+        if (cached && response.status >= 500) return cached;
+        return response;
+      } catch (error) {
+        if (cached) return cached;
+        return new Response('<!DOCTYPE html><html><body><h1>You are offline</h1><p>Please check your internet connection and try again.</p></body></html>', {
+          status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'text/html' },
+        });
+      }
+    })());
+    return;
+  }
+
   if (url.origin === self.location.origin && PARENT_APP_ROUTES.has(url.pathname) && event.request.mode === 'navigate') {
     event.respondWith(
       caches.open(PARENT_APP_SHELL_CACHE).then(async cache => {
@@ -617,24 +688,6 @@ self.addEventListener('fetch', (event) => {
             { status: 503, statusText: 'Service Unavailable', headers: new Headers({ 'Content-Type': 'text/html' }) },
           );
         }),
-    );
-    return;
-  }
-
-  // Existing installed copies may still have `/` as their saved start URL.
-  // Keep normal online launches network-first, but fall back to the root shell
-  // explicitly prepared by an authenticated parent when the device is offline.
-  if (url.origin === self.location.origin && url.pathname === PARENT_OFFLINE_LAUNCH_ROUTE && event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request, { cache: 'no-store' }).catch(async () => {
-        const cache = await caches.open(PARENT_APP_SHELL_CACHE);
-        const cached = await cache.match(parentAppRouteRequest(url));
-        if (cached) return cached;
-        return new Response(
-          '<!DOCTYPE html><html><body><h1>The application is not downloaded yet</h1><p>Connect once and open the parent dashboard to prepare offline access.</p></body></html>',
-          { status: 503, statusText: 'Service Unavailable', headers: new Headers({ 'Content-Type': 'text/html' }) },
-        );
-      }),
     );
     return;
   }

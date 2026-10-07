@@ -27,4 +27,11 @@ public class OfflinePolicyTest {
         assertEquals(PhotoPolicy.ORIGIN + "/parent", OfflinePolicy.onlineRoute(local + "?page=pupils&pupilId=child-1", "Parent"));
         assertEquals(PhotoPolicy.ORIGIN + "/", OfflinePolicy.onlineRoute("https://evil.invalid/?page=pupils", "Staff"));
     }
+    @Test public void launchAlwaysUsesOriginalWebsiteForStaffParentsAndLegacyWidgetLinks() {
+        assertEquals(PhotoPolicy.ORIGIN + "/", OfflinePolicy.launchRoute(null, null, "Admin"));
+        assertEquals(PhotoPolicy.ORIGIN + "/parent", OfflinePolicy.launchRoute(null, null, "Parent"));
+        assertEquals(PhotoPolicy.ORIGIN + "/timetable?tableId=&classId=&streamId=", OfflinePolicy.launchRoute(OfflinePolicy.savedRoute(PhotoPolicy.ORIGIN + "/timetable"), null, "Admin"));
+        assertEquals(PhotoPolicy.ORIGIN + "/pupil-detail?id=child-1", OfflinePolicy.launchRoute(null, PhotoPolicy.ORIGIN + "/pupil-detail?id=child-1", "Staff"));
+        assertEquals(PhotoPolicy.ORIGIN + "/", OfflinePolicy.launchRoute(null, "https://evil.test/pupils", "Admin"));
+    }
 }

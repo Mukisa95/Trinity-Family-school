@@ -28,6 +28,12 @@ final class OfflinePolicy {
             return LOCAL_ORIGIN + LOCAL_PATH + "?page=" + page + pupil + timetable;
         } catch (Exception ignored) { return LOCAL_ORIGIN + LOCAL_PATH; }
     }
+    // Connection state never selects a different interface or origin.
+    static String launchRoute(String legacyRoute, String onlineRoute, String role) {
+        if (legacyRoute != null && local(legacyRoute)) return onlineRoute(legacyRoute, role);
+        if (onlineRoute != null && supported(onlineRoute)) return onlineRoute;
+        return PhotoPolicy.ORIGIN + ("Parent".equals(role) ? "/parent" : "/");
+    }
     static boolean supported(String value) {
         try {
             if (!PhotoPolicy.trusted(value)) return false;

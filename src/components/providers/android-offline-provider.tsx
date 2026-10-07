@@ -13,6 +13,8 @@ import { useTimetableEntries, useTimetablePeriods, useTimetableProfiles } from '
 import { useClasses } from '@/lib/hooks/use-classes';
 import { useSubjects } from '@/lib/hooks/use-subjects';
 import { useStaff } from '@/lib/hooks/use-staff';
+import { prepareAndroidAppShell, isAndroidOffline, installAndroidOfflineNavigation } from '@/lib/offline/android-app-shell';
+import { toast } from '@/hooks/use-toast';
 import { getDashboardTimetableTerm } from '@/lib/offline/timetable-feed';
 
 function PrepareTimetable({ yearId, termId, id }: { yearId: string; termId: string; id: string }) {
@@ -46,7 +48,7 @@ export function AndroidOfflineProvider() {
     let retry: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
     const connect = async () => {
-      if (refreshing || disposed || !navigator.onLine || !user || isLocked || auth.currentUser?.uid !== user.id) return;
+      if (refreshing || disposed || isAndroidOffline() || !user || isLocked || auth.currentUser?.uid !== user.id) return;
       refreshing = true;
       try {
         const token = await auth.currentUser.getIdToken();
@@ -60,10 +62,16 @@ export function AndroidOfflineProvider() {
       finally { refreshing = false; }
     };
     if (!user) void androidOfflineRequest('clear').catch(() => undefined);
-    else void connect();
+    else {
+      void androidOfflineRequest('status').then(reply => {
+        if (!disposed && current === generation.current && reply.session?.accountId === user.id) setSession(reply.session);
+      }).catch(() => undefined);
+      void connect();
+    }
     const unsubscribeAuth = auth.onIdTokenChanged(() => void connect());
     window.addEventListener('online', connect);
-    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); window.removeEventListener('online', connect); };
+    window.addEventListener('trinity-android-connectivity', connect);
+    return () => { disposed = true; if (retry) clearTimeout(retry); unsubscribeAuth(); window.removeEventListener('online', connect); window.removeEventListener('trinity-android-connectivity', connect); };
   }, [user?.id, user?.role, user?.granularPermissions, user?.modulePermissions, isLoading, isLocked]);
 
   useEffect(() => {
@@ -95,6 +103,26 @@ export function AndroidOfflineProvider() {
     schedule();
     return () => { disposed = true; if (timer) clearTimeout(timer); unsubscribe(); unsubscribeParent(); window.removeEventListener('trinity-native-cache-written', schedule); };
   }, [client, session, user?.id, isLocked]);
+
+  useEffect(() => {
+    if (!session || isLocked) return;
+    let disposed = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const prepare = async () => {
+      if (disposed || isAndroidOffline()) return;
+      try { await prepareAndroidAppShell(session); }
+      catch { if (!disposed) retry = setTimeout(() => void prepare(), 15_000); }
+    };
+    void prepare();
+    window.addEventListener('online', prepare);
+    window.addEventListener('trinity-service-worker-updated', prepare);
+    return () => { disposed = true; if (retry) clearTimeout(retry); window.removeEventListener('online', prepare); window.removeEventListener('trinity-service-worker-updated', prepare); };
+  }, [session, isLocked]);
+
+  useEffect(() => {
+    if (!hasAndroidOfflineBridge() || !user) return;
+    return installAndroidOfflineNavigation(user.role, () => toast({ title: 'Connection needed', description: 'Connect to open this section or make changes.' }));
+  }, [user?.id, user?.role]);
 
   return session?.grants.timetable && !isLocked ? <PrepareCurrentTimetables /> : null;
 }

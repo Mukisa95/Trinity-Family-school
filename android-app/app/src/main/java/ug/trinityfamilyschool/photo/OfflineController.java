@@ -36,8 +36,6 @@ final class OfflineController {
     private long unlockedAt;
     private volatile String role = "";
     private boolean unlockOpen;
-    private boolean resumed;
-    private long lastLiveAttempt;
     private ConnectivityManager.NetworkCallback network;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable relock = this::lock;
@@ -47,8 +45,9 @@ final class OfflineController {
         assets = new WebViewAssetLoader.Builder().addPathHandler("/offline/", path -> packaged.handle("offline/" + path)).build();
         network = new ConnectivityManager.NetworkCallback() {
             @Override public void onCapabilitiesChanged(android.net.Network value, NetworkCapabilities capabilities) {
-                if (capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) handler.postDelayed(OfflineController.this::retryLive, Math.max(500, lastLiveAttempt + 5000 - SystemClock.elapsedRealtime()));
+                handler.post(OfflineController.this::publishConnectivity);
             }
+            @Override public void onLost(android.net.Network value) { handler.post(OfflineController.this::publishConnectivity); }
         };
         try { ((ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE)).registerDefaultNetworkCallback(network); } catch (Exception ignored) { network = null; }
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
@@ -77,24 +76,15 @@ final class OfflineController {
                 if (activity.isDestroyed()) return;
                 String deepLink = activity.getIntent().getStringExtra("offlineRoute");
                 String onlineLink = activity.getIntent().getStringExtra("onlineRoute");
-                if (deepLink != null && OfflinePolicy.local(deepLink)) {
-                    if (connected()) web.loadUrl(OfflinePolicy.onlineRoute(deepLink, role));
-                    else web.loadUrl(deepLink);
-                }
-                else if (onlineLink != null && PhotoPolicy.trusted(onlineLink) && OfflinePolicy.supported(onlineLink)) web.loadUrl(onlineLink);
-                else if (connected() || "Parent".equals(role)) web.loadUrl(PhotoPolicy.ORIGIN + ("Parent".equals(role) ? "/parent" : "/"));
-                else showSaved(PhotoPolicy.ORIGIN);
+                web.loadUrl(OfflinePolicy.launchRoute(deepLink, onlineLink, role));
             });
         });
     }
-    void showSaved(String failedUrl) {
-        if (activity.isDestroyed()) return;
-        lastLiveAttempt = SystemClock.elapsedRealtime();
-        web.loadUrl(OfflinePolicy.savedRoute(failedUrl));
-    }
-    private void retryLive() {
-        if (!resumed || unlockOpen || activity.isDestroyed() || !OfflinePolicy.local(web.getUrl()) || !connected() || SystemClock.elapsedRealtime() - lastLiveAttempt < 5000L) return;
-        lastLiveAttempt = SystemClock.elapsedRealtime(); lock(); web.loadUrl(OfflinePolicy.onlineRoute(web.getUrl(), role));
+    void publishConnectivity() {
+        if (activity.isDestroyed() || !PhotoPolicy.trusted(web.getUrl())) return;
+        boolean online = connected();
+        web.getSettings().setCacheMode(online ? android.webkit.WebSettings.LOAD_DEFAULT : android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        web.evaluateJavascript("if(window.trinityAndroidConnected!==" + online + "){window.trinityAndroidConnected=" + online + ";window.dispatchEvent(new Event('trinity-android-connectivity'))}", null);
     }
     private void reply(JavaScriptReplyProxy reply, String id, boolean success, String error, JSONObject data) {
         activity.runOnUiThread(() -> {
@@ -147,7 +137,7 @@ final class OfflineController {
                 }); return;
             }
             if (!"status".equals(action)) { reply(reply, id, false, "Unsupported action.", null); return; }
-        } else if (!"connect".equals(action) && !"save".equals(action) && !"clear".equals(action)) {
+        } else if (!"connect".equals(action) && !"save".equals(action) && !"clear".equals(action) && !"status".equals(action)) {
             reply(reply, id, false, "Unsupported preparation action.", null); return;
         }
         io.execute(() -> {
@@ -162,7 +152,11 @@ final class OfflineController {
                         output.put("session", session); break;
                     case "save": store.save(input.getJSONObject("snapshot")); TimetableUpdates.refresh(activity, store); break;
                     case "clear": store.clear(); role = ""; TimetableUpdates.clear(activity); break;
-                    case "status": output.put("available", store.available() != null); break;
+                    case "status":
+                        JSONObject available = store.available();
+                        output.put("available", available != null);
+                        if (available != null) output.put("session", available.getJSONObject("session"));
+                        break;
                     default: throw new IllegalArgumentException("Unsupported offline action.");
                 }
                 reply(reply, id, true, null, output);
@@ -226,8 +220,8 @@ final class OfflineController {
         unlockedAt = 0;
         if (OfflinePolicy.local(web.getUrl())) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-offline-locked'))", null);
     }
-    void resume() { resumed = true; handler.postDelayed(this::retryLive, 1000); }
-    void pause() { resumed = false; if (!unlockOpen) lock(); }
+    void resume() { handler.post(this::publishConnectivity); }
+    void pause() { if (!unlockOpen) lock(); }
     void destroy() {
         handler.removeCallbacksAndMessages(null);
         if (network != null) try { ((ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE)).unregisterNetworkCallback(network); } catch (Exception ignored) { }

@@ -85,6 +85,7 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
+                offline.publishConnectivity();
                 if (OfflinePolicy.local(url)) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
                 else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
             }
@@ -92,7 +93,13 @@ public final class MainActivity extends Activity {
                 if (!request.isForMainFrame()) return false;
                 String url = request.getUrl().toString();
                 if (OfflinePolicy.local(url)) return false;
-                if (PhotoPolicy.trusted(url)) return false;
+                if (PhotoPolicy.trusted(url)) {
+                    if (!offline.connected() && !OfflinePolicy.supported(url) && !"/login".equals(request.getUrl().getPath())) {
+                        android.widget.Toast.makeText(MainActivity.this, "Connect to open this section.", android.widget.Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                    return false;
+                }
                 // Outside sites open outside the privileged WebView.
                 if ("https".equals(request.getUrl().getScheme())) {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl())); } catch (Exception ignored) { }
@@ -102,12 +109,6 @@ public final class MainActivity extends Activity {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 WebResourceResponse saved = offline.intercept(request);
                 return saved != null ? saved : photoResponse(request);
-            }
-            @Override public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
-                if (request.isForMainFrame() && PhotoPolicy.trusted(request.getUrl().toString())) offline.showSaved(request.getUrl().toString());
-            }
-            @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
-                if (request.isForMainFrame() && response.getStatusCode() >= 500 && PhotoPolicy.trusted(request.getUrl().toString())) offline.showSaved(request.getUrl().toString());
             }
         });
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {

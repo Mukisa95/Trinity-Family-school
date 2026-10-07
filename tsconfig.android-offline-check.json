@@ -30,6 +30,8 @@
   },
   "include": [
     "src/lib/offline/android-contracts.ts",
+    "src/components/common/android-offline-boundary.tsx",
+    "src/components/providers/query-provider.tsx",
     "src/lib/offline/android-session-policy.ts",
     "src/lib/offline/android-cache-export.ts",
     "src/components/providers/android-offline-provider.tsx",
