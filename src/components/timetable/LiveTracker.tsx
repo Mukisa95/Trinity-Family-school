@@ -4,18 +4,19 @@ import * as React from "react";
 import { useTimetablePeriods, useTimetableEntries, useTimetableProfiles } from "@/lib/hooks/use-timetable";
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
-import { useStaff } from "@/lib/hooks/use-staff";
-import { Navigation, AlertCircle, Clock, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { Clock, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
-import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
+import { getTimetableStreamInitial } from "@/lib/utils/timetable-streams";
 
 interface LiveTrackerProps {
     yearId: string;
     termId: string;
     profileId: string;
     profileName?: string;
+    liveEnabled?: boolean;
+    expanded?: boolean;
+    onExpand?: () => void;
+    children?: React.ReactNode;
 }
 
 function parseTimeToMins(t: string): number {
@@ -23,21 +24,30 @@ function parseTimeToMins(t: string): number {
     return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
 }
 
-export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrackerProps) {
+export function LiveTracker({
+    yearId,
+    termId,
+    profileId,
+    profileName,
+    liveEnabled = true,
+    expanded = false,
+    onExpand,
+    children,
+}: LiveTrackerProps) {
     const { data: profiles = [] } = useTimetableProfiles(yearId, termId);
     const profile = profiles.find(p => p.id === profileId);
     const { data: periods = [] } = useTimetablePeriods(yearId, termId, profileId);
     const { data: entries = [] } = useTimetableEntries(yearId, termId, profileId);
     const { data: classes = [] } = useClasses();
     const { data: subjects = [] } = useSubjects();
-    const { data: staffList = [] } = useStaff();
 
     const [currentTime, setCurrentTime] = React.useState(new Date());
 
     React.useEffect(() => {
+        if (!liveEnabled) return;
         const interval = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [liveEnabled]);
 
 
     const [viewOffset, setViewOffset] = React.useState(0);
@@ -78,22 +88,86 @@ export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrac
     const nextPeriod = todayPeriods[viewingIndex + 1];
     const prevPeriod = todayPeriods[viewingIndex - 1];
 
-    if (!activePeriod) {
+    const panelId = `timetable-panel-${profileId}`;
+    const timetableLabel = profileName || profile?.name || "Timetable";
+    const expandControl = onExpand ? (
+        <button
+            type="button"
+            onClick={(event) => {
+                event.stopPropagation();
+                onExpand();
+            }}
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            className={`inline-flex h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-[9px] font-extrabold uppercase tracking-wide transition-colors ${expanded
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+            }`}
+        >
+            <span>{expanded ? "Timetable shown" : "View timetable"}</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </button>
+    ) : null;
+
+    const expandedPanel = expanded && children ? (
+        <div
+            id={panelId}
+            role="region"
+            aria-label={`${timetableLabel} timetable`}
+            className="mt-3 animate-in border-t border-slate-200/80 pt-3 fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none"
+        >
+            {children}
+        </div>
+    ) : null;
+
+    const handleCardExpand = (event: React.MouseEvent<HTMLElement>) => {
+        if (expanded || !onExpand) return;
+        const target = event.target as HTMLElement;
+        if (target.closest("button, a, input, select, textarea")) return;
+        onExpand();
+    };
+
+    if (!liveEnabled || !activePeriod) {
+        const statusLabel = liveEnabled ? "No active lesson" : "Saved timetable";
+        const statusDescription = liveEnabled
+            ? nextPeriod
+                ? `Next: ${nextPeriod.type === 'lesson' ? `Lesson ${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)} at ${nextPeriod.startTime}`
+                : "All classes finished for today."
+            : "Open this card to view and manage its timetable.";
         return (
-            <Card className="border-amber-200 bg-amber-50">
-                <CardContent className="flex items-center gap-3 p-3 text-amber-700">
-                    <Clock className="w-5 h-5 opacity-50 flex-shrink-0" />
-                    <div>
-                        <span className="font-semibold text-sm">No Active Lesson — </span>
-                        {profileName && <span className="text-[10px] font-bold text-amber-700/70 uppercase tracking-wider mr-1">[{profileName}]</span>}
-                        <span className="text-sm">
-                            {nextPeriod
-                                ? `Next: ${nextPeriod.type === 'lesson' ? `Lesson ${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)} at ${nextPeriod.startTime}`
-                                : "All classes finished for today."}
+            <section
+                onClick={handleCardExpand}
+                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all ${expanded
+                    ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)]"
+                    : "border-amber-200/80 hover:border-indigo-200 hover:shadow-[0_10px_28px_rgba(79,70,229,0.09)]"
+                } ${!expanded && onExpand ? "cursor-pointer" : ""}`}
+            >
+                <div className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${liveEnabled ? "from-amber-400 to-orange-500" : "from-indigo-500 to-violet-500"}`} />
+                <div className="flex min-h-[52px] items-center gap-3">
+                    <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ring-1 ${liveEnabled
+                        ? "bg-amber-50 text-amber-600 ring-amber-200/70"
+                        : "bg-indigo-50 text-indigo-600 ring-indigo-200/70"
+                    }`}>
+                        <Clock className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <span className="truncate text-sm font-bold text-slate-900">{timetableLabel}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ring-1 ring-inset ${liveEnabled
+                                ? "bg-amber-50 text-amber-700 ring-amber-200"
+                                : "bg-indigo-50 text-indigo-700 ring-indigo-200"
+                            }`}>
+                                {statusLabel}
+                            </span>
+                        </div>
+                        <span className="mt-1 block truncate text-xs font-medium text-slate-500">
+                            {statusDescription}
                         </span>
                     </div>
-                </CardContent>
-            </Card>
+                    {expandControl}
+                </div>
+                {expandedPanel}
+            </section>
         );
     }
 
@@ -141,7 +215,8 @@ export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrac
         // Shorten standard class names e.g. "Senior 1" -> "S.1" if possible, otherwise use name
         let classCode = cls?.code || cls?.name || "Class";
         classCode = classCode.replace(/Senior\s+/i, "S").replace(/Primary\s+/i, "P");
-        if (e.streamCode || e.streamName) classCode = `${classCode} ${e.streamCode || e.streamName}`;
+        const streamInitial = getTimetableStreamInitial(e, cls);
+        if (streamInitial) classCode = `${classCode} ${streamInitial}`;
 
         return {
             id: e.id,
@@ -151,100 +226,116 @@ export function LiveTracker({ yearId, termId, profileId, profileName }: LiveTrac
     });
 
     return (
-        <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 rounded-xl shadow-sm p-2.5 sm:p-3 flex flex-col text-white overflow-hidden border border-indigo-500/30 gap-1.5">
-            {/* Top Row: Details & Navigation */}
-            <div className="flex items-center gap-1.5 w-full min-w-0 flex-wrap sm:flex-nowrap">
-                {/* Status dot pulse */}
-                <div className="flex-shrink-0 w-3.5 h-3.5 rounded-full border border-white/30 flex items-center justify-center">
-                    <div className={`w-1.5 h-1.5 rounded-full bg-white ${isLive ? "animate-pulse" : "opacity-30"}`} />
+        <article
+            onClick={handleCardExpand}
+            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2.5 pl-3.5 text-slate-800 transition-all sm:p-3 sm:pl-4 ${expanded
+                ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)]"
+                : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-indigo-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)]"
+            } ${!expanded && onExpand ? "cursor-pointer" : ""}`}
+        >
+            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-indigo-500 via-violet-500 to-purple-500" />
+
+            {/* Compact identity, status and navigation row */}
+            <div className="flex min-w-0 items-start gap-2">
+                <div className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 ring-1 ring-inset ring-indigo-200">
+                    <span className={`h-2 w-2 rounded-full bg-indigo-600 ${isLive ? "animate-pulse" : "opacity-35"}`} />
                 </div>
 
-                {/* Period & Profile Details */}
-                <div className="flex items-center flex-wrap gap-1 text-xs font-bold tracking-tight">
-                    {profileName && (
-                        <span className="text-white/70 uppercase tracking-wider text-[9px] sm:text-[10px] truncate max-w-[80px] sm:max-w-none">
-                            {profileName}
+                <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+                        {profileName && (
+                            <span className="max-w-[150px] truncate text-[10px] font-extrabold uppercase tracking-[0.12em] text-indigo-600 sm:max-w-[220px]">
+                                {profileName}
+                            </span>
+                        )}
+                        {profileName && <span className="text-slate-300" aria-hidden="true">/</span>}
+                        <span className="text-sm font-bold leading-none text-slate-900">{periodLabel}</span>
+                        <span className={`rounded-full px-2 py-1 text-[9px] font-extrabold uppercase leading-none tracking-wide ring-1 ring-inset ${
+                            currentSecs < startSecs
+                                ? "bg-amber-50 text-amber-700 ring-amber-200"
+                                : currentSecs >= endSecs
+                                    ? "bg-slate-100 text-slate-500 ring-slate-200"
+                                    : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                        }`}>
+                            {countdownStr}
                         </span>
-                    )}
-                    {profileName && <span className="text-white/30 select-none">|</span>}
-                    
-                    <span className="text-white">{periodLabel}</span>
+                    </div>
 
-                    {/* Compact Countdown Badge */}
-                    <span className={`px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md tracking-wider leading-none ${
-                        currentSecs < startSecs 
-                            ? 'bg-amber-400/20 border border-amber-400/30 text-amber-200' 
-                            : currentSecs >= endSecs 
-                                ? 'bg-white/10 border border-white/20 text-white/60' 
-                                : 'bg-emerald-400/20 border border-emerald-400/30 text-emerald-200'
-                    }`}>
-                        {countdownStr}
-                    </span>
-
-                    <span className="text-white/30 font-normal select-none">·</span>
-                    <span className="text-white/70 font-mono font-medium text-[10px]">{activePeriod.startTime}–{activePeriod.endTime}</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-semibold text-slate-500">
+                        <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                            <Clock className="h-3 w-3 text-slate-400" />
+                            {activePeriod.startTime}–{activePeriod.endTime}
+                        </span>
+                        <span className="text-slate-300" aria-hidden="true">·</span>
+                        <span className="font-mono tabular-nums text-slate-600">Now {currentTimeStr}</span>
+                    </div>
                 </div>
 
-                <div className="flex-1" />
-
-                {/* Clock */}
-                <span className="hidden sm:inline-flex flex-shrink-0 text-white/90 font-bold font-mono text-[10px] bg-white/10 px-1.5 py-0.5 rounded">
-                    {currentTimeStr}
-                </span>
-
-                {/* Navigation Buttons */}
-                <div className="flex flex-shrink-0 items-center gap-0.5 bg-white/10 rounded-lg p-0.5 ml-auto">
+                <div className="ml-auto flex flex-shrink-0 items-center gap-0.5 rounded-full border border-slate-200 bg-slate-50 p-0.5 shadow-sm">
                     <button
                         onClick={handlePrev}
                         disabled={!prevPeriod}
-                        className="p-1 rounded bg-transparent hover:bg-white/10 disabled:opacity-30 transition"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
                         title="Previous Period"
+                        aria-label="Show previous period"
                     >
-                        <ChevronLeft className="w-3 h-3" />
+                        <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
                     {viewOffset !== 0 && (
                         <button
                             onClick={handleLive}
-                            className="px-1.5 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-[8px] font-bold uppercase transition leading-none"
+                            className="h-7 rounded-full bg-indigo-600 px-2 text-[8px] font-extrabold uppercase tracking-wide text-white transition-colors hover:bg-indigo-700"
                             title="Return to Live Time"
                         >
-                            Reset
+                            Live
                         </button>
                     )}
                     <button
                         onClick={handleNext}
                         disabled={!nextPeriod}
-                        className="p-1 rounded bg-transparent hover:bg-white/10 disabled:opacity-30 transition"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
                         title="Next Period"
+                        aria-label="Show next period"
                     >
-                        <ChevronRight className="w-3 h-3" />
+                        <ChevronRight className="h-3.5 w-3.5" />
                     </button>
                 </div>
+                {expandControl}
             </div>
 
-            {/* Row 2: Slim Progress Line */}
-            <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden mt-0.5 mb-0.5">
+            {/* Slim progress line */}
+            <div className="relative mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-100 shadow-inner">
                 <div
-                    className="h-full bg-white rounded-full transition-all duration-1000 ease-linear"
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 transition-all duration-1000 ease-linear"
                     style={{ width: `${clampedPct}%` }}
                 />
             </div>
 
-            {/* Row 3: Active Subjects Array (Glassmorphic Badges) */}
-            {activeSubjectCards.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-white/10">
+            {/* Compact class and subject list */}
+            <div className="mt-2 flex min-h-6 flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2">
+                {activeSubjectCards.length > 0 ? (
+                    <>
                     {activeSubjectCards.map((sc, idx) => (
                         <div 
                             key={`${sc.id}-${idx}`} 
-                            className="bg-white/10 border border-white/15 rounded px-2 py-0.5 flex items-center gap-1 text-[9px] font-bold tracking-tight hover:bg-white/15 transition-all shadow-sm"
+                            className="inline-flex min-h-6 items-center gap-1 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2 py-0.5 text-[10px] font-bold tracking-tight text-slate-700 transition-colors hover:border-indigo-200 hover:bg-indigo-50"
                         >
-                            <span className="opacity-90">{sc.classCode}</span>
-                            <span className="opacity-40 select-none">·</span>
-                            <span className="opacity-95">{sc.subjectCode}</span>
+                            <span className="text-indigo-700">{sc.classCode}</span>
+                            <span className="select-none text-indigo-300">·</span>
+                            <span>{sc.subjectCode}</span>
                         </div>
                     ))}
-                </div>
-            )}
-        </div>
+                    </>
+                ) : (
+                    <span className="text-[10px] font-medium text-slate-400">No lessons assigned for this period.</span>
+                )}
+                {nextPeriod && (
+                    <span className="ml-auto whitespace-nowrap text-[9px] font-semibold text-slate-400">
+                        Next {nextPeriod.type === "lesson" ? `L${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)} · {nextPeriod.startTime}
+                    </span>
+                )}
+            </div>
+            {expandedPanel}
+        </article>
     );
 }

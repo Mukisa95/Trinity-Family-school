@@ -10,8 +10,10 @@ import { Loader2, CalendarDays, AlignJustify } from "lucide-react";
 import { format, parse } from "date-fns";
 import { TimetableGrid } from "@/components/timetable/TimetableGrid";
 import { PrintableTimetable } from "@/components/timetable/PrintableTimetable";
+import { TimetablePrintClassDialog } from "@/components/timetable/TimetablePrintClassDialog";
 import type { TimetableEntry, GeneratedPeriod, Class, Subject, Staff, TimetableProfile } from "@/types";
 import { buildTimetableClassRowsForDay, findTimetableEntryForRow, getTimetableClassColumnWidth, getTimetableStreamMode } from "@/lib/utils/timetable-streams";
+import { filterTimetablePrintData } from "@/lib/utils/timetable-print";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const DAYS = [
@@ -597,6 +599,8 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
     const [viewMode, setViewMode] = React.useState<ViewMode>("day");
     const [filterMode, setFilterMode] = React.useState<FilterMode>("all");
     const [filterId, setFilterId] = React.useState<string>("");
+    const [isPrintSelectorOpen, setIsPrintSelectorOpen] = React.useState(false);
+    const [printClassIds, setPrintClassIds] = React.useState<string[]>([]);
     const [isPrinting, setIsPrinting] = React.useState(false);
 
     const { data: periods = [], isLoading: pl } = useTimetablePeriods(yearId, termId, profileId);
@@ -629,6 +633,11 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
         }
         return [...classes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     }, [currentProfile, entries, classes]);
+
+    const printableData = React.useMemo(
+        () => filterTimetablePrintData(profileClasses, entries, printClassIds),
+        [entries, printClassIds, profileClasses],
+    );
 
     // Reset filterId when filterMode changes
     React.useEffect(() => { setFilterId(""); }, [filterMode]);
@@ -781,11 +790,22 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 mobileControlTargets.filterValue,
             )}
 
-            {isPrinting && (
+            <TimetablePrintClassDialog
+                open={isPrintSelectorOpen}
+                onOpenChange={setIsPrintSelectorOpen}
+                classes={profileClasses}
+                timetableName={profileName || currentProfile?.name}
+                onPrint={classIds => {
+                    setPrintClassIds(classIds);
+                    setIsPrinting(true);
+                }}
+            />
+
+            {isPrinting && printableData.classes.length > 0 && (
                 <PrintableTimetable 
-                    entries={entries}
+                    entries={printableData.entries}
                     periods={periods}
-                    classes={profileClasses}
+                    classes={printableData.classes}
                     subjects={subjects}
                     staffList={staffList}
                     academicYearId={yearId}
@@ -795,7 +815,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
                 />
             )}
 
-            <button id="hidden-print-btn" className="hidden" onClick={() => setIsPrinting(true)} />
+            <button id="hidden-print-btn" className="hidden" onClick={() => setIsPrintSelectorOpen(true)} />
 
             {/* ── Unified Control Toolbar ── */}
             <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden ${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
