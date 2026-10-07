@@ -248,22 +248,20 @@ test('timetable live-feed cards stay compact and form two columns on wide screen
   assert.match(tracker, /Show previous period/);
   assert.match(tracker, /Show next period/);
   assert.match(tracker, /rounded-2xl border bg-white/);
-  assert.match(page, /grid grid-cols-1 items-start gap-2 xl:grid-cols-2/);
+  assert.match(page, /grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2/);
 });
 
-test('each live-feed card expands to reveal its own timetable', () => {
+test('live-feed cards remain above the timetable and switch the standalone panel', () => {
   const tracker = readFileSync('src/components/timetable/LiveTracker.tsx', 'utf8');
   const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
 
-  assert.match(tracker, /aria-expanded=\{expanded\}/);
-  assert.match(tracker, /aria-controls=\{panelId\}/);
-  assert.match(tracker, /role="region"/);
-  assert.match(tracker, /\{expandedPanel\}/);
-  assert.match(page, /className=\{isExpanded \? "xl:col-span-2" : ""\}/);
-  assert.match(page, /expanded=\{isExpanded\}/);
-  assert.match(page, /onExpand=\{\(\) => \{/);
-  assert.match(page, /setExpandedProfileId\(null\)/);
-  assert.match(page, /setExpandedProfileId\(p\.id\)/);
-  assert.match(page, /\{isExpanded && \(/);
+  assert.match(tracker, /aria-pressed=\{selected\}/);
+  assert.match(tracker, /aria-controls="selected-timetable-panel"/);
+  assert.doesNotMatch(tracker, /expandedPanel/);
+  assert.match(page, /selected=\{isSelected\}/);
+  assert.match(page, /onSelect=\{\(\) => \{/);
+  assert.match(page, /setSelectedProfileId\(p\.id\)/);
+  assert.match(page, /id="selected-timetable-panel"/);
   assert.match(page, /<TimetableViewPanel/);
+  assert.doesNotMatch(page, /xl:col-span-2/);
 });
