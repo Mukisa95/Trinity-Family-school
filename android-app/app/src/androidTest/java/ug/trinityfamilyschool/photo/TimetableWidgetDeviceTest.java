@@ -38,23 +38,58 @@ public class TimetableWidgetDeviceTest {
         Context context=ApplicationProvider.getApplicationContext();
         android.app.Notification card=TimetableSurfaces.card(context,new JSONObject(),fixture(),987601);
         assertTrue((card.flags & android.app.Notification.FLAG_ONGOING_EVENT)!=0);
-        assertNotNull(card.bigContentView); assertNotNull(card.contentView);
+        assertNull("Two timetables have no separate expanded layout",card.bigContentView); assertNotNull(card.contentView);
         assertEquals("School timetables",card.extras.getString(android.app.Notification.EXTRA_TITLE));
+        android.util.Log.i("TrinityTimetableQA", "two_table_system_expansion=" + (android.app.Notification.Builder.recoverBuilder(context, card).createBigContentView() != null));
         java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                View view=card.bigContentView.apply(context,new FrameLayout(context));
-                card.bigContentView.reapply(context, view);
-                LinearLayout profiles=view.findViewById(R.id.notification_profiles); assertEquals("Refresh replaces the previous rows",2,profiles.getChildCount());
-                View row=profiles.getChildAt(0); assertEquals("L2",((TextView)row.findViewById(R.id.current_lesson)).getText().toString());
-                assertEquals(View.VISIBLE,row.findViewById(R.id.period_countdown).getVisibility());
-                assertTrue(((Chronometer)row.findViewById(R.id.period_countdown)).isCountDown());
+                View view=card.contentView.apply(context,new FrameLayout(context));
+                card.contentView.reapply(context, view);
+                LinearLayout profiles=view.findViewById(R.id.mini_profiles); assertEquals("Refresh replaces the previous rows",2,profiles.getChildCount());
+                View row=profiles.getChildAt(0); assertTrue(((TextView)row.findViewById(R.id.mini_label)).getText().toString().contains("Upper Primary"));
+                assertTrue(((TextView)row.findViewById(R.id.mini_summary)).getText().toString().contains("P1 ENG"));
                 assertTrue(row.findViewById(R.id.previous_period).hasOnClickListeners());
-                assertTrue(((ViewGroup)row.findViewById(R.id.pills_container)).getChildAt(0).findViewById(R.id.lesson_pill).hasOnClickListeners());
+                int width=Math.round(355*context.getResources().getDisplayMetrics().density); view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+                assertTrue("Both collapsed rows fit Android's 48dp content limit",view.getMeasuredHeight()<=48*context.getResources().getDisplayMetrics().density+1);
+                TimetableSchedule.Frame three=fixture();three.profiles.add(fixture().profiles.get(0));android.app.Notification expanded=TimetableSurfaces.card(context,new JSONObject(),three,987602);assertNotNull(expanded.bigContentView);
+                View full=expanded.bigContentView.apply(context,new FrameLayout(context));assertEquals(3,((LinearLayout)full.findViewById(R.id.notification_profiles)).getChildCount());
+                assertEquals(View.VISIBLE,full.findViewById(R.id.period_countdown).getVisibility());assertTrue(full.findViewById(R.id.lesson_pill).hasOnClickListeners());
             } catch(Throwable error) { failure.set(error); }
         });
         if(failure.get()!=null) throw new AssertionError(failure.get());
         if(card.contentIntent!=null)card.contentIntent.cancel();
+    }
+    @Test public void oneRowHeightWidgetKeepsFirstProfileVisibleAndScrollsToTheSecond() throws Exception {
+        Context context=ApplicationProvider.getApplicationContext();java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {try{
+            for(boolean progress:new boolean[]{false,true}){
+                android.appwidget.AppWidgetHostView host=new android.appwidget.AppWidgetHostView(context);
+                android.appwidget.AppWidgetProviderInfo info=android.appwidget.AppWidgetManager.getInstance(context).getInstalledProviders().stream().filter(provider->provider.provider.equals(new android.content.ComponentName(context,TimetableWidget.class))).findFirst().orElseThrow();
+                assertTrue(info.minResizeHeight<=80*context.getResources().getDisplayMetrics().density+1);host.setAppWidget(987600,info);
+                View view=TimetableSurfaces.shortWidget(context,987600,fixture(),progress,R.layout.timetable_widget).apply(context,host);
+                float density=context.getResources().getDisplayMetrics().density;int width=Math.round(355*density),height=Math.round(80*density);
+                view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));view.layout(0,0,width,height);
+                ListView list=view.findViewById(R.id.feed_list);assertEquals(2,list.getAdapter().getCount());assertEquals(View.GONE,view.findViewById(R.id.widget_header).getVisibility());
+                assertNotNull(list.getChildAt(0));assertTrue("First complete profile fits",list.getChildAt(0).getBottom()<=list.getHeight());
+                list.scrollListBy(list.getHeight());assertTrue("Overflow content remains scrollable",list.getLastVisiblePosition()==1);
+                assertTrue("The second profile can be fully revealed",list.getChildAt(list.getChildCount()-1).getBottom()<=list.getHeight()+1);
+            }
+        }catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new AssertionError(failure.get());
+    }
+    @Test public void visibilityDefaultsApplyToWidgetsUnlessTheyHaveTheirOwnSelection() throws Exception {
+        Context context=ApplicationProvider.getApplicationContext();android.content.SharedPreferences prefs=TimetableSurfaces.prefs(context);
+        boolean hadGlobal=prefs.contains("hiddenTables");java.util.Set<String> original=new java.util.HashSet<>(prefs.getStringSet("hiddenTables",java.util.Collections.emptySet()));
+        String local=TimetableSurfaces.prefix(987660)+"hiddenTables";
+        try {
+            JSONObject envelope=new OfflineStore(context).timetableAvailable();assertNotNull(envelope);
+            java.time.ZonedDateTime now=java.time.ZonedDateTime.now(java.time.ZoneId.of(envelope.getJSONObject("session").optString("timeZone","Africa/Kampala")));
+            TimetableSchedule.Frame all=TimetableSchedule.feed(envelope.getJSONObject("snapshot").getJSONObject("datasets"),now);assertTrue(all.profiles.size()>=2);
+            prefs.edit().putStringSet("hiddenTables",java.util.Set.of(all.profiles.get(0).profileId)).commit();
+            assertEquals(all.profiles.size()-1,TimetableSurfaces.feed(context,envelope,-1,now).profiles.size());
+            assertEquals(all.profiles.size()-1,TimetableSurfaces.feed(context,envelope,987660,now).profiles.size());
+            prefs.edit().putStringSet(local,java.util.Collections.emptySet()).commit();assertEquals(all.profiles.size(),TimetableSurfaces.feed(context,envelope,987660,now).profiles.size());
+        } finally {android.content.SharedPreferences.Editor edit=prefs.edit().remove(local);if(hadGlobal)edit.putStringSet("hiddenTables",original);else edit.remove("hiddenTables");edit.commit();TimetableSurfaces.refresh(context,new OfflineStore(context));}
     }
     @Test public void darkLandscapeAndLargeTextKeepAccessibleControls() throws Exception {
         Context base=ApplicationProvider.getApplicationContext();

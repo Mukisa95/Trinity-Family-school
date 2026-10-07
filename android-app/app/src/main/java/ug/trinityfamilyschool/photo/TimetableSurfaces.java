@@ -17,14 +17,20 @@ final class TimetableSurfaces {
     static final int CARD_ID = 7201;
     static SharedPreferences prefs(Context context) { return context.getSharedPreferences("timetable-selection", Context.MODE_PRIVATE); }
     static String prefix(int id) { return id == AppWidgetManager.INVALID_APPWIDGET_ID ? "" : "widget-" + id + "."; }
+    static Set<String> hidden(Context context, int id) {
+        Set<String> global = prefs(context).getStringSet("hiddenTables", Collections.emptySet());
+        return new HashSet<>(prefs(context).getStringSet(prefix(id) + "hiddenTables", global));
+    }
     static JSONObject selection(Context context, int id) throws JSONException {
         return new JSONObject().put("progress", prefs(context).getBoolean(prefix(id) + "progress", true)).put("notificationCard", prefs(context).getBoolean("card", true));
     }
     static void select(Context context, OfflineStore store, JSONObject value, int widgetId) throws Exception {
         JSONObject envelope = store.timetableAvailable();
         if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open Trinity School to load your timetables.");
+        if (value.has("accountId") && !value.optString("accountId").equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Your account changed. Reopen timetable settings.");
         SharedPreferences.Editor edit = prefs(context).edit();
         edit.putBoolean(prefix(widgetId) + "progress", value.optBoolean("progress", true));
+        if (value.has("hiddenTables")) { Set<String> hidden = new HashSet<>(); JSONArray ids = value.optJSONArray("hiddenTables"); if (ids != null) for (int i = 0; i < ids.length(); i++) hidden.add(ids.optString(i)); edit.putStringSet(prefix(widgetId) + "hiddenTables", hidden); }
         edit.apply(); refresh(context, store);
     }
     static void deleteWidget(Context context, int id) {
@@ -67,6 +73,7 @@ final class TimetableSurfaces {
             for (Class<?> provider : new Class<?>[]{TimetableWidget.class, TimetableProgressWidget.class}) for (int id : manager.getAppWidgetIds(new ComponentName(context, provider))) {
                 boolean bar = prefs(context).getBoolean(prefix(id) + "progress", provider == TimetableProgressWidget.class);
                 TimetableSchedule.Frame widgetFrame = feed(context, envelope, id, now);
+                next = Math.min(next, widgetFrame.boundary);
                 if (surfaceId == null || surfaceId == id) renderWidget(context, manager, id, widgetFrame, bar);
                 progress |= bar && widgetFrame.active;
             }
@@ -77,6 +84,7 @@ final class TimetableSurfaces {
     }
     static TimetableSchedule.Frame feed(Context context, JSONObject envelope, int scope, ZonedDateTime now) throws Exception {
         TimetableSchedule.Frame frame = TimetableSchedule.feed(envelope.getJSONObject("snapshot").getJSONObject("datasets"), now, TimetableInteractions.offsets(context, scope, now));
+        TimetableVisibility.apply(frame, hidden(context, scope), now);
         frame.accountId = envelope.getJSONObject("session").optString("accountId");
         for (TimetableSchedule.Frame row : frame.profiles) row.accountId = frame.accountId;
         return frame;
@@ -96,25 +104,44 @@ final class TimetableSurfaces {
     }
     static Notification card(Context context, JSONObject ignored, TimetableSchedule.Frame frame, int contentId) {
         RemoteViews small = new RemoteViews(context.getPackageName(), R.layout.timetable_notification_small);
-        small.setTextViewText(R.id.notification_title, "School timetables");
-        StringBuilder summary = new StringBuilder();
-        for (TimetableSchedule.Frame row : frame.profiles) { if (summary.length() > 0) summary.append(" · "); summary.append(row.shortLabel.isEmpty() ? row.title : row.shortLabel).append(" ").append(row.time); }
-        small.setTextViewText(R.id.notification_summary, summary.toString());
-        RemoteViews big = new RemoteViews(context.getPackageName(), R.layout.timetable_notification);
-        big.removeAllViews(R.id.notification_profiles);
+        small.removeAllViews(R.id.mini_profiles);
+        for (int i = 0; i < Math.min(2, frame.profiles.size()); i++) small.addView(R.id.mini_profiles, collapsedProfile(context, frame.profiles.get(i)));
         boolean progress = prefs(context).getBoolean("progress", true);
-        for (TimetableSchedule.Frame row : frame.profiles) big.addView(R.id.notification_profiles, profileView(context, row, progress, AppWidgetManager.INVALID_APPWIDGET_ID, false, true));
         NotificationCompat.Builder card = new NotificationCompat.Builder(context, "timetable").setSmallIcon(R.drawable.school_icon).setContentTitle("School timetables")
-            .setContentText(frame.title + " · " + frame.time).setStyle(new NotificationCompat.DecoratedCustomViewStyle())
-            .setCustomContentView(small).setCustomBigContentView(big)
+            .setContentText(frame.title + " · " + frame.time).setCustomContentView(small)
             .setContentIntent(open(context, contentId)).setOngoing(true).setOnlyAlertOnce(true).setSilent(true)
             .setDeleteIntent(action(context, "HIDE", 73)).setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setShowWhen(false);
+        if (frame.profiles.size() > 2) {
+            RemoteViews big = new RemoteViews(context.getPackageName(), R.layout.timetable_notification); big.removeAllViews(R.id.notification_profiles);
+            for (TimetableSchedule.Frame row : frame.profiles) big.addView(R.id.notification_profiles, profileView(context, row, progress, AppWidgetManager.INVALID_APPWIDGET_ID, false, true));
+            card.setStyle(new NotificationCompat.DecoratedCustomViewStyle()).setCustomBigContentView(big);
+        }
         return card.build();
+    }
+    static RemoteViews collapsedProfile(Context context, TimetableSchedule.Frame row) {
+        RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.timetable_notification_row);
+        view.setTextViewText(R.id.mini_label, row.tableName + " · " + (row.shortLabel.isEmpty() ? row.title : row.shortLabel) + " · " + row.time);
+        StringBuilder subjects = new StringBuilder();
+        for (TimetableSchedule.Pill pill : row.pills) { if (subjects.length() > 0) subjects.append("  ·  "); subjects.append(pill.classCode).append(" ").append(pill.subjectCode); }
+        view.setTextViewText(R.id.mini_summary, subjects.length() == 0 ? row.title : subjects.toString());
+        view.setContentDescription(R.id.mini_label, row.tableName + " · " + row.title + " · " + row.time);
+        view.setViewVisibility(R.id.mini_summary, context.getResources().getConfiguration().fontScale > 1.2f ? View.GONE : View.VISIBLE);
+        view.setProgressBar(R.id.mini_progress, 100, row.progress, false);
+        view.setViewVisibility(R.id.mini_progress, prefs(context).getBoolean("progress", true) && (row.hasPeriod || row.active) ? View.VISIBLE : View.GONE);
+        view.setBoolean(R.id.previous_period, "setEnabled", row.hasPrevious); view.setBoolean(R.id.next_period, "setEnabled", row.hasNext);
+        view.setViewVisibility(R.id.live_reset, row.live ? View.GONE : View.VISIBLE);
+        click(context, view, R.id.previous_period, AppWidgetManager.INVALID_APPWIDGET_ID, row, "PREVIOUS", "", false);
+        click(context, view, R.id.next_period, AppWidgetManager.INVALID_APPWIDGET_ID, row, "NEXT", "", false);
+        click(context, view, R.id.live_reset, AppWidgetManager.INVALID_APPWIDGET_ID, row, "LIVE", "", false);
+        view.setOnClickPendingIntent(R.id.mini_label, open(context, 0)); view.setOnClickPendingIntent(R.id.mini_summary, open(context, 0));
+        return view;
     }
     static void renderWidget(Context context, AppWidgetManager manager, int id, TimetableSchedule.Frame frame, boolean progress) {
         RemoteViews views;
         if (Build.VERSION.SDK_INT >= 31) {
             Map<SizeF, RemoteViews> sizes = new LinkedHashMap<>();
+            sizes.put(new SizeF(180, 80), shortWidget(context, id, frame, progress, R.layout.timetable_widget_compact));
+            sizes.put(new SizeF(250, 80), shortWidget(context, id, frame, progress, R.layout.timetable_widget));
             sizes.put(new SizeF(180, 120), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget_compact));
             sizes.put(new SizeF(250, 120), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget));
             sizes.put(new SizeF(250, 250), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget));
@@ -123,11 +150,15 @@ final class TimetableSurfaces {
         } else {
             android.os.Bundle options = manager.getAppWidgetOptions(id); int height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 250), width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
             views = widgetView(context, id, new JSONObject(), frame, progress, height >= 280 && width >= 300 ? R.layout.timetable_widget_large : width >= 250 ? R.layout.timetable_widget : R.layout.timetable_widget_compact);
+            if (height < 110) views.setViewVisibility(R.id.widget_header, View.GONE);
         }
         manager.updateAppWidget(id, views);
         if (Build.VERSION.SDK_INT < 31) manager.notifyAppWidgetViewDataChanged(id, R.id.feed_list);
     }
     static RemoteViews profileView(Context context, TimetableSchedule.Frame frame, boolean progress) { return profileView(context, frame, progress, 987600, false, false); }
+    static RemoteViews shortWidget(Context context, int id, TimetableSchedule.Frame frame, boolean progress, int layout) {
+        RemoteViews view = widgetView(context, id, new JSONObject(), frame, progress, layout); view.setViewVisibility(R.id.widget_header, View.GONE); return view;
+    }
     static RemoteViews profileView(Context context, TimetableSchedule.Frame frame, boolean progress, int scope, boolean compact, boolean notification) {
         RemoteViews row = new RemoteViews(context.getPackageName(), compact ? R.layout.timetable_feed_row_compact : R.layout.timetable_feed_row);
         row.removeAllViews(R.id.pills_container);
@@ -185,8 +216,11 @@ final class TimetableSurfaces {
     }
     static RemoteViews widgetView(Context context, int id, JSONObject ignored, TimetableSchedule.Frame frame, boolean progress, int layout) {
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
+        views.setOnClickPendingIntent(R.id.widget_root, open(context, id));
         views.setOnClickPendingIntent(R.id.widget_title, open(context, id));
-        views.setTextViewText(R.id.feed_empty, "Open Trinity School to load timetables"); views.setEmptyView(R.id.feed_list, R.id.feed_empty);
+        views.setTextViewText(R.id.feed_empty, frame.accountId.isEmpty() ? "Open Trinity School to load timetables" : "No timetables shown. Change timetable settings."); views.setEmptyView(R.id.feed_list, R.id.feed_empty);
+        views.setTextViewText(R.id.widget_title, "School timetables");
+        views.setOnClickPendingIntent(R.id.feed_empty, PendingIntent.getActivity(context, 9100 + id, new Intent(context, TimetableSettingsActivity.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         Intent template = new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT").addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             .putExtra("surfaceId", id).putExtra("accountId", frame.accountId).setData(android.net.Uri.parse("trinity-timetable://widget/" + id + "/" + android.net.Uri.encode(frame.accountId)));
         views.setPendingIntentTemplate(R.id.feed_list, PendingIntent.getBroadcast(context, id, template, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));

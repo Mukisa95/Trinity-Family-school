@@ -1,0 +1,10 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="24dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="2dp">
+ <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical">
+  <TextView android:id="@+id/mini_label" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center_vertical" android:textSize="10sp" android:textStyle="bold" android:textColor="#1F2937" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end"/>
+  <TextView android:id="@+id/mini_summary" android:layout_width="match_parent" android:layout_height="12dp" android:gravity="center_vertical" android:textSize="10sp" android:textColor="#4F46E5" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end"/>
+  <ProgressBar android:id="@+id/mini_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="1dp" android:progressTint="#10B981" android:progressBackgroundTint="#E5E7EB"/>
+ </LinearLayout>
+ <ImageButton android:id="@+id/previous_period" android:layout_width="24dp" android:layout_height="24dp" android:padding="5dp" android:src="@drawable/chevron_left" android:background="@drawable/nav_background" android:contentDescription="Previous period"/>
+ <TextView android:id="@+id/live_reset" android:layout_width="28dp" android:layout_height="24dp" android:text="Live" android:gravity="center" android:textSize="10sp" android:textStyle="bold" android:textColor="#B45309" android:background="@drawable/nav_background" android:visibility="gone" android:contentDescription="Return to live period"/>
+ <ImageButton android:id="@+id/next_period" android:layout_width="24dp" android:layout_height="24dp" android:padding="5dp" android:src="@drawable/chevron_right" android:background="@drawable/nav_background" android:contentDescription="Next period"/>
+</LinearLayout>

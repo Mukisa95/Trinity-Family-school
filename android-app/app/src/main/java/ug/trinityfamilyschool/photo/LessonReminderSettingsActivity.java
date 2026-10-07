@@ -21,6 +21,7 @@ public final class LessonReminderSettingsActivity extends Activity {
     private OfflineStore store; private JSONObject envelope, datasets; private String account = "";
     private LessonReminderPlan.Settings draft; private JSONObject restored; private boolean dark, loaded;
     private String restoredAccount = ""; private volatile int previewVersion;
+    private final Map<String, Button> filterControls = new LinkedHashMap<>();
     @Override public void onCreate(Bundle state) {
         dark = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         setTheme(dark ? android.R.style.Theme_Material_NoActionBar : android.R.style.Theme_Material_Light_NoActionBar);
@@ -82,7 +83,7 @@ public final class LessonReminderSettingsActivity extends Activity {
         toggle("Include scheduled activities", draft.activities, value -> draft.activities = value);
         toggle("Include breaks and lunch", draft.breaks, value -> draft.breaks = value);
         label("Breaks follow your timetable and class filters. Subject and teacher filters apply to lessons and activities.", 13);
-        section("Which lessons"); label("Choose All or any combination. A lesson must match every filter; choosing none disables that category.", 13);
+        section("Which lessons"); label("Choices narrow as you select a timetable, class, subject and teacher. All means all matching choices. Incompatible selections below your choice reset to All; None stays None.", 13);
         filter("Timetables", "timetables", () -> draft.tables, value -> draft.tables = value);
         filter("Classes", "classes", () -> draft.classes, value -> draft.classes = value);
         filter("Subjects", "subjects", () -> draft.subjects, value -> draft.subjects = value);
@@ -114,34 +115,22 @@ public final class LessonReminderSettingsActivity extends Activity {
             LessonReminders.test(this, draft); android.widget.Toast.makeText(this, "Test notification sent.", Toast.LENGTH_SHORT).show();
         });
         section("Upcoming reminders"); preview = label("", 14); updatePreview();
-        label("Preview uses your choices below before saving. Simultaneous lessons share one alert. Very late alerts are skipped.", 13);
+        label("Preview uses your current choices before saving. Simultaneous lessons share one alert. Very late alerts are skipped.", 13);
         message = label("", 14); message.setVisibility(View.GONE);
         save = button("Save reminder settings"); save.setOnClickListener(view -> save());
     }
     private interface Selection { Set<String> get(); }
     private void filter(String title, String dataset, Selection get, java.util.function.Consumer<Set<String>> put) {
-        Button control = button("");
-        Runnable caption = () -> control.setText(title + " · " + (get.get() == null ? "All" : get.get().isEmpty() ? "None" : get.get().size() + " selected")); caption.run();
+        Button control = button(""); control.setTag(title); filterControls.put(dataset, control); updateFilterCaptions();
         control.setOnClickListener(view -> {
-            JSONArray rows = LessonReminderPlan.rows(datasets, dataset); List<String> ids = new ArrayList<>(), labels = new ArrayList<>();
-            if (dataset.equals("periods")) {
-                JSONArray tables = LessonReminderPlan.rows(datasets, "timetables"); String[] days = {"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-                for (int t = 0; t < tables.length(); t++) { JSONObject table = tables.optJSONObject(t); if (table == null) continue; JSONObject profile = table.optJSONObject("profile"); JSONArray periods = table.optJSONArray("periods"); if (profile == null || periods == null) continue;
-                    for (int p = 0; p < periods.length(); p++) { JSONObject period = periods.optJSONObject(p); if (period == null) continue; int day = period.optInt("dayOfWeek"); if (day < 1 || day > 7) continue;
-                        ids.add(profile.optString("id") + "|" + period.optString("id")); labels.add(profile.optString("name", "Timetable") + " · " + days[day] + " · " + period.optString("startTime") + "–" + period.optString("endTime") + " · " + ("lesson".equals(period.optString("type")) ? "Lesson " + period.optInt("periodNumber") : period.optString("customLabel", period.optString("type"))));
-                    }
-                }
-            }
-            for (int i = 0; i < rows.length(); i++) { JSONObject row = rows.optJSONObject(i); if (row == null) continue;
-                if (dataset.equals("timetables")) row = row.optJSONObject("profile"); if (row == null) continue;
-                String id = row.optString("id"); if (id.isEmpty()) continue; ids.add(id);
-                labels.add(row.optString("name", (row.optString("firstName") + " " + row.optString("lastName")).trim()));
-            }
-            String[] options = new String[labels.size()+1]; options[0] = "All " + title.toLowerCase(Locale.US) + " (including future additions)";
+            LinkedHashMap<String, String> available = LessonReminderFilters.choices(datasets, draft, dataset);
+            List<String> ids = new ArrayList<>(available.keySet()), labels = new ArrayList<>(available.values());
+            if (ids.isEmpty()) { new AlertDialog.Builder(this).setTitle(title).setMessage("No matching choices. Change the filters above this one.").setPositiveButton("OK", null).show(); return; }
+            String[] options = new String[labels.size()+1]; options[0] = "All matching " + title.toLowerCase(Locale.US);
             for (int i = 0; i < labels.size(); i++) options[i+1] = labels.get(i);
             boolean[] selected = new boolean[options.length]; selected[0] = get.get() == null;
             for (int i = 0; i < ids.size(); i++) selected[i+1] = get.get() != null && get.get().contains(ids.get(i));
-            // Keep selected IDs that disappeared from the cache; don't silently broaden a filter.
+            // Existing selections survive merely opening a dialog; upstream changes reconcile them.
             Set<String> missing = get.get() == null ? new LinkedHashSet<>() : new LinkedHashSet<>(get.get()); missing.removeAll(ids);
             AlertDialog dialog = new AlertDialog.Builder(this).setTitle(title).setMultiChoiceItems(options, selected, (popup, index, on) -> {
                 selected[index] = on; ListView list = ((AlertDialog) popup).getListView();
@@ -149,9 +138,15 @@ public final class LessonReminderSettingsActivity extends Activity {
                 else if (index > 0 && on) { selected[0] = false; list.setItemChecked(0, false); }
             }).setPositiveButton("Apply", (popup, which) -> {
                 Set<String> value = new LinkedHashSet<>(missing); for (int i = 0; i < ids.size(); i++) if (selected[i+1]) value.add(ids.get(i));
-                put.accept(selected[0] ? null : value); caption.run(); updatePreview();
-            }).setNeutralButton("None", (popup, which) -> { put.accept(new LinkedHashSet<>()); caption.run(); updatePreview(); }).setNegativeButton("Cancel", null).create(); dialog.show();
+                put.accept(selected[0] ? null : value); LessonReminderFilters.reconcile(datasets, draft, dataset); updateFilterCaptions(); updatePreview();
+            }).setNeutralButton("None", (popup, which) -> { put.accept(new LinkedHashSet<>()); LessonReminderFilters.reconcile(datasets, draft, dataset); updateFilterCaptions(); updatePreview(); }).setNegativeButton("Cancel", null).create(); dialog.show();
         });
+    }
+    private void updateFilterCaptions() {
+        for (Map.Entry<String, Button> control : filterControls.entrySet()) {
+            Set<String> selected = LessonReminderFilters.selected(draft, control.getKey()); int available = LessonReminderFilters.choices(datasets, draft, control.getKey()).size();
+            control.getValue().setText(control.getValue().getTag() + " · " + (selected == null ? "All" : selected.isEmpty() ? "None" : selected.size() + " selected") + " (" + available + " available)");
+        }
     }
     private void timeButton(String title, boolean start) {
         Button button = button(title + " · " + (start ? draft.quietStart : draft.quietEnd));
@@ -162,6 +157,7 @@ public final class LessonReminderSettingsActivity extends Activity {
     }
     private void updatePreview() {
         if (preview == null || draft == null) return;
+        updateFilterCaptions();
         final LessonReminderPlan.Settings choices;
         try { choices = new LessonReminderPlan.Settings(draft.json()); } catch (Exception ignored) { return; }
         int version = ++previewVersion; updateStatus();

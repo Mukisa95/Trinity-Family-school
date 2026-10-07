@@ -13,10 +13,11 @@ import java.util.concurrent.*;
 /** Optional appearance controls for the all-timetables feed. */
 public final class TimetableSettingsActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-    private OfflineStore store; private JSONObject datasets;
+    private OfflineStore store; private JSONObject datasets; private String accountId = "";
     private int widgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
     private LinearLayout content; private Switch progress;
     private final List<String> tableIds = new ArrayList<>();
+    private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
     private TextView message; private Button apply;
     @Override public void onCreate(Bundle state) {
         boolean dark = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
@@ -32,14 +33,15 @@ public final class TimetableSettingsActivity extends Activity {
         int inset = dp(20); SystemBars.install(this, scroll); SystemBars.apply(this, scroll, dark);
         content.setPadding(inset, inset, inset, inset); scroll.addView(content); setContentView(scroll);
         TextView title = label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Timetable card" : "Timetable widget"); title.setTextSize(26);
-        label("All timetables and classes appear automatically.");
+        label(widgetId == AppWidgetManager.INVALID_APPWIDGET_ID ? "Choose timetables for the notification card and widgets using the default selection." : "Choose timetables for this widget.");
         button("Lesson reminder settings").setOnClickListener(view -> startActivity(new Intent(this, LessonReminderSettingsActivity.class)));
         message = label("Loading timetable…");
         io.execute(() -> {
             try {
-                JSONObject envelope = store.available();
+                JSONObject envelope = store.timetableAvailable();
                 if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open Trinity School and sign in online to load your timetable.");
                 datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets");
+                accountId = envelope.getJSONObject("session").getString("accountId"); hidden = TimetableSurfaces.hidden(this, widgetId);
                 runOnUiThread(() -> { if (!isDestroyed()) form(); });
             } catch (Exception error) { runOnUiThread(() -> {
                 if (isDestroyed()) return; message.setText(error.getMessage());
@@ -56,6 +58,12 @@ public final class TimetableSettingsActivity extends Activity {
             if (tables != null) for (int i = 0; i < tables.length(); i++) { JSONObject row = tables.getJSONObject(i); if (!row.optBoolean("complete")) continue; tableIds.add(row.getJSONObject("profile").getString("id")); names.add(row.getJSONObject("profile").optString("name", "Timetable")); }
             if (tableIds.isEmpty()) { message.setText("Connect and open the timetable page to load the class schedules."); Button open = button("Open timetable"); open.setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class).putExtra("onlineRoute", PhotoPolicy.ORIGIN + "/timetable")); finish(); }); return; }
             message.setVisibility(View.GONE);
+            label("Timetables to show");
+            for (int i = 0; i < tableIds.size(); i++) {
+                CheckBox check = new CheckBox(this); check.setText(names.get(i)); check.setMinHeight(dp(48)); check.setChecked(!hidden.contains(tableIds.get(i))); content.addView(check); visibility.put(tableIds.get(i), check);
+            }
+            Button showAll = button("Show all timetables"); showAll.setOnClickListener(view -> { for (CheckBox check : visibility.values()) check.setChecked(true); });
+            label("Display choices do not change lesson reminder subscriptions.");
             progress = new Switch(this); progress.setText("Show lesson progress"); progress.setMinHeight(dp(48));
             android.appwidget.AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId);
             boolean defaultProgress = widgetId == AppWidgetManager.INVALID_APPWIDGET_ID || (info != null && TimetableProgressWidget.class.getName().equals(info.provider.getClassName()));
@@ -69,6 +77,9 @@ public final class TimetableSettingsActivity extends Activity {
     private void apply() {
         try {
             JSONObject selected = new JSONObject();
+            Set<String> chosenHidden = new HashSet<>(hidden);
+            for (Map.Entry<String, CheckBox> choice : visibility.entrySet()) { if (choice.getValue().isChecked()) chosenHidden.remove(choice.getKey()); else chosenHidden.add(choice.getKey()); }
+            selected.put("accountId", accountId).put("hiddenTables", new JSONArray(chosenHidden));
             if (progress != null) selected.put("progress", progress.isChecked());
             apply.setEnabled(false); message.setVisibility(View.VISIBLE); message.setText("Updating…");
             io.execute(() -> {
