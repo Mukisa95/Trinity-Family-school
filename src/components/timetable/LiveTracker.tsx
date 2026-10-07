@@ -4,7 +4,7 @@ import * as React from "react";
 import { useTimetablePeriods, useTimetableEntries, useTimetableProfiles } from "@/lib/hooks/use-timetable";
 import { useClasses } from "@/lib/hooks/use-classes";
 import { useSubjects } from "@/lib/hooks/use-subjects";
-import { Clock, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { getTimetableStreamInitial } from "@/lib/utils/timetable-streams";
 
@@ -14,9 +14,8 @@ interface LiveTrackerProps {
     profileId: string;
     profileName?: string;
     liveEnabled?: boolean;
-    expanded?: boolean;
-    onExpand?: () => void;
-    children?: React.ReactNode;
+    selected?: boolean;
+    onSelect?: () => void;
 }
 
 function parseTimeToMins(t: string): number {
@@ -30,9 +29,8 @@ export function LiveTracker({
     profileId,
     profileName,
     liveEnabled = true,
-    expanded = false,
-    onExpand,
-    children,
+    selected = false,
+    onSelect,
 }: LiveTrackerProps) {
     const { data: profiles = [] } = useTimetableProfiles(yearId, termId);
     const profile = profiles.find(p => p.id === profileId);
@@ -88,43 +86,31 @@ export function LiveTracker({
     const nextPeriod = todayPeriods[viewingIndex + 1];
     const prevPeriod = todayPeriods[viewingIndex - 1];
 
-    const panelId = `timetable-panel-${profileId}`;
     const timetableLabel = profileName || profile?.name || "Timetable";
-    const expandControl = onExpand ? (
+    const selectionControl = onSelect ? (
         <button
             type="button"
             onClick={(event) => {
                 event.stopPropagation();
-                onExpand();
+                onSelect();
             }}
-            aria-expanded={expanded}
-            aria-controls={panelId}
-            className={`inline-flex h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-[9px] font-extrabold uppercase tracking-wide transition-colors ${expanded
+            aria-pressed={selected}
+            aria-controls="selected-timetable-panel"
+            className={`inline-flex h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-[9px] font-extrabold uppercase tracking-wide transition-colors ${selected
                 ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                 : "border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
             }`}
         >
-            <span>{expanded ? "Timetable shown" : "View timetable"}</span>
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            <span>{selected ? "Timetable shown" : "View timetable"}</span>
+            {selected ? <Check className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </button>
     ) : null;
 
-    const expandedPanel = expanded && children ? (
-        <div
-            id={panelId}
-            role="region"
-            aria-label={`${timetableLabel} timetable`}
-            className="mt-3 animate-in border-t border-slate-200/80 pt-3 fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none"
-        >
-            {children}
-        </div>
-    ) : null;
-
-    const handleCardExpand = (event: React.MouseEvent<HTMLElement>) => {
-        if (expanded || !onExpand) return;
+    const handleCardSelect = (event: React.MouseEvent<HTMLElement>) => {
+        if (selected || !onSelect) return;
         const target = event.target as HTMLElement;
         if (target.closest("button, a, input, select, textarea")) return;
-        onExpand();
+        onSelect();
     };
 
     if (!liveEnabled || !activePeriod) {
@@ -133,14 +119,16 @@ export function LiveTracker({
             ? nextPeriod
                 ? `Next: ${nextPeriod.type === 'lesson' ? `Lesson ${nextPeriod.periodNumber}` : (nextPeriod.customLabel || nextPeriod.type)} at ${nextPeriod.startTime}`
                 : "All classes finished for today."
-            : "Open this card to view and manage its timetable.";
+            : selected
+                ? "This timetable is shown below."
+                : "Select this card to view and manage its timetable.";
         return (
             <section
-                onClick={handleCardExpand}
-                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all ${expanded
+                onClick={handleCardSelect}
+                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all ${selected
                     ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)]"
                     : "border-amber-200/80 hover:border-indigo-200 hover:shadow-[0_10px_28px_rgba(79,70,229,0.09)]"
-                } ${!expanded && onExpand ? "cursor-pointer" : ""}`}
+                } ${!selected && onSelect ? "cursor-pointer" : ""}`}
             >
                 <div className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${liveEnabled ? "from-amber-400 to-orange-500" : "from-indigo-500 to-violet-500"}`} />
                 <div className="flex min-h-[52px] items-center gap-3">
@@ -164,9 +152,8 @@ export function LiveTracker({
                             {statusDescription}
                         </span>
                     </div>
-                    {expandControl}
+                    {selectionControl}
                 </div>
-                {expandedPanel}
             </section>
         );
     }
@@ -227,11 +214,11 @@ export function LiveTracker({
 
     return (
         <article
-            onClick={handleCardExpand}
-            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2.5 pl-3.5 text-slate-800 transition-all sm:p-3 sm:pl-4 ${expanded
+            onClick={handleCardSelect}
+            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2.5 pl-3.5 text-slate-800 transition-all sm:p-3 sm:pl-4 ${selected
                 ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)]"
                 : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-indigo-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)]"
-            } ${!expanded && onExpand ? "cursor-pointer" : ""}`}
+            } ${!selected && onSelect ? "cursor-pointer" : ""}`}
         >
             <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-indigo-500 via-violet-500 to-purple-500" />
 
@@ -300,7 +287,7 @@ export function LiveTracker({
                         <ChevronRight className="h-3.5 w-3.5" />
                     </button>
                 </div>
-                {expandControl}
+                {selectionControl}
             </div>
 
             {/* Slim progress line */}
@@ -335,7 +322,6 @@ export function LiveTracker({
                     </span>
                 )}
             </div>
-            {expandedPanel}
         </article>
     );
 }

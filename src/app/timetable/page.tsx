@@ -59,7 +59,6 @@ export default function TimetablePage() {
 
     // Default to first profile if available
     const [selectedProfileId, setSelectedProfileId] = React.useState<string | null>(null);
-    const [expandedProfileId, setExpandedProfileId] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         if (profiles.length > 0 && !profiles.some(profile => profile.id === selectedProfileId)) {
@@ -68,18 +67,6 @@ export default function TimetablePage() {
             setSelectedProfileId(null);
         }
     }, [profiles, selectedProfileId]);
-
-    React.useEffect(() => {
-        if (profiles.length === 0) {
-            setExpandedProfileId(null);
-            return;
-        }
-        if (expandedProfileId && !profiles.some(profile => profile.id === expandedProfileId)) {
-            setExpandedProfileId(profiles[0].id);
-        } else if (!expandedProfileId && !selectedProfileId) {
-            setExpandedProfileId(profiles[0].id);
-        }
-    }, [expandedProfileId, profiles, selectedProfileId]);
 
     const activeProfile = profiles.find(p => p.id === selectedProfileId) || profiles[0];
 
@@ -229,7 +216,6 @@ export default function TimetablePage() {
                                         key={profile.id}
                                         onClick={() => {
                                             setSelectedProfileId(profile.id);
-                                            setExpandedProfileId(profile.id);
                                             setViewMode("single");
                                         }}
                                         className="cursor-pointer justify-between py-2 text-xs"
@@ -287,7 +273,6 @@ export default function TimetablePage() {
                                 key={profile.id}
                                 onClick={() => {
                                     setSelectedProfileId(profile.id);
-                                    setExpandedProfileId(profile.id);
                                     setViewMode('single');
                                 }}
                                 className={`px-3 py-0.5 rounded-full font-bold text-[10px] transition-all whitespace-nowrap flex-shrink-0 border ${
@@ -323,15 +308,11 @@ export default function TimetablePage() {
                                         label={viewMode === 'all' ? "Single" : "Combined"}
                                         icon={viewMode === 'all' ? <X className="h-4 w-4" /> : <TableProperties className="h-4 w-4" />}
                                         tone="purple"
-                                        onClick={() => setViewMode(prev => {
-                                            const nextMode = prev === 'all' ? 'single' : 'all';
-                                            if (nextMode === 'single' && activeProfile) setExpandedProfileId(activeProfile.id);
-                                            return nextMode;
-                                        })}
+                                        onClick={() => setViewMode(prev => prev === 'all' ? 'single' : 'all')}
                                     />
                                 </div>
                             )}
-                            {activeProfile && expandedProfileId === activeProfile.id && viewMode === 'single' && (
+                            {activeProfile && viewMode === 'single' && (
                                 <>
                                     <div id="timetable-mobile-view-control" className="flex shrink-0 items-center sm:hidden" />
                                     <div id="timetable-mobile-filter-control" className="flex shrink-0 items-center sm:hidden" />
@@ -452,43 +433,39 @@ export default function TimetablePage() {
                         </div>
                     ) : (
                         activeProfile && (
-                            <div className="grid grid-cols-1 items-start gap-2 xl:grid-cols-2">
-                                {profiles.map(p => {
-                                    const isExpanded = p.id === expandedProfileId;
-                                    return (
-                                        <div key={p.id} className={isExpanded ? "xl:col-span-2" : ""}>
+                            <>
+                                <div className="mb-2 grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2">
+                                    {profiles.map(p => {
+                                        const isSelected = p.id === activeProfile.id;
+                                        return (
                                             <LiveTracker
+                                                key={p.id}
                                                 yearId={yearId}
                                                 termId={termId}
                                                 profileId={p.id}
                                                 profileName={p.name || "Main Timetable"}
                                                 liveEnabled={isCurrentTerm}
-                                                expanded={isExpanded}
-                                                onExpand={() => {
-                                                    if (isExpanded) {
-                                                        setExpandedProfileId(null);
-                                                    } else {
-                                                        setSelectedProfileId(p.id);
-                                                        setExpandedProfileId(p.id);
-                                                    }
+                                                selected={isSelected}
+                                                onSelect={() => {
+                                                    setSelectedProfileId(p.id);
                                                     setViewMode("single");
                                                 }}
-                                            >
-                                                {isExpanded && (
-                                                    <TimetableViewPanel
-                                                        yearId={yearId}
-                                                        termId={termId}
-                                                        profileId={p.id}
-                                                        profileName={p.name || "Main Timetable"}
-                                                        externalZoom={zoom}
-                                                        setExternalZoom={setZoom}
-                                                    />
-                                                )}
-                                            </LiveTracker>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                            />
+                                        );
+                                    })}
+                                </div>
+
+                                <div id="selected-timetable-panel" aria-label={`${activeProfile.name || 'Main Timetable'} timetable`}>
+                                    <TimetableViewPanel
+                                        yearId={yearId}
+                                        termId={termId}
+                                        profileId={activeProfile.id}
+                                        profileName={activeProfile.name || "Main Timetable"}
+                                        externalZoom={zoom}
+                                        setExternalZoom={setZoom}
+                                    />
+                                </div>
+                            </>
                         )
                     )}
                 </div>
