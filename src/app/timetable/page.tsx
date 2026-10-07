@@ -1,4 +1,5 @@
 "use client";
+import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 
 import * as React from "react";
 import { CalendarRange, Check, ChevronDown, PlusCircle, TableProperties, X } from "lucide-react";
@@ -24,6 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function TimetablePage() {
     const { toast } = useToast();
+    const [nativeApp, setNativeApp] = React.useState(false);
+    React.useEffect(() => setNativeApp(hasAndroidOfflineBridge()), []);
     const { data: years = [], isLoading: yearsLoading } = useAcademicYears();
 
     const [yearId, setYearId] = React.useState<string>("");
@@ -351,6 +354,9 @@ export default function TimetablePage() {
                                     />
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-56 font-medium">
+                                    {nativeApp && <DropdownMenuItem onClick={() => void androidOfflineRequest('openTimetableSettings').catch(error => toast({ title: 'Could not open timetable controls', description: error.message, variant: 'destructive' }))}>
+                                        <Settings className="mr-2 h-4 w-4" /><span>Card and widgets</span>
+                                    </DropdownMenuItem>}
                                     <DropdownMenuItem onClick={() => setIsGeneratorOpen(true)} className="cursor-pointer text-blue-600 focus:text-blue-700 focus:bg-blue-50 py-2.5">
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         <span>New Timetable Structure</span>

@@ -9,6 +9,7 @@ import { useStaff } from "@/lib/hooks/use-staff";
 import { ChevronLeft, ChevronRight, BookOpen, Clock, User, X } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { getDashboardTimetableTerm } from "@/lib/offline/timetable-feed";
 import { getTimetableStreamInitial } from "@/lib/utils/timetable-streams";
 
 function parseTimeToMins(t: string): number {
@@ -333,16 +334,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
 
 export function DashboardLiveTracker() {
     const { data: years = [], isLoading } = useAcademicYears();
-    const now = new Date();
-    const activeYear = years.find(y => {
-        if (!y.startDate || !y.endDate) return false;
-        return now >= new Date(y.startDate) && now <= new Date(y.endDate);
-    }) || years.find(y => y.isActive) || years[0];
-
-    const currentTerm = activeYear?.terms?.find(t => {
-        if (!t.startDate || !t.endDate) return false;
-        return now >= new Date(t.startDate) && now <= new Date(t.endDate);
-    }) ?? activeYear?.terms?.find(t => t.isCurrent) ?? activeYear?.terms?.[0];
+    const { year: activeYear, term: currentTerm } = getDashboardTimetableTerm(years);
 
     const yearId = activeYear?.id || "";
     const termId = currentTerm?.id || "";

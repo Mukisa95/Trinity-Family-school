@@ -87,7 +87,7 @@ export function persistentCollectionCacheKey(
   return `${projectId.trim()}::${collectionName.trim()}::${scope.trim()}`;
 }
 
-export async function readPersistentCollection<T>(key: string): Promise<T | null> {
+export async function readPersistentCollectionWithMetadata<T>(key: string): Promise<{ data: T; writtenAt: number } | null> {
   if (!canUseIndexedDb()) return null;
 
   try {
@@ -105,11 +105,16 @@ export async function readPersistentCollection<T>(key: string): Promise<T | null
     await completeTransaction(transaction);
 
     if (!snapshot || snapshot.version !== SNAPSHOT_VERSION) return null;
-    return snapshot.data;
+    return { data: snapshot.data, writtenAt: snapshot.writtenAt };
   } catch {
     // Firestore remains the fallback and source of truth.
     return null;
   }
+}
+
+export async function readPersistentCollection<T>(key: string): Promise<T | null> {
+  const snapshot = await readPersistentCollectionWithMetadata<T>(key);
+  return snapshot?.data ?? null;
 }
 
 export async function writePersistentCollection<T>(key: string, data: T): Promise<void> {
@@ -127,6 +132,7 @@ export async function writePersistentCollection<T>(key: string, data: T): Promis
       key,
     );
     await completeTransaction(transaction);
+    if ('TrinityOffline' in window) window.dispatchEvent(new CustomEvent('trinity-native-cache-written', { detail: { key } }));
   } catch {
     // Cache writes are an optimization. A failed write must never disrupt live data.
   }

@@ -493,3 +493,29 @@ export function subscribeToParentOfflineChanges(
   window.addEventListener(CHANGE_EVENT, handleChange);
   return () => window.removeEventListener(CHANGE_EVENT, handleChange);
 }
+
+
+export async function readParentOfflineBundle(accountId: string) {
+  if (!accountId || !canUseOfflineStorage()) return null;
+  const database = await openDatabase();
+  try {
+    const transaction = database.transaction([FAMILY_STORE, BANKING_STORE, ATTENDANCE_STORE, RESULTS_STORE, FEES_STORE], 'readonly');
+    const finished = complete(transaction);
+    const [[family, banking, attendance, results, fees]] = await Promise.all([Promise.all([
+      readRequest(transaction.objectStore(FAMILY_STORE).get(accountId)),
+      readRequest(transaction.objectStore(BANKING_STORE).index('accountId').getAll(accountId)),
+      readRequest(transaction.objectStore(ATTENDANCE_STORE).index('accountId').getAll(accountId)),
+      readRequest(transaction.objectStore(RESULTS_STORE).index('accountId').getAll(accountId)),
+      readRequest(transaction.objectStore(FEES_STORE).index('accountId').getAll(accountId)),
+    ]), finished]);
+    if (!isParentOfflineFamilySnapshot(family, accountId)) return null;
+    const hasChild = (record: { pupilId: string }) => family.pupils.some(pupil => pupil.id === record.pupilId);
+    return {
+      family,
+      banking: banking.filter(record => hasChild(record) && isParentOfflineBankingSnapshot(record, accountId, record.pupilId)) as ParentOfflineBankingSnapshot[],
+      attendance: attendance.filter(record => hasChild(record) && isParentOfflineAttendanceSnapshot(record, accountId, record.pupilId)) as ParentOfflineAttendanceSnapshot[],
+      results: results.filter(record => hasChild(record) && isParentOfflineResultsSnapshot(record, accountId, record.pupilId)) as ParentOfflineResultsSnapshot[],
+      fees: fees.filter(record => hasChild(record) && isParentOfflineFeesSnapshot(record, accountId, record.pupilId, record.academicYearId, record.termId)) as ParentOfflineFeesSnapshot[],
+    };
+  } finally { database.close(); }
+}

@@ -1,4 +1,5 @@
 "use client";
+import { clearAndroidOfflineAccess } from '@/lib/offline/android-bridge';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearUserCache = () => {
+    void clearAndroidOfflineAccess().catch(() => undefined);
     if (typeof window === 'undefined') return;
     localStorage.removeItem(AUTH_CACHE_KEY);
   };

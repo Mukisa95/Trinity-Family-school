@@ -78,6 +78,7 @@ export function liteWrite<T>(key: string, data: T, ttlMs = DEFAULT_TTL_MS): void
       version: CACHE_VERSION,
     };
     localStorage.setItem(PREFIX + key, JSON.stringify(entry));
+    if ('TrinityOffline' in window) window.dispatchEvent(new CustomEvent('trinity-native-cache-written', { detail: { key } }));
   } catch {
     // localStorage quota exceeded — silently ignore, fetch will still work
   }
