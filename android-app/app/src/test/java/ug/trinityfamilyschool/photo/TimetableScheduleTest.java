@@ -39,6 +39,26 @@ public class TimetableScheduleTest {
         feed = TimetableSchedule.feed(datasets, time("2026-10-07T09:30:00"));
         assertTrue(feed.agenda.contains("North · English")); assertTrue(feed.agenda.contains("South · Science")); assertFalse(feed.agenda.contains("Choose a stream"));
     }
+    @Test public void dashboardPillsUseCanonicalClassOrderAndStreamCodes() throws Exception {
+        JSONObject datasets = data(); JSONObject table = datasets.getJSONObject("timetables").getJSONArray("data").getJSONObject(0);
+        datasets.getJSONObject("classes").getJSONArray("data").getJSONObject(0).put("code", "P4").put("streams", new JSONArray().put(new JSONObject().put("id", "north").put("name", "North").put("code", "North")));
+        datasets.getJSONObject("subjects").getJSONArray("data").getJSONObject(0).put("code", "ENG");
+        table.getJSONArray("entries").getJSONObject(0).put("streamId", "north");
+        TimetableSchedule.Frame row = TimetableSchedule.feed(datasets, time("2026-10-07T08:30:00")).profiles.get(0);
+        assertEquals(2, row.pills.size()); assertEquals("P4 N", row.pills.get(0).classCode); assertEquals("ENG", row.pills.get(0).subjectCode);
+        assertEquals("Teacher Example", row.pills.get(0).teacher); assertEquals("L1", row.shortLabel);
+        // The web card selects entries for this period, including empty continuation slots.
+        assertEquals(0, TimetableSchedule.feed(datasets, time("2026-10-07T09:30:00")).profiles.get(0).pills.size());
+    }
+    @Test public void browsingClampsAndLiveResetReturnsToTheClock() throws Exception {
+        JSONObject datasets = data(); ZonedDateTime now = time("2026-10-07T09:30:00");
+        TimetableSchedule.Frame row = TimetableSchedule.feed(datasets, now, java.util.Map.of("main", -99)).profiles.get(0);
+        assertEquals(0, row.viewIndex); assertEquals(1, row.baseIndex); assertFalse(row.live); assertFalse(row.hasPrevious); assertTrue(row.hasNext);
+        assertEquals(0, TimetableInteractions.movedOffset(row, "LIVE")); assertEquals(-1, TimetableInteractions.movedOffset(row, "PREVIOUS"));
+        row = TimetableSchedule.feed(datasets, now, java.util.Map.of("main", 99)).profiles.get(0);
+        assertEquals(3, row.viewIndex); assertFalse(row.hasNext); assertEquals(2, TimetableInteractions.movedOffset(row, "NEXT"));
+        row = TimetableSchedule.feed(datasets, now).profiles.get(0); assertTrue(row.live); assertEquals(50, row.progress);
+    }
     @Test public void doubleLessonHasOneProgressClockAndNextPeriod() throws Exception {
         TimetableSchedule.Frame frame = TimetableSchedule.build(data(), "main", "p4", "", time("2026-10-07T09:00:00"));
         assertEquals("English", frame.title); assertEquals("08:00 – 10:00", frame.time); assertEquals(50, frame.progress); assertEquals(60, frame.remainingMinutes);

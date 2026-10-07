@@ -11,6 +11,7 @@ public final class TimetableReceiver extends BroadcastReceiver {
         java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> { try {
             OfflineStore store = new OfflineStore(context);
+            if ("ug.trinity.timetable.INTERACT".equals(intent.getAction())) TimetableInteractions.apply(context, store, intent);
             TimetableUpdates.refresh(context, store);
         } catch (Exception ignored) { TimetableUpdates.refresh(context, new OfflineStore(context)); }
         finally { pending.finish(); executor.shutdown(); } });

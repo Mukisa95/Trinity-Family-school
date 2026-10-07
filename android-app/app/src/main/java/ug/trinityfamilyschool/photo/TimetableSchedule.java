@@ -10,9 +10,18 @@ final class TimetableSchedule {
     static final class Lesson {
         String name, time, teacher; long start, end;
     }
+    static final class Pill {
+        String id = "", classCode = "", className = "", subjectCode = "", subjectName = "", teacher = "", time = "";
+        int color;
+    }
     static final class Frame {
         String className = "All timetables", tableName = "", title = "Timetable unavailable", time = "", teacher = "", next = "Open Trinity School", agenda = "";
         final List<Frame> profiles = new ArrayList<>();
+        final List<Pill> pills = new ArrayList<>();
+        String profileId = "", periodId = "", shortLabel = "", accountId = "", timeZone = "Africa/Kampala";
+        int viewIndex, baseIndex, periodCount;
+        long countdownEnd;
+        boolean hasPeriod, hasPrevious, hasNext, live = true;
         int progress, remainingMinutes; long end, boundary; boolean active;
     }
     static String name(JSONObject datasets, String dataset, String id) {
@@ -96,7 +105,8 @@ final class TimetableSchedule {
     static int progress(long start, long end, long now) { return end <= start ? 0 : (int) Math.max(0, Math.min(100, (now - start) * 100 / (end - start))); }
 
     /** All profiles in the dashboard's current year/term; no class selection. */
-    static Frame feed(JSONObject datasets, ZonedDateTime now) throws Exception {
+    static Frame feed(JSONObject datasets, ZonedDateTime now) throws Exception { return feed(datasets, now, Collections.emptyMap()); }
+    static Frame feed(JSONObject datasets, ZonedDateTime now, Map<String, Integer> offsets) throws Exception {
         Frame feed = new Frame();
         feed.boundary = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone()).toInstant().toEpochMilli();
         JSONObject yearsData = datasets.optJSONObject("academicYears"), tablesData = datasets.optJSONObject("timetables");
@@ -117,7 +127,7 @@ final class TimetableSchedule {
         if (tables != null && year != null && term != null) for (int i = 0; i < tables.length(); i++) {
             JSONObject table = tables.getJSONObject(i), profile = table.getJSONObject("profile");
             if (!year.optString("id").equals(profile.optString("academicYearId")) || !term.optString("id").equals(profile.optString("termId"))) continue;
-            Frame row = profileFrame(datasets, table, now); feed.profiles.add(row);
+            Frame row = profileFrame(datasets, table, now, offsets.getOrDefault(profile.optString("id"), 0)); feed.profiles.add(row);
             feed.boundary = Math.min(feed.boundary, row.boundary);
             if (row.active && (!feed.active || row.end < feed.end)) { feed.end = row.end; feed.progress = row.progress; feed.remainingMinutes = row.remainingMinutes; }
             feed.active |= row.active;
@@ -135,8 +145,8 @@ final class TimetableSchedule {
         try { return !date.isBefore(LocalDate.parse(value.getString("startDate").substring(0, 10))) && !date.isAfter(LocalDate.parse(value.getString("endDate").substring(0, 10))); }
         catch (Exception ignored) { return false; }
     }
-    private static Frame profileFrame(JSONObject datasets, JSONObject table, ZonedDateTime now) throws Exception {
-        Frame row = new Frame(); JSONObject profile = table.getJSONObject("profile"); row.tableName = profile.optString("name", "Timetable"); row.className = row.tableName;
+    private static Frame profileFrame(JSONObject datasets, JSONObject table, ZonedDateTime now, int offset) throws Exception {
+        Frame row = new Frame(); JSONObject profile = table.getJSONObject("profile"); row.tableName = profile.optString("name", "Timetable"); row.className = row.tableName; row.profileId = profile.optString("id"); row.timeZone = now.getZone().getId();
         row.boundary = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone()).toInstant().toEpochMilli();
         if (!table.optBoolean("complete")) { row.title = "Timetable loading"; return row; }
         if (!Boolean.TRUE.equals(TimetableUpdates.withinTerm(datasets, profile, now.toLocalDate()))) { row.title = "Outside this school term"; return row; }
@@ -151,11 +161,24 @@ final class TimetableSchedule {
         if (shown == null) shown = next;
         if (shown == null && !periods.isEmpty()) shown = periods.get(periods.size() - 1);
         if (shown == null) { row.title = "No more periods today"; row.next = "Open timetable"; return row; }
+        row.baseIndex = periods.indexOf(shown); row.periodCount = periods.size();
+        row.viewIndex = Math.max(0, Math.min(periods.size() - 1, row.baseIndex + offset));
+        shown = periods.get(row.viewIndex); row.live = row.viewIndex == row.baseIndex;
+        row.hasPrevious = row.viewIndex > 0; row.hasNext = row.viewIndex + 1 < periods.size();
+        row.active = time.compareTo(shown.getString("startTime")) >= 0 && time.compareTo(shown.getString("endTime")) < 0;
+        row.hasPeriod = true; row.periodId = shown.getString("id");
+        row.shortLabel = "lesson".equals(shown.optString("type")) ? "L" + shown.optInt("periodNumber") : periodName(shown);
         boolean ended = time.compareTo(shown.getString("endTime")) >= 0;
         row.title = periodName(shown) + (row.active ? "" : ended ? " · ended" : " · upcoming"); row.time = shown.getString("startTime") + " – " + shown.getString("endTime");
         long start = now.toLocalDate().atTime(LocalTime.parse(shown.getString("startTime"))).atZone(now.getZone()).toInstant().toEpochMilli();
         row.end = now.toLocalDate().atTime(LocalTime.parse(shown.getString("endTime"))).atZone(now.getZone()).toInstant().toEpochMilli();
-        if (!ended) row.boundary = row.active ? row.end : start;
+        row.countdownEnd = row.active ? row.end : ended ? 0 : start;
+        for (JSONObject period : periods) {
+            for (String edge : new String[]{"startTime", "endTime"}) {
+                long boundary = now.toLocalDate().atTime(LocalTime.parse(period.getString(edge))).atZone(now.getZone()).toInstant().toEpochMilli();
+                if (boundary > now.toInstant().toEpochMilli()) row.boundary = Math.min(row.boundary, boundary);
+            }
+        }
         row.progress = ended ? 100 : row.active ? progress(start, row.end, now.toInstant().toEpochMilli()) : 0;
         row.remainingMinutes = row.active ? (int) ((row.end - now.toInstant().toEpochMilli() + 59999) / 60000) : 0;
         int shownIndex = periods.indexOf(shown); JSONObject following = shownIndex + 1 < periods.size() ? periods.get(shownIndex + 1) : null;
@@ -181,7 +204,39 @@ final class TimetableSchedule {
                 subjects.append(stream.isEmpty() ? label : lesson.className).append(" · ").append("Choose a stream".equals(lesson.title) ? "Unassigned lesson" : lesson.title);
             }
         }
-        row.agenda = subjects.toString(); return row;
+        row.agenda = subjects.toString();
+        populatePills(row, datasets, table, shown, now);
+        return row;
+    }
+    static JSONObject find(JSONObject datasets, String dataset, String id) {
+        JSONObject saved = datasets.optJSONObject(dataset); JSONArray rows = saved == null ? null : saved.optJSONArray("data");
+        if (rows != null) for (int i = 0; i < rows.length(); i++) if (id.equals(rows.optJSONObject(i).optString("id"))) return rows.optJSONObject(i);
+        return new JSONObject();
+    }
+    private static void populatePills(Frame row, JSONObject datasets, JSONObject table, JSONObject period, ZonedDateTime now) throws Exception {
+        JSONArray allEntries = table.getJSONArray("entries");
+        JSONObject classesData = datasets.optJSONObject("classes");
+        JSONArray savedClasses = classesData == null ? null : classesData.optJSONArray("data");
+        final JSONArray classes = savedClasses == null ? new JSONArray() : savedClasses;
+        List<JSONObject> entries = new ArrayList<>();
+        for (int i = 0; i < allEntries.length(); i++) if (period.getString("id").equals(allEntries.getJSONObject(i).optString("periodId"))) entries.add(allEntries.getJSONObject(i));
+        entries.sort(Comparator.comparingInt(entry -> { for (int i = 0; i < classes.length(); i++) if (entry.optString("classId").equals(classes.optJSONObject(i).optString("id"))) return i; return 9999; }));
+        for (JSONObject entry : entries) {
+            Pill pill = new Pill(); JSONObject cls = find(datasets, "classes", entry.optString("classId")); JSONObject subject = find(datasets, "subjects", entry.optString("subjectId")); JSONObject teacher = find(datasets, "teachers", entry.optString("teacherId"));
+            pill.id = entry.optString("id", entry.optString("classId") + ":" + entry.optString("streamId"));
+            pill.className = cls.optString("name", "Class"); pill.classCode = cls.optString("code", pill.className).replaceAll("(?i)Primary\\s+", "P").replaceAll("(?i)Senior\\s+", "S");
+            if (!entry.optString("streamId").isEmpty()) {
+                JSONObject stream = new JSONObject(); JSONArray streams = cls.optJSONArray("streams");
+                if (streams != null) for (int i = 0; i < streams.length(); i++) if (entry.optString("streamId").equals(streams.getJSONObject(i).optString("id"))) stream = streams.getJSONObject(i);
+                String label = entry.optString("streamCode", stream.optString("code", entry.optString("streamName", stream.optString("name", "")))).trim();
+                String[] words = label.split("\\s+"); String initial = words.length > 0 && !words[words.length-1].isEmpty() ? words[words.length-1].substring(0,1).toUpperCase(Locale.ROOT) : "";
+                pill.classCode += initial.isEmpty() ? "" : " " + initial;
+                pill.className += " · " + entry.optString("streamName", stream.optString("name", initial));
+            }
+            pill.subjectName = subject.optString("name", entry.optString("activityName", "—")); pill.subjectCode = subject.optString("code", pill.subjectName);
+            pill.teacher = (teacher.optString("firstName") + " " + teacher.optString("lastName")).trim();
+            pill.time = row.time; pill.color = row.pills.size() % 8; row.pills.add(pill);
+        }
     }
     private static String periodName(JSONObject period) { return "lesson".equals(period.optString("type")) ? "Lesson " + period.optInt("periodNumber") : period.optString("customLabel", period.optString("type")); }
 }

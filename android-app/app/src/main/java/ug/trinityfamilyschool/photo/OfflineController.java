@@ -114,6 +114,12 @@ final class OfflineController {
             if (!PhotoPolicy.validId(id)) return;
         } catch (Exception ignored) { return; }
         String action = input.optString("action");
+        if (!local && "appearance".equals(action)) {
+            // Also colour the inset-owning frame, which covers transparent system bars.
+            android.view.ViewGroup content = activity.findViewById(android.R.id.content);
+            if (content.getChildCount() > 0) SystemBars.apply(activity, content.getChildAt(0), input.optBoolean("dark"));
+            reply(reply, id, true, null, null); return;
+        }
         if ("openTimetableSettings".equals(action)) { activity.startActivity(new Intent(activity, TimetableSettingsActivity.class)); reply(reply, id, true, null, null); return; }
         if (local) {
             if ("unlock".equals(action)) { unlock(id, reply); return; }

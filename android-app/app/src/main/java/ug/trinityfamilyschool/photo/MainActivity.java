@@ -11,7 +11,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
-import android.view.WindowInsets;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -72,13 +71,7 @@ public final class MainActivity extends Activity {
         frame.addView(web, new android.widget.LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(frame);
         offline = new OfflineController(this, web);
-        frame.setOnApplyWindowInsetsListener((view, insets) -> {
-            if (android.os.Build.VERSION.SDK_INT >= 30) {
-                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
-                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            } else view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
-            return insets;
-        });
+        SystemBars.install(this, frame);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
@@ -86,6 +79,7 @@ public final class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 offline.publishConnectivity();
+                if (PhotoPolicy.trusted(url)) view.evaluateJavascript("(()=>{const send=()=>window.TrinityOffline?.postMessage(JSON.stringify({id:crypto.randomUUID(),action:'appearance',dark:document.documentElement.classList.contains('dark')}));window.__trinityBarsObserver?.disconnect();window.__trinityBarsObserver=new MutationObserver(send);window.__trinityBarsObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']});send();})()", null);
                 if (OfflinePolicy.local(url)) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
                 else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
             }

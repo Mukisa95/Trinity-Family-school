@@ -36,7 +36,14 @@ public class PhotoDeviceTest {
         }
         fail("Timed out: " + expression + "; state=" + evaluate("JSON.stringify({text:document.body.innerText,bridge:typeof window.TrinityPhoto,href:location.href,origin:location.origin,error:window.testError})"));
     }
-    private void load(ActivityScenario<MainActivity> scenario, String origin) {
+    private void load(ActivityScenario<MainActivity> scenario, String origin) throws Exception {
+        // Finish the async encrypted-session startup before taking over the test WebView.
+        scenario.onActivity(activity -> {
+            try { Field field=MainActivity.class.getDeclaredField("web");field.setAccessible(true);web=(WebView)field.get(activity); }
+            catch(Exception error){throw new RuntimeException(error);}
+        });
+        if (!"true".equals(evaluate("location.pathname==='/__device_photo_test'")))
+            waitFor("location.protocol==='https:' && document.readyState==='complete'",25);
         scenario.onActivity(activity -> {
             try {
                 Field field = MainActivity.class.getDeclaredField("web"); field.setAccessible(true); web = (WebView) field.get(activity);
