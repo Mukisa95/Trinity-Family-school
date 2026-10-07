@@ -12,6 +12,7 @@ import {
   getTimetableStreamInitial,
   getTimetableStreamMode,
 } from '../src/lib/utils/timetable-streams';
+import { filterTimetablePrintData } from '../src/lib/utils/timetable-print';
 
 const schoolClass = {
   id: 'p1', name: 'Primary 1', code: 'P1', level: 'Lower Primary', order: 1,
@@ -203,4 +204,66 @@ test('ordinary printable class labels avoid percentage-height wrappers that html
   assert.match(source, /data-printable-class-label="true"/);
   assert.match(source, /lineHeight: 1\.25/);
   assert.match(source, /padding: row\.stream \? 0 : "2px 3px"/);
+});
+
+test('print selection keeps only the chosen classes and their lessons in profile order', () => {
+  const secondClass = {
+    ...schoolClass,
+    id: 'p2',
+    name: 'Primary 2',
+    code: 'P2',
+    order: 2,
+  } satisfies Class;
+  const entries = [
+    { id: 'p1-entry', classId: 'p1', periodId: 'mon-1', subjectId: 'math', teacherId: 't1', createdAt: '' },
+    { id: 'p2-entry', classId: 'p2', periodId: 'mon-1', subjectId: 'eng', teacherId: 't2', createdAt: '' },
+  ] satisfies TimetableEntry[];
+
+  const filtered = filterTimetablePrintData([schoolClass, secondClass], entries, ['p2']);
+
+  assert.deepEqual(filtered.classes.map(classItem => classItem.id), ['p2']);
+  assert.deepEqual(filtered.entries.map(entry => entry.id), ['p2-entry']);
+});
+
+test('the PDF action opens class selection before mounting the printable timetable', () => {
+  const panel = readFileSync('src/components/timetable/TimetableViewPanel.tsx', 'utf8');
+  const dialog = readFileSync('src/components/timetable/TimetablePrintClassDialog.tsx', 'utf8');
+
+  assert.match(panel, /setIsPrintSelectorOpen\(true\)/);
+  assert.match(panel, /classes=\{printableData\.classes\}/);
+  assert.match(panel, /entries=\{printableData\.entries\}/);
+  assert.match(dialog, /Choose classes to print/);
+  assert.match(dialog, /Select all/);
+  assert.match(dialog, /Generate PDF/);
+  assert.match(dialog, /disabled=\{selectedCount === 0\}/);
+});
+
+test('timetable live-feed cards stay compact and form two columns on wide screens', () => {
+  const tracker = readFileSync('src/components/timetable/LiveTracker.tsx', 'utf8');
+  const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
+
+  assert.match(tracker, /getTimetableStreamInitial\(e, cls\)/);
+  assert.match(tracker, /Now \{currentTimeStr\}/);
+  assert.match(tracker, /No lessons assigned for this period/);
+  assert.match(tracker, /Show previous period/);
+  assert.match(tracker, /Show next period/);
+  assert.match(tracker, /rounded-2xl border bg-white/);
+  assert.match(page, /grid grid-cols-1 items-start gap-2 xl:grid-cols-2/);
+});
+
+test('each live-feed card expands to reveal its own timetable', () => {
+  const tracker = readFileSync('src/components/timetable/LiveTracker.tsx', 'utf8');
+  const page = readFileSync('src/app/timetable/page.tsx', 'utf8');
+
+  assert.match(tracker, /aria-expanded=\{expanded\}/);
+  assert.match(tracker, /aria-controls=\{panelId\}/);
+  assert.match(tracker, /role="region"/);
+  assert.match(tracker, /\{expandedPanel\}/);
+  assert.match(page, /className=\{isExpanded \? "xl:col-span-2" : ""\}/);
+  assert.match(page, /expanded=\{isExpanded\}/);
+  assert.match(page, /onExpand=\{\(\) => \{/);
+  assert.match(page, /setExpandedProfileId\(null\)/);
+  assert.match(page, /setExpandedProfileId\(p\.id\)/);
+  assert.match(page, /\{isExpanded && \(/);
+  assert.match(page, /<TimetableViewPanel/);
 });
