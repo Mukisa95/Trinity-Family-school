@@ -14,7 +14,7 @@ public final class TimetableFeedService extends RemoteViewsService {
             public void onDataSetChanged() {
                 rows = new ArrayList<>();
                 try {
-                    JSONObject envelope = new OfflineStore(TimetableFeedService.this).available();
+                    JSONObject envelope = new OfflineStore(TimetableFeedService.this).timetableAvailable();
                     if (envelope != null && envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) rows = TimetableSurfaces.feed(TimetableFeedService.this, envelope, intent.getIntExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, 0), ZonedDateTime.now(ZoneId.of(envelope.getJSONObject("session").optString("timeZone", "Africa/Kampala")))).profiles;
                 } catch (Exception ignored) {}
             }

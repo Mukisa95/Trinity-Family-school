@@ -21,7 +21,7 @@ final class TimetableSurfaces {
         return new JSONObject().put("progress", prefs(context).getBoolean(prefix(id) + "progress", true)).put("notificationCard", prefs(context).getBoolean("card", true));
     }
     static void select(Context context, OfflineStore store, JSONObject value, int widgetId) throws Exception {
-        JSONObject envelope = store.available();
+        JSONObject envelope = store.timetableAvailable();
         if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open Trinity School to load your timetables.");
         SharedPreferences.Editor edit = prefs(context).edit();
         edit.putBoolean(prefix(widgetId) + "progress", value.optBoolean("progress", true));
@@ -44,8 +44,11 @@ final class TimetableSurfaces {
         renderEmptyWidgets(context);
     }
     static void refresh(Context context, OfflineStore store) {
+        refresh(context, store, null);
+    }
+    static void refresh(Context context, OfflineStore store, Integer surfaceId) {
         try {
-            JSONObject envelope = store.available();
+            JSONObject envelope = store.timetableAvailable();
             if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) { clear(context); return; }
             JSONObject session = envelope.getJSONObject("session");
             String account = session.getString("accountId");
@@ -55,14 +58,17 @@ final class TimetableSurfaces {
             TimetableSchedule.Frame frame = feed(context, envelope, AppWidgetManager.INVALID_APPWIDGET_ID, now);
             NotificationManager notifications = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             notifications.createNotificationChannel(new NotificationChannel("timetable", "School timetables", NotificationManager.IMPORTANCE_LOW));
-            if (!frame.profiles.isEmpty() && prefs(context).getBoolean("card", true) && (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)) notifications.notify(CARD_ID, card(context, new JSONObject(), frame, 0));
-            else notifications.cancel(CARD_ID);
+            if (surfaceId == null || surfaceId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+                if (!frame.profiles.isEmpty() && prefs(context).getBoolean("card", true) && (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)) notifications.notify(CARD_ID, card(context, new JSONObject(), frame, 0));
+                else notifications.cancel(CARD_ID);
+            }
             long next = frame.boundary; boolean progress = frame.active && prefs(context).getBoolean("card", true);
             AppWidgetManager manager = AppWidgetManager.getInstance(context);
             for (Class<?> provider : new Class<?>[]{TimetableWidget.class, TimetableProgressWidget.class}) for (int id : manager.getAppWidgetIds(new ComponentName(context, provider))) {
                 boolean bar = prefs(context).getBoolean(prefix(id) + "progress", provider == TimetableProgressWidget.class);
                 TimetableSchedule.Frame widgetFrame = feed(context, envelope, id, now);
-                renderWidget(context, manager, id, widgetFrame, bar); progress |= bar && widgetFrame.active;
+                if (surfaceId == null || surfaceId == id) renderWidget(context, manager, id, widgetFrame, bar);
+                progress |= bar && widgetFrame.active;
             }
             long millis = System.currentTimeMillis(); next = Math.min(next, OfflineStore.timestamp(session.optString("expiresAt")));
             if (progress) next = Math.min(next, (millis / 60000 + 1) * 60000);
@@ -76,7 +82,7 @@ final class TimetableSurfaces {
         return frame;
     }
     private static Intent interaction(Context context, int scope, TimetableSchedule.Frame row, String operation, String pillId) {
-        return new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT")
+        return new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT").addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             .putExtra("surfaceId", scope).putExtra("accountId", row.accountId).putExtra("profileId", row.profileId)
             .putExtra("periodId", row.periodId).putExtra("operation", operation).putExtra("pillId", pillId);
     }
@@ -181,7 +187,7 @@ final class TimetableSurfaces {
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
         views.setOnClickPendingIntent(R.id.widget_title, open(context, id));
         views.setTextViewText(R.id.feed_empty, "Open Trinity School to load timetables"); views.setEmptyView(R.id.feed_list, R.id.feed_empty);
-        Intent template = new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT")
+        Intent template = new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT").addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
             .putExtra("surfaceId", id).putExtra("accountId", frame.accountId).setData(android.net.Uri.parse("trinity-timetable://widget/" + id + "/" + android.net.Uri.encode(frame.accountId)));
         views.setPendingIntentTemplate(R.id.feed_list, PendingIntent.getBroadcast(context, id, template, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE));
         if (Build.VERSION.SDK_INT >= 31) {

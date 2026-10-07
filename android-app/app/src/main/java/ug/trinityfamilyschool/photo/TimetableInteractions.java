@@ -23,7 +23,7 @@ final class TimetableInteractions {
         return "LIVE".equals(action) ? 0 : Math.max(-row.baseIndex, Math.min(row.periodCount-1-row.baseIndex, offset));
     }
     static void apply(Context context, OfflineStore store, Intent intent) throws Exception {
-        JSONObject envelope = store.available();
+        JSONObject envelope = store.timetableAvailable();
         if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) return;
         JSONObject session = envelope.getJSONObject("session");
         if (!session.optString("accountId").equals(intent.getStringExtra("accountId"))) return;

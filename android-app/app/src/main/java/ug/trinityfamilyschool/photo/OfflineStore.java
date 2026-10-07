@@ -32,6 +32,8 @@ final class OfflineStore {
         if (!filename.matches("[a-z0-9-]+\\.enc")) throw new IllegalArgumentException("Invalid store name.");
         file = new AtomicFile(new File(context.getNoBackupFilesDir(), filename));
     }
+    File sourceFile() { return file.getBaseFile(); }
+    JSONObject timetableAvailable() throws Exception { return TimetableCache.available(this); }
 
     private SecretKey key() throws Exception {
         KeyStore store = KeyStore.getInstance("AndroidKeyStore"); store.load(null);
@@ -57,8 +59,9 @@ final class OfflineStore {
         FileOutputStream stream = null;
         try { stream = file.startWrite(); stream.write(cipher.getIV()); stream.write(encrypted); file.finishWrite(stream); }
         catch (Exception error) { if (stream != null) file.failWrite(stream); throw error; }
+        TimetableCache.publish(this, value);
     }
-    synchronized void clear() { file.delete(); }
+    synchronized void clear() { file.delete(); TimetableCache.invalidate(this); }
     static long timestamp(String value) {
         try {
             if (value == null || !value.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z")) return 0;
