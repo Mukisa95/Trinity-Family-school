@@ -15,7 +15,7 @@ public final class TimetableSettingsActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private OfflineStore store; private JSONObject datasets; private String accountId = "";
     private int widgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
-    private LinearLayout content; private Switch progress;
+    private LinearLayout content; private Switch progress, notificationCard;
     private final List<String> tableIds = new ArrayList<>();
     private final Map<String, CheckBox> visibility = new LinkedHashMap<>(); private Set<String> hidden;
     private TextView message; private Button apply;
@@ -64,6 +64,10 @@ public final class TimetableSettingsActivity extends Activity {
             }
             Button showAll = button("Show all timetables"); showAll.setOnClickListener(view -> { for (CheckBox check : visibility.values()) check.setChecked(true); });
             label("Display choices do not change lesson reminder subscriptions.");
+            if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+                notificationCard = new Switch(this); notificationCard.setText("Show notification card"); notificationCard.setMinHeight(dp(48));
+                notificationCard.setChecked(TimetableSurfaces.prefs(this).getBoolean("card", true)); content.addView(notificationCard);
+            }
             progress = new Switch(this); progress.setText("Show lesson progress"); progress.setMinHeight(dp(48));
             android.appwidget.AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId);
             boolean defaultProgress = widgetId == AppWidgetManager.INVALID_APPWIDGET_ID || (info != null && TimetableProgressWidget.class.getName().equals(info.provider.getClassName()));
@@ -76,11 +80,15 @@ public final class TimetableSettingsActivity extends Activity {
     }
     private void apply() {
         try {
+            if (notificationCard != null && notificationCard.isChecked() && android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 73); return;
+            }
             JSONObject selected = new JSONObject();
             Set<String> chosenHidden = new HashSet<>(hidden);
             for (Map.Entry<String, CheckBox> choice : visibility.entrySet()) { if (choice.getValue().isChecked()) chosenHidden.remove(choice.getKey()); else chosenHidden.add(choice.getKey()); }
             selected.put("accountId", accountId).put("hiddenTables", new JSONArray(chosenHidden));
             if (progress != null) selected.put("progress", progress.isChecked());
+            if (notificationCard != null) selected.put("notificationCard", notificationCard.isChecked());
             apply.setEnabled(false); message.setVisibility(View.VISIBLE); message.setText("Updating…");
             io.execute(() -> {
                 try {
@@ -94,6 +102,12 @@ public final class TimetableSettingsActivity extends Activity {
         } catch (Exception error) { message.setText("Could not update timetable appearance."); }
     }
     private void done() { setResult(RESULT_OK, new Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)); finish(); }
-    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) { super.onRequestPermissionsResult(request, permissions, results); if (request == 73) { io.execute(() -> TimetableUpdates.refresh(this, store)); done(); } }
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        if (request == 73) {
+            if (results.length > 0 && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) apply();
+            else { message.setVisibility(View.VISIBLE); message.setText("Allow notifications in your phone's app settings to show the card, or turn Show notification card off."); }
+        }
+    }
     @Override protected void onDestroy() { io.shutdown(); super.onDestroy(); }
 }

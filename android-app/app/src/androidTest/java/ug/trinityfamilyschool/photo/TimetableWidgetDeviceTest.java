@@ -38,7 +38,8 @@ public class TimetableWidgetDeviceTest {
         Context context=ApplicationProvider.getApplicationContext();
         android.app.Notification card=TimetableSurfaces.card(context,new JSONObject(),fixture(),987601);
         assertTrue((card.flags & android.app.Notification.FLAG_ONGOING_EVENT)!=0);
-        assertNull("Two timetables have no separate expanded layout",card.bigContentView); assertNotNull(card.contentView);
+        assertNotNull(card.contentView); assertNotNull(card.bigContentView);
+        assertEquals("Two timetables reuse the collapsed layout if Android forces expansion",card.contentView.getLayoutId(),card.bigContentView.getLayoutId());
         assertEquals("School timetables",card.extras.getString(android.app.Notification.EXTRA_TITLE));
         android.util.Log.i("TrinityTimetableQA", "two_table_system_expansion=" + (android.app.Notification.Builder.recoverBuilder(context, card).createBigContentView() != null));
         java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
@@ -80,6 +81,7 @@ public class TimetableWidgetDeviceTest {
     @Test public void visibilityDefaultsApplyToWidgetsUnlessTheyHaveTheirOwnSelection() throws Exception {
         Context context=ApplicationProvider.getApplicationContext();android.content.SharedPreferences prefs=TimetableSurfaces.prefs(context);
         boolean hadGlobal=prefs.contains("hiddenTables");java.util.Set<String> original=new java.util.HashSet<>(prefs.getStringSet("hiddenTables",java.util.Collections.emptySet()));
+        boolean hadCard=prefs.contains("card"),originalCard=prefs.getBoolean("card",true),hadProgress=prefs.contains("progress"),originalProgress=prefs.getBoolean("progress",true);
         String local=TimetableSurfaces.prefix(987660)+"hiddenTables";
         try {
             JSONObject envelope=new OfflineStore(context).timetableAvailable();assertNotNull(envelope);
@@ -89,7 +91,9 @@ public class TimetableWidgetDeviceTest {
             assertEquals(all.profiles.size()-1,TimetableSurfaces.feed(context,envelope,-1,now).profiles.size());
             assertEquals(all.profiles.size()-1,TimetableSurfaces.feed(context,envelope,987660,now).profiles.size());
             prefs.edit().putStringSet(local,java.util.Collections.emptySet()).commit();assertEquals(all.profiles.size(),TimetableSurfaces.feed(context,envelope,987660,now).profiles.size());
-        } finally {android.content.SharedPreferences.Editor edit=prefs.edit().remove(local);if(hadGlobal)edit.putStringSet("hiddenTables",original);else edit.remove("hiddenTables");edit.commit();TimetableSurfaces.refresh(context,new OfflineStore(context));}
+            TimetableSurfaces.select(context,new OfflineStore(context),new JSONObject().put("notificationCard",false).put("progress",originalProgress),android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID);assertFalse(prefs.getBoolean("card",true));
+            TimetableSurfaces.select(context,new OfflineStore(context),new JSONObject().put("notificationCard",true).put("progress",originalProgress),android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID);assertTrue("A dismissed card can be enabled again",prefs.getBoolean("card",false));
+        } finally {android.content.SharedPreferences.Editor edit=prefs.edit().remove(local);if(hadGlobal)edit.putStringSet("hiddenTables",original);else edit.remove("hiddenTables");if(hadCard)edit.putBoolean("card",originalCard);else edit.remove("card");if(hadProgress)edit.putBoolean("progress",originalProgress);else edit.remove("progress");edit.commit();TimetableSurfaces.refresh(context,new OfflineStore(context));}
     }
     @Test public void darkLandscapeAndLargeTextKeepAccessibleControls() throws Exception {
         Context base=ApplicationProvider.getApplicationContext();

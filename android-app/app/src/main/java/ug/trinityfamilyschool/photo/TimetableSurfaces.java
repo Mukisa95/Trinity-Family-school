@@ -30,6 +30,7 @@ final class TimetableSurfaces {
         if (value.has("accountId") && !value.optString("accountId").equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Your account changed. Reopen timetable settings.");
         SharedPreferences.Editor edit = prefs(context).edit();
         edit.putBoolean(prefix(widgetId) + "progress", value.optBoolean("progress", true));
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID && value.has("notificationCard")) edit.putBoolean("card", value.optBoolean("notificationCard"));
         if (value.has("hiddenTables")) { Set<String> hidden = new HashSet<>(); JSONArray ids = value.optJSONArray("hiddenTables"); if (ids != null) for (int i = 0; i < ids.length(); i++) hidden.add(ids.optString(i)); edit.putStringSet(prefix(widgetId) + "hiddenTables", hidden); }
         edit.apply(); refresh(context, store);
     }
@@ -115,7 +116,7 @@ final class TimetableSurfaces {
             RemoteViews big = new RemoteViews(context.getPackageName(), R.layout.timetable_notification); big.removeAllViews(R.id.notification_profiles);
             for (TimetableSchedule.Frame row : frame.profiles) big.addView(R.id.notification_profiles, profileView(context, row, progress, AppWidgetManager.INVALID_APPWIDGET_ID, false, true));
             card.setStyle(new NotificationCompat.DecoratedCustomViewStyle()).setCustomBigContentView(big);
-        }
+        } else card.setCustomBigContentView(small); // Android may force expansion; keep the same two rows there.
         return card.build();
     }
     static RemoteViews collapsedProfile(Context context, TimetableSchedule.Frame row) {
