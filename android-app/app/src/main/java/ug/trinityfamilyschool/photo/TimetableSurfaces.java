@@ -30,9 +30,6 @@ final class TimetableSurfaces {
     static void deleteWidget(Context context, int id) {
         SharedPreferences.Editor edit = prefs(context).edit(); for (String key : prefs(context).getAll().keySet()) if (key.startsWith(prefix(id))) edit.remove(key); edit.apply();
     }
-    static PendingIntent configure(Context context, int widgetId) {
-        return PendingIntent.getActivity(context, 8000 + widgetId, new Intent(context, TimetableSettingsActivity.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    }
     private static PendingIntent open(Context context, int id) {
         return PendingIntent.getActivity(context, 9000 + id, new Intent(context, MainActivity.class).putExtra("offlineRoute", OfflinePolicy.LOCAL_ORIGIN + OfflinePolicy.LOCAL_PATH + "?page=timetable"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
@@ -112,14 +109,14 @@ final class TimetableSurfaces {
         RemoteViews views;
         if (Build.VERSION.SDK_INT >= 31) {
             Map<SizeF, RemoteViews> sizes = new LinkedHashMap<>();
-            sizes.put(new SizeF(180, 180), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget_compact));
-            sizes.put(new SizeF(250, 160), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget));
+            sizes.put(new SizeF(180, 120), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget_compact));
+            sizes.put(new SizeF(250, 120), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget));
             sizes.put(new SizeF(250, 250), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget));
             sizes.put(new SizeF(300, 330), widgetView(context, id, new JSONObject(), frame, progress, R.layout.timetable_widget_large));
             views = new RemoteViews(sizes);
         } else {
             android.os.Bundle options = manager.getAppWidgetOptions(id); int height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 250), width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
-            views = widgetView(context, id, new JSONObject(), frame, progress, height >= 280 && width >= 300 ? R.layout.timetable_widget_large : height >= 250 && width >= 250 ? R.layout.timetable_widget : R.layout.timetable_widget_compact);
+            views = widgetView(context, id, new JSONObject(), frame, progress, height >= 280 && width >= 300 ? R.layout.timetable_widget_large : width >= 250 ? R.layout.timetable_widget : R.layout.timetable_widget_compact);
         }
         manager.updateAppWidget(id, views);
         if (Build.VERSION.SDK_INT < 31) manager.notifyAppWidgetViewDataChanged(id, R.id.feed_list);
@@ -145,7 +142,7 @@ final class TimetableSurfaces {
             row.setChronometerCountDown(R.id.period_countdown, true);
         }
         row.setProgressBar(R.id.lesson_progress, 100, frame.progress, false); row.setViewVisibility(R.id.lesson_progress, progress && (frame.hasPeriod || frame.active) ? View.VISIBLE : View.GONE);
-        row.setTextViewText(R.id.next_lesson, frame.next); row.setViewVisibility(R.id.next_lesson, notification ? View.GONE : View.VISIBLE);
+        row.setTextViewText(R.id.next_lesson, frame.next); row.setViewVisibility(R.id.next_lesson, View.GONE);
         row.setBoolean(R.id.previous_period, "setEnabled", frame.hasPrevious); row.setBoolean(R.id.next_period, "setEnabled", frame.hasNext);
         row.setFloat(R.id.previous_period, "setAlpha", frame.hasPrevious ? 1f : 0.3f); row.setFloat(R.id.next_period, "setAlpha", frame.hasNext ? 1f : 0.3f);
         row.setViewVisibility(R.id.live_reset, frame.live ? View.GONE : View.VISIBLE);
@@ -155,7 +152,8 @@ final class TimetableSurfaces {
         click(context, row, R.id.detail_close, scope, frame, "CLOSE", "", !notification);
         int[] backgrounds = {R.drawable.pill_0,R.drawable.pill_1,R.drawable.pill_2,R.drawable.pill_3,R.drawable.pill_4,R.drawable.pill_5,R.drawable.pill_6,R.drawable.pill_7};
         String[] colors = {"#15803D","#4F46E5","#B45309","#BE185D","#0F766E","#6D28D9","#C2410C","#0E7490"};
-        int columns = notification ? Math.max(1, frame.pills.size()) : compact ? 2 : 3;
+        // Short class/subject codes fit five across the dashboard-width card.
+        int columns = notification ? Math.max(1, frame.pills.size()) : compact ? 2 : 5;
         RemoteViews line = null; TimetableSchedule.Pill selected = null;
         java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneId.of(frame.timeZone));
         String detail = prefs(context).getString(TimetableInteractions.detailKey(scope, frame, now), "");
@@ -181,7 +179,7 @@ final class TimetableSurfaces {
     }
     static RemoteViews widgetView(Context context, int id, JSONObject ignored, TimetableSchedule.Frame frame, boolean progress, int layout) {
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
-        views.setOnClickPendingIntent(R.id.widget_title, open(context, id)); views.setOnClickPendingIntent(R.id.widget_settings, configure(context, id));
+        views.setOnClickPendingIntent(R.id.widget_title, open(context, id));
         views.setTextViewText(R.id.feed_empty, "Open Trinity School to load timetables"); views.setEmptyView(R.id.feed_list, R.id.feed_empty);
         Intent template = new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT")
             .putExtra("surfaceId", id).putExtra("accountId", frame.accountId).setData(android.net.Uri.parse("trinity-timetable://widget/" + id + "/" + android.net.Uri.encode(frame.accountId)));

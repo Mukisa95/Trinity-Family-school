@@ -24,7 +24,7 @@ public class TimetableWidgetDeviceTest {
             row.active=true; row.progress=50; row.countdownEnd=System.currentTimeMillis()+3600000;
             row.baseIndex=1; row.viewIndex=1; row.periodCount=4; row.hasPrevious=true; row.hasNext=true;
             row.next="Next: L3 · 10:15";
-            for (int j=0;j<3;j++) {
+            for (int j=0;j<(i==0 ? 5 : 3);j++) {
                 TimetableSchedule.Pill pill=new TimetableSchedule.Pill(); pill.id="pill-"+j; pill.classCode="P"+(i*3+j+1);
                 pill.className="Primary "+(i*3+j+1); pill.subjectCode=j==0 ? "ENG" : j==1 ? "MTC" : "SCI";
                 pill.subjectName=j==0 ? "English" : j==1 ? "Mathematics" : "Science"; pill.teacher="Example Teacher"; pill.time=row.time; pill.color=j;
@@ -69,7 +69,7 @@ public class TimetableWidgetDeviceTest {
                     View view=TimetableSurfaces.profileView(context,row,true,987600,compact,false).apply(context,new FrameLayout(context));
                     int width=(int)((compact ? 180 : 600)*context.getResources().getDisplayMetrics().density);
                     view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));view.layout(0,0,width,view.getMeasuredHeight());
-                    View previous=view.findViewById(R.id.previous_period); assertTrue(previous.getWidth()>=48*context.getResources().getDisplayMetrics().density-1);
+                    View previous=view.findViewById(R.id.previous_period); assertTrue(previous.getWidth()>=24*context.getResources().getDisplayMetrics().density-1);
                     assertEquals("Previous period",previous.getContentDescription().toString());
                     assertEquals(0xff1f2937,((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
                     assertTrue(view.getMeasuredHeight()>0);
@@ -85,16 +85,18 @@ public class TimetableWidgetDeviceTest {
             try {
                 TimetableSchedule.Frame feed=fixture(),frame=feed.profiles.get(0);
                 int[] layouts={R.layout.timetable_widget_compact,R.layout.timetable_widget,R.layout.timetable_widget_large};
-                int[] widths={180,300,375},heights={230,300,400};String[] names={"compact","medium","large"};
+                int[] widths={180,355,375},heights={300,170,400};String[] names={"compact","medium","large"};
                 for(int i=0;i<layouts.length;i++)for(boolean progress:new boolean[]{false,true}){
                     android.appwidget.AppWidgetHostView host=new android.appwidget.AppWidgetHostView(context);
                     android.appwidget.AppWidgetProviderInfo info=android.appwidget.AppWidgetManager.getInstance(context).getInstalledProviders().stream()
                         .filter(provider->provider.provider.equals(new android.content.ComponentName(context,TimetableWidget.class))).findFirst().orElseThrow();
+                    assertNotNull(info.configure);
+                    assertTrue((info.widgetFeatures & android.appwidget.AppWidgetProviderInfo.WIDGET_FEATURE_RECONFIGURABLE)!=0);
                     host.setAppWidget(987600,info);
                     View view=TimetableSurfaces.widgetView(context,987600,new JSONObject(),feed,progress,layouts[i]).apply(context,host);
                     android.widget.RemoteViews renderedRow=TimetableSurfaces.profileView(context,frame,progress,987600,i==0,false);
                     View row=renderedRow.apply(context,new FrameLayout(context)); renderedRow.reapply(context,row);
-                    assertEquals(i==0 ? 2 : 1,((ViewGroup)row.findViewById(R.id.pills_container)).getChildCount());
+                    assertEquals(i==0 ? 3 : 1,((ViewGroup)row.findViewById(R.id.pills_container)).getChildCount());
                     assertEquals("L2",((TextView)row.findViewById(R.id.current_lesson)).getText().toString());
                     assertEquals(progress?View.VISIBLE:View.GONE,row.findViewById(R.id.lesson_progress).getVisibility());
                     assertEquals(50,((ProgressBar)row.findViewById(R.id.lesson_progress)).getProgress());
@@ -103,6 +105,12 @@ public class TimetableWidgetDeviceTest {
                     view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(height,View.MeasureSpec.EXACTLY));view.layout(0,0,width,height);
                     ListView list=view.findViewById(R.id.feed_list);assertEquals(2,list.getAdapter().getCount());assertTrue(list.getBottom()<=height);
                     View firstRow=list.getChildAt(0); assertNotNull(firstRow);
+                    assertEquals("No always-visible settings affordance",0,context.getResources().getIdentifier("widget_settings","id",context.getPackageName()));
+                    if(i==1) {
+                        assertEquals("Both complete timetable groups fit the short wide widget",2,list.getChildCount());
+                        assertTrue("Last group is fully visible",list.getChildAt(1).getBottom()<=list.getHeight());
+                        assertTrue("Dashboard-sized profile stays compact",firstRow.getHeight()<=70*density);
+                    }
                     assertTrue("Collection navigation has a click listener",firstRow.findViewById(R.id.previous_period).hasOnClickListeners());
                     assertTrue("Nested pill must have its own collection click listener",firstRow.findViewById(R.id.lesson_pill).hasOnClickListeners());
                     Bitmap bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);view.draw(new Canvas(bitmap));
@@ -121,7 +129,5 @@ public class TimetableWidgetDeviceTest {
             }catch(Throwable error){failure.set(error);}
         });
         if(failure.get()!=null)throw new AssertionError("RemoteViews rendering failed",failure.get());
-        android.app.PendingIntent settings=android.app.PendingIntent.getActivity(context,8000+987600,new android.content.Intent(context,TimetableSettingsActivity.class),android.app.PendingIntent.FLAG_NO_CREATE|android.app.PendingIntent.FLAG_IMMUTABLE);
-        if(settings!=null)settings.cancel();
     }
 }

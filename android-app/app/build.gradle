@@ -6,8 +6,8 @@ android {
         applicationId 'ug.trinityfamilyschool.photo'
         minSdk 26
         targetSdk 35
-        versionCode 7
-        versionName '1.5-dashboard-cards-preview'
+        versionCode 8
+        versionName '1.6-compact-timetable-preview'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
