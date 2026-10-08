@@ -37,6 +37,7 @@ final class OfflineController {
     private volatile String role = "";
     private boolean unlockOpen;
     private ConnectivityManager.NetworkCallback network;
+    private android.content.BroadcastReceiver pushChanges;
     private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable relock = this::lock;
     OfflineController(Activity activity, WebView web) {
@@ -50,6 +51,10 @@ final class OfflineController {
             @Override public void onLost(android.net.Network value) { handler.post(OfflineController.this::publishConnectivity); }
         };
         try { ((ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE)).registerDefaultNetworkCallback(network); } catch (Exception ignored) { network = null; }
+        pushChanges=new android.content.BroadcastReceiver(){@Override public void onReceive(Context context,Intent intent){
+            if(PhotoPolicy.trusted(web.getUrl()))web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-notifications-change'));"+(intent.getBooleanExtra("parentScope",false)?"window.dispatchEvent(new Event('trinity-parent-scope-changed'));":""),null);
+        }};
+        androidx.core.content.ContextCompat.registerReceiver(activity,pushChanges,new android.content.IntentFilter(NativePush.EVENT),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(web, "TrinityOffline", new java.util.HashSet<>(java.util.Arrays.asList(PhotoPolicy.ORIGIN, OfflinePolicy.LOCAL_ORIGIN)), (view, message, origin, mainFrame, reply) -> {
                 if (!mainFrame) return;
@@ -76,7 +81,8 @@ final class OfflineController {
                 if (activity.isDestroyed()) return;
                 String deepLink = activity.getIntent().getStringExtra("offlineRoute");
                 String onlineLink = activity.getIntent().getStringExtra("onlineRoute");
-                web.loadUrl(OfflinePolicy.launchRoute(deepLink, onlineLink, role));
+                String pushLink = NativePush.tapRoute(activity, activity.getIntent());
+                web.loadUrl(pushLink != null ? pushLink : OfflinePolicy.launchRoute(deepLink, onlineLink, role));
             });
         });
     }
@@ -115,11 +121,22 @@ final class OfflineController {
         } catch (Exception ignored) { return; }
         String action = input.optString("action");
         if ("notificationStatus".equals(action)) {
-            try { reply(reply, id, true, null, new JSONObject().put("appName", SchoolApp.NAME)
-                .put("notificationPermission", LessonReminders.notificationsAllowed(activity) ? "granted" : "denied").put("remotePush", false)); }
+            try { reply(reply, id, true, null, NativePush.status(activity).put("appName", SchoolApp.NAME)
+                .put("notificationPermission", LessonReminders.notificationsAllowed(activity) ? "granted" : "denied")); }
             catch (Exception ignored) { reply(reply, id, false, "Android notification status is unavailable.", null); }
             return;
         }
+        if ("registerNativePush".equals(action) || "testNativePush".equals(action)) {
+            if (local) { reply(reply,id,false,"Connect and sign in to configure school push.",null); return; }
+            new Thread(() -> { try { JSONObject result = "registerNativePush".equals(action)
+                ? NativePush.register(activity,input.optString("userId"),input.optString("idToken"),input.optBoolean("enable"))
+                : NativePush.test(activity,input.optString("userId"),input.optString("idToken")); reply(reply,id,true,null,result);
+                } catch(Exception error){ reply(reply,id,false,"School notifications could not connect. Check your connection and try again.",null); }
+            }).start(); return;
+        }
+        if ("disableNativePush".equals(action)) { NativePush.clear(activity,true); reply(reply,id,true,null,null); return; }
+        if ("clearNativePush".equals(action)) { NativePush.clear(activity,false); reply(reply,id,true,null,null); return; }
+        if ("clear".equals(action)) NativePush.clear(activity,false);
         if ("openNotificationSettings".equals(action)) {
             activity.startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, activity.getPackageName()));
@@ -245,6 +262,7 @@ final class OfflineController {
     }
     void pause() { if (!unlockOpen) lock(); }
     void destroy() {
+        if(pushChanges!=null){try{activity.unregisterReceiver(pushChanges);}catch(Exception ignored){}pushChanges=null;}
         handler.removeCallbacksAndMessages(null);
         if (network != null) try { ((ConnectivityManager) activity.getSystemService(Context.CONNECTIVITY_SERVICE)).unregisterNetworkCallback(network); } catch (Exception ignored) { }
         io.shutdownNow();

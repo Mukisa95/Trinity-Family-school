@@ -6,10 +6,10 @@
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
   "iconUrl": "/trinity-logo-192.png",
-  "versionCode": 13,
-  "versionName": "1.11",
+  "versionCode": 14,
+  "versionName": "1.12",
   "minAndroid": "8.0",
   "filename": "trinity-live.apk",
-  "bytes": 2084876,
-  "sha256": "c32f12852390aaa72a698092150c5f8cdca9d176105544c2614cd0216f448b70"
+  "bytes": 3156842,
+  "sha256": "355651704d06bb25ec1eb1897ac16781d958238996636059958821770eaa3f18"
 }

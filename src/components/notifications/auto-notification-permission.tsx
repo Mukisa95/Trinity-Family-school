@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import { isIosDevice, isStandalonePwa } from '@/lib/push-subscription-client';
 import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
+import { NativePushRegistration } from './native-push-registration';
 
 const PROMPT_DISMISS_PREFIX = 'trinity-push-prompt-dismissed:';
 const PROMPT_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -101,7 +102,8 @@ export function AutoNotificationPermission() {
     setHasDismissedPrompt(true);
   };
 
-  if (!user || android.isChecking || android.isAndroid) return null;
+  if (android.isAndroid) return <NativePushRegistration />;
+  if (!user || android.isChecking) return null;
   if (!needsIosInstall && permission === 'granted' && isSubscribed) return null;
 
   const notificationsUnsupported = !needsIosInstall && !isSupported;

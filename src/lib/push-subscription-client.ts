@@ -1,7 +1,7 @@
 "use client";
 
 import { auth } from '@/lib/firebase';
-import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
+import { androidOfflineRequest, hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 
 const DEFAULT_VAPID_PUBLIC_KEY =
   'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
@@ -268,6 +268,7 @@ export async function enablePushSubscription(userId: string): Promise<PushSyncRe
  * computers belonging to that user remain subscribed.
  */
 export async function detachPushSubscriptionForLogout(userId: string): Promise<void> {
+  if (hasAndroidOfflineBridge()) { await androidOfflineRequest('clearNativePush'); return; }
   if (!supportsWebPush()) return;
 
   clearSubscriptionConfirmation(userId);

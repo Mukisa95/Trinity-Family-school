@@ -18,7 +18,7 @@ async function nativeReply(data: Record<string, unknown>, run: (actions: string[
 
 test('native permission is read without inventing a server push subscription', async () => {
   await nativeReply({ appName: 'Trinity Live', notificationPermission: 'granted', remotePush: false }, async actions => {
-    assert.deepEqual(await readAndroidNotificationState(), { appName: 'Trinity Live', permission: 'granted', remotePush: false });
+    assert.deepEqual(await readAndroidNotificationState(), { appName: 'Trinity Live', permission: 'granted', remotePush: false, pushEnabled: true, pushAccountId: '' });
     assert.deepEqual(actions, ['notificationStatus']);
   });
 });
@@ -29,7 +29,7 @@ test('Android permission denial is preserved independently of remote push', asyn
 });
 test('unrecognised capability values cannot claim notifications are allowed', async () => {
   await nativeReply({ notificationPermission: 'allowed', remotePush: 'true' }, async () => {
-    assert.deepEqual(await readAndroidNotificationState(), { appName: 'School app', permission: 'unknown', remotePush: false });
+    assert.deepEqual(await readAndroidNotificationState(), { appName: 'School app', permission: 'unknown', remotePush: false, pushEnabled: true, pushAccountId: '' });
   });
 });
 test('settings actions stay local and cannot choose another app or account', async () => {

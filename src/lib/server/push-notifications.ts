@@ -5,6 +5,8 @@ import { getFirebaseAdminApp } from '@/lib/firebase-admin';
 import { getServerVapidDetails } from '@/lib/server/vapid-config';
 import { GranularPermissionService } from '@/lib/services/granular-permissions.service';
 import type { SystemUser } from '@/types';
+import { sendServerNativePush } from './native-push';
+import { getFirebaseAdminProjectId } from '@/lib/firebase-admin';
 
 export interface ServerPushSubscription {
   id: string;
@@ -12,6 +14,8 @@ export interface ServerPushSubscription {
   endpoint: string;
   p256dh: string;
   auth: string;
+  nativeToken?: string;
+  transport?: 'android-fcm';
 }
 
 interface BrowserSubscriptionInput {
@@ -173,6 +177,10 @@ export async function getServerPushSubscriptionsForUsers(
       .get();
     snapshot.docs.forEach(doc => {
       const data = doc.data();
+      if (data.transport === 'android-fcm') {
+        if (data.firebaseProjectId === getFirebaseAdminProjectId() && typeof data.nativeToken === 'string') results.push({ id: doc.id, userId: data.userId, nativeToken: data.nativeToken, transport: 'android-fcm', endpoint: '', p256dh: '', auth: '' });
+        return;
+      }
       const p256dh = data.p256dh || data.keys?.p256dh;
       const auth = data.auth || data.keys?.auth;
       if (data.vapidPublicKey !== vapidPublicKey || !data.endpoint || !p256dh || !auth) return;
@@ -258,7 +266,11 @@ export async function sendServerWebPush(
   } = {},
 ): Promise<{ accepted: number; failed: number; expired: number; rejected: number }> {
   if (!subscriptions.length) return { accepted: 0, failed: 0, expired: 0, rejected: 0 };
-  const sender = await getWebPushSender();
+  const native = await sendServerNativePush(subscriptions.filter(subscription => subscription.transport === 'android-fcm'), payload, options);
+  subscriptions = subscriptions.filter(subscription => subscription.transport !== 'android-fcm');
+  if (!subscriptions.length) return native;
+  let sender;
+  try { sender = await getWebPushSender(); } catch { return { ...native, failed: native.failed + subscriptions.length }; }
   const payloadText = JSON.stringify({
     ...payload,
     icon: payload.icon || '/trinity-logo-192.png',
@@ -298,5 +310,5 @@ export async function sendServerWebPush(
   const expired = options.deactivateExpired === false
     ? expiredIds.length
     : await deactivateServerPushSubscriptionIds(expiredIds);
-  return { accepted, failed, expired, rejected };
+  return { accepted: accepted + native.accepted, failed: failed + native.failed, expired: expired + native.expired, rejected: rejected + native.rejected };
 }

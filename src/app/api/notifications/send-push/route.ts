@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
       notificationId: notificationRef.id,
       message: subscriptions.length > 0
         ? `In-app delivered to ${inAppSent} user${inAppSent === 1 ? '' : 's'}. Push service accepted ${sent} device alert${sent === 1 ? '' : 's'}; ${failed} failed.`
-        : `In-app delivered to ${inAppSent} user${inAppSent === 1 ? '' : 's'}. No active Web Push subscription was available.`,
+        : `In-app delivered to ${inAppSent} user${inAppSent === 1 ? '' : 's'}. No active push device was available.`,
       sent,
       failed,
       total: subscriptions.length,

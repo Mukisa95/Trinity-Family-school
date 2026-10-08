@@ -294,6 +294,10 @@ public final class MainActivity extends Activity {
         } catch (Exception ignored) { /* The original document may have closed. */ }
     }
     @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent); setIntent(intent);
+        String route=NativePush.tapRoute(this,intent); if(route!=null&&web!=null)web.loadUrl(route);
+    }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);
         if (request == 73) new Thread(() -> TimetableUpdates.refresh(this, new OfflineStore(this))).start();

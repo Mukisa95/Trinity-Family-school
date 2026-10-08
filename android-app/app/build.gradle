@@ -16,6 +16,11 @@ android {
         versionName school.versionName
         buildConfigField 'String', 'SCHOOL_APP_NAME', javaString(school.appName)
         buildConfigField 'String', 'SCHOOL_ORIGIN', javaString(school.websiteOrigin)
+        buildConfigField 'String', 'SCHOOL_FIREBASE_PROJECT', javaString(school.firebaseProjectId)
+        resValue 'string', 'google_app_id', school.firebaseAndroid.appId
+        resValue 'string', 'google_api_key', school.firebaseAndroid.apiKey
+        resValue 'string', 'gcm_defaultSenderId', school.firebaseAndroid.messagingSenderId
+        resValue 'string', 'project_id', school.firebaseProjectId
         resValue 'string', 'app_name', school.appName
         resValue 'string', 'widget_plain_name', "${school.appName} · Timetables"
         resValue 'string', 'widget_progress_name', "${school.appName} · Timetables with progress"
@@ -41,6 +46,8 @@ android {
 dependencies {
     implementation 'androidx.webkit:webkit:1.12.1'
     implementation 'androidx.core:core:1.13.1'
+    implementation 'com.google.firebase:firebase-messaging:24.1.1'
+    implementation 'androidx.work:work-runtime:2.9.1'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
     androidTestImplementation 'androidx.test:runner:1.6.2'

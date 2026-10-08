@@ -4,17 +4,21 @@ export interface AndroidNotificationState {
   appName: string;
   permission: 'granted' | 'denied' | 'unknown';
   remotePush: boolean;
+  pushEnabled: boolean;
+  pushAccountId: string;
 }
 
 /** Local Android permission is separate from a server push subscription. */
 export async function readAndroidNotificationState(): Promise<AndroidNotificationState> {
   const reply = await androidOfflineRequest('notificationStatus') as Awaited<ReturnType<typeof androidOfflineRequest>> & {
-    appName?: string; notificationPermission?: string; remotePush?: boolean;
+    appName?: string; notificationPermission?: string; remotePush?: boolean; pushEnabled?: boolean; pushAccountId?: string;
   };
   return {
     appName: typeof reply.appName === 'string' ? reply.appName : 'School app',
     permission: reply.notificationPermission === 'granted' ? 'granted' : reply.notificationPermission === 'denied' ? 'denied' : 'unknown',
     remotePush: reply.remotePush === true,
+    pushEnabled: reply.pushEnabled !== false,
+    pushAccountId: typeof reply.pushAccountId === 'string' ? reply.pushAccountId : '',
   };
 }
 

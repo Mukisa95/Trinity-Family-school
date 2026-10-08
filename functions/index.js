@@ -18,6 +18,7 @@ const admin = require("firebase-admin");
 const {getFunctions} = require("firebase-admin/functions");
 const {createHash} = require("crypto");
 const webpush = require("web-push");
+const {nativeMessageData, expiredNativeToken} = require("./native-push-contract");
 
 if (!admin.apps.length) admin.initializeApp();
 
@@ -539,8 +540,30 @@ function reminderBody(classNames) {
 }
 
 async function sendAttendanceReminderPush(subscriptions, payload, vapidPublicKey, options = {}) {
+  const native = subscriptions.filter((subscription) => subscription.transport === "android-fcm");
+  subscriptions = subscriptions.filter((subscription) => subscription.transport !== "android-fcm");
+  const nativeResults = [];
+  const projectId = process.env.GCLOUD_PROJECT || admin.app().options.projectId;
+  const decoded = JSON.parse(payload);
+  for (const subscription of native) {
+    try {
+      await admin.messaging().send({token: subscription.nativeToken, data: nativeMessageData(subscription.userId, projectId, decoded), android: {priority: "high", ttl: 6 * 60 * 60 * 1000}});
+      nativeResults.push({sent: true, expired: false, id: subscription.id});
+    } catch (error) {
+      if (expiredNativeToken(error?.code)) {
+        const ref = admin.firestore().collection("pushSubscriptions").doc(subscription.id);
+        await admin.firestore().runTransaction(async (transaction) => {
+          const current = await transaction.get(ref);
+          if (current.data()?.nativeToken === subscription.nativeToken) transaction.update(ref, {isActive: false, deactivatedAt: admin.firestore.FieldValue.serverTimestamp()});
+        }).catch(() => logger.warn("Expired native registration cleanup deferred."));
+      }
+      nativeResults.push({sent: false, expired: false, id: subscription.id});
+    }
+  }
+  if (!subscriptions.length) return {sent: nativeResults.filter((result) => result.sent).length, failed: native.length - nativeResults.filter((result) => result.sent).length,
+    expiredIds: nativeResults.filter((result) => result.expired).map((result) => result.id)};
   const privateKey = normalizeVapidValue(VAPID_PRIVATE_KEY.value());
-  if (!privateKey) throw new Error("VAPID_PRIVATE_KEY Firebase secret is not configured");
+  if (!privateKey) return {sent: nativeResults.filter((result) => result.sent).length, failed: subscriptions.length + native.length - nativeResults.filter((result) => result.sent).length, expiredIds: []};
   webpush.setVapidDetails(
     normalizeVapidValue(process.env.VAPID_EMAIL) || "mailto:admin@trinity-family-schools.com",
     vapidPublicKey,
@@ -559,10 +582,10 @@ async function sendAttendanceReminderPush(subscriptions, payload, vapidPublicKey
       return {sent: false, expired: status === 403 || status === 404 || status === 410, id: subscription.id};
     }
   }));
-  const settled = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+  const settled = [...nativeResults, ...results.flatMap((result) => result.status === "fulfilled" ? [result.value] : [])];
   return {
     sent: settled.filter((result) => result.sent).length,
-    failed: subscriptions.length - settled.filter((result) => result.sent).length,
+    failed: subscriptions.length + native.length - settled.filter((result) => result.sent).length,
     expiredIds: settled.filter((result) => result.expired).map((result) => result.id),
   };
 }
@@ -806,7 +829,9 @@ async function getActiveAttendanceReminderSubscriptions(db, recipientIds) {
   );
   const subscriptions = snapshots.flatMap((snapshot) => snapshot.docs)
     .map((doc) => ({id: doc.id, ...doc.data()}))
-    .filter((subscription) => subscription.vapidPublicKey === vapidPublicKey && subscription.endpoint && subscription.p256dh && subscription.auth);
+    .filter((subscription) => subscription.transport === "android-fcm"
+      ? subscription.firebaseProjectId === (process.env.GCLOUD_PROJECT || admin.app().options.projectId) && subscription.nativeToken
+      : subscription.vapidPublicKey === vapidPublicKey && subscription.endpoint && subscription.p256dh && subscription.auth);
   return {subscriptions, vapidPublicKey};
 }
 
