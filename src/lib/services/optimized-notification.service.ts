@@ -31,13 +31,13 @@ import { pushNotificationIconService } from './push-notification-icon.service';
 import {
   getServerPushSubscriptionsForUsers,
   sendServerWebPush,
+  type ServerPushSubscription,
 } from '@/lib/server/push-notifications';
 import type {
   Notification,
   CreateNotificationData,
   NotificationDelivery,
-  User,
-  PushSubscription
+  User
 } from '@/types';
 
 interface BatchNotificationResult {
@@ -533,7 +533,7 @@ class OptimizedNotificationService {
   }
 
   /**
-   * Send push notifications to web subscriptions (browser users)
+   * Send push notifications to registered browser and native devices.
    */
   private async sendToWebSubscriptions(
     notification: Notification,
@@ -544,13 +544,7 @@ class OptimizedNotificationService {
     try {
       const subscriptions = await this.getPushSubscriptionsBatch(users);
       if (!subscriptions.length) return results;
-      const outcome = await sendServerWebPush(subscriptions.map(subscription => ({
-        id: subscription.id,
-        userId: subscription.userId,
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-      })), {
+      const outcome = await sendServerWebPush(subscriptions, {
         title: notification.pushTitle || notification.title,
         body: notification.pushBody || notification.description || '',
         icon: notification.pushIcon || '/trinity-logo-192.png',
@@ -573,17 +567,10 @@ class OptimizedNotificationService {
   /**
    * 📱 Get push subscriptions for a batch of users
    */
-  private async getPushSubscriptionsBatch(users: User[]): Promise<PushSubscription[]> {
+  private async getPushSubscriptionsBatch(users: User[]): Promise<ServerPushSubscription[]> {
     try {
       const userIds = users.map(u => u.id);
-      const subscriptions = await getServerPushSubscriptionsForUsers(userIds);
-      return subscriptions.map(subscription => ({
-        id: subscription.id,
-        userId: subscription.userId,
-        endpoint: subscription.endpoint,
-        keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-        isActive: true,
-      } as PushSubscription));
+      return await getServerPushSubscriptionsForUsers(userIds);
     } catch (error) {
       console.error('❌ [PUSH] Error fetching push subscriptions:', error);
       return [];

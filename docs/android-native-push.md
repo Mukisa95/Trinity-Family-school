@@ -32,6 +32,8 @@ On 8 October 2026, 40 Android unit tests passed, including account/project match
 
 Nine server contract tests cover registration input, school isolation, verified account binding, proof-scoped rotation/deactivation, authoritative recipient metadata, payload size, tap URLs and invalid-token cleanup. Browser subscription lifecycle, scheduled communications, push navigation and parent inbox contracts remain applicable. Live background delivery is checked separately from provider acceptance or local rendering tests.
 
+Two batch-announcement regression tests failed against the old browser-only adapter and passed after it retained the complete shared subscription contract. Native-only and mixed browser/native announcements retain the selected recipient scope and delivery counts. Together with the native, Android notification and distribution contracts, all 23 Node tests passed.
+
 The website sender passed an FCM dry run after its messaging permission was configured. The signed, non-debuggable 1.12 release (version code 14) was installed on Pixel 7 with notification permission retained. Its APK is 3,156,842 bytes; SHA-256 `355651704d06bb25ec1eb1897ac16781d958238996636059958821770eaa3f18`. Six APK distribution checks also passed.
 
 Release commit `948626fbff6a14f2248c87aa7ef59efc160c55ba` was pushed to `main` and the Trinity website deployment succeeded. Downloading the production APK returned the exact installed release hash. Unauthenticated registration and provider-test requests returned HTTP 401; invalid rotation input returned HTTP 400.
