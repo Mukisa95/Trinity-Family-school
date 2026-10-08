@@ -39,13 +39,13 @@ public final class TimetableSettingsActivity extends Activity {
         io.execute(() -> {
             try {
                 JSONObject envelope = store.timetableAvailable();
-                if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open Trinity School and sign in online to load your timetable.");
+                if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open " + SchoolApp.NAME + " and sign in online to load your timetable.");
                 datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets");
                 accountId = envelope.getJSONObject("session").getString("accountId"); hidden = TimetableSurfaces.hidden(this, widgetId);
                 runOnUiThread(() -> { if (!isDestroyed()) form(); });
             } catch (Exception error) { runOnUiThread(() -> {
                 if (isDestroyed()) return; message.setText(error.getMessage());
-                Button open = button("Open Trinity School"); open.setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class)); finish(); });
+                Button open = button("Open " + SchoolApp.NAME); open.setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class)); finish(); });
             }); }
         });
     }

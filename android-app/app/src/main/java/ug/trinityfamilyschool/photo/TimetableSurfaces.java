@@ -26,7 +26,7 @@ final class TimetableSurfaces {
     }
     static void select(Context context, OfflineStore store, JSONObject value, int widgetId) throws Exception {
         JSONObject envelope = store.timetableAvailable();
-        if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open Trinity School to load your timetables.");
+        if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open " + SchoolApp.NAME + " to load your timetables.");
         if (value.has("accountId") && !value.optString("accountId").equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Your account changed. Reopen timetable settings.");
         SharedPreferences.Editor edit = prefs(context).edit();
         edit.putBoolean(prefix(widgetId) + "progress", value.optBoolean("progress", true));
@@ -219,7 +219,7 @@ final class TimetableSurfaces {
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
         views.setOnClickPendingIntent(R.id.widget_root, open(context, id));
         views.setOnClickPendingIntent(R.id.widget_title, open(context, id));
-        views.setTextViewText(R.id.feed_empty, frame.accountId.isEmpty() ? "Open Trinity School to load timetables" : "No timetables shown. Change timetable settings."); views.setEmptyView(R.id.feed_list, R.id.feed_empty);
+        views.setTextViewText(R.id.feed_empty, frame.accountId.isEmpty() ? "Open " + SchoolApp.NAME + " to load timetables" : "No timetables shown. Change timetable settings."); views.setEmptyView(R.id.feed_list, R.id.feed_empty);
         views.setTextViewText(R.id.widget_title, "School timetables");
         views.setOnClickPendingIntent(R.id.feed_empty, PendingIntent.getActivity(context, 9100 + id, new Intent(context, TimetableSettingsActivity.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
         Intent template = new Intent(context, TimetableReceiver.class).setAction("ug.trinity.timetable.INTERACT").addFlags(Intent.FLAG_RECEIVER_FOREGROUND)

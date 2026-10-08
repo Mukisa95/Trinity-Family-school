@@ -1,14 +1,40 @@
 plugins { id 'com.android.application' }
+def schoolKey = providers.gradleProperty('school').getOrElse('trinity-live')
+if (!(schoolKey ==~ /[a-z][a-z0-9-]*/)) throw new GradleException('Invalid school configuration name')
+def school = new groovy.json.JsonSlurper().parse(file("../../config/android-schools/${schoolKey}.json"))
+def javaString = { value -> groovy.json.JsonOutput.toJson(value.toString()) }
+def signingFile = System.getenv('TRINITY_ANDROID_KEYSTORE')
+def websiteRoot = rootProject.projectDir.parentFile
 android {
     namespace 'ug.trinityfamilyschool.photo'
     compileSdk 35
     defaultConfig {
-        applicationId 'ug.trinityfamilyschool.photo'
+        applicationId school.applicationId
         minSdk 26
         targetSdk 35
-        versionCode 11
-        versionName '1.9-timetable-controls-preview'
+        versionCode school.versionCode as int
+        versionName school.versionName
+        buildConfigField 'String', 'SCHOOL_APP_NAME', javaString(school.appName)
+        buildConfigField 'String', 'SCHOOL_ORIGIN', javaString(school.websiteOrigin)
+        resValue 'string', 'app_name', school.appName
+        resValue 'string', 'widget_plain_name', "${school.appName} · Timetables"
+        resValue 'string', 'widget_progress_name', "${school.appName} · Timetables with progress"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    buildFeatures { buildConfig true }
+    signingConfigs {
+        schoolRelease {
+            if (signingFile) {
+                storeFile file(signingFile)
+                storePassword System.getenv('TRINITY_ANDROID_STORE_PASSWORD')
+                keyAlias System.getenv('TRINITY_ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('TRINITY_ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release { signingConfig signingConfigs.schoolRelease; debuggable false }
+        debug { if (signingFile) signingConfig signingConfigs.schoolRelease }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
@@ -25,7 +51,17 @@ dependencies {
 tasks.register('bundleOfflineInterface', Exec) {
     workingDir rootProject.projectDir.parentFile
     commandLine 'node', 'scripts/build-android-offline.cjs'
-    inputs.files(fileTree('../src/android-offline'), fileTree('../src/lib/offline'), fileTree('../src/lib/utils'), '../scripts/build-android-offline.cjs', '../package-lock.json')
+    environment 'TRINITY_ANDROID_SCHOOL', schoolKey
+    inputs.files(fileTree(new File(websiteRoot, 'src/android-offline')), fileTree(new File(websiteRoot, 'src/lib/offline')), fileTree(new File(websiteRoot, 'src/lib/utils')), new File(websiteRoot, 'scripts/build-android-offline.cjs'), new File(websiteRoot, 'scripts/android-school-config.cjs'), new File(websiteRoot, "config/android-schools/${schoolKey}.json"), new File(websiteRoot, 'package-lock.json'))
+    inputs.property('school', schoolKey)
     outputs.dir('src/main/assets/offline')
 }
+tasks.register('prepareSchoolBranding', Exec) {
+    workingDir rootProject.projectDir.parentFile
+    commandLine 'node', 'scripts/prepare-android-branding.cjs', schoolKey
+    inputs.files(new File(websiteRoot, "config/android-schools/${schoolKey}.json"), new File(websiteRoot, school.icon), new File(websiteRoot, school.smallIcon), new File(websiteRoot, 'scripts/prepare-android-branding.cjs'), new File(websiteRoot, 'scripts/android-school-config.cjs'))
+    inputs.property('school', schoolKey)
+    outputs.files('src/main/res/drawable-nodpi/school_logo.png', 'src/main/res/mipmap-mdpi/ic_launcher.png', 'src/main/res/mipmap-hdpi/ic_launcher.png', 'src/main/res/mipmap-xhdpi/ic_launcher.png', 'src/main/res/mipmap-xxhdpi/ic_launcher.png', 'src/main/res/mipmap-xxxhdpi/ic_launcher.png')
+}
+tasks.named('preBuild').configure { dependsOn('prepareSchoolBranding') }
 tasks.named('preBuild').configure { dependsOn('bundleOfflineInterface') }

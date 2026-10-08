@@ -15,7 +15,7 @@ final class TimetableSchedule {
         int color;
     }
     static final class Frame {
-        String className = "All timetables", tableName = "", title = "Timetable unavailable", time = "", teacher = "", next = "Open Trinity School", agenda = "";
+        String className = "All timetables", tableName = "", title = "Timetable unavailable", time = "", teacher = "", next = "Open " + SchoolApp.NAME, agenda = "";
         final List<Frame> profiles = new ArrayList<>();
         final List<Pill> pills = new ArrayList<>();
         String profileId = "", periodId = "", shortLabel = "", accountId = "", timeZone = "Africa/Kampala";

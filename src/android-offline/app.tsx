@@ -7,6 +7,7 @@ import { formatPupilName } from '@/lib/utils/name-formatter';
 import { getTimetableStreamMode, findTimetableEntryForRow, getTimetableRenderedPeriodSpan } from '@/lib/utils/timetable-streams';
 import type { Pupil } from '@/types';
 
+declare const __ANDROID_APP_NAME__: string;
 type Row = Record<string, any>;
 type SavedReply = Awaited<ReturnType<typeof androidOfflineRequest>> & { snapshot?: AndroidOfflineSnapshot; available?: boolean; role?: string };
 const date = (value?: string) => value && Date.parse(value) > 0 ? new Date(value).toLocaleString() : 'Update time unavailable';
@@ -127,8 +128,8 @@ function App() {
     finally { setBusy(false); }
   };
   const selectPupil = (id: string) => { setPupilId(id); history.pushState({ page: 'pupils', pupilId: id }, '', `?page=pupils${id ? `&pupilId=${encodeURIComponent(id)}` : ''}`); window.scrollTo(0, 0); };
-  return <><header><span className="brand">Trinity School</span><button onClick={() => void androidOfflineRequest('openOnline').catch(failure => setError(failure.message))}>Refresh</button></header><main className="shell">
-    {snapshot && session ? <><div className="row" style={{ marginBottom: 16 }}><span className="pill">{session.role}</span><button onClick={() => void androidOfflineRequest('lock').then(() => { setSnapshot(undefined); setSession(undefined); })}>Lock</button></div>{page === 'pupils' ? <Pupils snapshot={snapshot} selectedId={pupilId} select={selectPupil} /> : page === 'timetable' ? <Timetable snapshot={snapshot} /> : <Dashboard snapshot={snapshot} session={session} navigate={navigate} />}</> : <section className="card" style={{ marginTop: 24 }}><h1>Trinity School</h1><p className="muted">Unlock to continue.</p>{available === undefined ? <p className="loading">Loading...</p> : available ? <button className="primary" disabled={busy} onClick={() => void unlock()}>{busy ? 'Opening…' : 'Unlock'}</button> : <Missing>Connect and sign in to load your school information.</Missing>}</section>}
+  return <><header><span className="brand">{__ANDROID_APP_NAME__}</span><button onClick={() => void androidOfflineRequest('openOnline').catch(failure => setError(failure.message))}>Refresh</button></header><main className="shell">
+    {snapshot && session ? <><div className="row" style={{ marginBottom: 16 }}><span className="pill">{session.role}</span><button onClick={() => void androidOfflineRequest('lock').then(() => { setSnapshot(undefined); setSession(undefined); })}>Lock</button></div>{page === 'pupils' ? <Pupils snapshot={snapshot} selectedId={pupilId} select={selectPupil} /> : page === 'timetable' ? <Timetable snapshot={snapshot} /> : <Dashboard snapshot={snapshot} session={session} navigate={navigate} />}</> : <section className="card" style={{ marginTop: 24 }}><h1>{__ANDROID_APP_NAME__}</h1><p className="muted">Unlock to continue.</p>{available === undefined ? <p className="loading">Loading...</p> : available ? <button className="primary" disabled={busy} onClick={() => void unlock()}>{busy ? 'Opening…' : 'Unlock'}</button> : <Missing>Connect and sign in to load your school information.</Missing>}</section>}
     {error && <p className="error" role="alert">{error}</p>}
   </main>{snapshot && session && <nav aria-label="Application"><button aria-current={page === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}>Dashboard</button>{(session.grants.pupils || session.role === 'Parent') && <button aria-current={page === 'pupils' ? 'page' : undefined} onClick={() => navigate('pupils')}>{session.role === 'Parent' ? 'My children' : 'Pupils'}</button>}{session.grants.timetable && <button aria-current={page === 'timetable' ? 'page' : undefined} onClick={() => navigate('timetable')}>Timetable</button>}</nav>}</>;
 }

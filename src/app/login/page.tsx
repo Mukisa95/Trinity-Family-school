@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Eye, EyeOff, Fingerprint, LogIn, School, MapPin, Phone, Mail, User, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Fingerprint, LogIn, School, MapPin, Phone, Mail, User, Globe, Star, BookOpen, Heart, MessageCircle, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { PasskeyService } from '@/lib/services/passkey.service';
 import { useToast } from "@/hooks/use-toast";
@@ -1139,9 +1139,9 @@ export default function LoginPage() {
               <div className="ql-icon ic-gold">💰</div>
               <div className="ql-text"><strong>School Fees</strong><span>Fee structure</span></div>
             </a>
-            <a className="ql-item" href="#contact">
-              <div className="ql-icon ic-blue">⬇️</div>
-              <div className="ql-text"><strong>Downloads</strong><span>Forms &amp; documents</span></div>
+            <a className="ql-item" href="/download">
+              <div className="ql-icon ic-blue"><Download size={22} aria-hidden="true" /></div>
+              <div className="ql-text"><strong>Download App</strong><span>Android · Offline access</span></div>
             </a>
             <a className="ql-item" href="#gallery">
               <div className="ql-icon ic-purple">🖼️</div>

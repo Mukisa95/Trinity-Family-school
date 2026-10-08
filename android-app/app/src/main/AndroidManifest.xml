@@ -9,7 +9,7 @@
         <intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent>
         <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>
     </queries>
-    <application android:label="Trinity School" android:icon="@drawable/school_icon" android:allowBackup="false" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+    <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:allowBackup="false" android:usesCleartextTraffic="false" android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
@@ -31,11 +31,11 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/photo_paths" />
         </provider>
         <service android:name=".TimetableFeedService" android:permission="android.permission.BIND_REMOTEVIEWS" android:exported="false" />
-        <receiver android:name=".TimetableWidget" android:exported="false" android:label="School timetables · Plain">
+        <receiver android:name=".TimetableWidget" android:exported="false" android:label="@string/widget_plain_name">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/timetable_widget" />
         </receiver>
-        <receiver android:name=".TimetableProgressWidget" android:exported="false" android:label="School timetables · Progress">
+        <receiver android:name=".TimetableProgressWidget" android:exported="false" android:label="@string/widget_progress_name">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/timetable_progress_widget" />
         </receiver>

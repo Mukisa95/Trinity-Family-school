@@ -36,11 +36,11 @@ public final class LessonReminderSettingsActivity extends Activity {
         io.execute(() -> {
             try {
                 envelope = LessonReminders.authorized(store);
-                if (envelope == null) throw new IllegalStateException("Open Trinity School and sign in to load an authorized timetable.");
+                if (envelope == null) throw new IllegalStateException("Open " + SchoolApp.NAME + " and sign in to load an authorized timetable.");
                 datasets = envelope.getJSONObject("snapshot").getJSONObject("datasets"); account = envelope.getJSONObject("session").getString("accountId");
                 draft = restored == null || !account.equals(restoredAccount) ? LessonReminders.settings(this, account) : new LessonReminderPlan.Settings(restored);
                 runOnUiThread(() -> { if (!isDestroyed()) { form(); loaded = true; updateStatus(); } });
-            } catch (Exception error) { runOnUiThread(() -> { if (!isDestroyed()) { message.setText(error.getMessage()); button("Open Trinity School").setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class)); finish(); }); } }); }
+            } catch (Exception error) { runOnUiThread(() -> { if (!isDestroyed()) { message.setText(error.getMessage()); button("Open " + SchoolApp.NAME).setOnClickListener(view -> { startActivity(new Intent(this, MainActivity.class)); finish(); }); } }); }
         });
     }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }

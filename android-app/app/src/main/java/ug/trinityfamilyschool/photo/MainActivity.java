@@ -120,6 +120,11 @@ public final class MainActivity extends Activity {
                 return true;
             }
         });
+        web.setDownloadListener((url, userAgent, contentDisposition, mimeType, length) -> {
+            if (!PhotoPolicy.trusted(url)) return;
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+            catch (Exception ignored) { android.widget.Toast.makeText(this, "Open the school website in your browser to download the app.", android.widget.Toast.LENGTH_LONG).show(); }
+        });
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(web, "TrinityPhoto", Collections.singleton(PhotoPolicy.ORIGIN), (view, message, origin, mainFrame, reply) -> {
                 if (!mainFrame || !PhotoPolicy.trusted(origin.toString()) || !PhotoPolicy.trusted(view.getUrl())) return;

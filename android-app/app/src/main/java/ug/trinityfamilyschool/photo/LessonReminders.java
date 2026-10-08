@@ -34,7 +34,7 @@ final class LessonReminders {
     }
     static synchronized void save(Context context, OfflineStore store, String account, LessonReminderPlan.Settings value) throws Exception {
         JSONObject envelope = authorized(store);
-        if (envelope == null || !account.equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Open Trinity School and verify your account before changing reminders.");
+        if (envelope == null || !account.equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Open " + SchoolApp.NAME + " and verify your account before changing reminders.");
         prefs(context).edit().putString("owner", account).putString("settings", value.json().toString()).commit();
         cancel(context, SNOOZED, 7241); cancelNotifications(context); planKey = "";
         refresh(context, store);
@@ -140,7 +140,7 @@ final class LessonReminders {
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         for (String mode : new String[]{"sound", "vibrate", "silent"}) {
             NotificationChannel channel = new NotificationChannel(channel(mode), "Lesson reminders · " + (mode.equals("sound") ? "Sound & vibration" : mode.equals("vibrate") ? "Vibration" : "Silent"), mode.equals("silent") ? NotificationManager.IMPORTANCE_LOW : NotificationManager.IMPORTANCE_HIGH);
-            channel.setDescription("Lesson start, end and advance reminders you choose in Trinity School."); channel.enableVibration(!mode.equals("silent"));
+            channel.setDescription("Lesson start, end and advance reminders you choose in " + SchoolApp.NAME + "."); channel.enableVibration(!mode.equals("silent"));
             channel.setSound(mode.equals("sound") ? android.provider.Settings.System.DEFAULT_NOTIFICATION_URI : null, new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build());
             channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PRIVATE); manager.createNotificationChannel(channel);
         }

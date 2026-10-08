@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useSidebar } from '@/components/ui/sidebar';
 import { APP_VERSION } from '@/lib/constants/version';
 import { cn } from '@/lib/utils';
-import { User, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { User, LogOut, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,6 +152,13 @@ export function SidebarUserFooter({ onCloseSidebar }: SidebarUserFooterProps) {
               >
                 <span className="mr-2 px-1 py-0.2 text-[9px] bg-blue-100 text-blue-700 rounded border border-blue-200">v{APP_VERSION}</span>
                 What's New
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link href="/download" onClick={handleItemClick} className="flex min-h-11 items-center w-full px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-md cursor-pointer">
+                <Download className="mr-2 h-4 w-4 text-gray-400" aria-hidden="true" />
+                Download Android app
               </Link>
             </DropdownMenuItem>
 

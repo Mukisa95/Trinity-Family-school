@@ -201,7 +201,7 @@ final class OfflineController {
         if (unlocked()) { sendSaved(id, reply); return; }
         KeyguardManager keyguard = (KeyguardManager) activity.getSystemService(Context.KEYGUARD_SERVICE);
         if (!keyguard.isDeviceSecure()) { reply(reply, id, false, "Set a PIN, password or pattern on your phone to protect offline school information.", null); return; }
-        Intent intent = keyguard.createConfirmDeviceCredentialIntent("Trinity School", "Unlock Trinity School");
+        Intent intent = keyguard.createConfirmDeviceCredentialIntent("" + SchoolApp.NAME, "Unlock " + SchoolApp.NAME);
         if (intent == null) { reply(reply, id, false, "Device unlock is unavailable.", null); return; }
         pendingUnlock = reply; unlockId = id; unlockOpen = true;
         activity.startActivityForResult(intent, UNLOCK_REQUEST);

@@ -7,9 +7,10 @@ public class PhotoPolicyTest {
     @Test public void onlySchoolHttpsOriginGetsBridgePrivileges() {
         assertTrue(PhotoPolicy.trusted(PhotoPolicy.ORIGIN + "/pupils/new"));
         assertTrue(PhotoPolicy.trusted(PhotoPolicy.ORIGIN + ":443/pupils"));
-        assertFalse(PhotoPolicy.trusted("http://trinityfamilyschool.vercel.app"));
-        assertFalse(PhotoPolicy.trusted("https://trinityfamilyschool.vercel.app.evil.test"));
-        assertFalse(PhotoPolicy.trusted("https://trinityfamilyschool.vercel.app@evil.test"));
+        assertFalse(PhotoPolicy.trusted(PhotoPolicy.ORIGIN.replace("https:", "http:")));
+        assertFalse(PhotoPolicy.trusted(PhotoPolicy.ORIGIN + ".evil.test"));
+        assertFalse(PhotoPolicy.trusted(PhotoPolicy.ORIGIN + "@evil.test"));
+        assertFalse(PhotoPolicy.trusted("https://another-school.example"));
         assertFalse(PhotoPolicy.trusted(PhotoPolicy.ORIGIN + ":444"));
         assertFalse(PhotoPolicy.trusted("file:///photos/photo.jpg"));
     }

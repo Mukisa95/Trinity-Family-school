@@ -4,6 +4,7 @@ const path = require('path');
 const nextConfig = {
   // Pin project root — avoids Next.js picking C:\Users\ZION\package-lock.json and failing to resolve firebase
   outputFileTracingRoot: path.join(__dirname),
+  outputFileTracingIncludes: { '/api/android/download': ['./android-releases/*.apk'] },
   turbopack: {
     root: path.join(__dirname),
   },
@@ -172,4 +173,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;
