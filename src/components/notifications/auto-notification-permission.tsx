@@ -6,6 +6,7 @@ import { Bell, CheckCircle, ShieldCheck, X } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
 import { isIosDevice, isStandalonePwa } from '@/lib/push-subscription-client';
+import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
 
 const PROMPT_DISMISS_PREFIX = 'trinity-push-prompt-dismissed:';
 const PROMPT_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -30,6 +31,7 @@ function hasRecentDismissal(userId: string) {
  */
 export function AutoNotificationPermission() {
   const { user } = useAuth();
+  const android = useAndroidNotifications();
   const {
     isSupported,
     isSubscribed,
@@ -54,7 +56,7 @@ export function AutoNotificationPermission() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user?.id || !isSupported || permission !== 'granted' || isChecking || isLoading) return;
+    if (android.isChecking || android.isAndroid || !user?.id || !isSupported || permission !== 'granted' || isChecking || isLoading) return;
 
     const reconcileAfterFailure = () => {
       if (!isSubscribed && navigator.onLine) void sync(user.id);
@@ -68,15 +70,15 @@ export function AutoNotificationPermission() {
       window.removeEventListener('online', reconcileAfterFailure);
       window.removeEventListener('trinity-push-subscription-invalidated', reconcileAfterFailure);
     };
-  }, [user?.id, isSupported, permission, isSubscribed, isChecking, isLoading, sync]);
+  }, [user?.id, isSupported, permission, isSubscribed, isChecking, isLoading, sync, android.isChecking, android.isAndroid]);
 
   useEffect(() => {
-    if (!user || isChecking || isLoading || hasDismissedPrompt) return;
+    if (android.isChecking || android.isAndroid || !user || isChecking || isLoading || hasDismissedPrompt) return;
     if (!needsIosInstall && permission === 'granted' && isSubscribed) return;
 
     const timer = window.setTimeout(() => setShowPrompt(true), 3000);
     return () => window.clearTimeout(timer);
-  }, [user, isSupported, permission, isSubscribed, needsIosInstall, isChecking, isLoading, hasDismissedPrompt]);
+  }, [user, isSupported, permission, isSubscribed, needsIosInstall, isChecking, isLoading, hasDismissedPrompt, android.isChecking, android.isAndroid]);
 
   const handleEnable = async () => {
     if (!user?.id) return;
@@ -99,7 +101,7 @@ export function AutoNotificationPermission() {
     setHasDismissedPrompt(true);
   };
 
-  if (!user) return null;
+  if (!user || android.isChecking || android.isAndroid) return null;
   if (!needsIosInstall && permission === 'granted' && isSubscribed) return null;
 
   const notificationsUnsupported = !needsIosInstall && !isSupported;

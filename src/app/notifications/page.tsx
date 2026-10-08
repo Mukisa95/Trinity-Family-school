@@ -67,6 +67,9 @@ import type {
 } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
+import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
+import { supportsWebPush } from '@/lib/push-subscription-client';
 import { deleteDoc, doc, updateDoc, collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useUsers } from '@/lib/hooks/use-users';
@@ -489,6 +492,7 @@ function PushSettingsDialog({
   isRequestingPermission, isSubscribingToPush, isUnsubscribingFromPush,
   onRequestPermission, onToggleSubscription,
 }: PushSettingsDialogProps) {
+  const android = useAndroidNotifications();
   return (
     <ModernDialog open={open} onOpenChange={onOpenChange}>
       <ModernDialogContent size="md">
@@ -502,6 +506,7 @@ function PushSettingsDialog({
         </ModernDialogHeader>
 
         <div className="space-y-6 py-4">
+          {android.isAndroid ? <AndroidNotificationStatus /> : !android.isChecking && <>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -607,6 +612,7 @@ function PushSettingsDialog({
               </div>
             </div>
           )}
+          </>}
         </div>
 
         <ModernDialogFooter>
@@ -689,12 +695,12 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isWebPushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+      const isWebPushSupported = supportsWebPush();
       const pushPermissionValue: NotificationPermission = 'Notification' in window ? Notification.permission : 'default';
       setIsPushSupported(isWebPushSupported);
       setPushPermission(pushPermissionValue);
 
-      if (user?.id) {
+      if (user?.id && isWebPushSupported) {
         (async () => {
           try {
             await pushNotificationService.validateAndSyncSubscription(user.id);

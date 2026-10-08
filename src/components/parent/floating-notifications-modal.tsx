@@ -5,6 +5,9 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { notificationService } from '@/lib/services/notification-service';
 import { useNotificationBadge } from '@/lib/hooks/use-notification-badge';
 import { pushNotificationService } from '@/lib/services/push-notifications.service';
+import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
+import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
+import { supportsWebPush } from '@/lib/push-subscription-client';
 
 // UI Components
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,6 +46,7 @@ interface FloatingNotificationsModalProps {
 
 export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotificationsModalProps) {
   const { user } = useAuth();
+  const android = useAndroidNotifications();
   const { notifications, isLoading, markAsRead } = useNotificationBadge();
   const { toast } = useToast();
   const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
@@ -64,7 +68,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
   const checkPushNotificationStatus = async () => {
     if (typeof window === 'undefined') return;
     
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    const supported = supportsWebPush();
     setIsPushSupported(supported);
     
     if ('Notification' in window) {
@@ -291,6 +295,7 @@ export function FloatingNotificationsModal({ isOpen, onClose }: FloatingNotifica
       </div>
 
       {/* Subscription Banner for Unsubscribed Users */}
+      {android.isAndroid && <div className="p-3"><AndroidNotificationStatus /></div>}
       {isPushSupported && !isSubscribed && showSubscriptionBanner && (
         <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-b-2 border-yellow-300 px-4 py-3">
           <div className="flex items-start gap-3">

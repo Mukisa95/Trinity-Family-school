@@ -114,6 +114,17 @@ final class OfflineController {
             if (!PhotoPolicy.validId(id)) return;
         } catch (Exception ignored) { return; }
         String action = input.optString("action");
+        if ("notificationStatus".equals(action)) {
+            try { reply(reply, id, true, null, new JSONObject().put("appName", SchoolApp.NAME)
+                .put("notificationPermission", LessonReminders.notificationsAllowed(activity) ? "granted" : "denied").put("remotePush", false)); }
+            catch (Exception ignored) { reply(reply, id, false, "Android notification status is unavailable.", null); }
+            return;
+        }
+        if ("openNotificationSettings".equals(action)) {
+            activity.startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, activity.getPackageName()));
+            reply(reply, id, true, null, null); return;
+        }
         if (!local && "appearance".equals(action)) {
             // Also colour the inset-owning frame, which covers transparent system bars.
             android.view.ViewGroup content = activity.findViewById(android.R.id.content);
@@ -227,7 +238,11 @@ final class OfflineController {
         unlockedAt = 0;
         if (OfflinePolicy.local(web.getUrl())) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-offline-locked'))", null);
     }
-    void resume() { handler.post(this::publishConnectivity); io.execute(() -> LessonReminders.refresh(activity, store)); }
+    void resume() {
+        handler.post(this::publishConnectivity);
+        handler.post(() -> { if (PhotoPolicy.trusted(web.getUrl())) web.evaluateJavascript("window.dispatchEvent(new Event('trinity-android-notifications-change'))", null); });
+        io.execute(() -> LessonReminders.refresh(activity, store));
+    }
     void pause() { if (!unlockOpen) lock(); }
     void destroy() {
         handler.removeCallbacksAndMessages(null);

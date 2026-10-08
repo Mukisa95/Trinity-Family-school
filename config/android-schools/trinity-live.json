@@ -4,8 +4,8 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 12,
-  "versionName": "1.10",
+  "versionCode": 13,
+  "versionName": "1.11",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png"
 }

@@ -44,6 +44,8 @@ import { auth } from '@/lib/firebase';
 import { markInboxNotificationRead, removeInboxNotification, subscribeToUserNotificationInbox, type InboxNotification } from '@/lib/notification-inbox-store';
 import { groupNotificationThreads } from '@/lib/notification-threads';
 import { usePushSubscribe } from '@/lib/hooks/use-push-subscribe';
+import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
+import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
 import type { NotificationDestinationSelection } from '@/lib/notifications/notification-destinations';
 import type { Notification } from '@/types';
 
@@ -412,6 +414,7 @@ function ScheduledNotificationsDialog({
 
 export default function PushNotificationsPage() {
   const { user } = useAuth();
+  const android = useAndroidNotifications();
   const { toast } = useToast();
   const {
     isSupported,
@@ -586,7 +589,7 @@ export default function PushNotificationsPage() {
               tone="violet"
               title="Configure automated notification alerts"
             />
-            {isSupported && (
+            {isSupported && !android.isAndroid && (
               <GlassActionButton
                 label={subscriptionLoading ? 'Working' : isSubscribed ? 'Disable' : 'Enable'}
                 icon={subscriptionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isSubscribed ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
@@ -601,7 +604,8 @@ export default function PushNotificationsPage() {
       />
 
       <div className="mx-auto flex max-w-7xl flex-col px-1 sm:px-0 md:h-[calc(100dvh-7rem)] md:min-h-0">
-        {!isSupported && (
+        {android.isAndroid && <div className="mb-3"><AndroidNotificationStatus /></div>}
+        {!isSupported && !android.isAndroid && !android.isChecking && (
           <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Push alerts are unavailable in this browser, but your in-app notifications remain here.
           </div>

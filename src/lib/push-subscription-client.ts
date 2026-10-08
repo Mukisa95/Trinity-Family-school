@@ -1,6 +1,7 @@
 "use client";
 
 import { auth } from '@/lib/firebase';
+import { hasAndroidOfflineBridge } from '@/lib/offline/android-bridge';
 
 const DEFAULT_VAPID_PUBLIC_KEY =
   'BMOU7Zc7H4Kx4pgm8KBjrIxPBZcYxFYoz5kxVOmHHI4Up5mNxnXGpbc91fBEZcndzU0E9Zk7AFUAelNuD6RXnWY';
@@ -196,6 +197,7 @@ let activeSync: { userId: string; promise: Promise<PushSyncResult> } | null = nu
 
 export function supportsWebPush(): boolean {
   return typeof window !== 'undefined'
+    && !hasAndroidOfflineBridge()
     && 'serviceWorker' in navigator
     && 'PushManager' in window
     && 'Notification' in window;

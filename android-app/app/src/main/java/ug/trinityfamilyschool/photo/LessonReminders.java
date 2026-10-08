@@ -158,7 +158,7 @@ final class LessonReminders {
         PendingIntent tap = PendingIntent.getActivity(context, 7240, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent options = PendingIntent.getActivity(context, 7243, new Intent(context, LessonReminderSettingsActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         String title = snoozed ? "Snoozed lesson reminder" : events.size() == 1 ? "Lesson reminder" : events.size() + " lesson reminders";
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(context, channel(settings.alert)).setSmallIcon(R.drawable.school_icon).setContentTitle(title)
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(context, channel(settings.alert)).setSmallIcon(R.drawable.school_icon).setLargeIcon(SchoolApp.notificationLogo(context)).setColor(android.graphics.Color.rgb(0, 140, 69)).setContentTitle(title)
             .setContentText(snoozed ? events.get(0).classLabel + " · " + events.get(0).subject : events.get(0).line()).setStyle(new NotificationCompat.BigTextStyle().bigText(lines.toString())).setContentIntent(tap)
             .setCategory(NotificationCompat.CATEGORY_REMINDER).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setAutoCancel(true).setTimeoutAfter(30 * 60_000L)
             .addAction(0, "Snooze " + settings.snooze + " min", pending(context, intent(context, SNOOZE).putExtra("account", account).putExtra("at", at).putExtra("token", token), 7245))
@@ -167,7 +167,7 @@ final class LessonReminders {
     }
     static void test(Context context, LessonReminderPlan.Settings settings) {
         channels(context);
-        Notification notification = new NotificationCompat.Builder(context, channel(settings.alert)).setSmallIcon(R.drawable.school_icon).setContentTitle("Test lesson reminder")
+        Notification notification = new NotificationCompat.Builder(context, channel(settings.alert)).setSmallIcon(R.drawable.school_icon).setLargeIcon(SchoolApp.notificationLogo(context)).setColor(android.graphics.Color.rgb(0, 140, 69)).setContentTitle("Test lesson reminder")
             .setContentText("Your selected alert style is working. This is a test, not a scheduled lesson.").setAutoCancel(true).setTimeoutAfter(60_000L)
             .setCategory(NotificationCompat.CATEGORY_REMINDER).setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build();
         ((NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE)).notify("lesson-reminder", TEST_ID, notification);
