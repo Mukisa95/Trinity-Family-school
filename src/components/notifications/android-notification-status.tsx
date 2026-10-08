@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Bell, CalendarClock, Settings } from 'lucide-react';
 import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
-import { openAndroidLessonReminders, openAndroidNotificationSettings } from '@/lib/offline/android-notifications';
+import { openAndroidLessonReminders, openAndroidNotificationSettings, checkAndroidAppUpdates } from '@/lib/offline/android-notifications';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { connectNativePush, disableNativePush, testNativePush } from '@/lib/native-push-client';
 
@@ -37,6 +37,7 @@ export function AndroidNotificationStatus() {
       <button onClick={() => void open(openAndroidLessonReminders)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-700 px-3 font-medium text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><CalendarClock className="h-4 w-4" aria-hidden="true" />Lesson reminders</button>
       {user?.id && <button disabled={busy || isChecking} onClick={() => void configure(connected ? disableNativePush : () => connectNativePush(user.id, true))} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50 dark:border-slate-600">{busy ? 'Working…' : connected ? 'Turn off school alerts' : 'Enable school alerts'}</button>}
       {connected && user?.id && <button disabled={busy || state?.permission !== 'granted'} onClick={() => void configure(() => testNativePush(user.id), true)} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50 dark:border-slate-600">Send push test</button>}
+      <button onClick={() => { setError(null); void checkAndroidAppUpdates().catch(() => setError('Install the latest Android app from this school’s download page to enable in-app updates.')); }} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-600">Check app updates</button>
     </div>
     {error && <p className="mt-3 text-red-600 dark:text-red-400" role="alert">{error}</p>}
     {confirmation && <p className="mt-3 text-emerald-700 dark:text-emerald-400" role="status">{confirmation}</p>}

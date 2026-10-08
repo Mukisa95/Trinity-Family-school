@@ -49,6 +49,7 @@ public final class MainActivity extends Activity {
     private static final int CAMERA_RESULT = 40, FILE_RESULT = 41;
     private WebView web;
     private OfflineController offline;
+    private AppUpdater updater;
     private File exchange;
     private ValueCallback<Uri[]> fileCallback;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -144,6 +145,7 @@ public final class MainActivity extends Activity {
         // A restored camera activity cannot associate its photo with a new pupil.
         // Reloading deliberately discards the old pending request instead.
         offline.start();
+        updater = new AppUpdater(this);
     }
 
     private Map<String, ResolveInfo> cameras() {
@@ -297,14 +299,17 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent); setIntent(intent);
         String route=NativePush.tapRoute(this,intent); if(route!=null&&web!=null)web.loadUrl(route);
+        if (updater != null && AppUpdater.ACTION_INSTALL.equals(intent.getAction())) updater.resume();
     }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);
         if (request == 73) new Thread(() -> TimetableUpdates.refresh(this, new OfflineStore(this))).start();
     }
-    @Override protected void onPause() { if (offline != null) offline.pause(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); if (offline != null) offline.resume(); }
+    public void checkForAppUpdates() { if (updater != null) updater.check(true); }
+    @Override protected void onPause() { if (updater != null) updater.pause(); if (offline != null) offline.pause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); if (offline != null) offline.resume(); if (updater != null) updater.resume(); }
     @Override protected void onDestroy() {
+        if (updater != null) updater.destroy();
         if (offline != null) offline.destroy();
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         clearCapture(true); io.shutdownNow();

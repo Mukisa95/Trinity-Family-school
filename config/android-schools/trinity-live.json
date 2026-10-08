@@ -4,8 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 14,
-  "versionName": "1.12",
+  "versionCode": 16,
+  "versionName": "1.14",
+  "releaseNotes": "App updates can now be downloaded and installed directly from Trinity Live.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

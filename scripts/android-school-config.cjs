@@ -14,6 +14,7 @@ function loadSchool(school = process.env.TRINITY_ANDROID_SCHOOL || 'trinity-live
     if (!file.startsWith(path.join(root, 'public') + path.sep) || !file.endsWith('.png') || !fs.existsSync(file)) throw new Error('School icons must be existing public PNG files.');
   }
   const messaging = config.firebaseAndroid;
+  if (config.releaseNotes !== undefined && (typeof config.releaseNotes !== 'string' || config.releaseNotes.length > 1000)) throw new Error('Release notes must be a short text description.');
   if (!messaging || !/^1:[0-9]+:android:[a-f0-9]+$/.test(messaging.appId) || !/^[0-9]+$/.test(messaging.messagingSenderId)
     || messaging.appId.split(':')[1] !== messaging.messagingSenderId || !/^AIza[A-Za-z0-9_-]{30,60}$/.test(messaging.apiKey)) throw new Error('A registered Firebase Android app is required for this school.');
   return { ...config, key: school };

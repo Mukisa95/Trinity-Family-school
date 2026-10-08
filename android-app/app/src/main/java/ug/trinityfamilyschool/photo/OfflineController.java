@@ -142,6 +142,7 @@ final class OfflineController {
                 .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, activity.getPackageName()));
             reply(reply, id, true, null, null); return;
         }
+        if ("checkAppUpdate".equals(action)) { ((MainActivity)activity).checkForAppUpdates(); reply(reply,id,true,null,null); return; }
         if (!local && "appearance".equals(action)) {
             // Also colour the inset-owning frame, which covers transparent system bars.
             android.view.ViewGroup content = activity.findViewById(android.R.id.content);

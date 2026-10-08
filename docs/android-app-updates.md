@@ -1,0 +1,19 @@
+# Android app updates
+
+The Android app checks `/api/android/release` on opening or returning to the foreground. Successful release checks are cached locally for six hours; failed automatic attempts are spaced by at least two minutes. Only the configured school website and Firebase project publish a manifest. A manual **Check app updates** button is available in the native notification settings panel and bypasses the check interval. Browser/PWA users retain their existing update behavior.
+
+A newer version prompts **Update** or **Later**, with its version, download size and release notes. Later postpones that version for 24 hours. Nothing downloads without acceptance. Android DownloadManager displays progress and resumes downloads after connection interruptions, even if the app process closes. The app also offers **Continue in background**, cancellation and retry. Downloaded updates remain available for later installation.
+
+The completed APK is copied into a private staging directory and verified for its exact byte count, SHA-256 checksum, application ID, newer version, version name, supported Android version and complete signing certificate set. Updates from another school, another publisher, partial downloads or altered files are rejected. The installation URI grants read access only to the specific verified file. A download-complete broadcast cannot provide an APK path or install an app: the receiver checks the saved Android download ID, queries the application's download record and performs verification itself.
+
+After an accepted download, the foreground app opens Android's installer. If necessary, it explains Android's **Allow from this source** setting for this app and resumes installation after the user grants it. Android always requires its installation confirmation; silent installation is not attempted. Completion while the app is in the background posts an **Update ready** notification, and returning to the app resumes the flow. Cancelling or postponing installation keeps the current app usable. Successful replacement keeps the existing app identity, signing key, authentication, offline data and settings, then clears the obsolete download and staging file.
+
+Existing releases without this updater need one installation of the new APK from the school download page or USB. Future native releases use the in-app flow. Publishing a release requires increasing the school `versionCode`, setting its version/release notes, building with the permanent school key, running `scripts/publish-android-apk.cjs`, and deploying the matching APK plus generated metadata together. Website changes continue to load through the existing website/PWA flow and do not require a new APK unless native functionality changes.
+
+This distribution flow is for the Android APK downloaded from the school website. A future App Store iOS app uses Apple's app update distribution instead.
+
+Validation includes school/proxy isolation for the release API and native unit tests for update/downgrade decisions, exact update URLs, compatible release limits, signing identities, altered files and incomplete downloads. Device installation is verified separately from compiling the APK and publishing it.
+
+## Release validation
+
+The updater bootstrap (Trinity Live 1.13, version code 15) was installed over the signed 1.12 app on the Pixel 7 without clearing data. The signed-in dashboard, both timetable cards and Android notification permission remained intact. All 46 native unit tests passed through JUnitCore; Gradle's unit-test worker had a local startup timeout. All 26 focused website/push tests and five Pixel native push, notification identity and timetable checks passed. Signed release packaging succeeded. The bootstrap APK is private test evidence; the public updater release is 1.14 (version code 16).

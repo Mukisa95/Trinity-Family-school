@@ -24,3 +24,4 @@ export async function readAndroidNotificationState(): Promise<AndroidNotificatio
 
 export function openAndroidNotificationSettings() { return androidOfflineRequest('openNotificationSettings'); }
 export function openAndroidLessonReminders() { return androidOfflineRequest('openLessonReminderSettings'); }
+export function checkAndroidAppUpdates() { return androidOfflineRequest('checkAppUpdate'); }
