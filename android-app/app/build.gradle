@@ -27,6 +27,7 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     buildFeatures { buildConfig true }
+    sourceSets.main.res.srcDir('build/generated/school-shortcuts/res')
     signingConfigs {
         schoolRelease {
             if (signingFile) {
@@ -66,9 +67,10 @@ tasks.register('bundleOfflineInterface', Exec) {
 tasks.register('prepareSchoolBranding', Exec) {
     workingDir rootProject.projectDir.parentFile
     commandLine 'node', 'scripts/prepare-android-branding.cjs', schoolKey
-    inputs.files(new File(websiteRoot, "config/android-schools/${schoolKey}.json"), new File(websiteRoot, school.icon), new File(websiteRoot, school.smallIcon), new File(websiteRoot, 'scripts/prepare-android-branding.cjs'), new File(websiteRoot, 'scripts/android-school-config.cjs'))
+    inputs.files(new File(websiteRoot, "config/android-schools/${schoolKey}.json"), new File(websiteRoot, school.icon), new File(websiteRoot, school.smallIcon), new File(websiteRoot, 'scripts/prepare-android-branding.cjs'), new File(websiteRoot, 'scripts/android-school-config.cjs'), file('src/main/shortcuts.xml'))
     inputs.property('school', schoolKey)
     outputs.files('src/main/res/drawable-nodpi/school_logo.png', 'src/main/res/mipmap-mdpi/ic_launcher.png', 'src/main/res/mipmap-hdpi/ic_launcher.png', 'src/main/res/mipmap-xhdpi/ic_launcher.png', 'src/main/res/mipmap-xxhdpi/ic_launcher.png', 'src/main/res/mipmap-xxxhdpi/ic_launcher.png')
+    outputs.file('build/generated/school-shortcuts/res/xml/shortcuts.xml')
 }
 tasks.named('preBuild').configure { dependsOn('prepareSchoolBranding') }
 tasks.named('preBuild').configure { dependsOn('bundleOfflineInterface') }

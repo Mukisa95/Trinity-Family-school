@@ -151,6 +151,19 @@ final class OfflineController {
         }
         if ("openTimetableSettings".equals(action)) { activity.startActivity(new Intent(activity, TimetableSettingsActivity.class)); reply(reply, id, true, null, null); return; }
         if ("openLessonReminderSettings".equals(action)) { activity.startActivity(new Intent(activity, LessonReminderSettingsActivity.class)); reply(reply, id, true, null, null); return; }
+        if ("selectTimetable".equals(action)) {
+            if (local && !unlocked()) { reply(reply, id, false, "Unlock to continue.", null); return; }
+            io.execute(() -> {
+                try {
+                    TimetableUpdates.select(activity, store, input); reply(reply, id, true, null, null);
+                    if (input.optBoolean("notificationCard") && android.os.Build.VERSION.SDK_INT >= 33
+                        && activity.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        activity.runOnUiThread(() -> activity.requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 73));
+                    }
+                }
+                catch (Exception error) { reply(reply, id, false, error.getMessage(), null); }
+            }); return;
+        }
         if (local) {
             if ("unlock".equals(action)) { unlock(id, reply); return; }
             if ("lock".equals(action)) { lock(); reply(reply, id, true, null, null); return; }
@@ -158,19 +171,6 @@ final class OfflineController {
                 if (!connected() && !"openParent".equals(action)) { reply(reply, id, false, "Connect to the internet to open the full application.", null); return; }
                 reply(reply, id, true, null, null);
                 web.loadUrl("openParent".equals(action) ? PhotoPolicy.ORIGIN + "/parent" : OfflinePolicy.onlineRoute(web.getUrl(), role)); return;
-            }
-            if ("selectTimetable".equals(action)) {
-                if (!unlocked()) { reply(reply, id, false, "Unlock to continue.", null); return; }
-                io.execute(() -> {
-                    try {
-                        TimetableUpdates.select(activity, store, input); reply(reply, id, true, null, null);
-                        if (input.optBoolean("notificationCard") && android.os.Build.VERSION.SDK_INT >= 33
-                            && activity.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                            activity.runOnUiThread(() -> activity.requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 73));
-                        }
-                    }
-                    catch (Exception error) { reply(reply, id, false, error.getMessage(), null); }
-                }); return;
             }
             if (!"status".equals(action)) { reply(reply, id, false, "Unsupported action.", null); return; }
         } else if (!"connect".equals(action) && !"save".equals(action) && !"clear".equals(action) && !"status".equals(action)) {

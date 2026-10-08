@@ -1,0 +1,15 @@
+# Restore timetable notification settings
+
+Trinity Live 1.15 (version code 17) restores access to the timetable card controls from **Account Settings**, **Parent Settings**, and the existing notification settings panel. **Restore timetable notification** enables a dismissed card. **Timetable card settings** opens the full native screen, including **Show notification card**, visible timetable selections, and the lesson progress option.
+
+Two integration gaps made the earlier controls difficult to reach. The Android notification panel exposed system permissions and lesson reminders but omitted the timetable settings entry. The signed school application ID changed to `ug.trinityfamilyschool.live`, while both launcher shortcuts still targeted the preview package `ug.trinityfamilyschool.photo`. With the preview installed, a shortcut could open its older settings screen; without it, the shortcut could fail. The updater release retained the native card toggle, but did not detect these access problems.
+
+Launcher shortcut XML is now generated from the selected school configuration during branding, with a literal target package for that school's application ID. The Java activity namespace stays unchanged. The packaged resource is checked separately from the source template.
+
+The trusted website bridge now accepts timetable display selections as well as the packaged reader. Selection still requires an authorised, valid native timetable snapshot; the local reader still requires unlock. Restoration submits only `notificationCard: true`, preserving lesson progress, visibility choices, widget preferences and reminder subscriptions. No school database records are changed.
+
+Version 1.14 can use the new website button immediately: when its bridge rejects the newer restoration action, the button opens the existing native timetable settings instead. Turn on **Show notification card**, then tap **Update timetable card**. Version 1.15 supports direct restoration and fixes launcher shortcuts. Android notification permission must also be allowed.
+
+Validation covers direct restoration, older-app fallback, rejected/missing timetable state, native bridge settings actions, offline contracts, timetable feed and native push regressions. Device checks verify that both packaged shortcuts resolve inside the installed school app and that restoration retains the progress choice. Device installation is reported separately from build and deployment.
+
+Signed release 1.15/code 17 built successfully. Validation passed: 28 focused web/bridge tests, 9 final release/download tests, 46 native unit tests, and 7 Pixel instrumentation checks (shortcut identity, notification icon, native push, all-profile cards, and preference-preserving restoration). The signed APK was installed over 1.14 on Pixel 7 without clearing app data. APK size: 3,170,234 bytes; SHA-256: 1e496720b34dbf1ffc80fee30ff2efbe60fabaa5a84fb891ff2ee47191d32b3c.

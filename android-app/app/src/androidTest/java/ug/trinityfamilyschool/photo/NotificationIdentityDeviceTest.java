@@ -16,6 +16,22 @@ import static org.junit.Assert.*;
 @RunWith(AndroidJUnit4.class)
 public class NotificationIdentityDeviceTest {
     private final Context context = ApplicationProvider.getApplicationContext();
+    @Test public void launcherSettingsShortcutsResolveInsideThisSchoolApp() throws Exception {
+        try (android.content.res.XmlResourceParser xml = context.getResources().getXml(R.xml.shortcuts)) {
+            int found = 0;
+            while (xml.next() != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                if (xml.getEventType() != org.xmlpull.v1.XmlPullParser.START_TAG || !"intent".equals(xml.getName())) continue;
+                String namespace = "http://schemas.android.com/apk/res/android";
+                String targetPackage = xml.getAttributeValue(namespace, "targetPackage");
+                String targetClass = xml.getAttributeValue(namespace, "targetClass");
+                assertEquals("Shortcuts must not open an older preview or another school",context.getPackageName(),targetPackage);
+                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW).setClassName(targetPackage,targetClass);
+                assertNotNull(context.getPackageManager().resolveActivity(intent,0));
+                found++;
+            }
+            assertEquals(2,found);
+        }
+    }
     @Test public void smallIconUsesTheCrestAlphaInsteadOfAnOpaqueSquare() {
         Drawable icon = context.getDrawable(R.drawable.school_icon); assertNotNull(icon);
         Bitmap mask = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);

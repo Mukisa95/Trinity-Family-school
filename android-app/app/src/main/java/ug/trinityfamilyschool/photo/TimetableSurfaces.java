@@ -29,7 +29,7 @@ final class TimetableSurfaces {
         if (envelope == null || !envelope.getJSONObject("session").getJSONObject("grants").optBoolean("timetable")) throw new IllegalStateException("Open " + SchoolApp.NAME + " to load your timetables.");
         if (value.has("accountId") && !value.optString("accountId").equals(envelope.getJSONObject("session").optString("accountId"))) throw new IllegalStateException("Your account changed. Reopen timetable settings.");
         SharedPreferences.Editor edit = prefs(context).edit();
-        edit.putBoolean(prefix(widgetId) + "progress", value.optBoolean("progress", true));
+        if (value.has("progress")) edit.putBoolean(prefix(widgetId) + "progress", value.optBoolean("progress"));
         if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID && value.has("notificationCard")) edit.putBoolean("card", value.optBoolean("notificationCard"));
         if (value.has("hiddenTables")) { Set<String> hidden = new HashSet<>(); JSONArray ids = value.optJSONArray("hiddenTables"); if (ids != null) for (int i = 0; i < ids.length(); i++) hidden.add(ids.optString(i)); edit.putStringSet(prefix(widgetId) + "hiddenTables", hidden); }
         edit.apply(); refresh(context, store);

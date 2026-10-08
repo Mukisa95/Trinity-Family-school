@@ -25,3 +25,14 @@ export async function readAndroidNotificationState(): Promise<AndroidNotificatio
 export function openAndroidNotificationSettings() { return androidOfflineRequest('openNotificationSettings'); }
 export function openAndroidLessonReminders() { return androidOfflineRequest('openLessonReminderSettings'); }
 export function checkAndroidAppUpdates() { return androidOfflineRequest('checkAppUpdate'); }
+export function openAndroidTimetableSettings() { return androidOfflineRequest('openTimetableSettings'); }
+export async function restoreAndroidTimetableNotification(): Promise<'restored' | 'settings'> {
+  try {
+    await androidOfflineRequest('selectTimetable', { notificationCard: true });
+    return 'restored';
+  } catch (error) {
+    if (!(error instanceof Error) || !/Unsupported (?:preparation )?action/i.test(error.message)) throw error;
+    await openAndroidTimetableSettings();
+    return 'settings';
+  }
+}

@@ -92,7 +92,9 @@ public class TimetableWidgetDeviceTest {
             assertEquals(all.profiles.size()-1,TimetableSurfaces.feed(context,envelope,987660,now).profiles.size());
             prefs.edit().putStringSet(local,java.util.Collections.emptySet()).commit();assertEquals(all.profiles.size(),TimetableSurfaces.feed(context,envelope,987660,now).profiles.size());
             TimetableSurfaces.select(context,new OfflineStore(context),new JSONObject().put("notificationCard",false).put("progress",originalProgress),android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID);assertFalse(prefs.getBoolean("card",true));
-            TimetableSurfaces.select(context,new OfflineStore(context),new JSONObject().put("notificationCard",true).put("progress",originalProgress),android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID);assertTrue("A dismissed card can be enabled again",prefs.getBoolean("card",false));
+            prefs.edit().putBoolean("progress",false).commit();
+            TimetableSurfaces.select(context,new OfflineStore(context),new JSONObject().put("notificationCard",true),android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID);assertTrue("A dismissed card can be enabled again",prefs.getBoolean("card",false));
+            assertFalse("Restoring a dismissed card preserves the chosen progress setting",prefs.getBoolean("progress",true));
         } finally {android.content.SharedPreferences.Editor edit=prefs.edit().remove(local);if(hadGlobal)edit.putStringSet("hiddenTables",original);else edit.remove("hiddenTables");if(hadCard)edit.putBoolean("card",originalCard);else edit.remove("card");if(hadProgress)edit.putBoolean("progress",originalProgress);else edit.remove("progress");edit.commit();TimetableSurfaces.refresh(context,new OfflineStore(context));}
     }
     @Test public void darkLandscapeAndLargeTextKeepAccessibleControls() throws Exception {

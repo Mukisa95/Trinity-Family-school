@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Bell, CalendarClock, Settings } from 'lucide-react';
 import { useAndroidNotifications } from '@/lib/hooks/use-android-notifications';
-import { openAndroidLessonReminders, openAndroidNotificationSettings, checkAndroidAppUpdates } from '@/lib/offline/android-notifications';
+import { openAndroidLessonReminders, openAndroidNotificationSettings, checkAndroidAppUpdates, openAndroidTimetableSettings, restoreAndroidTimetableNotification } from '@/lib/offline/android-notifications';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { connectNativePush, disableNativePush, testNativePush } from '@/lib/native-push-client';
 
@@ -20,6 +20,15 @@ export function AndroidNotificationStatus() {
     try { await action(); } catch { setError('Update the Android app to open notification settings. Lesson reminder settings are also available from the app’s shortcut.'); }
   };
   const status = isChecking ? 'Checking Android permission…' : state?.permission === 'granted' ? 'Allowed in Android settings' : state?.permission === 'denied' ? 'Disabled in Android settings' : 'Manage permissions in Android settings';
+  const restoreCard = async () => {
+    setBusy(true); setError(null); setConfirmation(null);
+    try {
+      const result = await restoreAndroidTimetableNotification();
+      setConfirmation(result === 'restored' ? 'Timetable notification enabled. Allow Android notification permission if requested.' : 'Turn on Show notification card, then tap Update timetable card.');
+      window.dispatchEvent(new Event('trinity-android-notifications-change'));
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not restore the timetable notification. Open timetable card settings and try again.'); }
+    finally { setBusy(false); }
+  };
   const configure = async (action: () => Promise<unknown>, tested = false) => {
     setBusy(true); setError(null); setConfirmation(null);
     try { await action(); if (tested) setConfirmation('Test sent through the school push service. Check your phone’s notifications.'); }
@@ -35,6 +44,8 @@ export function AndroidNotificationStatus() {
     <div className="mt-3 flex flex-wrap gap-2">
       <button onClick={() => void open(openAndroidNotificationSettings)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 font-medium hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700"><Settings className="h-4 w-4" aria-hidden="true" />Android settings</button>
       <button onClick={() => void open(openAndroidLessonReminders)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-700 px-3 font-medium text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"><CalendarClock className="h-4 w-4" aria-hidden="true" />Lesson reminders</button>
+      <button disabled={busy} onClick={() => void restoreCard()} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50 dark:border-slate-600">Restore timetable notification</button>
+      <button onClick={() => void open(openAndroidTimetableSettings)} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-600">Timetable card settings</button>
       {user?.id && <button disabled={busy || isChecking} onClick={() => void configure(connected ? disableNativePush : () => connectNativePush(user.id, true))} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50 dark:border-slate-600">{busy ? 'Working…' : connected ? 'Turn off school alerts' : 'Enable school alerts'}</button>}
       {connected && user?.id && <button disabled={busy || state?.permission !== 'granted'} onClick={() => void configure(() => testNativePush(user.id), true)} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:opacity-50 dark:border-slate-600">Send push test</button>}
       <button onClick={() => { setError(null); void checkAndroidAppUpdates().catch(() => setError('Install the latest Android app from this school’s download page to enable in-app updates.')); }} className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 dark:border-slate-600">Check app updates</button>

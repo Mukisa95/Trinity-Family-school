@@ -17,6 +17,7 @@ import { useNavigation } from '@/lib/contexts/navigation-context';
 import { useUpdateUser } from "@/lib/hooks/use-users";
 import { Loader2 } from "lucide-react";
 import { PasskeySettings } from '@/components/settings/passkey-settings';
+import { AndroidNotificationStatus } from '@/components/notifications/android-notification-status';
 import { PASSKEYS_CHANGED_EVENT, PasskeyService } from '@/lib/services/passkey.service';
 
 export default function AccountSettingsPage() {
@@ -277,6 +278,7 @@ export default function AccountSettingsPage() {
       </div>
 
       {/* Main Content Grid */}
+      <AndroidNotificationStatus />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="lg:col-span-2"><PasskeySettings /></div>
         {/* Account Information Card */}
