@@ -677,8 +677,8 @@ export function TimetableGrid({
                                                             <span className="text-[9px] sm:text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm mb-1 uppercase group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
                                                                 {period.type === 'lesson' ? `L${period.periodNumber}` : period.customLabel || period.type}
                                                             </span>
-                                                            <span className="text-[10px] text-gray-400 group-hover:text-amber-600 border-b border-transparent group-hover:border-amber-200 border-dashed whitespace-nowrap overflow-hidden max-w-full block text-center">
-                                                                {tStart} - {tEnd}
+                                                            <span className="flex flex-col text-[8px] sm:block sm:text-[10px] text-gray-400 group-hover:text-amber-600 border-b border-transparent group-hover:border-amber-200 border-dashed whitespace-nowrap overflow-hidden max-w-full text-center">
+                                                                <span>{tStart}</span><span className="hidden sm:inline"> - </span><span>{tEnd}</span>
                                                             </span>
                                                         </div>
                                                     </PopoverTrigger>
