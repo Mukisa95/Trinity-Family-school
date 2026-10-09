@@ -310,7 +310,9 @@ public final class MainActivity extends Activity {
         super.onConfigurationChanged(configuration);
         // Re-resolve night-qualified theme attributes before WebView updates its media queries.
         // Handling uiMode here preserves the current page, form input and offline reader.
-        getTheme().applyStyle(R.style.TrinityTheme, true);
+        android.content.res.Resources.Theme deviceTheme = getResources().newTheme();
+        deviceTheme.applyStyle(R.style.TrinityTheme, true);
+        getTheme().setTo(deviceTheme);
         if (web != null) {
             web.dispatchConfigurationChanged(configuration);
             if (OfflinePolicy.local(web.getUrl())) {

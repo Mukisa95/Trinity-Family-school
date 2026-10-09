@@ -53,11 +53,20 @@ public class WebViewThemeDeviceTest {
             catch (Exception error) { throw new RuntimeException(error); }
         });
         waitFor("location.protocol==='https:' && document.readyState==='complete'");
-        scenario.onActivity(activity -> web.loadDataWithBaseURL(PhotoPolicy.ORIGIN + "/__theme_device_test",
+        CountDownLatch pageLoaded = new CountDownLatch(1);
+        scenario.onActivity(activity -> {
+            web.stopLoading();
+            // Isolate the theme fixture from live-page redirects, cache interception and service workers.
+            web.setWebViewClient(new android.webkit.WebViewClient() {
+                @Override public void onPageFinished(WebView view, String url) { pageLoaded.countDown(); }
+            });
+            web.loadDataWithBaseURL("https://theme-fixture.invalid/",
             "<html><head><meta name='color-scheme' content='light dark'><style>body{background:#fff;color:#000}@media(prefers-color-scheme:dark){body{background:#020617;color:#fff}}</style></head>"
             + "<body><input id='input' value='preserve this'><script>window.themeFixture=true;window.preference='system';window.events=0;"
             + "window.media=matchMedia('(prefers-color-scheme:dark)');window.apply=()=>document.documentElement.classList.toggle('dark',preference==='system'?media.matches:preference==='dark');"
-            + "media.addEventListener('change',()=>{events++;apply()});apply();</script></body></html>", "text/html", "UTF-8", null));
+            + "media.addEventListener('change',()=>{events++;apply()});apply();</script></body></html>", "text/html", "UTF-8", null);
+        });
+        assertTrue("Theme fixture did not finish loading", pageLoaded.await(20, TimeUnit.SECONDS));
         waitFor("window.themeFixture");
     }
 

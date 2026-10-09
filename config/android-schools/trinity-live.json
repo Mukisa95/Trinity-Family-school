@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 21,
-  "versionName": "1.19",
-  "releaseNotes": "Keep timetable widgets and the persistent notification in sync with the app's Light, Dark or Use device setting preference, including offline background updates and readable dark-mode controls, lesson pills and progress bars.",
+  "versionCode": 22,
+  "versionName": "1.20",
+  "releaseNotes": "Synchronize the app, timetable widgets and persistent notification with Light, Dark or Use device setting; preserve the open page when the device theme changes; require persistent authentication storage so a temporary login cannot silently disappear after restart.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

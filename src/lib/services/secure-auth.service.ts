@@ -1,10 +1,12 @@
 import {
   browserLocalPersistence,
+  indexedDBLocalPersistence,
   setPersistence,
   signInWithCustomToken,
 } from 'firebase/auth';
 import type { SystemUser } from '@/types';
 import { auth } from '@/lib/firebase';
+import { requirePersistentSession } from '@/lib/auth/persistent-session';
 
 export type SecureAuthErrorCode =
   | 'invalid-credentials'
@@ -84,12 +86,17 @@ export class SecureAuthService {
         }));
       }
 
-      // Make the Firebase identity survive page reloads. If this embedded
-      // browser cannot use local persistence, Firebase keeps its current
-      // fallback and the sign-in can still complete for this tab.
-      await setPersistence(auth, browserLocalPersistence).catch(() => undefined);
+      // Both backends survive an Android process restart or APK update.
+      // If neither works, report failure instead of accepting a temporary login.
+      await requirePersistentSession(
+        () => setPersistence(auth, browserLocalPersistence),
+        () => setPersistence(auth, indexedDBLocalPersistence),
+      ).catch(() => { throw new SecureAuthError(
+        'secure-session-failed',
+        'This device could not save your sign-in. Check that app storage is available, then try again.',
+      ); });
       await signInWithCustomToken(auth, payload.customToken);
-    } catch {
+    } catch (error) {
       if (typeof window !== 'undefined') {
         if (previousCache === null) {
           window.localStorage.removeItem(AUTH_CACHE_KEY);
@@ -97,6 +104,7 @@ export class SecureAuthService {
           window.localStorage.setItem(AUTH_CACHE_KEY, previousCache);
         }
       }
+      if (error instanceof SecureAuthError) throw error;
       throw new SecureAuthError(
         'secure-session-failed',
         'Sign-in was accepted, but this device could not establish a secure session. Check your connection and try again.',
