@@ -209,7 +209,7 @@ export default function ClassEnrollmentDetailsPage() {
                 <div className="flex items-center justify-center min-h-[60vh]">
                     <div className="text-center space-y-4">
                         <div className="relative">
-                            <div className="w-16 h-16 border-4 border-brand-200 border-t-blue-600 rounded-full animate-spin mx-auto dark:border-brand-800/60"></div>
+                            <div className="w-16 h-16 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mx-auto dark:border-brand-800/60"></div>
                             <Sparkles className="w-6 h-6 text-brand-ink-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 dark:text-brand-ink-400" />
                         </div>
                         <div className="space-y-2">

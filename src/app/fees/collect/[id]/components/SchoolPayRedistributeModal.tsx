@@ -564,7 +564,7 @@ export function SchoolPayRedistributeModal({
 
               {loadingSiblings ? (
                 <div className="flex items-center justify-center py-10 gap-2 text-gray-400 text-sm dark:text-slate-400">
-                  <span className="w-4 h-4 border-2 border-brand-secondary-alt-300 border-t-violet-600 rounded-full animate-spin dark:border-brand-secondary-alt-800/60" />
+                  <span className="w-4 h-4 border-2 border-brand-secondary-alt-300 border-t-brand-secondary-alt-600 rounded-full animate-spin dark:border-brand-secondary-alt-800/60" />
                   Loading sibling fee data…
                 </div>
               ) : (

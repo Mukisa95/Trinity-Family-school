@@ -43,13 +43,13 @@ import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const COLORS = {
-  primary: '#3B82F6',
-  secondary: '#8B5CF6',
+  primary: 'rgb(var(--brand-ink-500))',
+  secondary: 'rgb(var(--brand-secondary-alt-ink-500))',
   success: '#10B981',
   warning: '#F59E0B',
   danger: '#EF4444',
   info: '#06B6D4',
-  purple: '#A855F7',
+  purple: 'rgb(var(--brand-secondary-ink-500))',
   pink: '#EC4899',
   orange: '#F97316',
   teal: '#14B8A6'

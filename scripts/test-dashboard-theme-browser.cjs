@@ -11,7 +11,7 @@ const output = path.join(root, 'output/theme-correction-qa');
 const term = { id: 'term3', name: 'Term 3', startDate: '2026-09-01', endDate: '2026-12-15' };
 const year = { id: '2026', name: '2026', startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, terms: [term] };
 const events = [
-  { id: 'past', title: 'Sample assessment', startDate: '2026-09-17', endDate: '2026-09-17', isAllDay: true, type: 'Academic', priority: 'Normal' },
+  { id: 'past', title: 'Sample assessment', startDate: '2026-09-17', endDate: '2026-09-17', isAllDay: true, type: 'Academic', priority: 'Normal', targetAudience: [] },
   { id: 'ongoing', title: 'School activity', startDate: '2026-10-09', endDate: '2026-10-09', isAllDay: true, type: 'Co-curricular', priority: 'Normal' },
   { id: 'upcoming', title: 'Parent meeting', startDate: '2026-10-10', endDate: '2026-10-10', isAllDay: true, type: 'Administrative', priority: 'Normal' },
 ];
@@ -23,8 +23,8 @@ const mocks = {
   '@/lib/hooks/use-term-status': `export const useTermStatus=()=>({effectiveTerm:{term:${JSON.stringify(term)},academicYear:${JSON.stringify(year)}},isRecessMode:false,periodMessage:''});`,
   '@/lib/hooks/use-events-fixed': `const events=${JSON.stringify(events)},year=${JSON.stringify(year)};export const useEvents=()=>({data:events,isLoading:false});export const useExamsAsEvents=()=>({data:[]});export const useAcademicYearsForEvents=()=>({data:[year],isLoading:false});export const useCurrentTerm=()=>({term:year.terms[0],academicYear:year});`,
   '@/lib/hooks/use-uganda-holidays': `export const useUgandaHolidays=()=>({data:[]});`,
-  '@/lib/hooks/use-timetable': `export const useTimetableProfiles=()=>({data:[{id:'primary',name:'Primary',classIds:['c0','c1']},{id:'nursery',name:'Nursery',classIds:['c0']}],isLoading:false});export const useTimetablePeriods=()=>({data:[{id:'p',dayOfWeek:5,startTime:'09:30',endTime:'11:00',periodNumber:1,type:'lesson'}]});export const useTimetableEntries=()=>({data:[{id:'e',classId:'c0',subjectId:'math',teacherId:'t',periodId:'p',dayOfWeek:5}]});`,
-  '@/lib/hooks/use-classes': `export const useClasses=()=>({data:[{id:'c0',code:'P.1',name:'Primary One'},{id:'c1',code:'P.2',name:'Primary Two'}]});`,
+  '@/lib/hooks/use-timetable': `export const useTimetableProfiles=()=>({data:[{id:'primary',name:'Primary',classIds:Array.from({length:8},(_,i)=>'c'+i)},{id:'nursery',name:'Nursery',classIds:['c0']}],isLoading:false});export const useTimetablePeriods=()=>({data:[{id:'p',dayOfWeek:5,startTime:'09:30',endTime:'11:00',periodNumber:1,type:'lesson'}]});export const useTimetableEntries=()=>({data:Array.from({length:8},(_,i)=>({id:'e'+i,classId:'c'+i,subjectId:'math',teacherId:'t',periodId:'p',dayOfWeek:5}))});`,
+  '@/lib/hooks/use-classes': `export const useClasses=()=>({data:Array.from({length:8},(_,i)=>({id:'c'+i,code:'P.'+(i+1),name:'Primary '+(i+1)}))});`,
   '@/lib/hooks/use-subjects': `export const useSubjects=()=>({data:[{id:'math',code:'MATH',name:'Mathematics'}]});`,
   '@/lib/hooks/use-staff': `export const useStaff=()=>({data:[{id:'t',firstName:'Test',lastName:'Teacher'}]});`,
   '@/lib/hooks/use-digital-signature': `export const useRecordSignatures=()=>({data:[],isLoading:false});`,
@@ -59,13 +59,15 @@ import {DashboardLiveTracker} from './src/components/dashboard/DashboardLiveTrac
 import {PaymentModal} from './src/app/fees/collect/[id]/components/PaymentModal';import {AutoLockSettings} from './src/components/settings/auto-lock-settings';import {PasskeySettings} from './src/components/settings/passkey-settings';
 import {Input} from './src/components/ui/input';import {Textarea} from './src/components/ui/textarea';import {Button} from './src/components/ui/button';import {Select,SelectTrigger,SelectValue} from './src/components/ui/select';
 import {AttendanceSignatureDisplay} from './src/components/attendance/AttendanceSignatureDisplay';import {EventsList} from './src/components/events/ui/events-list';
+import {EventFilters} from './src/components/events/ui/event-filters';import {EventDetailsModal} from './src/components/events/ui/event-details-modal';
 import {SidebarProvider,Sidebar,SidebarHeader,SidebarContent,SidebarFooter,SidebarInset} from './src/components/ui/sidebar';import {SidebarUserFooter} from './src/components/layout/sidebar-user-footer';
 const counts=[65,62,67,88,95,55,78,94,70],classes=counts.map((n,i)=>({id:'c'+i,name:'Class '+i,code:['MID','TOP','P.1','P.2','P.3','P.4','P.5','P.6','P.7'][i]}));
 const pupils=counts.flatMap((n,i)=>Array.from({length:n},(_,j)=>({id:'p'+i+'-'+j,classId:'c'+i,status:'Active',gender:j%2?'Female':'Male'})));
 const colours=['blue','violet','pink','purple','emerald','orange'],metrics=['Total pupils','Male pupils','Female pupils','Staff members','Present today','Delayed today'];
 function Fixture(){return <ThemeProvider><div className="dashboard-bg-wrapper"><SidebarProvider><Sidebar><SidebarHeader><strong className="p-3">Trinity Family School</strong></SidebarHeader><SidebarContent><p className="px-4">Dashboard</p><p className="px-4">Timetable</p><p className="px-4">Pupils</p></SidebarContent><SidebarFooter><SidebarUserFooter/></SidebarFooter></Sidebar><SidebarInset><header className="p-4 border-b border-border">School workspace</header><main className="p-6"><h1 className="text-2xl font-bold mb-6">Trinity School Online</h1><div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-6">{metrics.map((title,i)=><StatCard key={title} title={title} value={[pupils.length,360,pupils.length-360,18,0,0][i]} icon={Users} color={{accent:['#3b82f6','#8b5cf6','#ec4899','#a855f7','#10b981','#f97316'][i],text:'text-'+colours[i]+'-600 dark:text-'+colours[i]+'-400',bg:'',gradient:'transparent'}}/>)}</div><div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><div data-testid="enrollment"><ClassEnrollmentChart classes={classes} pupils={pupils}/></div><div data-testid="attendance"><TodaysAttendanceChart classes={classes} pupils={pupils} attendanceData={{records:[]}}/></div><div data-testid="tracker"><DashboardLiveTracker/></div><div className="lg:col-start-2" data-testid="calendar"><MonthCalendarCard/></div><div data-testid="term"><TermScheduleCard/></div></div><div data-testid="schedule" className="grid grid-cols-3 gap-2 mt-6">{['active','past','upcoming'].map(state=><div key={state} className="border p-3 rounded-lg font-semibold" style={getWeekCellStyle('sample',false,false,state)}>{state} lesson</div>)}</div><div className="mt-6" data-testid="parent"><PupilNavigationTile pupilName="Sample pupil" activeView="info" onViewChange={()=>{}}/></div><div data-testid="events" className="mt-6"><EventsList events={${JSON.stringify(events)}} onEventClick={()=>{}}/></div><AttendanceSignatureDisplay recordId="sample" date="2026-10-09" className="mt-4 rounded-lg"/></main></SidebarInset></SidebarProvider></div></ThemeProvider>}
 function ExtraControls(){const [open,setOpen]=React.useState(false);return <div className="grid gap-4 p-6" data-testid="settings"><AutoLockSettings/><PasskeySettings/><div data-testid="invalid-controls" className="grid gap-2"><Input aria-label="Invalid example" aria-invalid="true" value="Example" readOnly/><Textarea aria-invalid="true" aria-label="Invalid text" value="Example" readOnly/><Button aria-invalid="true">Invalid button</Button><Select><SelectTrigger aria-invalid="true"><SelectValue placeholder="Invalid selection"/></SelectTrigger></Select></div><button onClick={()=>setOpen(true)}>Preview payment</button><PaymentModal isOpen={open} onClose={()=>setOpen(false)} onSubmit={async()=>{window.paymentSubmitted=true}} fee={{feeId:'sample',name:'Sample tuition',amount:100000,balance:80000,amountPaid:20000}}/></div>}
-createRoot(document.getElementById('app')).render(<><Fixture/><ExtraControls/></>);`;
+function EventExamples(){const [open,setOpen]=React.useState(false);return <div className="hidden lg:block p-6" style={{marginLeft:256}} data-testid="event-examples"><EventFilters filters={{types:[],statuses:[],priorities:[],academicYearIds:[],termIds:[],classIds:[],subjectIds:[]}} onFiltersChange={()=>{}}/><button onClick={()=>setOpen(true)}>Preview event</button><EventDetailsModal event={${JSON.stringify(events[0])}} isOpen={open} onClose={()=>setOpen(false)} onEdit={()=>{}}/></div>}
+createRoot(document.getElementById('app')).render(<><Fixture/><EventExamples/><ExtraControls/></>);`;
   await esbuild.build({ absWorkingDir: root, stdin: { resolveDir: root, contents, loader: 'tsx' }, bundle: true, jsx: 'automatic', platform: 'browser', alias: { '@': path.join(root, 'src') }, outfile: path.join(output, 'fixture.js'), define: { 'process.env.NODE_ENV': '"production"' }, plugins: [{ name: 'synthetic-data', setup(b) {
     b.onResolve({ filter: /.*/ }, a => Object.hasOwn(mocks, a.path) || ['dashboard-widgets', 'schedule-styles'].includes(a.path) ? { path: a.path, namespace: 'fixture' } : undefined);
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, a => ({ contents: a.path === 'dashboard-widgets' ? extractedWidgets() : a.path === 'schedule-styles' ? scheduleStyles() : mocks[a.path], loader: 'tsx', resolveDir: root }));
@@ -82,6 +84,7 @@ function contrast(a, b) {
 }
 async function run() {
   await build();
+  console.log('Dashboard fixture built; starting rendered contrast checks.');
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
     if (['/fixture.js', '/fixture.css'].includes(url)) { res.setHeader('Content-Type', url.endsWith('js') ? 'text/javascript' : 'text/css'); res.end(fs.readFileSync(path.join(output, url.slice(1)))); }
@@ -89,14 +92,81 @@ async function run() {
     else { res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app"></div><script src="/fixture.js"></script></body></html>'); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const browser = await chromium.launch({ channel: process.env.THEME_BROWSER_CHANNEL || 'msedge', headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1050 }, deviceScaleFactor: 1 });
-    const errors = []; page.on('pageerror', e => errors.push(e.message));
+    const errors = []; page.on('pageerror', e => { errors.push(e.message); console.error('Dashboard browser error:',e.message); });
     await page.clock.setFixedTime(new Date('2026-10-09T10:00:00'));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.locator('[data-testid="calendar"] .fc-toolbar-title').waitFor();
     await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="enrollment"] svg text')].some(t => t.textContent === '95'));
+    const lessonReports = [];
+    const setPreset = async preset => {
+      await page.evaluate(preset => {
+        const value=JSON.stringify({preset,background:'illustration',dimming:37});
+        localStorage.setItem('trinity-look-and-feel',value);
+        window.dispatchEvent(new StorageEvent('storage',{key:'trinity-look-and-feel',newValue:value}));
+      },preset);
+      await page.waitForFunction(preset=>document.documentElement.dataset.appTheme===preset,preset);
+    };
+    const setMode = async dark => {
+      if(await page.evaluate(()=>document.documentElement.classList.contains('dark'))!==dark) {
+        await page.getByRole('switch',{name:'Dark theme'}).first().click();
+        await page.waitForFunction(dark=>document.documentElement.classList.contains('dark')===dark&&!document.documentElement.dataset.themeReveal,dark);
+      }
+    };
+    const readPair = locator => locator.evaluate(el=>{
+      const style=getComputedStyle(el),rgb=value=>value.match(/[\d.]+/g).slice(0,3).map(Number);
+      return {color:rgb(style.color),background:rgb(style.backgroundColor)};
+    });
+    const checkPair = (pair,label) => assert.ok(contrast(pair.color,pair.background)>=4.5,label+': '+JSON.stringify(pair));
+    for(const preset of ['trinity-classic','soft-indigo']) {
+      await setPreset(preset);
+      for(const dark of [false,true]) {
+        await setMode(dark);await page.mouse.move(0,0);
+        const pills=page.locator('[data-testid="tracker"] [data-pill-btn]');
+        assert.ok(await pills.count()>=8,'Fixture must cover all eight class colours');
+        const pairs=[];
+        for(let i=0;i<8;i++) {
+          const pill=pills.nth(i),normal=await readPair(pill);checkPair(normal,`${preset}/${dark}/lesson ${i}`);
+          await pill.hover();await page.waitForTimeout(220);
+          const hover=await readPair(pill);checkPair(hover,'Hovered lesson');
+          await pill.click();assert.equal(await pill.getAttribute('aria-expanded'),'true');
+          const selected=await readPair(pill);checkPair(selected,'Selected lesson');
+          const popover=page.locator('[data-pill-popover]'),header=await readPair(popover.locator(':scope > div').first());
+          checkPair(header,'Expanded lesson heading');
+          const body=popover.locator(':scope > div').nth(1),background=(await readPair(body)).background;
+          for(const text of await body.locator('p,span').all()) checkPair({...await readPair(text),background},'Expanded lesson detail');
+          await popover.getByRole('button',{name:'Close lesson details'}).click();
+          pairs.push({normal,hover,selected,header});
+        }
+        await page.mouse.move(0,0);
+        await page.locator('[data-testid="tracker"]').screenshot({path:path.join(output,`timetable-${preset}-${dark?'dark':'light'}.png`)});
+        await page.getByRole('button',{name:'Preview event',exact:true}).click();
+        const dialog=page.getByRole('dialog');await dialog.waitFor();
+        for(const heading of [page.locator('[data-testid="event-examples"] .bg-clip-text').first(),dialog.locator('.bg-clip-text').first()]) {
+          const gradient=await heading.evaluate(el=>{
+            let parent=el,background=getComputedStyle(parent).backgroundColor;
+            while(background==='rgba(0, 0, 0, 0)'&&parent.parentElement){parent=parent.parentElement;background=getComputedStyle(parent).backgroundColor;}
+            const rgb=v=>v.match(/[\d.]+/g).slice(0,3).map(Number);
+            return {stops:(getComputedStyle(el).backgroundImage.match(/rgba?\([^)]+\)/g)||[]).map(rgb),background:rgb(background)};
+          });
+          assert.equal(gradient.stops.length,2,'Actual event heading gradient');
+          for(const color of gradient.stops)checkPair({color,background:gradient.background},'Event heading gradient');
+        }
+        await page.keyboard.press('Escape');
+        lessonReports.push({preset,dark,pairs});
+        console.log(`TIMETABLE_CONTRAST_OK ${preset} ${dark?'dark':'light'}: eight colours, hover/selected states, detail popovers and event headings.`);
+      }
+    }
+    for(const dark of [false,true]) {
+      const classic=lessonReports.find(r=>r.preset==='trinity-classic'&&r.dark===dark),soft=lessonReports.find(r=>r.preset==='soft-indigo'&&r.dark===dark);
+      for(const i of [1,5]) assert.notDeepEqual(classic.pairs[i].normal,soft.pairs[i].normal,'Indigo/violet class labels must change with preset');
+    }
+    await setPreset('soft-indigo');await setMode(true);await page.emulateMedia({media:'print'});
+    const printPair=await readPair(page.locator('[data-testid="tracker"] [data-pill-btn]').nth(1));
+    assert.deepEqual(printPair,lessonReports[0].pairs[1].normal,'Printed lesson labels retain Classic/light colours');
+    await page.emulateMedia({media:'screen'});await setPreset('trinity-classic');await setMode(false);
     await page.screenshot({ path: path.join(output, 'dashboard-light.png'), fullPage: true });
     const lightSnapshot = await page.locator('[data-testid="calendar"] .fc-toolbar-title').evaluate(el => ({ color: getComputedStyle(el).color, text: el.textContent }));
     const schedulePalette = () => page.evaluate(() => window.getScheduleStyles().map(style => {
@@ -173,8 +243,9 @@ async function run() {
     await page.waitForFunction(() => !document.documentElement.classList.contains('dark') && !document.documentElement.dataset.themeReveal);
     assert.deepEqual(await page.locator('[data-testid="calendar"] .fc-toolbar-title').evaluate(el => ({ color: getComputedStyle(el).color, text: el.textContent })), lightSnapshot, 'Light palette must restore exactly');
     assert.deepEqual(errors, []);
-    fs.writeFileSync(path.join(output, 'dashboard-verification.json'), JSON.stringify({ readings, todayColors, minimumSubjectContrast:Math.min(...darkSchedule.map(c=>contrast(c.color,c.background))), printPaletteUnchanged:true, browserErrors: errors }, null, 2));
+    fs.writeFileSync(path.join(output, 'dashboard-verification.json'), JSON.stringify({ lessonReports, minimumLessonContrast:Math.min(...lessonReports.flatMap(r=>r.pairs.flatMap(p=>Object.values(p).map(c=>contrast(c.color,c.background))))), readings, todayColors, minimumSubjectContrast:Math.min(...darkSchedule.map(c=>contrast(c.color,c.background))), printPaletteUnchanged:true, browserErrors: errors }, null, 2));
     console.log('DASHBOARD_THEME_BROWSER_OK: actual charts, calendar, status badges, timetable colours, parent/events/signature/settings controls, payment validation, tooltips/popovers, mobile layout, print colours and light restoration.');
-  } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
+  } catch (error) { console.error(error); throw error; }
+  finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
 run().catch(e => { console.error(e); process.exitCode = 1; });

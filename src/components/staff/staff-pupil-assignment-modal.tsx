@@ -421,7 +421,7 @@ export function StaffPupilAssignmentModal({
                   </div>
                 ) : (
                   assignedPupils.map((pupil: Pupil) => (
-                    <Card key={pupil.id} className="border-l-4 border-l-blue-500">
+                    <Card key={pupil.id} className="border-l-4 border-l-brand-500">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">

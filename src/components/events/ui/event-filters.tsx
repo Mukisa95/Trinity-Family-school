@@ -124,7 +124,7 @@ export function EventFilters({
     <Card className={`border-0 bg-transparent shadow-none ${className}`}>
       <CardHeader className="pb-3 px-3 sm:px-4 border-b border-slate-100/50 mb-3 bg-white/40 rounded-t-2xl dark:border-slate-700/50 dark:bg-slate-900/40">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-bold flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <CardTitle className="text-sm font-bold flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
             <div className="w-6 h-6 rounded-lg bg-brand-surface-100/50 flex items-center justify-center dark:bg-brand-surface-950/50">
               <Filter className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
             </div>
@@ -590,4 +590,4 @@ export function EventFilters({
       </CardContent>
     </Card >
   );
-} 
+}

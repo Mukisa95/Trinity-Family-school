@@ -3,10 +3,10 @@ import * as React from "react";
 export const VIBRANT_COLORS = [
     "#f39c12", // orange
     "#e84393", // pink
-    "#3c40c6", // deep purple/blue
+    "rgb(var(--brand-alt-ink-600))", // theme accent
     "#0abde3", // light blue
     "#78e08f", // green
-    "#8e44ad", // purple
+    "rgb(var(--brand-secondary-ink-600))", // theme secondary accent
     "#ff7675", // coral pink
     "#20bf6b", // emerald
 ];

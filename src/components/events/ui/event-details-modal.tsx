@@ -124,7 +124,7 @@ export function EventDetailsModal({
           <ModernDialogHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <ModernDialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent pr-8">
+                <ModernDialogTitle className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent pr-8 dark:from-slate-100 dark:to-slate-300">
                   {event.title}
                 </ModernDialogTitle>
                 <div className="flex items-center flex-wrap gap-2 mt-3">
@@ -618,4 +618,4 @@ export function EventDetailsModal({
       </ModernDialogContent>
     </ModernDialog>
   );
-} 
+}

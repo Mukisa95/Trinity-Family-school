@@ -2,5 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": { "incremental": false },
   "include": ["next-env.d.ts", "tailwind.config.ts", "src/lib/theme/appearance-settings.ts", "src/components/settings/look-and-feel-settings.tsx", "src/app/settings/look-and-feel/page.tsx", "src/app/parent/settings/look-and-feel/page.tsx", "src/components/providers/theme-provider.tsx", "src/components/ui/theme-toggle.tsx", "src/components/pupils/pupil-row-theme.ts", "src/components/pdf/pdf-workspace.tsx", "src/components/pdf/pdf-document-viewer.tsx", "src/components/pdf/pdf-viewer.tsx"],
+  "files": ["src/components/dashboard/DashboardLiveTracker.tsx", "src/components/ui/charts/pill-bar.tsx"],
   "exclude": ["node_modules", "functions", ".next"]
 }

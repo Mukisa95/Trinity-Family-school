@@ -17,17 +17,14 @@ function parseTimeToMins(t: string): number {
     return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
 }
 
-const PILL_COLORS: [string, string][] = [
-    ["#22c55e", "#fff"],
-    ["#6366f1", "#fff"],
-    ["#f59e0b", "#fff"],
-    ["#ec4899", "#fff"],
-    ["#14b8a6", "#fff"],
-    ["#8b5cf6", "#fff"],
-    ["#f97316", "#fff"],
-    ["#06b6d4", "#fff"],
-];
-function getPillColor(i: number): [string, string] { return PILL_COLORS[i % PILL_COLORS.length]; }
+const PILL_TONES = ["green", "indigo", "amber", "pink", "teal", "violet", "orange", "cyan"] as const;
+type PillTone = typeof PILL_TONES[number];
+function getPillTone(i: number): PillTone { return PILL_TONES[i % PILL_TONES.length]; }
+function pillStyle(tone: PillTone): React.CSSProperties {
+    return Object.fromEntries(["ink", "surface", "hover", "border", "header", "header-ink"].map(role =>
+        [`--lesson-${role}`, `var(--lesson-${tone}-${role})`]
+    )) as React.CSSProperties;
+}
 
 interface PillData {
     id: string;
@@ -36,8 +33,7 @@ interface PillData {
     subjectCode: string;
     subjectName: string;
     teacher: string;
-    bg: string;
-    text: string;
+    tone: PillTone;
     startTime: string;
     endTime: string;
 }
@@ -59,38 +55,38 @@ function PillPopover({ pill, onClose }: { pill: PillData; onClose: () => void })
             data-pill-popover
             className="absolute bottom-full mb-2 left-0 z-50 w-52 rounded-xl overflow-hidden"
             style={{
-                border: `2px solid ${pill.bg}`,
-                boxShadow: `0 4px 20px rgba(0,0,0,0.12), 0 0 0 4px ${pill.bg}22`
+                border: "2px solid rgb(var(--lesson-border))",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.12), 0 0 0 4px rgb(var(--lesson-border) / .13)"
             }}
         >
             {/* Colored header */}
-            <div className="flex items-center justify-between px-3 py-2" style={{ background: pill.bg }}>
+            <div className="flex items-center justify-between px-3 py-2" style={{ background: "rgb(var(--lesson-header))", color: "rgb(var(--lesson-header-ink))" }}>
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <div className="w-2 h-2 rounded-full bg-white/60 flex-shrink-0 dark:bg-slate-900/60" />
-                    <span className="text-xs font-bold text-white tracking-wide truncate">{pill.className}</span>
+                    <div className="w-2 h-2 rounded-full bg-current opacity-60 flex-shrink-0" />
+                    <span className="text-xs font-bold tracking-wide truncate">{pill.className}</span>
                 </div>
-                <button onClick={onClose} className="text-white/70 hover:text-white transition flex-shrink-0 ml-1">
+                <button onClick={onClose} aria-label="Close lesson details" className="opacity-80 hover:opacity-100 transition flex-shrink-0 ml-1">
                     <X className="w-3 h-3" />
                 </button>
             </div>
             {/* Body */}
-            <div className="bg-white px-3 py-2.5 flex flex-col gap-1.5 dark:bg-slate-900">
+            <div className="bg-popover px-3 py-2.5 flex flex-col gap-1.5">
                 <div className="flex items-start gap-2">
-                    <BookOpen className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5 dark:text-slate-400" />
+                    <BookOpen className="w-3.5 h-3.5 text-gray-500 flex-shrink-0 mt-0.5 dark:text-slate-400" />
                     <div className="min-w-0">
                         <p className="text-xs font-bold text-gray-800 leading-tight dark:text-slate-100">{pill.subjectName}</p>
                         {pill.subjectCode !== pill.subjectName && (
-                            <p className="text-[10px] text-gray-400 dark:text-slate-400">{pill.subjectCode}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-slate-400">{pill.subjectCode}</p>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 dark:text-slate-400" />
+                    <Clock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0 dark:text-slate-400" />
                     <span className="text-xs text-gray-600 font-medium dark:text-slate-300">{pill.startTime} – {pill.endTime}</span>
                 </div>
                 {pill.teacher ? (
                     <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 dark:text-slate-400" />
+                        <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0 dark:text-slate-400" />
                         <span className="text-xs text-gray-700 font-medium truncate dark:text-slate-200">{pill.teacher}</span>
                     </div>
                 ) : null}
@@ -150,7 +146,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 <div className="w-3.5 h-3.5 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 dark:border-slate-700">
                     <div className="w-1 h-1 rounded-full bg-gray-400" />
                 </div>
-                {profileName && <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider dark:text-slate-400">{profileName}:</span>}
+                {profileName && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400">{profileName}:</span>}
                 <span className="text-xs text-gray-500 dark:text-slate-400">No active lessons.</span>
                 <button onClick={() => router.push("/timetable")} className="ml-auto text-[10px] font-semibold text-brand-alt-ink-500 hover:text-brand-alt-ink-700 transition dark:text-brand-alt-ink-400 dark:hover:text-brand-alt-ink-300">
                     Timetable →
@@ -207,7 +203,6 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
         const teacherName = teacherObj
             ? [teacherObj.firstName, teacherObj.lastName].filter(Boolean).join(" ")
             : "";
-        const [bg, text] = getPillColor(idx);
         return {
             id: e.id,
             classCode,
@@ -217,8 +212,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
             subjectCode,
             subjectName: sub?.name || e.activityName || "—",
             teacher: teacherName,
-            bg,
-            text,
+            tone: getPillTone(idx),
             startTime: activePeriod.startTime,
             endTime: activePeriod.endTime,
         };
@@ -262,7 +256,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 
                 {showClock && (
                     <div className="hidden sm:flex items-center px-2 py-0.5 bg-brand-alt-surface-50/50 border border-brand-alt-100/60 rounded-full mr-1 flex-shrink-0 dark:bg-brand-alt-surface-950/50 dark:border-brand-alt-800/60">
-                        <Clock className="w-2.5 h-2.5 text-brand-alt-ink-400 mr-1" />
+                        <Clock className="w-2.5 h-2.5 text-brand-alt-ink-600 mr-1 dark:text-brand-alt-ink-400" />
                         <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-brand-alt-ink-700 to-brand-alt-ink-900 bg-clip-text text-transparent tabular-nums tracking-tight dark:from-brand-alt-ink-400 dark:to-brand-alt-ink-400">
                             {format(currentTime, "h:mm a")}
                         </span>
@@ -292,7 +286,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                         width: `${clampedPct}%`,
                         background: isUpcoming
                             ? "linear-gradient(90deg, #fcd34d, #f59e0b)"
-                            : "linear-gradient(90deg, #818cf8, #4f46e5)"
+                            : "linear-gradient(90deg, rgb(var(--brand-alt-400)), rgb(var(--brand-alt-600)))"
                     }}
                 />
             </div>
@@ -300,16 +294,12 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
             {/* Row 3: pills + next */}
             <div className="relative flex items-center gap-1 flex-wrap">
                 {subjectCards.map((sc, idx) => (
-                    <div key={`${sc.id}-${idx}`} className="relative">
+                    <div key={`${sc.id}-${idx}`} className="relative" style={pillStyle(sc.tone)}>
                         <button
                             data-pill-btn
+                            aria-expanded={openPillIdx === idx}
                             onClick={() => setOpenPillIdx(openPillIdx === idx ? null : idx)}
-                            className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-all hover:brightness-105 active:scale-95 border"
-                            style={{ 
-                                backgroundColor: `${sc.bg}15`, 
-                                color: sc.bg, 
-                                borderColor: `${sc.bg}30` 
-                            }}
+                            className="timetable-lesson-chip inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap transition-colors active:scale-95 border"
                         >
                             <span>{sc.classCode}</span>
                             <span style={{ opacity: 0.4 }}>·</span>
@@ -321,10 +311,10 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                     </div>
                 ))}
                 {nextLabel && (
-                    <span className="ml-auto text-[9px] text-gray-400 whitespace-nowrap select-none font-medium dark:text-slate-400">
+                    <span className="ml-auto text-[9px] text-gray-500 whitespace-nowrap select-none font-medium dark:text-slate-400">
                         Next: <span className="font-bold text-gray-500 uppercase dark:text-slate-400">{nextLabel}</span>{" "}
                         <span className="text-gray-300">·</span>{" "}
-                        <span className="text-gray-400 font-mono dark:text-slate-400">{nextPeriod?.startTime}</span>
+                        <span className="text-gray-500 font-mono dark:text-slate-400">{nextPeriod?.startTime}</span>
                     </span>
                 )}
             </div>
@@ -343,19 +333,19 @@ export function DashboardLiveTracker() {
     if (isLoading || profilesLoading || profiles.length === 0) {
         if (!isLoading && !profilesLoading && profiles.length === 0) return null;
         return (
-            <div className="bg-white rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-brand-alt-100 shadow-sm dark:bg-slate-900 dark:border-brand-alt-800/60">
-                <div className="w-3 h-3 border-2 border-brand-alt-100 border-t-indigo-400 rounded-full animate-spin flex-shrink-0 dark:border-brand-alt-800/60" />
-                <span className="text-xs text-gray-400 font-medium dark:text-slate-400">Loading timetables…</span>
+            <div className="bg-card rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-brand-alt-100 shadow-sm dark:border-brand-alt-800/60">
+                <div className="w-3 h-3 border-2 border-brand-alt-100 border-t-brand-alt-400 rounded-full animate-spin flex-shrink-0 dark:border-brand-alt-800/60" />
+                <span className="text-xs text-gray-500 font-medium dark:text-slate-400">Loading timetables…</span>
             </div>
         );
     }
 
     return (
         <div
-            className="bg-white rounded-xl px-3 py-2.5 text-gray-800 relative overflow-visible dark:bg-slate-900 dark:text-slate-100"
+            className="bg-card rounded-xl px-3 py-2.5 text-card-foreground relative overflow-visible"
             style={{
                 border: "2px solid var(--dashboard-tracker-border, #c7d2fe)",
-                boxShadow: "0 0 0 4px rgba(99,102,241,0.08), 0 2px 8px rgba(99,102,241,0.10)"
+                boxShadow: "0 0 0 4px rgb(var(--brand-alt-500) / .08), 0 2px 8px rgb(var(--brand-alt-500) / .10)"
             }}
         >
             <div className="flex flex-col gap-2 divide-y divide-brand-alt-50/60 dark:divide-brand-alt-800/60">

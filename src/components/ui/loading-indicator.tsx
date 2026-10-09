@@ -60,8 +60,8 @@ export function LoadingOverlay({
       <div className="bg-card border rounded-xl p-8 shadow-2xl flex flex-col items-center gap-6 max-w-md mx-4">
         {/* Animated loading icon */}
         <div className="relative">
-          <div className="h-16 w-16 border-4 border-brand-200 border-t-blue-600 rounded-full animate-spin dark:border-brand-800/60" />
-          <div className="absolute inset-0 h-16 w-16 border-4 border-transparent border-t-purple-600 rounded-full animate-spin" style={{ animationDelay: '0.5s' }} />
+          <div className="h-16 w-16 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin dark:border-brand-800/60" />
+          <div className="absolute inset-0 h-16 w-16 border-4 border-transparent border-t-brand-secondary-600 rounded-full animate-spin" style={{ animationDelay: '0.5s' }} />
         </div>
         
         {/* Main message */}

@@ -5711,7 +5711,7 @@ export default function PupilsPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen p-6">
-        <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 -mx-6 px-6 py-4 mb-6 dark:bg-slate-900/80">
+        <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-brand-alt-100 -mx-6 px-6 py-4 mb-6 dark:bg-slate-900/80">
           <div className="max-w-7xl mx-auto">
             <h1 className="text-xl font-bold text-brand-alt-ink-900 dark:text-brand-alt-ink-200">🚀 Loading Pupils...</h1>
             <p className="text-sm text-gray-600 mt-1 dark:text-slate-300">Setting up class-based loading for better performance</p>

@@ -27,13 +27,13 @@ async function run(){
   if(['/fixture.js','/fixture.css'].includes(uri)){res.setHeader('Content-Type',uri.endsWith('js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(output,uri.slice(1))));}
   else if(uri.startsWith('/images/')){const asset=path.resolve(root,'public','.'+uri);if(asset.startsWith(path.join(root,'public')+path.sep)&&fs.existsSync(asset)){res.setHeader('Content-Type','image/png');res.end(fs.readFileSync(asset));}else{res.statusCode=404;res.end();}}
   else{res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/fixture.css"></head><body><div id="app"></div><script src="/fixture.js"></script></body></html>');}
- });await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:'msedge'});
+ });await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch({headless:true,channel:process.env.THEME_BROWSER_CHANNEL||'msedge'});
  try{
   const context=await browser.newContext({viewport:{width:1366,height:900},colorScheme:'dark'}),page=await context.newPage(),url=`http://127.0.0.1:${server.address().port}`;
   const errors=[];page.on('pageerror',e=>errors.push(e.message));const reports=[];
   await page.addInitScript(()=>{window.nativeAppearanceRequests=[];window.TrinityOffline={postMessage(raw){const request=JSON.parse(raw);window.nativeAppearanceRequests.push(request);queueMicrotask(()=>window.TrinityOffline.onmessage?.({data:JSON.stringify({id:request.id,success:true})}));}};});
   const idle=()=>page.waitForFunction(()=>window.appearance?.ready&&!window.appearance.changing&&!document.documentElement.dataset.themeReveal);
-  const click=async(name)=>{await page.getByRole('button',{name,exact:true}).click();await idle();};
+  const click=async(name)=>{const button=page.getByRole('button',{name,exact:true});await button.click();await idle();};
   await page.goto(url);await idle();assert.equal(await page.getByRole('button',{name:'Follow device',exact:true}).getAttribute('aria-pressed'),'true');assert.ok(await page.evaluate(()=>document.documentElement.classList.contains('dark')));
   await page.waitForFunction(()=>window.nativeAppearanceRequests.some(r=>r.action==='appearance'&&r.preference==='system'&&r.dark===true));
   const paper=await reading(page.getByTestId('paper-button'));
@@ -47,9 +47,24 @@ async function run(){
      if(mode==='Dark')assert.ok(Math.max(...rgb(c.background))<100,'Pale hover surfaces must become dark');
     }
     assert.deepEqual(await reading(page.getByTestId('paper-button')),paper,'Paper controls retain Classic/light roles');
-    reports.push({preset,mode,primary,link});await page.mouse.move(0,0);await page.screenshot({path:path.join(output,preset.toLowerCase().replaceAll(' ','-')+'-'+mode.toLowerCase()+'.png'),fullPage:true});
+    await page.mouse.move(0,0);
+    const families=await page.locator('[data-family]').evaluateAll(elements=>elements.map(el=>({family:el.dataset.family,color:getComputedStyle(el).color,background:getComputedStyle(el).backgroundColor})));
+    reports.push({preset,mode,primary,link,families});await page.screenshot({path:path.join(output,preset.toLowerCase().replaceAll(' ','-')+'-'+mode.toLowerCase()+'.png'),fullPage:true});
+    console.log('PRESET_CONTRAST_OK '+preset+' '+mode+'; all four accent families.');
    }
   }
+  for(const mode of ['Dark','Light']){
+   const classic=reports.find(r=>r.preset==='Trinity Classic'&&r.mode===mode),soft=reports.find(r=>r.preset==='Soft Indigo'&&r.mode===mode);
+   for(let i=0;i<classic.families.length;i++)assert.notDeepEqual(classic.families[i],soft.families[i],mode+' '+classic.families[i].family+' must respond to preset');
+  }
+  if(process.argv.includes('--contrast-only')){
+   assert.deepEqual(errors,[]);
+   fs.writeFileSync(path.join(output,'accent-verification.json'),JSON.stringify({reports,allAccentFamiliesChange:true,paperPaletteUnchanged:true,browserErrors:errors},null,2));
+   console.log('THEME_ACCENT_BROWSER_OK: both presets in light/dark, all four accent families change, readable links/buttons/hover colours and unchanged paper colours.');
+   return;
+  }
+  // Begin the persistence/background checks on a fresh page after the full-page snapshots.
+  await page.reload();await idle();
   await click('Dark');await page.getByRole('button',{name:/^Soft Indigo/}).click();await idle();
   await click('Plain');assert.equal(await page.locator('.dashboard-bg-wrapper').evaluate(el=>getComputedStyle(el,'::after').backgroundImage),'none');
   assert.ok(await page.getByLabel('Night illustration brightness').isDisabled());await click('School illustration');
@@ -71,6 +86,7 @@ async function run(){
   await page.evaluate(()=>{Storage.prototype.setItem=function(){throw new DOMException('Storage blocked','SecurityError')}});await click('Plain');await page.getByRole('status').getByText(/could not save/).waitFor();
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(output,'verification.json'),JSON.stringify({reports,deviceDefault:true,persistence:true,crossTab:true,invalidStorage:true,printPalette:true,keyboardAndMobile:true,browserErrors:errors},null,2));
   console.log('LOOK_AND_FEEL_BROWSER_OK: both presets/light-dark contrast, dark hovers, settings persistence and cross-tab sync, device defaults, native appearance bridge, corrupt storage recovery, background brightness, original print palette, mobile/keyboard/reduced-motion and storage-failure handling.');
- }finally{await browser.close();await new Promise(r=>server.close(r));}
+ }catch(error){console.error(error);throw error;}
+ finally{await browser.close();await new Promise(r=>server.close(r));}
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});

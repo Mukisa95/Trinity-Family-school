@@ -155,7 +155,7 @@ export function SchoolPayPaymentsModal({
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <span className="w-8 h-8 border-3 border-brand-secondary-alt-200 border-t-violet-600 rounded-full animate-spin dark:border-brand-secondary-alt-800/60" />
+              <span className="w-8 h-8 border-3 border-brand-secondary-alt-200 border-t-brand-secondary-alt-600 rounded-full animate-spin dark:border-brand-secondary-alt-800/60" />
               <p className="text-sm text-gray-400 dark:text-slate-400">Loading SchoolPay payments…</p>
             </div>
           ) : transactions.length === 0 ? (

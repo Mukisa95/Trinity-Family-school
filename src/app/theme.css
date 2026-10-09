@@ -186,9 +186,9 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
 }
 .dark .dashboard-bg-wrapper [data-sidebar="inset"] .min-h-screen :is(h1, p) { text-shadow: none; }
 .dark .card-glass { background: rgb(var(--glass-surface) / 0.72); border-color: rgb(var(--glass-edge) / 0.25); }
-.dark .card-gradient { background: linear-gradient(135deg, rgb(30 41 59 / 0.8), rgb(15 23 42 / 0.6)); }
+.dark .card-gradient { background: linear-gradient(135deg, hsl(var(--card) / 0.8), hsl(var(--background) / 0.6)); }
 .dark .theme-dashboard-surface {
-  background: linear-gradient(135deg, hsl(var(--card)), #131e32) !important;
+  background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--background))) !important;
   border-color: hsl(var(--border));
   box-shadow: 0 10px 28px rgb(2 6 23 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
 }
@@ -237,7 +237,7 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   --fc-neutral-text-color: hsl(var(--muted-foreground));
   --fc-border-color: hsl(var(--border));
   --fc-list-event-hover-bg-color: hsl(var(--accent));
-  --fc-today-bg-color: rgb(59 130 246 / 0.12);
+  --fc-today-bg-color: rgb(var(--brand-500) / 0.12);
 }
 .dark .recharts-cartesian-axis-tick-value { fill: hsl(var(--muted-foreground)); }
 
@@ -301,4 +301,17 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   .theme-toggle { display: none !important; }
   .dashboard-bg-wrapper { background-image: none !important; }
   .dashboard-bg-wrapper::after { display: none !important; }
+}
+.timetable-lesson-chip {
+  color: rgb(var(--lesson-ink));
+  background-color: rgb(var(--lesson-surface));
+  border-color: rgb(var(--lesson-border));
+}
+.timetable-lesson-chip:hover,
+.timetable-lesson-chip[aria-expanded="true"] {
+  background-color: rgb(var(--lesson-hover));
+}
+.timetable-lesson-chip:focus-visible {
+  outline: 2px solid rgb(var(--lesson-ink));
+  outline-offset: 2px;
 }

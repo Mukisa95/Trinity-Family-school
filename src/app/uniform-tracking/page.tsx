@@ -578,7 +578,7 @@ function UniformTrackingContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-surface-50 via-white to-brand-alt-surface-50 pb-20 dark:from-brand-surface-950/40 dark:via-slate-900 dark:to-brand-alt-surface-950/40">
       {/* Modern Header */}
-      <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-indigo-100 dark:bg-slate-900/80">
+      <div className="bg-white/80 border-b shadow-sm backdrop-blur-xl sticky top-0 z-10 border-b-brand-alt-100 dark:bg-slate-900/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col gap-4">
             {/* Navigation and Actions */}

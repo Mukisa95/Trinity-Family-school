@@ -2095,7 +2095,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
         <CardContent className="flex flex-col items-center justify-center h-64 relative z-20 overflow-hidden rounded-xl">
           <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: `radial-gradient(#3b82f6 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(rgb(var(--brand-500)) 1px, transparent 1px)`,
             backgroundSize: '20px 20px'
           }} />
 
@@ -2675,8 +2675,8 @@ export default function DashboardPage() {
             title="Reports"
             icon={Zap}
             // Blue Theme (like 'Learn More')
-            baseColor="#6366F1"
-            darkColor="#1D4ED8"
+            baseColor="rgb(var(--brand-alt-600))"
+            darkColor="rgb(var(--brand-700))"
             onClick={() => router.push('/reports')}
           />
         </motion.div>

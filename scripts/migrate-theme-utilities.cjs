@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const ts = require('typescript');
 const root = path.resolve(__dirname, '..');
 const families = { blue: 'brand', indigo: 'brand-alt', purple: 'brand-secondary', violet: 'brand-secondary-alt' };
-const utility = /\b(text|bg|border|ring|from|via|to|shadow|outline|decoration|fill|stroke|divide|placeholder|caret|accent)-(blue|indigo|purple|violet)-(50|100|200|300|400|500|600|700|800|900|950)(?![\w-])/g;
+const utility = /\b(text|bg|border(?:-[tblrxy])?|ring|from|via|to|shadow|outline|decoration|fill|stroke|divide|placeholder|caret|accent)-(blue|indigo|purple|violet)-(50|100|200|300|400|500|600|700|800|900|950)(?![\w-])/g;
 const literals = new Set([ts.SyntaxKind.StringLiteral, ts.SyntaxKind.NoSubstitutionTemplateLiteral, ts.SyntaxKind.TemplateHead, ts.SyntaxKind.TemplateMiddle, ts.SyntaxKind.TemplateTail]);
 const change = text => text.replace(/\b(text|border|bg)-(blue|indigo|purple|violet)-(350|750|850)(?![\w-])/g, (_,role,hue,shade)=>`${role}-${hue}-${Number(shade)-50}`)
   .replace(utility, (_, role, hue, shade) => `${role}-${families[hue]}${['text', 'placeholder', 'caret', 'decoration'].includes(role) ? '-ink' : ''}-${shade}`)

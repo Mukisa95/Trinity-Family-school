@@ -101,7 +101,7 @@ export function NotificationInboxItem({
       className={cn(
         'group w-full text-left px-4 py-3.5 flex items-start gap-3 transition-all duration-150 relative border-b border-gray-100 dark:border-slate-700',
         isSelected
-          ? 'bg-brand-surface-50 border-l-4 border-l-blue-500 dark:bg-brand-surface-950/40'
+          ? 'bg-brand-surface-50 border-l-4 border-l-brand-500 dark:bg-brand-surface-950/40'
           : 'hover:bg-gray-50 border-l-4 border-l-transparent dark:hover:bg-slate-900',
         isUnread && !isSelected && 'bg-white dark:bg-slate-900',
         !isUnread && !isSelected && 'bg-gray-50/60 dark:bg-slate-900/60',

@@ -164,7 +164,7 @@ const PrintModal = ({
         {isGenerating ? (
           <div className="py-4">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-brand-200 border-t-blue-600 rounded-full mx-auto mb-4 animate-spin dark:border-brand-800/60"></div>
+              <div className="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full mx-auto mb-4 animate-spin dark:border-brand-800/60"></div>
               <h3 className="text-lg font-bold text-gray-900 mb-2 dark:text-slate-100">Generating Report</h3>
               <p className="text-sm text-brand-ink-600 font-medium mb-4 dark:text-brand-ink-400">{generationStatus}</p>
 

@@ -231,7 +231,7 @@ export function LinkSiblingsModal({
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                   <div className="relative">
-                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-brand-200 border-t-blue-600 mx-auto dark:border-brand-800/60"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-3 border-brand-200 border-t-brand-600 mx-auto dark:border-brand-800/60"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Users className="h-3 w-3 text-brand-ink-600 dark:text-brand-ink-400" />
                     </div>
