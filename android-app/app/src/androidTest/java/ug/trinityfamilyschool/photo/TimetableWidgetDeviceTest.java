@@ -112,7 +112,7 @@ public class TimetableWidgetDeviceTest {
                     view.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));view.layout(0,0,width,view.getMeasuredHeight());
                     View previous=view.findViewById(R.id.previous_period); assertTrue(previous.getWidth()>=24*context.getResources().getDisplayMetrics().density-1);
                     assertEquals("Previous period",previous.getContentDescription().toString());
-                    assertEquals(0xff1f2937,((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
+                    assertEquals(AppAppearance.palette(context).dark ? 0xffe2e8f0 : 0xff1f2937,((TextView)view.findViewById(R.id.current_lesson)).getCurrentTextColor());
                     assertTrue(view.getMeasuredHeight()>0);
                 }
             } catch(Throwable error){failure.set(error);}

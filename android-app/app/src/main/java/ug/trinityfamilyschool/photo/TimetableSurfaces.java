@@ -119,6 +119,8 @@ final class TimetableSurfaces {
     }
     static Notification card(Context context, JSONObject ignored, TimetableSchedule.Frame frame, int contentId) {
         RemoteViews small = new RemoteViews(context.getPackageName(), R.layout.timetable_notification_small);
+        AppearancePalette palette = AppAppearance.palette(context);
+        AppAppearance.background(small, R.id.mini_profiles, palette, R.drawable.widget_background, R.drawable.widget_background_light, R.drawable.widget_background_dark);
         small.removeAllViews(R.id.mini_profiles);
         for (int i = 0; i < Math.min(2, frame.profiles.size()); i++) small.addView(R.id.mini_profiles, collapsedProfile(context, frame.profiles.get(i)));
         boolean progress = prefs(context).getBoolean("progress", true);
@@ -128,6 +130,7 @@ final class TimetableSurfaces {
             .setDeleteIntent(action(context, "HIDE", 73)).setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setShowWhen(false);
         if (frame.profiles.size() > 2) {
             RemoteViews big = new RemoteViews(context.getPackageName(), R.layout.timetable_notification); big.removeAllViews(R.id.notification_profiles);
+            AppAppearance.background(big, R.id.notification_profiles, palette, R.drawable.widget_background, R.drawable.widget_background_light, R.drawable.widget_background_dark);
             for (TimetableSchedule.Frame row : frame.profiles) big.addView(R.id.notification_profiles, profileView(context, row, progress, AppWidgetManager.INVALID_APPWIDGET_ID, false, true));
             card.setStyle(new NotificationCompat.DecoratedCustomViewStyle()).setCustomBigContentView(big);
         } else card.setCustomBigContentView(small); // Android may force expansion; keep the same two rows there.
@@ -135,6 +138,11 @@ final class TimetableSurfaces {
     }
     static RemoteViews collapsedProfile(Context context, TimetableSchedule.Frame row) {
         RemoteViews view = new RemoteViews(context.getPackageName(), R.layout.timetable_notification_row);
+        AppearancePalette palette = AppAppearance.palette(context);
+        AppAppearance.text(view, R.id.mini_label, palette, "#1F2937", "#E2E8F0");
+        AppAppearance.text(view, R.id.mini_summary, palette, "#4F46E5", "#A5B4FC");
+        AppAppearance.navigation(view, palette);
+        AppAppearance.progress(view, R.id.mini_progress, palette, "#10B981", "#34D399");
         view.setTextViewText(R.id.mini_label, row.tableName + " · " + (row.shortLabel.isEmpty() ? row.title : row.shortLabel) + " · " + row.time);
         StringBuilder subjects = new StringBuilder();
         for (TimetableSchedule.Pill pill : row.pills) { if (subjects.length() > 0) subjects.append("  ·  "); subjects.append(pill.classCode).append(" ").append(pill.subjectCode); }
@@ -176,6 +184,16 @@ final class TimetableSurfaces {
     }
     static RemoteViews profileView(Context context, TimetableSchedule.Frame frame, boolean progress, int scope, boolean compact, boolean notification) {
         RemoteViews row = new RemoteViews(context.getPackageName(), compact ? R.layout.timetable_feed_row_compact : R.layout.timetable_feed_row);
+        AppearancePalette palette = AppAppearance.palette(context);
+        AppAppearance.text(row, R.id.current_lesson, palette, "#1F2937", "#E2E8F0");
+        AppAppearance.text(row, R.id.detail_subject, palette, "#1F2937", "#E2E8F0");
+        AppAppearance.text(row, R.id.detail_teacher, palette, "#4B5563", "#CBD5E1");
+        for (int id : new int[]{R.id.class_label,R.id.lesson_time,R.id.lesson_agenda,R.id.next_lesson})
+            AppAppearance.text(row,id,palette,"#6B7280","#94A3B8");
+        AppAppearance.color(row,R.id.surface_divider,"setBackgroundColor",palette,"#EEF2FF","#334155");
+        AppAppearance.color(row,R.id.detail_close,"setColorFilter",palette,"#4F46E5","#A5B4FC");
+        AppAppearance.navigation(row,palette);
+        AppAppearance.progress(row,R.id.lesson_progress,palette,"#4F46E5","#818CF8");
         row.removeAllViews(R.id.pills_container);
         row.setViewVisibility(R.id.pills_container, View.VISIBLE); row.setViewVisibility(R.id.pill_details, View.GONE);
         row.setViewVisibility(R.id.period_badge, View.VISIBLE); row.setViewVisibility(R.id.period_countdown, View.GONE);
@@ -184,19 +202,16 @@ final class TimetableSurfaces {
         row.setTextViewText(R.id.class_label, frame.tableName); row.setTextViewText(R.id.current_lesson, frame.shortLabel.isEmpty() ? frame.title : frame.shortLabel);
         row.setTextViewText(R.id.lesson_time, frame.time); row.setTextViewText(R.id.lesson_agenda, frame.agenda);
         row.setTextViewText(R.id.period_badge, frame.hasPeriod ? frame.countdownEnd > 0 ? "Upcoming" : "Ended" : "");
-        row.setInt(R.id.period_badge, "setBackgroundResource", frame.countdownEnd > 0 ? R.drawable.upcoming_background : R.drawable.ended_background);
-        row.setTextColor(R.id.period_badge, android.graphics.Color.parseColor(frame.countdownEnd > 0 ? "#B45309" : "#6B7280"));
+        AppAppearance.badge(row,R.id.period_badge,palette,frame.countdownEnd > 0 ? 1 : 0);
         if (!frame.hasPeriod) row.setViewVisibility(R.id.period_badge, View.GONE);
         if (frame.countdownEnd > System.currentTimeMillis()) {
             if (!notification) {
                 // ListView can detach/recycle a Chronometer without restarting it. Render a
                 // minute badge from the current clock; the independent visual alarm refreshes it.
                 row.setTextViewText(R.id.period_badge, TimetableCountdown.label(frame.countdownEnd, System.currentTimeMillis(), frame.active));
-                row.setInt(R.id.period_badge, "setBackgroundResource", frame.active ? R.drawable.badge_background : R.drawable.upcoming_background);
-                row.setTextColor(R.id.period_badge, android.graphics.Color.parseColor(frame.active ? "#047857" : "#B45309"));
+                AppAppearance.badge(row,R.id.period_badge,palette,frame.active ? 2 : 1);
             } else {
-            row.setInt(R.id.period_countdown, "setBackgroundResource", frame.active ? R.drawable.badge_background : R.drawable.upcoming_background);
-            row.setTextColor(R.id.period_countdown, android.graphics.Color.parseColor(frame.active ? "#047857" : "#B45309"));
+            AppAppearance.badge(row,R.id.period_countdown,palette,frame.active ? 2 : 1);
             row.setViewVisibility(R.id.period_badge, View.GONE); row.setViewVisibility(R.id.period_countdown, View.VISIBLE);
             row.setChronometerCountDown(R.id.period_countdown, true);
             row.setChronometer(R.id.period_countdown, android.os.SystemClock.elapsedRealtime() + frame.countdownEnd - System.currentTimeMillis(), frame.active ? "%s left" : "%s to start", true);
@@ -212,7 +227,6 @@ final class TimetableSurfaces {
         click(context, row, R.id.live_reset, scope, frame, "LIVE", "", !notification);
         click(context, row, R.id.detail_close, scope, frame, "CLOSE", "", !notification);
         int[] backgrounds = {R.drawable.pill_0,R.drawable.pill_1,R.drawable.pill_2,R.drawable.pill_3,R.drawable.pill_4,R.drawable.pill_5,R.drawable.pill_6,R.drawable.pill_7};
-        String[] colors = {"#15803D","#4F46E5","#B45309","#BE185D","#0F766E","#6D28D9","#C2410C","#0E7490"};
         // Short class/subject codes fit five across the dashboard-width card.
         int columns = notification ? Math.max(1, frame.pills.size()) : compact ? 2 : 5;
         RemoteViews line = null; TimetableSchedule.Pill selected = null;
@@ -223,7 +237,8 @@ final class TimetableSurfaces {
             if (i % columns == 0) { if (line != null) row.addView(R.id.pills_container, line); line = new RemoteViews(context.getPackageName(), R.layout.timetable_pill_line); line.removeAllViews(R.id.pill_line); }
             RemoteViews chip = new RemoteViews(context.getPackageName(), R.layout.timetable_pill);
             chip.setTextViewText(R.id.lesson_pill, pill.classCode + " · " + pill.subjectCode);
-            chip.setInt(R.id.lesson_pill, "setBackgroundResource", backgrounds[pill.color % 8]); chip.setTextColor(R.id.lesson_pill, android.graphics.Color.parseColor(colors[pill.color % 8]));
+            chip.setInt(R.id.lesson_pill, "setBackgroundResource", backgrounds[pill.color % 8]);
+            AppAppearance.text(chip,R.id.lesson_pill,palette,AppearancePalette.LIGHT_PILLS[pill.color % 8],AppearancePalette.DARK_PILLS[pill.color % 8]);
             chip.setContentDescription(R.id.lesson_pill, pill.className + " · " + pill.subjectName + " · " + pill.time + " · " + pill.teacher);
             click(context, chip, R.id.lesson_pill, scope, frame, "DETAIL", pill.id, !notification);
             line.addView(R.id.pill_line, chip); if (pill.id.equals(detail)) selected = pill;
@@ -240,6 +255,10 @@ final class TimetableSurfaces {
     }
     static RemoteViews widgetView(Context context, int id, JSONObject ignored, TimetableSchedule.Frame frame, boolean progress, int layout) {
         RemoteViews views = new RemoteViews(context.getPackageName(), layout);
+        AppearancePalette palette = AppAppearance.palette(context);
+        AppAppearance.background(views,R.id.widget_root,palette,R.drawable.widget_background,R.drawable.widget_background_light,R.drawable.widget_background_dark);
+        AppAppearance.text(views,R.id.widget_title,palette,"#4F46E5","#A5B4FC");
+        AppAppearance.text(views,R.id.feed_empty,palette,"#6B7280","#94A3B8");
         views.setOnClickPendingIntent(R.id.widget_root, open(context, id));
         views.setOnClickPendingIntent(R.id.widget_title, open(context, id));
         views.setTextViewText(R.id.feed_empty, frame.accountId.isEmpty() ? "Open " + SchoolApp.NAME + " to load timetables" : "No timetables shown. Change timetable settings."); views.setEmptyView(R.id.feed_list, R.id.feed_empty);

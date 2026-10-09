@@ -144,6 +144,7 @@ final class OfflineController {
         }
         if ("checkAppUpdate".equals(action)) { ((MainActivity)activity).checkForAppUpdates(); reply(reply,id,true,null,null); return; }
         if (!local && "appearance".equals(action)) {
+            if (input.has("preference")) AppAppearance.save(activity, input.optString("preference"));
             // Also colour the inset-owning frame, which covers transparent system bars.
             android.view.ViewGroup content = activity.findViewById(android.R.id.content);
             if (content.getChildCount() > 0) SystemBars.apply(activity, content.getChildAt(0), input.optBoolean("dark"));

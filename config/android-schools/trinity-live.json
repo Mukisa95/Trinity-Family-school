@@ -4,9 +4,9 @@
   "applicationId": "ug.trinityfamilyschool.live",
   "websiteOrigin": "https://trinityfamilyschool.vercel.app",
   "firebaseProjectId": "trinity-family-schools",
-  "versionCode": 20,
-  "versionName": "1.18",
-  "releaseNotes": "Automatically follow the device's light or dark theme when Use device setting is selected, including changes while the app is open, without reloading the current page.",
+  "versionCode": 21,
+  "versionName": "1.19",
+  "releaseNotes": "Keep timetable widgets and the persistent notification in sync with the app's Light, Dark or Use device setting preference, including offline background updates and readable dark-mode controls, lesson pills and progress bars.",
   "icon": "public/trinity-logo-512.png",
   "smallIcon": "public/trinity-logo-192.png",
   "firebaseAndroid": {

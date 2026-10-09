@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
+import { androidOfflineRequest, hasAndroidOfflineBridge } from "@/lib/offline/android-bridge";
 
 export type ThemePreference = "light" | "dark" | "system";
 type ThemeTransition = { ready: Promise<void>; finished: Promise<void>; skipTransition: () => void };
@@ -23,6 +24,11 @@ function AppearanceProvider({ children }: { children: ReactNode }) {
   const active = useRef(false);
 
   useEffect(() => setReady(true), []);
+  useEffect(() => {
+    if (!theme || !resolvedTheme || !hasAndroidOfflineBridge()) return;
+    // Persist preference even when changing it leaves the visible palette unchanged.
+    void androidOfflineRequest("appearance", { preference: theme, dark: resolvedTheme === "dark" }).catch(() => {});
+  }, [theme, resolvedTheme]);
   useEffect(() => {
     const root = document.documentElement;
     let wasDark: boolean | null = null;

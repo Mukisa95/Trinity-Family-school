@@ -1,0 +1,19 @@
+<resources>
+    <color name="timetable_foreground">#1F2937</color>
+    <color name="timetable_muted">#6B7280</color>
+    <color name="timetable_secondary">#4B5563</color>
+    <color name="timetable_accent">#4F46E5</color>
+    <color name="timetable_divider">#EEF2FF</color>
+    <color name="timetable_track">#F3F4F6</color>
+    <color name="timetable_active">#047857</color>
+    <color name="timetable_upcoming">#B45309</color>
+    <color name="timetable_surface">#FFFFFF</color>
+    <color name="timetable_edge">#C7D2FE</color>
+    <color name="timetable_nav">#F9FAFB</color>
+    <color name="timetable_nav_edge">#E5E7EB</color>
+    <color name="timetable_badge">#ECFDF5</color>
+    <color name="timetable_badge_edge">#D1FAE5</color>
+    <color name="timetable_upcoming_bg">#FFFBEB</color>
+    <color name="timetable_upcoming_edge">#FDE68A</color>
+    <color name="timetable_ended">#F3F4F6</color>
+</resources>
