@@ -352,7 +352,7 @@ export function CommentaryBoxManagement({ addTrigger }: CommentaryBoxManagementP
           const CategoryIcon = category.icon;
 
           return (
-            <Card key={category.value} className={`border border-slate-100 bg-gradient-to-br  dark:border-slate-700${category.bgGradient} mb-6 shadow-sm overflow-hidden`}>
+            <Card key={category.value} className={`border border-slate-100 bg-gradient-to-br  dark:border-slate-700 ${category.bgGradient} mb-6 shadow-sm overflow-hidden`}>
               <CardHeader className="py-3 px-6 flex flex-row items-center justify-between border-b border-slate-100/50 dark:border-slate-700/50">
                 <div className="flex items-center gap-2">
                   <div className={`p-1.5 rounded-lg bg-white border shadow-sm dark:bg-slate-900`}>

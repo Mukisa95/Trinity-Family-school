@@ -1086,7 +1086,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
           {selectedDateRecord && (
             <CardContent className="py-4 relative z-10">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-white/50  dark:border-slate-700/50${selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-100 to-green-200 dark:from-green-950/40 dark:to-green-900/40' :
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md border-2 border-white/50  dark:border-slate-700/50 ${selectedDateRecord.status === 'Present' ? 'bg-gradient-to-br from-green-100 to-green-200 dark:from-green-950/40 dark:to-green-900/40' :
                   selectedDateRecord.status === 'Absent' ? 'bg-gradient-to-br from-red-100 to-red-200 dark:from-red-950/40 dark:to-red-900/40' :
                     selectedDateRecord.status === 'Late' ? 'bg-gradient-to-br from-yellow-100 to-yellow-200 dark:from-yellow-950/40 dark:to-yellow-900/40' :
                       selectedDateRecord.status === 'Excused' ? 'bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-950/40 dark:to-blue-900/40' :
@@ -1107,7 +1107,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   </div>
                   {selectedDateRecord.remarks && (
                     <div className="flex items-center gap-2">
-                      <div className={`flex-1 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-white/20  dark:bg-slate-900/60 dark:border-slate-700/20${selectedDateRecord.status === 'Present' ? 'shadow-green-100' :
+                      <div className={`flex-1 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-white/20  dark:bg-slate-900/60 dark:border-slate-700/20 ${selectedDateRecord.status === 'Present' ? 'shadow-green-100' :
                         selectedDateRecord.status === 'Absent' ? 'shadow-red-100' :
                           selectedDateRecord.status === 'Late' ? 'shadow-yellow-100' :
                             selectedDateRecord.status === 'Excused' ? 'shadow-blue-100' :
@@ -1271,7 +1271,7 @@ export function PupilAttendanceSection({ pupilId }: PupilAttendanceSectionProps)
                   const colors = getStatusColors(record);
 
                   return (
-                    <div key={dateString} className={`group relative flex items-center justify-between p-3 border-0 rounded-xl transition-all duration-200 ease-in-out ${colors.bg} hover:shadow-md hover:scale-[1.02] backdrop-blur-sm`} style={{
+                    <div key={dateString} className={`theme-surface-tint group relative flex items-center justify-between p-3 border-0 rounded-xl transition-all duration-200 ease-in-out ${colors.bg} hover:shadow-md hover:scale-[1.02] backdrop-blur-sm`} style={{
                       background: record ?
                         record.status === 'Present' ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' :
                           record.status === 'Absent' ? 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)' :

@@ -143,7 +143,7 @@ export function TermScheduleCard() {
                 <CardHeader className="pb-2 pt-3 relative z-20 shrink-0">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
+                            <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent whitespace-nowrap dark:from-indigo-400 dark:to-purple-400">
                                 This Term
                             </CardTitle>
                         </div>
@@ -187,7 +187,7 @@ export function TermScheduleCard() {
                                             </p>
                                         </div>
                                         <div className="shrink-0 flex items-center">
-                                            <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md bg-white/60 shadow-sm  dark:bg-slate-900/60${status.color}`}>
+                                            <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md bg-white/60 shadow-sm  dark:bg-slate-900/60 ${status.color}`}>
                                                 {status.text}
                                             </span>
                                         </div>

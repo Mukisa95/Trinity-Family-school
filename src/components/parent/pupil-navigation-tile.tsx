@@ -26,7 +26,9 @@ export function PupilNavigationTile({
       icon: User,
       description: 'Personal & School Information',
       gradient: 'from-blue-500 to-indigo-600',
-      color: 'blue'
+      outline: 'hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      labelColor: 'text-blue-700 dark:text-blue-300'
     },
     {
       id: 'fees' as const,
@@ -34,7 +36,9 @@ export function PupilNavigationTile({
       icon: CreditCard,
       description: 'Payment & Fee Information',
       gradient: 'from-green-500 to-emerald-600',
-      color: 'green'
+      outline: 'hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20',
+      iconColor: 'text-green-600 dark:text-green-400',
+      labelColor: 'text-green-700 dark:text-green-300'
     }
   ];
 
@@ -80,13 +84,13 @@ export function PupilNavigationTile({
                       w-full h-auto p-4 flex flex-col items-center space-y-2 transition-all duration-200
                       ${isActive 
                         ? `bg-gradient-to-r ${item.gradient} text-white shadow-md border-0 hover:shadow-lg` 
-                        : `border-2 border-gray-200 dark:border-gray-700 hover:border-${item.color}-300 dark:hover:border-${item.color}-600 hover:bg-${item.color}-50 dark:hover:bg-${item.color}-900/20`
+                        : `border-2 border-gray-200 dark:border-gray-700 ${item.outline}`
                       }
                     `}
                   >
-                    <Icon className={`h-6 w-6 ${isActive ? 'text-white' : `text-${item.color}-600 dark:text-${item.color}-400`}`} />
+                    <Icon className={`h-6 w-6 ${isActive ? 'text-white' : item.iconColor}`} />
                     <div className="text-center">
-                      <div className={`font-semibold text-sm ${isActive ? 'text-white' : `text-${item.color}-700 dark:text-${item.color}-300`}`}>
+                      <div className={`font-semibold text-sm ${isActive ? 'text-white' : item.labelColor}`}>
                         {item.label}
                       </div>
                       <div className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -114,4 +118,4 @@ export function PupilNavigationTile({
       </Card>
     </motion.div>
   );
-} 
+}

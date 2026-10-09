@@ -3319,7 +3319,7 @@ export default function ExamsPage() {
                                           e.stopPropagation();
                                           setSelectedCATSetKeys(prev => ({ ...prev, [batchId]: setName }));
                                         }}
-                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all  dark:border-slate-700${
+                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all  dark:border-slate-700 ${
                                           isSelected
                                             ? 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white scale-105 z-10'
                                             : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-purple-100 hover:to-indigo-100 hover:scale-105 dark:from-slate-900 dark:to-slate-800 dark:text-slate-200 dark:hover:from-purple-950/40 dark:hover:to-indigo-950/40'
@@ -3347,7 +3347,7 @@ export default function ExamsPage() {
                                         key={exam.id}
                                         type="button"
                                         onClick={() => setSelectedCollapsedBatchExams(prev => ({ ...prev, [batchId]: exam.id }))}
-                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all  dark:border-slate-700${
+                                        className={`w-8 h-8 border-2 border-white rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all  dark:border-slate-700 ${
                                           isSelectedClass
                                             ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
                                             : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-700 hover:from-blue-100 hover:to-indigo-100 dark:from-slate-900 dark:to-slate-800 dark:text-slate-200 dark:hover:from-blue-950/40 dark:hover:to-indigo-950/40'

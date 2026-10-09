@@ -76,32 +76,32 @@ function getSubjectCellStyle(
 ): React.CSSProperties {
     if (hasCollision && isEditing) {
         return {
-            background: state === 'active' ? '#dc2626' : state === 'past' ? '#fee2e2' : '#fef2f2',
-            borderColor: state === 'active' ? '#b91c1c' : '#fca5a5',
-            color: state === 'active' ? '#fff' : '#dc2626',
+            background: state === 'active' ? '#dc2626' : state === 'past' ? 'var(--schedule-error-past-bg, #fee2e2)' : 'var(--schedule-error-bg, #fef2f2)',
+            borderColor: state === 'active' ? '#b91c1c' : 'var(--schedule-error-border, #fca5a5)',
+            color: state === 'active' ? '#fff' : 'var(--schedule-error-text, #dc2626)',
         };
     }
     const hue = getSubjectCategoryHue(subjectName);
     if (state === 'active') {
         return {
-            background: `hsl(${hue}, 72%, 42%)`,
-            borderColor: `hsl(${hue}, 72%, 32%)`,
+            background: `hsl(${hue}, 72%, var(--schedule-active-bg-lightness, 42%))`,
+            borderColor: `hsl(${hue}, 72%, var(--schedule-active-border-lightness, 32%))`,
             color: 'white',
             boxShadow: `0 0 0 2px hsl(${hue}, 72%, 62%) inset`,
         };
     }
     if (state === 'past') {
         return {
-            background: `hsl(${hue}, 16%, 93%)`,
-            borderColor: `hsl(${hue}, 12%, 84%)`,
-            color: `hsl(${hue}, 14%, 62%)`,
+            background: `hsl(${hue}, 16%, var(--schedule-past-bg-lightness, 93%))`,
+            borderColor: `hsl(${hue}, 12%, var(--schedule-past-border-lightness, 84%))`,
+            color: `hsl(${hue}, 14%, var(--schedule-past-text-lightness, 62%))`,
         };
     }
     // upcoming / normal
     return {
-        background: `hsl(${hue}, 58%, 88%)`,
-        borderColor: `hsl(${hue}, 55%, 76%)`,
-        color: `hsl(${hue}, 65%, 28%)`,
+        background: `hsl(${hue}, 58%, var(--schedule-upcoming-bg-lightness, 88%))`,
+        borderColor: `hsl(${hue}, 55%, var(--schedule-upcoming-border-lightness, 76%))`,
+        color: `hsl(${hue}, 65%, var(--schedule-upcoming-text-lightness, 28%))`,
     };
 }
 
@@ -815,7 +815,7 @@ export function TimetableGrid({
                                                     const innerContent = (
                                                         <div
                                                             className={`flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border transition-all ${isEditing ? 'cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-900/40' : ''}`}
-                                                            style={{ background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,28%)' }}
+                                                            style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
                                                         >
                                                             <span className="text-[9px] font-black uppercase tracking-wide leading-tight text-center">{sharedAct.activityName}</span>
                                                             {actTeacher && <span className="text-[8px] opacity-70 leading-tight">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
@@ -923,7 +923,7 @@ export function TimetableGrid({
                                                     ${isEditing ? 'cursor-pointer' : 'cursor-default'}
                                                     ${entry
                                                         ? (entry.entryType === 'activity'
-                                                            ? `bg-purple-50/60 hover:bg-purple-100 border-purple-100  dark:bg-purple-950/60 dark:hover:bg-purple-950/40 dark:border-purple-800/60${periodState === 'past' ? 'opacity-50' : ''}`
+                                                            ? `bg-purple-50/60 hover:bg-purple-100 border-purple-100  dark:bg-purple-950/60 dark:hover:bg-purple-950/40 dark:border-purple-800/60 ${periodState === 'past' ? 'opacity-50' : ''}`
                                                             : (!isSplit ? 'border-transparent' : ''))
                                                         : (isEditing ? 'hover:bg-gray-50 hover:border-gray-300 border-dashed border-gray-200 dark:hover:bg-slate-900 dark:hover:border-slate-700 dark:border-slate-700' : 'border-transparent')
                                                     }

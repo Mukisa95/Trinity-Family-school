@@ -66,7 +66,7 @@ export function ClassSelector({
 
   if (error) {
     return (
-      <div className={`flex items-center gap-2 text-red-600 text-sm  dark:text-red-400${className}`}>
+      <div className={`flex items-center gap-2 text-red-600 text-sm  dark:text-red-400 ${className}`}>
         <span>Error loading classes</span>
       </div>
     );

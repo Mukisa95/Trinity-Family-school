@@ -31,7 +31,7 @@ export function ExamSignatureDisplay({
 
   if (error) {
     return (
-      <div className={`flex items-center gap-1 text-xs text-red-500  dark:text-red-400${className}`}>
+      <div className={`flex items-center gap-1 text-xs text-red-500  dark:text-red-400 ${className}`}>
         <GraduationCap className="w-3 h-3" />
         <span>Signature error</span>
       </div>
@@ -40,7 +40,7 @@ export function ExamSignatureDisplay({
 
   if (!signatures || signatures.length === 0) {
     return (
-      <div className={`flex items-center gap-1 text-xs text-gray-500  dark:text-slate-400${className}`}>
+      <div className={`flex items-center gap-1 text-xs text-gray-500  dark:text-slate-400 ${className}`}>
         <GraduationCap className="w-3 h-3" />
         <span>No signature available</span>
       </div>
@@ -54,7 +54,7 @@ export function ExamSignatureDisplay({
 
   if (!creationSignature) {
     return (
-      <div className={`flex items-center gap-1 text-xs text-yellow-600  dark:text-yellow-400${className}`}>
+      <div className={`flex items-center gap-1 text-xs text-yellow-600  dark:text-yellow-400 ${className}`}>
         <GraduationCap className="w-3 h-3" />
         <span>No creation signature found</span>
       </div>

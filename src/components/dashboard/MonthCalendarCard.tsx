@@ -229,18 +229,18 @@ export function MonthCalendarCard() {
                 .mini-calendar-wrapper .fc-toolbar-title {
                     font-size: 1.125rem !important; /* Slightly larger to match image */
                     font-weight: 600;
-                    color: #0f172a;
+                    color: var(--calendar-text, #0f172a);
                 }
                 .mini-calendar-wrapper .fc-button {
                     background-color: transparent !important;
                     border: none !important;
-                    color: #64748b !important;
+                    color: var(--calendar-muted, #64748b) !important;
                     padding: 0.2rem !important;
                     box-shadow: none !important;
                 }
                 .mini-calendar-wrapper .fc-button:hover {
-                    color: #0f172a !important;
-                    background-color: #f1f5f9 !important;
+                    color: var(--calendar-text, #0f172a) !important;
+                    background-color: var(--calendar-hover, #f1f5f9) !important;
                     border-radius: 50%; /* Round hover for arrows */
                 }
                 .mini-calendar-wrapper .fc-button:focus {
@@ -259,7 +259,7 @@ export function MonthCalendarCard() {
                 }
                 .mini-calendar-wrapper .fc-col-header-cell-cushion {
                     font-weight: 500;
-                    color: #64748b; 
+                    color: var(--calendar-muted, #64748b);
                     text-transform: uppercase;
                     font-size: 0.7rem;
                 }
@@ -269,7 +269,7 @@ export function MonthCalendarCard() {
                 }
                 .mini-calendar-wrapper .fc-daygrid-day-number {
                     padding: 0 !important;
-                    color: #0f172a;
+                    color: var(--calendar-text, #0f172a);
                     font-weight: 500;
                     font-size: 0.825rem;
                     width: 24px; /* Slightly smaller explicitly rounded number background */
@@ -280,12 +280,12 @@ export function MonthCalendarCard() {
                     border-radius: 50%;
                 }
                 .mini-calendar-wrapper .fc-day-today .fc-daygrid-day-number {
-                    background-color: #3b82f6; /* Solid blue circle for today */
+                    background-color: var(--calendar-today, #3b82f6); /* Solid blue circle for today */
                     color: white !important;
                 }
                 .mini-calendar-wrapper .fc-day-sunday-red .fc-daygrid-day-number,
                 .mini-calendar-wrapper .fc-day-public-holiday-red .fc-daygrid-day-number {
-                    color: #ef4444 !important; /* Red text for Sundays and Holidays */
+                    color: var(--calendar-holiday, #ef4444) !important; /* Red text for Sundays and Holidays */
                 }
                 .mini-calendar-wrapper .fc-daygrid-event {
                     border-radius: 4px;
@@ -334,10 +334,10 @@ export function MonthCalendarCard() {
                     height: 4px;
                 }
                 .mini-calendar-wrapper .fc-day-other .fc-daygrid-day-number {
-                    opacity: 0.3; /* Fade out other month dates */
+                    opacity: var(--calendar-other-opacity, 0.3); /* Keep adjacent month dates readable in dark appearance. */
                 }
                 .mini-calendar-wrapper .fc-daygrid-day-frame:hover {
-                    background-color: rgba(0,0,0,0.02);
+                    background-color: var(--calendar-hover, rgba(0,0,0,0.02));
                     border-radius: 8px;
                 }
                 .mini-calendar-wrapper .fc-day-today {

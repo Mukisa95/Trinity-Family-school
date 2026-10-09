@@ -250,7 +250,7 @@ export function AssignmentPushFetchModal({
                               )}
                             </span>
                             <ChevronDown
-                              className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200  dark:text-slate-400${isExpanded ? 'rotate-180' : ''}`}
+                              className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200  dark:text-slate-400 ${isExpanded ? 'rotate-180' : ''}`}
                             />
                           </CollapsibleTrigger>
                           <CollapsibleContent className="border-t border-slate-100 px-2 pb-2 pt-1 dark:border-slate-700">

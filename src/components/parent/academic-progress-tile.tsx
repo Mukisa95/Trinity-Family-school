@@ -57,7 +57,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
 
   if (isLoading) {
     return (
-      <Card className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200  dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60${className}`}>
+      <Card className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200  dark:from-blue-950/40 dark:to-indigo-950/40 dark:border-blue-800/60 ${className}`}>
         <CardContent className="p-2.5">
           <div className="animate-pulse">
             <div className="h-3 bg-blue-200 rounded mb-1.5 dark:bg-blue-900/40"></div>
@@ -76,7 +76,7 @@ export function AcademicProgressTile({ className = '' }: AcademicProgressTilePro
 
   if (!activeYear || !progress) {
     return (
-      <Card className={`bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200  dark:from-slate-900 dark:to-slate-900 dark:border-slate-700${className}`}>
+      <Card className={`bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200  dark:from-slate-900 dark:to-slate-900 dark:border-slate-700 ${className}`}>
         <CardContent className="p-2.5">
           {isRecessMode ? (
             <div className="flex items-center justify-center text-amber-600 text-sm dark:text-amber-400">

@@ -1307,7 +1307,7 @@ export default function ViewAttendanceReportsPage() {
         center={
           <>
             <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-              <SelectTrigger className="h-[34px] w-[82px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+              <SelectTrigger className="h-[34px] w-[82px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1329,7 +1329,7 @@ export default function ViewAttendanceReportsPage() {
             </Select>
 
             <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-              <SelectTrigger className="h-[34px] w-[96px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+              <SelectTrigger className="h-[34px] w-[96px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1342,7 +1342,7 @@ export default function ViewAttendanceReportsPage() {
             </Select>
 
             <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-              <SelectTrigger className="h-[34px] w-[90px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+              <SelectTrigger className="h-[34px] w-[90px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Range" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -1535,7 +1535,7 @@ export default function ViewAttendanceReportsPage() {
 
             {trendPeriod === "daily" ? (
               <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
-                <SelectTrigger className="h-[34px] w-[132px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectTrigger className="h-[34px] w-[132px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1555,7 +1555,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
             ) : trendPeriod === "weekly" ? (
               <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
-                <SelectTrigger className="h-[34px] w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectTrigger className="h-[34px] w-[140px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue placeholder="Select week" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1574,7 +1574,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
             ) : trendPeriod === "monthly" ? (
               <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
-                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1583,7 +1583,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
             ) : (
               <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                <SelectTrigger className="h-[34px] w-[120px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue placeholder="Term" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1617,7 +1617,7 @@ export default function ViewAttendanceReportsPage() {
           <div className="space-y-2">
             <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible lg:pb-0">
               <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1639,7 +1639,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
 
               <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-                <SelectTrigger className="h-[30px] w-[74px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[74px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1652,7 +1652,7 @@ export default function ViewAttendanceReportsPage() {
               </Select>
 
               <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[72px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                   <SelectValue placeholder="Range" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1845,7 +1845,7 @@ export default function ViewAttendanceReportsPage() {
 
               {trendPeriod === "daily" ? (
                 <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
-                <SelectTrigger className="h-[30px] w-[112px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[112px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1865,7 +1865,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "weekly" ? (
                 <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
-                <SelectTrigger className="h-[30px] w-[122px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[122px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                     <SelectValue placeholder="Select week" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1884,7 +1884,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "monthly" ? (
                 <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
-                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1893,7 +1893,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : (
                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden">
+                <SelectTrigger className="h-[30px] w-[102px] shrink-0 rounded-full border-blue-200/60 bg-white/90 px-2 text-[10px] font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 lg:hidden [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                     <SelectValue placeholder="Term" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1912,7 +1912,7 @@ export default function ViewAttendanceReportsPage() {
 
               {!(trendPeriod === "daily" && reportType === "school") && (
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger className="h-[34px] w-[110px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                  <SelectTrigger className="h-[34px] w-[110px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                     <SelectValue placeholder="Class" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -1926,7 +1926,7 @@ export default function ViewAttendanceReportsPage() {
 
               {reportType === "pupil" && (
                 <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
-                  <SelectTrigger className="h-[34px] w-[150px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden">
+                  <SelectTrigger className="h-[34px] w-[150px] rounded-full border-blue-200/60 bg-white/90 px-3 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                     <SelectValue placeholder="Pupil" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2058,7 +2058,7 @@ export default function ViewAttendanceReportsPage() {
 
             {/* Academic Year */}
             <Select value={selectedAcademicYearId} onValueChange={setSelectedAcademicYearId}>
-              <SelectTrigger className="h-7 w-[90px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+              <SelectTrigger className="h-7 w-[90px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -2082,7 +2082,7 @@ export default function ViewAttendanceReportsPage() {
 
             {/* Report Type */}
             <Select value={reportType} onValueChange={(value: ReportType) => setReportType(value)}>
-              <SelectTrigger className="h-7 w-[80px] sm:w-[100px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+              <SelectTrigger className="h-7 w-[80px] sm:w-[100px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -2096,7 +2096,7 @@ export default function ViewAttendanceReportsPage() {
 
             {/* Quick Range */}
             <Select defaultValue="day" onValueChange={(value) => setQuickDateRange(value as "day" | "week" | "month" | "term" | "year")}>
-              <SelectTrigger className="h-7 w-[75px] sm:w-[90px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+              <SelectTrigger className="h-7 w-[75px] sm:w-[90px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                 <div className="flex items-center gap-1">
                   <div className="w-1 h-1 bg-indigo-500 rounded-full animate-pulse flex-shrink-0" />
                   <SelectValue placeholder="Range" />
@@ -2292,7 +2292,7 @@ export default function ViewAttendanceReportsPage() {
             <div className="flex-shrink-0">
               {trendPeriod === "daily" ? (
                 <Select value={startDate || ''} onValueChange={(v) => { if (v) { setStartDate(v); setEndDate(v); } }}>
-                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2312,7 +2312,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "weekly" ? (
                 <Select value={startDate && endDate ? `${startDate}_${endDate}` : ''} onValueChange={(v) => { if (v) { const [s, e] = v.split('_'); setStartDate(s); setEndDate(e); } }}>
-                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                  <SelectTrigger className="h-7 w-[110px] sm:w-[140px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Select week" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2331,7 +2331,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : trendPeriod === "monthly" ? (
                 <Select value={`${startDate?.slice(0, 7) || ''}`} onValueChange={(v) => { if (v) { const [y, m] = v.split('-'); const ms = new Date(parseInt(y), parseInt(m) - 1, 1); const me = new Date(parseInt(y), parseInt(m), 0); setStartDate(format(ms, "yyyy-MM-dd")); setEndDate(format(me, "yyyy-MM-dd")); } }}>
-                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2340,7 +2340,7 @@ export default function ViewAttendanceReportsPage() {
                 </Select>
               ) : (
                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden">
+                  <SelectTrigger className="h-7 w-[100px] sm:w-[120px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                     <SelectValue placeholder="Term" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
@@ -2361,7 +2361,7 @@ export default function ViewAttendanceReportsPage() {
             {/* Class Selector */}
             {!(trendPeriod === "daily" && reportType === "school") && (
               <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                <SelectTrigger className="h-7 w-[80px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                <SelectTrigger className="h-7 w-[80px] sm:w-[110px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                   <SelectValue placeholder="Class" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -2376,7 +2376,7 @@ export default function ViewAttendanceReportsPage() {
             {/* Pupil Selector */}
             {reportType === "pupil" && (
               <Select value={selectedPupilId} onValueChange={setSelectedPupilId}>
-                <SelectTrigger className="h-7 w-[120px] sm:w-[150px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden">
+                <SelectTrigger className="h-7 w-[120px] sm:w-[150px] bg-white/80 backdrop-blur-sm border-gray-200 hover:border-blue-400 transition-all rounded-full text-[10px] sm:text-xs flex-shrink-0 [&>svg]:hidden dark:bg-slate-900/80 dark:border-slate-700">
                   <SelectValue placeholder="Pupil" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -2975,7 +2975,7 @@ export default function ViewAttendanceReportsPage() {
                                     <TableCell className={isYearView ? "py-1" : ""}>
                                       <div className="flex items-center">
                                         <span className={`font-medium ${isYearView ? "text-sm" : ""}`}>{period.attendanceRate.toFixed(1)}%</span>
-                                        <div className={`ml-2 bg-gray-200 rounded-full  dark:bg-slate-800${isYearView ? "w-12 h-1.5" : "w-16 h-2"}`}>
+                                        <div className={`ml-2 bg-gray-200 rounded-full  dark:bg-slate-800 ${isYearView ? "w-12 h-1.5" : "w-16 h-2"}`}>
                                           <div
                                             className={`bg-blue-600 rounded-full ${isYearView ? "h-1.5" : "h-2"}`}
                                             style={{ width: `${Math.min(period.attendanceRate, 100)}%` }}
@@ -3016,7 +3016,7 @@ export default function ViewAttendanceReportsPage() {
                                         <Badge className="bg-purple-300 text-purple-900 font-bold text-xs px-2 py-0.5 dark:text-purple-200">{totalDelayed}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
-                                        <Badge className="bg-gray-300 text-gray-900 font-bold text-xs px-2 py-0.5 dark:text-slate-100">{totalNotRecorded}</Badge>
+                                        <Badge className="bg-gray-300 text-gray-900 font-bold text-xs px-2 py-0.5 dark:text-slate-100 dark:bg-slate-700">{totalNotRecorded}</Badge>
                                       </TableCell>
                                       <TableCell className="py-1">
                                         <div className="flex items-center">

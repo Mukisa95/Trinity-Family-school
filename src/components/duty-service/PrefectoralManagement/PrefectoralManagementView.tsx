@@ -184,7 +184,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Connector Lines */}
         {hasConnector && !isLastInRow && (
-          <div className="absolute top-1/2 -right-0.5 w-1 h-0.5 bg-gray-300 transform -translate-y-1/2"></div>
+          <div className="absolute top-1/2 -right-0.5 w-1 h-0.5 bg-gray-300 transform -translate-y-1/2 dark:bg-slate-700"></div>
         )}
       </div>
     );
@@ -271,7 +271,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
       {/* Connector Lines */}
       {hasConnector && !isLastInRow && (
-        <div className="absolute top-1/2 -right-1 w-2 h-0.5 bg-gray-300 transform -translate-y-1/2"></div>
+        <div className="absolute top-1/2 -right-1 w-2 h-0.5 bg-gray-300 transform -translate-y-1/2 dark:bg-slate-700"></div>
       )}
     </div>
   );

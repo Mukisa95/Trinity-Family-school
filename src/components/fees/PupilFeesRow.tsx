@@ -75,7 +75,7 @@ export function PupilFeesRow({
 
   return (
     <tr 
-      className={`hover:bg-gray-50 transition-colors  dark:hover:bg-slate-900${onClick ? 'cursor-pointer' : ''}`}
+      className={`hover:bg-gray-50 transition-colors  dark:hover:bg-slate-900 ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
       {/* Pupil Information */}

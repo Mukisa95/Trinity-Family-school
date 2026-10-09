@@ -64,9 +64,9 @@ export function DevControlGate({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-lg items-center px-2 py-8 sm:px-4">
-      <Card className="w-full border-amber-200 bg-white shadow-sm">
+      <Card className="w-full border-amber-200 bg-white shadow-sm dark:border-amber-800 dark:bg-slate-900">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-100">
             <LockKeyhole className="h-6 w-6" aria-hidden="true" />
           </div>
           <CardTitle>Dev Contral locked</CardTitle>
@@ -106,7 +106,7 @@ export function DevControlGate({ children }: { children: ReactNode }) {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-              {error && <p id="dev-control-password-error" role="alert" className="text-sm text-red-700">{error}</p>}
+              {error && <p id="dev-control-password-error" role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
             </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button asChild type="button" variant="outline" className="min-h-11">

@@ -93,7 +93,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="!flex !w-full !max-w-md !flex-col !gap-0 !overflow-hidden !rounded-2xl !border-slate-200 !bg-white !p-0 sm:!max-w-lg">
+      <DialogContent className="!flex !w-full !max-w-md !flex-col !gap-0 !overflow-hidden !rounded-2xl !border-slate-200 !bg-white !p-0 sm:!max-w-lg dark:!border-slate-700 dark:!bg-slate-900">
         <DialogHeader className="flex-none border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white px-4 py-3.5 pr-12 sm:px-6 sm:py-4 dark:border-slate-700 dark:from-indigo-950/40 dark:to-slate-900">
           <DialogTitle className="flex items-center gap-2.5 text-base font-semibold text-slate-900 sm:text-lg dark:text-slate-100">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm">
@@ -145,7 +145,7 @@ export function PaymentModal({ isOpen, onClose, onSubmit, fee }: PaymentModalPro
                 inputMode="numeric"
                 autoFocus
                 {...formValidation.getFieldProps('paymentAmount')}
-                className={`min-h-11 w-full rounded-xl border px-3.5 py-2.5 text-base tabular-nums shadow-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 aria-invalid:border-red-600 aria-invalid:bg-red-50/70 aria-invalid:ring-red-200 ${
+                className={`min-h-11 w-full rounded-xl border px-3.5 py-2.5 text-base tabular-nums shadow-sm outline-none transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 aria-[invalid=true]:border-red-600 aria-[invalid=true]:bg-red-50/70 aria-[invalid=true]:ring-red-200  dark:aria-[invalid=true]:bg-red-950/70 dark:aria-[invalid=true]:ring-red-800 ${
                   formValidation.getFieldError('paymentAmount') ? 'border-red-600' : 'border-slate-300 dark:border-slate-700'
                 }`}
                 disabled={isProcessing}

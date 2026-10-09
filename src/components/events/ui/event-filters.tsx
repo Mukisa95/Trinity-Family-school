@@ -185,7 +185,7 @@ export function EventFilters({
                 }
               }}
             >
-              <SelectTrigger className="w-full bg-white/60 border-slate-200/60 focus:bg-white rounded-lg h-8 text-xs shadow-sm transition-all [&>svg]:hidden px-2 justify-center">
+              <SelectTrigger className="w-full bg-white/60 border-slate-200/60 focus:bg-white rounded-lg h-8 text-xs shadow-sm transition-all [&>svg]:hidden px-2 justify-center dark:bg-slate-900/60 dark:border-slate-700/60 dark:focus:bg-slate-900">
                 <SelectValue>
                   {!filters.types?.length ? (
                     <span className="text-slate-400 dark:text-slate-400">All Event Types</span>
@@ -277,7 +277,7 @@ export function EventFilters({
                     <div className="flex items-center gap-2 font-medium">
                       <div className={`w-2.5 h-2.5 rounded-full ${filters.statuses[0] === 'Scheduled' ? 'bg-blue-500' :
                         filters.statuses[0] === 'Ongoing' ? 'bg-emerald-500' :
-                          filters.statuses[0] === 'Completed' ? 'bg-slate-400' : 'bg-slate-300'
+                          filters.statuses[0] === 'Completed' ? 'bg-slate-400' : 'bg-slate-300 dark:bg-slate-700'
                         }`} />
                       {filters.statuses[0]}
                     </div>
@@ -304,7 +304,7 @@ export function EventFilters({
                       </div>
                       <div className={`w-2 h-2 rounded-full ${status === 'Scheduled' ? 'bg-blue-500' :
                         status === 'Ongoing' ? 'bg-emerald-500' :
-                          status === 'Completed' ? 'bg-slate-400' : 'bg-slate-300'
+                          status === 'Completed' ? 'bg-slate-400' : 'bg-slate-300 dark:bg-slate-700'
                         }`} />
                       {status}
                     </div>
@@ -325,7 +325,7 @@ export function EventFilters({
                 >
                   <div className={`w-1.5 h-1.5 rounded-full ${status === 'Scheduled' ? 'bg-blue-500' :
                     status === 'Ongoing' ? 'bg-emerald-500' :
-                      status === 'Completed' ? 'bg-slate-400' : 'bg-slate-300'
+                      status === 'Completed' ? 'bg-slate-400' : 'bg-slate-300 dark:bg-slate-700'
                     }`} />
                   {status}
                   <X className="h-3 w-3 text-slate-400 group-hover:text-red-500 transition-colors ml-0.5 dark:text-slate-400 dark:group-hover:text-red-400" />
@@ -390,7 +390,7 @@ export function EventFilters({
               }
             }}
           >
-            <SelectTrigger className="w-full bg-white border-slate-200/60 rounded-lg h-8 text-xs shadow-sm [&>svg]:hidden px-2 justify-center">
+            <SelectTrigger className="w-full bg-white border-slate-200/60 rounded-lg h-8 text-xs shadow-sm [&>svg]:hidden px-2 justify-center dark:bg-slate-900 dark:border-slate-700/60">
               <SelectValue placeholder="All Academic Years" />
             </SelectTrigger>
             <SelectContent className="rounded-lg max-h-80">
@@ -443,7 +443,7 @@ export function EventFilters({
                 else if (value !== 'multiple') toggleArrayFilter('classIds', value, filters.classIds);
               }}
             >
-              <SelectTrigger className="w-full bg-white/60 border-slate-200/60 focus:bg-white rounded-lg h-8 text-xs shadow-sm transition-all [&>svg]:hidden px-2 justify-center">
+              <SelectTrigger className="w-full bg-white/60 border-slate-200/60 focus:bg-white rounded-lg h-8 text-xs shadow-sm transition-all [&>svg]:hidden px-2 justify-center dark:bg-slate-900/60 dark:border-slate-700/60 dark:focus:bg-slate-900">
                 <SelectValue>
                   {!filters.classIds?.length ? <span className="text-slate-400 text-[11px] dark:text-slate-400">All</span> :
                     filters.classIds.length === 1 ? (() => {
@@ -481,7 +481,7 @@ export function EventFilters({
                 else if (value !== 'multiple') toggleArrayFilter('subjectIds', value, filters.subjectIds);
               }}
             >
-              <SelectTrigger className="w-full bg-white/60 border-slate-200/60 focus:bg-white rounded-lg h-8 text-xs shadow-sm transition-all [&>svg]:hidden px-2 justify-center">
+              <SelectTrigger className="w-full bg-white/60 border-slate-200/60 focus:bg-white rounded-lg h-8 text-xs shadow-sm transition-all [&>svg]:hidden px-2 justify-center dark:bg-slate-900/60 dark:border-slate-700/60 dark:focus:bg-slate-900">
                 <SelectValue>
                   {!filters.subjectIds?.length ? <span className="text-slate-400 text-[11px] dark:text-slate-400">All</span> :
                     filters.subjectIds.length === 1 ? (() => {

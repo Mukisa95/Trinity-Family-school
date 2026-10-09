@@ -163,7 +163,7 @@ export function SchoolPayPaymentBanner({
   return (
     <div className="space-y-3 mb-4">
       {visible.map((tx) => (
-        <div key={tx.key} className="relative rounded-2xl overflow-hidden border border-violet-300 shadow-md dark:border-violet-800/60"
+        <div key={tx.key} className="theme-surface-tint relative rounded-2xl overflow-hidden border border-violet-300 shadow-md dark:border-violet-800/60"
           style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #f3e8ff 100%)', animation: 'slideDown 0.3s ease-out' }}>
           <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
           <div className="p-4">

@@ -393,7 +393,7 @@ function GradingScaleModal({
               className={`px-6 py-2 ${
                 isValid 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:text-slate-400'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:text-slate-400 dark:bg-slate-700'
               }`}
             >
               Save Changes

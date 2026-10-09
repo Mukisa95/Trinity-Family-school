@@ -3859,7 +3859,7 @@ function PupilDetailContent() {
         backHref="/pupils"
         backLabel="Back to pupils"
         actions={
-          <GlassActionDock className="w-auto px-1.5 py-1 [&_button]:!rounded-[18px] [&_button]:!border-transparent [&_button]:!bg-transparent [&_button]:!shadow-none sm:[&_button]:!rounded-full sm:[&_button]:!border sm:[&_button]:!bg-white sm:[&_button]:!shadow-sm">
+          <GlassActionDock className="w-auto px-1.5 py-1 [&_button]:!rounded-[18px] [&_button]:!border-transparent [&_button]:!bg-transparent [&_button]:!shadow-none sm:[&_button]:!rounded-full sm:[&_button]:!border sm:[&_button]:!bg-white sm:[&_button]:!shadow-sm dark:sm:[&_button]:!bg-slate-900">
             {isEditMode ? (
               <div className="flex items-center gap-1 rounded-full bg-transparent sm:border sm:border-gray-300 sm:bg-white sm:px-2 sm:py-1.5 sm:shadow-lg sm:backdrop-blur-sm dark:sm:border-slate-700 dark:sm:bg-slate-900">
                 {/* Save Button */}

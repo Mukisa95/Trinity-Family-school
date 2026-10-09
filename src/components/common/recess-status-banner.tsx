@@ -55,7 +55,7 @@ export function RecessStatusBanner({ className = '' }: RecessStatusBannerProps) 
 
   return (
     <Alert
-      className={`border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer  dark:border-amber-800/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/40${
+      className={`border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer  dark:border-amber-800/60 dark:bg-amber-950/40 dark:hover:bg-amber-950/40 ${
         isExpanded ? 'px-4 py-3' : 'px-3 py-2'
       } ${className}`}
       onClick={() => setIsExpanded(!isExpanded)}

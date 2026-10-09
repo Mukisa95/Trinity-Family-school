@@ -160,7 +160,7 @@ export function GlassPageTopBar({
         )}
       </div>
       {titleControls && (
-        <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none">
+        <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-indigo-800/65 dark:bg-slate-900/[0.72] dark:ring-indigo-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
           {titleControls}
         </div>
       )}
@@ -260,7 +260,7 @@ export function GlassPageTopBar({
                     transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                     className="flex min-h-9 min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                   >
-                    <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none">
+                    <div className="pointer-events-auto flex w-fit max-w-full shrink-0 items-center gap-1.5 rounded-full border border-indigo-300/65 bg-white/[0.72] p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-indigo-200/45 backdrop-blur-[20px] [&>select]:!border-white/45 [&>select]:!bg-transparent [&>select]:!shadow-none dark:border-indigo-800/65 dark:bg-slate-900/[0.72] dark:ring-indigo-800/45 dark:[&>select]:!border-slate-600/45 dark:shadow-[0_4px_20px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.04)]">
                       {titleControls}
                     </div>
                   </motion.div>

@@ -264,7 +264,7 @@ export function StaffAttendanceForm({ eventId, event }: StaffAttendanceFormProps
                   <span>Late: {statusCounts.late}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                  <div className="w-3 h-3 bg-gray-300 rounded-full dark:bg-slate-700"></div>
                   <span>Not Marked: {statusCounts.total - statusCounts.present - statusCounts.absent - statusCounts.late}</span>
                 </div>
               </div>

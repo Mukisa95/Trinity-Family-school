@@ -71,7 +71,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
             <div key={type} className="bg-white/60 border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 dark:bg-slate-900/60 dark:border-slate-700/60">
               <Button
                 variant="ghost"
-                className={`w-full justify-between p-4 h-auto hover:bg-white/80 transition-all duration-300  dark:hover:bg-slate-900/80${isExpanded ? 'bg-white/80 border-b border-slate-100/50 dark:bg-slate-900/80 dark:border-slate-700/50' : ''}`}
+                className={`w-full justify-between p-4 h-auto hover:bg-white/80 transition-all duration-300  dark:hover:bg-slate-900/80 ${isExpanded ? 'bg-white/80 border-b border-slate-100/50 dark:bg-slate-900/80 dark:border-slate-700/50' : ''}`}
                 onClick={() => toggleGroupExpansion(type)}
               >
                 <div className="flex items-center gap-3">
@@ -90,7 +90,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                     {typeEvents.length}
                   </Badge>
                 </div>
-                <div className={`p-1.5 rounded-lg bg-white shadow-sm transition-transform duration-300  dark:bg-slate-900${isExpanded ? 'rotate-180' : ''}`}>
+                <div className={`p-1.5 rounded-lg bg-white shadow-sm transition-transform duration-300  dark:bg-slate-900 ${isExpanded ? 'rotate-180' : ''}`}>
                   <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-400" />
                 </div>
               </Button>
@@ -115,7 +115,7 @@ export function EventsList({ events, isCompact = false, onEventClick }: EventsLi
                             {event.isExamEvent && (
                               <Badge variant="destructive" className="text-xs font-medium shadow-sm">Exam</Badge>
                             )}
-                            <Badge variant="outline" className={`text-xs font-medium border-slate-200  dark:border-slate-700${event.priority === 'Urgent' ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/40' :
+                            <Badge variant="outline" className={`text-xs font-medium border-slate-200  dark:border-slate-700 ${event.priority === 'Urgent' ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950/40' :
                               event.priority === 'High' ? 'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950/40' : 'text-slate-600 bg-slate-50 dark:text-slate-300 dark:bg-slate-900'
                               }`}>
                               {event.priority}

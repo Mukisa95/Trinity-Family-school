@@ -49,29 +49,29 @@ function getSubjectHueW(subjectId: string): number {
 type WeekPeriodState = 'active' | 'past' | 'upcoming';
 
 function getWeekCellStyle(subjectId: string, dimmed: boolean, highlighted: boolean, state: WeekPeriodState = 'upcoming'): React.CSSProperties {
-    if (highlighted) return { background: '#fef3c7', outline: '1px solid #f59e0b', color: '#92400e' };
-    if (dimmed) return { background: '#f8fafc', color: '#cbd5e1', opacity: 0.35 };
+    if (highlighted) return { background: 'var(--schedule-highlight-bg, #fef3c7)', outline: '1px solid #f59e0b', color: 'var(--schedule-highlight-text, #92400e)' };
+    if (dimmed) return { background: 'var(--schedule-empty-bg, #f8fafc)', color: 'var(--schedule-muted, #cbd5e1)', opacity: 0.35 };
     const hue = getSubjectHueW(subjectId);
     if (state === 'active') {
         return {
-            background: `hsl(${hue}, 72%, 42%)`,
-            borderColor: `hsl(${hue}, 72%, 32%)`,
+            background: `hsl(${hue}, 72%, var(--schedule-active-bg-lightness, 42%))`,
+            borderColor: `hsl(${hue}, 72%, var(--schedule-active-border-lightness, 32%))`,
             color: 'white',
             boxShadow: `0 0 0 2px hsl(${hue}, 72%, 62%) inset`,
         };
     }
     if (state === 'past') {
         return {
-            background: `hsl(${hue}, 16%, 93%)`,
-            borderColor: `hsl(${hue}, 12%, 84%)`,
-            color: `hsl(${hue}, 14%, 62%)`,
+            background: `hsl(${hue}, 16%, var(--schedule-past-bg-lightness, 93%))`,
+            borderColor: `hsl(${hue}, 12%, var(--schedule-past-border-lightness, 84%))`,
+            color: `hsl(${hue}, 14%, var(--schedule-past-text-lightness, 62%))`,
         };
     }
     // upcoming / normal
     return {
-        background: `hsl(${hue}, 55%, 88%)`,
-        borderColor: `hsl(${hue}, 50%, 76%)`,
-        color: `hsl(${hue}, 65%, 28%)`,
+        background: `hsl(${hue}, 55%, var(--schedule-upcoming-bg-lightness, 88%))`,
+        borderColor: `hsl(${hue}, 50%, var(--schedule-upcoming-border-lightness, 76%))`,
+        color: `hsl(${hue}, 65%, var(--schedule-upcoming-text-lightness, 28%))`,
     };
 }
 
@@ -297,7 +297,7 @@ function WeekGridView({
                                 return (
                                     <th
                                         key={p.id}
-                                        className={`p-0.5 border-r border-b border-gray-200 text-center align-top relative overflow-visible sticky top-0 z-30 shadow-[0_1px_0_0_#e5e7eb]  dark:border-slate-700${isBreak ? "bg-gray-100/80 dark:bg-slate-900/80" : "bg-slate-50 dark:bg-slate-900"}`}
+                                        className={`p-0.5 border-r border-b border-gray-200 text-center align-top relative overflow-visible sticky top-0 z-30 shadow-[0_1px_0_0_#e5e7eb]  dark:border-slate-700 ${isBreak ? "bg-gray-100/80 dark:bg-slate-900/80" : "bg-slate-50 dark:bg-slate-900"}`}
                                         style={{ width: w, minWidth: w }}
                                     >
                                         {/* In-cell red timeline line */}
@@ -361,7 +361,7 @@ function WeekGridView({
                                             {rowIdx === 0 && (
                                                 <td
                                                     rowSpan={rowCount}
-                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black  dark:border-slate-700${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
+                                                    className={`sticky left-0 z-10 border-r border-b border-gray-200 text-center align-middle font-black  dark:border-slate-700 ${isToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-gray-600 dark:bg-slate-900 dark:text-slate-300'}`}
                                                     style={{ width: 48, minWidth: 48 }}
                                                 >
                                                     <div className="flex items-center justify-center h-full">
@@ -378,7 +378,7 @@ function WeekGridView({
                                             {showClassCol && (!row.stream || row.streamIndex === 0) && (
                                                 <td
                                                     rowSpan={row.stream ? row.streamCount : undefined}
-                                                    className={`sticky left-[48px] z-10 border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]  dark:border-slate-700 dark:text-slate-200${dayIdx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/80 dark:bg-slate-900/80'}`}
+                                                    className={`sticky left-[48px] z-10 border-r border-b border-gray-200 p-0 text-[10px] font-bold text-gray-700 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]  dark:border-slate-700 dark:text-slate-200 ${dayIdx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50/80 dark:bg-slate-900/80'}`}
                                                     style={{ width: classColumnWidth, minWidth: classColumnWidth, maxWidth: classColumnWidth }}
                                                 >
                                                     {row.stream ? (
@@ -393,7 +393,7 @@ function WeekGridView({
                                                                 {classStreamRows.map((streamRow, streamRowIndex) => (
                                                                     <div
                                                                         key={streamRow.stream!.id}
-                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-indigo-700  dark:text-indigo-300${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-indigo-100 dark:border-indigo-800/60' : ''}`}
+                                                                        className={`flex min-h-[38px] flex-1 items-center justify-center px-1 text-center text-[9px] font-bold text-indigo-700  dark:text-indigo-300 ${streamRowIndex < classStreamRows.length - 1 ? 'border-b border-indigo-100 dark:border-indigo-800/60' : ''}`}
                                                                         title={streamRow.stream!.name}
                                                                     >
                                                                         <span className="block max-w-full truncate">{streamRow.stream!.code || streamRow.stream!.name}</span>
@@ -422,7 +422,7 @@ function WeekGridView({
                                                                 key={templatePeriod.id}
                                                                 ref={isActivePeriodForToday ? activeColRef : null}
                                                                 rowSpan={rowCount}
-                                                                className={`border-r border-gray-200 text-center align-middle relative overflow-hidden  dark:border-slate-700${isActivePeriodForToday ? "bg-amber-100/60 dark:bg-amber-950/60" : "bg-gray-100/90 dark:bg-slate-900/90"}`}
+                                                                className={`border-r border-gray-200 text-center align-middle relative overflow-hidden  dark:border-slate-700 ${isActivePeriodForToday ? "bg-amber-100/60 dark:bg-amber-950/60" : "bg-gray-100/90 dark:bg-slate-900/90"}`}
                                                             >
                                                                 {isActivePeriodForToday && (
                                                                     <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-amber-400/20 blur-xl rounded-full pointer-events-none" />
@@ -459,7 +459,7 @@ function WeekGridView({
                                                                 <td key={templatePeriod.id} ref={isActivePeriodForToday ? activeColRef : null} rowSpan={groupRowSpan} colSpan={groupEntry.periodSpan || 1} className="border-r border-gray-100 text-center align-middle p-0 dark:border-slate-700">
                                                                     <div
                                                                         className="flex flex-col items-center justify-center h-full gap-0.5 px-1 py-1 mx-0.5 my-0.5 rounded border"
-                                                                        style={{ background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,28%)' }}
+                                                                        style={{ background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,28%))' }}
                                                                     >
                                                                         <span className="text-[9px] font-black uppercase tracking-wide leading-tight text-center">{groupEntry.activityName || 'ACT'}</span>
                                                                         {actTeacher && <span className="text-[8px] opacity-70 leading-tight">{actTeacher.firstName[0]}. {actTeacher.lastName?.split(' ')[0]}</span>}
@@ -508,8 +508,8 @@ function WeekGridView({
                                                                 style={isActiveActivity
                                                                     ? { background: 'hsl(270,55%,45%)', borderColor: 'hsl(270,55%,35%)', color: 'white' }
                                                                     : periodState === 'past'
-                                                                        ? { background: 'hsl(270,12%,91%)', borderColor: 'hsl(270,10%,82%)', color: 'hsl(270,14%,62%)' }
-                                                                        : { background: 'hsl(270,50%,87%)', borderColor: 'hsl(270,45%,75%)', color: 'hsl(270,60%,30%)' }
+                                                                        ? { background: 'hsl(270,12%,var(--schedule-past-bg-lightness,91%))', borderColor: 'hsl(270,10%,var(--schedule-past-border-lightness,82%))', color: 'hsl(270,14%,var(--schedule-past-text-lightness,62%))' }
+                                                                        : { background: 'hsl(270,50%,var(--schedule-upcoming-bg-lightness,87%))', borderColor: 'hsl(270,45%,var(--schedule-upcoming-border-lightness,75%))', color: 'hsl(270,60%,var(--schedule-upcoming-text-lightness,30%))' }
                                                                 }
                                                             >
                                                                 <span className="text-[9px] font-black uppercase leading-tight tracking-wide">{entry.activityName || 'ACT'}</span>
@@ -592,8 +592,8 @@ function WeekGridView({
                                     );
                                 })}
                                 {/* Day separator */}
-                                <tr className="h-[2px] bg-gray-300" key={`sep-${day.id}`}>
-                                    <td colSpan={1 + (showClassCol ? 1 : 0) + templatePeriods.length} className="bg-gray-300 p-0" />
+                                <tr className="h-[2px] bg-gray-300 dark:bg-slate-700" key={`sep-${day.id}`}>
+                                    <td colSpan={1 + (showClassCol ? 1 : 0) + templatePeriods.length} className="bg-gray-300 p-0 dark:bg-slate-700" />
                                 </tr>
                             </tbody>
                         );
@@ -826,7 +826,7 @@ export function TimetableViewPanel({ yearId, termId, profileId, profileName, ext
             )}
 
             {/* ── Unified Control Toolbar ── */}
-            <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden  dark:bg-slate-900/80 dark:border-slate-700${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
+            <div className={`flex-shrink-0 bg-gray-50/80 p-1.5 sm:p-2 rounded-full sm:rounded-xl border border-gray-100 overflow-hidden  dark:bg-slate-900/80 dark:border-slate-700 ${viewMode === "week" ? "hidden sm:flex" : "flex"}`}>
                 <div className="flex w-full min-w-0 flex-row items-center gap-2 overflow-x-auto pb-0.5 hide-scrollbar custom-scrollbar-mobile">
 
                     {/* Unified Pill: View Mode + Filters */}

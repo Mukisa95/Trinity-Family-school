@@ -522,12 +522,12 @@ export default function AccountSettingsPage() {
                 <button
                   onClick={() => setAutoLockEnabled(!autoLockEnabled)}
                   className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full ${
-                    autoLockEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                    autoLockEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700'
                   }`}
                   type="button"
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-lg  dark:bg-slate-900${
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-lg  dark:bg-slate-900 ${
                       autoLockEnabled ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
@@ -562,11 +562,11 @@ export default function AccountSettingsPage() {
                     </div>
                   </div>
                   {autoLockAction !== 'signout' && (
-                    <div className="flex items-start justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
+                    <div className="flex items-start justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-800 dark:bg-indigo-950">
                       <div className="flex items-start gap-3">
-                        <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700" />
+                        <Fingerprint className="mt-0.5 h-5 w-5 shrink-0 text-indigo-700 dark:text-indigo-300" />
                         <div>
-                          <Label className="text-sm font-semibold text-gray-900">Require device unlock</Label>
+                          <Label className="text-sm font-semibold text-gray-900 dark:text-slate-100">Require device unlock</Label>
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             {localDeviceUnlockAvailable
                               ? 'Use fingerprint, face unlock, or the device PIN. The privacy lock also opens offline.'
@@ -577,7 +577,7 @@ export default function AccountSettingsPage() {
                       <button type="button" role="switch" aria-checked={deviceUnlockForAutoLock}
                         disabled={!localDeviceUnlockAvailable}
                         onClick={() => setDeviceUnlockForAutoLock(!deviceUnlockForAutoLock)}
-                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${deviceUnlockForAutoLock ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}>
                         <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${deviceUnlockForAutoLock ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>

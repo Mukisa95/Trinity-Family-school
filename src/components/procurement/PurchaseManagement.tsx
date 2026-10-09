@@ -982,8 +982,8 @@ export function PurchaseManagement({
                         {/* Tree line visual */}
                         <div className="w-8 flex justify-center">
                           <div className="relative">
-                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px bg-gray-300 h-full"></div>
-                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gray-300 rounded-full"></div>
+                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px bg-gray-300 h-full dark:bg-slate-700"></div>
+                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-gray-300 rounded-full dark:bg-slate-700"></div>
                             {index === stackedItem.purchases.length - 1 && (
                               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 w-px bg-white h-1/2 dark:bg-slate-900"></div>
                             )}

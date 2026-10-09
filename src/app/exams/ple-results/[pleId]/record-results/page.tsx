@@ -550,7 +550,7 @@ export default function RecordPLEResultsPage({ params }: { params: Promise<{ ple
                 <span className="text-gray-600 dark:text-slate-300">{agg.points}pts</span>
               </div>
             ))}
-            <div className="w-px h-4 bg-gray-300 mx-2"></div>
+            <div className="w-px h-4 bg-gray-300 mx-2 dark:bg-slate-700"></div>
             {PLE_DIVISIONS.map(div => (
               <div key={div.value} className="flex items-center gap-1">
                 <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium dark:bg-blue-950/40 dark:text-blue-300">

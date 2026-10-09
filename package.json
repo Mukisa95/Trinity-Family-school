@@ -112,7 +112,9 @@
     "test:fee-reminders": "node scripts/build-custom-fee-engine.cjs && node --import tsx --test tests/fee-reminders.test.ts tests/fee-reminders-server.test.ts tests/fee-reminders-ui.test.ts tests/fee-reminders-worker.test.ts tests/fee-reminders-events.test.ts tests/fee-reminder-callback.test.ts tests/custom-fee-notes.test.ts tests/fee-notes-switch.test.ts tests/fee-note-date-normalization.test.ts",
     "test:theme-types": "tsc --project tsconfig.theme-check.json --noEmit",
     "test:theme-browser": "node scripts/test-theme-browser.cjs",
-    "test:pdf-theme-browser": "node scripts/test-pdf-theme-browser.cjs"
+    "test:pdf-theme-browser": "node scripts/test-pdf-theme-browser.cjs",
+    "test:theme-coverage": "node scripts/check-theme-coverage.cjs",
+    "test:dashboard-theme-browser": "node scripts/test-dashboard-theme-browser.cjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

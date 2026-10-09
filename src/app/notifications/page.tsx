@@ -1035,7 +1035,7 @@ export default function NotificationsPage() {
   const isListLoading = isSentLoading || isReceivedLoading;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F0F4F8]">
+    <div className="min-h-screen flex flex-col bg-[#F0F4F8] dark:bg-background">
       {/* ── Top bar ──────────────────────────────────────────────────────────── */}
       <GlassPageTopBar
         title="Notifications"

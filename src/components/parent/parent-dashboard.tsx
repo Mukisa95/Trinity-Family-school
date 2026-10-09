@@ -479,7 +479,7 @@ export function ParentDashboard({ pupilId }: ParentDashboardProps) {
       </div>
 
       <div 
-        className="max-w-6xl mx-auto p-3 sm:p-4 md:p-6 rounded-lg shadow-lg pt-4"
+        className="theme-surface-tint max-w-6xl mx-auto p-3 sm:p-4 md:p-6 rounded-lg shadow-lg pt-4"
         style={{
           background: `linear-gradient(135deg, rgba(255, 255, 255, 0.8), ${currentTheme.lightRgb.replace('rgb(', 'rgba(').replace(')', ', 0.3)')})`,
           backdropFilter: 'blur(10px)',

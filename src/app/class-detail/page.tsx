@@ -1749,7 +1749,7 @@ function ClassDetailContent() {
                 <School className="h-4 w-4 text-white" />
               </div>
               <div>
-                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <ModernDialogTitle className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
                   Edit Class
                 </ModernDialogTitle>
                 <ModernDialogDescription className="text-xs text-gray-600 hidden dark:text-slate-300">

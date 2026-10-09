@@ -41,9 +41,9 @@ export const PillBar = (props: any) => {
 
                 {/* Spherical gradient for the thumb circle */}
                 <radialGradient id={sphereGradientId} cx="35%" cy="30%" r="65%">
-                    <stop offset="0%" stopColor="#ffffff" stopOpacity={1} />
-                    <stop offset="80%" stopColor="#f8fafc" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#e2e8f0" stopOpacity={0.9} />
+                    <stop offset="0%" stopColor="var(--chart-thumb-top, #ffffff)" stopOpacity={1} />
+                    <stop offset="80%" stopColor="var(--chart-thumb-middle, #f8fafc)" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="var(--chart-thumb-edge, #e2e8f0)" stopOpacity={0.9} />
                 </radialGradient>
 
                 {/* Inner shadow filter for the bar to give it an inset look at the edges */}
@@ -77,14 +77,14 @@ export const PillBar = (props: any) => {
             <text
                 x={x + radius}
                 y={y}
-                fill={fill}
+                fill="var(--chart-thumb-label, currentColor)"
                 textAnchor="middle"
                 alignmentBaseline="central"
                 fontSize={value > 99 ? 10 : 12}
                 fontWeight="800"
                 className="font-sans"
                 dy=".1em"
-                style={{ filter: "drop-shadow(0px 1px 1px rgba(255,255,255,0.8))" }}
+                style={{ color: fill, filter: "var(--chart-thumb-label-shadow, drop-shadow(0px 1px 1px rgba(255,255,255,0.8)))" }}
             >
                 {props.payload?.displayValue !== undefined
                     ? props.payload.displayValue

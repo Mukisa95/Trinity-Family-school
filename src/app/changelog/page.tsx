@@ -51,7 +51,7 @@ export default function ChangelogPage() {
             <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg mb-2 shadow-md">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-1 dark:from-blue-400 dark:to-purple-400">
               Changelog
             </h1>
             <p className="text-gray-600 text-sm mb-2 dark:text-slate-300">

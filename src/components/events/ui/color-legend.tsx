@@ -13,7 +13,7 @@ interface ColorLegendProps {
 
 export function ColorLegend({ colors, className = "" }: ColorLegendProps) {
   return (
-    <Card className={`shadow-lg border-0 bg-gradient-to-br from-white to-gray-50  dark:from-slate-900 dark:to-slate-900${className}`}>
+    <Card className={`shadow-lg border-0 bg-gradient-to-br from-white to-gray-50  dark:from-slate-900 dark:to-slate-900 ${className}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Palette className="h-5 w-5 text-blue-600 dark:text-blue-400" />

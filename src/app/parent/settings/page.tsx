@@ -173,7 +173,7 @@ export default function ParentSettingsPage() {
               <p className="text-sm font-medium text-gray-800 dark:text-slate-100">Change Password</p>
               <p className="text-xs text-gray-400 dark:text-slate-400">Update your account password</p>
             </div>
-            <ChevronLeft className={`w-4 h-4 text-gray-400 transition-transform duration-200  dark:text-slate-400${showPasswordForm ? '-rotate-90' : 'rotate-180'}`} />
+            <ChevronLeft className={`w-4 h-4 text-gray-400 transition-transform duration-200  dark:text-slate-400 ${showPasswordForm ? '-rotate-90' : 'rotate-180'}`} />
           </button>
 
           {/* Password Form */}

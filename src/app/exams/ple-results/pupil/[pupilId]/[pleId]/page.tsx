@@ -309,11 +309,11 @@ Division: ${pupilResult.division}`;
             <Tabs defaultValue="results" className="w-full">
               <div className="border-b border-gray-200 bg-gray-50/80 p-1 dark:border-slate-700 dark:bg-slate-900/80">
                 <TabsList aria-label="PLE results" className="grid h-auto w-full grid-cols-2 gap-1 bg-transparent p-0">
-                  <TabsTrigger value="results" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm">
+                  <TabsTrigger value="results" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm dark:data-[state=active]:bg-slate-900">
                     <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
                     Subject Results
                   </TabsTrigger>
-                  <TabsTrigger value="grading" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm">
+                  <TabsTrigger value="grading" className="min-h-11 min-w-0 gap-1.5 rounded-lg px-2 py-2 text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm sm:text-sm dark:data-[state=active]:bg-slate-900">
                     <GraduationCap className="h-4 w-4 shrink-0" aria-hidden="true" />
                     Grading Guide
                   </TabsTrigger>

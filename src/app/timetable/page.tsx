@@ -444,7 +444,7 @@ export default function TimetablePage() {
                     {viewMode === 'all' ? (
                         <div className="space-y-4">
                             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
-                                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-5">
+                                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-5 dark:from-purple-400 dark:to-blue-400">
                                     All Timetables — Combined Timeline View
                                 </h2>
                                 <CombinedTimelineView yearId={yearId} termId={termId} />

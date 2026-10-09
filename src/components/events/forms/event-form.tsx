@@ -1014,7 +1014,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         value={formData.startTime || ''}
                         onChange={(e) => updateFormData('startTime', e.target.value)}
                         {...formValidation.getFieldProps('startTime')}
-                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700 ${fieldError('startTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       {fieldError('startTime') && (
                         <p id="startTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">
@@ -1034,7 +1034,7 @@ export function EventForm({ event, isOpen, onClose, onSave }: EventFormProps) {
                         value={formData.endTime || ''}
                         onChange={(e) => updateFormData('endTime', e.target.value)}
                         {...formValidation.getFieldProps('endTime')}
-                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
+                        className={`border-slate-300 focus:border-blue-500  dark:border-slate-700 ${fieldError('endTime') ? 'border-red-500 focus:border-red-500' : ''}`}
                       />
                       {fieldError('endTime') && (
                         <p id="endTime-error" role="alert" className="text-xs text-red-500 flex items-center gap-1 dark:text-red-400">

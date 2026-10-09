@@ -2721,7 +2721,7 @@ export default function PupilFeesCollectionClient({ pupilId: propPupilId }: { pu
                     <TabsTrigger
                       key={term.id}
                       value={term.id}
-                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap  dark:bg-slate-900/90${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
+                      className={`h-6 sm:h-7 shrink-0 rounded-full border-2 bg-white/90 px-2 sm:px-3 py-0 text-[10px] sm:text-[11px] font-bold leading-none transition-all duration-200 ease-out hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 data-[state=inactive]:bg-white/90 whitespace-nowrap  dark:bg-slate-900/90 ${TERM_TAB_NEON_STYLES[index % TERM_TAB_NEON_STYLES.length]}`}
                     >
                       {term.name}
                     </TabsTrigger>

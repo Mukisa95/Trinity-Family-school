@@ -125,7 +125,7 @@ export function LiveTracker({
         return (
             <section
                 onClick={handleCardSelect}
-                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all  dark:bg-slate-900${selected
+                className={`relative h-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 pl-4 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all  dark:bg-slate-900 ${selected
                     ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-indigo-800/60"
                     : "border-amber-200/80 hover:border-indigo-200 hover:shadow-[0_10px_28px_rgba(79,70,229,0.09)] dark:border-amber-800/80 dark:hover:border-indigo-800/60"
                 } ${!selected && onSelect ? "cursor-pointer" : ""}`}
@@ -216,7 +216,7 @@ export function LiveTracker({
     return (
         <article
             onClick={handleCardSelect}
-            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2 pl-3 text-slate-800 transition-all sm:p-3 sm:pl-4  dark:bg-slate-900 dark:text-slate-100${selected
+            className={`relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white p-2 pl-3 text-slate-800 transition-all sm:p-3 sm:pl-4  dark:bg-slate-900 dark:text-slate-100 ${selected
                 ? "border-indigo-200 shadow-[0_12px_34px_rgba(79,70,229,0.12)] dark:border-indigo-800/60"
                 : "border-slate-200/90 shadow-[0_8px_24px_rgba(15,23,42,0.06)] hover:border-indigo-200 hover:shadow-[0_10px_30px_rgba(79,70,229,0.10)] dark:border-slate-700/90 dark:hover:border-indigo-800/60"
             } ${!selected && onSelect ? "cursor-pointer" : ""}`}

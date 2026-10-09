@@ -1729,7 +1729,7 @@ export default function FeesCollectionPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="relative">
-                              <Avatar className={`w-12 h-12 border-2 border-white/30 transition-all duration-300  dark:border-slate-700/30${isLoadingPupils && !pupil.photo ? 'animate-pulse' : ''
+                              <Avatar className={`w-12 h-12 border-2 border-white/30 transition-all duration-300  dark:border-slate-700/30 ${isLoadingPupils && !pupil.photo ? 'animate-pulse' : ''
                                 }`}>
                                 {pupil.photo && pupil.photo.trim() !== '' && pupil.photo.startsWith('http') ? (
                                   <>

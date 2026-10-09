@@ -830,7 +830,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         className="flex-1 min-w-0 flex items-center justify-center overflow-hidden"
                       >
                         <span
-                          className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block"
+                          className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block dark:from-blue-400 dark:to-indigo-400"
                           style={{ fontSize: "10px" }}
                         >
                           {currentMessage}
@@ -1090,7 +1090,7 @@ const EnhancedHeader = ({ onMenuClick, showMenuButton, loadSchoolSettings = true
                         setSearchAnimationPhase('search');
                         setSearchBarWidth('w-32');
                       }}
-                      className={`pl-7 pr-16 h-[34px] text-xs bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border border-blue-200/60  dark:bg-slate-900/90 dark:border-blue-800/60${searchTerm.length > 0 || isSearchHovered || showFilters
+                      className={`pl-7 pr-16 h-[34px] text-xs bg-white/90 rounded-full focus:ring-2 focus:ring-blue-400/50 focus:outline-none shadow-sm hover:shadow-md transition-all duration-300 ease-in-out border border-blue-200/60  dark:bg-slate-900/90 dark:border-blue-800/60 ${searchTerm.length > 0 || isSearchHovered || showFilters
                         ? 'w-60 lg:w-80'
                         : searchAnimationPhase === 'name'
                           ? 'w-auto min-w-[160px] max-w-[240px]'

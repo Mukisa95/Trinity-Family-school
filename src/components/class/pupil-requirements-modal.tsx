@@ -760,7 +760,7 @@ export function PupilRequirementsModal({
                     </option>
                   ))}
                 </select>
-                <div className="w-px h-4 bg-gray-300"></div>
+                <div className="w-px h-4 bg-gray-300 dark:bg-slate-700"></div>
                 <select
                   value={selectedTermId}
                   onChange={(e) => setSelectedTermId(e.target.value)}

@@ -361,7 +361,7 @@ export function PrefectoralTreeView({
                       
                       {/* Horizontal connector line between cards in the same row */}
                       {postIndex < postsInRank.length - 1 && (
-                        <div className="absolute top-1/2 -right-1 w-2 h-px bg-gray-300 transform -translate-y-1/2"></div>
+                        <div className="absolute top-1/2 -right-1 w-2 h-px bg-gray-300 transform -translate-y-1/2 dark:bg-slate-700"></div>
                       )}
                     </div>
                   ))}
@@ -371,7 +371,7 @@ export function PrefectoralTreeView({
                 {index < ranks.length - 1 && (
                   <div className="flex justify-center gap-2 mt-2">
                     {postsInRank.map((_, postIndex) => (
-                      <div key={postIndex} className="w-px h-2 bg-gray-300"></div>
+                      <div key={postIndex} className="w-px h-2 bg-gray-300 dark:bg-slate-700"></div>
                     ))}
                   </div>
                 )}

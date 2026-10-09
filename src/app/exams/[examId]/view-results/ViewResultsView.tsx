@@ -6758,7 +6758,7 @@ function PerformanceAnalysisPage({
                   return (
                     <div
                       key={div.division}
-                      className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none  dark:bg-slate-900${
+                      className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none  dark:bg-slate-900 ${
                         isExpanded
                           ? 'border-purple-300 shadow-md dark:border-purple-800/60'
                           : 'border-slate-200 shadow-sm hover:border-purple-200 hover:shadow-md dark:border-slate-700 dark:hover:border-purple-800/60'
@@ -6859,7 +6859,7 @@ function PerformanceAnalysisPage({
                     return (
                       <div
                         key={subject.code}
-                        className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none  dark:bg-slate-900${
+                        className={`overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none  dark:bg-slate-900 ${
                           isExpanded
                             ? 'border-blue-300 shadow-md dark:border-blue-800/60'
                             : 'border-slate-200 shadow-sm hover:border-blue-200 hover:shadow-md dark:border-slate-700 dark:hover:border-blue-800/60'

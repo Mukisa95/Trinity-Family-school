@@ -63,28 +63,28 @@ function getTimelineBlockStyle(
     subjectId: string | null,
     state: 'active' | 'past' | 'upcoming' | 'empty'
 ): React.CSSProperties {
-    if (state === 'empty') return { background: '#f8fafc', borderColor: '#e2e8f0', color: '#cbd5e1' };
-    if (!subjectId) return { background: '#f1f5f9', borderColor: '#e2e8f0', color: '#94a3b8' };
+    if (state === 'empty') return { background: 'var(--schedule-empty-bg, #f8fafc)', borderColor: 'var(--schedule-border, #e2e8f0)', color: 'var(--schedule-muted, #cbd5e1)' };
+    if (!subjectId) return { background: 'var(--schedule-neutral-bg, #f1f5f9)', borderColor: 'var(--schedule-border, #e2e8f0)', color: 'var(--schedule-muted, #94a3b8)' };
     const hue = getSubjectHueC(subjectId);
     if (state === 'active') {
         return {
-            background: `hsl(${hue}, 72%, 42%)`,
-            borderColor: `hsl(${hue}, 72%, 32%)`,
+            background: `hsl(${hue}, 72%, var(--schedule-active-bg-lightness, 42%))`,
+            borderColor: `hsl(${hue}, 72%, var(--schedule-active-border-lightness, 32%))`,
             color: 'white',
             boxShadow: `0 0 0 2px hsl(${hue}, 72%, 62%) inset`,
         };
     }
     if (state === 'past') {
         return {
-            background: `hsl(${hue}, 14%, 92%)`,
-            borderColor: `hsl(${hue}, 10%, 82%)`,
-            color: `hsl(${hue}, 12%, 60%)`,
+            background: `hsl(${hue}, 14%, var(--schedule-past-bg-lightness, 92%))`,
+            borderColor: `hsl(${hue}, 10%, var(--schedule-past-border-lightness, 82%))`,
+            color: `hsl(${hue}, 12%, var(--schedule-past-text-lightness, 60%))`,
         };
     }
     return {
-        background: `hsl(${hue}, 55%, 86%)`,
-        borderColor: `hsl(${hue}, 50%, 74%)`,
-        color: `hsl(${hue}, 62%, 28%)`,
+        background: `hsl(${hue}, 55%, var(--schedule-upcoming-bg-lightness, 86%))`,
+        borderColor: `hsl(${hue}, 50%, var(--schedule-upcoming-border-lightness, 74%))`,
+        color: `hsl(${hue}, 62%, var(--schedule-upcoming-text-lightness, 28%))`,
     };
 }
 
@@ -351,7 +351,7 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
                                                 className="absolute top-0 bottom-0 flex flex-col justify-end pb-1"
                                                 style={{ left: x }}
                                             >
-                                                <div className="w-px h-3 bg-gray-300 mx-auto mb-0.5" />
+                                                <div className="w-px h-3 bg-gray-300 mx-auto mb-0.5 dark:bg-slate-700" />
                                                 <span className="text-[10px] text-gray-400 font-semibold -translate-x-1/2 relative left-0 dark:text-slate-400">
                                                     {formatHHMM(tick)}
                                                 </span>
@@ -409,15 +409,15 @@ export function CombinedTimelineView({ yearId, termId }: CombinedTimelineViewPro
             {/* Legend */}
             <div className="flex flex-wrap gap-4 text-[11px] text-gray-500 dark:text-slate-400">
                 <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,55%,86%)' }} />
+                    <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,55%,var(--schedule-upcoming-bg-lightness,86%))' }} />
                     Upcoming lesson
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,72%,42%)' }} />
+                    <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,72%,var(--schedule-active-bg-lightness,42%))' }} />
                     Active now
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,14%,92%)' }} />
+                    <div className="w-4 h-3 rounded" style={{ background: 'hsl(210,14%,var(--schedule-past-bg-lightness,92%))' }} />
                     Completed
                 </div>
                 {showNow && (

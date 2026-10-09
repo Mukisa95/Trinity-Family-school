@@ -456,7 +456,7 @@ export default function PupilHistoryPage() {
         titleControls={
           <div className="flex items-center gap-1.5 lg:hidden">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[80px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -468,7 +468,7 @@ export default function PupilHistoryPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -484,7 +484,7 @@ export default function PupilHistoryPage() {
         center={
           <div className="hidden lg:flex items-center gap-2">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[90px] max-w-[125px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">
@@ -496,7 +496,7 @@ export default function PupilHistoryPage() {
             </Select>
 
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[110px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent side="bottom" className="bg-white border shadow-lg z-[999999] dark:bg-slate-900">

@@ -240,7 +240,7 @@ export default function SessionResumeModal({
         )}
 
         {(onSwitchUser || onSignOut) && (
-          <div className={`mt-5 grid gap-2 border-t border-slate-200 pt-4  dark:border-slate-700${onSwitchUser && onSignOut ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className={`mt-5 grid gap-2 border-t border-slate-200 pt-4  dark:border-slate-700 ${onSwitchUser && onSignOut ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {onSwitchUser && (
               <button
                 type="button"

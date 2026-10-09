@@ -5034,11 +5034,11 @@ function PupilsContent() {
                   aria-checked={printLayoutOptions.grayscale}
                   onClick={() => setPrintLayoutOptions(prev => ({ ...prev, grayscale: !prev.grayscale }))}
                   className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                    printLayoutOptions.grayscale ? 'bg-indigo-600' : 'bg-gray-300'
+                    printLayoutOptions.grayscale ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200  dark:bg-slate-900${
+                    className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200  dark:bg-slate-900 ${
                       printLayoutOptions.grayscale ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />

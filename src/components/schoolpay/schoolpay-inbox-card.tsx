@@ -173,7 +173,7 @@ function AssignSchoolPayCodeDialog({
                   type="button"
                   key={pupil.id}
                   onClick={() => setSelected(pupil)}
-                  className={`w-full min-h-14 px-3 py-2 text-left flex items-center gap-3 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500  dark:hover:bg-slate-900${isSelected ? 'bg-amber-50 dark:bg-amber-950/40' : ''}`}
+                  className={`w-full min-h-14 px-3 py-2 text-left flex items-center gap-3 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500  dark:hover:bg-slate-900 ${isSelected ? 'bg-amber-50 dark:bg-amber-950/40' : ''}`}
                 >
                   <span className={`h-5 w-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'bg-amber-600 border-amber-600 text-white' : 'border-slate-300 dark:border-slate-700'}`}>
                     {isSelected && <Check className="h-3.5 w-3.5" />}

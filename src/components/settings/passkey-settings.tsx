@@ -81,41 +81,41 @@ export function PasskeySettings() {
   };
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+    <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3 dark:bg-slate-900 dark:border-slate-700">
       <div className="flex items-start gap-3">
-        <span className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0"><Fingerprint className="w-5 h-5" /></span>
+        <span className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 dark:bg-indigo-950 dark:text-indigo-300"><Fingerprint className="w-5 h-5" /></span>
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Biometric / device unlock</h2>
-          <p className="text-xs text-gray-500">Use your phone or computer’s fingerprint, face unlock, or screen PIN to sign in. Your account password remains available.</p>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Biometric / device unlock</h2>
+          <p className="text-xs text-gray-500 dark:text-slate-400">Use your phone or computer’s fingerprint, face unlock, or screen PIN to sign in. Your account password remains available.</p>
         </div>
       </div>
-      {supported === false && <p className="text-xs text-amber-700">This browser or device does not offer secure device unlock. You can still sign in with your password.</p>}
-      {checking && <p className="text-xs text-gray-500">Checking registered device unlocks…</p>}
+      {supported === false && <p className="text-xs text-amber-700 dark:text-amber-300">This browser or device does not offer secure device unlock. You can still sign in with your password.</p>}
+      {checking && <p className="text-xs text-gray-500 dark:text-slate-400">Checking registered device unlocks…</p>}
       {listError && !checking && (
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-100">
           <span>Registered devices could not be checked.</span>
           <button type="button" disabled={busy} onClick={() => void refreshPasskeys()}
-            className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 font-semibold hover:bg-amber-100 disabled:opacity-50">
+            className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 font-semibold hover:bg-amber-100 disabled:opacity-50 dark:hover:bg-amber-950">
             <RefreshCw className="h-3.5 w-3.5" /> Check status
           </button>
         </div>
       )}
       {passkeys.length > 0 && (
         <ul className="space-y-2">
-          {passkeys.map(key => <li key={key.id} className="flex items-center justify-between gap-2 text-xs text-gray-700 rounded-lg bg-gray-50 px-3 py-2">
+          {passkeys.map(key => <li key={key.id} className="flex items-center justify-between gap-2 text-xs text-gray-700 rounded-lg bg-gray-50 px-3 py-2 dark:text-slate-200 dark:bg-slate-900">
             <span>{key.name}{key.createdAt ? ` · added ${new Date(key.createdAt).toLocaleDateString()}` : ''}</span>
-            <button type="button" disabled={busy} onClick={() => void remove(key.id)} aria-label="Remove device unlock" className="text-red-600 disabled:opacity-50 p-2"><Trash2 className="w-4 h-4" /></button>
+            <button type="button" disabled={busy} onClick={() => void remove(key.id)} aria-label="Remove device unlock" className="text-red-600 disabled:opacity-50 p-2 dark:text-red-300"><Trash2 className="w-4 h-4" /></button>
           </li>)}
         </ul>
       )}
-      <label className="block text-xs font-medium text-gray-600" htmlFor="passkey-current-password">Current password</label>
+      <label className="block text-xs font-medium text-gray-600 dark:text-slate-300" htmlFor="passkey-current-password">Current password</label>
       <input id="passkey-current-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)}
-        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm" placeholder="Required to add or remove a device" />
+        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm dark:border-slate-700" placeholder="Required to add or remove a device" />
       <button type="button" disabled={busy || checking || supported !== true || !password} onClick={() => void register()}
         className="w-full min-h-11 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50">
         {busy ? 'Working…' : 'Enable on this device'}
       </button>
-      {message && <p role="status" className="text-xs text-gray-700">{message}</p>}
+      {message && <p role="status" className="text-xs text-gray-700 dark:text-slate-200">{message}</p>}
     </section>
   );
 }

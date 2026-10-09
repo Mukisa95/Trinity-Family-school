@@ -412,7 +412,7 @@ const ModernForm = React.forwardRef<HTMLFormElement, ModernFormProps>(
                   <div
                     className={cn(
                       "w-12 h-0.5 mx-2 transition-colors duration-200",
-                      index < currentStep ? "bg-green-500" : "bg-gray-300"
+                      index < currentStep ? "bg-green-500" : "bg-gray-300 dark:bg-slate-700"
                     )}
                   />
                 )}

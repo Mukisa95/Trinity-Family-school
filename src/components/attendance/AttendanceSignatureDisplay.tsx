@@ -32,7 +32,7 @@ export function AttendanceSignatureDisplay({
 
   if (error) {
     return (
-      <div className={`flex items-center gap-1 text-xs text-red-500  dark:text-red-400${className}`}>
+      <div className={`flex items-center gap-1 text-xs text-red-500  dark:text-red-400 ${className}`}>
         <Clock className="h-3 w-3" />
         <span>Signature error</span>
       </div>
@@ -41,7 +41,7 @@ export function AttendanceSignatureDisplay({
 
   if (!signatures || signatures.length === 0) {
     return (
-      <div className={`flex items-center gap-1 text-xs text-gray-400  dark:text-slate-400${className}`}>
+      <div className={`flex items-center gap-1 text-xs text-gray-400  dark:text-slate-400 ${className}`}>
         <Clock className="h-3 w-3" />
         <span>No signature recorded</span>
       </div>

@@ -399,7 +399,7 @@ const PupilRowWithDetails = ({
               {attendanceStatus}
             </span>
           )}
-          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200  dark:text-slate-400${isMenuOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200  dark:text-slate-400 ${isMenuOpen ? 'rotate-180' : ''}`} />
         </div>
       </div>
 
@@ -413,7 +413,7 @@ const PupilRowWithDetails = ({
             <div>
               <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide dark:text-slate-400">Enrolment</span>
               <select
-                className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900${generalBadgeColor}`}
+                className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900 ${generalBadgeColor}`}
                 value={generalStatus || ''}
                 onChange={async (e) => {
                   if (!pupil.id) return;
@@ -434,7 +434,7 @@ const PupilRowWithDetails = ({
               <div>
                 <span className="text-[9px] font-bold uppercase text-gray-400 tracking-wide dark:text-slate-400">Attendance</span>
                 <select
-                  className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900${attendanceBadgeColor}`}
+                  className={`w-full text-[10px] font-semibold rounded-md border border-gray-200 py-0.5 pl-1.5 pr-4 cursor-pointer focus:ring-1 focus:ring-blue-400 bg-white mt-0.5  dark:border-slate-700 dark:bg-slate-900 ${attendanceBadgeColor}`}
                   value={attendanceStatus}
                   onChange={async (e) => {
                     const record = pupil.attendanceRecord;
@@ -1392,7 +1392,7 @@ const AnimatedBarLabel = ({ x, y, width, value }: any) => {
     <text
       x={(x as number) + (width as number) / 2}
       y={(y as number) - 8}
-      fill="#1f2937"
+      fill="var(--chart-value, #1f2937)"
       textAnchor="middle"
       fontSize={13}
       fontWeight={700}
@@ -1469,7 +1469,7 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center whitespace-nowrap">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center whitespace-nowrap dark:from-indigo-400 dark:to-purple-400">
                 <span className="whitespace-nowrap">By Class</span>
               </CardTitle>
             </div>
@@ -1508,13 +1508,13 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} opacity={0.3} />
                 <XAxis
                   dataKey="name"
-                  tick={{ fill: '#4b5563', fontSize: 11, fontWeight: 600 }}
+                  tick={{ fill: 'var(--chart-axis-strong, #4b5563)', fontSize: 11, fontWeight: 600 }}
                   axisLine={{ stroke: '#d1d5db', strokeWidth: 1.5 }}
                   tickLine={false}
                   height={25}
                 />
                 <YAxis
-                  tick={{ fill: '#6b7280', fontSize: 11, fontWeight: 500 }}
+                  tick={{ fill: 'var(--chart-axis, #6b7280)', fontSize: 11, fontWeight: 500 }}
                   axisLine={{ stroke: '#d1d5db', strokeWidth: 1.5 }}
                   tickLine={false}
                   width={35}
@@ -1826,7 +1826,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
     >
-      <Card className="h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',
@@ -1842,7 +1842,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex flex-row items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent whitespace-nowrap dark:from-blue-400 dark:to-cyan-400">
                 <span className="whitespace-nowrap">
                   {isRecessMode ? 'Recess Period' : 'Present Today'}
                 </span>
@@ -1925,7 +1925,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" vertical={false} opacity={0.3} />
                   <XAxis
                     dataKey="name"
-                    tick={{ fill: '#4b5563', fontSize: 11, fontWeight: 700 }}
+                    tick={{ fill: 'var(--chart-axis-strong, #4b5563)', fontSize: 11, fontWeight: 700 }}
                     axisLine={false}
                     tickLine={false}
                     angle={0}
@@ -1935,7 +1935,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                     interval={0}
                   />
                   <YAxis
-                    tick={{ fill: '#6b7280', fontSize: 11, fontWeight: 500 }}
+                    tick={{ fill: 'var(--chart-axis, #6b7280)', fontSize: 11, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                     width={40}
@@ -2009,7 +2009,7 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
                     dataKey="present"
                     className="cursor-pointer drop-shadow-sm transition-opacity hover:opacity-90"
                     shape={<PillBar />}
-                    background={{ fill: '#e2e8f0', radius: 40 }}
+                    background={{ fill: 'var(--chart-track, #e2e8f0)', radius: 40 }}
                     onClick={handleBarClick}
                   >
                     {chartData.map((entry, index) => {

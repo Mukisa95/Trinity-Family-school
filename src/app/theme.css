@@ -12,9 +12,9 @@
 .dark {
   --background: 222 49% 8%;
   --foreground: 214 32% 91%;
-  --card: 222 40% 12%;
+  --card: 219 40% 16%;
   --card-foreground: 214 32% 91%;
-  --popover: 222 40% 12%;
+  --popover: 217 37% 21%;
   --popover-foreground: 214 32% 91%;
   --muted: 218 30% 18%;
   --muted-foreground: 215 20% 70%;
@@ -35,6 +35,44 @@
   --sidebar-accent-foreground: 214 32% 91%;
   --sidebar-border: 217 28% 25%;
   --sidebar-ring: 213 94% 68%;
+  --chart-value: #f3f6fc;
+  --chart-axis: #94a3b8;
+  --chart-axis-strong: #b8c6da;
+  --chart-grid: #3b4c66;
+  --chart-track: #2b3950;
+  --chart-thumb-top: #415372;
+  --chart-thumb-middle: #22314a;
+  --chart-thumb-edge: #182338;
+  --chart-thumb-label: #f3f6fc;
+  --chart-thumb-label-shadow: none;
+  --calendar-text: #e2e8f0;
+  --calendar-muted: #94a3b8;
+  --calendar-hover: #22314a;
+  --calendar-holiday: #fb7185;
+  --calendar-control: #c7d2fe;
+  --calendar-control-bg: #182338;
+  --calendar-border: rgb(100 116 139 / 0.3);
+  --calendar-other-opacity: 0.55;
+  --calendar-today: #2563eb;
+  --dashboard-tracker-border: #3f4b80;
+  --schedule-empty-bg: #182338;
+  --schedule-neutral-bg: #22314a;
+  --schedule-border: #2b3950;
+  --schedule-muted: #94a3b8;
+  --schedule-active-bg-lightness: 25%;
+  --schedule-active-border-lightness: 22%;
+  --schedule-highlight-bg: #422c12;
+  --schedule-highlight-text: #fcd34d;
+  --schedule-past-bg-lightness: 19%;
+  --schedule-past-border-lightness: 29%;
+  --schedule-past-text-lightness: 72%;
+  --schedule-upcoming-bg-lightness: 22%;
+  --schedule-upcoming-border-lightness: 36%;
+  --schedule-upcoming-text-lightness: 83%;
+  --schedule-error-past-bg: #341b2a;
+  --schedule-error-bg: #411824;
+  --schedule-error-border: #7f1d1d;
+  --schedule-error-text: #fda4af;
 }
 
 /* Both snapshots stay still while the new palette opens from the switch. */
@@ -80,12 +118,38 @@ html[data-theme-reveal]::view-transition-new(root) { z-index: 2; }
 }
 .dark .dashboard-bg-wrapper {
   background-color: hsl(var(--background));
-  background-image: linear-gradient(rgb(2 6 23 / 0.86), rgb(15 23 42 / 0.92)), url('/images/D.B%20background.png?v=1.1');
+  background-image: linear-gradient(rgb(11 17 32 / 0.91), rgb(11 17 32 / 0.97)), url('/images/D.B%20background.png?v=1.1');
 }
 .dark .dashboard-bg-wrapper [data-sidebar="inset"] .min-h-screen :is(h1, p) { text-shadow: none; }
 .dark .card-glass { background: rgb(var(--glass-surface) / 0.72); border-color: rgb(var(--glass-edge) / 0.25); }
 .dark .card-gradient { background: linear-gradient(135deg, rgb(30 41 59 / 0.8), rgb(15 23 42 / 0.6)); }
-.dark .theme-dashboard-surface { background: hsl(var(--card)) !important; }
+.dark .theme-dashboard-surface {
+  background: linear-gradient(135deg, hsl(var(--card)), #131e32) !important;
+  border-color: hsl(var(--border));
+  box-shadow: 0 10px 28px rgb(2 6 23 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+}
+.dark .theme-surface-tint {
+  background: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+.dark .recharts-cartesian-grid line,
+.dark .recharts-cartesian-axis-line { stroke: var(--chart-grid); }
+.dark .recharts-default-tooltip {
+  background-color: hsl(var(--popover)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.25);
+}
+.dark .recharts-tooltip-label { color: hsl(var(--foreground)) !important; }
+.dark .recharts-legend-item-text { color: hsl(var(--muted-foreground)) !important; }
+.dark .recharts-label,
+.dark .recharts-label-list text { fill: var(--chart-value); }
+.dark .recharts-tooltip-cursor { fill: rgb(148 163 184 / 0.12); }
+.dark .recharts-bar-background-rectangle { fill: var(--chart-track); }
+.dark .custom-scrollbar::-webkit-scrollbar-track { background: rgb(148 163 184 / 0.05); }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgb(148 163 184 / 0.35); }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgb(148 163 184 / 0.55); }
+.dark { scrollbar-color: #415372 #101a2e; }
 
 /* Parent subject colours remain accents; neutral surfaces follow appearance. */
 .dark .parent-theme-surface { background: hsl(var(--background)) !important; }
@@ -150,6 +214,24 @@ html[data-theme-reveal]::view-transition-new(root) { z-index: 2; }
     --popover: 0 0% 100%; --popover-foreground: 222 47% 11%;
     --muted: 210 40% 96%; --muted-foreground: 215 16% 35%;
     --border: 214 32% 91%; --glass-surface: 255 255 255;
+    /* Use each widget's original light fallback, including different timetable states. */
+    --chart-value: initial; --chart-axis: initial; --chart-axis-strong: initial;
+    --chart-track: initial; --chart-grid: initial;
+    --chart-thumb-top: initial; --chart-thumb-middle: initial; --chart-thumb-edge: initial;
+    --chart-thumb-label: initial; --chart-thumb-label-shadow: initial;
+    --calendar-text: initial; --calendar-muted: initial; --calendar-hover: initial;
+    --calendar-holiday: initial; --calendar-control: initial; --calendar-control-bg: initial;
+    --calendar-border: initial;
+    --calendar-other-opacity: initial;
+    --calendar-today: initial;
+    --dashboard-tracker-border: initial;
+    --schedule-empty-bg: initial; --schedule-neutral-bg: initial; --schedule-border: initial;
+    --schedule-muted: initial; --schedule-highlight-bg: initial; --schedule-highlight-text: initial;
+    --schedule-active-bg-lightness: initial; --schedule-active-border-lightness: initial;
+    --schedule-past-bg-lightness: initial; --schedule-past-border-lightness: initial; --schedule-past-text-lightness: initial;
+    --schedule-upcoming-bg-lightness: initial; --schedule-upcoming-border-lightness: initial; --schedule-upcoming-text-lightness: initial;
+    --schedule-error-past-bg: initial; --schedule-error-bg: initial;
+    --schedule-error-border: initial; --schedule-error-text: initial;
   }
   .theme-toggle { display: none !important; }
   .dashboard-bg-wrapper { background-image: none !important; }

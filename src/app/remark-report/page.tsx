@@ -1846,7 +1846,7 @@ export default function RemarkReportPage() {
         titleControls={
           <div className="flex items-center gap-1.5 lg:hidden">
             <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[70px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[70px] max-w-[100px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent>
@@ -1859,7 +1859,7 @@ export default function RemarkReportPage() {
             </Select>
 
             <Select value={selectedTermId} onValueChange={setSelectedTermId} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[65px] max-w-[85px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[65px] max-w-[85px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Term" />
               </SelectTrigger>
               <SelectContent>
@@ -1875,7 +1875,7 @@ export default function RemarkReportPage() {
         center={
           <>
             <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[115px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[85px] max-w-[115px] rounded-full border-blue-200/60 bg-white/90 px-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent>
@@ -1888,7 +1888,7 @@ export default function RemarkReportPage() {
             </Select>
 
             <Select value={selectedTermId} onValueChange={setSelectedTermId} disabled={isSaving}>
-              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[95px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0">
+              <SelectTrigger className="h-[34px] min-w-[75px] max-w-[95px] rounded-full border-blue-200/60 bg-white/90 px-2 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-400/50 [&>svg]:hidden shrink-0 dark:border-blue-800/60 dark:bg-slate-900/90 dark:text-blue-300">
                 <SelectValue placeholder="Term" />
               </SelectTrigger>
               <SelectContent>
@@ -2426,7 +2426,7 @@ export default function RemarkReportPage() {
                                             )}
                                             <Label
                                               htmlFor={isSubjectSelectionMode ? checkboxId : undefined}
-                                              className={`text-xs font-medium text-gray-700  dark:text-slate-200${
+                                              className={`text-xs font-medium text-gray-700  dark:text-slate-200 ${
                                                 isSubjectSelectionMode ? 'cursor-pointer' : ''
                                               }`}
                                             >

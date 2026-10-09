@@ -283,7 +283,7 @@ export function MobileSidebar({ items, isOpen, onClose }: MobileSidebarProps) {
                 </div>
               )}
               <div>
-                <h2 className="text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h2 className="text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
                   {currentSettings.generalInfo.name || "School Name"}
                 </h2>
                 {currentSettings.generalInfo.motto && (

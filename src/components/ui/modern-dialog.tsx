@@ -226,7 +226,7 @@ const ModernDialogTitle: React.FC<{
   <h2
     id={id}
     className={cn(
-      "text-lg sm:text-xl md:text-2xl font-bold leading-none tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent",
+      "text-lg sm:text-xl md:text-2xl font-bold leading-none tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400",
       className
     )}
   >

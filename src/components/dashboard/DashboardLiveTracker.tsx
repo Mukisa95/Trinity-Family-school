@@ -263,7 +263,7 @@ function TrackerCore({ yearId, termId, profileId, profileName, showClock }: { ye
                 {showClock && (
                     <div className="hidden sm:flex items-center px-2 py-0.5 bg-indigo-50/50 border border-indigo-100/60 rounded-full mr-1 flex-shrink-0 dark:bg-indigo-950/50 dark:border-indigo-800/60">
                         <Clock className="w-2.5 h-2.5 text-indigo-400 mr-1" />
-                        <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-indigo-700 to-indigo-900 bg-clip-text text-transparent tabular-nums tracking-tight">
+                        <span className="font-mono text-[10px] font-bold bg-gradient-to-br from-indigo-700 to-indigo-900 bg-clip-text text-transparent tabular-nums tracking-tight dark:from-indigo-400 dark:to-indigo-400">
                             {format(currentTime, "h:mm a")}
                         </span>
                     </div>
@@ -354,7 +354,7 @@ export function DashboardLiveTracker() {
         <div
             className="bg-white rounded-xl px-3 py-2.5 text-gray-800 relative overflow-visible dark:bg-slate-900 dark:text-slate-100"
             style={{
-                border: "2px solid #c7d2fe",
+                border: "2px solid var(--dashboard-tracker-border, #c7d2fe)",
                 boxShadow: "0 0 0 4px rgba(99,102,241,0.08), 0 2px 8px rgba(99,102,241,0.10)"
             }}
         >

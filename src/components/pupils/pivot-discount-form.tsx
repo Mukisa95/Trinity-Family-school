@@ -227,7 +227,7 @@ export function PivotDiscountForm({
           size="sm"
           onClick={handleCloseSaveClick}
           disabled={isSaving}
-          className="h-8 text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 order-2 dark:bg-slate-800 dark:text-slate-100"
+          className="h-8 text-xs bg-slate-200 hover:bg-slate-300 text-slate-800 order-2 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
           title="Save only to this pupil's assignment list"
         >
           Close Save (Pupil Only)

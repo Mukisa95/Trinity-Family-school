@@ -664,7 +664,7 @@ export default function CollectionAnalyticsPage() {
           {/* Integrated Header */}
           <div
             onClick={() => !loadingDatePayments && dateFilteredStats && setExpandedDatePayments(!expandedDatePayments)}
-            className={`bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all  dark:from-green-950/40 dark:via-blue-950/40 dark:to-cyan-950/40${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
+            className={`bg-gradient-to-br from-green-50 via-blue-50 to-cyan-50 p-4 md:p-6 cursor-pointer hover:shadow-inner transition-all  dark:from-green-950/40 dark:via-blue-950/40 dark:to-cyan-950/40 ${!loadingDatePayments && dateFilteredStats ? 'cursor-pointer' : ''
               }`}
           >
             {/* Top Row: Title */}

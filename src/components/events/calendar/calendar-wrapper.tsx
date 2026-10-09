@@ -601,7 +601,7 @@ export function CalendarWrapper({
                                 </Select>
                               </div>
 
-                              <div className="w-px h-6 bg-slate-300 mx-1 shrink-0"></div>
+                              <div className="w-px h-6 bg-slate-300 mx-1 shrink-0 dark:bg-slate-700"></div>
 
                               <div className="flex-1 sm:w-[160px]">
                                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
@@ -968,7 +968,7 @@ export function CalendarWrapper({
               border: none;
               padding: 12px 0 8px 0;
               font-weight: 600;
-              color: #475569;
+              color: var(--calendar-muted, #475569);
               text-transform: uppercase;
               font-size: 0.70rem;
               letter-spacing: 0.05em;
@@ -978,16 +978,16 @@ export function CalendarWrapper({
             
             .fullcalendar-container .fc-theme-standard td,
             .fullcalendar-container .fc-theme-standard th {
-              border: 1px solid rgba(226, 232, 240, 0.4);
+              border: 1px solid var(--calendar-border, rgba(226, 232, 240, 0.4));
             }
 
             .fullcalendar-container .fc-scrollgrid {
-              border: 1px solid rgba(226, 232, 240, 0.4) !important;
+              border: 1px solid var(--calendar-border, rgba(226, 232, 240, 0.4)) !important;
             }
 
             .fullcalendar-container .fc-daygrid-day-number {
               font-size: 0.8rem;
-              color: #64748b;
+              color: var(--calendar-muted, #64748b);
               padding: 4px 8px;
             }
             
@@ -1001,8 +1001,8 @@ export function CalendarWrapper({
 
             .fullcalendar-container .fc-button-primary {
               /* Default (inactive): white center + colorful outer ring */
-              background: white !important;
-              color: #4f46e5 !important;
+              background: var(--calendar-control-bg, white) !important;
+              color: var(--calendar-control, #4f46e5) !important;
               border: none !important;
               outline: 3px solid #60a5fa !important;
               outline-offset: 0px !important;
