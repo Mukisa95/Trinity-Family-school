@@ -71,6 +71,8 @@ async function run(){
   await page.getByLabel('Night illustration brightness').evaluate(el=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'45');el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--night-dim-top').trim()),'0.5');
   await page.reload();await idle();assert.equal(await page.getByLabel('Night illustration brightness').inputValue(),'45');assert.equal(await page.getByRole('button',{name:/^Soft Indigo/}).getAttribute('aria-pressed'),'true');assert.equal(await page.getByRole('button',{name:'Dark',exact:true}).getAttribute('aria-pressed'),'true');
   const other=await context.newPage();await other.goto(url);await other.waitForFunction(()=>window.appearance?.ready);
+  // Restore the page being clicked; background tabs throttle animation frames.
+  await page.bringToFront();
   await click('Plain');await other.waitForFunction(()=>document.documentElement.dataset.appBackground==='plain');
   await page.evaluate(()=>localStorage.setItem('trinity-look-and-feel',JSON.stringify({preset:'invented',background:'bad',dimming:900})));
   await page.reload();await idle();assert.equal(await page.getByLabel('Night illustration brightness').inputValue(),'30');assert.equal(await page.getByRole('button',{name:/^Trinity Classic/}).getAttribute('aria-pressed'),'true');

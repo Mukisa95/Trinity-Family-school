@@ -192,6 +192,38 @@ html[data-theme-reveal] .dashboard-bg-wrapper::after { transition: none !importa
   border-color: hsl(var(--border));
   box-shadow: 0 10px 28px rgb(2 6 23 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
 }
+/* Share the live timetable frame; its roles also follow Android device colours. */
+:root {
+  --dashboard-timetable-glow: 0 0 0 4px rgb(var(--brand-alt-500) / .08),
+    0 2px 8px rgb(var(--brand-alt-500) / .10);
+}
+.dashboard-timetable-card {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 2px solid var(--dashboard-tracker-border, #c7d2fe);
+  box-shadow: var(--dashboard-timetable-glow);
+}
+/* Match the dashboard's single-column mobile layout, leaving desktop styling intact.
+   Important declarations replace the legacy inline gradients and dark card shadow. */
+@media screen and (max-width: 1023px) {
+  .dashboard-mobile-timetable-card,
+  .dark .dashboard-mobile-timetable-card {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--card-foreground));
+    border: 2px solid var(--dashboard-tracker-border, #c7d2fe) !important;
+    box-shadow: var(--dashboard-timetable-glow) !important;
+  }
+  .dashboard-mobile-timetable-card > .dashboard-card-decoration { display: none; }
+  .stat-card {
+    border-left-color: rgb(var(--brand-500)) !important;
+    background: linear-gradient(135deg, rgb(var(--brand-500) / .05), rgb(var(--brand-300) / .10)) !important;
+  }
+  .stat-card > .dashboard-stat-surface {
+    background: hsl(var(--card) / .90) !important;
+  }
+  .stat-card .dashboard-stat-label { color: rgb(var(--brand-ink-600)); }
+  .dark .stat-card .dashboard-stat-label { color: rgb(var(--brand-ink-400)); }
+}
 .dark .theme-surface-tint {
   background: hsl(var(--card)) !important;
   border-color: hsl(var(--border)) !important;

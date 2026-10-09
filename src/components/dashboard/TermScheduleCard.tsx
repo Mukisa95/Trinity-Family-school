@@ -127,18 +127,18 @@ export function TermScheduleCard() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="h-full"
         >
-            <Card className="theme-dashboard-surface h-full rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
+            <Card className="theme-dashboard-surface dashboard-mobile-timetable-card h-full rounded-xl transition-all duration-300 relative group overflow-visible flex flex-col" style={{
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
                 transform: 'translateZ(0)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
             }}>
                 {/* 3D Depth Effect - Top highlight */}
-                <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
+                <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
                 {/* 3D Depth Effect - Bottom shadow */}
-                <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
+                <div className="dashboard-card-decoration absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
                 {/* Decorative gradient accent */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-pink-500 rounded-t-xl opacity-60" />
+                <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-pink-500 rounded-t-xl opacity-60" />
 
                 <CardHeader className="pb-2 pt-3 relative z-20 shrink-0">
                     <div className="flex items-center justify-between">

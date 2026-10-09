@@ -333,7 +333,7 @@ export function DashboardLiveTracker() {
     if (isLoading || profilesLoading || profiles.length === 0) {
         if (!isLoading && !profilesLoading && profiles.length === 0) return null;
         return (
-            <div className="bg-card rounded-xl px-3 py-2.5 flex items-center gap-2 border-2 border-brand-alt-100 shadow-sm dark:border-brand-alt-800/60">
+            <div className="dashboard-timetable-card rounded-xl px-3 py-2.5 flex items-center gap-2">
                 <div className="w-3 h-3 border-2 border-brand-alt-100 border-t-brand-alt-400 rounded-full animate-spin flex-shrink-0 dark:border-brand-alt-800/60" />
                 <span className="text-xs text-gray-500 font-medium dark:text-slate-400">Loading timetables…</span>
             </div>
@@ -342,11 +342,7 @@ export function DashboardLiveTracker() {
 
     return (
         <div
-            className="bg-card rounded-xl px-3 py-2.5 text-card-foreground relative overflow-visible"
-            style={{
-                border: "2px solid var(--dashboard-tracker-border, #c7d2fe)",
-                boxShadow: "0 0 0 4px rgb(var(--brand-alt-500) / .08), 0 2px 8px rgb(var(--brand-alt-500) / .10)"
-            }}
+            className="dashboard-timetable-card rounded-xl px-3 py-2.5 relative overflow-visible"
         >
             <div className="flex flex-col gap-2 divide-y divide-brand-alt-50/60 dark:divide-brand-alt-800/60">
                 {profiles.map((profile, idx) => (

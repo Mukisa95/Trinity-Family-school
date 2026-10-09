@@ -202,7 +202,7 @@ const StatCard = ({
       }}
       onClick={handleClick}
     >
-      <div className="absolute inset-0 bg-white/90 dark:bg-slate-900/90" />
+      <div className="dashboard-stat-surface absolute inset-0 bg-white/90 dark:bg-slate-900/90" />
       {/* 3D Depth Effect - Top highlight */}
       <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none dark:from-slate-900/40" />
       {/* 3D Depth Effect - Bottom shadow */}
@@ -212,7 +212,7 @@ const StatCard = ({
 
       <div className="relative p-1.5 sm:p-3 h-full flex flex-col justify-center min-h-[52px] sm:min-h-[76px] z-10">
         <div className="flex-1 min-w-0">
-          <p className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
+          <p className={`dashboard-stat-label text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
             {title}
           </p>
           <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
@@ -661,7 +661,7 @@ const ExpandableStaffCard = ({
           transform: 'translateZ(0)',
         }}
       >
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
+        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
@@ -684,7 +684,7 @@ const ExpandableStaffCard = ({
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <div className="flex-1 min-w-0">
-              <p className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
+              <p className={`dashboard-stat-label text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${color.text} mb-0 sm:mb-1 leading-tight`}>
                 {title}
               </p>
               <div className="min-h-[1.25rem] sm:min-h-[1.75rem] flex items-center">
@@ -1058,7 +1058,7 @@ const ExpandableAttendanceCard = ({
           transform: 'translateZ(0)',
         }}
       >
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
+        <div className="dashboard-stat-surface absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl dark:bg-slate-900/80" />
         {/* 3D Depth Effect - Top highlight */}
         <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
@@ -1089,7 +1089,7 @@ const ExpandableAttendanceCard = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 5 }}
                   transition={{ duration: 0.2 }}
-                  className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${currentColor.text} mb-0 sm:mb-1 leading-tight`}
+                  className={`dashboard-stat-label text-[8px] sm:text-[10px] font-bold uppercase tracking-tight ${currentColor.text} mb-0 sm:mb-1 leading-tight`}
                 >
                   {currentTitle}
                 </motion.p>
@@ -1453,18 +1453,18 @@ const ClassEnrollmentChart = ({ classes, pupils }: { classes: any[]; pupils: any
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="theme-dashboard-surface h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface dashboard-mobile-timetable-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 1) 100%)',
       }}>
         {/* 3D Depth Effect - Top highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
+        <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
+        <div className="dashboard-card-decoration absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Decorative gradient accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-pink-500 rounded-t-xl opacity-60" />
+        <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-secondary-alt-surface-500 via-brand-secondary-surface-500 to-pink-500 rounded-t-xl opacity-60" />
 
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex items-center justify-between">
@@ -1826,18 +1826,18 @@ const TodaysAttendanceChart = ({ classes, pupils, attendanceData }: { classes: a
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
     >
-      <Card className="theme-dashboard-surface h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
+      <Card className="theme-dashboard-surface dashboard-mobile-timetable-card h-full rounded-xl transition-all duration-300 relative group overflow-visible" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(239, 246, 255, 0.5) 100%)',
       }}>
         {/* 3D Depth Effect - Top highlight */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
+        <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/40" />
         {/* 3D Depth Effect - Bottom shadow */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
+        <div className="dashboard-card-decoration absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Decorative gradient accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-surface-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
+        <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-surface-500 via-cyan-500 to-green-500 rounded-t-xl opacity-60" />
 
         <CardHeader className="pb-2 pt-3 relative z-20">
           <div className="flex flex-row items-center justify-between gap-2">
@@ -2081,17 +2081,17 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   if (!activePhotos.length) {
     return (
-      <Card className="h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-brand-surface-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-brand-surface-950/40" style={{
+      <Card className="dashboard-mobile-timetable-card h-full border-0 rounded-xl bg-gradient-to-br from-slate-50 via-white to-brand-surface-50 relative overflow-visible group dark:from-slate-900 dark:via-slate-900 dark:to-brand-surface-950/40" style={{
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
         transform: 'translateZ(0)',
       }}>
         {/* 3D Depth Effect */}
-        <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/60" />
+        <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/60 to-transparent pointer-events-none rounded-t-xl z-10 dark:from-slate-900/60" />
         {/* 3D Depth Effect - Bottom shadow */}
-        <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
+        <div className="dashboard-card-decoration absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
         {/* Decorative accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-t-xl opacity-50 dark:from-slate-800 dark:to-slate-800" />
+        <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-t-xl opacity-50 dark:from-slate-800 dark:to-slate-800" />
 
         <CardContent className="flex flex-col items-center justify-center h-64 relative z-20 overflow-hidden rounded-xl">
           <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -2134,14 +2134,14 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
 
   return (
     <>
-    <Card className="h-full border-0 rounded-xl bg-gray-900 group relative overflow-visible" style={{
+    <Card className="dashboard-mobile-timetable-card h-full border-0 rounded-xl bg-gray-900 group relative overflow-visible" style={{
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), inset 0 -3px 0 rgba(0, 0, 0, 0.1)',
       transform: 'translateZ(0)',
     }}>
       {/* 3D Depth Highlight */}
-      <div className="absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl z-20 dark:from-slate-900/20" />
+      <div className="dashboard-card-decoration absolute top-0 left-0 right-0 h-1/4 bg-gradient-to-b from-white/20 to-transparent pointer-events-none rounded-t-xl z-20 dark:from-slate-900/20" />
       {/* 3D Depth Effect - Bottom shadow */}
-      <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
+      <div className="dashboard-card-decoration absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/5 to-transparent pointer-events-none rounded-b-xl" />
 
       <CardContent className="p-0 relative z-10 h-full overflow-hidden rounded-xl">
         <div className="relative w-full h-[280px] overflow-hidden bg-gray-900 rounded-xl">
@@ -2224,6 +2224,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Previous photo"
               onClick={() => paginate(-1)}
               className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 pointer-events-auto transition-transform hover:scale-110 dark:border-slate-700/10"
             >
@@ -2232,6 +2233,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Next photo"
               onClick={() => paginate(1)}
               className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 pointer-events-auto transition-transform hover:scale-110 dark:border-slate-700/10"
             >
@@ -2244,6 +2246,8 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             {activePhotos.map((_, index) => (
               <button
                 key={index}
+                aria-label={`Show photo ${index + 1}`}
+                aria-current={index === currentSlide ? "true" : undefined}
                 onClick={() => {
                   setDirection(index > currentSlide ? 1 : -1);
                   setCurrentSlide(index);
@@ -2261,6 +2265,7 @@ const PhotoSlideshow = ({ photos }: { photos: any[] }) => {
             <Button
               size="icon"
               variant="ghost"
+              aria-label={isPlaying ? "Pause slideshow" : "Play slideshow"}
               onClick={() => setIsPlaying(!isPlaying)}
               className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-black/40 border border-white/10 transition-colors dark:border-slate-700/10"
             >
