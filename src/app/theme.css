@@ -162,9 +162,11 @@ html[data-theme-reveal]::view-transition-new(theme-switch-moon) { animation-dura
   z-index: -1;
   pointer-events: none;
   background-color: #0b1120;
-  background-image: linear-gradient(rgb(11 17 32 / 0.08), rgb(11 17 32 / 0.18)), url('/images/Night%20Background.png');
-  background-size: cover;
-  background-position: right top 40px;
+  background-image: linear-gradient(rgb(11 17 32 / 0.32), rgb(11 17 32 / 0.42)), linear-gradient(to top, #0b1120, transparent 25%), url('/images/Night%20Background.png');
+  /* Fit the illustration to the screen width so portrait screens keep a small school. */
+  /* Match the bottom fade to the original 1672 x 941 artwork for a seamless edge. */
+  background-size: 100% 100%, 100% calc(100vw * 941 / 1672), 100% auto;
+  background-position: center, right top 40px, right top 40px;
   background-repeat: no-repeat;
   opacity: 0;
 }

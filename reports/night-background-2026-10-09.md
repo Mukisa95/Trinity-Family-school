@@ -1,6 +1,6 @@
 # Night background — 9 October 2026
 
-Dark appearance uses the supplied `public/images/Night Background.png` unchanged (SHA-256 `5c732655d8bbbae35a3a2b20acc9267564a7ec48e43a6b54918fa4c1d428383e`). A light tint preserves its blue landscape and warm windows. Cover sizing preserves the illustration's proportions across desktop and mobile, with the school anchored on the right. Light appearance keeps the existing day image.
+Dark appearance uses the supplied `public/images/Night Background.png` unchanged (SHA-256 `5c732655d8bbbae35a3a2b20acc9267564a7ec48e43a6b54918fa4c1d428383e`). A stronger 32–42% dark tint subdues the landscape and windows behind the application content on every screen. The artwork follows screen width at its original aspect ratio, keeping the school small in the top-right on portrait screens. Its bottom edge fades into the dark base to avoid a visible seam on tall screens. Light appearance keeps the existing day image.
 
 The occasional theme change indicates state without moving content: the night layer crossfades using CSS opacity, the existing ease-out token and 280 ms duration. Manual switching captures the final illustration inside the existing circular reveal; it does not capture a partly faded background. Reduced motion uses an 80 ms opacity transition. Keeping the layer in the document allows the browser to load it before a first manual switch. The existing scroll-blur layer stays above it, and print hides the decorative layer.
 
