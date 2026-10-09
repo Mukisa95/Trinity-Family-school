@@ -197,8 +197,9 @@ export function PrintableTimetable({
     // ── Shared inline styles ──────────────────────────────────────────────────
     const bd = "1px solid #000";
     const bdBold = "2px solid #000";
-    const bdClass = "1px solid #666";
-    const bdDay = "2.5px solid #000";
+    // Horizontal row rules: softer class divisions and heavier day boundaries.
+    const bdClass = "1px solid #737373";
+    const bdDay = "4px solid #000";
     const bdStream = "0.5px solid #555";
 
     const logoUrl = schoolSettings?.generalInfo?.logo;
@@ -358,7 +359,7 @@ export function PrintableTimetable({
                                     const rowBottomBorder = rowBorder(dayRows, rowIdx);
                                     const spanningBottomBorder = rowBorder(dayRows, rowIdx + row.streamCount - 1);
                                     return (
-                                        <tr key={`${day.id}-${cls.id}-${row.stream?.id || 'all'}`} style={{ height: estimatedRowHeight }}>
+                                        <tr key={`${day.id}-${cls.id}-${row.stream?.id || 'all'}`} data-printable-row-divider={rowIdx === dayRows.length - 1 ? "day" : row.stream && row.streamIndex < row.streamCount - 1 ? "stream" : "class"} style={{ height: estimatedRowHeight }}>
                                             {rowIdx === 0 && (
                                                 <td
                                                     rowSpan={dayRows.length}

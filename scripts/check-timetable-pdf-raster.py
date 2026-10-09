@@ -14,7 +14,10 @@ for label in labels:
  x,y,w,h=label['x'],label['y'],label['width'],label['height']; ink=label['ink']
  if not ink: fail.append((label['text'],'empty source'));continue
  if min(ink[0],ink[1],w-ink[2],h-ink[3])<1.8: fail.append((label['text'],'source touches border',ink))
- left,top,right,bottom=[int(round(v)) for v in [ox+(x+1.8)*scale,oy+(y+1.8)*scale,ox+(x+w-1.8)*scale,oy+(y+h-1.8)*scale]]
+ # Search around the expected glyphs, excluding heavier row rules at cell edges.
+ # A clipped or displaced label still fails the ink-bounds comparison below.
+ search=[ink[0]-min(3,ink[0]/2),ink[1]-min(3,ink[1]/2),ink[2]+min(3,(w-ink[2])/2),ink[3]+min(3,(h-ink[3])/2)]
+ left,top,right,bottom=[int(round(v)) for v in [ox+(x+search[0])*scale,oy+(y+search[1])*scale,ox+(x+search[2])*scale,oy+(y+search[3])*scale]]
  crop=np.asarray(img.crop((left,top,right,bottom)))
  ys,xs=np.where(crop.mean(axis=2)<200)
  if len(xs)==0:fail.append((label['text'],'empty PDF'));continue
